@@ -1,0 +1,1677 @@
+# =============================================================================
+# OPTIMIZED ADAPTIVE LIGHTING SYSTEM (OAL v13 - Production)
+# Architecture: Hybrid Adaptation Model + Zone-Aware Manual Control
+# Compatible with HA 2025.x + Adaptive Lighting
+# =============================================================================
+
+# =============================================================================
+# LAYER 1: INFRASTRUCTURE (GROUPED LIGHTS)
+# =============================================================================
+
+light:
+  - platform: group
+    name: "main_living_lights"
+    unique_id: "oal_main_living_lights_group_v13"
+    entities:
+      - light.entryway_lamp
+      - light.living_room_floor_lamp
+      - light.office_desk_lamp
+      - light.living_room_corner_accent
+      - light.living_room_couch_lamp
+      - light.living_room_credenza_light
+
+  - platform: group
+    name: "kitchen_island_lights"
+    unique_id: "oal_kitchen_island_lights_group_v13"
+    entities:
+      - light.kitchen_island_pendants
+
+  - platform: group
+    name: "bedroom_primary_lights"
+    unique_id: "oal_bedroom_primary_lights_group_v13"
+    entities:
+      - light.master_bedroom_table_lamps
+      - light.master_bedroom_corner_accent
+
+  - platform: group
+    name: "accent_spots_lights"
+    unique_id: "oal_accent_spots_lights_group_v13"
+    entities:
+      - light.dining_room_spot_lights
+      - light.living_room_spot_lights
+
+  - platform: group
+    name: "recessed_ceiling_lights"
+    unique_id: "oal_recessed_ceiling_lights_group_v13"
+    entities:
+      - light.kitchen_main_lights
+      - light.living_room_hallway_lights
+
+  - platform: group
+    name: "all_adaptive_lights"
+    unique_id: "oal_all_adaptive_lights_group_v13"
+    entities:
+      - light.entryway_lamp
+      - light.living_room_floor_lamp
+      - light.office_desk_lamp
+      - light.living_room_corner_accent
+      - light.living_room_couch_lamp
+      - light.living_room_credenza_light
+      - light.kitchen_island_pendants
+      - light.master_bedroom_table_lamps
+      - light.master_bedroom_corner_accent
+      - light.dining_room_spot_lights
+      - light.living_room_spot_lights
+      - light.kitchen_main_lights
+      - light.living_room_hallway_lights
+
+group:
+  oal_control_switches:
+    name: "OAL Control Switches"
+    entities:
+      - switch.adaptive_lighting_main_living
+      - switch.adaptive_lighting_kitchen_island
+      - switch.adaptive_lighting_bedroom_primary
+      - switch.adaptive_lighting_accent_spots
+      - switch.adaptive_lighting_recessed_ceiling
+
+# =============================================================================
+# LAYER 2: INPUTS & STATE TRACKING
+# =============================================================================
+
+input_select:
+  oal_active_configuration:
+    name: "OAL Active Configuration"
+    options:
+      - "Config 1: Baseline (All On)"
+      - "Config 2: Reduced Overhead (Recessed 2%)"
+      - "Config 3: Evening Relax (Recessed/Tracks Off)"
+      - "Config 4: Accents Only"
+      - "Global Manual Adjustment"
+    initial: "Config 1: Baseline (All On)"
+
+  oal_isolated_override_mode:
+    name: "OAL Isolated Override Mode"
+    options:
+      - "Off"
+      - "Work (Office Desk)"
+    initial: "Off"
+
+input_number:
+  # Global manual offsets (now used only as UI controls, not directly in engine brightness)
+  oal_offset_global_manual_brightness:
+    name: "OAL Global Manual Brightness Slider"
+    min: -100
+    max: 100
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+
+  oal_offset_global_manual_warmth:
+    name: "OAL Offset: Global K"
+    min: -2500
+    max: 2500
+    step: 50
+    initial: 0
+    unit_of_measurement: "K"
+
+  # Config / env / sunset offsets
+  oal_offset_config_brightness:
+    name: "OAL Offset: Config B"
+    min: -100
+    max: 100
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+
+  oal_offset_config_warmth:
+    name: "OAL Offset: Config K"
+    min: -2500
+    max: 2500
+    step: 50
+    initial: 0
+    unit_of_measurement: "K"
+
+  oal_offset_environmental_brightness:
+    name: "OAL Offset: Env B"
+    min: 0
+    max: 50
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+
+  oal_offset_environmental_warmth:
+    name: "OAL Offset: Env K Comp"
+    min: -1000
+    max: 0
+    step: 50
+    initial: 0
+    unit_of_measurement: "K"
+
+  oal_offset_sunset_brightness:
+    name: "OAL Offset: Sunset B"
+    min: -40
+    max: 20
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+
+  oal_offset_sunset_warmth:
+    name: "OAL Offset: Sunset K"
+    min: -1500
+    max: 0
+    step: 50
+    initial: 0
+    unit_of_measurement: "K"
+
+  # Control parameters
+  oal_control_zonal_timeout_hours:
+    name: "OAL Zonal Timeout (Hrs)"
+    min: 0.5
+    max: 12
+    step: 0.5
+    initial: 4
+
+  oal_control_transition_speed:
+    name: "OAL Transition Speed (Sec)"
+    min: 1
+    max: 10
+    step: 1
+    initial: 2
+
+  # Per-zone manual offsets (single source of truth for manual brightness)
+  oal_manual_offset_main_living_brightness:
+    name: "OAL Manual Offset - Main Living B"
+    min: -100
+    max: 100
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+
+  oal_manual_offset_kitchen_island_brightness:
+    name: "OAL Manual Offset - Kitchen Island B"
+    min: -100
+    max: 100
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+
+  oal_manual_offset_bedroom_primary_brightness:
+    name: "OAL Manual Offset - Bedroom Primary B"
+    min: -100
+    max: 100
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+
+  oal_manual_offset_accent_spots_brightness:
+    name: "OAL Manual Offset - Accent Spots B"
+    min: -100
+    max: 100
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+
+  oal_manual_offset_recessed_ceiling_brightness:
+    name: "OAL Manual Offset - Recessed Ceiling B"
+    min: -100
+    max: 100
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+
+input_boolean:
+  oal_system_paused:
+    name: "OAL System Paused"
+    initial: false
+
+  oal_environmental_boost_enabled:
+    name: "OAL Env Boost Enabled"
+    initial: true
+
+  oal_config_power_handoff_active:
+    name: "OAL Config Power Handoff Active"
+    initial: false
+
+  oal_disable_next_sonos_wakeup:
+    name: "OAL Disable Next Sonos Wakeup"
+    initial: false
+
+  oal_movie_mode_active:
+    name: "OAL Movie Mode Active"
+    initial: false
+
+  oal_autoreset_sync_lock:
+    name: "OAL Autoreset Sync Lock"
+    initial: false
+
+input_datetime:
+  zen32_last_button_press:
+    has_date: true
+    has_time: true
+
+  oal_last_engine_run:
+    has_date: true
+    has_time: true
+
+  oal_late_night_start:
+    name: "OAL Late Night Start"
+    has_date: false
+    has_time: true
+    initial: "22:00:00"
+
+# =============================================================================
+# LAYER 3: ADAPTIVE LIGHTING ZONES (BASELINE CURVES)
+# =============================================================================
+
+adaptive_lighting:
+  - name: "main_living"
+    lights: light.main_living_lights
+    interval: 90
+    transition: 1
+    initial_transition: 3
+    take_over_control: true
+    detect_non_ha_changes: true
+    adapt_delay: 1
+    include_config_in_attributes: true
+    autoreset_control_seconds: 14400
+    min_brightness: 45
+    max_brightness: 100
+    min_color_temp: 2250
+    max_color_temp: 2950
+    sleep_brightness: 25
+    sleep_color_temp: 1800
+
+  - name: "kitchen_island"
+    lights: light.kitchen_island_lights
+    interval: 90
+    transition: 1
+    initial_transition: 3
+    take_over_control: true
+    detect_non_ha_changes: true
+    adapt_delay: 1
+    include_config_in_attributes: true
+    autoreset_control_seconds: 14400
+    min_brightness: 30
+    max_brightness: 100
+    min_color_temp: 2000
+    max_color_temp: 4000
+    sleep_brightness: 5
+    sleep_color_temp: 2000
+
+  - name: "bedroom_primary"
+    lights: light.bedroom_primary_lights
+    interval: 90
+    transition: 1
+    initial_transition: 3
+    take_over_control: true
+    detect_non_ha_changes: true
+    adapt_delay: 1
+    include_config_in_attributes: true
+    autoreset_control_seconds: 14400
+    min_brightness: 20
+    max_brightness: 40
+    min_color_temp: 1800
+    max_color_temp: 2250
+    sleep_brightness: 5
+    sleep_color_temp: 1800
+
+  - name: "accent_spots"
+    lights: light.accent_spots_lights
+    interval: 90
+    transition: 1
+    initial_transition: 3
+    take_over_control: true
+    detect_non_ha_changes: true
+    adapt_delay: 1
+    include_config_in_attributes: true
+    autoreset_control_seconds: 14400
+    min_brightness: 20
+    max_brightness: 50
+    min_color_temp: 2000
+    max_color_temp: 6500
+    sleep_brightness: 1
+    sleep_color_temp: 2000
+
+  - name: "recessed_ceiling"
+    lights: light.recessed_ceiling_lights
+    interval: 90
+    transition: 1
+    initial_transition: 3
+    take_over_control: true
+    detect_non_ha_changes: true
+    adapt_delay: 1
+    include_config_in_attributes: true
+    autoreset_control_seconds: 14400
+    min_brightness: 2
+    max_brightness: 23
+    min_color_temp: 2700
+    max_color_temp: 2700
+    sleep_brightness: 1
+    sleep_color_temp: 2700
+
+# =============================================================================
+# LAYER 4: CORE ENGINE + GLOBAL LOGIC (AUTOMATIONS)
+# =============================================================================
+
+automation:
+  # ---------------------------------------------------------------------------
+  # 4.1 Core Adjustment Engine (brightness model + warmth model)
+  # ---------------------------------------------------------------------------
+  - id: oal_core_adjustment_engine_v13
+    alias: "OAL v13 - Core Adjustment Engine (Master)"
+    mode: queued
+    max: 3
+    trigger:
+      - platform: state
+        entity_id:
+          - input_number.oal_offset_global_manual_warmth
+          - input_number.oal_offset_config_brightness
+          - input_number.oal_offset_config_warmth
+          - input_number.oal_offset_environmental_brightness
+          - input_number.oal_offset_environmental_warmth
+          - input_number.oal_offset_sunset_brightness
+          - input_number.oal_offset_sunset_warmth
+          - input_number.oal_manual_offset_main_living_brightness
+          - input_number.oal_manual_offset_kitchen_island_brightness
+          - input_number.oal_manual_offset_bedroom_primary_brightness
+          - input_number.oal_manual_offset_accent_spots_brightness
+          - input_number.oal_manual_offset_recessed_ceiling_brightness
+        for: "00:00:01"
+      - platform: time_pattern
+        minutes: "/15"
+      - platform: event
+        event_type: oal_watchdog_trigger
+
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+
+    variables:
+      # Global offsets (manual brightness slider is NOT used in brightness math)
+      comp_manual_b: "{{ states('input_number.oal_offset_global_manual_brightness') | float(0) }}"
+      comp_manual_k: "{{ states('input_number.oal_offset_global_manual_warmth') | float(0) }}"
+      comp_config_b: "{{ states('input_number.oal_offset_config_brightness') | float(0) }}"
+      comp_config_k: "{{ states('input_number.oal_offset_config_warmth') | float(0) }}"
+      comp_env_b_raw: "{{ states('input_number.oal_offset_environmental_brightness') | float(0) }}"
+      comp_env_k: "{{ states('input_number.oal_offset_environmental_warmth') | float(0) }}"
+      comp_sunset_b: "{{ states('input_number.oal_offset_sunset_brightness') | float(0) }}"
+      comp_sunset_k: "{{ states('input_number.oal_offset_sunset_warmth') | float(0) }}"
+
+      base_config_sunset_b: >
+        {{ comp_config_b + comp_sunset_b }}
+
+      base_warmth_offset: >
+        {{ comp_manual_k + comp_config_k + comp_sunset_k + comp_env_k }}
+
+      transition_speed: "{{ states('input_number.oal_control_transition_speed') | int(2) }}"
+
+      zone_configs:
+        - entity_id: switch.adaptive_lighting_main_living
+          id: main_living
+          comfort_min_b: 45
+          comfort_max_b: 100
+          min_k: 2250
+          max_k: 2950
+          env_sensitivity: 1.0
+          hard_min_b: 1
+          hard_max_b: 100
+
+        - entity_id: switch.adaptive_lighting_kitchen_island
+          id: kitchen_island
+          comfort_min_b: 30
+          comfort_max_b: 100
+          min_k: 2000
+          max_k: 4000
+          env_sensitivity: 1.0
+          hard_min_b: 1
+          hard_max_b: 100
+
+        - entity_id: switch.adaptive_lighting_bedroom_primary
+          id: bedroom_primary
+          comfort_min_b: 20
+          comfort_max_b: 40
+          min_k: 1800
+          max_k: 2250
+          env_sensitivity: 0.5
+          hard_min_b: 1
+          hard_max_b: 80
+
+        - entity_id: switch.adaptive_lighting_accent_spots
+          id: accent_spots
+          comfort_min_b: 20
+          comfort_max_b: 50
+          min_k: 2000
+          max_k: 6500
+          env_sensitivity: 0.8
+          hard_min_b: 1
+          hard_max_b: 80
+
+        - entity_id: switch.adaptive_lighting_recessed_ceiling
+          id: recessed_ceiling
+          comfort_min_b: 2
+          comfort_max_b: 23
+          min_k: 2700
+          max_k: 2700
+          env_sensitivity: 0.6
+          hard_min_b: 1
+          hard_max_b: 40
+
+    action:
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.oal_last_engine_run
+        data:
+          datetime: "{{ now() }}"
+
+      - repeat:
+          for_each: "{{ zone_configs }}"
+          sequence:
+            - variables:
+                comfort_min_b: "{{ repeat.item.comfort_min_b | float }}"
+                comfort_max_b: "{{ repeat.item.comfort_max_b | float }}"
+                env_sensitivity: "{{ repeat.item.env_sensitivity | float }}"
+                hard_min_b: "{{ repeat.item.hard_min_b | float }}"
+                hard_max_b: "{{ repeat.item.hard_max_b | float }}"
+
+                # Baseline brightness from AL (for diagnostics only)
+                base_brightness_zone: >
+                  {{ state_attr(repeat.item.entity_id, 'brightness_pct')
+                     | float((comfort_min_b + comfort_max_b) / 2) }}
+
+                # Auto brightness (config + sunset + env) within comfort band
+                auto_offset_b: >
+                  {{ base_config_sunset_b + (comp_env_b_raw * env_sensitivity) }}
+
+                auto_min_raw: "{{ comfort_min_b + auto_offset_b }}"
+                auto_max_raw: "{{ comfort_max_b + auto_offset_b }}"
+
+                auto_min_clamped: >
+                  {{ [comfort_min_b, [comfort_max_b, auto_min_raw] | min] | max }}
+                auto_max_clamped: >
+                  {{ [comfort_min_b, [comfort_max_b, auto_max_raw] | min] | max }}
+
+                # Per-zone manual helper (single manual brightness source)
+                per_zone_manual_helper: >
+                  {% if repeat.item.id == 'main_living' %}
+                    {{ states('input_number.oal_manual_offset_main_living_brightness') | float(0) }}
+                  {% elif repeat.item.id == 'kitchen_island' %}
+                    {{ states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) }}
+                  {% elif repeat.item.id == 'bedroom_primary' %}
+                    {{ states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0) }}
+                  {% elif repeat.item.id == 'accent_spots' %}
+                    {{ states('input_number.oal_manual_offset_accent_spots_brightness') | float(0) }}
+                  {% elif repeat.item.id == 'recessed_ceiling' %}
+                    {{ states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0) }}
+                  {% else %}
+                    0
+                  {% endif %}
+
+                manual_offset_b: "{{ per_zone_manual_helper }}"
+
+                min_with_manual: "{{ auto_min_clamped + manual_offset_b }}"
+                max_with_manual: "{{ auto_max_clamped + manual_offset_b }}"
+
+                global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
+                global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
+
+                clamped_min_b: "{{ [hard_min_b, [hard_max_b, global_min_b] | min] | max }}"
+                clamped_max_b: "{{ [hard_min_b, [hard_max_b, global_max_b] | min] | max }}"
+
+                final_min_b: "{{ clamped_min_b }}"
+                final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
+
+                # Warmth behavior (global offset within zone band)
+                final_min_k: >
+                  {% if repeat.item.id != 'recessed_ceiling' %}
+                    {% set proposed_min_k = repeat.item.min_k + base_warmth_offset %}
+                    {{ [1800, [6500, proposed_min_k] | min] | max }}
+                  {% else %}
+                    {{ repeat.item.min_k }}
+                  {% endif %}
+
+                final_max_k: >
+                  {% if repeat.item.id != 'recessed_ceiling' %}
+                    {% set proposed_max_k = repeat.item.max_k + base_warmth_offset %}
+                    {% set clamped_k = [1800, [6500, proposed_max_k] | min] | max %}
+                    {{ [final_min_k, clamped_k] | max }}
+                  {% else %}
+                    {{ repeat.item.max_k }}
+                  {% endif %}
+
+            - service: adaptive_lighting.change_switch_settings
+              target:
+                entity_id: "{{ repeat.item.entity_id }}"
+              data:
+                min_brightness: "{{ final_min_b | round(0) }}"
+                max_brightness: "{{ final_max_b | round(0) }}"
+                min_color_temp: "{{ final_min_k | round(0) }}"
+                max_color_temp: "{{ final_max_k | round(0) }}"
+                transition: "{{ transition_speed }}"
+
+      - service: adaptive_lighting.apply
+        target:
+          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+        data:
+          turn_on_lights: false
+          transition: "{{ transition_speed }}"
+
+      - event: oal_engine_calculation_complete
+        event_data:
+          timestamp: "{{ now().isoformat() }}"
+          trigger_source: >
+            {{ trigger.platform ~ ':' ~ (trigger.entity_id | default('n/a')) }}
+          final_brightness_offset_total: >
+            {{ base_config_sunset_b + comp_env_b_raw }}
+          final_warmth_offset_total: "{{ base_warmth_offset }}"
+          comp_b_manual_slider: "{{ comp_manual_b }}"
+          comp_b_config: "{{ comp_config_b }}"
+          comp_b_env: "{{ comp_env_b_raw }}"
+          comp_b_sunset: "{{ comp_sunset_b }}"
+          comp_k_manual: "{{ comp_manual_k }}"
+          comp_k_config: "{{ comp_config_k }}"
+          comp_k_env: "{{ comp_env_k }}"
+          comp_k_sunset: "{{ comp_sunset_k }}"
+
+  # ---------------------------------------------------------------------------
+  # 4.2 Configuration Manager (presets + power handoff)
+  # ---------------------------------------------------------------------------
+  - id: oal_configuration_manager_v13
+    alias: "OAL v13 - Configuration Manager (Power Handoff)"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: input_select.oal_active_configuration
+    variables:
+      config: "{{ states('input_select.oal_active_configuration') }}"
+      transition_speed: "{{ states('input_number.oal_control_transition_speed') | int(2) }}"
+      config_profiles:
+        "Config 1: Baseline (All On)":
+          b: 0
+          k: 0
+          lights_off: []
+          lights_dimmed: {}
+        "Config 2: Reduced Overhead (Recessed 2%)":
+          b: 5
+          k: 0
+          lights_off: []
+          lights_dimmed:
+            light.recessed_ceiling_lights: 2
+        "Config 3: Evening Relax (Recessed/Tracks Off)":
+          b: -10
+          k: -500
+          lights_off:
+            - light.recessed_ceiling_lights
+            - light.accent_spots_lights
+          lights_dimmed: {}
+        "Config 4: Accents Only":
+          b: -40
+          k: -1000
+          lights_off:
+            - light.recessed_ceiling_lights
+            - light.accent_spots_lights
+            - light.kitchen_island_lights
+            - light.living_room_floor_lamp
+            - light.living_room_couch_lamp
+            - light.office_desk_lamp
+            - light.master_bedroom_table_lamps
+          lights_dimmed: {}
+        "Global Manual Adjustment":
+          b: 0
+          k: 0
+          lights_off: []
+          lights_dimmed: {}
+    action:
+      # Cleanup previous config if power handoff was active
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.oal_config_power_handoff_active
+                state: "on"
+              - condition: template
+                value_template: "{{ trigger.from_state is not none }}"
+            sequence:
+              - variables:
+                  prev_config_name: "{{ trigger.from_state.state }}"
+                  prev_profile: "{{ config_profiles.get(prev_config_name, {}) }}"
+                  prev_controlled_lights: >
+                    {{ prev_profile.get('lights_off', []) + (prev_profile.get('lights_dimmed', {}).keys() | list) }}
+              - service: adaptive_lighting.set_manual_control
+                data:
+                  lights: "{{ prev_controlled_lights }}"
+                  manual_control: false
+              - service: adaptive_lighting.apply
+                data:
+                  lights: "{{ prev_controlled_lights }}"
+                  turn_on_lights: true
+                  transition: "{{ transition_speed + 1 }}"
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.oal_config_power_handoff_active
+
+      # Apply new config offsets for non-manual mode
+      - condition: template
+        value_template: "{{ config != 'Global Manual Adjustment' }}"
+      - variables:
+          target_profile: "{{ config_profiles.get(config) }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_config_brightness
+        data:
+          value: "{{ target_profile.b }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_config_warmth
+        data:
+          value: "{{ target_profile.k }}"
+
+      # Power handoff overrides
+      - variables:
+          lights_to_turn_off: "{{ target_profile.get('lights_off', []) }}"
+          lights_to_dim: "{{ target_profile.get('lights_dimmed', {}) }}"
+
+      - condition: template
+        value_template: >
+          {{ (lights_to_turn_off | length > 0) or (lights_to_dim | length > 0) }}
+
+      - delay: "00:00:02"
+
+      - repeat:
+          for_each: "{{ lights_to_dim | dictsort }}"
+          sequence:
+            - service: light.turn_on
+              target:
+                entity_id: "{{ repeat.item[0] }}"
+              data:
+                brightness_pct: "{{ repeat.item[1] }}"
+                transition: "{{ transition_speed }}"
+
+      - if: "{{ lights_to_turn_off | length > 0 }}"
+        then:
+          - service: light.turn_off
+            target:
+              entity_id: "{{ lights_to_turn_off }}"
+            data:
+              transition: "{{ transition_speed }}"
+
+      - service: adaptive_lighting.set_manual_control
+        data:
+          lights: "{{ lights_to_turn_off + (lights_to_dim.keys() | list) }}"
+          manual_control: true
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.oal_config_power_handoff_active
+
+  # ---------------------------------------------------------------------------
+  # 4.3 Sunset Gaussian offsets (brightness + warmth)
+  # ---------------------------------------------------------------------------
+  - id: oal_sunset_logic_unified_v13
+    alias: "OAL v13 - Seamless Sunset Logic (Unified Gaussian Curve)"
+    trigger:
+      - platform: time_pattern
+        minutes: "/1"
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+    variables:
+      elevation: "{{ state_attr('sun.sun', 'elevation') | float(90) }}"
+      e: 2.71828
+      brightness_offset: >
+        {% if 8 >= elevation >= -8 %}
+          {% set gauss = e ** ( - (elevation ** 2) / (2 * (4 ** 2)) ) %}
+          {{ (gauss * 15) | round(0) }}
+        {% else %}
+          0
+        {% endif %}
+      warmth_offset: >
+        {% if 5 >= elevation >= -5 %}
+          {% set gauss = e ** ( - (elevation ** 2) / (2 * (2.5 ** 2)) ) %}
+          {{ (gauss * -1500) | round(0) }}
+        {% else %}
+          0
+        {% endif %}
+    action:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_sunset_brightness
+        data:
+          value: "{{ brightness_offset }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_sunset_warmth
+        data:
+          value: "{{ warmth_offset }}"
+
+  # ---------------------------------------------------------------------------
+  # 4.4 Environmental adaptation (lux + weather + season)
+  # ---------------------------------------------------------------------------
+  - id: oal_environmental_manager_v13
+    alias: "OAL v13 - Environmental Adaptation Manager (Maximized)"
+    trigger:
+      - platform: state
+        entity_id: sensor.living_room_presence_light_sensor_light_level
+      - platform: state
+        entity_id: weather.home
+      - platform: state
+        entity_id: input_boolean.oal_environmental_boost_enabled
+      - platform: time_pattern
+        minutes: "/5"
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+      - condition: template
+        value_template: >
+          {{ states('sensor.living_room_presence_light_sensor_light_level') not in ['unknown', 'unavailable']
+             and states('weather.home') not in ['unknown', 'unavailable'] }}
+    variables:
+      current_boost: "{{ states('input_number.oal_offset_environmental_brightness') | float(0) }}"
+      current_warmth: "{{ states('input_number.oal_offset_environmental_warmth') | float(0) }}"
+      calculated_boost: >
+        {% if is_state('input_boolean.oal_environmental_boost_enabled', 'off') %}
+          0
+        {% else %}
+          {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+          {% set weather = states('weather.home') %}
+          {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
+          {% set base_boost = 0 %}
+
+          {% if lux < 10 %}
+            {% set base_boost = base_boost + 18 %}
+          {% elif lux < 50 %}
+            {% set base_boost = base_boost + 10 %}
+          {% elif lux < 150 %}
+            {% set base_boost = base_boost + 5 %}
+          {% elif lux < 300 %}
+            {% set base_boost = base_boost + 2 %}
+          {% endif %}
+
+          {% set weather_boost = {
+            'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
+            'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
+            'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
+          } %}
+          {% set base_boost = base_boost + weather_boost.get(weather, 0) %}
+
+          {% if season == 'winter' %}
+            {% set base_boost = base_boost + 8 %}
+          {% endif %}
+
+          {% set hour = now().hour %}
+          {% if 22 <= hour or hour <= 6 or lux > 2500 %}
+            {% set base_boost = 0 %}
+          {% elif 6 < hour <= 8 or 18 <= hour < 22 %}
+            {% set base_boost = base_boost * 0.7 %}
+          {% endif %}
+          {{ [50, base_boost] | min | round(0) }}
+        {% endif %}
+      final_boost: >
+        {% if (calculated_boost - current_boost) | abs > 4 %}
+          {{ calculated_boost }}
+        {% else %}
+          {{ current_boost }}
+        {% endif %}
+      calculated_warmth: >
+        {% if final_boost >= 15 %}
+          {% set scale = (final_boost - 15) / 35 %}
+          {{ (-200 + (scale * -800)) | round(0) }}
+        {% else %}
+          0
+        {% endif %}
+      final_warmth: >
+        {% if (calculated_warmth - current_warmth) | abs > 100 %}
+          {{ calculated_warmth }}
+        {% else %}
+          {{ current_warmth }}
+        {% endif %}
+    action:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_environmental_brightness
+        data:
+          value: "{{ final_boost }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_environmental_warmth
+        data:
+          value: "{{ final_warmth }}"
+
+  # ---------------------------------------------------------------------------
+  # 4.5 Isolated override (work mode on office desk lamp)
+  # ---------------------------------------------------------------------------
+  - id: oal_isolated_override_manager_v13
+    alias: "OAL v13 - Isolated Override Manager"
+    trigger:
+      - platform: state
+        entity_id: input_select.oal_isolated_override_mode
+    variables:
+      mode: "{{ states('input_select.oal_isolated_override_mode') }}"
+      transition_speed: "{{ states('input_number.oal_control_transition_speed') | int(2) }}"
+    action:
+      - condition: template
+        value_template: >
+          {{ trigger.from_state is not none and trigger.from_state.state == 'Work (Office Desk)' }}
+      - service: adaptive_lighting.set_manual_control
+        data:
+          entity_id: switch.adaptive_lighting_main_living
+          lights: light.office_desk_lamp
+          manual_control: false
+      - service: adaptive_lighting.apply
+        data:
+          entity_id: switch.adaptive_lighting_main_living
+          lights: light.office_desk_lamp
+          transition: "{{ transition_speed }}"
+      - condition: template
+        value_template: "{{ mode == 'Work (Office Desk)' }}"
+      - service: adaptive_lighting.apply
+        data:
+          entity_id: switch.adaptive_lighting_main_living
+          lights: light.office_desk_lamp
+          brightness_pct: 100
+          color_temp_kelvin: 4000
+          transition: "{{ transition_speed }}"
+          turn_on_lights: true
+          set_manual_control: true
+
+  # ---------------------------------------------------------------------------
+  # 4.6 Zen32 controller integration (CARB/CART + resets)
+  # ---------------------------------------------------------------------------
+  - id: oal_zen32_controller_handler_v13
+    alias: "OAL v13 - Zen32 Controller Handler"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: event.scene_controller_scene_001
+        id: "button_1"
+      - platform: state
+        entity_id: event.scene_controller_scene_002
+        id: "button_2"
+      - platform: state
+        entity_id: event.scene_controller_scene_003
+        id: "button_3"
+      - platform: state
+        entity_id: event.scene_controller_scene_004
+        id: "button_4"
+      - platform: state
+        entity_id: event.scene_controller_scene_005
+        id: "button_5"
+    variables:
+      event_type: "{{ trigger.to_state.attributes.event_type | default('unknown') }}"
+      button_id: "{{ trigger.id }}"
+    condition:
+      - condition: template
+        value_template: "{{ event_type in ['KeyPressed', 'KeyHeldDown', 'KeyPressed2x'] }}"
+      - condition: template
+        value_template: >
+          {{ (now().timestamp() - (states('input_datetime.zen32_last_button_press') | as_timestamp(0))) > 0.5 }}
+    action:
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_last_button_press
+        data:
+          datetime: "{{ now() }}"
+      - choose:
+          # Button 1 – cycle configs (skip Global Manual Adjustment)
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed' }}"
+            sequence:
+              - repeat:
+                  sequence:
+                    - service: input_select.select_next
+                      target:
+                        entity_id: input_select.oal_active_configuration
+                      data:
+                        cycle: true
+                  until: >
+                    {{ states('input_select.oal_active_configuration') != 'Global Manual Adjustment' }}
+
+          # Button 2 – brighter (press) / cooler (hold)
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' }}"
+            sequence:
+              - service: script.oal_global_manual_brighter
+
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyHeldDown' }}"
+            sequence:
+              - service: script.oal_global_manual_cooler
+
+          # Button 4 – dimmer (press) / warmer (hold)
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' }}"
+            sequence:
+              - service: script.oal_global_manual_dimmer
+
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyHeldDown' }}"
+            sequence:
+              - service: script.oal_global_manual_warmer
+
+          # Button 3 – soft reset (press) / global reset (hold)
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' }}"
+            sequence:
+              - service: script.oal_reset_soft
+
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' }}"
+            sequence:
+              - service: script.oal_reset_global
+
+          # Button 5 – toggle all adaptive lights
+          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed' }}"
+            sequence:
+              - service: light.toggle
+                target:
+                  entity_id: light.all_adaptive_lights
+
+  # ---------------------------------------------------------------------------
+  # 4.7 Global manual slider handler (uses same step logic as Zen32)
+  # ---------------------------------------------------------------------------
+  - id: oal_global_manual_slider_handler_v13
+    alias: "OAL v13 - Global Manual Slider Handler"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: input_number.oal_offset_global_manual_brightness
+    action:
+      - variables:
+          prev: "{{ trigger.from_state.state | float(0) if trigger.from_state is not none else 0 }}"
+          curr: "{{ trigger.to_state.state | float(0) }}"
+          dir: >
+            {% if curr > prev %} 1
+            {% elif curr < prev %} -1
+            {% else %} 0
+            {% endif %}
+      - choose:
+          - conditions: "{{ dir != 0 }}"
+            sequence:
+              - service: script.oal_manual_brightness_step
+                data:
+                  direction: "{{ dir }}"
+              - service: script.oal_global_adjustment_start
+
+  # ---------------------------------------------------------------------------
+  # 4.8 Dynamic sunrise from Sonos alarms
+  # ---------------------------------------------------------------------------
+  - id: oal_dynamic_sunrise_manager_v13
+    alias: "OAL v13 - Dynamic Sunrise Manager"
+    trigger:
+      - platform: state
+        entity_id: sensor.sonos_upcoming_alarms
+        attribute: earliest_alarm_timestamp
+      - platform: time
+        at: "03:05:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_disable_next_sonos_wakeup
+        state: "off"
+    variables:
+      al_switches: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+    action:
+      - repeat:
+          count: "{{ al_switches | length }}"
+          sequence:
+            - variables:
+                current_switch: "{{ al_switches[repeat.index - 1] }}"
+                alarm_timestamp: "{{ state_attr('sensor.sonos_upcoming_alarms', 'earliest_alarm_timestamp') | int(0) }}"
+                alarm_offset: >
+                  {% if 'bedroom_primary' in current_switch %}
+                    -1800
+                  {% elif 'main_living' in current_switch %}
+                    -1200
+                  {% elif 'kitchen_island' in current_switch %}
+                    -2700
+                  {% else %}
+                    -1500
+                  {% endif %}
+                final_sunrise_time: >
+                  {% if alarm_timestamp > 0 %}
+                    {% set final_time = alarm_timestamp + alarm_offset %}
+                    {{ final_time | timestamp_custom('%H:%M:%S', true) }}
+                  {% else %}
+                    {{ none }}
+                  {% endif %}
+            - service: adaptive_lighting.change_switch_settings
+              data:
+                entity_id: "{{ current_switch }}"
+                sunrise_time: "{{ final_sunrise_time }}"
+
+  # ---------------------------------------------------------------------------
+  # 4.9 Wake-up sequence (staged brightening)
+  # ---------------------------------------------------------------------------
+  - id: oal_wake_up_sequence_v13
+    alias: "OAL v13 - Wake-up Sequence (Staged Brightening)"
+    mode: single
+    trigger:
+      - platform: time_pattern
+        minutes: "/1"
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_disable_next_sonos_wakeup
+        state: "off"
+      - condition: template
+        value_template: >
+          {% set bedroom_sunrise_str = state_attr('switch.adaptive_lighting_bedroom_primary', 'sunrise_time') %}
+          {% if bedroom_sunrise_str %}
+            {% set sunrise_dt = today_at(bedroom_sunrise_str) %}
+            {% if sunrise_dt %}
+              {% set now_ts = now().timestamp() %}
+              {% set sunrise_ts = sunrise_dt.timestamp() %}
+              {{ sunrise_ts <= now_ts < (sunrise_ts + 60) }}
+            {% else %}
+              false
+            {% endif %}
+          {% else %}
+            false
+          {% endif %}
+    action:
+      - service: adaptive_lighting.apply
+        data:
+          entity_id: switch.adaptive_lighting_bedroom_primary
+          brightness_pct: 50
+          transition: 600
+          turn_on_lights: true
+          set_manual_control: true
+      - service: adaptive_lighting.apply
+        data:
+          entity_id: switch.adaptive_lighting_main_living
+          lights: light.entryway_lamp
+          brightness_pct: 50
+          transition: 600
+          turn_on_lights: true
+          set_manual_control: true
+      - delay: "00:10:00"
+      - service: adaptive_lighting.apply
+        data:
+          entity_id: switch.adaptive_lighting_kitchen_island
+          brightness_pct: 80
+          transition: 600
+          turn_on_lights: true
+          set_manual_control: true
+      - service: adaptive_lighting.apply
+        data:
+          entity_id: switch.adaptive_lighting_bedroom_primary
+          brightness_pct: 80
+          transition: 600
+
+  # ---------------------------------------------------------------------------
+  # 4.10 Movie mode (snapshot + restore)
+  # ---------------------------------------------------------------------------
+  - id: oal_movie_mode_handler_v13
+    alias: "OAL v13 - Movie Mode Handler"
+    trigger:
+      - platform: state
+        entity_id: media_player.apple_tv
+        to: "playing"
+        id: "start_movie"
+      - platform: state
+        entity_id: media_player.apple_tv
+        to:
+          - "paused"
+          - "idle"
+          - "off"
+          - "standby"
+        for: "00:01:30"
+        id: "end_movie"
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+    action:
+      - choose:
+          - conditions: "{{ trigger.id == 'start_movie' }}"
+            sequence:
+              - service: scene.create
+                data:
+                  scene_id: oal_before_movie
+                  snapshot_entities:
+                    - light.all_adaptive_lights
+              - service: light.turn_off
+                target:
+                  entity_id:
+                    - light.main_living_lights
+                    - light.kitchen_island_lights
+                    - light.recessed_ceiling_lights
+                data:
+                  transition: 3
+              - service: light.turn_on
+                target:
+                  entity_id: light.accent_spots_lights
+                data:
+                  brightness_pct: 10
+                  color_temp_kelvin: 2000
+                  transition: 3
+              - service: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.oal_movie_mode_active
+
+          - conditions: "{{ trigger.id == 'end_movie' }}"
+            sequence:
+              - condition: state
+                entity_id: input_boolean.oal_movie_mode_active
+                state: "on"
+              - service: scene.turn_on
+                target:
+                  entity_id: scene.oal_before_movie
+                data:
+                  transition: 3
+              - service: adaptive_lighting.set_manual_control
+                target:
+                  entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+                data:
+                  manual_control: false
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.oal_movie_mode_active
+
+  # ---------------------------------------------------------------------------
+  # 4.11 Sleep-mode schedule (toggle AL sleep switches)
+  # ---------------------------------------------------------------------------
+  - id: oal_manage_sleep_mode_v13
+    alias: "OAL v13 - Manage Sleep Mode Schedule"
+    trigger:
+      - platform: time
+        at: input_datetime.oal_late_night_start
+        id: "start_sleep"
+      - platform: time
+        at: "06:00:00"
+        id: "end_sleep"
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+    variables:
+      sleep_switches: >
+        {{ states.switch
+           | selectattr('entity_id', 'search', 'adaptive_lighting_sleep_mode_')
+           | map(attribute='entity_id') | list }}
+    action:
+      - service: "switch.turn_{{ 'on' if trigger.id == 'start_sleep' else 'off' }}"
+        target:
+          entity_id: "{{ sleep_switches }}"
+
+  # ---------------------------------------------------------------------------
+  # 4.12 System startup
+  # ---------------------------------------------------------------------------
+  - id: oal_system_startup_v13
+    alias: "OAL v13 - System Startup Initialization"
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      - wait_for_trigger:
+          - platform: event
+            event_type: component_loaded
+            event_data:
+              component: adaptive_lighting
+      - delay: "00:00:10"
+      - service: switch.turn_off
+        target:
+          entity_id: switch.adaptive_lighting_recessed_ceiling_adapt_color
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.oal_system_paused
+      - service: script.oal_reset_global
+
+  # ---------------------------------------------------------------------------
+  # 4.13 Watchdog (ensure engine runs at least every 30 minutes)
+  # ---------------------------------------------------------------------------
+  - id: oal_watchdog_service_v13
+    alias: "OAL v13 - Watchdog Service"
+    trigger:
+      - platform: time_pattern
+        minutes: "/10"
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+      - condition: template
+        value_template: >
+          {{ (now().timestamp() - (states('input_datetime.oal_last_engine_run') | as_timestamp(0))) > 1800 }}
+    action:
+      - event: oal_watchdog_trigger
+        event_data:
+          message: "Engine run time stale, proactively triggering."
+
+  # ---------------------------------------------------------------------------
+  # 4.14 Nightly maintenance
+  # ---------------------------------------------------------------------------
+  - id: oal_nightly_maintenance_v13
+    alias: "OAL v13 - Nightly Maintenance (Clear Stuck Manual)"
+    trigger:
+      - platform: time
+        at: "03:00:00"
+    action:
+      - service: adaptive_lighting.set_manual_control
+        target:
+          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+        data:
+          manual_control: false
+      - condition: template
+        value_template: >
+          {{ (now().timestamp() - (states('input_datetime.zen32_last_button_press') | as_timestamp(0))) > 86400 }}
+      - service: script.oal_reset_soft
+
+  # ---------------------------------------------------------------------------
+  # 4.15 Global pause (toggle all AL switches)
+  # ---------------------------------------------------------------------------
+  - id: oal_global_pause_manager_v13
+    alias: "OAL v13 - Global Pause Manager"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.oal_system_paused
+    action:
+      - service: "switch.turn_{{ 'off' if trigger.to_state.state == 'on' else 'on' }}"
+        target:
+          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+
+  # ---------------------------------------------------------------------------
+  # 4.16 Autoreset sync (input_number → AL switches)
+  # ---------------------------------------------------------------------------
+  - id: oal_autoreset_from_input_v13
+    alias: "OAL v13 - Autoreset Sync (Input → AL)"
+    trigger:
+      - platform: state
+        entity_id: input_number.oal_control_zonal_timeout_hours
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_autoreset_sync_lock
+        state: "off"
+    variables:
+      autoreset_seconds: "{{ (states('input_number.oal_control_zonal_timeout_hours') | float(4) * 3600) | int }}"
+    action:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.oal_autoreset_sync_lock
+      - service: adaptive_lighting.change_switch_settings
+        target:
+          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+        data:
+          autoreset_control_seconds: "{{ autoreset_seconds }}"
+      - delay: "00:00:01"
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.oal_autoreset_sync_lock
+
+  # ---------------------------------------------------------------------------
+  # 4.17 Autoreset sync (AL switches → input_number)
+  # ---------------------------------------------------------------------------
+  - id: oal_autoreset_from_switch_v13
+    alias: "OAL v13 - Autoreset Sync (AL → Input)"
+    trigger:
+      - platform: state
+        entity_id:
+          - switch.adaptive_lighting_main_living
+          - switch.adaptive_lighting_kitchen_island
+          - switch.adaptive_lighting_bedroom_primary
+          - switch.adaptive_lighting_accent_spots
+          - switch.adaptive_lighting_recessed_ceiling
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_autoreset_sync_lock
+        state: "off"
+      - condition: template
+        value_template: >
+          {% set seconds = state_attr(trigger.entity_id, 'autoreset_control_seconds') | int(0) %}
+          {% if seconds <= 0 %}
+            false
+          {% else %}
+            {% set new_hours = seconds / 3600 %}
+            {% set current_hours = states('input_number.oal_control_zonal_timeout_hours') | float(4) %}
+            {{ (new_hours - current_hours) | abs > 0.01 }}
+          {% endif %}
+    action:
+      - variables:
+          seconds: "{{ state_attr(trigger.entity_id, 'autoreset_control_seconds') | int(0) }}"
+          new_hours: "{{ (seconds / 3600) if seconds > 0 else 0 }}"
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.oal_autoreset_sync_lock
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_control_zonal_timeout_hours
+        data:
+          value: "{{ new_hours }}"
+      - delay: "00:00:01"
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.oal_autoreset_sync_lock
+
+# =============================================================================
+# LAYER 5: SCRIPTS (MANUAL PIPELINE + CART/CARB + RESETS)
+# =============================================================================
+
+script:
+  oal_global_adjustment_start:
+    alias: "OAL Global Adjustment Start (Helper)"
+    sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.oal_active_configuration
+        data:
+          option: "Global Manual Adjustment"
+
+  # Single shared manual brightness stepper (per-zone, B_base-aware)
+  oal_manual_brightness_step:
+    alias: "OAL v13 - Manual Brightness Step (Per-Zone, B_base-aware)"
+    fields:
+      direction:
+        description: "1 for brighter, -1 for dimmer"
+        example: 1
+    sequence:
+      - variables:
+          dir: "{{ direction | int(1) }}"
+          zones:
+            - id: main_living
+              switch: switch.adaptive_lighting_main_living
+              helper: input_number.oal_manual_offset_main_living_brightness
+              sensitivity: 1.0
+            - id: kitchen_island
+              switch: switch.adaptive_lighting_kitchen_island
+              helper: input_number.oal_manual_offset_kitchen_island_brightness
+              sensitivity: 0.9
+            - id: bedroom_primary
+              switch: switch.adaptive_lighting_bedroom_primary
+              helper: input_number.oal_manual_offset_bedroom_primary_brightness
+              sensitivity: 0.7
+            - id: accent_spots
+              switch: switch.adaptive_lighting_accent_spots
+              helper: input_number.oal_manual_offset_accent_spots_brightness
+              sensitivity: 0.6
+            - id: recessed_ceiling
+              switch: switch.adaptive_lighting_recessed_ceiling
+              helper: input_number.oal_manual_offset_recessed_ceiling_brightness
+              sensitivity: 0.3
+      - repeat:
+          for_each: "{{ zones }}"
+          sequence:
+            - variables:
+                b_base: >
+                  {{ state_attr(repeat.item.switch, 'brightness_pct') | float(50) }}
+                base_step: >
+                  {% if dir == 1 %}
+                    {% if b_base < 30 %} 10
+                    {% elif b_base < 60 %} 15
+                    {% else %} 20
+                    {% endif %}
+                  {% else %}
+                    {% if b_base < 40 %} 10
+                    {% elif b_base < 70 %} 15
+                    {% else %} 20
+                    {% endif %}
+                  {% endif %}
+                step: "{{ base_step * (repeat.item.sensitivity | float(1.0)) }}"
+                current_offset: "{{ states(repeat.item.helper) | float(0) }}"
+                raw_new: "{{ current_offset + (step * dir) }}"
+                new_value: "{{ [-100, [100, raw_new] | min] | max }}"
+            - service: input_number.set_value
+              target:
+                entity_id: "{{ repeat.item.helper }}"
+              data:
+                value: "{{ new_value }}"
+
+  oal_global_manual_brighter:
+    alias: "OAL v13 Global Brighter (CARB, unified pipeline)"
+    icon: mdi:brightness-7
+    sequence:
+      - service: script.oal_manual_brightness_step
+        data:
+          direction: 1
+      - service: script.oal_global_adjustment_start
+
+  oal_global_manual_dimmer:
+    alias: "OAL v13 Global Dimmer (CARB, unified pipeline)"
+    icon: mdi:brightness-5
+    sequence:
+      - service: script.oal_manual_brightness_step
+        data:
+          direction: -1
+      - service: script.oal_global_adjustment_start
+
+  oal_global_manual_cooler:
+    alias: "OAL v13 Global Cooler (CART)"
+    icon: mdi:thermometer-plus
+    sequence:
+      - variables:
+          current_offset: "{{ states('input_number.oal_offset_global_manual_warmth') | float(0) }}"
+          avg_temp: "{{ states('sensor.oal_average_active_color_temperature') | float(3000) }}"
+          increment: >
+            {% if avg_temp < 2500 %} 700
+            {% elif avg_temp < 4500 %} 500
+            {% else %} 300
+            {% endif %}
+          new_value: "{{ [2500, current_offset + increment] | min }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_global_manual_warmth
+        data:
+          value: "{{ new_value }}"
+      - service: script.oal_global_adjustment_start
+
+  oal_global_manual_warmer:
+    alias: "OAL v13 Global Warmer (CART)"
+    icon: mdi:thermometer-minus
+    sequence:
+      - variables:
+          current_offset: "{{ states('input_number.oal_offset_global_manual_warmth') | float(0) }}"
+          avg_temp: "{{ states('sensor.oal_average_active_color_temperature') | float(3000) }}"
+          increment: >
+            {% if avg_temp < 2500 %} 300
+            {% elif avg_temp < 4500 %} 500
+            {% else %} 700
+            {% endif %}
+          new_value: "{{ [-2500, current_offset - increment] | max }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_global_manual_warmth
+        data:
+          value: "{{ new_value }}"
+      - service: script.oal_global_adjustment_start
+
+  oal_reset_soft:
+    alias: "OAL v13 Reset Soft (Manual, Configs, Zonal)"
+    icon: mdi:restore
+    sequence:
+      - service: input_number.set_value
+        target:
+          entity_id:
+            - input_number.oal_offset_global_manual_brightness
+            - input_number.oal_offset_global_manual_warmth
+            - input_number.oal_manual_offset_main_living_brightness
+            - input_number.oal_manual_offset_kitchen_island_brightness
+            - input_number.oal_manual_offset_bedroom_primary_brightness
+            - input_number.oal_manual_offset_accent_spots_brightness
+            - input_number.oal_manual_offset_recessed_ceiling_brightness
+        data:
+          value: 0
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.oal_active_configuration
+        data:
+          option: "Config 1: Baseline (All On)"
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.oal_isolated_override_mode
+        data:
+          option: "Off"
+      - service: adaptive_lighting.set_manual_control
+        target:
+          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+        data:
+          manual_control: false
+
+  oal_reset_global:
+    alias: "OAL v13 Reset Global (Nuclear)"
+    icon: mdi:refresh-circle
+    sequence:
+      - service: script.oal_reset_soft
+      - service: input_number.set_value
+        target:
+          entity_id:
+            - input_number.oal_offset_environmental_brightness
+            - input_number.oal_offset_environmental_warmth
+            - input_number.oal_offset_sunset_brightness
+            - input_number.oal_offset_sunset_warmth
+        data:
+          value: 0
+      - service: adaptive_lighting.change_switch_settings
+        target:
+          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+        data:
+          use_defaults: "configuration"
+
+# =============================================================================
+# LAYER 6: TEMPLATE SENSORS (DIAGNOSTICS & MONITORING)
+# =============================================================================
+
+template:
+  - sensor:
+      # -----------------------------------------------------------------------
+      # 6.1 Real-time monitor (baseline vs boosted, per-zone)
+      # -----------------------------------------------------------------------
+      - name: "OAL Real-Time Monitor"
+        unique_id: oal_realtime_monitor_v13
+        state: >
+          {% set b_cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+          {% set b_env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+          {% set b_sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+          {% set zones = [
+            states('input_number.oal_manual_offset_main_living_brightness') | float(0),
+            states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0),
+            states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0),
+            states('input_number.oal_manual_offset_accent_spots_brightness') | float(0),
+            states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0)
+          ] %}
+          {% set max_zone = (zones | map('abs') | max) if zones | length > 0 else 0 %}
+          {% if b_cfg == 0 and b_env == 0 and b_sun == 0 and max_zone == 0 %}
+            Baseline
+          {% else %}
+            Boosted
+          {% endif %}
+        attributes:
+          # Global offsets
+          b_config_offset: "{{ states('input_number.oal_offset_config_brightness') | float(0) }}"
+          b_environmental_offset: "{{ states('input_number.oal_offset_environmental_brightness') | float(0) }}"
+          b_sunset_offset: "{{ states('input_number.oal_offset_sunset_brightness') | float(0) }}"
+          k_global_manual: "{{ states('input_number.oal_offset_global_manual_warmth') | float(0) }}"
+          k_config_offset: "{{ states('input_number.oal_offset_config_warmth') | float(0) }}"
+          k_environmental_offset: "{{ states('input_number.oal_offset_environmental_warmth') | float(0) }}"
+          k_sunset_offset: "{{ states('input_number.oal_offset_sunset_warmth') | float(0) }}"
+
+          # Main living
+          main_living_baseline_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_main_living', 'brightness_pct') | float(0) }}
+          main_living_effective_min_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_main_living', 'min_brightness') | float(0) }}
+          main_living_effective_max_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_main_living', 'max_brightness') | float(0) }}
+          main_living_manual_offset_brightness_pct: >
+            {{ states('input_number.oal_manual_offset_main_living_brightness') | float(0) }}
+
+          # Kitchen island
+          kitchen_island_baseline_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_kitchen_island', 'brightness_pct') | float(0) }}
+          kitchen_island_effective_min_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_kitchen_island', 'min_brightness') | float(0) }}
+          kitchen_island_effective_max_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_kitchen_island', 'max_brightness') | float(0) }}
+          kitchen_island_manual_offset_brightness_pct: >
+            {{ states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) }}
+
+          # Bedroom primary
+          bedroom_primary_baseline_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'brightness_pct') | float(0) }}
+          bedroom_primary_effective_min_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'min_brightness') | float(0) }}
+          bedroom_primary_effective_max_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'max_brightness') | float(0) }}
+          bedroom_primary_manual_offset_brightness_pct: >
+            {{ states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0) }}
+
+          # Accent spots
+          accent_spots_baseline_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_accent_spots', 'brightness_pct') | float(0) }}
+          accent_spots_effective_min_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_accent_spots', 'min_brightness') | float(0) }}
+          accent_spots_effective_max_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_accent_spots', 'max_brightness') | float(0) }}
+          accent_spots_manual_offset_brightness_pct: >
+            {{ states('input_number.oal_manual_offset_accent_spots_brightness') | float(0) }}
+
+          # Recessed ceiling
+          recessed_ceiling_baseline_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'brightness_pct') | float(0) }}
+          recessed_ceiling_effective_min_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'min_brightness') | float(0) }}
+          recessed_ceiling_effective_max_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'max_brightness') | float(0) }}
+          recessed_ceiling_manual_offset_brightness_pct: >
+            {{ states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0) }}
+
+      # -----------------------------------------------------------------------
+      # 6.2 Average active color temperature (safe aggregate for warmth)
+      # -----------------------------------------------------------------------
+      - name: "OAL Average Active Color Temperature"
+        unique_id: oal_average_active_color_temperature_v13
+        unit_of_measurement: "K"
+        state: >
+          {% set switches = expand('group.oal_control_switches') %}
+          {% set active_color_switches = switches
+              | selectattr('state', 'eq', 'on')
+              | selectattr('attributes.adapt_color', 'defined')
+              | selectattr('attributes.adapt_color', 'eq', true)
+              | list %}
+          {% if active_color_switches | length > 0 %}
+            {% set values = active_color_switches
+                | map(attribute='attributes.color_temp_kelvin')
+                | select('defined') | map('float', 3000) | list %}
+            {% if values | length > 0 %}
+              {{ (values | sum / (values | length)) | round(0) }}
+            {% else %}
+              3000
+            {% endif %}
+          {% else %}
+            3000
+          {% endif %}
+
+      # -----------------------------------------------------------------------
+      # 6.3 System status (high-level mode + engine health)
+      # -----------------------------------------------------------------------
+      - name: "OAL System Status"
+        unique_id: oal_system_status_v13
+        state: >
+          {% if is_state('input_boolean.oal_system_paused', 'on') %}
+            Paused
+          {% elif is_state('input_boolean.oal_movie_mode_active', 'on') %}
+            Movie Mode
+          {% elif states('input_select.oal_isolated_override_mode') != 'Off' %}
+            Isolated: {{ states('input_select.oal_isolated_override_mode') }}
+          {% elif states('input_select.oal_active_configuration') != 'Config 1: Baseline (All On)' %}
+            {{ states('input_select.oal_active_configuration') }}
+          {% elif states('input_number.oal_offset_environmental_brightness') | float(0) > 0 %}
+            Environmental Boost
+          {% else %}
+            Baseline Adaptation
+          {% endif %}
+        attributes:
+          engine_health: >
+            {% set last_engine = states('input_datetime.oal_last_engine_run') | as_timestamp(0) %}
+            {% set stale = (now().timestamp() - last_engine) > 1800 %}
+            {{ 'Stale (>30m) - Watchdog Active' if stale else 'Normal' }}
+          active_zonal_overrides: >
+            {% set zonal = expand('group.oal_control_switches')
+                | selectattr('attributes.manual_control', 'defined')
+                | selectattr('attributes.manual_control', '!=', []) | list %}
+            {{ zonal | length }}
+
+      # -----------------------------------------------------------------------
+      # 6.4 Sunrise times (for Sonos-driven wakeups)
+      # -----------------------------------------------------------------------
+      - name: "OAL Sunrise Times"
+        unique_id: oal_sunrise_times_v13
+        state: >
+          {% set alarm_ts = state_attr('sensor.sonos_upcoming_alarms', 'earliest_alarm_timestamp') | int(0) %}
+          {% if alarm_ts > 0 %}
+            {{ alarm_ts | timestamp_custom('%H:%M', true) }}
+          {% else %}
+            "No Alarm"
+          {% endif %}
+        attributes:
+          last_processed_alarm: >
+            {{ state_attr('sensor.sonos_upcoming_alarms', 'earliest_alarm_timestamp') | default('', true) }}

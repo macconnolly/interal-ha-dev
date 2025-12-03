@@ -1,0 +1,1442 @@
+type: sections
+title: Lighting Control
+path: home
+icon: mdi:lightbulb-group
+max_columns: 3
+sections:
+  - type: grid
+    cards:
+      - type: custom:bubble-card
+        card_type: separator
+        name: Light Areas
+        icon: mdi:floor-plan
+        sub_button:
+          main:
+            - name: Top Row - Actions
+              buttons_layout: inline
+              group:
+                - entity: light.all_adaptive_lights
+                  name: All Lights
+                  icon: mdi:lightbulb-group-outline
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: false
+                  show_icon: true
+                  show_background: true
+                  light_background: false
+                  custom_height: 40
+                - entity: script.oal_reset_soft
+                  name: Reset
+                  tap_action:
+                    action: perform-action
+                    perform_action: script.oal_reset_soft
+                    target: {}
+                  custom_height: 40
+                - entity: script.oal_global_manual_dimmer
+                  name: Dimmer
+                  tap_action:
+                    action: perform-action
+                    perform_action: script.oal_global_manual_dimmer
+                    target: {}
+                  custom_height: 40
+                - entity: script.oal_global_manual_brighter
+                  name: Brighter
+                  tap_action:
+                    action: call-service
+                    service: script.oal_global_manual_brighter
+                    target: {}
+                  custom_height: 40
+                - entity: climate.dining_room
+                  name: Climate
+                  show_icon: false
+                  show_attribute: true
+                  attribute: current_temperature
+                  state_background: false
+                  custom_height: 40
+          bottom:
+            - name: Light Controls Row
+              buttons_layout: inline
+              group:
+                - entity: light.kitchen_island_pendants
+                  name: Island
+                  icon: mdi:ceiling-light-multiple
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_attribute: true
+                  attribute: brightness
+                  show_icon: true
+                  show_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 20
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.overhead_lights
+                  name: Overhead
+                  icon: mdi:ceiling-light
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_attribute: true
+                  attribute: brightness
+                  show_icon: true
+                  show_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 20
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.hue_lamps_only
+                  name: Hue
+                  icon: mdi:lamp
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_attribute: true
+                  attribute: brightness
+                  show_icon: true
+                  show_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 20
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.column_lights
+                  name: Columns
+                  icon: mdi:pillar
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_attribute: true
+                  attribute: brightness
+                  show_icon: true
+                  show_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 20
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.bedroom_primary_lights
+                  name: Bedroom
+                  icon: mdi:bed-king-outline
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_attribute: true
+                  attribute: brightness
+                  show_icon: true
+                  show_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 20
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+          bottom_layout: rows
+          main_layout: rows
+        styles: >
+          ha-card {
+            --bubble-border-radius: 24px;
+            --bubble-sub-button-border-radius: 16px;
+            --bubble-icon-background-color: transparent;
+            background: var(--ha-card-background, var(--card-background-color, white)) !important;
+            overflow: hidden !important;
+            padding-bottom: 12px !important;
+          }
+
+          .bubble-sub-button-6 .bubble-sub-button-icon, .bubble-sub-button-7
+          .bubble-sub-button-icon, .bubble-sub-button-8 .bubble-sub-button-icon,
+          .bubble-sub-button-9 .bubble-sub-button-icon, .bubble-sub-button-10
+          .bubble-sub-button-icon {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin-bottom: 2px !important;
+            --mdc-icon-size: 20px !important;
+            transition: background-color 0.2s ease, color 0.2s ease !important;
+          }
+
+          .bubble-range-fill {
+            background: rgb(255, 149, 0) !important;
+            opacity: 1 !important;
+          }
+
+          .bubble-sub-button, .bubble-sub-button-state,
+          .bubble-sub-button-attribute {
+            font-size: 12px !important;
+            font-weight: 600 !important;
+          }
+
+          .bubble-sub-button-6 .bubble-sub-button-name-container,
+          .bubble-sub-button-7 .bubble-sub-button-name-container,
+          .bubble-sub-button-8 .bubble-sub-button-name-container,
+          .bubble-sub-button-9 .bubble-sub-button-name-container,
+          .bubble-sub-button-10 .bubble-sub-button-name-container {
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            text-align: center !important;
+            width: 100% !important;
+          }
+
+          ${card.querySelector('.bubble-sub-button-6
+          .bubble-sub-button-name-container').innerHTML = "Island<br/>" +
+          Math.round((hass.states['light.kitchen_island_pendants']?.attributes?.brightness
+          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-7
+          .bubble-sub-button-name-container').innerHTML = "Overhead<br/>" +
+          Math.round((hass.states['light.overhead_lights']?.attributes?.brightness
+          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-8
+          .bubble-sub-button-name-container').innerHTML = "Hue<br/>" +
+          Math.round((hass.states['light.hue_lamps_only']?.attributes?.brightness
+          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-9
+          .bubble-sub-button-name-container').innerHTML = "Columns<br/>" +
+          Math.round((hass.states['light.column_lights']?.attributes?.brightness
+          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-10
+          .bubble-sub-button-name-container').innerHTML = "Bedroom<br/>" +
+          Math.round((hass.states['light.bedroom_primary_lights']?.attributes?.brightness
+          || 0) / 2.55) + "%"}
+
+          .bubble-sub-button-1, .bubble-sub-button-2, .bubble-sub-button-3,
+          .bubble-sub-button-4, .bubble-sub-button-5 {
+            background: rgba(128, 128, 128, 0.12) !important;
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            box-shadow: none !important;
+          }
+
+          .bubble-sub-button-2 .bubble-sub-button-icon, .bubble-sub-button-3
+          .bubble-sub-button-icon, .bubble-sub-button-4 .bubble-sub-button-icon,
+          .bubble-sub-button-5 .bubble-sub-button-icon {
+            background: transparent !important;
+            color: var(--primary-text-color) !important;
+          }
+
+          .bubble-sub-button-1 {
+            background: ${hass.states['light.all_adaptive_lights']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
+          }
+
+          .bubble-sub-button-1 .bubble-sub-button-icon {
+            background: ${hass.states['light.all_adaptive_lights']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'transparent'} !important;
+            color: ${hass.states['light.all_adaptive_lights']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
+          }
+
+          .bubble-sub-button-1 .bubble-sub-button-name-container,
+          .bubble-sub-button-1 .bubble-sub-button-state-container {
+            color: ${hass.states['light.all_adaptive_lights']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
+          }
+
+          .bubble-sub-button-6 {
+            background: ${hass.states['light.kitchen_island_pendants']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            box-shadow: none !important;
+          }
+
+          .bubble-sub-button-6 .bubble-sub-button-icon {
+            background: ${hass.states['light.kitchen_island_pendants']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
+            color: ${hass.states['light.kitchen_island_pendants']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
+          }
+
+          .bubble-sub-button-6 .bubble-sub-button-name-container,
+          .bubble-sub-button-6 .bubble-sub-button-state-container {
+            color: ${hass.states['light.kitchen_island_pendants']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
+          }
+
+          .bubble-sub-button-7 {
+            background: ${hass.states['light.overhead_lights']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            box-shadow: none !important;
+          }
+
+          .bubble-sub-button-7 .bubble-sub-button-icon {
+            background: ${hass.states['light.overhead_lights']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
+            color: ${hass.states['light.overhead_lights']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
+          }
+
+          .bubble-sub-button-7 .bubble-sub-button-name-container,
+          .bubble-sub-button-7 .bubble-sub-button-state-container {
+            color: ${hass.states['light.overhead_lights']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
+          }
+
+          .bubble-sub-button-8 {
+            background: ${hass.states['light.hue_lamps_only']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            box-shadow: none !important;
+          }
+
+          .bubble-sub-button-8 .bubble-sub-button-icon {
+            background: ${hass.states['light.hue_lamps_only']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
+            color: ${hass.states['light.hue_lamps_only']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
+          }
+
+          .bubble-sub-button-8 .bubble-sub-button-name-container,
+          .bubble-sub-button-8 .bubble-sub-button-state-container {
+            color: ${hass.states['light.hue_lamps_only']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
+          }
+
+          .bubble-sub-button-9 {
+            background: ${hass.states['light.column_lights']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            box-shadow: none !important;
+          }
+
+          .bubble-sub-button-9 .bubble-sub-button-icon {
+            background: ${hass.states['light.column_lights']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
+            color: ${hass.states['light.column_lights']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
+          }
+
+          .bubble-sub-button-9 .bubble-sub-button-name-container,
+          .bubble-sub-button-9 .bubble-sub-button-state-container {
+            color: ${hass.states['light.column_lights']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
+          }
+
+          .bubble-sub-button-10 {
+            background: ${hass.states['light.bedroom_primary_lights']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            box-shadow: none !important;
+          }
+
+          .bubble-sub-button-10 .bubble-sub-button-icon {
+            background: ${hass.states['light.bedroom_primary_lights']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
+            color: ${hass.states['light.bedroom_primary_lights']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
+          }
+
+          .bubble-sub-button-10 .bubble-sub-button-name-container,
+          .bubble-sub-button-10 .bubble-sub-button-state-container {
+            color: ${hass.states['light.bedroom_primary_lights']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
+          }
+        grid_options:
+          columns: full
+        rows: 2.284
+      - type: custom:bubble-card
+        card_type: separator
+        name: Living Room
+        icon: mdi:sofa
+        sub_button:
+          bottom:
+            - name: Living Room Lights Row 1
+              buttons_layout: inline
+              group:
+                - entity: light.living_room_couch_lamp
+                  name: Couch
+                  icon: mdi:lamp
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_attribute: true
+                  attribute: brightness
+                  show_icon: true
+                  show_background: false
+                  light_background: false
+                  state_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 20
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.living_room_floor_lamp
+                  name: Floor
+                  icon: mdi:floor-lamp
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_attribute: true
+                  attribute: brightness
+                  show_icon: true
+                  show_background: false
+                  light_background: false
+                  state_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 20
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.entryway_lamp
+                  name: Entry
+                  icon: mdi:lamp
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_attribute: true
+                  attribute: brightness
+                  show_icon: true
+                  show_background: false
+                  light_background: false
+                  state_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 20
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.living_room_spot_lights
+                  name: Spots
+                  icon: mdi:wall-sconce-flat
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_attribute: true
+                  attribute: brightness
+                  show_icon: true
+                  show_background: false
+                  light_background: false
+                  state_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 20
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.living_room_hallway_lights
+                  name: Overhead
+                  icon: mdi:ceiling-light
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_attribute: true
+                  attribute: brightness
+                  show_icon: true
+                  show_background: false
+                  light_background: false
+                  state_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 20
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+          bottom_layout: rows
+          main: []
+        styles: >
+          ha-card {
+            --bubble-border-radius: 24px;
+            --bubble-sub-button-border-radius: 16px;
+            --bubble-icon-background-color: transparent;
+            background: var(--ha-card-background, var(--card-background-color, white)) !important;
+            overflow: hidden !important;
+            padding-bottom: 12px !important;
+          }
+
+          /* Base styles for all light buttons */ .bubble-sub-button-1,
+          .bubble-sub-button-2, .bubble-sub-button-3, .bubble-sub-button-4,
+          .bubble-sub-button-5 {
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            box-shadow: none !important;
+          }
+
+          .bubble-sub-button-1 .bubble-sub-button-icon, .bubble-sub-button-2
+          .bubble-sub-button-icon, .bubble-sub-button-3 .bubble-sub-button-icon,
+          .bubble-sub-button-4 .bubble-sub-button-icon, .bubble-sub-button-5
+          .bubble-sub-button-icon {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin-bottom: 2px !important;
+            --mdc-icon-size: 20px !important;
+            transition: background-color 0.2s ease, color 0.2s ease !important;
+          }
+
+          .bubble-sub-button-1 .bubble-sub-button-name-container,
+          .bubble-sub-button-2 .bubble-sub-button-name-container,
+          .bubble-sub-button-3 .bubble-sub-button-name-container,
+          .bubble-sub-button-4 .bubble-sub-button-name-container,
+          .bubble-sub-button-5 .bubble-sub-button-name-container {
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            text-align: center !important;
+            width: 100% !important;
+          }
+
+          .bubble-range-fill {
+            background: rgb(255, 149, 0) !important;
+            opacity: 1 !important;
+          }
+
+          .bubble-sub-button, .bubble-sub-button-state,
+          .bubble-sub-button-attribute {
+            font-size: 12px !important;
+            font-weight: 600 !important;
+          }
+
+          /* Dynamic labels */ ${card.querySelector('.bubble-sub-button-1
+          .bubble-sub-button-name-container').innerHTML = "Couch<br/>" +
+          Math.round((hass.states['light.living_room_couch_lamp']?.attributes?.brightness
+          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-2
+          .bubble-sub-button-name-container').innerHTML = "Floor<br/>" +
+          Math.round((hass.states['light.living_room_floor_lamp']?.attributes?.brightness
+          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-3
+          .bubble-sub-button-name-container').innerHTML = "Entry<br/>" +
+          Math.round((hass.states['light.entryway_lamp']?.attributes?.brightness
+          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-4
+          .bubble-sub-button-name-container').innerHTML = "Spots<br/>" +
+          Math.round((hass.states['light.living_room_spot_lights']?.attributes?.brightness
+          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-5
+          .bubble-sub-button-name-container').innerHTML = "Overhead<br/>" +
+          Math.round((hass.states['light.living_room_hallway_lights']?.attributes?.brightness
+          || 0) / 2.55) + "%"}
+
+          /* State-based styling - Couch */ .bubble-sub-button-1 {
+            background: ${hass.states['light.living_room_couch_lamp']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
+          } .bubble-sub-button-1 .bubble-sub-button-icon {
+            background: ${hass.states['light.living_room_couch_lamp']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
+            color: ${hass.states['light.living_room_couch_lamp']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
+          } .bubble-sub-button-1 .bubble-sub-button-name-container {
+            color: ${hass.states['light.living_room_couch_lamp']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
+          }
+
+          /* State-based styling - Floor */ .bubble-sub-button-2 {
+            background: ${hass.states['light.living_room_floor_lamp']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
+          } .bubble-sub-button-2 .bubble-sub-button-icon {
+            background: ${hass.states['light.living_room_floor_lamp']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
+            color: ${hass.states['light.living_room_floor_lamp']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
+          } .bubble-sub-button-2 .bubble-sub-button-name-container {
+            color: ${hass.states['light.living_room_floor_lamp']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
+          }
+
+          /* State-based styling - Entry */ .bubble-sub-button-3 {
+            background: ${hass.states['light.entryway_lamp']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
+          } .bubble-sub-button-3 .bubble-sub-button-icon {
+            background: ${hass.states['light.entryway_lamp']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
+            color: ${hass.states['light.entryway_lamp']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
+          } .bubble-sub-button-3 .bubble-sub-button-name-container {
+            color: ${hass.states['light.entryway_lamp']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
+          }
+
+          /* State-based styling - Spots */ .bubble-sub-button-4 {
+            background: ${hass.states['light.living_room_spot_lights']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
+          } .bubble-sub-button-4 .bubble-sub-button-icon {
+            background: ${hass.states['light.living_room_spot_lights']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
+            color: ${hass.states['light.living_room_spot_lights']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
+          } .bubble-sub-button-4 .bubble-sub-button-name-container {
+            color: ${hass.states['light.living_room_spot_lights']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
+          }
+
+          /* State-based styling - Overhead */ .bubble-sub-button-5 {
+            background: ${hass.states['light.living_room_hallway_lights']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
+          } .bubble-sub-button-5 .bubble-sub-button-icon {
+            background: ${hass.states['light.living_room_hallway_lights']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
+            color: ${hass.states['light.living_room_hallway_lights']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
+          } .bubble-sub-button-5 .bubble-sub-button-name-container {
+            color: ${hass.states['light.living_room_hallway_lights']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
+          }
+        grid_options:
+          columns: full
+        rows: 2.284
+      - type: custom:bubble-card
+        card_type: separator
+        name: Kitchen
+        icon: mdi:stove
+        sub_button:
+          main: []
+          bottom:
+            - name: Kitchen Lights Row
+              buttons_layout: inline
+              group:
+                - entity: light.kitchen_island_pendants
+                  name: Island
+                  icon: mdi:ceiling-light-multiple
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_icon: true
+                  show_background: true
+                  state_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 50
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.kitchen_main_lights
+                  name: Overhead
+                  icon: mdi:ceiling-light
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_icon: true
+                  show_background: true
+                  state_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 50
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+          bottom_layout: rows
+        styles: |
+          ha-card {
+            --bubble-border-radius: 24px;
+            --bubble-sub-button-border-radius: 16px;
+            --bubble-icon-background-color: transparent;
+            background: var(--ha-card-background, var(--card-background-color, white)) !important;
+            overflow: hidden !important;
+            padding-bottom: 12px !important;
+          }
+
+          .bubble-range-fill {
+            background: rgb(255, 149, 0) !important;
+            opacity: 1 !important;
+          }
+
+          .bubble-sub-button {
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            box-shadow: none !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+          }
+
+          .bubble-sub-button .bubble-sub-button-icon {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin-bottom: 2px !important;
+            --mdc-icon-size: 20px !important;
+            transition: background-color 0.2s ease, color 0.2s ease !important;
+          }
+
+          .bubble-sub-button .bubble-sub-button-name-container {
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            text-align: center !important;
+            width: 100% !important;
+          }
+
+          ${(() => {
+            const group = this.config.sub_button?.bottom?.[0]?.group || [];
+            let css = '';
+            group.forEach((btn, i) => {
+              const entity = btn.entity;
+              const isOn = hass.states[entity]?.state === 'on';
+              const brightness = Math.round((hass.states[entity]?.attributes?.brightness || 0) / 2.55);
+              const idx = i + 1;
+              css += `.bubble-sub-button-${idx} { background: ${isOn ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important; }`;
+              css += `.bubble-sub-button-${idx} .bubble-sub-button-icon { background: ${isOn ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important; color: ${isOn ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important; }`;
+              css += `.bubble-sub-button-${idx} .bubble-sub-button-name-container { color: ${isOn ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important; }`;
+              const nameEl = card.querySelector(`.bubble-sub-button-${idx} .bubble-sub-button-name-container`);
+              if (nameEl) nameEl.innerHTML = `${btn.name}<br/>${brightness}%`;
+            });
+            return css;
+          })()}
+        grid_options:
+          columns: 12
+        rows: 2.284
+      - type: custom:bubble-card
+        card_type: separator
+        name: Accents
+        icon: mdi:lightbulb-spot
+        sub_button:
+          main: []
+          bottom:
+            - name: Accent Lights Row
+              buttons_layout: inline
+              group:
+                - entity: light.living_room_credenza_light
+                  name: Credenza
+                  icon: mdi:television-ambient-light
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_icon: true
+                  show_background: true
+                  state_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 25
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.living_room_corner_accent
+                  name: Corner
+                  icon: mdi:lamps
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_icon: true
+                  show_background: true
+                  state_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 25
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.dining_col_accent
+                  name: Din Col
+                  icon: mdi:pillar
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_icon: true
+                  show_background: true
+                  state_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 25
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.living_col_accent
+                  name: Liv Col
+                  icon: mdi:pillar
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_icon: true
+                  show_background: true
+                  state_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 25
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+          bottom_layout: rows
+        styles: |
+          ha-card {
+            --bubble-border-radius: 24px;
+            --bubble-sub-button-border-radius: 16px;
+            --bubble-icon-background-color: transparent;
+            background: var(--ha-card-background, var(--card-background-color, white)) !important;
+            overflow: hidden !important;
+            padding-bottom: 12px !important;
+          }
+
+          .bubble-range-fill {
+            background: rgb(255, 149, 0) !important;
+            opacity: 1 !important;
+          }
+
+          .bubble-sub-button {
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            box-shadow: none !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+          }
+
+          .bubble-sub-button .bubble-sub-button-icon {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin-bottom: 2px !important;
+            --mdc-icon-size: 20px !important;
+            transition: background-color 0.2s ease, color 0.2s ease !important;
+          }
+
+          .bubble-sub-button .bubble-sub-button-name-container {
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            text-align: center !important;
+            width: 100% !important;
+          }
+
+          /* Dynamic styling for bottom lights (indices 1-4) */
+          ${(() => {
+            const group = this.config.sub_button?.bottom?.[0]?.group || [];
+            let css = '';
+
+            group.forEach((btn, i) => {
+              const entity = btn.entity;
+              const isOn = hass.states[entity]?.state === 'on';
+              const brightness = Math.round((hass.states[entity]?.attributes?.brightness || 0) / 2.55);
+              const idx = i + 1;
+
+              css += `.bubble-sub-button-${idx} { background: ${isOn ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important; }`;
+              css += `.bubble-sub-button-${idx} .bubble-sub-button-icon { background: ${isOn ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important; color: ${isOn ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important; }`;
+              css += `.bubble-sub-button-${idx} .bubble-sub-button-name-container { color: ${isOn ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important; }`;
+
+              const nameEl = card.querySelector(`.bubble-sub-button-${idx} .bubble-sub-button-name-container`);
+              if (nameEl) nameEl.innerHTML = `${btn.name}<br/>${brightness}%`;
+            });
+
+            return css;
+          })()}
+        grid_options:
+          columns: 12
+          rows: 2.3
+      - type: custom:bubble-card
+        card_type: separator
+        name: Dining Room
+        icon: mdi:silverware-fork-knife
+        sub_button:
+          main: []
+          bottom:
+            - name: Dining Room Lights Row
+              buttons_layout: inline
+              group:
+                - entity: light.dining_room_spot_lights
+                  name: Spots
+                  icon: mdi:wall-sconce-flat
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_icon: true
+                  show_background: true
+                  state_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 50
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.dining_col_accent
+                  name: Column
+                  icon: mdi:pillar
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_icon: true
+                  show_background: true
+                  state_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 50
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+          bottom_layout: rows
+        styles: |
+          ha-card {
+            --bubble-border-radius: 24px;
+            --bubble-sub-button-border-radius: 16px;
+            --bubble-icon-background-color: transparent;
+            background: var(--ha-card-background, var(--card-background-color, white)) !important;
+            overflow: hidden !important;
+            padding-bottom: 12px !important;
+          }
+
+          .bubble-range-fill {
+            background: rgb(255, 149, 0) !important;
+            opacity: 1 !important;
+          }
+
+          .bubble-sub-button {
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            box-shadow: none !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+          }
+
+          .bubble-sub-button .bubble-sub-button-icon {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin-bottom: 2px !important;
+            --mdc-icon-size: 20px !important;
+            transition: background-color 0.2s ease, color 0.2s ease !important;
+          }
+
+          .bubble-sub-button .bubble-sub-button-name-container {
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            text-align: center !important;
+            width: 100% !important;
+          }
+
+          ${(() => {
+            const group = this.config.sub_button?.bottom?.[0]?.group || [];
+            let css = '';
+            group.forEach((btn, i) => {
+              const entity = btn.entity;
+              const isOn = hass.states[entity]?.state === 'on';
+              const brightness = Math.round((hass.states[entity]?.attributes?.brightness || 0) / 2.55);
+              const idx = i + 1;
+              css += `.bubble-sub-button-${idx} { background: ${isOn ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important; }`;
+              css += `.bubble-sub-button-${idx} .bubble-sub-button-icon { background: ${isOn ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important; color: ${isOn ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important; }`;
+              css += `.bubble-sub-button-${idx} .bubble-sub-button-name-container { color: ${isOn ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important; }`;
+              const nameEl = card.querySelector(`.bubble-sub-button-${idx} .bubble-sub-button-name-container`);
+              if (nameEl) nameEl.innerHTML = `${btn.name}<br/>${brightness}%`;
+            });
+            return css;
+          })()}
+        grid_options:
+          columns: 12
+          rows: 2.3
+      - type: custom:bubble-card
+        card_type: separator
+        name: Bedroom & Office
+        icon: mdi:bed-king-outline
+        sub_button:
+          main: []
+          bottom:
+            - name: Bedroom & Office Lights Row
+              buttons_layout: inline
+              group:
+                - entity: light.master_bedroom_table_lamps
+                  name: Nightstands
+                  icon: mdi:lamp
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_icon: true
+                  show_background: true
+                  state_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 33
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.master_bedroom_corner_accent
+                  name: Bed Accent
+                  icon: mdi:floor-lamp
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_icon: true
+                  show_background: true
+                  state_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 34
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+                - entity: light.office_desk_lamp
+                  name: Office
+                  icon: mdi:desk-lamp
+                  sub_button_type: slider
+                  allow_light_slider_to_0: true
+                  show_name: true
+                  show_icon: true
+                  show_background: true
+                  state_background: true
+                  light_background: false
+                  content_layout: icon-top
+                  fill_width: false
+                  width: 33
+                  custom_height: 85
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+          bottom_layout: rows
+        styles: |
+          ha-card {
+            --bubble-border-radius: 24px;
+            --bubble-sub-button-border-radius: 16px;
+            --bubble-icon-background-color: transparent;
+            background: var(--ha-card-background, var(--card-background-color, white)) !important;
+            overflow: hidden !important;
+            padding-bottom: 12px !important;
+          }
+
+          .bubble-range-fill {
+            background: rgb(255, 149, 0) !important;
+            opacity: 1 !important;
+          }
+
+          .bubble-sub-button {
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            box-shadow: none !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+          }
+
+          .bubble-sub-button .bubble-sub-button-icon {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin-bottom: 2px !important;
+            --mdc-icon-size: 20px !important;
+            transition: background-color 0.2s ease, color 0.2s ease !important;
+          }
+
+          .bubble-sub-button .bubble-sub-button-name-container {
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            text-align: center !important;
+            width: 100% !important;
+          }
+
+          ${(() => {
+            const group = this.config.sub_button?.bottom?.[0]?.group || [];
+            let css = '';
+            group.forEach((btn, i) => {
+              const entity = btn.entity;
+              const isOn = hass.states[entity]?.state === 'on';
+              const brightness = Math.round((hass.states[entity]?.attributes?.brightness || 0) / 2.55);
+              const idx = i + 1;
+              css += `.bubble-sub-button-${idx} { background: ${isOn ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important; }`;
+              css += `.bubble-sub-button-${idx} .bubble-sub-button-icon { background: ${isOn ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important; color: ${isOn ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important; }`;
+              css += `.bubble-sub-button-${idx} .bubble-sub-button-name-container { color: ${isOn ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important; }`;
+              const nameEl = card.querySelector(`.bubble-sub-button-${idx} .bubble-sub-button-name-container`);
+              if (nameEl) nameEl.innerHTML = `${btn.name}<br/>${brightness}%`;
+            });
+            return css;
+          })()}
+        grid_options:
+          columns: 12
+          rows: 2.3
+      - type: custom:bubble-card
+        card_type: sub-buttons
+        sub_button:
+          main: []
+          bottom:
+            - tap_action:
+                action: navigate
+                navigation_path: "#living-room"
+              name: Living
+              show_name: true
+              fill_width: false
+              width: 20
+            - tap_action:
+                action: navigate
+                navigation_path: "#living-room"
+              name: Dining
+              show_name: true
+              fill_width: false
+              width: 20
+            - tap_action:
+                action: navigate
+                navigation_path: "#living-room"
+              name: Kitchen
+              show_name: true
+              fill_width: false
+              width: 20
+            - tap_action:
+                action: navigate
+                navigation_path: "#living-room"
+              name: Accent
+              show_name: true
+              fill_width: false
+              width: 20
+            - tap_action:
+                action: navigate
+                navigation_path: "#living-room"
+              name: Bed
+              show_name: true
+              fill_width: false
+              width: 20
+        footer_mode: true
+        footer_full_width: true
+        footer_bottom_offset: "20"
+        rows: 0.938
+    column_span: 2
+  - type: grid
+    cards:
+      - type: custom:mushroom-climate-card
+        entity: climate.dining_room
+        fill_container: true
+        layout: horizontal
+        show_temperature_control: true
+      - type: vertical-stack
+        cards:
+          - type: custom:bubble-card
+            card_type: media-player
+            entity: media_player.living_room
+            name: Sonos
+            icon: mdi:speaker-multiple
+            card_layout: large-2-rows
+            scrolling_effect: false
+            show_state: true
+            show_icon: true
+            show_name: true
+            show_last_changed: false
+            show_attribute: false
+            cover_background: true
+            hide:
+              power_button: true
+              previous_button: true
+              next_button: true
+              volume_button: false
+              play_pause_button: false
+            button_action:
+              double_tap_action:
+                action: navigate
+                navigation_path: "#sonos-detail"
+              hold_action:
+                action: more-info
+            sub_button:
+              main:
+                - name: Group all
+                  icon: mdi:link-variant
+                  entity: media_player.living_room
+                  show_state: false
+                  show_background: true
+                  state_background: false
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_group_all_to_playing
+                - name: Ungroup
+                  icon: mdi:link-off
+                  entity: media_player.living_room
+                  show_state: false
+                  show_background: true
+                  state_background: false
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_ungroup_all
+                - entity: media_player.living_room
+                  tap_action:
+                    action: perform-action
+                    perform_action: media_player.media_next_track
+                    target:
+                      device_id:
+                        - 79e5ed000ae5ba15d2a793433e81ff71
+                  icon: mdi:skip-next
+                  name: Next Track
+                  show_background: true
+                  show_icon: true
+                - entity: media_player.living_room
+                  tap_action:
+                    action: perform-action
+                    perform_action: media_player.media_next_track
+                    target:
+                      device_id: 79e5ed000ae5ba15d2a793433e81ff71
+                  icon: mdi:skip-previous
+                  name: Previous Track
+                  show_background: true
+                  show_icon: true
+              bottom: []
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Rooms
+            icon: mdi:home-circle
+            card_layout: large-sub-buttons-grid
+            show_state: false
+            show_last_changed: false
+            sub_button:
+              main:
+                - name: Living
+                  icon: mdi:sofa
+                  entity: binary_sensor.sonos_living_room_in_playing_group
+                  show_state: false
+                  show_background: true
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_toggle_group_membership
+                    data:
+                      target_speaker: media_player.living_room
+                - name: Dining
+                  icon: mdi:table-furniture
+                  entity: binary_sensor.sonos_dining_room_in_playing_group
+                  show_state: false
+                  show_background: true
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_toggle_group_membership
+                    data:
+                      target_speaker: media_player.dining_room
+                - name: Kitchen
+                  icon: mdi:stove
+                  entity: binary_sensor.sonos_kitchen_in_playing_group
+                  show_state: false
+                  show_background: true
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_toggle_group_membership
+                    data:
+                      target_speaker: media_player.kitchen
+                  hold_action:
+                    action: more-info
+                - name: Bath
+                  icon: mdi:shower-head
+                  entity: binary_sensor.sonos_bath_in_playing_group
+                  show_state: false
+                  show_background: true
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_toggle_group_membership
+                    data:
+                      target_speaker: media_player.bath
+                - name: Bedroom
+                  icon: mdi:bed
+                  entity: binary_sensor.sonos_bedroom_in_playing_group
+                  show_state: false
+                  show_background: true
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_toggle_group_membership
+                    data:
+                      target_speaker: media_player.bedroom
+                - name: Pause all
+                  icon: mdi:pause-circle
+                  entity: media_player.living_room
+                  show_state: false
+                  show_background: false
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_all_pause
+                - name: Ungroup
+                  icon: mdi:link-off
+                  entity: media_player.living_room
+                  show_state: false
+                  show_background: false
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_ungroup_all
+              bottom: []
+            entity: media_player.living_room
+          - type: custom:sonos-card
+            sections:
+              - player
+              - volumes
+              - groups
+              - grouping
+              - media browser
+              - queue
+            hidePlayerControlPowerButton: true
+            heightPercentage: 80
+            topFavorites:
+              - ""
+            hideGroupCurrentTrack: true
+            dynamicVolumeSlider: true
+            dynamicVolumeSliderMax: 100
+            dynamicVolumeSliderThreshold: 1
+            favoritesHideTitleForThumbnailIcons: false
+            showAudioInputFormat: true
+            footerHeight: 3
+            storePlayerInSessionStorage: true
+            artworkMinHeight: 1
+
+
+      #CORRECT SONOS POPUP EXAMPLE      
+      - type: vertical-stack
+        cards:
+          - type: custom:bubble-card
+            card_type: pop-up
+            hash: "#sonos-detail"
+            name: Sonos
+            icon: mdi:speaker-multiple
+            show_header: true
+            width_desktop: 620px
+            margin_top_mobile: 18px
+            margin_top_desktop: 74px
+          - type: custom:bubble-card
+            card_type: button
+            button_type: slider
+            name: Group Controls
+            icon: mdi:link-variant
+            card_layout: large-sub-buttons-grid
+            show_state: false
+            sub_button:
+              main:
+                - name: Pause all
+                  icon: mdi:pause-circle
+                  entity: media_player.living_room
+                  show_background: true
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_all_pause
+                - name: Ungroup all
+                  icon: mdi:link-off
+                  entity: media_player.living_room
+                  show_background: true
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_ungroup_all
+              bottom: []
+            entity: media_player.living_room
+          - type: custom:bubble-card
+            card_type: media-player
+            entity: media_player.living_room
+            name: Living Room
+            card_layout: large-2-rows
+            show_state: true
+            show_icon: true
+            show_attribute: false
+            hide:
+              power_button: true
+              previous_button: true
+              next_button: true
+              volume_button: false
+              play_pause_button: false
+            sub_button:
+              main:
+                - name: Group Ungroup Toggle
+                  icon: mdi:sofa
+                  entity: binary_sensor.sonos_living_room_in_playing_group
+                  show_state: false
+                  show_background: true
+                  tap_action:
+                    action: call-service
+                    service: script.sonos_toggle_group_membership
+                    data:
+                      target_speaker: media_player.living_room
+                  fill_width: false
+                  content_layout: icon-left
+              bottom: []
+          - type: custom:bubble-card
+            card_type: media-player
+            entity: media_player.dining_room
+            name: Dining Room
+            card_layout: large-2-rows
+            show_state: true
+            show_icon: true
+            show_attribute: false
+            hide:
+              power_button: true
+              previous_button: true
+              next_button: true
+              volume_button: false
+              play_pause_button: false
+            sub_button:
+              - entity: sensor.sonos_dining_room_group_label
+                show_state: true
+                show_name: false
+                show_icon: false
+                show_background: false
+          - type: custom:bubble-card
+            card_type: media-player
+            entity: media_player.kitchen
+            name: Kitchen
+            card_layout: large-2-rows
+            show_state: true
+            show_icon: true
+            show_attribute: false
+            hide:
+              power_button: true
+              previous_button: true
+              next_button: true
+              volume_button: false
+              play_pause_button: false
+            sub_button:
+              - entity: sensor.sonos_kitchen_group_label
+                show_state: true
+                show_name: false
+                show_icon: false
+                show_background: false
+          - type: custom:bubble-card
+            card_type: media-player
+            entity: media_player.bath
+            name: Bath
+            card_layout: large-2-rows
+            show_state: true
+            show_icon: true
+            show_attribute: false
+            hide:
+              power_button: true
+              previous_button: true
+              next_button: true
+              volume_button: false
+              play_pause_button: false
+            sub_button:
+              - entity: sensor.sonos_bath_group_label
+                show_state: true
+                show_name: false
+                show_icon: false
+                show_background: false
+          - type: custom:bubble-card
+            card_type: media-player
+            entity: media_player.bedroom
+            name: Bedroom
+            card_layout: large-2-rows
+            show_state: true
+            show_icon: true
+            show_attribute: false
+            hide:
+              power_button: true
+              previous_button: true
+              next_button: true
+              volume_button: false
+              play_pause_button: false
+            sub_button:
+              - entity: sensor.sonos_bedroom_group_label
+                show_state: true
+                show_name: false
+                show_icon: false
+                show_background: false
+        grid_options:
+          columns: 12
+
+dense_section_placement: false
+cards: []
+badges:
+  - type: entity
+    entity: light.all_lights
+  - type: entity
+    show_name: false
+    show_state: true
+    show_icon: true
+    entity: sensor.dining_room_temperature
+  - type: entity
+    entity: sensor.kitchen_humidity
+  - type: entity
+    entity: weather.home
+header:
+  layout: responsive
+  badges_position: top
+  badges_wrap: scroll
+  card:
+    type: markdown
+    content: |-
+      # Hello {{ user }}
+      Add your text here, template variables are supported ✨

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__sequential-thinking__sequentialthinking",
+      "mcp__home-assistant_ha_get_state",
+      "mcp__home-assistant__ha_search_entities"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

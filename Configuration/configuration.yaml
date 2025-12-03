@@ -1,0 +1,296 @@
+default_config:
+  
+homeassistant:
+  packages: !include_dir_named packages
+  allowlist_external_dirs:
+    - /config/www/bubble
+
+# Setup the custom dashboard
+lovelace:
+  mode: yaml
+  resources:
+    - url: /hacsfiles/Bubble-Card/bubble-card.js
+      type: module
+    - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
+      type: module
+    - url: /hacsfiles/custom-sonos-card/custom-sonos-card.js
+      type: module      
+    - url: /hacsfiles/lovelace-mushroom/mushroom.js
+      type: module
+    - url: /hacsfiles/lovelace-layout-card/layout-card.js
+      type: module
+    - url: /hacsfiles/community/vertical-stack-in-card/vertical-stack-in-card.js
+      type: js
+    - url: /hacsfiles/community/stack-in-card/stack-in-card.js
+      type: module
+    - url: /hacsfiles/lovelace-card-mod/card-mod.js
+      type: module
+    - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
+      type: module
+    - url: /hacsfiles/streamline-card/streamline-card.js
+      type: module      
+    - url: /hacsfiles/lovelace-multiple-entity-row/multiple-entity-row.js
+      type: module      
+    - url: https://cdn.jsdelivr.net/gh/bramkragten/custom-ui@master/swipe-card/swipe-card.js
+      type: module
+    - url: /local/custom_fonts.css
+      type: css
+    - url: /hacsfiles/spotifyplus_card/spotifyplus_card.js
+      type: module     
+
+  dashboards:
+    adaptive-living:
+      mode: yaml
+      title: Adaptive Living
+      icon: mdi:home-automation
+      show_in_sidebar: true
+      filename: /dashboards/lovelace_bubble_dashboard.yaml
+
+    test-dash:
+      mode: yaml
+      title: Test Dash
+      icon: mdi:home-automation
+      show_in_sidebar: true
+      filename: dashboards/templates/home_center_dashboard.yaml
+      
+    lighting-manager:
+      mode: yaml
+      title: Lighting Control
+      icon: mdi:lightbulb-group
+      show_in_sidebar: true
+      filename: dashboards/lighting_manager_dashboard.yaml
+      
+#adaptive_lighting_pro: !include adaptive_lighting_pro_zones.yaml
+# adaptive_lighting_pro:
+#   # Global configuration sensors (required by integration)
+#   lux_sensor: sensor.outdoor_illuminance
+#   weather_entity: weather.home
+
+#   # Environmental features
+#   environmental_enabled: true
+#   sunset_boost_enabled: true
+
+#   # Wake sequence
+#   wake_sequence_enabled: true
+#   wake_target_zone: bedroom_primary
+#   wake_duration_minutes: 15
+#   wake_max_boost_pct: 20
+
+#   # Manual control defaults
+#   brightness_increment: 5
+#   color_temp_increment: 500
+#   manual_control_timeout: 7200  # 2 hours
+
+#   # Zone definitions
+#   zones:
+#     # -------------------------------------------------------------------------
+#     # Zone 1: Recessed Ceiling (Overhead - Very Dim)
+#     # -------------------------------------------------------------------------
+#     - zone_id: "recessed_ceiling"
+#       name: "Recessed Ceiling"
+
+#       # Adaptive Lighting Integration Reference
+#       adaptive_lighting_switch: "switch.adaptive_lighting_recessed_ceiling"
+
+#       # Lights in this zone (must match AL switch config)
+#       lights:
+#         - light.kitchen_main_lights
+#         - light.living_room_hallway_lights
+
+#       # Brightness Configuration (must match AL switch)
+#       brightness_min: 2
+#       brightness_max: 23
+
+#       # Color Temperature (AL uses defaults, so we use defaults too)
+#       # color_temp_min: 2000  # Default
+#       # color_temp_max: 6500  # Default
+
+#       # Feature flags
+#       enabled: true
+#       environmental_enabled: true
+#       sunset_enabled: true
+#       wake_sequence_enabled: false  # Overhead lights not part of wake sequence
+
+#       # Zone priority (optional, defaults to 0)
+#       priority: 0
+
+#     # -------------------------------------------------------------------------
+#     # Zone 2: Kitchen Island (Task Lighting - Bright)
+#     # -------------------------------------------------------------------------
+#     - zone_id: "kitchen_island"
+#       name: "Kitchen Island"
+
+#       # Adaptive Lighting Integration Reference
+#       adaptive_lighting_switch: "switch.adaptive_lighting_kitchen_island"
+
+#       # Lights in this zone (must match AL switch config)
+#       lights:
+#         - light.kitchen_island_pendants
+
+#       # Brightness Configuration (must match AL switch)
+#       brightness_min: 30
+#       brightness_max: 100
+
+#       # Color Temperature Configuration (must match AL switch)
+#       color_temp_min: 2000
+#       color_temp_max: 4000
+
+#       # Feature flags
+#       enabled: true
+#       environmental_enabled: true
+#       sunset_enabled: true
+#       wake_sequence_enabled: false  # Kitchen not part of wake sequence
+
+#       # Zone priority
+#       priority: 0
+
+#     # -------------------------------------------------------------------------
+#     # Zone 3: Bedroom Primary (Sleep-Friendly - Very Warm)
+#     # -------------------------------------------------------------------------
+#     - zone_id: "bedroom_primary"
+#       name: "Bedroom Primary"
+
+#       # Adaptive Lighting Integration Reference
+#       adaptive_lighting_switch: "switch.adaptive_lighting_bedroom_primary"
+
+#       # Lights in this zone (must match AL switch config)
+#       lights:
+#         - light.master_bedroom_table_lamps
+#         - light.master_bedroom_corner_accent
+
+#       # Brightness Configuration (must match AL switch)
+#       brightness_min: 20
+#       brightness_max: 40
+
+#       # Color Temperature Configuration (must match AL switch)
+#       color_temp_min: 1800
+#       color_temp_max: 2250
+
+#       # Feature flags
+#       enabled: true
+#       environmental_enabled: true
+#       sunset_enabled: true
+#       wake_sequence_enabled: true  # PRIMARY WAKE ZONE
+
+#       # Zone priority
+#       priority: 10  # Higher priority for wake sequence
+
+#     # -------------------------------------------------------------------------
+#     # Zone 4: Accent Spots (Decorative - Wide Color Range)
+#     # -------------------------------------------------------------------------
+#     - zone_id: "accent_spots"
+#       name: "Accent Spots"
+
+#       # Adaptive Lighting Integration Reference
+#       adaptive_lighting_switch: "switch.adaptive_lighting_accent_spots"
+
+#       # Lights in this zone (must match AL switch config)
+#       lights:
+#         - light.dining_room_spot_lights
+#         - light.living_room_spot_lights
+
+#       # Brightness Configuration (must match AL switch)
+#       brightness_min: 20
+#       brightness_max: 50
+
+#       # Color Temperature Configuration (must match AL switch)
+#       color_temp_min: 2000
+#       color_temp_max: 6500
+
+#       # Feature flags
+#       enabled: true
+#       environmental_enabled: true
+#       sunset_enabled: true
+#       wake_sequence_enabled: false  # Accent lights not part of wake
+
+#       # Zone priority
+#       priority: 0
+
+#     # -------------------------------------------------------------------------
+#     # Zone 5: Main Living (Primary Area - Bright, Neutral-Warm)
+#     # -------------------------------------------------------------------------
+#     - zone_id: "main_living"
+#       name: "Main Living"
+
+#       # Adaptive Lighting Integration Reference
+#       adaptive_lighting_switch: "switch.adaptive_lighting_main_living"
+
+#       # Lights in this zone (must match AL switch config)
+#       # Note: Removed duplicate light.entryway_lamp from original config
+#       lights:
+#         - light.entryway_lamp
+#         - light.living_room_floor_lamp
+#         - light.office_desk_lamp
+#         - light.living_room_corner_accent
+#         - light.living_room_couch_lamp
+#         - light.living_room_credenza_light
+
+#       # Brightness Configuration (must match AL switch)
+#       brightness_min: 45
+#       brightness_max: 100
+
+#       # Color Temperature Configuration (must match AL switch)
+#       color_temp_min: 2250
+#       color_temp_max: 2950
+
+#       # Feature flags
+#       enabled: true
+#       environmental_enabled: true
+#       sunset_enabled: true
+#       wake_sequence_enabled: false  # Living room not part of wake sequence
+
+#       # Zone priority
+#       priority: 5  # Higher priority as primary living area
+
+
+template:
+  - trigger:
+      - trigger: event
+        event_type: bubble_card_update_modules
+    sensor:
+      - name: "Bubble Card Modules"
+        state: "saved"
+        icon: "mdi:puzzle"
+        attributes:
+          modules: "{{ trigger.event.data.modules }}"
+          last_updated: "{{ trigger.event.data.last_updated }}"
+
+# Logger Configuration - Updated for Lighting Manager
+logger:
+  default: warn
+  logs:
+    homeassistant.components.core: debug
+    homeassistant.components.script: debug
+    homeassistant.components.automation: debug
+    homeassistant.components.blueprint: debug
+    homeassistant.loader: debug
+    homeassistant.setup: debug
+   # custom_components.lighting_manager: debug  # Set to debug for troubleshooting
+    custom_components.lighting_: info
+
+
+# Enable History and Recorder
+history:
+recorder:
+
+# Scenes
+scene: !include_dir_merge_list scenes/
+
+# Groups
+group: !include_dir_merge_named groups/
+
+# Standard UI-managed automations
+automation: !include automations.yaml
+
+# Your manually managed automations (merged into the main list)
+automation manual: !include_dir_merge_list automations_manual/
+
+nest:
+  client_id: 1057193467236-d9r2ljig6897uq3hdi60l0q9qouu2d31.apps.googleusercontent.com
+  client_secret: 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
+  project_id: e9b8dd64-ff2d-4398-a59c-2f8d063e61d7
+
+api:
+
+frontend:
+  themes: !include_dir_merge_named themes

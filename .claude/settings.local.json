@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__home-assistant__ha_get_overview",
+      "mcp__hass-mcp__system_overview",
+      "mcp__hass-mcp__list_automations",
+      "mcp__home-assistant__ha_config_list_dashboards",
+      "mcp__hass-mcp__list_entities",
+      "mcp__home-assistant__ha_config_list_helpers",
+      "mcp__home-assistant__ha_deep_search",
+      "mcp__home-assistant__ha_search_entities",
+      "mcp__home-assistant__ha_config_get_dashboard",
+      "mcp__home-assistant__ha_get_state",
+      "mcp__sequential-thinking__sequentialthinking",
+      "mcp__sequential-thinking__sequentialthinking*",
+      "mcp__sequential-thinking__sequentialthinking**",
+      "mcp__hass-mcp**",
+      "mcp__hass-mcp__*",
+      "mcp__*"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

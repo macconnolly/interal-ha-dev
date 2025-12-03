@@ -110,16 +110,7 @@ input_select:
     icon: mdi:desk-lamp
 
 input_number:
-  # Global manual offsets (now used only as UI controls, not directly in engine brightness)
-  oal_offset_global_manual_brightness:
-    name: "OAL Global Manual Brightness Slider"
-    min: -100
-    max: 100
-    step: 1
-    initial: 0
-    unit_of_measurement: "%"
-    icon: mdi:brightness-6
-
+  # Global manual warmth offset (brightness slider removed - dead code)
   oal_offset_global_manual_warmth:
     name: "OAL Offset: Global K"
     min: -2500
@@ -475,8 +466,7 @@ automation:
         state: "off"
 
     variables:
-      # Global offsets (manual brightness slider is NOT used in brightness math)
-      comp_manual_b: "{{ states('input_number.oal_offset_global_manual_brightness') | float(0) }}"
+      # Global offsets
       comp_manual_k: "{{ states('input_number.oal_offset_global_manual_warmth') | float(0) }}"
       comp_config_b: "{{ states('input_number.oal_offset_config_brightness') | float(0) }}"
       comp_config_k: "{{ states('input_number.oal_offset_config_warmth') | float(0) }}"
@@ -1233,32 +1223,6 @@ automation:
                   entity_id: light.all_adaptive_lights
 
   # ---------------------------------------------------------------------------
-  # 4.7 Global manual slider handler (uses same step logic as Zen32)
-  # ---------------------------------------------------------------------------
-  - id: oal_global_manual_slider_handler_v13
-    alias: "OAL v13 - Global Manual Slider Handler"
-    mode: restart
-    trigger:
-      - platform: state
-        entity_id: input_number.oal_offset_global_manual_brightness
-    action:
-      - variables:
-          prev: "{{ trigger.from_state.state | float(0) if trigger.from_state is not none else 0 }}"
-          curr: "{{ trigger.to_state.state | float(0) }}"
-          dir: >
-            {% if curr > prev %} 1
-            {% elif curr < prev %} -1
-            {% else %} 0
-            {% endif %}
-      - choose:
-          - conditions: "{{ dir != 0 }}"
-            sequence:
-              - service: script.oal_manual_brightness_step
-                data:
-                  direction: "{{ dir }}"
-              - service: script.oal_global_adjustment_start
-
-  # ---------------------------------------------------------------------------
   # 4.8 Dynamic sunrise from Sonos alarms
   # ---------------------------------------------------------------------------
   - id: oal_dynamic_sunrise_manager_v13
@@ -1911,7 +1875,6 @@ script:
       - service: input_number.set_value
         target:
           entity_id:
-            - input_number.oal_offset_global_manual_brightness
             - input_number.oal_offset_global_manual_warmth
             - input_number.oal_manual_offset_main_living_brightness
             - input_number.oal_manual_offset_kitchen_island_brightness
@@ -2131,7 +2094,511 @@ template:
             {{ zonal | length }}
 
       # -----------------------------------------------------------------------
-      # 6.4 Sunrise times (for Sonos-driven wakeups)
+      # 6.4 Per-Zone Status Sensors (for OAL Hero Card Dashboard)
+      # -----------------------------------------------------------------------
+      # These sensors provide zone-level status for the dashboard hero card.
+      # State: "A" = adaptive, "M Xh Ym" = manual with timer countdown
+      # -----------------------------------------------------------------------
+
+      - name: "OAL Main Living Status"
+        unique_id: oal_main_living_status_v13
+        icon: mdi:lightbulb-group
+        availability: >
+          {{ states('switch.adaptive_lighting_main_living') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set manual_list = state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) %}
+          {% if manual_list | length == 0 %}
+            A
+          {% else %}
+            {% set timer_dict = state_attr('switch.adaptive_lighting_main_living', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
+          {% endif %}
+        attributes:
+          mode: >
+            {% set manual_list = state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) %}
+            {{ 'manual' if manual_list | length > 0 else 'adaptive' }}
+          brightness_target: >
+            {{ state_attr('switch.adaptive_lighting_main_living', 'brightness_pct') | int(0) }}
+          brightness_base: >
+            {{ state_attr('sensor.oal_real_time_monitor', 'main_living_baseline_brightness_pct') | int(0) }}
+          zone_manual_offset: >
+            {{ states('input_number.oal_manual_offset_main_living_brightness') | int(0) }}
+          total_offset: >
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set sens = 1.0 %}
+            {% set manual = states('input_number.oal_manual_offset_main_living_brightness') | float(0) %}
+            {{ (cfg + sun + (env * sens) + manual) | round(1) }}
+          env_sensitivity: 1.0
+          override_remaining_seconds: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_main_living', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {{ (timer_values | min | default(0)) | int }}
+          override_remaining_formatted: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_main_living', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            {% if secs <= 0 %}N/A
+            {% elif hours > 0 %}{{ hours }}h {{ mins }}m
+            {% else %}{{ mins }}m{% endif %}
+          lights_overridden: >
+            {{ state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) | length }}
+          lights_total: 6
+          color_temp_kelvin: >
+            {{ state_attr('switch.adaptive_lighting_main_living', 'color_temp_kelvin') | int(0) }}
+          zone_id: "main_living"
+          friendly_name: "Main Living"
+
+      - name: "OAL Kitchen Island Status"
+        unique_id: oal_kitchen_island_status_v13
+        icon: mdi:lightbulb-group
+        availability: >
+          {{ states('switch.adaptive_lighting_kitchen_island') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set manual_list = state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) %}
+          {% if manual_list | length == 0 %}
+            A
+          {% else %}
+            {% set timer_dict = state_attr('switch.adaptive_lighting_kitchen_island', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
+          {% endif %}
+        attributes:
+          mode: >
+            {% set manual_list = state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) %}
+            {{ 'manual' if manual_list | length > 0 else 'adaptive' }}
+          brightness_target: >
+            {{ state_attr('switch.adaptive_lighting_kitchen_island', 'brightness_pct') | int(0) }}
+          brightness_base: >
+            {{ state_attr('sensor.oal_real_time_monitor', 'kitchen_island_baseline_brightness_pct') | int(0) }}
+          zone_manual_offset: >
+            {{ states('input_number.oal_manual_offset_kitchen_island_brightness') | int(0) }}
+          total_offset: >
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set sens = 1.0 %}
+            {% set manual = states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) %}
+            {{ (cfg + sun + (env * sens) + manual) | round(1) }}
+          env_sensitivity: 1.0
+          override_remaining_seconds: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_kitchen_island', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {{ (timer_values | min | default(0)) | int }}
+          override_remaining_formatted: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_kitchen_island', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            {% if secs <= 0 %}N/A
+            {% elif hours > 0 %}{{ hours }}h {{ mins }}m
+            {% else %}{{ mins }}m{% endif %}
+          lights_overridden: >
+            {{ state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) | length }}
+          lights_total: 1
+          color_temp_kelvin: >
+            {{ state_attr('switch.adaptive_lighting_kitchen_island', 'color_temp_kelvin') | int(0) }}
+          zone_id: "kitchen_island"
+          friendly_name: "Kitchen"
+
+      - name: "OAL Bedroom Primary Status"
+        unique_id: oal_bedroom_primary_status_v13
+        icon: mdi:lightbulb-group
+        availability: >
+          {{ states('switch.adaptive_lighting_bedroom_primary') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set manual_list = state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) %}
+          {% if manual_list | length == 0 %}
+            A
+          {% else %}
+            {% set timer_dict = state_attr('switch.adaptive_lighting_bedroom_primary', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
+          {% endif %}
+        attributes:
+          mode: >
+            {% set manual_list = state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) %}
+            {{ 'manual' if manual_list | length > 0 else 'adaptive' }}
+          brightness_target: >
+            {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'brightness_pct') | int(0) }}
+          brightness_base: >
+            {{ state_attr('sensor.oal_real_time_monitor', 'bedroom_primary_baseline_brightness_pct') | int(0) }}
+          zone_manual_offset: >
+            {{ states('input_number.oal_manual_offset_bedroom_primary_brightness') | int(0) }}
+          total_offset: >
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set sens = 0.5 %}
+            {% set manual = states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0) %}
+            {{ (cfg + sun + (env * sens) + manual) | round(1) }}
+          env_sensitivity: 0.5
+          override_remaining_seconds: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_bedroom_primary', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {{ (timer_values | min | default(0)) | int }}
+          override_remaining_formatted: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_bedroom_primary', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            {% if secs <= 0 %}N/A
+            {% elif hours > 0 %}{{ hours }}h {{ mins }}m
+            {% else %}{{ mins }}m{% endif %}
+          lights_overridden: >
+            {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) | length }}
+          lights_total: 2
+          color_temp_kelvin: >
+            {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'color_temp_kelvin') | int(0) }}
+          zone_id: "bedroom_primary"
+          friendly_name: "Bedroom"
+
+      - name: "OAL Accent Spots Status"
+        unique_id: oal_accent_spots_status_v13
+        icon: mdi:lightbulb-group
+        availability: >
+          {{ states('switch.adaptive_lighting_accent_spots') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set manual_list = state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) %}
+          {% if manual_list | length == 0 %}
+            A
+          {% else %}
+            {% set timer_dict = state_attr('switch.adaptive_lighting_accent_spots', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
+          {% endif %}
+        attributes:
+          mode: >
+            {% set manual_list = state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) %}
+            {{ 'manual' if manual_list | length > 0 else 'adaptive' }}
+          brightness_target: >
+            {{ state_attr('switch.adaptive_lighting_accent_spots', 'brightness_pct') | int(0) }}
+          brightness_base: >
+            {{ state_attr('sensor.oal_real_time_monitor', 'accent_spots_baseline_brightness_pct') | int(0) }}
+          zone_manual_offset: >
+            {{ states('input_number.oal_manual_offset_accent_spots_brightness') | int(0) }}
+          total_offset: >
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set sens = 0.8 %}
+            {% set manual = states('input_number.oal_manual_offset_accent_spots_brightness') | float(0) %}
+            {{ (cfg + sun + (env * sens) + manual) | round(1) }}
+          env_sensitivity: 0.8
+          override_remaining_seconds: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_accent_spots', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {{ (timer_values | min | default(0)) | int }}
+          override_remaining_formatted: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_accent_spots', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            {% if secs <= 0 %}N/A
+            {% elif hours > 0 %}{{ hours }}h {{ mins }}m
+            {% else %}{{ mins }}m{% endif %}
+          lights_overridden: >
+            {{ state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) | length }}
+          lights_total: 2
+          color_temp_kelvin: >
+            {{ state_attr('switch.adaptive_lighting_accent_spots', 'color_temp_kelvin') | int(0) }}
+          zone_id: "accent_spots"
+          friendly_name: "Spots"
+
+      - name: "OAL Recessed Ceiling Status"
+        unique_id: oal_recessed_ceiling_status_v13
+        icon: mdi:lightbulb-group
+        availability: >
+          {{ states('switch.adaptive_lighting_recessed_ceiling') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set manual_list = state_attr('switch.adaptive_lighting_recessed_ceiling', 'manual_control') | default([]) %}
+          {% if manual_list | length == 0 %}
+            A
+          {% else %}
+            {% set timer_dict = state_attr('switch.adaptive_lighting_recessed_ceiling', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
+          {% endif %}
+        attributes:
+          mode: >
+            {% set manual_list = state_attr('switch.adaptive_lighting_recessed_ceiling', 'manual_control') | default([]) %}
+            {{ 'manual' if manual_list | length > 0 else 'adaptive' }}
+          brightness_target: >
+            {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'brightness_pct') | int(0) }}
+          brightness_base: >
+            {{ state_attr('sensor.oal_real_time_monitor', 'recessed_ceiling_baseline_brightness_pct') | int(0) }}
+          zone_manual_offset: >
+            {{ states('input_number.oal_manual_offset_recessed_ceiling_brightness') | int(0) }}
+          total_offset: >
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set sens = 0.6 %}
+            {% set manual = states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0) %}
+            {{ (cfg + sun + (env * sens) + manual) | round(1) }}
+          env_sensitivity: 0.6
+          override_remaining_seconds: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_recessed_ceiling', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {{ (timer_values | min | default(0)) | int }}
+          override_remaining_formatted: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_recessed_ceiling', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            {% if secs <= 0 %}N/A
+            {% elif hours > 0 %}{{ hours }}h {{ mins }}m
+            {% else %}{{ mins }}m{% endif %}
+          lights_overridden: >
+            {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'manual_control') | default([]) | length }}
+          lights_total: 2
+          color_temp_kelvin: >
+            {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'color_temp_kelvin') | int(0) }}
+          zone_id: "recessed_ceiling"
+          friendly_name: "Ceiling"
+
+      - name: "OAL Column Lights Status"
+        unique_id: oal_column_lights_status_v13
+        icon: mdi:lightbulb-group
+        availability: >
+          {{ states('switch.adaptive_lighting_column_lights') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+          {% if manual_list | length == 0 %}
+            A
+          {% else %}
+            {% set timer_dict = state_attr('switch.adaptive_lighting_column_lights', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
+          {% endif %}
+        attributes:
+          mode: >
+            {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+            {{ 'manual' if manual_list | length > 0 else 'adaptive' }}
+          brightness_target: >
+            {{ state_attr('switch.adaptive_lighting_column_lights', 'brightness_pct') | int(0) }}
+          brightness_base: >
+            {{ state_attr('sensor.oal_real_time_monitor', 'column_lights_baseline_brightness_pct') | int(0) }}
+          zone_manual_offset: >
+            {{ states('input_number.oal_manual_offset_column_lights_brightness') | int(0) }}
+          total_offset: >
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set sens = 0.7 %}
+            {% set manual = states('input_number.oal_manual_offset_column_lights_brightness') | float(0) %}
+            {{ (cfg + sun + (env * sens) + manual) | round(1) }}
+          env_sensitivity: 0.7
+          override_remaining_seconds: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_column_lights', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {{ (timer_values | min | default(0)) | int }}
+          override_remaining_formatted: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_column_lights', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            {% if secs <= 0 %}N/A
+            {% elif hours > 0 %}{{ hours }}h {{ mins }}m
+            {% else %}{{ mins }}m{% endif %}
+          lights_overridden: >
+            {{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}
+          lights_total: 2
+          color_temp_kelvin: >
+            {{ state_attr('switch.adaptive_lighting_column_lights', 'color_temp_kelvin') | int(0) }}
+          zone_id: "column_lights"
+          friendly_name: "Columns"
+
+      # -----------------------------------------------------------------------
+      # 6.5 Global Brightness Offset (aggregated from all sources)
+      # -----------------------------------------------------------------------
+      - name: "OAL Global Brightness Offset"
+        unique_id: oal_global_brightness_offset_v13
+        icon: mdi:brightness-percent
+        availability: >
+          {{ states('input_number.oal_offset_config_brightness') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set config = states('input_number.oal_offset_config_brightness') | float(0) %}
+          {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+          {% set sunset = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+          {% set total = (config + env + sunset) | int %}
+          {% if total == 0 %}Baseline
+          {% elif total > 0 %}+{{ total }}%
+          {% else %}{{ total }}%{% endif %}
+        attributes:
+          config_offset: >
+            {{ states('input_number.oal_offset_config_brightness') | int(0) }}
+          environmental_offset: >
+            {{ states('input_number.oal_offset_environmental_brightness') | int(0) }}
+          sunset_offset: >
+            {{ states('input_number.oal_offset_sunset_brightness') | int(0) }}
+          total_offset: >
+            {% set config = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set sunset = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {{ (config + env + sunset) | int }}
+          average_zone_brightness: >
+            {% set zones = [
+              state_attr('switch.adaptive_lighting_main_living', 'brightness_pct') | float(0),
+              state_attr('switch.adaptive_lighting_kitchen_island', 'brightness_pct') | float(0),
+              state_attr('switch.adaptive_lighting_bedroom_primary', 'brightness_pct') | float(0),
+              state_attr('switch.adaptive_lighting_accent_spots', 'brightness_pct') | float(0),
+              state_attr('switch.adaptive_lighting_recessed_ceiling', 'brightness_pct') | float(0),
+              state_attr('switch.adaptive_lighting_column_lights', 'brightness_pct') | float(0)
+            ] %}
+            {{ (zones | sum / zones | length) | round(0) | int }}
+          current_config: >
+            {{ states('input_select.oal_active_configuration') | regex_replace('Config \\d+: ', '') }}
+
+      # -----------------------------------------------------------------------
+      # 6.6 Soonest Override Timer (cross-zone aggregate)
+      # -----------------------------------------------------------------------
+      - name: "OAL Soonest Override"
+        unique_id: oal_soonest_override_v13
+        icon: mdi:timer-outline
+        availability: >
+          {{ states('group.oal_control_switches') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set switches = [
+            ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
+            ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
+            ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+            ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
+            ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+            ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
+          ] %}
+          {% set ns = namespace(times=[]) %}
+          {% for zone_id, zone_friendly, switch_id in switches %}
+            {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
+            {% for light, secs in timer_dict.items() %}
+              {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'secs': secs | float(0)}] %}
+            {% endfor %}
+          {% endfor %}
+          {% if ns.times | length > 0 %}
+            {% set soonest = ns.times | sort(attribute='secs') | first %}
+            {% set secs = soonest.secs | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            {% if hours > 0 %}{{ hours }}h {{ mins }}m{% else %}{{ mins }}m{% endif %}
+          {% else %}
+            None
+          {% endif %}
+        attributes:
+          zone_id: >
+            {% set switches = [
+              ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
+              ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
+              ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+              ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
+              ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+              ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
+            ] %}
+            {% set ns = namespace(times=[]) %}
+            {% for zone_id, zone_friendly, switch_id in switches %}
+              {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
+              {% for light, secs in timer_dict.items() %}
+                {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'secs': secs | float(0)}] %}
+              {% endfor %}
+            {% endfor %}
+            {% if ns.times | length > 0 %}
+              {{ (ns.times | sort(attribute='secs') | first).zone_id }}
+            {% else %}
+              None
+            {% endif %}
+          zone_friendly: >
+            {% set switches = [
+              ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
+              ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
+              ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+              ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
+              ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+              ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
+            ] %}
+            {% set ns = namespace(times=[]) %}
+            {% for zone_id, zone_friendly, switch_id in switches %}
+              {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
+              {% for light, secs in timer_dict.items() %}
+                {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'secs': secs | float(0)}] %}
+              {% endfor %}
+            {% endfor %}
+            {% if ns.times | length > 0 %}
+              {{ (ns.times | sort(attribute='secs') | first).zone_friendly }}
+            {% else %}
+              None
+            {% endif %}
+          reset_timestamp: >
+            {% set switches = [
+              ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
+              ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
+              ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+              ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
+              ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+              ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
+            ] %}
+            {% set ns = namespace(times=[]) %}
+            {% for zone_id, zone_friendly, switch_id in switches %}
+              {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
+              {% for light, secs in timer_dict.items() %}
+                {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'secs': secs | float(0)}] %}
+              {% endfor %}
+            {% endfor %}
+            {% if ns.times | length > 0 %}
+              {% set soonest_secs = (ns.times | sort(attribute='secs') | first).secs | int %}
+              {{ (now().timestamp() + soonest_secs) | int }}
+            {% else %}
+              0
+            {% endif %}
+          seconds_remaining: >
+            {% set switches = [
+              ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
+              ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
+              ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+              ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
+              ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+              ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
+            ] %}
+            {% set ns = namespace(times=[]) %}
+            {% for zone_id, zone_friendly, switch_id in switches %}
+              {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
+              {% for light, secs in timer_dict.items() %}
+                {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'secs': secs | float(0)}] %}
+              {% endfor %}
+            {% endfor %}
+            {% if ns.times | length > 0 %}
+              {{ (ns.times | sort(attribute='secs') | first).secs | int }}
+            {% else %}
+              0
+            {% endif %}
+
+      # -----------------------------------------------------------------------
+      # 6.7 Sunrise times (for Sonos-driven wakeups)
       # -----------------------------------------------------------------------
       - name: "OAL Sunrise Times"
         unique_id: oal_sunrise_times_v13

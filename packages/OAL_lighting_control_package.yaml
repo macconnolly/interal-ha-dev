@@ -2236,7 +2236,17 @@ template:
             {{ (state_attr('switch.adaptive_lighting_column_lights', 'configuration') or {}).get('max_brightness', 0) }}
           column_lights_manual_offset_brightness_pct: >
             {{ states('input_number.oal_manual_offset_column_lights_brightness') | float(0) }}
+          boost_source: >
+            {% set sources = [] %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% if env > 0 %}{% set sources = sources + ['☀️+' ~ env | int ~ '%'] %}{% endif %}
+            {% if cfg != 0 %}{% set sources = sources + ['⚙️' ~ ('+' if cfg > 0 else '') ~ cfg | int ~ '%'] %}{% endif %}
+            {% if sun != 0 %}{% set sources = sources + ['🌅' ~ ('+' if sun > 0 else '') ~ sun | int ~ '%'] %}{% endif %}
+            {{ sources | join(' ') if sources else 'Baseline' }}
 
+            
       # -----------------------------------------------------------------------
       # 6.2 Average active color temperature (safe aggregate for warmth)
       # -----------------------------------------------------------------------

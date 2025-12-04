@@ -462,7 +462,10 @@ adaptive_lighting:
     include_config_in_attributes: true
     autoreset_control_seconds: 3200
     min_brightness: 1
-    max_brightness: 2
+    max_brightness: 80
+    brightness_mode: tanh
+    brightness_mode_time_light: 1800
+    brightness_mode_time_dark: 900
     min_color_temp: 2000
     max_color_temp: 3000
     prefer_rgb_color: true

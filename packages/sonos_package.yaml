@@ -110,12 +110,12 @@ input_datetime:
 group:
   sonos_all:
     name: All Sonos Speakers
-    entities:                       #  <-- ADJUST to match your setup
-      - media_player.kitchen
+    entities:
       - media_player.living_room
-      - media_player.office
-      - media_player.bed
+      - media_player.dining_room
+      - media_player.kitchen
       - media_player.bath
+      - media_player.bedroom
 
 
 
@@ -582,6 +582,7 @@ template:
 
     # ------------------------------------------------------------------
     # Sonos Playing Status (for OAL dashboard)
+    # FIX: Use entity.name instead of entity_id since Sonos is in friendly_name
     # ------------------------------------------------------------------
     - name: "Sonos Playing Status"
       unique_id: sonos_playing_status
@@ -589,9 +590,9 @@ template:
       state: >
         {% set playing = namespace(rooms=[]) %}
         {% for entity in states.media_player
-           if 'sonos' in entity.entity_id | lower
+           if 'sonos' in entity.name | lower
            and entity.state == 'playing' %}
-          {% set room_name = entity.name | replace(' Sonos', '') | replace(' Soundbar', '') %}
+          {% set room_name = entity.name | replace(' Sonos', '') | replace(' Soundbar', '') | replace(' TV ', '') %}
           {% set playing.rooms = playing.rooms + [room_name] %}
         {% endfor %}
         {% if playing.rooms | length == 0 %}
@@ -605,14 +606,19 @@ template:
         playing_rooms: >
           {% set playing = namespace(rooms=[]) %}
           {% for entity in states.media_player
-             if 'sonos' in entity.entity_id | lower
+             if 'sonos' in entity.name | lower
              and entity.state == 'playing' %}
             {% set playing.rooms = playing.rooms + [entity.entity_id] %}
           {% endfor %}
           {{ playing.rooms }}
         is_playing: >
-          {{ states.media_player | selectattr('entity_id', 'search', 'sonos')
-             | selectattr('state', 'eq', 'playing') | list | length > 0 }}
+          {% set count = namespace(n=0) %}
+          {% for entity in states.media_player
+             if 'sonos' in entity.name | lower
+             and entity.state == 'playing' %}
+            {% set count.n = count.n + 1 %}
+          {% endfor %}
+          {{ count.n > 0 }}
 
 ############################
 #  SCRIPTS                 #

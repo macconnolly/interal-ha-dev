@@ -1198,9 +1198,15 @@ automation:
     mode: queued
     max_exceeded: silent
     trigger:
-      - platform: state
-        entity_id: switch.sonos_alarm_*
-    condition: []
+      - platform: event
+        event_type: state_changed
+        event_data: {}
+        # Filter for sonos_alarm switches in condition below
+    condition:
+      - condition: template
+        value_template: >
+          {{ trigger.event.data.entity_id is defined and
+             trigger.event.data.entity_id.startswith('switch.sonos_alarm_') }}
     action:
       # Removed deprecated script.update_soonest_sonos_alarm_info call
       - service: system_log.write

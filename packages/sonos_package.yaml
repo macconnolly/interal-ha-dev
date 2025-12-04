@@ -405,6 +405,49 @@ template:
              | map(attribute='entity_id')
              | list %}
         {{ playing[0] if playing|length > 0 else 'none' }}
+      attributes:
+        playing_state: >
+          {% set playing = states.media_player
+               | selectattr('attributes.group_members', 'defined')
+               | selectattr('state', 'eq', 'playing')
+               | list %}
+          {{ playing[0].state if playing|length > 0 else 'idle' }}
+        media_title: >
+          {% set playing = states.media_player
+               | selectattr('attributes.group_members', 'defined')
+               | selectattr('state', 'eq', 'playing')
+               | list %}
+          {{ playing[0].attributes.media_title | default('', true) if playing|length > 0 else '' }}
+        media_artist: >
+          {% set playing = states.media_player
+               | selectattr('attributes.group_members', 'defined')
+               | selectattr('state', 'eq', 'playing')
+               | list %}
+          {{ playing[0].attributes.media_artist | default('', true) if playing|length > 0 else '' }}
+        source: >
+          {% set playing = states.media_player
+               | selectattr('attributes.group_members', 'defined')
+               | selectattr('state', 'eq', 'playing')
+               | list %}
+          {{ playing[0].attributes.source | default('', true) if playing|length > 0 else '' }}
+        room: >
+          {% set playing = states.media_player
+               | selectattr('attributes.group_members', 'defined')
+               | selectattr('state', 'eq', 'playing')
+               | list %}
+          {{ playing[0].name if playing|length > 0 else '' }}
+        volume: >
+          {% set playing = states.media_player
+               | selectattr('attributes.group_members', 'defined')
+               | selectattr('state', 'eq', 'playing')
+               | list %}
+          {{ playing[0].attributes.volume_level | float(0) if playing|length > 0 else 0 }}
+        group_members: >
+          {% set playing = states.media_player
+               | selectattr('attributes.group_members', 'defined')
+               | selectattr('state', 'eq', 'playing')
+               | list %}
+          {{ playing[0].attributes.group_members | default([], true) if playing|length > 0 else [] }}
 
     - name: "Sonos Living Room Group Label"
       unique_id: sonos_living_room_group_label
@@ -536,6 +579,40 @@ template:
           {% set members = state_attr(main_group, 'group_members') or [] %}
           {{ target in members }}
         {% endif %}
+
+    # ------------------------------------------------------------------
+    # Sonos Playing Status (for OAL dashboard)
+    # ------------------------------------------------------------------
+    - name: "Sonos Playing Status"
+      unique_id: sonos_playing_status
+      icon: mdi:speaker-multiple
+      state: >
+        {% set playing = namespace(rooms=[]) %}
+        {% for entity in states.media_player
+           if 'sonos' in entity.entity_id | lower
+           and entity.state == 'playing' %}
+          {% set room_name = entity.name | replace(' Sonos', '') | replace(' Soundbar', '') %}
+          {% set playing.rooms = playing.rooms + [room_name] %}
+        {% endfor %}
+        {% if playing.rooms | length == 0 %}
+          Off
+        {% elif playing.rooms | length == 1 %}
+          {{ playing.rooms[0] }}
+        {% else %}
+          {{ playing.rooms | length }} rooms
+        {% endif %}
+      attributes:
+        playing_rooms: >
+          {% set playing = namespace(rooms=[]) %}
+          {% for entity in states.media_player
+             if 'sonos' in entity.entity_id | lower
+             and entity.state == 'playing' %}
+            {% set playing.rooms = playing.rooms + [entity.entity_id] %}
+          {% endfor %}
+          {{ playing.rooms }}
+        is_playing: >
+          {{ states.media_player | selectattr('entity_id', 'search', 'sonos')
+             | selectattr('state', 'eq', 'playing') | list | length > 0 }}
 
 ############################
 #  SCRIPTS                 #
@@ -1198,20 +1275,19 @@ automation:
     mode: queued
     max_exceeded: silent
     trigger:
-      - platform: event
-        event_type: state_changed
-        event_data: {}
-        # Filter for sonos_alarm switches in condition below
-    condition:
-      - condition: template
-        value_template: >
-          {{ trigger.event.data.entity_id is defined and
-             trigger.event.data.entity_id.startswith('switch.sonos_alarm_') }}
+      - platform: state
+        entity_id:
+          - switch.sonos_alarm_living_room
+          - switch.sonos_alarm_bedroom
+          - switch.sonos_alarm_kitchen
+          - switch.sonos_alarm_office
+          - switch.sonos_alarm_bath
+    condition: []
     action:
       # Removed deprecated script.update_soonest_sonos_alarm_info call
       - service: system_log.write
         data:
-          message: "Sonos alarm update triggered by: {{ trigger.event.data.entity_id }}"
+          message: "Sonos alarm update triggered by: {{ trigger.entity_id }}"
           level: info
 
   # Sonos nightly prompt automation

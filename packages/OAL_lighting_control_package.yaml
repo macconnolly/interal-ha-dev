@@ -2061,6 +2061,16 @@ script:
     description: "Resets manual offsets, config selection, and isolated overrides to defaults."
     icon: mdi:restore
     sequence:
+      # FIRST: Turn on all AL switches (apply requires switches to be ON)
+      - service: switch.turn_on
+        target:
+          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+      # THEN: Clear manual_control so Core Engine will apply changes
+      - service: adaptive_lighting.set_manual_control
+        target:
+          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+        data:
+          manual_control: false
       - service: input_number.set_value
         target:
           entity_id:
@@ -2086,11 +2096,16 @@ script:
       - service: input_boolean.turn_off
         target:
           entity_id: input_boolean.oal_movie_mode_active
-      - service: adaptive_lighting.set_manual_control
+      # LAST: Wait for any Config Manager transition to complete, then apply AL directly
+      # This ensures lights are updated regardless of whether config actually changed
+      - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
+        timeout: "00:00:10"
+      - service: adaptive_lighting.apply
         target:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
         data:
-          manual_control: false
+          turn_on_lights: true
+          transition: 2
 
   oal_reset_global:
     alias: "OAL v13 Reset Global (Nuclear)"

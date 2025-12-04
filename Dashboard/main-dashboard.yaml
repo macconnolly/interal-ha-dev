@@ -1,9 +1,11 @@
 type: sections
-title: Lighting Control
-path: home-09
-icon: mdi:lightbulb-group
-max_columns: 3
+max_columns: 6
+title: Test Dash
+path: test-hero
 sections:
+  # ============================================================
+  # SECTION 1: OAL HERO - Zone Controls (Full Width)
+  # ============================================================
   - type: grid
     cards:
       - type: vertical-stack
@@ -13,9 +15,9 @@ sections:
               background:
                 linear-gradient(
                   180deg,
-                  rgba(0, 0, 0, 0.0) 0%,
-                  rgba(0, 0, 0, 0.0) 50%,
-                  rgba(0, 0, 0, 0.1) 100%
+                  rgba(60, 60, 60, 0.12) 0%,
+                  rgba(60, 60, 60, 0.08) 50%,
+                  rgba(40, 40, 40, 0.18) 100%
                 ),
                 url('/local/image/Room7.png') !important;
               background-size: cover !important;
@@ -28,6 +30,7 @@ sections:
               display: block !important;
             }
         cards:
+          # Quick Controls - sub-button bar inside hero
           - type: custom:bubble-card
             card_type: button
             button_type: name
@@ -117,7 +120,7 @@ sections:
                 border: none !important;
                 box-shadow: none !important;
                 margin: 0 !important;
-                padding: 12px 16px 4px 16px !important;
+                padding: 12px 16px 8px 16px !important;
               }
               .bubble-button-card-container {
                 background: transparent !important;
@@ -148,12 +151,12 @@ sections:
                   ? 'rgba(255, 255, 255, 0.4)'
                   : 'rgba(255, 255, 255, 0.15)'} !important;
                 border: ${hass.states['light.all_adaptive_lights']?.state === 'on'
-                  ? '1px solid rgba(200, 160, 100, 0.25)'
+                  ? '1px solid rgba(255, 149, 0, 0.35)'
                   : '1px solid rgba(255, 255, 255, 0.2)'} !important;
               }
               .bubble-sub-button-1 .bubble-sub-button-icon {
                 color: ${hass.states['light.all_adaptive_lights']?.state === 'on'
-                  ? 'rgba(190, 140, 60, 0.9)'
+                  ? 'rgb(255, 149, 0)'
                   : 'rgba(60, 60, 60, 0.6)'} !important;
                 --mdc-icon-size: 15px !important;
               }
@@ -168,6 +171,7 @@ sections:
                 font-weight: 600 !important;
                 font-size: 11px !important;
               }
+          # Zone slider row 1: Living, Kitchen, Bedroom
           - type: horizontal-stack
             card_mod:
               style: |
@@ -176,21 +180,27 @@ sections:
                 }
                 #root {
                   display: flex !important;
-                  justify-content: space-around !important;
+                  justify-content: center !important;
                   align-items: stretch !important;
-                  gap: 0 !important;
-                  padding: 6px 12px !important;
+                  gap: 20px !important;
+                  padding: 10px 16px 8px 16px !important;
                 }
                 #root > * {
-                  flex: 0 0 28% !important;
-                  max-width: 28% !important;
+                  flex: 0 1 auto !important;
+                  width: 66px !important;
+                  max-width: 66px !important;
                 }
             cards:
+              # Living Zone - AL: switch.adaptive_lighting_main_living
               - type: custom:bubble-card
                 card_type: button
                 button_type: slider
-                entity: light.main_living_lights
-                name: Living
+                entity: light.living_room_lights
+                name: >-
+                  ${(() => {
+                    const mc = hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || [];
+                    return mc.length > 0 ? 'Living M' : 'Living';
+                  })()}
                 icon: mdi:sofa
                 show_state: false
                 show_attribute: true
@@ -204,7 +214,7 @@ sections:
                   action: call-service
                   service: light.turn_on
                   target:
-                    entity_id: light.main_living_lights
+                    entity_id: light.living_room_lights
                   data:
                     brightness_pct: 100
                 card_mod:
@@ -222,28 +232,34 @@ sections:
                     justify-items: center !important;
                     align-items: center !important;
                     text-align: center !important;
-                    min-height: 78px !important;
-                    padding: 14px 6px 6px 6px !important;
-                    border-radius: 12px !important;
+                    min-height: 74px !important;
+                    padding: 8px 6px 6px 6px !important;
+                    border-radius: 14px !important;
                     overflow: hidden !important;
-                    clip-path: inset(0 round 12px) !important;
-                    transition: transform 0.1s ease-out, backdrop-filter 0.2s ease-out, border-color 0.15s ease-out !important;
-                    background: transparent !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.1s ease-out, backdrop-filter 0.3s ease, border-color 0.2s ease, opacity 0.2s ease !important;
+                    background: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.06)'
+                      : 'rgba(255, 255, 255, 0.02)'} !important;
                     backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
+                      ? 'blur(2px) saturate(110%)'
+                      : 'blur(0.5px)'} !important;
                     -webkit-backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
+                      ? 'blur(2px) saturate(110%)'
+                      : 'blur(0.5px)'} !important;
                     border: ${state === 'on'
-                      ? '1px solid rgba(200, 160, 100, 0.3)'
-                      : '1px solid rgba(120, 120, 120, 0.3)'} !important;
+                      ? ((hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).length > 0
+                          ? '1.5px solid rgba(239, 83, 80, 0.65)'
+                          : '1.5px solid rgba(255, 149, 0, 0.55)')
+                      : '1.5px solid rgba(80, 80, 80, 0.4)'} !important;
                     box-shadow: ${state === 'on'
-                      ? '0 2px 10px rgba(180, 140, 60, 0.1)'
+                      ? ((hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).length > 0
+                          ? '0 2px 8px rgba(239, 83, 80, 0.15)'
+                          : '0 2px 8px rgba(255, 149, 0, 0.12)')
                       : 'none'} !important;
                   }
 
-                  .bubble-button-card-container:active { transform: scale(0.97)
+                  .bubble-button-card-container:active { transform: scale(0.96)
                   !important; }
 
                   .bubble-content-container {
@@ -260,62 +276,98 @@ sections:
                     min-width: 32px !important;
                     min-height: 32px !important;
                     grid-row: 1 !important;
-                    margin: 2px 0 2px 0 !important;
+                    margin: 4px 0 4px 0 !important;
                     border-radius: 50% !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     background: ${state === 'on'
-                      ? 'rgba(200, 160, 90, 0.18)'
-                      : 'rgba(60, 60, 60, 0.15)'} !important;
+                      ? ((hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).length > 0
+                          ? 'rgba(239, 83, 80, 0.15)'
+                          : 'rgba(255, 149, 0, 0.15)')
+                      : 'rgba(60, 60, 60, 0.18)'} !important;
+                    border: ${state === 'on'
+                      ? ((hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).length > 0
+                          ? '1px solid rgba(239, 83, 80, 0.3)'
+                          : '1px solid rgba(255, 149, 0, 0.3)')
+                      : '1px solid rgba(60, 60, 60, 0.25)'} !important;
                   }
 
                   .bubble-icon {
                     --mdc-icon-size: 18px !important;
-                    color: ${state === 'on' ? 'rgba(190, 145, 60, 0.95)' : 'rgba(40, 40, 40, 0.7)'} !important;
+                    color: ${state === 'on'
+                      ? ((hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).length > 0
+                          ? 'rgb(239, 83, 80)'
+                          : 'rgb(255, 149, 0)')
+                      : 'rgba(20, 20, 20, 0.7)'} !important;
+                    filter: ${state === 'on'
+                      ? ((hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).length > 0
+                          ? 'drop-shadow(0 0 4px rgba(239, 83, 80, 0.5))'
+                          : 'drop-shadow(0 0 4px rgba(255, 149, 0, 0.5))')
+                      : 'none'} !important;
                   }
 
                   .bubble-name-container {
                     grid-row: 2 !important;
-                    margin: 0 !important;
+                    margin: 2px 0 0 0 !important;
                     width: 100% !important;
                   }
 
                   .bubble-name {
-                    font-weight: 700 !important;
-                    font-size: 9px !important;
+                    font-weight: 600 !important;
+                    font-size: 10px !important;
                     text-transform: uppercase !important;
-                    letter-spacing: 0.5px !important;
+                    letter-spacing: 0.8px !important;
                     line-height: 1.3 !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(40, 40, 40, 0.85)' : 'rgba(30, 30, 30, 0.75)'} !important;
+                    color: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.95)'
+                      : 'rgba(10, 10, 10, 0.9)'} !important;
+                    text-shadow: ${state === 'on'
+                      ? '0 1px 3px rgba(0, 0, 0, 0.3)'
+                      : 'none'} !important;
+                  }
+
+                  .bubble-state {
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    color: rgba(10, 10, 10, 0.9) !important;
+                    text-shadow: none !important;
                   }
 
                   .bubble-attribute {
-                    font-size: 9px !important;
-                    margin-top: 0px !important;
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    margin-top: 2px !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.85)' : 'rgba(50, 50, 50, 0.6)'} !important;
+                    color: rgba(10, 10, 10, 0.9) !important;
+                    text-shadow: none !important;
                   }
 
                   .bubble-range-slider {
                     position: absolute !important;
-                    bottom: 4px !important;
+                    bottom: 6px !important;
                     left: 0 !important;
                     right: 0 !important;
                     margin: 0 auto !important;
-                    width: 78% !important;
+                    width: 70% !important;
                     height: 3px !important;
                     border-radius: 3px !important;
                     z-index: 10 !important;
-                    background: rgba(60, 60, 60, 0.15) !important;
+                    background: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.2)'
+                      : 'transparent'} !important;
                     overflow: hidden !important;
+                    opacity: ${state === 'on' ? '1' : '0'} !important;
+                    transition: opacity 0.2s ease !important;
                   }
 
                   .bubble-range-fill {
                     height: 3px !important;
                     border-radius: 3px !important;
-                    background: rgba(190, 155, 85, 0.6) !important;
+                    background: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).length > 0
+                      ? 'linear-gradient(90deg, rgba(239, 83, 80, 0.8), rgba(255, 120, 100, 0.9))'
+                      : 'linear-gradient(90deg, rgba(255, 149, 0, 0.8), rgba(255, 180, 80, 0.9))'} !important;
                   }
 
                   .bubble-range-value {
@@ -324,7 +376,8 @@ sections:
                     right: 6px !important;
                     font-size: 11px !important;
                     font-weight: 700 !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.95)' : 'rgba(40, 40, 40, 0.8)'} !important;
+                    color: rgba(255, 255, 255, 0.95) !important;
+                    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
                     opacity: 0 !important;
                     transition: opacity 0.15s ease !important;
                     z-index: 20 !important;
@@ -336,11 +389,16 @@ sections:
                 sub_button:
                   main: []
                   bottom: []
+              # Kitchen Zone - AL: switch.adaptive_lighting_kitchen_island
               - type: custom:bubble-card
                 card_type: button
                 button_type: slider
-                entity: light.kitchen_island_pendants
-                name: Kitchen
+                entity: light.all_kitchen_lights
+                name: >-
+                  ${(() => {
+                    const mc = hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control || [];
+                    return mc.length > 0 ? 'Kitchen M' : 'Kitchen';
+                  })()}
                 icon: mdi:countertop
                 show_state: false
                 show_attribute: true
@@ -354,7 +412,7 @@ sections:
                   action: call-service
                   service: light.turn_on
                   target:
-                    entity_id: light.kitchen_island_pendants
+                    entity_id: light.all_kitchen_lights
                   data:
                     brightness_pct: 100
                 card_mod:
@@ -372,28 +430,34 @@ sections:
                     justify-items: center !important;
                     align-items: center !important;
                     text-align: center !important;
-                    min-height: 78px !important;
-                    padding: 14px 6px 6px 6px !important;
-                    border-radius: 12px !important;
+                    min-height: 74px !important;
+                    padding: 8px 6px 6px 6px !important;
+                    border-radius: 14px !important;
                     overflow: hidden !important;
-                    clip-path: inset(0 round 12px) !important;
-                    transition: transform 0.1s ease-out, backdrop-filter 0.2s ease-out, border-color 0.15s ease-out !important;
-                    background: transparent !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.1s ease-out, backdrop-filter 0.3s ease, border-color 0.2s ease, opacity 0.2s ease !important;
+                    background: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.06)'
+                      : 'rgba(255, 255, 255, 0.02)'} !important;
                     backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
+                      ? 'blur(2px) saturate(110%)'
+                      : 'blur(0.5px)'} !important;
                     -webkit-backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
+                      ? 'blur(2px) saturate(110%)'
+                      : 'blur(0.5px)'} !important;
                     border: ${state === 'on'
-                      ? '1px solid rgba(200, 160, 100, 0.3)'
-                      : '1px solid rgba(120, 120, 120, 0.3)'} !important;
+                      ? ((hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control || []).length > 0
+                          ? '1.5px solid rgba(239, 83, 80, 0.65)'
+                          : '1.5px solid rgba(255, 149, 0, 0.55)')
+                      : '1.5px solid rgba(80, 80, 80, 0.4)'} !important;
                     box-shadow: ${state === 'on'
-                      ? '0 2px 10px rgba(180, 140, 60, 0.1)'
+                      ? ((hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control || []).length > 0
+                          ? '0 2px 8px rgba(239, 83, 80, 0.15)'
+                          : '0 2px 8px rgba(255, 149, 0, 0.12)')
                       : 'none'} !important;
                   }
 
-                  .bubble-button-card-container:active { transform: scale(0.97)
+                  .bubble-button-card-container:active { transform: scale(0.96)
                   !important; }
 
                   .bubble-content-container {
@@ -410,62 +474,98 @@ sections:
                     min-width: 32px !important;
                     min-height: 32px !important;
                     grid-row: 1 !important;
-                    margin: 2px 0 2px 0 !important;
+                    margin: 4px 0 4px 0 !important;
                     border-radius: 50% !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     background: ${state === 'on'
-                      ? 'rgba(200, 160, 90, 0.18)'
-                      : 'rgba(60, 60, 60, 0.15)'} !important;
+                      ? ((hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control || []).length > 0
+                          ? 'rgba(239, 83, 80, 0.15)'
+                          : 'rgba(255, 149, 0, 0.15)')
+                      : 'rgba(60, 60, 60, 0.18)'} !important;
+                    border: ${state === 'on'
+                      ? ((hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control || []).length > 0
+                          ? '1px solid rgba(239, 83, 80, 0.3)'
+                          : '1px solid rgba(255, 149, 0, 0.3)')
+                      : '1px solid rgba(60, 60, 60, 0.25)'} !important;
                   }
 
                   .bubble-icon {
                     --mdc-icon-size: 18px !important;
-                    color: ${state === 'on' ? 'rgba(190, 145, 60, 0.95)' : 'rgba(40, 40, 40, 0.7)'} !important;
+                    color: ${state === 'on'
+                      ? ((hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control || []).length > 0
+                          ? 'rgb(239, 83, 80)'
+                          : 'rgb(255, 149, 0)')
+                      : 'rgba(20, 20, 20, 0.7)'} !important;
+                    filter: ${state === 'on'
+                      ? ((hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control || []).length > 0
+                          ? 'drop-shadow(0 0 4px rgba(239, 83, 80, 0.5))'
+                          : 'drop-shadow(0 0 4px rgba(255, 149, 0, 0.5))')
+                      : 'none'} !important;
                   }
 
                   .bubble-name-container {
                     grid-row: 2 !important;
-                    margin: 0 !important;
+                    margin: 2px 0 0 0 !important;
                     width: 100% !important;
                   }
 
                   .bubble-name {
-                    font-weight: 700 !important;
-                    font-size: 9px !important;
+                    font-weight: 600 !important;
+                    font-size: 10px !important;
                     text-transform: uppercase !important;
-                    letter-spacing: 0.5px !important;
+                    letter-spacing: 0.8px !important;
                     line-height: 1.3 !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(40, 40, 40, 0.85)' : 'rgba(30, 30, 30, 0.75)'} !important;
+                    color: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.95)'
+                      : 'rgba(10, 10, 10, 0.9)'} !important;
+                    text-shadow: ${state === 'on'
+                      ? '0 1px 3px rgba(0, 0, 0, 0.3)'
+                      : 'none'} !important;
+                  }
+
+                  .bubble-state {
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    color: rgba(10, 10, 10, 0.9) !important;
+                    text-shadow: none !important;
                   }
 
                   .bubble-attribute {
-                    font-size: 9px !important;
-                    margin-top: 0px !important;
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    margin-top: 2px !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.85)' : 'rgba(50, 50, 50, 0.6)'} !important;
+                    color: rgba(10, 10, 10, 0.9) !important;
+                    text-shadow: none !important;
                   }
 
                   .bubble-range-slider {
                     position: absolute !important;
-                    bottom: 4px !important;
+                    bottom: 6px !important;
                     left: 0 !important;
                     right: 0 !important;
                     margin: 0 auto !important;
-                    width: 78% !important;
+                    width: 70% !important;
                     height: 3px !important;
                     border-radius: 3px !important;
                     z-index: 10 !important;
-                    background: rgba(60, 60, 60, 0.15) !important;
+                    background: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.2)'
+                      : 'transparent'} !important;
                     overflow: hidden !important;
+                    opacity: ${state === 'on' ? '1' : '0'} !important;
+                    transition: opacity 0.2s ease !important;
                   }
 
                   .bubble-range-fill {
                     height: 3px !important;
                     border-radius: 3px !important;
-                    background: rgba(190, 155, 85, 0.6) !important;
+                    background: ${(hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control || []).length > 0
+                      ? 'linear-gradient(90deg, rgba(239, 83, 80, 0.8), rgba(255, 120, 100, 0.9))'
+                      : 'linear-gradient(90deg, rgba(255, 149, 0, 0.8), rgba(255, 180, 80, 0.9))'} !important;
                   }
 
                   .bubble-range-value {
@@ -474,7 +574,8 @@ sections:
                     right: 6px !important;
                     font-size: 11px !important;
                     font-weight: 700 !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.95)' : 'rgba(40, 40, 40, 0.8)'} !important;
+                    color: rgba(255, 255, 255, 0.95) !important;
+                    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
                     opacity: 0 !important;
                     transition: opacity 0.15s ease !important;
                     z-index: 20 !important;
@@ -486,11 +587,16 @@ sections:
                 sub_button:
                   main: []
                   bottom: []
+              # Bedroom Zone - AL: switch.adaptive_lighting_bedroom_primary
               - type: custom:bubble-card
                 card_type: button
                 button_type: slider
                 entity: light.bedroom_primary_lights
-                name: Bedroom
+                name: >-
+                  ${(() => {
+                    const mc = hass.states['switch.adaptive_lighting_bedroom_primary']?.attributes?.manual_control || [];
+                    return mc.length > 0 ? 'Bed M' : 'Bedroom';
+                  })()}
                 icon: mdi:bed
                 show_state: false
                 show_attribute: true
@@ -522,28 +628,34 @@ sections:
                     justify-items: center !important;
                     align-items: center !important;
                     text-align: center !important;
-                    min-height: 78px !important;
-                    padding: 14px 6px 6px 6px !important;
-                    border-radius: 12px !important;
+                    min-height: 74px !important;
+                    padding: 8px 6px 6px 6px !important;
+                    border-radius: 14px !important;
                     overflow: hidden !important;
-                    clip-path: inset(0 round 12px) !important;
-                    transition: transform 0.1s ease-out, backdrop-filter 0.2s ease-out, border-color 0.15s ease-out !important;
-                    background: transparent !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.1s ease-out, backdrop-filter 0.3s ease, border-color 0.2s ease, opacity 0.2s ease !important;
+                    background: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.06)'
+                      : 'rgba(255, 255, 255, 0.02)'} !important;
                     backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
+                      ? 'blur(2px) saturate(110%)'
+                      : 'blur(0.5px)'} !important;
                     -webkit-backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
+                      ? 'blur(2px) saturate(110%)'
+                      : 'blur(0.5px)'} !important;
                     border: ${state === 'on'
-                      ? '1px solid rgba(200, 160, 100, 0.3)'
-                      : '1px solid rgba(120, 120, 120, 0.3)'} !important;
+                      ? ((hass.states['switch.adaptive_lighting_bedroom_primary']?.attributes?.manual_control || []).length > 0
+                          ? '1.5px solid rgba(239, 83, 80, 0.65)'
+                          : '1.5px solid rgba(255, 149, 0, 0.55)')
+                      : '1.5px solid rgba(80, 80, 80, 0.4)'} !important;
                     box-shadow: ${state === 'on'
-                      ? '0 2px 10px rgba(180, 140, 60, 0.1)'
+                      ? ((hass.states['switch.adaptive_lighting_bedroom_primary']?.attributes?.manual_control || []).length > 0
+                          ? '0 2px 8px rgba(239, 83, 80, 0.15)'
+                          : '0 2px 8px rgba(255, 149, 0, 0.12)')
                       : 'none'} !important;
                   }
 
-                  .bubble-button-card-container:active { transform: scale(0.97)
+                  .bubble-button-card-container:active { transform: scale(0.96)
                   !important; }
 
                   .bubble-content-container {
@@ -560,62 +672,98 @@ sections:
                     min-width: 32px !important;
                     min-height: 32px !important;
                     grid-row: 1 !important;
-                    margin: 2px 0 2px 0 !important;
+                    margin: 4px 0 4px 0 !important;
                     border-radius: 50% !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     background: ${state === 'on'
-                      ? 'rgba(200, 160, 90, 0.18)'
-                      : 'rgba(60, 60, 60, 0.15)'} !important;
+                      ? ((hass.states['switch.adaptive_lighting_bedroom_primary']?.attributes?.manual_control || []).length > 0
+                          ? 'rgba(239, 83, 80, 0.15)'
+                          : 'rgba(255, 149, 0, 0.15)')
+                      : 'rgba(60, 60, 60, 0.18)'} !important;
+                    border: ${state === 'on'
+                      ? ((hass.states['switch.adaptive_lighting_bedroom_primary']?.attributes?.manual_control || []).length > 0
+                          ? '1px solid rgba(239, 83, 80, 0.3)'
+                          : '1px solid rgba(255, 149, 0, 0.3)')
+                      : '1px solid rgba(60, 60, 60, 0.25)'} !important;
                   }
 
                   .bubble-icon {
                     --mdc-icon-size: 18px !important;
-                    color: ${state === 'on' ? 'rgba(190, 145, 60, 0.95)' : 'rgba(40, 40, 40, 0.7)'} !important;
+                    color: ${state === 'on'
+                      ? ((hass.states['switch.adaptive_lighting_bedroom_primary']?.attributes?.manual_control || []).length > 0
+                          ? 'rgb(239, 83, 80)'
+                          : 'rgb(255, 149, 0)')
+                      : 'rgba(20, 20, 20, 0.7)'} !important;
+                    filter: ${state === 'on'
+                      ? ((hass.states['switch.adaptive_lighting_bedroom_primary']?.attributes?.manual_control || []).length > 0
+                          ? 'drop-shadow(0 0 4px rgba(239, 83, 80, 0.5))'
+                          : 'drop-shadow(0 0 4px rgba(255, 149, 0, 0.5))')
+                      : 'none'} !important;
                   }
 
                   .bubble-name-container {
                     grid-row: 2 !important;
-                    margin: 0 !important;
+                    margin: 2px 0 0 0 !important;
                     width: 100% !important;
                   }
 
                   .bubble-name {
-                    font-weight: 700 !important;
-                    font-size: 9px !important;
+                    font-weight: 600 !important;
+                    font-size: 10px !important;
                     text-transform: uppercase !important;
-                    letter-spacing: 0.5px !important;
+                    letter-spacing: 0.8px !important;
                     line-height: 1.3 !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(40, 40, 40, 0.85)' : 'rgba(30, 30, 30, 0.75)'} !important;
+                    color: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.95)'
+                      : 'rgba(10, 10, 10, 0.9)'} !important;
+                    text-shadow: ${state === 'on'
+                      ? '0 1px 3px rgba(0, 0, 0, 0.3)'
+                      : 'none'} !important;
+                  }
+
+                  .bubble-state {
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    color: rgba(10, 10, 10, 0.9) !important;
+                    text-shadow: none !important;
                   }
 
                   .bubble-attribute {
-                    font-size: 9px !important;
-                    margin-top: 0px !important;
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    margin-top: 2px !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.85)' : 'rgba(50, 50, 50, 0.6)'} !important;
+                    color: rgba(10, 10, 10, 0.9) !important;
+                    text-shadow: none !important;
                   }
 
                   .bubble-range-slider {
                     position: absolute !important;
-                    bottom: 4px !important;
+                    bottom: 6px !important;
                     left: 0 !important;
                     right: 0 !important;
                     margin: 0 auto !important;
-                    width: 78% !important;
+                    width: 70% !important;
                     height: 3px !important;
                     border-radius: 3px !important;
                     z-index: 10 !important;
-                    background: rgba(60, 60, 60, 0.15) !important;
+                    background: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.2)'
+                      : 'transparent'} !important;
                     overflow: hidden !important;
+                    opacity: ${state === 'on' ? '1' : '0'} !important;
+                    transition: opacity 0.2s ease !important;
                   }
 
                   .bubble-range-fill {
                     height: 3px !important;
                     border-radius: 3px !important;
-                    background: rgba(190, 155, 85, 0.6) !important;
+                    background: ${(hass.states['switch.adaptive_lighting_bedroom_primary']?.attributes?.manual_control || []).length > 0
+                      ? 'linear-gradient(90deg, rgba(239, 83, 80, 0.8), rgba(255, 120, 100, 0.9))'
+                      : 'linear-gradient(90deg, rgba(255, 149, 0, 0.8), rgba(255, 180, 80, 0.9))'} !important;
                   }
 
                   .bubble-range-value {
@@ -624,7 +772,8 @@ sections:
                     right: 6px !important;
                     font-size: 11px !important;
                     font-weight: 700 !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.95)' : 'rgba(40, 40, 40, 0.8)'} !important;
+                    color: rgba(255, 255, 255, 0.95) !important;
+                    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
                     opacity: 0 !important;
                     transition: opacity 0.15s ease !important;
                     z-index: 20 !important;
@@ -636,6 +785,7 @@ sections:
                 sub_button:
                   main: []
                   bottom: []
+          # Zone slider row 2: Spots, Ceiling, Columns
           - type: horizontal-stack
             card_mod:
               style: |
@@ -644,21 +794,27 @@ sections:
                 }
                 #root {
                   display: flex !important;
-                  justify-content: space-around !important;
+                  justify-content: center !important;
                   align-items: stretch !important;
-                  gap: 0 !important;
-                  padding: 4px 12px 10px 12px !important;
+                  gap: 20px !important;
+                  padding: 8px 16px 14px 16px !important;
                 }
                 #root > * {
-                  flex: 0 0 28% !important;
-                  max-width: 28% !important;
+                  flex: 0 1 auto !important;
+                  width: 66px !important;
+                  max-width: 66px !important;
                 }
             cards:
+              # Spots Zone - AL: switch.adaptive_lighting_accent_spots
               - type: custom:bubble-card
                 card_type: button
                 button_type: slider
                 entity: light.accent_spots_lights
-                name: Spots
+                name: >-
+                  ${(() => {
+                    const mc = hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || [];
+                    return mc.length > 0 ? 'Spots M' : 'Spots';
+                  })()}
                 icon: mdi:track-light
                 show_state: false
                 show_attribute: true
@@ -690,28 +846,34 @@ sections:
                     justify-items: center !important;
                     align-items: center !important;
                     text-align: center !important;
-                    min-height: 78px !important;
-                    padding: 14px 6px 6px 6px !important;
-                    border-radius: 12px !important;
+                    min-height: 74px !important;
+                    padding: 8px 6px 6px 6px !important;
+                    border-radius: 14px !important;
                     overflow: hidden !important;
-                    clip-path: inset(0 round 12px) !important;
-                    transition: transform 0.1s ease-out, backdrop-filter 0.2s ease-out, border-color 0.15s ease-out !important;
-                    background: transparent !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.1s ease-out, backdrop-filter 0.3s ease, border-color 0.2s ease, opacity 0.2s ease !important;
+                    background: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.06)'
+                      : 'rgba(255, 255, 255, 0.02)'} !important;
                     backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
+                      ? 'blur(2px) saturate(110%)'
+                      : 'blur(0.5px)'} !important;
                     -webkit-backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
+                      ? 'blur(2px) saturate(110%)'
+                      : 'blur(0.5px)'} !important;
                     border: ${state === 'on'
-                      ? '1px solid rgba(200, 160, 100, 0.3)'
-                      : '1px solid rgba(120, 120, 120, 0.3)'} !important;
+                      ? ((hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).length > 0
+                          ? '1.5px solid rgba(239, 83, 80, 0.65)'
+                          : '1.5px solid rgba(255, 149, 0, 0.55)')
+                      : '1.5px solid rgba(80, 80, 80, 0.4)'} !important;
                     box-shadow: ${state === 'on'
-                      ? '0 2px 10px rgba(180, 140, 60, 0.1)'
+                      ? ((hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).length > 0
+                          ? '0 2px 8px rgba(239, 83, 80, 0.15)'
+                          : '0 2px 8px rgba(255, 149, 0, 0.12)')
                       : 'none'} !important;
                   }
 
-                  .bubble-button-card-container:active { transform: scale(0.97)
+                  .bubble-button-card-container:active { transform: scale(0.96)
                   !important; }
 
                   .bubble-content-container {
@@ -728,62 +890,86 @@ sections:
                     min-width: 32px !important;
                     min-height: 32px !important;
                     grid-row: 1 !important;
-                    margin: 2px 0 2px 0 !important;
+                    margin: 4px 0 4px 0 !important;
                     border-radius: 50% !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     background: ${state === 'on'
-                      ? 'rgba(200, 160, 90, 0.18)'
-                      : 'rgba(60, 60, 60, 0.15)'} !important;
+                      ? 'rgba(255, 149, 0, 0.15)'
+                      : 'rgba(60, 60, 60, 0.18)'} !important;
+                    border: ${state === 'on'
+                      ? '1px solid rgba(255, 149, 0, 0.3)'
+                      : '1px solid rgba(60, 60, 60, 0.25)'} !important;
                   }
 
                   .bubble-icon {
                     --mdc-icon-size: 18px !important;
-                    color: ${state === 'on' ? 'rgba(190, 145, 60, 0.95)' : 'rgba(40, 40, 40, 0.7)'} !important;
+                    color: ${state === 'on'
+                      ? 'rgb(255, 149, 0)'
+                      : 'rgba(20, 20, 20, 0.7)'} !important;
+                    filter: ${state === 'on' ? 'drop-shadow(0 0 4px rgba(255, 149, 0, 0.5))' : 'none'} !important;
                   }
 
                   .bubble-name-container {
                     grid-row: 2 !important;
-                    margin: 0 !important;
+                    margin: 2px 0 0 0 !important;
                     width: 100% !important;
                   }
 
                   .bubble-name {
-                    font-weight: 700 !important;
-                    font-size: 9px !important;
+                    font-weight: 600 !important;
+                    font-size: 10px !important;
                     text-transform: uppercase !important;
-                    letter-spacing: 0.5px !important;
+                    letter-spacing: 0.8px !important;
                     line-height: 1.3 !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(40, 40, 40, 0.85)' : 'rgba(30, 30, 30, 0.75)'} !important;
+                    color: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.95)'
+                      : 'rgba(10, 10, 10, 0.9)'} !important;
+                    text-shadow: ${state === 'on'
+                      ? '0 1px 3px rgba(0, 0, 0, 0.3)'
+                      : 'none'} !important;
+                  }
+
+                  .bubble-state {
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    color: rgba(10, 10, 10, 0.9) !important;
+                    text-shadow: none !important;
                   }
 
                   .bubble-attribute {
-                    font-size: 9px !important;
-                    margin-top: 0px !important;
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    margin-top: 2px !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.85)' : 'rgba(50, 50, 50, 0.6)'} !important;
+                    color: rgba(10, 10, 10, 0.9) !important;
+                    text-shadow: none !important;
                   }
 
                   .bubble-range-slider {
                     position: absolute !important;
-                    bottom: 4px !important;
+                    bottom: 6px !important;
                     left: 0 !important;
                     right: 0 !important;
                     margin: 0 auto !important;
-                    width: 78% !important;
+                    width: 70% !important;
                     height: 3px !important;
                     border-radius: 3px !important;
                     z-index: 10 !important;
-                    background: rgba(60, 60, 60, 0.15) !important;
+                    background: ${state === 'on'
+                      ? 'rgba(255, 255, 255, 0.2)'
+                      : 'transparent'} !important;
                     overflow: hidden !important;
+                    opacity: ${state === 'on' ? '1' : '0'} !important;
+                    transition: opacity 0.2s ease !important;
                   }
 
                   .bubble-range-fill {
                     height: 3px !important;
                     border-radius: 3px !important;
-                    background: rgba(190, 155, 85, 0.6) !important;
+                    background: linear-gradient(90deg, rgba(255, 149, 0, 0.8), rgba(255, 180, 80, 0.9)) !important;
                   }
 
                   .bubble-range-value {
@@ -792,7 +978,8 @@ sections:
                     right: 6px !important;
                     font-size: 11px !important;
                     font-weight: 700 !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.95)' : 'rgba(40, 40, 40, 0.8)'} !important;
+                    color: rgba(255, 255, 255, 0.95) !important;
+                    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
                     opacity: 0 !important;
                     transition: opacity 0.15s ease !important;
                     z-index: 20 !important;
@@ -840,28 +1027,33 @@ sections:
                     justify-items: center !important;
                     align-items: center !important;
                     text-align: center !important;
-                    min-height: 78px !important;
-                    padding: 14px 6px 6px 6px !important;
-                    border-radius: 12px !important;
+                    min-height: 74px !important;
+                    padding: 8px 6px 6px 6px !important;
+                    border-radius: 14px !important;
                     overflow: hidden !important;
-                    clip-path: inset(0 round 12px) !important;
-                    transition: transform 0.1s ease-out, backdrop-filter 0.2s ease-out, border-color 0.15s ease-out !important;
-                    background: transparent !important;
-                    backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
-                    -webkit-backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
-                    border: ${state === 'on'
-                      ? '1px solid rgba(200, 160, 100, 0.3)'
-                      : '1px solid rgba(120, 120, 120, 0.3)'} !important;
-                    box-shadow: ${state === 'on'
-                      ? '0 2px 10px rgba(180, 140, 60, 0.1)'
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.1s ease-out, backdrop-filter 0.3s ease, border-color 0.2s ease, opacity 0.2s ease !important;
+                    /* CHANGE: Increased opacity slightly (0.06 -> 0.12) and (0.02 -> 0.15) for better separation */
+                    background: ${state === 'on' 
+                      ? 'rgba(255, 255, 255, 0.12)' 
+                      : 'rgba(255, 255, 255, 0.15)'} !important;
+                    /* CHANGE: Increased blur (2px -> 5px) to smooth out background noise */
+                    backdrop-filter: ${state === 'on' 
+                      ? 'blur(5px) saturate(110%)' 
+                      : 'blur(3px)'} !important;
+                    -webkit-backdrop-filter: ${state === 'on' 
+                      ? 'blur(5px) saturate(110%)' 
+                      : 'blur(3px)'} !important;
+                    /* CHANGE: Made Off border slightly more visible (white) to define edge against busy bg */
+                    border: ${state === 'on' 
+                      ? '1.5px solid rgba(255, 149, 0, 0.55)' 
+                      : '1.5px solid rgba(255, 255, 255, 0.3)'} !important;
+                    box-shadow: ${state === 'on' 
+                      ? '0 2px 8px rgba(255, 149, 0, 0.12)' 
                       : 'none'} !important;
                   }
 
-                  .bubble-button-card-container:active { transform: scale(0.97)
+                  .bubble-button-card-container:active { transform: scale(0.96)
                   !important; }
 
                   .bubble-content-container {
@@ -878,62 +1070,87 @@ sections:
                     min-width: 32px !important;
                     min-height: 32px !important;
                     grid-row: 1 !important;
-                    margin: 2px 0 2px 0 !important;
+                    margin: 4px 0 4px 0 !important;
                     border-radius: 50% !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    background: ${state === 'on'
-                      ? 'rgba(200, 160, 90, 0.18)'
-                      : 'rgba(60, 60, 60, 0.15)'} !important;
+                    background: ${state === 'on' 
+                      ? 'rgba(255, 149, 0, 0.15)' 
+                      : 'rgba(60, 60, 60, 0.18)'} !important;
+                    border: ${state === 'on' 
+                      ? '1px solid rgba(255, 149, 0, 0.3)' 
+                      : '1px solid rgba(60, 60, 60, 0.25)'} !important;
                   }
 
                   .bubble-icon {
                     --mdc-icon-size: 18px !important;
-                    color: ${state === 'on' ? 'rgba(190, 145, 60, 0.95)' : 'rgba(40, 40, 40, 0.7)'} !important;
+                    color: ${state === 'on' 
+                      ? 'rgb(255, 149, 0)' 
+                      : 'rgba(20, 20, 20, 0.7)'} !important;
+                    filter: ${state === 'on' ? 'drop-shadow(0 0 4px rgba(255, 149, 0, 0.5))' : 'none'} !important;
                   }
 
                   .bubble-name-container {
                     grid-row: 2 !important;
-                    margin: 0 !important;
+                    margin: 2px 0 0 0 !important;
                     width: 100% !important;
                   }
 
                   .bubble-name {
-                    font-weight: 700 !important;
-                    font-size: 9px !important;
+                    font-weight: 600 !important;
+                    font-size: 10px !important;
                     text-transform: uppercase !important;
-                    letter-spacing: 0.5px !important;
+                    letter-spacing: 0.8px !important;
                     line-height: 1.3 !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(40, 40, 40, 0.85)' : 'rgba(30, 30, 30, 0.75)'} !important;
+                    color: ${state === 'on' 
+                      ? 'rgba(255, 255, 255, 0.95)' 
+                      : 'rgba(10, 10, 10, 0.9)'} !important;
+                    /* CHANGE: Strengthened text shadow (0.3 -> 0.8 opacity) and radius (3px -> 4px) */
+                    text-shadow: ${state === 'on' 
+                      ? '0 1px 4px rgba(0, 0, 0, 0.8)' 
+                      : '0 0 4px rgba(255, 255, 255, 0.5)'} !important;
+                  }
+
+                  .bubble-state {
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    color: rgba(10, 10, 10, 0.9) !important;
+                    text-shadow: none !important;
                   }
 
                   .bubble-attribute {
-                    font-size: 9px !important;
-                    margin-top: 0px !important;
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    margin-top: 2px !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.85)' : 'rgba(50, 50, 50, 0.6)'} !important;
+                    color: rgba(10, 10, 10, 0.9) !important;
+                    text-shadow: none !important;
                   }
 
                   .bubble-range-slider {
                     position: absolute !important;
-                    bottom: 4px !important;
+                    bottom: 6px !important;
                     left: 0 !important;
                     right: 0 !important;
                     margin: 0 auto !important;
-                    width: 78% !important;
+                    width: 70% !important;
                     height: 3px !important;
                     border-radius: 3px !important;
                     z-index: 10 !important;
-                    background: rgba(60, 60, 60, 0.15) !important;
+                    background: ${state === 'on' 
+                      ? 'rgba(255, 255, 255, 0.2)' 
+                      : 'transparent'} !important;
                     overflow: hidden !important;
+                    opacity: ${state === 'on' ? '1' : '0'} !important;
+                    transition: opacity 0.2s ease !important;
                   }
 
                   .bubble-range-fill {
                     height: 3px !important;
                     border-radius: 3px !important;
-                    background: rgba(190, 155, 85, 0.6) !important;
+                    background: linear-gradient(90deg, rgba(255, 149, 0, 0.8), rgba(255, 180, 80, 0.9)) !important;
                   }
 
                   .bubble-range-value {
@@ -942,24 +1159,86 @@ sections:
                     right: 6px !important;
                     font-size: 11px !important;
                     font-weight: 700 !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.95)' : 'rgba(40, 40, 40, 0.8)'} !important;
+                    color: rgba(255, 255, 255, 0.95) !important;
+                    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) !important;
                     opacity: 0 !important;
                     transition: opacity 0.15s ease !important;
                     z-index: 20 !important;
                   }
 
                   .is-dragging .bubble-range-value { opacity: 1 !important; }
-
                   .is-dragging .bubble-attribute { opacity: 0 !important; }
                 sub_button:
                   main: []
                   bottom: []
+        grid_options:
+          columns: full
+          rows: auto
+    column_span: 6
+  # ═══════════════════════════════════════════════════════════════════
+  # SECTION 2: LIVING ROOM (column_span: 3 - left half)
+  # ═══════════════════════════════════════════════════════════════════
+  - type: grid
+    cards:
+      - type: custom:stack-in-card
+        keep:
+          background: false
+          box_shadow: false
+          margin: false
+          outer_padding: false
+          border_radius: false
+        card_mod:
+          style: |
+            ha-card {
+              background: var(--ha-card-background, rgba(255,255,255,0.96)) !important;
+              border-radius: 24px !important;
+              padding: 12px 12px 16px 12px !important;
+              border: 1px solid rgba(0,0,0,0.03) !important;
+              box-shadow: 0 6px 20px rgba(0,0,0,0.04) !important;
+            }
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Living Room
+            icon: mdi:sofa
+            sub_button:
+              - entity: light.living_room_lights
+                show_background: true
+                tap_action:
+                  action: toggle
+            styles: |
+              .bubble-separator-container {
+                background: transparent !important;
+                border: none !important;
+                margin-bottom: 0px !important;
+                padding-left: 8px !important;
+              }
+              .bubble-name {
+                font-weight: 700 !important;
+                font-size: 18px !important;
+                color: #000 !important;
+              }
+              .bubble-icon-container {
+                background: rgba(255,152,0,0.15) !important;
+              }
+              .bubble-icon {
+                color: rgba(255,152,0,1) !important;
+              }
+              .bubble-sub-button-container {
+                top: 50% !important;
+                transform: translateY(-50%) !important;
+              }
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              # Row 1: Couch Lamp + Floor Lamp
               - type: custom:bubble-card
                 card_type: button
                 button_type: slider
-                entity: light.column_lights
-                name: Columns
-                icon: mdi:pillar
+                entity: light.living_room_couch_lamp
+                name: Couch Lamp
+                icon: mdi:floor-lamp
                 show_state: false
                 show_attribute: true
                 attribute: brightness
@@ -972,17 +1251,10 @@ sections:
                   action: call-service
                   service: light.turn_on
                   target:
-                    entity_id: light.column_lights
+                    entity_id: light.living_room_couch_lamp
                   data:
                     brightness_pct: 100
-                card_mod:
-                  style: |
-                    ha-card {
-                      background: transparent !important;
-                      border: none !important;
-                      box-shadow: none !important;
-                    }
-                styles: >-
+                styles: |-
                   .bubble-button-card-container {
                     position: relative !important;
                     display: grid !important;
@@ -990,30 +1262,20 @@ sections:
                     justify-items: center !important;
                     align-items: center !important;
                     text-align: center !important;
-                    min-height: 78px !important;
-                    padding: 14px 6px 6px 6px !important;
-                    border-radius: 12px !important;
+                    min-height: 90px !important;
+                    padding: 24px 10px 8px 10px !important;
+                    border-radius: 14px !important;
                     overflow: hidden !important;
-                    clip-path: inset(0 round 12px) !important;
-                    transition: transform 0.1s ease-out, backdrop-filter 0.2s ease-out, border-color 0.15s ease-out !important;
-                    background: transparent !important;
-                    backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
-                    -webkit-backdrop-filter: ${state === 'on'
-                      ? 'blur(2px) saturate(150%)'
-                      : 'blur(16px) saturate(140%)'} !important;
-                    border: ${state === 'on'
-                      ? '1px solid rgba(200, 160, 100, 0.3)'
-                      : '1px solid rgba(120, 120, 120, 0.3)'} !important;
-                    box-shadow: ${state === 'on'
-                      ? '0 2px 10px rgba(180, 140, 60, 0.1)'
-                      : 'none'} !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.05s ease-out, box-shadow 0.05s ease-out, background 0.05s ease-out, border-color 0.05s ease-out !important;
+                    background: ${state === 'on' ? 'rgba(255,255,255,1)' : 'linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04))'} !important;
+                    border: ${state === 'on' ? '1.5px solid rgba(255,152,0,0.35)' : '1px solid rgba(0,0,0,0.03)'} !important;
+                    transform: translateZ(0) !important;
                   }
-
-                  .bubble-button-card-container:active { transform: scale(0.97)
-                  !important; }
-
+                  .bubble-button-card-container:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 8px 18px rgba(0,0,0,0.16) !important;
+                  }
                   .bubble-content-container {
                     display: grid !important;
                     grid-template-rows: auto auto 1fr !important;
@@ -1021,1202 +1283,1321 @@ sections:
                     width: 100% !important;
                     position: relative !important;
                     z-index: 5 !important;
-                    padding-bottom: 12px !important;
+                    padding-bottom: 20px !important;
+                    pointer-events: auto !important;
                   }
-
                   .bubble-icon-container {
-                    min-width: 32px !important;
-                    min-height: 32px !important;
+                    min-width: 40px !important;
+                    min-height: 40px !important;
                     grid-row: 1 !important;
-                    margin: 2px 0 2px 0 !important;
+                    margin: 6px 0 1px 0 !important;
                     border-radius: 50% !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    background: ${state === 'on'
-                      ? 'rgba(200, 160, 90, 0.18)'
-                      : 'rgba(60, 60, 60, 0.15)'} !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    background: ${state === 'on' ? 'rgba(255,152,0,0.18)' : 'rgba(0,0,0,0.06)'} !important;
                   }
-
                   .bubble-icon {
-                    --mdc-icon-size: 18px !important;
-                    color: ${state === 'on' ? 'rgba(190, 145, 60, 0.95)' : 'rgba(40, 40, 40, 0.7)'} !important;
+                    --mdc-icon-size: 30px !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.96)' : 'rgba(0,0,0,0.45)'} !important;
                   }
-
                   .bubble-name-container {
                     grid-row: 2 !important;
                     margin: 0 !important;
                     width: 100% !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
                   }
-
                   .bubble-name {
-                    font-weight: 700 !important;
-                    font-size: 9px !important;
-                    text-transform: uppercase !important;
-                    letter-spacing: 0.5px !important;
-                    line-height: 1.3 !important;
+                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    line-height: 1.2 !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(40, 40, 40, 0.85)' : 'rgba(30, 30, 30, 0.75)'} !important;
+                    opacity: ${state === 'on' ? '1' : '0.75'} !important;
                   }
-
                   .bubble-attribute {
-                    font-size: 9px !important;
-                    margin-top: 0px !important;
+                    font-size: 12px !important;
+                    margin-top: 2px !important;
                     justify-content: center !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.85)' : 'rgba(50, 50, 50, 0.6)'} !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.9)' : 'rgba(0,0,0,0.55)'} !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    transition: opacity 0.2s ease-in-out !important;
                   }
-
                   .bubble-range-slider {
                     position: absolute !important;
-                    bottom: 4px !important;
+                    bottom: 6px !important;
                     left: 0 !important;
                     right: 0 !important;
                     margin: 0 auto !important;
-                    width: 78% !important;
-                    height: 3px !important;
-                    border-radius: 3px !important;
+                    width: 86% !important;
+                    height: 6px !important;
+                    border-radius: 6px !important;
                     z-index: 10 !important;
-                    background: rgba(60, 60, 60, 0.15) !important;
+                    background: ${state === 'on' ? 'rgba(0,0,0,0.02)' : 'transparent'} !important;
                     overflow: hidden !important;
+                    cursor: grab !important;
                   }
-
                   .bubble-range-fill {
-                    height: 3px !important;
-                    border-radius: 3px !important;
-                    background: rgba(190, 155, 85, 0.6) !important;
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    background: rgba(255,152,0,0.9) !important;
+                    z-index: 5 !important;
+                    pointer-events: none !important;
                   }
-
                   .bubble-range-value {
                     position: fixed !important;
-                    top: 5px !important;
-                    right: 6px !important;
-                    font-size: 11px !important;
+                    top: 10px !important;
+                    right: 12px !important;
+                    left: auto !important;
+                    bottom: auto !important;
+                    transform: none !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    font-size: 15px !important;
                     font-weight: 700 !important;
-                    color: ${state === 'on' ? 'rgba(180, 140, 70, 0.95)' : 'rgba(40, 40, 40, 0.8)'} !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,1)' : 'rgba(0,0,0,0.6)'} !important;
                     opacity: 0 !important;
-                    transition: opacity 0.15s ease !important;
+                    pointer-events: none !important;
+                    transition: opacity 0.2s ease-in-out !important;
                     z-index: 20 !important;
                   }
-
-                  .is-dragging .bubble-range-value { opacity: 1 !important; }
-
+                  .is-dragging .bubble-range-value,
+                  .bubble-range-slider:active .bubble-range-value {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    display: block !important;
+                  }
                   .is-dragging .bubble-attribute { opacity: 0 !important; }
                 sub_button:
                   main: []
                   bottom: []
-        grid_options:
-          columns: full
-      - type: custom:bubble-card
-        card_type: separator
-        name: Living Room
-        icon: mdi:sofa
-        sub_button:
-          bottom:
-            - name: Living Room Lights Row 1
-              buttons_layout: inline
-              group:
-                - entity: light.living_room_couch_lamp
-                  name: Couch
-                  icon: mdi:lamp
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_attribute: true
-                  attribute: brightness
-                  show_icon: true
-                  show_background: false
-                  light_background: false
-                  state_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 20
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-                - entity: light.living_room_floor_lamp
-                  name: Floor
-                  icon: mdi:floor-lamp
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_attribute: true
-                  attribute: brightness
-                  show_icon: true
-                  show_background: false
-                  light_background: false
-                  state_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 20
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-                - entity: light.entryway_lamp
-                  name: Entry
-                  icon: mdi:lamp
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_attribute: true
-                  attribute: brightness
-                  show_icon: true
-                  show_background: false
-                  light_background: false
-                  state_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 20
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-                - entity: light.living_room_spot_lights
-                  name: Spots
-                  icon: mdi:wall-sconce-flat
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_attribute: true
-                  attribute: brightness
-                  show_icon: true
-                  show_background: false
-                  light_background: false
-                  state_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 20
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-                - entity: light.living_room_hallway_lights
-                  name: Overhead
-                  icon: mdi:ceiling-light
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_attribute: true
-                  attribute: brightness
-                  show_icon: true
-                  show_background: false
-                  light_background: false
-                  state_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 20
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-          bottom_layout: rows
-          main: []
-        styles: >
-          ha-card {
-            --bubble-border-radius: 24px;
-            --bubble-sub-button-border-radius: 16px;
-            --bubble-icon-background-color: transparent;
-            background: var(--ha-card-background, var(--card-background-color, white)) !important;
-            overflow: hidden !important;
-            padding-bottom: 12px !important;
-          }
-
-          /* Base styles for all light buttons */ .bubble-sub-button-1,
-          .bubble-sub-button-2, .bubble-sub-button-3, .bubble-sub-button-4,
-          .bubble-sub-button-5 {
-            border: 1px solid rgba(0, 0, 0, 0.12) !important;
-            box-shadow: none !important;
-          }
-
-          .bubble-sub-button-1 .bubble-sub-button-icon, .bubble-sub-button-2
-          .bubble-sub-button-icon, .bubble-sub-button-3 .bubble-sub-button-icon,
-          .bubble-sub-button-4 .bubble-sub-button-icon, .bubble-sub-button-5
-          .bubble-sub-button-icon {
-            width: 34px !important;
-            height: 34px !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin-bottom: 2px !important;
-            --mdc-icon-size: 20px !important;
-            transition: background-color 0.2s ease, color 0.2s ease !important;
-          }
-
-          .bubble-sub-button-1 .bubble-sub-button-name-container,
-          .bubble-sub-button-2 .bubble-sub-button-name-container,
-          .bubble-sub-button-3 .bubble-sub-button-name-container,
-          .bubble-sub-button-4 .bubble-sub-button-name-container,
-          .bubble-sub-button-5 .bubble-sub-button-name-container {
-            flex-wrap: wrap !important;
-            justify-content: center !important;
-            text-align: center !important;
-            width: 100% !important;
-          }
-
-          .bubble-range-fill {
-            background: rgb(255, 149, 0) !important;
-            opacity: 1 !important;
-          }
-
-          .bubble-sub-button, .bubble-sub-button-state,
-          .bubble-sub-button-attribute {
-            font-size: 12px !important;
-            font-weight: 600 !important;
-          }
-
-          /* Dynamic labels */ ${card.querySelector('.bubble-sub-button-1
-          .bubble-sub-button-name-container').innerHTML = "Couch<br/>" +
-          Math.round((hass.states['light.living_room_couch_lamp']?.attributes?.brightness
-          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-2
-          .bubble-sub-button-name-container').innerHTML = "Floor<br/>" +
-          Math.round((hass.states['light.living_room_floor_lamp']?.attributes?.brightness
-          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-3
-          .bubble-sub-button-name-container').innerHTML = "Entry<br/>" +
-          Math.round((hass.states['light.entryway_lamp']?.attributes?.brightness
-          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-4
-          .bubble-sub-button-name-container').innerHTML = "Spots<br/>" +
-          Math.round((hass.states['light.living_room_spot_lights']?.attributes?.brightness
-          || 0) / 2.55) + "%"} ${card.querySelector('.bubble-sub-button-5
-          .bubble-sub-button-name-container').innerHTML = "Overhead<br/>" +
-          Math.round((hass.states['light.living_room_hallway_lights']?.attributes?.brightness
-          || 0) / 2.55) + "%"}
-
-          /* State-based styling - Couch */ .bubble-sub-button-1 {
-            background: ${hass.states['light.living_room_couch_lamp']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
-          } .bubble-sub-button-1 .bubble-sub-button-icon {
-            background: ${hass.states['light.living_room_couch_lamp']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
-            color: ${hass.states['light.living_room_couch_lamp']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
-          } .bubble-sub-button-1 .bubble-sub-button-name-container {
-            color: ${hass.states['light.living_room_couch_lamp']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
-          }
-
-          /* State-based styling - Floor */ .bubble-sub-button-2 {
-            background: ${hass.states['light.living_room_floor_lamp']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
-          } .bubble-sub-button-2 .bubble-sub-button-icon {
-            background: ${hass.states['light.living_room_floor_lamp']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
-            color: ${hass.states['light.living_room_floor_lamp']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
-          } .bubble-sub-button-2 .bubble-sub-button-name-container {
-            color: ${hass.states['light.living_room_floor_lamp']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
-          }
-
-          /* State-based styling - Entry */ .bubble-sub-button-3 {
-            background: ${hass.states['light.entryway_lamp']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
-          } .bubble-sub-button-3 .bubble-sub-button-icon {
-            background: ${hass.states['light.entryway_lamp']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
-            color: ${hass.states['light.entryway_lamp']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
-          } .bubble-sub-button-3 .bubble-sub-button-name-container {
-            color: ${hass.states['light.entryway_lamp']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
-          }
-
-          /* State-based styling - Spots */ .bubble-sub-button-4 {
-            background: ${hass.states['light.living_room_spot_lights']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
-          } .bubble-sub-button-4 .bubble-sub-button-icon {
-            background: ${hass.states['light.living_room_spot_lights']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
-            color: ${hass.states['light.living_room_spot_lights']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
-          } .bubble-sub-button-4 .bubble-sub-button-name-container {
-            color: ${hass.states['light.living_room_spot_lights']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
-          }
-
-          /* State-based styling - Overhead */ .bubble-sub-button-5 {
-            background: ${hass.states['light.living_room_hallway_lights']?.state === 'on' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important;
-          } .bubble-sub-button-5 .bubble-sub-button-icon {
-            background: ${hass.states['light.living_room_hallway_lights']?.state === 'on' ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important;
-            color: ${hass.states['light.living_room_hallway_lights']?.state === 'on' ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important;
-          } .bubble-sub-button-5 .bubble-sub-button-name-container {
-            color: ${hass.states['light.living_room_hallway_lights']?.state === 'on' ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important;
-          }
-        grid_options:
-          columns: full
-        rows: 2.284
-      - type: custom:bubble-card
-        card_type: separator
-        name: Kitchen
-        icon: mdi:stove
-        sub_button:
-          main: []
-          bottom:
-            - name: Kitchen Lights Row
-              buttons_layout: inline
-              group:
-                - entity: light.kitchen_island_pendants
-                  name: Island
-                  icon: mdi:ceiling-light-multiple
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_icon: true
-                  show_background: true
-                  state_background: true
-                  light_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 50
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-                - entity: light.kitchen_main_lights
-                  name: Overhead
-                  icon: mdi:ceiling-light
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_icon: true
-                  show_background: true
-                  state_background: true
-                  light_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 50
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-          bottom_layout: rows
-        styles: |
-          ha-card {
-            --bubble-border-radius: 24px;
-            --bubble-sub-button-border-radius: 16px;
-            --bubble-icon-background-color: transparent;
-            background: var(--ha-card-background, var(--card-background-color, white)) !important;
-            overflow: hidden !important;
-            padding-bottom: 12px !important;
-          }
-
-          .bubble-range-fill {
-            background: rgb(255, 149, 0) !important;
-            opacity: 1 !important;
-          }
-
-          .bubble-sub-button {
-            border: 1px solid rgba(0, 0, 0, 0.12) !important;
-            box-shadow: none !important;
-            font-size: 12px !important;
-            font-weight: 600 !important;
-          }
-
-          .bubble-sub-button .bubble-sub-button-icon {
-            width: 34px !important;
-            height: 34px !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin-bottom: 2px !important;
-            --mdc-icon-size: 20px !important;
-            transition: background-color 0.2s ease, color 0.2s ease !important;
-          }
-
-          .bubble-sub-button .bubble-sub-button-name-container {
-            flex-wrap: wrap !important;
-            justify-content: center !important;
-            text-align: center !important;
-            width: 100% !important;
-          }
-
-          ${(() => {
-            const group = this.config.sub_button?.bottom?.[0]?.group || [];
-            let css = '';
-            group.forEach((btn, i) => {
-              const entity = btn.entity;
-              const isOn = hass.states[entity]?.state === 'on';
-              const brightness = Math.round((hass.states[entity]?.attributes?.brightness || 0) / 2.55);
-              const idx = i + 1;
-              css += `.bubble-sub-button-${idx} { background: ${isOn ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important; }`;
-              css += `.bubble-sub-button-${idx} .bubble-sub-button-icon { background: ${isOn ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important; color: ${isOn ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important; }`;
-              css += `.bubble-sub-button-${idx} .bubble-sub-button-name-container { color: ${isOn ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important; }`;
-              const nameEl = card.querySelector(`.bubble-sub-button-${idx} .bubble-sub-button-name-container`);
-              if (nameEl) nameEl.innerHTML = `${btn.name}<br/>${brightness}%`;
-            });
-            return css;
-          })()}
-        grid_options:
-          columns: 12
-        rows: 2.284
-      - type: custom:bubble-card
-        card_type: separator
-        name: Accents
-        icon: mdi:lightbulb-spot
-        sub_button:
-          main: []
-          bottom:
-            - name: Accent Lights Row
-              buttons_layout: inline
-              group:
-                - entity: light.living_room_credenza_light
-                  name: Credenza
-                  icon: mdi:television-ambient-light
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_icon: true
-                  show_background: true
-                  state_background: true
-                  light_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 25
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-                - entity: light.living_room_corner_accent
-                  name: Corner
-                  icon: mdi:lamps
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_icon: true
-                  show_background: true
-                  state_background: true
-                  light_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 25
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-                - entity: light.dining_col_accent
-                  name: Din Col
-                  icon: mdi:pillar
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_icon: true
-                  show_background: true
-                  state_background: true
-                  light_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 25
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-                - entity: light.living_col_accent
-                  name: Liv Col
-                  icon: mdi:pillar
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_icon: true
-                  show_background: true
-                  state_background: true
-                  light_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 25
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-          bottom_layout: rows
-        styles: |
-          ha-card {
-            --bubble-border-radius: 24px;
-            --bubble-sub-button-border-radius: 16px;
-            --bubble-icon-background-color: transparent;
-            background: var(--ha-card-background, var(--card-background-color, white)) !important;
-            overflow: hidden !important;
-            padding-bottom: 12px !important;
-          }
-
-          .bubble-range-fill {
-            background: rgb(255, 149, 0) !important;
-            opacity: 1 !important;
-          }
-
-          .bubble-sub-button {
-            border: 1px solid rgba(0, 0, 0, 0.12) !important;
-            box-shadow: none !important;
-            font-size: 12px !important;
-            font-weight: 600 !important;
-          }
-
-          .bubble-sub-button .bubble-sub-button-icon {
-            width: 34px !important;
-            height: 34px !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin-bottom: 2px !important;
-            --mdc-icon-size: 20px !important;
-            transition: background-color 0.2s ease, color 0.2s ease !important;
-          }
-
-          .bubble-sub-button .bubble-sub-button-name-container {
-            flex-wrap: wrap !important;
-            justify-content: center !important;
-            text-align: center !important;
-            width: 100% !important;
-          }
-
-          /* Dynamic styling for bottom lights (indices 1-4) */
-          ${(() => {
-            const group = this.config.sub_button?.bottom?.[0]?.group || [];
-            let css = '';
-
-            group.forEach((btn, i) => {
-              const entity = btn.entity;
-              const isOn = hass.states[entity]?.state === 'on';
-              const brightness = Math.round((hass.states[entity]?.attributes?.brightness || 0) / 2.55);
-              const idx = i + 1;
-
-              css += `.bubble-sub-button-${idx} { background: ${isOn ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important; }`;
-              css += `.bubble-sub-button-${idx} .bubble-sub-button-icon { background: ${isOn ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important; color: ${isOn ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important; }`;
-              css += `.bubble-sub-button-${idx} .bubble-sub-button-name-container { color: ${isOn ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important; }`;
-
-              const nameEl = card.querySelector(`.bubble-sub-button-${idx} .bubble-sub-button-name-container`);
-              if (nameEl) nameEl.innerHTML = `${btn.name}<br/>${brightness}%`;
-            });
-
-            return css;
-          })()}
-        grid_options:
-          columns: 12
-          rows: 2.3
-      - type: custom:bubble-card
-        card_type: separator
-        name: Dining Room
-        icon: mdi:silverware-fork-knife
-        sub_button:
-          main: []
-          bottom:
-            - name: Dining Room Lights Row
-              buttons_layout: inline
-              group:
-                - entity: light.dining_room_spot_lights
-                  name: Spots
-                  icon: mdi:wall-sconce-flat
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_icon: true
-                  show_background: true
-                  state_background: true
-                  light_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 50
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-                - entity: light.dining_col_accent
-                  name: Column
-                  icon: mdi:pillar
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_icon: true
-                  show_background: true
-                  state_background: true
-                  light_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 50
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-          bottom_layout: rows
-        styles: |
-          ha-card {
-            --bubble-border-radius: 24px;
-            --bubble-sub-button-border-radius: 16px;
-            --bubble-icon-background-color: transparent;
-            background: var(--ha-card-background, var(--card-background-color, white)) !important;
-            overflow: hidden !important;
-            padding-bottom: 12px !important;
-          }
-
-          .bubble-range-fill {
-            background: rgb(255, 149, 0) !important;
-            opacity: 1 !important;
-          }
-
-          .bubble-sub-button {
-            border: 1px solid rgba(0, 0, 0, 0.12) !important;
-            box-shadow: none !important;
-            font-size: 12px !important;
-            font-weight: 600 !important;
-          }
-
-          .bubble-sub-button .bubble-sub-button-icon {
-            width: 34px !important;
-            height: 34px !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin-bottom: 2px !important;
-            --mdc-icon-size: 20px !important;
-            transition: background-color 0.2s ease, color 0.2s ease !important;
-          }
-
-          .bubble-sub-button .bubble-sub-button-name-container {
-            flex-wrap: wrap !important;
-            justify-content: center !important;
-            text-align: center !important;
-            width: 100% !important;
-          }
-
-          ${(() => {
-            const group = this.config.sub_button?.bottom?.[0]?.group || [];
-            let css = '';
-            group.forEach((btn, i) => {
-              const entity = btn.entity;
-              const isOn = hass.states[entity]?.state === 'on';
-              const brightness = Math.round((hass.states[entity]?.attributes?.brightness || 0) / 2.55);
-              const idx = i + 1;
-              css += `.bubble-sub-button-${idx} { background: ${isOn ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important; }`;
-              css += `.bubble-sub-button-${idx} .bubble-sub-button-icon { background: ${isOn ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important; color: ${isOn ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important; }`;
-              css += `.bubble-sub-button-${idx} .bubble-sub-button-name-container { color: ${isOn ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important; }`;
-              const nameEl = card.querySelector(`.bubble-sub-button-${idx} .bubble-sub-button-name-container`);
-              if (nameEl) nameEl.innerHTML = `${btn.name}<br/>${brightness}%`;
-            });
-            return css;
-          })()}
-        grid_options:
-          columns: 12
-          rows: 2.3
-      - type: custom:bubble-card
-        card_type: separator
-        name: Bedroom & Office
-        icon: mdi:bed-king-outline
-        sub_button:
-          main: []
-          bottom:
-            - name: Bedroom & Office Lights Row
-              buttons_layout: inline
-              group:
-                - entity: light.master_bedroom_table_lamps
-                  name: Nightstands
-                  icon: mdi:lamp
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_icon: true
-                  show_background: true
-                  state_background: true
-                  light_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 33
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-                - entity: light.master_bedroom_corner_accent
-                  name: Bed Accent
-                  icon: mdi:floor-lamp
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_icon: true
-                  show_background: true
-                  state_background: true
-                  light_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 34
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-                - entity: light.office_desk_lamp
-                  name: Office
-                  icon: mdi:desk-lamp
-                  sub_button_type: slider
-                  allow_light_slider_to_0: true
-                  show_name: true
-                  show_icon: true
-                  show_background: true
-                  state_background: true
-                  light_background: false
-                  content_layout: icon-top
-                  fill_width: false
-                  width: 33
-                  custom_height: 85
-                  tap_action:
-                    action: toggle
-                  hold_action:
-                    action: more-info
-          bottom_layout: rows
-        styles: |
-          ha-card {
-            --bubble-border-radius: 24px;
-            --bubble-sub-button-border-radius: 16px;
-            --bubble-icon-background-color: transparent;
-            background: var(--ha-card-background, var(--card-background-color, white)) !important;
-            overflow: hidden !important;
-            padding-bottom: 12px !important;
-          }
-
-          .bubble-range-fill {
-            background: rgb(255, 149, 0) !important;
-            opacity: 1 !important;
-          }
-
-          .bubble-sub-button {
-            border: 1px solid rgba(0, 0, 0, 0.12) !important;
-            box-shadow: none !important;
-            font-size: 12px !important;
-            font-weight: 600 !important;
-          }
-
-          .bubble-sub-button .bubble-sub-button-icon {
-            width: 34px !important;
-            height: 34px !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin-bottom: 2px !important;
-            --mdc-icon-size: 20px !important;
-            transition: background-color 0.2s ease, color 0.2s ease !important;
-          }
-
-          .bubble-sub-button .bubble-sub-button-name-container {
-            flex-wrap: wrap !important;
-            justify-content: center !important;
-            text-align: center !important;
-            width: 100% !important;
-          }
-
-          ${(() => {
-            const group = this.config.sub_button?.bottom?.[0]?.group || [];
-            let css = '';
-            group.forEach((btn, i) => {
-              const entity = btn.entity;
-              const isOn = hass.states[entity]?.state === 'on';
-              const brightness = Math.round((hass.states[entity]?.attributes?.brightness || 0) / 2.55);
-              const idx = i + 1;
-              css += `.bubble-sub-button-${idx} { background: ${isOn ? 'rgba(255, 255, 255, 0.95)' : 'rgba(128, 128, 128, 0.12)'} !important; }`;
-              css += `.bubble-sub-button-${idx} .bubble-sub-button-icon { background: ${isOn ? 'rgba(255, 149, 0, 0.18)' : 'rgba(128, 128, 128, 0.15)'} !important; color: ${isOn ? 'rgb(255, 149, 0)' : 'var(--primary-text-color)'} !important; }`;
-              css += `.bubble-sub-button-${idx} .bubble-sub-button-name-container { color: ${isOn ? 'rgba(0, 0, 0, 0.85)' : 'var(--primary-text-color)'} !important; }`;
-              const nameEl = card.querySelector(`.bubble-sub-button-${idx} .bubble-sub-button-name-container`);
-              if (nameEl) nameEl.innerHTML = `${btn.name}<br/>${brightness}%`;
-            });
-            return css;
-          })()}
-        grid_options:
-          columns: 12
-          rows: 2.3
-      - type: custom:bubble-card
-        card_type: sub-buttons
-        sub_button:
-          main: []
-          bottom:
-            - tap_action:
-                action: navigate
-                navigation_path: "#living-room"
-              name: Living
-              show_name: true
-              fill_width: false
-              width: 20
-            - tap_action:
-                action: navigate
-                navigation_path: "#living-room"
-              name: Dining
-              show_name: true
-              fill_width: false
-              width: 20
-            - tap_action:
-                action: navigate
-                navigation_path: "#living-room"
-              name: Kitchen
-              show_name: true
-              fill_width: false
-              width: 20
-            - tap_action:
-                action: navigate
-                navigation_path: "#living-room"
-              name: Accent
-              show_name: true
-              fill_width: false
-              width: 20
-            - tap_action:
-                action: navigate
-                navigation_path: "#living-room"
-              name: Bed
-              show_name: true
-              fill_width: false
-              width: 20
-        footer_mode: true
-        footer_full_width: true
-        footer_bottom_offset: "20"
-        rows: 0.938
-    column_span: 2
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: light.living_room_floor_lamp
+                name: Floor Lamp
+                icon: mdi:floor-lamp-outline
+                show_state: false
+                show_attribute: true
+                attribute: brightness
+                scrolling_effect: false
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: call-service
+                  service: light.turn_on
+                  target:
+                    entity_id: light.living_room_floor_lamp
+                  data:
+                    brightness_pct: 100
+                styles: |-
+                  .bubble-button-card-container {
+                    position: relative !important;
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr auto !important;
+                    justify-items: center !important;
+                    align-items: center !important;
+                    text-align: center !important;
+                    min-height: 90px !important;
+                    padding: 24px 10px 8px 10px !important;
+                    border-radius: 14px !important;
+                    overflow: hidden !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.05s ease-out, box-shadow 0.05s ease-out, background 0.05s ease-out, border-color 0.05s ease-out !important;
+                    background: ${state === 'on' ? 'rgba(255,255,255,1)' : 'linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04))'} !important;
+                    border: ${state === 'on' ? '1.5px solid rgba(255,152,0,0.35)' : '1px solid rgba(0,0,0,0.03)'} !important;
+                    transform: translateZ(0) !important;
+                  }
+                  .bubble-button-card-container:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 8px 18px rgba(0,0,0,0.16) !important;
+                  }
+                  .bubble-content-container {
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr !important;
+                    justify-items: center !important;
+                    width: 100% !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    padding-bottom: 20px !important;
+                    pointer-events: auto !important;
+                  }
+                  .bubble-icon-container {
+                    min-width: 40px !important;
+                    min-height: 40px !important;
+                    grid-row: 1 !important;
+                    margin: 6px 0 1px 0 !important;
+                    border-radius: 50% !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    background: ${state === 'on' ? 'rgba(255,152,0,0.18)' : 'rgba(0,0,0,0.06)'} !important;
+                  }
+                  .bubble-icon {
+                    --mdc-icon-size: 30px !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.96)' : 'rgba(0,0,0,0.45)'} !important;
+                  }
+                  .bubble-name-container {
+                    grid-row: 2 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                  }
+                  .bubble-name {
+                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    line-height: 1.2 !important;
+                    justify-content: center !important;
+                    opacity: ${state === 'on' ? '1' : '0.75'} !important;
+                  }
+                  .bubble-attribute {
+                    font-size: 12px !important;
+                    margin-top: 2px !important;
+                    justify-content: center !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.9)' : 'rgba(0,0,0,0.55)'} !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                  }
+                  .bubble-range-slider {
+                    position: absolute !important;
+                    bottom: 6px !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    margin: 0 auto !important;
+                    width: 86% !important;
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    z-index: 10 !important;
+                    background: ${state === 'on' ? 'rgba(0,0,0,0.02)' : 'transparent'} !important;
+                    overflow: hidden !important;
+                    cursor: grab !important;
+                  }
+                  .bubble-range-fill {
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    background: rgba(255,152,0,0.9) !important;
+                    z-index: 5 !important;
+                    pointer-events: none !important;
+                  }
+                  .bubble-range-value {
+                    position: fixed !important;
+                    top: 10px !important;
+                    right: 12px !important;
+                    left: auto !important;
+                    bottom: auto !important;
+                    transform: none !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    font-size: 15px !important;
+                    font-weight: 700 !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,1)' : 'rgba(0,0,0,0.6)'} !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                    z-index: 20 !important;
+                  }
+                  .is-dragging .bubble-range-value,
+                  .bubble-range-slider:active .bubble-range-value {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    display: block !important;
+                  }
+                  .is-dragging .bubble-attribute { opacity: 0 !important; }
+                sub_button:
+                  main: []
+                  bottom: []
+              # Row 2: Entry Lamp + Credenza
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: light.entryway_lamp
+                name: Entry Lamp
+                icon: mdi:lamp
+                show_state: false
+                show_attribute: true
+                attribute: brightness
+                scrolling_effect: false
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: call-service
+                  service: light.turn_on
+                  target:
+                    entity_id: light.entryway_lamp
+                  data:
+                    brightness_pct: 100
+                styles: |-
+                  .bubble-button-card-container {
+                    position: relative !important;
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr auto !important;
+                    justify-items: center !important;
+                    align-items: center !important;
+                    text-align: center !important;
+                    min-height: 90px !important;
+                    padding: 24px 10px 8px 10px !important;
+                    border-radius: 14px !important;
+                    overflow: hidden !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.05s ease-out, box-shadow 0.05s ease-out, background 0.05s ease-out, border-color 0.05s ease-out !important;
+                    background: ${state === 'on' ? 'rgba(255,255,255,1)' : 'linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04))'} !important;
+                    border: ${state === 'on' ? '1.5px solid rgba(255,152,0,0.35)' : '1px solid rgba(0,0,0,0.03)'} !important;
+                    transform: translateZ(0) !important;
+                  }
+                  .bubble-button-card-container:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 8px 18px rgba(0,0,0,0.16) !important;
+                  }
+                  .bubble-content-container {
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr !important;
+                    justify-items: center !important;
+                    width: 100% !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    padding-bottom: 20px !important;
+                    pointer-events: auto !important;
+                  }
+                  .bubble-icon-container {
+                    min-width: 40px !important;
+                    min-height: 40px !important;
+                    grid-row: 1 !important;
+                    margin: 6px 0 1px 0 !important;
+                    border-radius: 50% !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    background: ${state === 'on' ? 'rgba(255,152,0,0.18)' : 'rgba(0,0,0,0.06)'} !important;
+                  }
+                  .bubble-icon {
+                    --mdc-icon-size: 30px !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.96)' : 'rgba(0,0,0,0.45)'} !important;
+                  }
+                  .bubble-name-container {
+                    grid-row: 2 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                  }
+                  .bubble-name {
+                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    line-height: 1.2 !important;
+                    justify-content: center !important;
+                    opacity: ${state === 'on' ? '1' : '0.75'} !important;
+                  }
+                  .bubble-attribute {
+                    font-size: 12px !important;
+                    margin-top: 2px !important;
+                    justify-content: center !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.9)' : 'rgba(0,0,0,0.55)'} !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                  }
+                  .bubble-range-slider {
+                    position: absolute !important;
+                    bottom: 6px !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    margin: 0 auto !important;
+                    width: 86% !important;
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    z-index: 10 !important;
+                    background: ${state === 'on' ? 'rgba(0,0,0,0.02)' : 'transparent'} !important;
+                    overflow: hidden !important;
+                    cursor: grab !important;
+                  }
+                  .bubble-range-fill {
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    background: rgba(255,152,0,0.9) !important;
+                    z-index: 5 !important;
+                    pointer-events: none !important;
+                  }
+                  .bubble-range-value {
+                    position: fixed !important;
+                    top: 10px !important;
+                    right: 12px !important;
+                    left: auto !important;
+                    bottom: auto !important;
+                    transform: none !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    font-size: 15px !important;
+                    font-weight: 700 !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,1)' : 'rgba(0,0,0,0.6)'} !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                    z-index: 20 !important;
+                  }
+                  .is-dragging .bubble-range-value,
+                  .bubble-range-slider:active .bubble-range-value {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    display: block !important;
+                  }
+                  .is-dragging .bubble-attribute { opacity: 0 !important; }
+                sub_button:
+                  main: []
+                  bottom: []
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: light.living_room_credenza_light
+                name: Credenza
+                icon: mdi:lamp-outline
+                show_state: false
+                show_attribute: true
+                attribute: brightness
+                scrolling_effect: false
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: call-service
+                  service: light.turn_on
+                  target:
+                    entity_id: light.living_room_credenza_light
+                  data:
+                    brightness_pct: 100
+                styles: |-
+                  .bubble-button-card-container {
+                    position: relative !important;
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr auto !important;
+                    justify-items: center !important;
+                    align-items: center !important;
+                    text-align: center !important;
+                    min-height: 90px !important;
+                    padding: 24px 10px 8px 10px !important;
+                    border-radius: 14px !important;
+                    overflow: hidden !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.05s ease-out, box-shadow 0.05s ease-out, background 0.05s ease-out, border-color 0.05s ease-out !important;
+                    background: ${state === 'on' ? 'rgba(255,255,255,1)' : 'linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04))'} !important;
+                    border: ${state === 'on' ? '1.5px solid rgba(255,152,0,0.35)' : '1px solid rgba(0,0,0,0.03)'} !important;
+                    transform: translateZ(0) !important;
+                  }
+                  .bubble-button-card-container:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 8px 18px rgba(0,0,0,0.16) !important;
+                  }
+                  .bubble-content-container {
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr !important;
+                    justify-items: center !important;
+                    width: 100% !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    padding-bottom: 20px !important;
+                    pointer-events: auto !important;
+                  }
+                  .bubble-icon-container {
+                    min-width: 40px !important;
+                    min-height: 40px !important;
+                    grid-row: 1 !important;
+                    margin: 6px 0 1px 0 !important;
+                    border-radius: 50% !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    background: ${state === 'on' ? 'rgba(255,152,0,0.18)' : 'rgba(0,0,0,0.06)'} !important;
+                  }
+                  .bubble-icon {
+                    --mdc-icon-size: 30px !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.96)' : 'rgba(0,0,0,0.45)'} !important;
+                  }
+                  .bubble-name-container {
+                    grid-row: 2 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                  }
+                  .bubble-name {
+                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    line-height: 1.2 !important;
+                    justify-content: center !important;
+                    opacity: ${state === 'on' ? '1' : '0.75'} !important;
+                  }
+                  .bubble-attribute {
+                    font-size: 12px !important;
+                    margin-top: 2px !important;
+                    justify-content: center !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.9)' : 'rgba(0,0,0,0.55)'} !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                  }
+                  .bubble-range-slider {
+                    position: absolute !important;
+                    bottom: 6px !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    margin: 0 auto !important;
+                    width: 86% !important;
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    z-index: 10 !important;
+                    background: ${state === 'on' ? 'rgba(0,0,0,0.02)' : 'transparent'} !important;
+                    overflow: hidden !important;
+                    cursor: grab !important;
+                  }
+                  .bubble-range-fill {
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    background: rgba(255,152,0,0.9) !important;
+                    z-index: 5 !important;
+                    pointer-events: none !important;
+                  }
+                  .bubble-range-value {
+                    position: fixed !important;
+                    top: 10px !important;
+                    right: 12px !important;
+                    left: auto !important;
+                    bottom: auto !important;
+                    transform: none !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    font-size: 15px !important;
+                    font-weight: 700 !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,1)' : 'rgba(0,0,0,0.6)'} !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                    z-index: 20 !important;
+                  }
+                  .is-dragging .bubble-range-value,
+                  .bubble-range-slider:active .bubble-range-value {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    display: block !important;
+                  }
+                  .is-dragging .bubble-attribute { opacity: 0 !important; }
+                sub_button:
+                  main: []
+                  bottom: []
+              # Row 3: Corner Accent + Office Desk
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: light.living_room_corner_accent
+                name: Corner Accent
+                icon: mdi:wall-sconce
+                show_state: false
+                show_attribute: true
+                attribute: brightness
+                scrolling_effect: false
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: call-service
+                  service: light.turn_on
+                  target:
+                    entity_id: light.living_room_corner_accent
+                  data:
+                    brightness_pct: 100
+                styles: |-
+                  .bubble-button-card-container {
+                    position: relative !important;
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr auto !important;
+                    justify-items: center !important;
+                    align-items: center !important;
+                    text-align: center !important;
+                    min-height: 90px !important;
+                    padding: 24px 10px 8px 10px !important;
+                    border-radius: 14px !important;
+                    overflow: hidden !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.05s ease-out, box-shadow 0.05s ease-out, background 0.05s ease-out, border-color 0.05s ease-out !important;
+                    background: ${state === 'on' ? 'rgba(255,255,255,1)' : 'linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04))'} !important;
+                    border: ${state === 'on' ? '1.5px solid rgba(255,152,0,0.35)' : '1px solid rgba(0,0,0,0.03)'} !important;
+                    transform: translateZ(0) !important;
+                  }
+                  .bubble-button-card-container:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 8px 18px rgba(0,0,0,0.16) !important;
+                  }
+                  .bubble-content-container {
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr !important;
+                    justify-items: center !important;
+                    width: 100% !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    padding-bottom: 20px !important;
+                    pointer-events: auto !important;
+                  }
+                  .bubble-icon-container {
+                    min-width: 40px !important;
+                    min-height: 40px !important;
+                    grid-row: 1 !important;
+                    margin: 6px 0 1px 0 !important;
+                    border-radius: 50% !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    background: ${state === 'on' ? 'rgba(255,152,0,0.18)' : 'rgba(0,0,0,0.06)'} !important;
+                  }
+                  .bubble-icon {
+                    --mdc-icon-size: 30px !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.96)' : 'rgba(0,0,0,0.45)'} !important;
+                  }
+                  .bubble-name-container {
+                    grid-row: 2 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                  }
+                  .bubble-name {
+                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    line-height: 1.2 !important;
+                    justify-content: center !important;
+                    opacity: ${state === 'on' ? '1' : '0.75'} !important;
+                  }
+                  .bubble-attribute {
+                    font-size: 12px !important;
+                    margin-top: 2px !important;
+                    justify-content: center !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.9)' : 'rgba(0,0,0,0.55)'} !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                  }
+                  .bubble-range-slider {
+                    position: absolute !important;
+                    bottom: 6px !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    margin: 0 auto !important;
+                    width: 86% !important;
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    z-index: 10 !important;
+                    background: ${state === 'on' ? 'rgba(0,0,0,0.02)' : 'transparent'} !important;
+                    overflow: hidden !important;
+                    cursor: grab !important;
+                  }
+                  .bubble-range-fill {
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    background: rgba(255,152,0,0.9) !important;
+                    z-index: 5 !important;
+                    pointer-events: none !important;
+                  }
+                  .bubble-range-value {
+                    position: fixed !important;
+                    top: 10px !important;
+                    right: 12px !important;
+                    left: auto !important;
+                    bottom: auto !important;
+                    transform: none !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    font-size: 15px !important;
+                    font-weight: 700 !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,1)' : 'rgba(0,0,0,0.6)'} !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                    z-index: 20 !important;
+                  }
+                  .is-dragging .bubble-range-value,
+                  .bubble-range-slider:active .bubble-range-value {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    display: block !important;
+                  }
+                  .is-dragging .bubble-attribute { opacity: 0 !important; }
+                sub_button:
+                  main: []
+                  bottom: []
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: light.office_desk_lamp
+                name: Office Desk
+                icon: mdi:desk-lamp
+                show_state: false
+                show_attribute: true
+                attribute: brightness
+                scrolling_effect: false
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: call-service
+                  service: light.turn_on
+                  target:
+                    entity_id: light.office_desk_lamp
+                  data:
+                    brightness_pct: 100
+                styles: |-
+                  .bubble-button-card-container {
+                    position: relative !important;
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr auto !important;
+                    justify-items: center !important;
+                    align-items: center !important;
+                    text-align: center !important;
+                    min-height: 90px !important;
+                    padding: 24px 10px 8px 10px !important;
+                    border-radius: 14px !important;
+                    overflow: hidden !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.05s ease-out, box-shadow 0.05s ease-out, background 0.05s ease-out, border-color 0.05s ease-out !important;
+                    background: ${state === 'on' ? 'rgba(255,255,255,1)' : 'linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04))'} !important;
+                    border: ${state === 'on' ? '1.5px solid rgba(255,152,0,0.35)' : '1px solid rgba(0,0,0,0.03)'} !important;
+                    transform: translateZ(0) !important;
+                  }
+                  .bubble-button-card-container:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 8px 18px rgba(0,0,0,0.16) !important;
+                  }
+                  .bubble-content-container {
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr !important;
+                    justify-items: center !important;
+                    width: 100% !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    padding-bottom: 20px !important;
+                    pointer-events: auto !important;
+                  }
+                  .bubble-icon-container {
+                    min-width: 40px !important;
+                    min-height: 40px !important;
+                    grid-row: 1 !important;
+                    margin: 6px 0 1px 0 !important;
+                    border-radius: 50% !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    background: ${state === 'on' ? 'rgba(255,152,0,0.18)' : 'rgba(0,0,0,0.06)'} !important;
+                  }
+                  .bubble-icon {
+                    --mdc-icon-size: 30px !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.96)' : 'rgba(0,0,0,0.45)'} !important;
+                  }
+                  .bubble-name-container {
+                    grid-row: 2 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                  }
+                  .bubble-name {
+                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    line-height: 1.2 !important;
+                    justify-content: center !important;
+                    opacity: ${state === 'on' ? '1' : '0.75'} !important;
+                  }
+                  .bubble-attribute {
+                    font-size: 12px !important;
+                    margin-top: 2px !important;
+                    justify-content: center !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.9)' : 'rgba(0,0,0,0.55)'} !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                  }
+                  .bubble-range-slider {
+                    position: absolute !important;
+                    bottom: 6px !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    margin: 0 auto !important;
+                    width: 86% !important;
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    z-index: 10 !important;
+                    background: ${state === 'on' ? 'rgba(0,0,0,0.02)' : 'transparent'} !important;
+                    overflow: hidden !important;
+                    cursor: grab !important;
+                  }
+                  .bubble-range-fill {
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    background: rgba(255,152,0,0.9) !important;
+                    z-index: 5 !important;
+                    pointer-events: none !important;
+                  }
+                  .bubble-range-value {
+                    position: fixed !important;
+                    top: 10px !important;
+                    right: 12px !important;
+                    left: auto !important;
+                    bottom: auto !important;
+                    transform: none !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    font-size: 15px !important;
+                    font-weight: 700 !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,1)' : 'rgba(0,0,0,0.6)'} !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                    z-index: 20 !important;
+                  }
+                  .is-dragging .bubble-range-value,
+                  .bubble-range-slider:active .bubble-range-value {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    display: block !important;
+                  }
+                  .is-dragging .bubble-attribute { opacity: 0 !important; }
+                sub_button:
+                  main: []
+                  bottom: []
+    column_span: 3
+  # ═══════════════════════════════════════════════════════════════════
+  # SECTION 3: SONOS + CLIMATE (column_span: 3 - right half)
+  # ═══════════════════════════════════════════════════════════════════
   - type: grid
     cards:
-      - type: custom:mushroom-climate-card
+      - type: custom:bubble-card
+        card_type: media-player
+        entity: media_player.living_room
+        name: Sonos
+        icon: mdi:speaker-wireless
+        card_layout: large-2-rows
+        scrolling_effect: true
+        show_state: true
+        show_icon: true
+        show_name: true
+        show_last_changed: false
+        show_attribute: false
+        cover_background: true
+        hide:
+          power_button: true
+          previous_button: false
+          next_button: false
+          volume_button: false
+          play_pause_button: false
+        button_action:
+          tap_action:
+            action: more-info
+        sub_button:
+          main:
+            - name: Group all
+              icon: mdi:speaker-multiple
+              entity: media_player.living_room
+              show_state: false
+              show_background: true
+              state_background: false
+              tap_action:
+                action: call-service
+                service: script.sonos_group_all_to_playing
+            - name: Ungroup
+              icon: mdi:speaker-off
+              entity: media_player.living_room
+              show_state: false
+              show_background: true
+              state_background: false
+              tap_action:
+                action: call-service
+                service: script.sonos_ungroup_all
+          bottom: []
+        styles: |
+          ha-card {
+            --bubble-border-radius: 24px;
+          }
+      - type: custom:bubble-card
+        card_type: climate
         entity: climate.dining_room
-        fill_container: true
-        layout: horizontal
-        show_temperature_control: true
-      - type: vertical-stack
-        cards:
-          - type: custom:bubble-card
-            card_type: media-player
-            entity: media_player.living_room
-            name: Sonos
-            icon: mdi:speaker-multiple
-            card_layout: large-2-rows
-            scrolling_effect: false
-            show_state: true
-            show_icon: true
-            show_name: true
-            show_last_changed: false
-            show_attribute: false
-            cover_background: true
-            hide:
-              power_button: true
-              previous_button: true
-              next_button: true
-              volume_button: false
-              play_pause_button: false
-            button_action:
-              double_tap_action:
-                action: navigate
-                navigation_path: "#sonos-detail"
-              hold_action:
-                action: more-info
-            sub_button:
-              main:
-                - name: Group all
-                  icon: mdi:link-variant
-                  entity: media_player.living_room
-                  show_state: false
-                  show_background: true
-                  state_background: false
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_group_all_to_playing
-                - name: Ungroup
-                  icon: mdi:link-off
-                  entity: media_player.living_room
-                  show_state: false
-                  show_background: true
-                  state_background: false
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_ungroup_all
-                - entity: media_player.living_room
-                  tap_action:
-                    action: perform-action
-                    perform_action: media_player.media_next_track
-                    target:
-                      device_id:
-                        - 79e5ed000ae5ba15d2a793433e81ff71
-                  icon: mdi:skip-next
-                  name: Next Track
-                  show_background: true
-                  show_icon: true
-                - entity: media_player.living_room
-                  tap_action:
-                    action: perform-action
-                    perform_action: media_player.media_next_track
-                    target:
-                      device_id: 79e5ed000ae5ba15d2a793433e81ff71
-                  icon: mdi:skip-previous
-                  name: Previous Track
-                  show_background: true
-                  show_icon: true
-              bottom: []
-          - type: custom:bubble-card
-            card_type: button
-            button_type: state
-            name: Rooms
-            icon: mdi:home-circle
-            card_layout: large-sub-buttons-grid
-            show_state: false
-            show_last_changed: false
-            sub_button:
-              main:
-                - name: Living
-                  icon: mdi:sofa
-                  entity: binary_sensor.sonos_living_room_in_playing_group
-                  show_state: false
-                  show_background: true
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_toggle_group_membership
-                    data:
-                      target_speaker: media_player.living_room
-                - name: Dining
-                  icon: mdi:table-furniture
-                  entity: binary_sensor.sonos_dining_room_in_playing_group
-                  show_state: false
-                  show_background: true
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_toggle_group_membership
-                    data:
-                      target_speaker: media_player.dining_room
-                - name: Kitchen
-                  icon: mdi:stove
-                  entity: binary_sensor.sonos_kitchen_in_playing_group
-                  show_state: false
-                  show_background: true
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_toggle_group_membership
-                    data:
-                      target_speaker: media_player.kitchen
-                  hold_action:
-                    action: more-info
-                - name: Bath
-                  icon: mdi:shower-head
-                  entity: binary_sensor.sonos_bath_in_playing_group
-                  show_state: false
-                  show_background: true
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_toggle_group_membership
-                    data:
-                      target_speaker: media_player.bath
-                - name: Bedroom
-                  icon: mdi:bed
-                  entity: binary_sensor.sonos_bedroom_in_playing_group
-                  show_state: false
-                  show_background: true
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_toggle_group_membership
-                    data:
-                      target_speaker: media_player.bedroom
-                - name: Pause all
-                  icon: mdi:pause-circle
-                  entity: media_player.living_room
-                  show_state: false
-                  show_background: false
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_all_pause
-                - name: Ungroup
-                  icon: mdi:link-off
-                  entity: media_player.living_room
-                  show_state: false
-                  show_background: false
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_ungroup_all
-              bottom: []
-            entity: media_player.living_room
-          - type: custom:sonos-card
-            sections:
-              - player
-              - volumes
-              - groups
-              - grouping
-              - media browser
-              - queue
-            hidePlayerControlPowerButton: true
-            heightPercentage: 80
-            topFavorites:
-              - ""
-            hideGroupCurrentTrack: true
-            dynamicVolumeSlider: true
-            dynamicVolumeSliderMax: 100
-            dynamicVolumeSliderThreshold: 1
-            favoritesHideTitleForThumbnailIcons: false
-            showAudioInputFormat: true
-            footerHeight: 3
-            storePlayerInSessionStorage: true
-            artworkMinHeight: 1
+        name: Climate
+        icon: mdi:thermostat
+        styles: |
+          ha-card {
+            --bubble-border-radius: 24px;
+          }
+    column_span: 3
+  # ═══════════════════════════════════════════════════════════════════
+  # SECTION 4: BEDROOM (existing - now full width below)
+  # ═══════════════════════════════════════════════════════════════════
   - type: grid
     cards:
       - type: heading
-        heading: Popup Content
-        heading_style: title
-      - type: vertical-stack
+        heading: Overall Room view
+        heading_style: subtitle
+      - type: custom:stack-in-card
+        keep:
+          background: false
+          box_shadow: false
+          margin: false
+          outer_padding: false
+          border_radius: false
+        card_mod:
+          style: |
+            ha-card {
+              background: var(--ha-card-background, rgba(255,255,255,0.96)) !important;
+              border-radius: 24px !important;
+              padding: 12px 12px 16px 12px !important;
+              border: 1px solid rgba(0,0,0,0.03) !important;
+              box-shadow: 0 6px 20px rgba(0,0,0,0.04) !important;
+            }
         cards:
           - type: custom:bubble-card
-            card_type: pop-up
-            hash: "#sonos-detail"
-            name: Sonos
-            icon: mdi:speaker-multiple
-            show_header: true
-            width_desktop: 520px
-            margin_top_mobile: 18px
-            margin_top_desktop: 74px
-          - type: custom:bubble-card
-            card_type: button
-            button_type: slider
-            name: Group Controls
-            icon: mdi:link-variant
-            card_layout: large-sub-buttons-grid
-            show_state: false
-            sub_button:
-              main:
-                - name: Pause all
-                  icon: mdi:pause-circle
-                  entity: media_player.living_room
-                  show_background: true
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_all_pause
-                - name: Ungroup all
-                  icon: mdi:link-off
-                  entity: media_player.living_room
-                  show_background: true
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_ungroup_all
-              bottom: []
-            entity: media_player.living_room
-          - type: custom:bubble-card
-            card_type: media-player
-            entity: media_player.living_room
-            name: Living Room
-            card_layout: large-2-rows
-            show_state: true
-            show_icon: true
-            show_attribute: false
-            hide:
-              power_button: true
-              previous_button: true
-              next_button: true
-              volume_button: false
-              play_pause_button: false
-            sub_button:
-              main:
-                - name: Group Ungroup Toggle
-                  icon: mdi:sofa
-                  entity: binary_sensor.sonos_living_room_in_playing_group
-                  show_state: false
-                  show_background: true
-                  tap_action:
-                    action: call-service
-                    service: script.sonos_toggle_group_membership
-                    data:
-                      target_speaker: media_player.living_room
-                  fill_width: false
-                  content_layout: icon-left
-              bottom: []
-          - type: custom:bubble-card
-            card_type: media-player
-            entity: media_player.dining_room
-            name: Dining Room
-            card_layout: large-2-rows
-            show_state: true
-            show_icon: true
-            show_attribute: false
-            hide:
-              power_button: true
-              previous_button: true
-              next_button: true
-              volume_button: false
-              play_pause_button: false
-            sub_button:
-              - entity: sensor.sonos_dining_room_group_label
-                show_state: true
-                show_name: false
-                show_icon: false
-                show_background: false
-          - type: custom:bubble-card
-            card_type: media-player
-            entity: media_player.kitchen
-            name: Kitchen
-            card_layout: large-2-rows
-            show_state: true
-            show_icon: true
-            show_attribute: false
-            hide:
-              power_button: true
-              previous_button: true
-              next_button: true
-              volume_button: false
-              play_pause_button: false
-            sub_button:
-              - entity: sensor.sonos_kitchen_group_label
-                show_state: true
-                show_name: false
-                show_icon: false
-                show_background: false
-          - type: custom:bubble-card
-            card_type: media-player
-            entity: media_player.bath
-            name: Bath
-            card_layout: large-2-rows
-            show_state: true
-            show_icon: true
-            show_attribute: false
-            hide:
-              power_button: true
-              previous_button: true
-              next_button: true
-              volume_button: false
-              play_pause_button: false
-            sub_button:
-              - entity: sensor.sonos_bath_group_label
-                show_state: true
-                show_name: false
-                show_icon: false
-                show_background: false
-          - type: custom:bubble-card
-            card_type: media-player
-            entity: media_player.bedroom
+            card_type: separator
             name: Bedroom
-            card_layout: large-2-rows
-            show_state: true
-            show_icon: true
-            show_attribute: false
-            hide:
-              power_button: true
-              previous_button: true
-              next_button: true
-              volume_button: false
-              play_pause_button: false
+            icon: mdi:bed-king-outline
             sub_button:
-              - entity: sensor.sonos_bedroom_group_label
-                show_state: true
-                show_name: false
-                show_icon: false
-                show_background: false
-        grid_options:
-          columns: full
-    column_span: 3
-dense_section_placement: false
+              - entity: light.bedroom_primary_lights
+                show_background: true
+                tap_action:
+                  action: toggle
+            styles: |
+              .bubble-separator-container {
+                background: transparent !important;
+                border: none !important;
+                margin-bottom: 0px !important;
+                padding-left: 8px !important;
+              }
+
+              .bubble-name {
+                font-weight: 700 !important;
+                font-size: 18px !important;
+                color: #000 !important;
+              }
+
+              .bubble-icon-container {
+                background: rgba(255,152,0,0.15) !important;
+              }
+
+              .bubble-icon {
+                color: rgba(255,152,0,1) !important;
+              }
+
+              .bubble-sub-button-container {
+                top: 50% !important;
+                transform: translateY(-50%) !important;
+              }
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: light.master_bedroom_table_lamps
+                name: Table Lamps
+                icon: mdi:lamp
+                show_state: false
+                show_attribute: true
+                attribute: brightness
+                scrolling_effect: false
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: call-service
+                  service: light.turn_on
+                  target:
+                    entity_id: light.master_bedroom_table_lamps
+                  data:
+                    brightness_pct: 100
+                styles: |-
+                  /* 1. CONTAINER - Tightened Bottom */
+                  .bubble-button-card-container {
+                    position: relative !important;
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr auto !important;
+                    justify-items: center !important;
+                    align-items: center !important;
+                    text-align: center !important;
+                    min-height: 90px !important;
+                    padding: 24px 10px 8px 10px !important;
+                    border-radius: 14px !important;
+                    overflow: hidden !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.05s ease-out, box-shadow 0.05s ease-out, background 0.05s ease-out, border-color 0.05s ease-out !important;
+                    background: ${state === 'on' 
+                      ? 'rgba(255,255,255,1)' 
+                      : 'linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04))'} !important;
+                    border: ${state === 'on' 
+                      ? '1.5px solid rgba(255,152,0,0.35)' 
+                      : '1px solid rgba(0,0,0,0.03)'} !important;
+                    transform: translateZ(0) !important;
+                  }
+
+                  .bubble-button-card-container:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 8px 18px rgba(0,0,0,0.16) !important;
+                  }
+
+                  /* 2. CONTENT LAYOUT */
+                  .bubble-content-container {
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr !important;
+                    justify-items: center !important;
+                    width: 100% !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    padding-bottom: 20px !important;
+                    pointer-events: auto !important;
+                  }
+
+                  /* 3. ICON STYLING */
+                  .bubble-icon-container {
+                    min-width: 40px !important;
+                    min-height: 40px !important;
+                    grid-row: 1 !important;
+                    margin: 6px 0 1px 0 !important;
+                    border-radius: 50% !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    background: ${state === 'on' 
+                      ? 'rgba(255,152,0,0.18)' 
+                      : 'rgba(0,0,0,0.06)'} !important;
+                  }
+
+                  .bubble-icon {
+                    --mdc-icon-size: 30px !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.96)' : 'rgba(0,0,0,0.45)'} !important;
+                  }
+
+                  /* 4. TEXT */
+                  .bubble-name-container {
+                    grid-row: 2 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                  }
+
+                  .bubble-name {
+                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    line-height: 1.2 !important;
+                    justify-content: center !important;
+                    opacity: ${state === 'on' ? '1' : '0.75'} !important;
+                  }
+
+                  .bubble-attribute {
+                    font-size: 12px !important;
+                    margin-top: 2px !important;
+                    justify-content: center !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.9)' : 'rgba(0,0,0,0.55)'} !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                  }
+
+                  /* 5. SLIDER - LOWER POSITION */
+                  .bubble-range-slider {
+                    position: absolute !important;
+                    bottom: 6px !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    margin: 0 auto !important;
+                    width: 86% !important;
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    z-index: 10 !important;
+                    background: ${state === 'on' ? 'rgba(0,0,0,0.02)' : 'transparent'} !important;
+                    overflow: hidden !important;
+                    cursor: grab !important;
+                  }
+
+                  .bubble-range-fill {
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    background: rgba(255,152,0,0.9) !important;
+                    z-index: 5 !important;
+                    pointer-events: none !important;
+                  }
+
+                  /* 6. DRAG VALUE */
+                  .bubble-range-value {
+                    position: fixed !important;
+                    top: 10px !important;
+                    right: 12px !important;
+                    left: auto !important;
+                    bottom: auto !important;
+                    transform: none !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    font-size: 15px !important;
+                    font-weight: 700 !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,1)' : 'rgba(0,0,0,0.6)'} !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                    z-index: 20 !important;
+                  }
+
+                  /* 7. INTERACTION STATES */
+                  .is-dragging .bubble-range-value,
+                  .bubble-range-slider:active .bubble-range-value {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    display: block !important;
+                  }
+
+                  .is-dragging .bubble-attribute {
+                    opacity: 0 !important;
+                  }
+
+                  .is-dragging .bubble-wrapper,
+                  .is-dragging .bubble-content-container,
+                  .is-dragging .bubble-icon,
+                  .is-dragging ha-icon,
+                  .is-dragging .bubble-icon-container,
+                  .is-dragging .bubble-name-container {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    transition: none !important;
+                  }
+
+                        sub_button:
+                          main: []
+                          bottom: []
+              - type: custom:bubble-card
+                card_type: button
+                button_type: slider
+                entity: light.master_bedroom_corner_accent
+                name: Accent
+                icon: mdi:lamp-outline
+                show_state: false
+                show_attribute: true
+                attribute: brightness
+                scrolling_effect: false
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: call-service
+                  service: light.turn_on
+                  target:
+                    entity_id: light.master_bedroom_corner_accent
+                  data:
+                    brightness_pct: 100
+                styles: |-
+                  /* 1. CONTAINER - Tightened Bottom */
+                  .bubble-button-card-container {
+                    position: relative !important;
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr auto !important;
+                    justify-items: center !important;
+                    align-items: center !important;
+                    text-align: center !important;
+                    min-height: 90px !important;
+                    padding: 24px 10px 8px 10px !important;
+                    border-radius: 14px !important;
+                    overflow: hidden !important;
+                    clip-path: inset(0 round 14px) !important;
+                    transition: transform 0.05s ease-out, box-shadow 0.05s ease-out, background 0.05s ease-out, border-color 0.05s ease-out !important;
+                    background: ${state === 'on' 
+                      ? 'rgba(255,255,255,1)' 
+                      : 'linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04))'} !important;
+                    border: ${state === 'on' 
+                      ? '1.5px solid rgba(255,152,0,0.35)' 
+                      : '1px solid rgba(0,0,0,0.03)'} !important;
+                    transform: translateZ(0) !important;
+                  }
+
+                  .bubble-button-card-container:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 8px 18px rgba(0,0,0,0.16) !important;
+                  }
+
+                  /* 2. CONTENT LAYOUT */
+                  .bubble-content-container {
+                    display: grid !important;
+                    grid-template-rows: auto auto 1fr !important;
+                    justify-items: center !important;
+                    width: 100% !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    padding-bottom: 20px !important;
+                    pointer-events: auto !important;
+                  }
+
+                  /* 3. ICON STYLING */
+                  .bubble-icon-container {
+                    min-width: 40px !important;
+                    min-height: 40px !important;
+                    grid-row: 1 !important;
+                    margin: 6px 0 1px 0 !important;
+                    border-radius: 50% !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    background: ${state === 'on' 
+                      ? 'rgba(255,152,0,0.18)' 
+                      : 'rgba(0,0,0,0.06)'} !important;
+                  }
+
+                  .bubble-icon {
+                    --mdc-icon-size: 30px !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.96)' : 'rgba(0,0,0,0.45)'} !important;
+                  }
+
+                  /* 4. TEXT */
+                  .bubble-name-container {
+                    grid-row: 2 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                  }
+
+                  .bubble-name {
+                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    line-height: 1.2 !important;
+                    justify-content: center !important;
+                    opacity: ${state === 'on' ? '1' : '0.75'} !important;
+                  }
+
+                  .bubble-attribute {
+                    font-size: 12px !important;
+                    margin-top: 2px !important;
+                    justify-content: center !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,0.9)' : 'rgba(0,0,0,0.55)'} !important;
+                    position: relative !important;
+                    z-index: 5 !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                  }
+
+                  /* 5. SLIDER - LOWER POSITION */
+                  .bubble-range-slider {
+                    position: absolute !important;
+                    bottom: 6px !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    margin: 0 auto !important;
+                    width: 86% !important;
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    z-index: 10 !important;
+                    background: ${state === 'on' ? 'rgba(0,0,0,0.02)' : 'transparent'} !important;
+                    overflow: hidden !important;
+                    cursor: grab !important;
+                  }
+
+                  .bubble-range-fill {
+                    height: 6px !important;
+                    border-radius: 6px !important;
+                    background: rgba(255,152,0,0.9) !important;
+                    z-index: 5 !important;
+                    pointer-events: none !important;
+                  }
+
+                  /* 6. DRAG VALUE */
+                  .bubble-range-value {
+                    position: fixed !important;
+                    top: 10px !important;
+                    right: 12px !important;
+                    left: auto !important;
+                    bottom: auto !important;
+                    transform: none !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    font-size: 15px !important;
+                    font-weight: 700 !important;
+                    color: ${state === 'on' ? 'rgba(255,152,0,1)' : 'rgba(0,0,0,0.6)'} !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                    transition: opacity 0.2s ease-in-out !important;
+                    z-index: 20 !important;
+                  }
+
+                  /* 7. INTERACTION STATES */
+                  .is-dragging .bubble-range-value,
+                  .bubble-range-slider:active .bubble-range-value {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    display: block !important;
+                  }
+
+                  .is-dragging .bubble-attribute {
+                    opacity: 0 !important;
+                  }
+
+                  .is-dragging .bubble-wrapper,
+                  .is-dragging .bubble-content-container,
+                  .is-dragging .bubble-icon,
+                  .is-dragging ha-icon,
+                  .is-dragging .bubble-icon-container,
+                  .is-dragging .bubble-name-container {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    transition: none !important;
+                  }
+                sub_button:
+                  main: []
+                  bottom: []
+    column_span: 6
 cards: []
-badges:
-  - type: entity
-    entity: light.all_lights
-  - type: entity
-    show_name: false
-    show_state: true
-    show_icon: true
-    entity: sensor.dining_room_temperature
-  - type: entity
-    entity: sensor.kitchen_humidity
-  - type: entity
-    entity: weather.home
-header:
-  layout: center
-  badges_position: top
-  badges_wrap: wrap
-  card:
-    type: markdown
-    content: |-
-      # Hello {{ user }}
-      Add your text here, template variables are supported ✨

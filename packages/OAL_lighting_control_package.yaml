@@ -368,7 +368,7 @@ input_datetime:
 adaptive_lighting:
   - name: "main_living"
     lights: light.main_living_lights
-    interval: 90
+    interval: 10
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -385,7 +385,7 @@ adaptive_lighting:
 
   - name: "kitchen_island"
     lights: light.kitchen_island_lights
-    interval: 90
+    interval: 10
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -419,7 +419,7 @@ adaptive_lighting:
 
   - name: "accent_spots"
     lights: light.accent_spots_lights
-    interval: 90
+    interval: 10
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -436,7 +436,7 @@ adaptive_lighting:
 
   - name: "recessed_ceiling"
     lights: light.recessed_ceiling_lights
-    interval: 90
+    interval: 10
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -462,15 +462,15 @@ adaptive_lighting:
     include_config_in_attributes: true
     autoreset_control_seconds: 3200
     min_brightness: 1
-    max_brightness: 2
+    max_brightness: 80
     min_color_temp: 2000
     max_color_temp: 3000
-    prefer_rgb_color: true
+    prefer_rgb_color: false
     sleep_brightness: 1
     sleep_rgb_or_color_temp: "rgb_color"
     sleep_color_temp: 1000
     sleep_rgb_color: [255, 124, 2]
-    sleep_transition: 1
+    sleep_transition: 3600
     transition_until_sleep: true
 
 # =============================================================================
@@ -2061,6 +2061,16 @@ script:
     description: "Resets manual offsets, config selection, and isolated overrides to defaults."
     icon: mdi:restore
     sequence:
+      # FIRST: Turn on all AL switches (apply requires switches to be ON)
+      - service: switch.turn_on
+        target:
+          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+      # THEN: Clear manual_control so Core Engine will apply changes
+      - service: adaptive_lighting.set_manual_control
+        target:
+          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+        data:
+          manual_control: false
       - service: input_number.set_value
         target:
           entity_id:
@@ -2086,11 +2096,16 @@ script:
       - service: input_boolean.turn_off
         target:
           entity_id: input_boolean.oal_movie_mode_active
-      - service: adaptive_lighting.set_manual_control
+      # LAST: Wait for any Config Manager transition to complete, then apply AL directly
+      # This ensures lights are updated regardless of whether config actually changed
+      - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
+        timeout: "00:00:10"
+      - service: adaptive_lighting.apply
         target:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
         data:
-          manual_control: false
+          turn_on_lights: true
+          transition: 2
 
   oal_reset_global:
     alias: "OAL v13 Reset Global (Nuclear)"
@@ -2221,7 +2236,17 @@ template:
             {{ (state_attr('switch.adaptive_lighting_column_lights', 'configuration') or {}).get('max_brightness', 0) }}
           column_lights_manual_offset_brightness_pct: >
             {{ states('input_number.oal_manual_offset_column_lights_brightness') | float(0) }}
+          boost_source: >
+            {% set sources = [] %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% if env > 0 %}{% set sources = sources + ['☀️+' ~ env | int ~ '%'] %}{% endif %}
+            {% if cfg != 0 %}{% set sources = sources + ['⚙️' ~ ('+' if cfg > 0 else '') ~ cfg | int ~ '%'] %}{% endif %}
+            {% if sun != 0 %}{% set sources = sources + ['🌅' ~ ('+' if sun > 0 else '') ~ sun | int ~ '%'] %}{% endif %}
+            {{ sources | join(' ') if sources else 'Baseline' }}
 
+            
       # -----------------------------------------------------------------------
       # 6.2 Average active color temperature (safe aggregate for warmth)
       # -----------------------------------------------------------------------

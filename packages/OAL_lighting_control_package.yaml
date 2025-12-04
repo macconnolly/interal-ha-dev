@@ -463,14 +463,17 @@ adaptive_lighting:
     autoreset_control_seconds: 3200
     min_brightness: 1
     max_brightness: 80
+    brightness_mode: tanh
+    brightness_mode_time_light: 1800
+    brightness_mode_time_dark: 900
     min_color_temp: 2000
     max_color_temp: 3000
-    prefer_rgb_color: false
+    prefer_rgb_color: true
     sleep_brightness: 1
     sleep_rgb_or_color_temp: "rgb_color"
     sleep_color_temp: 1000
     sleep_rgb_color: [255, 124, 2]
-    sleep_transition: 3600
+    sleep_transition: 1
     transition_until_sleep: true
 
 # =============================================================================

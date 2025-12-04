@@ -373,7 +373,7 @@ template:
           {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
           {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
           {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
-          {{ soonest.entity_id if soonest is mapping and 'entity_id' in soonest else null }}
+          {{ soonest.entity_id if soonest is mapping and 'entity_id' in soonest else none }}
         friendly_name: >
           {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
           {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
@@ -388,7 +388,7 @@ template:
           {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
           {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
           {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
-          {{ soonest.timestamp if soonest is mapping and 'timestamp' in soonest else null }}
+          {{ soonest.timestamp if soonest is mapping and 'timestamp' in soonest else none }}
         debug_info: >
           {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
           {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
@@ -1198,17 +1198,9 @@ automation:
     mode: queued
     max_exceeded: silent
     trigger:
-      - platform: event
-        event_type: state_changed
-        event_data: {}
-    condition:
-      - condition: template
-        value_template: >
-          {{
-            trigger.event.data.entity_id is defined
-            and trigger.event.data.entity_id.startswith('switch.sonos_alarm_')
-            and states(trigger.event.data.entity_id) is not none
-          }}
+      - platform: state
+        entity_id: switch.sonos_alarm_*
+    condition: []
     action:
       # Removed deprecated script.update_soonest_sonos_alarm_info call
       - service: system_log.write
@@ -1283,7 +1275,7 @@ automation:
           {# 4. Apple TV was genuinely playing recently (prevents phantom paused while TV left on) #}
           {% set last_playing = states('input_datetime.apple_tv_last_playing') %}
           {% set last_playing_ok = last_playing not in ['unknown','unavailable','none','']
-                                   and (now() - as_datetime(last_playing)).total_seconds() <= 12*360000 %}
+                                   and (as_timestamp(now()) - as_timestamp(last_playing)) <= 12*3600 %}
 
           {{ apple_tv_valid and is_inactive and display_is_on and last_playing_ok }}
     action:

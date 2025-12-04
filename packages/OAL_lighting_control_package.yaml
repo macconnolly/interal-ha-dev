@@ -679,7 +679,7 @@ automation:
           final_brightness_offset_total: >
             {{ base_config_sunset_b + comp_env_b_raw }}
           final_warmth_offset_total: "{{ base_warmth_offset }}"
-          comp_b_manual_slider: "{{ comp_manual_b }}"
+          comp_b_manual_slider: 0  # Dead code removed (Phase 2A)
           comp_b_config: "{{ comp_config_b }}"
           comp_b_env: "{{ comp_env_b_raw }}"
           comp_b_sunset: "{{ comp_sunset_b }}"
@@ -1604,6 +1604,117 @@ automation:
         target:
           entity_id: input_boolean.oal_autoreset_sync_lock
 
+  # ---------------------------------------------------------------------------
+  # 4.5 Notification Automations (Phase 3)
+  # ---------------------------------------------------------------------------
+  - id: oal_v13_post_sunset_override_reminder
+    alias: "OAL v13 - Post-Sunset Manual Override Reminder"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: sun.sun
+        to: "below_horizon"
+        for: "00:30:00"
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.oal_system_status
+        attribute: active_zonal_overrides
+        above: 0
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+    action:
+      - service: notify.notify
+        data:
+          title: "Lights Still Manual"
+          message: >
+            {{ state_attr('sensor.oal_system_status', 'overridden_zones') | join(', ') }}
+            {{ 'is' if state_attr('sensor.oal_system_status', 'overridden_zones') | length == 1 else 'are' }}
+            still manually controlled. Reset to adaptive?
+          data:
+            tag: "oal_override_reminder"
+            actions:
+              - action: "OAL_RESET_LIGHTS"
+                title: "Reset to Adaptive"
+              - action: "OAL_KEEP_MANUAL"
+                title: "Keep Manual"
+      - wait_for_trigger:
+          - platform: event
+            event_type: mobile_app_notification_action
+            event_data:
+              action: "OAL_RESET_LIGHTS"
+          - platform: event
+            event_type: mobile_app_notification_action
+            event_data:
+              action: "OAL_KEEP_MANUAL"
+        timeout: "01:00:00"
+        continue_on_timeout: true
+      - choose:
+          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == 'OAL_RESET_LIGHTS' }}"
+            sequence:
+              - service: script.oal_reset_soft
+              - service: notify.notify
+                data:
+                  message: "Lights reset to adaptive control."
+                  data:
+                    tag: "oal_override_reminder"
+
+  - id: oal_v13_override_expiring_notification
+    alias: "OAL v13 - Override Expiring Soon Warning"
+    mode: single
+    trigger:
+      - platform: template
+        value_template: >
+          {% set secs = state_attr('sensor.oal_soonest_override', 'seconds_remaining') | int(0) %}
+          {{ secs > 0 and secs < 300 }}
+        for: "00:00:05"
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+      - condition: state
+        entity_id: sun.sun
+        state: "below_horizon"
+    action:
+      - service: notify.notify
+        data:
+          title: "OAL Override Expiring"
+          message: >
+            {{ state_attr('sensor.oal_soonest_override', 'zone_friendly') }}
+            returning to adaptive in {{ states('sensor.oal_soonest_override') }}.
+          data:
+            tag: "oal_override_expiring"
+            actions:
+              - action: "OAL_EXTEND_OVERRIDE"
+                title: "Extend 1 Hour"
+              - action: "OAL_LET_EXPIRE"
+                title: "Let Expire"
+      - wait_for_trigger:
+          - platform: event
+            event_type: mobile_app_notification_action
+            event_data:
+              action: "OAL_EXTEND_OVERRIDE"
+          - platform: event
+            event_type: mobile_app_notification_action
+            event_data:
+              action: "OAL_LET_EXPIRE"
+        timeout: "00:05:00"
+        continue_on_timeout: true
+      - choose:
+          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == 'OAL_EXTEND_OVERRIDE' }}"
+            sequence:
+              - service: adaptive_lighting.set_manual_control
+                target:
+                  entity_id: >
+                    switch.adaptive_lighting_{{ state_attr('sensor.oal_soonest_override', 'zone_id') }}
+                data:
+                  manual_control: true
+              - service: notify.notify
+                data:
+                  message: "Override extended for 1 hour."
+                  data:
+                    tag: "oal_override_expiring"
+
 # =============================================================================
 # LAYER 5: SCRIPTS (MANUAL PIPELINE + CART/CARB + RESETS)
 # =============================================================================
@@ -1974,9 +2085,9 @@ template:
           main_living_baseline_brightness_pct: >
             {{ state_attr('switch.adaptive_lighting_main_living', 'brightness_pct') | float(0) }}
           main_living_effective_min_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_main_living', 'configuration').min_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_main_living', 'configuration') or {}).get('min_brightness', 0) }}
           main_living_effective_max_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_main_living', 'configuration').max_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_main_living', 'configuration') or {}).get('max_brightness', 0) }}
           main_living_manual_offset_brightness_pct: >
             {{ states('input_number.oal_manual_offset_main_living_brightness') | float(0) }}
 
@@ -1984,9 +2095,9 @@ template:
           kitchen_island_baseline_brightness_pct: >
             {{ state_attr('switch.adaptive_lighting_kitchen_island', 'brightness_pct') | float(0) }}
           kitchen_island_effective_min_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_kitchen_island', 'configuration').min_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_kitchen_island', 'configuration') or {}).get('min_brightness', 0) }}
           kitchen_island_effective_max_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_kitchen_island', 'configuration').max_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_kitchen_island', 'configuration') or {}).get('max_brightness', 0) }}
           kitchen_island_manual_offset_brightness_pct: >
             {{ states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) }}
 
@@ -1994,9 +2105,9 @@ template:
           bedroom_primary_baseline_brightness_pct: >
             {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'brightness_pct') | float(0) }}
           bedroom_primary_effective_min_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'configuration').min_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_bedroom_primary', 'configuration') or {}).get('min_brightness', 0) }}
           bedroom_primary_effective_max_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'configuration').max_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_bedroom_primary', 'configuration') or {}).get('max_brightness', 0) }}
           bedroom_primary_manual_offset_brightness_pct: >
             {{ states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0) }}
 
@@ -2004,9 +2115,9 @@ template:
           accent_spots_baseline_brightness_pct: >
             {{ state_attr('switch.adaptive_lighting_accent_spots', 'brightness_pct') | float(0) }}
           accent_spots_effective_min_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_accent_spots', 'configuration').min_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_accent_spots', 'configuration') or {}).get('min_brightness', 0) }}
           accent_spots_effective_max_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_accent_spots', 'configuration').max_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_accent_spots', 'configuration') or {}).get('max_brightness', 0) }}
           accent_spots_manual_offset_brightness_pct: >
             {{ states('input_number.oal_manual_offset_accent_spots_brightness') | float(0) }}
 
@@ -2014,9 +2125,9 @@ template:
           recessed_ceiling_baseline_brightness_pct: >
             {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'brightness_pct') | float(0) }}
           recessed_ceiling_effective_min_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'configuration').min_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_recessed_ceiling', 'configuration') or {}).get('min_brightness', 0) }}
           recessed_ceiling_effective_max_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'configuration').max_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_recessed_ceiling', 'configuration') or {}).get('max_brightness', 0) }}
           recessed_ceiling_manual_offset_brightness_pct: >
             {{ states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0) }}
 
@@ -2024,9 +2135,9 @@ template:
           column_lights_baseline_brightness_pct: >
             {{ state_attr('switch.adaptive_lighting_column_lights', 'brightness_pct') | float(0) }}
           column_lights_effective_min_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_column_lights', 'configuration').min_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_column_lights', 'configuration') or {}).get('min_brightness', 0) }}
           column_lights_effective_max_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_column_lights', 'configuration').max_brightness }}
+            {{ (state_attr('switch.adaptive_lighting_column_lights', 'configuration') or {}).get('max_brightness', 0) }}
           column_lights_manual_offset_brightness_pct: >
             {{ states('input_number.oal_manual_offset_column_lights_brightness') | float(0) }}
 
@@ -2092,6 +2203,73 @@ template:
                 | selectattr('attributes.manual_control', 'defined')
                 | selectattr('attributes.manual_control', '!=', []) | list %}
             {{ zonal | length }}
+          # --- Phase 3: Extended attributes (Tasks 3.1-3.14) ---
+          zones_adaptive: >
+            {{ 6 - (state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0)) }}
+          overridden_zones: >
+            {% set ns = namespace(zones=[]) %}
+            {% set zone_map = [
+              ('Main Living', 'switch.adaptive_lighting_main_living'),
+              ('Kitchen', 'switch.adaptive_lighting_kitchen_island'),
+              ('Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+              ('Spots', 'switch.adaptive_lighting_accent_spots'),
+              ('Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+              ('Columns', 'switch.adaptive_lighting_column_lights')
+            ] %}
+            {% for name, entity in zone_map %}
+              {% if state_attr(entity, 'manual_control') | default([]) | length > 0 %}
+                {% set ns.zones = ns.zones + [name] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.zones }}
+          soonest_reset_zone: >
+            {{ state_attr('sensor.oal_soonest_override', 'zone_friendly') | default('None') }}
+          soonest_reset_formatted: >
+            {{ states('sensor.oal_soonest_override') }}
+          soonest_reset_seconds: >
+            {{ state_attr('sensor.oal_soonest_override', 'seconds_remaining') | int(0) }}
+          current_preset: >
+            {{ states('input_select.oal_active_configuration') | regex_replace('Config \\d+: ', '') }}
+          active_modifiers: >
+            {% set mods = [] %}
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% if cfg != 0 %}
+              {% set mods = mods + [{'name': 'Config', 'value': cfg | int}] %}
+            {% endif %}
+            {% if env != 0 %}
+              {% set weather = states('weather.home') | default('Weather') %}
+              {% set mods = mods + [{'name': weather | title, 'value': env | int}] %}
+            {% endif %}
+            {% if sun != 0 %}
+              {% set mods = mods + [{'name': 'Sunset', 'value': sun | int}] %}
+            {% endif %}
+            {{ mods }}
+          total_modification: >
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {{ (cfg + env + sun) | int }}
+          sun_phase: >
+            {% set elev = state_attr('sun.sun', 'elevation') | float(0) %}
+            {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+            {% if elev < -6 %}night
+            {% elif elev < 0 and rising %}dawn
+            {% elif elev < 0 and not rising %}dusk
+            {% elif now().hour < 12 %}morning
+            {% elif now().hour < 17 %}day
+            {% else %}evening{% endif %}
+          weather_modifier_active: >
+            {{ states('input_number.oal_offset_environmental_brightness') | float(0) != 0 }}
+          weather_modifier_value: >
+            {{ states('input_number.oal_offset_environmental_brightness') | int(0) }}
+          system_paused: >
+            {{ is_state('input_boolean.oal_system_paused', 'on') }}
+          movie_mode_active: >
+            {{ is_state('input_boolean.oal_movie_mode_active', 'on') }}
+          isolated_mode: >
+            {{ states('input_select.oal_isolated_override_mode') }}
 
       # -----------------------------------------------------------------------
       # 6.4 Per-Zone Status Sensors (for OAL Hero Card Dashboard)

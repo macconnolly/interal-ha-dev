@@ -140,9 +140,7 @@ cards:
       .bubble-sub-button-2,
       .bubble-sub-button-3,
       .bubble-sub-button-4,
-      .bubble-sub-button-5,
-      .bubble-sub-button-6,
-      .bubble-sub-button-7 {
+      .bubble-sub-button-5 {
         background: rgba(255, 255, 255, 0.10) !important;
         border: 1px solid rgba(255, 255, 255, 0.12) !important;
         border-radius: 8px !important;
@@ -163,50 +161,15 @@ cards:
       }
       .bubble-sub-button-2 .bubble-sub-button-icon,
       .bubble-sub-button-3 .bubble-sub-button-icon,
-      .bubble-sub-button-4 .bubble-sub-button-icon,
-      .bubble-sub-button-6 .bubble-sub-button-icon {
+      .bubble-sub-button-4 .bubble-sub-button-icon {
         color: rgba(80, 80, 80, 0.7) !important;
         --mdc-icon-size: 20px !important;
       }
-      .bubble-sub-button-7 .bubble-sub-button-attribute {
+      .bubble-sub-button-5 .bubble-sub-button-attribute {
         color: rgba(60, 60, 60, 0.8) !important;
         font-weight: 600 !important;
         font-size: 12px !important;
       }
-      ${(() => {
-        // Alarm is ALWAYS sub-button-4 regardless of visibility
-        const alarms = hass.states['sensor.sonos_upcoming_alarms']?.attributes?.all_alarms_data?.debug_all_alarm_entities || [];
-        const today = alarms.filter(a => a.scheduled_today).sort((a,b) => a.time.localeCompare(b.time));
-        let timeStr = '';
-        if (today.length) {
-          const [h,m] = today[0].time.split(':');
-          const h12 = parseInt(h) % 12 || 12;
-          timeStr = h12 + ':' + m + (parseInt(h) >= 12 ? 'p' : 'a');
-        }
-        
-        return `
-          .bubble-sub-button-4 {
-            background: rgba(138, 100, 200, 0.15) !important;
-            border: 1px solid rgba(138, 100, 200, 0.35) !important;
-          }
-          .bubble-sub-button-4 .bubble-sub-button-icon {
-            color: rgba(120, 80, 180, 0.9) !important;
-            --mdc-icon-size: 18px !important;
-          }
-          .bubble-sub-button-4 .bubble-sub-button-name {
-            display: none !important;
-          }
-          .bubble-sub-button-4::after {
-            content: '${timeStr}';
-            position: absolute;
-            bottom: 2px;
-            right: 4px;
-            font-size: 8px;
-            font-weight: 600;
-            color: rgba(90, 60, 140, 0.9);
-          }
-        `;
-      })()}
   - type: horizontal-stack
     cards:
       - type: custom:bubble-card

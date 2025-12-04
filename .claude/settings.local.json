@@ -16,7 +16,9 @@
       "mcp__sequential-thinking__sequentialthinking**",
       "mcp__hass-mcp**",
       "mcp__hass-mcp__*",
-      "mcp__*"
+      "mcp__*",
+      "Bash(python3:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

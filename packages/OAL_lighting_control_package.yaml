@@ -74,6 +74,32 @@ light:
       - light.dining_col_accent
       - light.living_col_accent
 
+  # Combined area groups (include lights from multiple OAL zones)
+  - platform: group
+    name: "living_room_lights"
+    unique_id: "oal_living_room_lights_group_v13"
+    entities:
+      # From main_living zone (6)
+      - light.entryway_lamp
+      - light.living_room_floor_lamp
+      - light.office_desk_lamp
+      - light.living_room_corner_accent
+      - light.living_room_couch_lamp
+      - light.living_room_credenza_light
+      # From column_lights zone - living room only (1)
+      - light.living_col_accent
+      # From accent_spots zone - living room only (1)
+      - light.living_room_spot_lights
+      # From recessed_ceiling zone - living room only (1)
+      - light.living_room_hallway_lights
+
+  - platform: group
+    name: "all_kitchen_lights"
+    unique_id: "oal_all_kitchen_lights_group_v13"
+    entities:
+      - light.kitchen_island_pendants
+      - light.kitchen_main_lights
+
 group:
   oal_control_switches:
     name: "OAL Control Switches"
@@ -412,9 +438,9 @@ adaptive_lighting:
     include_config_in_attributes: true
     autoreset_control_seconds: 3200
     min_brightness: 1
-    max_brightness: 80
+    max_brightness: 2
     min_color_temp: 2000
-    max_color_temp: 3500
+    max_color_temp: 3000
     prefer_rgb_color: true
     sleep_brightness: 1
     sleep_rgb_or_color_temp: "rgb_color"
@@ -663,13 +689,29 @@ automation:
                 min_color_temp: "{{ final_min_k | round(0) }}"
                 max_color_temp: "{{ final_max_k | round(0) }}"
                 transition: "{{ transition_speed }}"
+                immediate_apply: false
 
-      - service: adaptive_lighting.apply
-        target:
-          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
-        data:
-          turn_on_lights: false
-          transition: "{{ transition_speed }}"
+      # Apply to each switch, excluding only the specific lights in manual_control
+      - repeat:
+          for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+          sequence:
+            - variables:
+                switch_id: "{{ repeat.item }}"
+                manual_lights: "{{ state_attr(switch_id, 'manual_control') | default([]) }}"
+                all_lights: "{{ state_attr(switch_id, 'lights') | default([]) }}"
+                adaptive_lights: "{{ all_lights | reject('in', manual_lights) | list }}"
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ adaptive_lights | length > 0 }}"
+                  sequence:
+                    - service: adaptive_lighting.apply
+                      target:
+                        entity_id: "{{ switch_id }}"
+                      data:
+                        lights: "{{ adaptive_lights }}"
+                        turn_on_lights: false
+                        transition: "{{ transition_speed }}"
 
       - event: oal_engine_calculation_complete
         event_data:
@@ -889,7 +931,20 @@ automation:
                     target:
                       entity_id: input_boolean.oal_config_power_handoff_active
           
-          # PHASE 2: Apply new config offset settings
+          # GLOBAL MANUAL SHORTCUT: Unlock and trigger immediately, skip offset logic
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ config == 'Global Manual Adjustment' }}"
+                sequence:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: input_boolean.oal_config_transition_active
+                  - event: oal_watchdog_trigger
+                    event_data:
+                      message: "Global Manual mode - triggering immediate update"
+
+          # PHASE 2: Apply new config offset settings (skip for Global Manual)
           - condition: template
             value_template: "{{ config != 'Global Manual Adjustment' }}"
           
@@ -2005,6 +2060,9 @@ script:
           entity_id: input_select.oal_isolated_override_mode
         data:
           option: "Off"
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.oal_movie_mode_active
       - service: adaptive_lighting.set_manual_control
         target:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
@@ -2776,23 +2834,46 @@ template:
             {% endif %}
 
       # -----------------------------------------------------------------------
-      # 6.7 Sunrise times (for Sonos-driven wakeups)
+      # 6.7 Sunrise times (Sonos alarm or sun_next_dawn fallback)
       # -----------------------------------------------------------------------
       - name: "OAL Sunrise Times"
         unique_id: oal_sunrise_times_v13
         icon: mdi:weather-sunset-up
-        availability: >
-          {{ has_value('sensor.sonos_upcoming_alarms') }}
         state: >
           {% set alarm_ts = state_attr('sensor.sonos_upcoming_alarms', 'earliest_alarm_timestamp') | int(0) %}
           {% if alarm_ts > 0 %}
-            {{ alarm_ts | timestamp_custom('%H:%M', true) }}
+            {{ alarm_ts | timestamp_custom('%-I:%M %p', true) }}
           {% else %}
-            "No Alarm"
+            {% set dawn = states('sensor.sun_next_dawn') %}
+            {% if dawn not in ['unknown', 'unavailable'] %}
+              {{ as_timestamp(dawn) | timestamp_custom('%-I:%M %p', true) }}
+            {% else %}
+              Unknown
+            {% endif %}
           {% endif %}
         attributes:
-          last_processed_alarm: >
-            {{ state_attr('sensor.sonos_upcoming_alarms', 'earliest_alarm_timestamp') | default('', true) }}
+          source: >
+            {% set alarm_ts = state_attr('sensor.sonos_upcoming_alarms', 'earliest_alarm_timestamp') | int(0) %}
+            {{ 'sonos_alarm' if alarm_ts > 0 else 'sun_dawn' }}
+          room: >
+            {% set alarm_ts = state_attr('sensor.sonos_upcoming_alarms', 'earliest_alarm_timestamp') | int(0) %}
+            {% if alarm_ts > 0 %}
+              {{ state_attr('sensor.sonos_upcoming_alarms', 'earliest_alarm_room') | default('Unknown') }}
+            {% else %}
+              N/A
+            {% endif %}
+          hours_until: >
+            {% set alarm_ts = state_attr('sensor.sonos_upcoming_alarms', 'earliest_alarm_timestamp') | int(0) %}
+            {% if alarm_ts > 0 %}
+              {{ ((alarm_ts - now().timestamp()) / 3600) | round(1) }}
+            {% else %}
+              {% set dawn = states('sensor.sun_next_dawn') %}
+              {% if dawn not in ['unknown', 'unavailable'] %}
+                {{ ((as_timestamp(dawn) - now().timestamp()) / 3600) | round(1) }}
+              {% else %}
+                null
+              {% endif %}
+            {% endif %}
 
       # -----------------------------------------------------------------------
       # 6.5 Environmental debug (for troubleshooting environmental boost)

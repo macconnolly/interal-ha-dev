@@ -13,47 +13,35 @@ light:
     name: "main_living_lights"
     unique_id: "oal_main_living_lights_group_v13"
     entities:
-      - light.entryway_lamp
-      - light.living_room_floor_lamp
-      - light.office_desk_lamp
-      - light.living_room_corner_accent
       - light.living_room_couch_lamp
+      - light.living_room_floor_lamp
+      - light.entryway_lamp
       - light.living_room_credenza_light
-
+      - light.living_room_corner_accent
+      - light.office_desk_lamp
   - platform: group
     name: "kitchen_island_lights"
     unique_id: "oal_kitchen_island_lights_group_v13"
     entities:
       - light.kitchen_island_pendants
-
   - platform: group
     name: "bedroom_primary_lights"
     unique_id: "oal_bedroom_primary_lights_group_v13"
     entities:
       - light.master_bedroom_table_lamps
       - light.master_bedroom_corner_accent
-
   - platform: group
     name: "accent_spots_lights"
     unique_id: "oal_accent_spots_lights_group_v13"
     entities:
       - light.dining_room_spot_lights
       - light.living_room_spot_lights
-
   - platform: group
     name: "recessed_ceiling_lights"
     unique_id: "oal_recessed_ceiling_lights_group_v13"
     entities:
       - light.kitchen_main_lights
       - light.living_room_hallway_lights
-
-  - platform: group
-    name: "column_lights"
-    unique_id: "oal_column_lights_group_v13"
-    entities:
-      - light.dining_col_accent
-      - light.living_col_accent
-
   - platform: group
     name: "all_adaptive_lights"
     unique_id: "oal_all_adaptive_lights_group_v13"
@@ -71,35 +59,71 @@ light:
       - light.living_room_spot_lights
       - light.kitchen_main_lights
       - light.living_room_hallway_lights
+      - light.living_col_accent
       - light.dining_col_accent
-      - light.living_col_accent
-
-  # Combined area groups (include lights from multiple OAL zones)
   - platform: group
-    name: "living_room_lights"
-    unique_id: "oal_living_room_lights_group_v13"
+    name: Living Room Lights
+    unique_id: living_room_lights_group
     entities:
-      # From main_living zone (6)
-      - light.entryway_lamp
-      - light.living_room_floor_lamp
-      - light.office_desk_lamp
-      - light.living_room_corner_accent
       - light.living_room_couch_lamp
+      - light.living_room_floor_lamp
       - light.living_room_credenza_light
-      # From column_lights zone - living room only (1)
-      - light.living_col_accent
-      # From accent_spots zone - living room only (1)
+      - light.living_room_corner_accent
+      - light.entryway_lamp
       - light.living_room_spot_lights
-      # From recessed_ceiling zone - living room only (1)
+      - light.dining_room_spot_lights
       - light.living_room_hallway_lights
-
+      - light.column_lights
   - platform: group
-    name: "all_kitchen_lights"
-    unique_id: "oal_all_kitchen_lights_group_v13"
+    name: "All Kitchen Lights"
+    unique_id: all_kitchen_lights
     entities:
       - light.kitchen_island_pendants
       - light.kitchen_main_lights
-
+  - platform: group
+    name: "All Living Room Lights"
+    unique_id: all_living_room_lights
+    entities:
+      - light.living_room_couch_lamp
+      - light.living_room_floor_lamp
+      - light.living_room_credenza_light
+      - light.living_room_corner_accent
+      - light.entryway_lamp
+      - light.living_room_spot_lights
+      - light.dining_room_spot_lights
+      - light.living_room_hallway_lights
+      - light.column_lights
+  - platform: group
+    name: "All Dining Room Lights"
+    unique_id: all_dining_room_lights
+    entities:
+      - light.living_room_credenza_light
+      - light.dining_room_spot_lights
+      - light.dining_col_accent
+      - light.living_room_corner_accent
+  - platform: group
+    name: "Hue Lamps Only"
+    unique_id: hue_lamps_only_group
+    entities:
+      - light.entryway_lamp
+      - light.living_room_floor_lamp
+      - light.living_room_couch_lamp
+      - light.living_room_corner_accent
+      - light.living_room_credenza_light
+  - platform: group
+    name: "Overhead Lights"
+    unique_id: overhead_lights_group
+    entities:
+      - light.kitchen_main_lights
+      - light.living_room_hallway_lights
+      - light.dining_room_spot_lights
+      - light.living_room_spot_lights
+  - platform: group
+    name: "Column Lights"
+    unique_id: column_lights
+    entities:
+      - light.living_col_accent
+      - light.dining_col_accent
 group:
   oal_control_switches:
     name: "OAL Control Switches"
@@ -689,7 +713,6 @@ automation:
                 min_color_temp: "{{ final_min_k | round(0) }}"
                 max_color_temp: "{{ final_max_k | round(0) }}"
                 transition: "{{ transition_speed }}"
-                immediate_apply: false
 
       # Apply to each switch, excluding only the specific lights in manual_control
       - repeat:

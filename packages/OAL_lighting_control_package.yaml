@@ -402,7 +402,7 @@ adaptive_lighting:
 
   - name: "bedroom_primary"
     lights: light.bedroom_primary_lights
-    interval: 90
+    interval: 10
     transition: 1
     initial_transition: 3
     take_over_control: true

@@ -3037,43 +3037,39 @@ template:
           {% set lux = states('sensor.living_room_illuminance') | float(500) %}
           {% set weather = states('weather.home') %}
           {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
-          {% set base_boost = 0 %}
-          
-          {% if lux < 10 %}
-            {% set base_boost = base_boost + 18 %}
-          {% elif lux < 50 %}
-            {% set base_boost = base_boost + 10 %}
-          {% elif lux < 150 %}
-            {% set base_boost = base_boost + 5 %}
-          {% elif lux < 300 %}
-            {% set base_boost = base_boost + 2 %}
+
+          {# Lux boost (100% weight) #}
+          {% set lux_boost = 0 %}
+          {% if lux < 10 %}{% set lux_boost = 18 %}
+          {% elif lux < 50 %}{% set lux_boost = 10 %}
+          {% elif lux < 150 %}{% set lux_boost = 5 %}
+          {% elif lux < 300 %}{% set lux_boost = 2 %}
           {% endif %}
-          
-          {% set weather_boost = {
+
+          {# Weather boost (40% weight) #}
+          {% set weather_lookup = {
             'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
             'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
             'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
           } %}
-          {% set weather_bonus = weather_boost.get(weather, 0) %}
-          {% set base_boost = base_boost + weather_bonus %}
-          
-          {% if season == 'winter' %}
-            {% set base_boost = base_boost + 8 %}
-          {% endif %}
-          
+          {% set weather_boost = weather_lookup.get(weather, 0) %}
+
+          {# Season boost (25% weight) #}
+          {% set season_boost = 8 if season == 'winter' else 0 %}
+
+          {# WEIGHTED combination #}
+          {% set base_boost = lux_boost + (weather_boost * 0.4) + (season_boost * 0.25) %}
+
           {% set hour = now().hour %}
-          {% set time_suppressed = (22 <= hour or hour <= 6 or lux > 2500) %}
-          {% set time_reduced = (6 < hour <= 8 or 18 <= hour < 22) %}
-          
-          {% if time_suppressed %}
+          {% if 22 <= hour or hour <= 6 or lux > 2500 %}
             {% set final_boost = 0 %}
-          {% elif time_reduced %}
+          {% elif 6 < hour <= 8 or 18 <= hour < 22 %}
             {% set final_boost = base_boost * 0.7 %}
           {% else %}
             {% set final_boost = base_boost %}
           {% endif %}
-          
-          {{ [50, final_boost] | min | round(0) }}%
+
+          {{ [50, final_boost] | min | round(1) }}%
         attributes:
           # Input values
           lux_current: >
@@ -3086,9 +3082,9 @@ template:
             {{ now().hour }}
           boost_enabled: >
             {{ is_state('input_boolean.oal_environmental_boost_enabled', 'on') }}
-          
-          # Calculation breakdown
-          lux_boost: >
+
+          # Raw component values (before weighting)
+          lux_boost_raw: >
             {% set lux = states('sensor.living_room_illuminance') | float(500) %}
             {% if lux < 10 %} 18
             {% elif lux < 50 %} 10
@@ -3096,17 +3092,46 @@ template:
             {% elif lux < 300 %} 2
             {% else %} 0
             {% endif %}
-          weather_boost: >
+          weather_boost_raw: >
             {% set weather = states('weather.home') %}
-            {% set weather_boost = {
+            {% set weather_lookup = {
               'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
               'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
               'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
             } %}
-            {{ weather_boost.get(weather, 0) }}
-          season_boost: >
+            {{ weather_lookup.get(weather, 0) }}
+          season_boost_raw: >
             {{ 8 if now().month in [11, 12, 1, 2, 3] else 0 }}
-          
+
+          # Weighted contributions
+          lux_weighted: >
+            {% set lux = states('sensor.living_room_illuminance') | float(500) %}
+            {% if lux < 10 %}{{ 18 }}
+            {% elif lux < 50 %}{{ 10 }}
+            {% elif lux < 150 %}{{ 5 }}
+            {% elif lux < 300 %}{{ 2 }}
+            {% else %}{{ 0 }}
+            {% endif %}
+          weather_weighted: >
+            {% set weather = states('weather.home') %}
+            {% set weather_lookup = {
+              'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
+              'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
+              'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
+            } %}
+            {{ (weather_lookup.get(weather, 0) * 0.4) | round(1) }}
+          season_weighted: >
+            {% set season_boost = 8 if now().month in [11, 12, 1, 2, 3] else 0 %}
+            {{ (season_boost * 0.25) | round(1) }}
+          weights_formula: "lux×1.0 + weather×0.4 + season×0.25"
+
+          # Sunset amplifier info
+          sunset_boost: >
+            {{ states('input_number.oal_offset_sunset_brightness') | float(0) }}
+          sunset_amplifier: >
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {{ (1 + (sun / 8) * 0.5) | round(2) if sun > 0 else 1.0 }}
+
           # Time-based adjustments
           time_status: >
             {% set hour = now().hour %}
@@ -3120,26 +3145,25 @@ template:
             {% else %}
               Normal ({{ hour }}:00)
             {% endif %}
-          
-          # Final calculation
-          raw_boost_before_time: >
+
+          # Final calculations
+          weighted_boost_before_time: >
             {% set lux = states('sensor.living_room_illuminance') | float(500) %}
             {% set weather = states('weather.home') %}
-            {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
-            {% set base_boost = 0 %}
-            {% if lux < 10 %} {% set base_boost = base_boost + 18 %}
-            {% elif lux < 50 %} {% set base_boost = base_boost + 10 %}
-            {% elif lux < 150 %} {% set base_boost = base_boost + 5 %}
-            {% elif lux < 300 %} {% set base_boost = base_boost + 2 %}
+            {% set lux_boost = 0 %}
+            {% if lux < 10 %}{% set lux_boost = 18 %}
+            {% elif lux < 50 %}{% set lux_boost = 10 %}
+            {% elif lux < 150 %}{% set lux_boost = 5 %}
+            {% elif lux < 300 %}{% set lux_boost = 2 %}
             {% endif %}
-            {% set weather_boost = {
+            {% set weather_lookup = {
               'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
               'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
               'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
             } %}
-            {% set base_boost = base_boost + weather_boost.get(weather, 0) %}
-            {% if season == 'winter' %} {% set base_boost = base_boost + 8 %} {% endif %}
-            {{ base_boost }}
+            {% set weather_boost = weather_lookup.get(weather, 0) %}
+            {% set season_boost = 8 if now().month in [11, 12, 1, 2, 3] else 0 %}
+            {{ (lux_boost + (weather_boost * 0.4) + (season_boost * 0.25)) | round(1) }}
           
           actual_applied_boost: >
             {{ states('input_number.oal_offset_environmental_brightness') | float(0) }}

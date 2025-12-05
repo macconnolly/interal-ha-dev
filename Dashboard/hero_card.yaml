@@ -108,18 +108,33 @@ cards:
                 target: {}
               hold_action:
                 action: more-info
-            - entity: climate.dining_room
-              name: Climate
-              show_icon: false
+            - entity: binary_sensor.sonos_living_room_in_playing_group
+              name: Speakers
+              icon: mdi:speaker-multiple
               show_name: false
-              show_attribute: true
-              attribute: current_temperature
+              show_icon: true
               show_background: true
               state_background: false
               custom_height: 38
               fill_width: false
+              visibility:
+                - condition: template
+                  value_template: >-
+                    {% set sensors = [
+                      'binary_sensor.sonos_living_room_in_playing_group',
+                      'binary_sensor.sonos_dining_room_in_playing_group',
+                      'binary_sensor.sonos_kitchen_in_playing_group',
+                      'binary_sensor.sonos_bath_in_playing_group',
+                      'binary_sensor.sonos_bedroom_in_playing_group'
+                    ] %}
+                    {{ sensors | select('is_state', 'on') | list | length > 0 }}
               tap_action:
+                action: perform-action
+                perform_action: script.sonos_toggle_group_membership
+                target: {}
+              hold_action:
                 action: more-info
+                entity: media_player.living_room
     styles: >
       /* Hero card z-index - must appear above room tiles for dropdown */
 
@@ -474,13 +489,44 @@ cards:
         `;
       })()}
 
-      /* Sub-button 7: Climate temperature display */
+      /* Sub-button 6: Speaker Group - orange when active */
 
-      .bubble-sub-button-7 .bubble-sub-button-attribute {
-        color: rgba(60, 60, 60, 0.8) !important;
-        font-weight: 600 !important;
-        font-size: 12px !important;
-      }
+      ${(() => {
+        const sensors = [
+          'binary_sensor.sonos_living_room_in_playing_group',
+          'binary_sensor.sonos_dining_room_in_playing_group',
+          'binary_sensor.sonos_kitchen_in_playing_group',
+          'binary_sensor.sonos_bath_in_playing_group',
+          'binary_sensor.sonos_bedroom_in_playing_group'
+        ];
+        const grouped = sensors.filter(s => hass.states[s]?.state === 'on').length;
+        const total = sensors.length;
+        const isGrouped = grouped > 0;
+        
+        return `
+          .bubble-sub-button-6 {
+            background: ${isGrouped
+              ? 'rgba(255, 149, 0, 0.15)'
+              : 'rgba(120, 120, 120, 0.10)'} !important;
+            border: ${isGrouped
+              ? '1px solid rgba(255, 149, 0, 0.4)'
+              : '1px solid rgba(120, 120, 120, 0.25)'} !important;
+          }
+          .bubble-sub-button-6 .bubble-sub-button-icon {
+            color: ${isGrouped ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.5)'} !important;
+            --mdc-icon-size: 20px !important;
+          }
+          .bubble-sub-button-6::after {
+            content: '${grouped}/${total}';
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: 8px;
+            font-weight: 600;
+            color: ${isGrouped ? 'rgba(255, 120, 0, 0.95)' : 'transparent'};
+          }
+        `;
+      })()}
   - type: horizontal-stack
     cards:
       - type: custom:bubble-card

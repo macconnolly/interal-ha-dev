@@ -16,7 +16,7 @@ sub_button:
           show_attribute: true
           tap_action:
             action: more-info
-          custom_height: 40
+          custom_height: 50
           content_layout: icon-top
           light_background: false
           attribute: zones_adaptive
@@ -29,7 +29,7 @@ sub_button:
           show_attribute: true
           tap_action:
             action: more-info
-          custom_height: 40
+          custom_height: 50
           content_layout: icon-top
           entity: sensor.oal_system_status
           attribute: total_modification
@@ -44,7 +44,7 @@ sub_button:
           attribute: temperature
           tap_action:
             action: more-info
-          custom_height: 40
+          custom_height: 50
           content_layout: icon-top
           icon: mdi:clock-time-eight-outline
         - entity: weather.home
@@ -58,7 +58,7 @@ sub_button:
           attribute: temperature
           tap_action:
             action: more-info
-          custom_height: 40
+          custom_height: 50
           content_layout: icon-top
           icon: mdi:thermometer
         - entity: weather.home
@@ -72,11 +72,172 @@ sub_button:
           attribute: temperature
           tap_action:
             action: more-info
-          custom_height: 40
+          custom_height: 50
           content_layout: icon-top
+        - entity: climate.dining_room
+          name: Climate
+          show_name: false
+          show_icon: true
+          show_background: true
+          state_background: true
+          show_state: false
+          show_attribute: true
+          attribute: current_temperature
+          tap_action:
+            action: more-info
+          custom_height: 50
+          content_layout: icon-top
+          icon: mdi:thermostat
   bottom_layout: inline
 rows: 1
 grid_options:
   columns: full
 hide_main_background: false
-styles: ""
+styles: |
+  /* ═══════════════════════════════════════════════════════════════════════
+     GLASSMORPHISM CONTAINER
+     ═══════════════════════════════════════════════════════════════════════ */
+  ha-card {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(8px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 16px !important;
+    padding: 12px 16px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .bubble-sub-button-container {
+    gap: 8px !important;
+  }
+  
+  /* ═══════════════════════════════════════════════════════════════════════
+     CHIP BASE STYLING - Glassmorphic background
+     ═══════════════════════════════════════════════════════════════════════ */
+  .bubble-sub-button {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(6px) saturate(110%) !important;
+    -webkit-backdrop-filter: blur(6px) saturate(110%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 12px !important;
+    padding: 8px 12px !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  .bubble-sub-button:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  }
+  
+  /* ═══════════════════════════════════════════════════════════════════════
+     CHIP 1: OAL System Status - Orange (Adaptive/Active)
+     ═══════════════════════════════════════════════════════════════════════ */
+  ${(() => {
+    const status = hass.states['sensor.oal_system_status']?.state || '';
+    const isActive = !status.includes('Baseline');
+    
+    return `
+      .bubble-sub-button-1 {
+        background: ${isActive
+          ? 'rgba(255, 149, 0, 0.15)'
+          : 'rgba(255, 255, 255, 0.08)'} !important;
+        border: ${isActive
+          ? '1px solid rgba(255, 149, 0, 0.35)'
+          : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+      }
+      .bubble-sub-button-1 .bubble-icon {
+        color: ${isActive ? 'rgba(255, 152, 0, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
+      }
+      .bubble-sub-button-1 .bubble-attribute {
+        color: ${isActive ? 'rgba(255, 152, 0, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
+        font-weight: 600 !important;
+      }
+    `;
+  })()}
+  
+  /* ═══════════════════════════════════════════════════════════════════════
+     CHIP 2: Boost - Orange when boosted
+     ═══════════════════════════════════════════════════════════════════════ */
+  ${(() => {
+    const monitor = hass.states['sensor.oal_real_time_monitor']?.attributes || {};
+    const boostSource = monitor['Boost source'] || 'Baseline';
+    const isBoosted = boostSource !== 'Baseline';
+    
+    return `
+      .bubble-sub-button-2 {
+        background: ${isBoosted
+          ? 'rgba(255, 149, 0, 0.15)'
+          : 'rgba(255, 255, 255, 0.08)'} !important;
+        border: ${isBoosted
+          ? '1px solid rgba(255, 149, 0, 0.35)'
+          : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+      }
+      .bubble-sub-button-2 .bubble-icon {
+        color: ${isBoosted ? 'rgba(255, 152, 0, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
+      }
+      .bubble-sub-button-2 .bubble-attribute {
+        color: ${isBoosted ? 'rgba(255, 152, 0, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
+        font-weight: 600 !important;
+      }
+    `;
+  })()}
+  
+  /* ═══════════════════════════════════════════════════════════════════════
+     CHIP 3: Manual Control Remaining - Purple when active
+     ═══════════════════════════════════════════════════════════════════════ */
+  ${(() => {
+    const soonest = hass.states['sensor.oal_soonest_override'];
+    const timeVal = soonest?.state || 'None';
+    const hasManual = timeVal !== 'None' && timeVal !== 'unknown' && timeVal !== 'unavailable';
+    
+    return `
+      .bubble-sub-button-3 {
+        background: ${hasManual
+          ? 'rgba(156, 39, 176, 0.15)'
+          : 'rgba(255, 255, 255, 0.08)'} !important;
+        border: ${hasManual
+          ? '1px solid rgba(156, 39, 176, 0.35)'
+          : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+      }
+      .bubble-sub-button-3 .bubble-icon {
+        color: ${hasManual ? 'rgba(156, 39, 176, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
+      }
+      .bubble-sub-button-3 .bubble-state {
+        color: ${hasManual ? 'rgba(156, 39, 176, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
+        font-weight: 600 !important;
+      }
+    `;
+  })()}
+  
+  /* ═══════════════════════════════════════════════════════════════════════
+     CHIP 4: Weather Temperature - Neutral gray
+     ═══════════════════════════════════════════════════════════════════════ */
+  .bubble-sub-button-4 .bubble-icon {
+    color: rgba(200, 200, 200, 0.8) !important;
+  }
+  .bubble-sub-button-4 .bubble-attribute {
+    color: rgba(200, 200, 200, 0.9) !important;
+    font-weight: 600 !important;
+  }
+  
+  /* ═══════════════════════════════════════════════════════════════════════
+     CHIP 5: Weather State - Neutral gray
+     ═══════════════════════════════════════════════════════════════════════ */
+  .bubble-sub-button-5 .bubble-icon {
+    color: rgba(200, 200, 200, 0.8) !important;
+  }
+  .bubble-sub-button-5 .bubble-state {
+    color: rgba(200, 200, 200, 0.9) !important;
+    font-weight: 600 !important;
+  }
+  
+  /* ═══════════════════════════════════════════════════════════════════════
+     CHIP 6: Climate Temperature - Neutral gray
+     ═══════════════════════════════════════════════════════════════════════ */
+  .bubble-sub-button-6 .bubble-icon {
+    color: rgba(200, 200, 200, 0.8) !important;
+  }
+  .bubble-sub-button-6 .bubble-attribute {
+    color: rgba(200, 200, 200, 0.9) !important;
+    font-weight: 600 !important;
+  }

@@ -468,59 +468,51 @@ template:
             No alarms
           {% endif %}
 
+    # ------------------------------------------------------------------
+    # Sonos Current Playing Group Coordinator
+    # Returns the first playing speaker (coordinator) from explicit list
+    # ------------------------------------------------------------------
     - name: "Sonos Current Playing Group Coordinator"
       unique_id: sonos_current_playing_group
       icon: mdi:speaker-multiple
       state: >
-        {% set playing = states.media_player
-             | selectattr('attributes.group_members', 'defined')
-             | selectattr('state', 'eq', 'playing')
-             | map(attribute='entity_id')
-             | list %}
-        {{ playing[0] if playing|length > 0 else 'none' }}
+        {% set speakers = [
+          'media_player.living_room',
+          'media_player.kitchen',
+          'media_player.bedroom',
+          'media_player.bath',
+          'media_player.dining_room'
+        ] %}
+        {% for entity_id in speakers %}
+          {% if is_state(entity_id, 'playing') %}
+            {{ entity_id }}
+            {% break %}
+          {% endif %}
+        {% else %}
+          none
+        {% endfor %}
       attributes:
         playing_state: >
-          {% set playing = states.media_player
-               | selectattr('attributes.group_members', 'defined')
-               | selectattr('state', 'eq', 'playing')
-               | list %}
-          {{ playing[0].state if playing|length > 0 else 'idle' }}
+          {% set coord = this.state %}
+          {{ states(coord) if coord and coord != 'none' else 'idle' }}
         media_title: >
-          {% set playing = states.media_player
-               | selectattr('attributes.group_members', 'defined')
-               | selectattr('state', 'eq', 'playing')
-               | list %}
-          {{ playing[0].attributes.media_title | default('', true) if playing|length > 0 else '' }}
+          {% set coord = this.state %}
+          {{ state_attr(coord, 'media_title') | default('', true) if coord and coord != 'none' else '' }}
         media_artist: >
-          {% set playing = states.media_player
-               | selectattr('attributes.group_members', 'defined')
-               | selectattr('state', 'eq', 'playing')
-               | list %}
-          {{ playing[0].attributes.media_artist | default('', true) if playing|length > 0 else '' }}
+          {% set coord = this.state %}
+          {{ state_attr(coord, 'media_artist') | default('', true) if coord and coord != 'none' else '' }}
         source: >
-          {% set playing = states.media_player
-               | selectattr('attributes.group_members', 'defined')
-               | selectattr('state', 'eq', 'playing')
-               | list %}
-          {{ playing[0].attributes.source | default('', true) if playing|length > 0 else '' }}
+          {% set coord = this.state %}
+          {{ state_attr(coord, 'source') | default('', true) if coord and coord != 'none' else '' }}
         room: >
-          {% set playing = states.media_player
-               | selectattr('attributes.group_members', 'defined')
-               | selectattr('state', 'eq', 'playing')
-               | list %}
-          {{ playing[0].name if playing|length > 0 else '' }}
+          {% set coord = this.state %}
+          {{ state_attr(coord, 'friendly_name') | default('', true) if coord and coord != 'none' else '' }}
         volume: >
-          {% set playing = states.media_player
-               | selectattr('attributes.group_members', 'defined')
-               | selectattr('state', 'eq', 'playing')
-               | list %}
-          {{ playing[0].attributes.volume_level | float(0) if playing|length > 0 else 0 }}
+          {% set coord = this.state %}
+          {{ state_attr(coord, 'volume_level') | float(0) if coord and coord != 'none' else 0 }}
         group_members: >
-          {% set playing = states.media_player
-               | selectattr('attributes.group_members', 'defined')
-               | selectattr('state', 'eq', 'playing')
-               | list %}
-          {{ playing[0].attributes.group_members | default([], true) if playing|length > 0 else [] }}
+          {% set coord = this.state %}
+          {{ state_attr(coord, 'group_members') | default([], true) if coord and coord != 'none' else [] }}
 
     - name: "Sonos Living Room Group Label"
       unique_id: sonos_living_room_group_label
@@ -655,18 +647,24 @@ template:
 
     # ------------------------------------------------------------------
     # Sonos Playing Status (for OAL dashboard)
-    # FIX: Use entity.name instead of entity_id since Sonos is in friendly_name
+    # Uses explicit speaker list for reliability
     # ------------------------------------------------------------------
     - name: "Sonos Playing Status"
       unique_id: sonos_playing_status
       icon: mdi:speaker-multiple
       state: >
+        {% set speakers = {
+          'media_player.living_room': 'Living',
+          'media_player.kitchen': 'Kitchen',
+          'media_player.bedroom': 'Bedroom',
+          'media_player.bath': 'Bath',
+          'media_player.dining_room': 'Dining'
+        } %}
         {% set playing = namespace(rooms=[]) %}
-        {% for entity in states.media_player
-           if 'sonos' in entity.name | lower
-           and entity.state == 'playing' %}
-          {% set room_name = entity.name | replace(' Sonos', '') | replace(' Soundbar', '') | replace(' TV ', '') %}
-          {% set playing.rooms = playing.rooms + [room_name] %}
+        {% for entity_id, name in speakers.items() %}
+          {% if is_state(entity_id, 'playing') %}
+            {% set playing.rooms = playing.rooms + [name] %}
+          {% endif %}
         {% endfor %}
         {% if playing.rooms | length == 0 %}
           Off
@@ -677,21 +675,26 @@ template:
         {% endif %}
       attributes:
         playing_rooms: >
+          {% set speakers = [
+            'media_player.living_room',
+            'media_player.kitchen',
+            'media_player.bedroom',
+            'media_player.bath',
+            'media_player.dining_room'
+          ] %}
           {% set playing = namespace(rooms=[]) %}
-          {% for entity in states.media_player
-             if 'sonos' in entity.name | lower
-             and entity.state == 'playing' %}
-            {% set playing.rooms = playing.rooms + [entity.entity_id] %}
+          {% for entity_id in speakers %}
+            {% if is_state(entity_id, 'playing') %}
+              {% set playing.rooms = playing.rooms + [entity_id] %}
+            {% endif %}
           {% endfor %}
           {{ playing.rooms }}
         is_playing: >
-          {% set count = namespace(n=0) %}
-          {% for entity in states.media_player
-             if 'sonos' in entity.name | lower
-             and entity.state == 'playing' %}
-            {% set count.n = count.n + 1 %}
-          {% endfor %}
-          {{ count.n > 0 }}
+          {{ is_state('media_player.living_room', 'playing')
+             or is_state('media_player.kitchen', 'playing')
+             or is_state('media_player.bedroom', 'playing')
+             or is_state('media_player.bath', 'playing')
+             or is_state('media_player.dining_room', 'playing') }}
 
 ############################
 #  SCRIPTS                 #

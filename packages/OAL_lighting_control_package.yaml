@@ -1596,7 +1596,7 @@ automation:
                   entity_id: input_boolean.oal_movie_mode_active
 
   # ---------------------------------------------------------------------------
-  # 4.11 Sleep-mode schedule (toggle AL sleep switches)
+  # 4.11 Sleep-mode schedule (sets input_select → Config Manager → Core Engine)
   # ---------------------------------------------------------------------------
   - id: oal_manage_sleep_mode_v13
     alias: "OAL v13 - Manage Sleep Mode Schedule"
@@ -1615,15 +1615,13 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_disable_sleep_mode
         state: "off"
-    variables:
-      sleep_switches: >
-        {{ states.switch
-           | selectattr('entity_id', 'search', 'adaptive_lighting_sleep_mode_')
-           | map(attribute='entity_id') | list }}
     action:
-      - action: "switch.turn_{{ 'on' if trigger.id == 'start_sleep' else 'off' }}"
+      # Set input_select - Config Manager handles sleep toggle + Core Engine applies
+      - service: input_select.select_option
         target:
-          entity_id: "{{ sleep_switches }}"
+          entity_id: input_select.oal_active_configuration
+        data:
+          option: "{{ 'Sleep Mode' if trigger.id == 'start_sleep' else 'Config 1: Baseline (All On)' }}"
 
   # ---------------------------------------------------------------------------
   # 4.12 System startup

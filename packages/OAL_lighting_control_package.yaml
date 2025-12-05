@@ -147,6 +147,7 @@ input_select:
       - "Config 2: Reduced Overhead (Recessed 2%)"
       - "Config 3: Evening Relax (Recessed/Tracks Off)"
       - "Config 4: Accents Only"
+      - "Sleep Mode"
       - "Global Manual Adjustment"
     initial: "Config 1: Baseline (All On)"
     icon: mdi:tune-variant

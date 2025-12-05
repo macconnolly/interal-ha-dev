@@ -821,7 +821,15 @@ automation:
             - light.master_bedroom_table_lamps
           lights_dimmed: {}
           is_baseline: false
-        
+
+        "Sleep Mode":
+          b: 0
+          k: 0
+          lights_off: []
+          lights_dimmed: {}
+          is_baseline: false
+          is_sleep: true
+
         "Global Manual Adjustment":
           b: 0
           k: 0
@@ -831,7 +839,8 @@ automation:
       
       target_profile: "{{ config_profiles.get(config, {}) }}"
       is_baseline: "{{ target_profile.get('is_baseline', false) }}"
-      
+      is_sleep: "{{ target_profile.get('is_sleep', false) }}"
+
       # FIX 2: Calculate expanded switches once for efficiency
       all_switches_expanded: >
         {{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}
@@ -865,6 +874,19 @@ automation:
       - service: input_boolean.turn_on
         target:
           entity_id: input_boolean.oal_config_transition_active
+
+      # =========================================================================
+      # SLEEP MODE: Toggle force_sleep based on Sleep Mode selection
+      # =========================================================================
+      - if: "{{ is_sleep }}"
+        then:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.oal_force_sleep
+        else:
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.oal_force_sleep
 
       # =========================================================================
       # ROUTE: Choose execution path based on target config
@@ -999,9 +1021,22 @@ automation:
                     event_data:
                       message: "Global Manual mode - triggering immediate update"
 
-          # PHASE 2: Apply new config offset settings (skip for Global Manual)
+          # SLEEP MODE SHORTCUT: Unlock and trigger Core Engine (it handles sleep)
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ is_sleep }}"
+                sequence:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: input_boolean.oal_config_transition_active
+                  - event: oal_watchdog_trigger
+                    event_data:
+                      message: "Sleep Mode activated - Core Engine will apply sleep settings"
+
+          # PHASE 2: Apply new config offset settings (skip for Global Manual and Sleep Mode)
           - condition: template
-            value_template: "{{ config != 'Global Manual Adjustment' }}"
+            value_template: "{{ config != 'Global Manual Adjustment' and not is_sleep }}"
           
           - service: input_number.set_value
             target:

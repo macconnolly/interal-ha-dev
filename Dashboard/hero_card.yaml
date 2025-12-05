@@ -34,6 +34,20 @@ cards:
               state_background: false
               custom_height: 38
               fill_width: false
+              visibility:
+                - condition: template
+                  value_template: >-
+                    {% set zones = [
+                      'switch.adaptive_lighting_main_living',
+                      'switch.adaptive_lighting_kitchen_island',
+                      'switch.adaptive_lighting_bedroom_primary',
+                      'switch.adaptive_lighting_accent_spots',
+                      'switch.adaptive_lighting_recessed_ceiling',
+                      'switch.adaptive_lighting_column_lights'
+                    ] %} {% set manual_count = namespace(value=0) %} {% for zone
+                    in zones %}
+                      {% set manual_count.value = manual_count.value + (state_attr(zone, 'manual_control') | default([]) | length) %}
+                    {% endfor %} {{ manual_count.value > 0 }}
               tap_action:
                 action: perform-action
                 perform_action: script.oal_reset_soft
@@ -61,6 +75,22 @@ cards:
                 perform_action: media_player.media_play_pause
                 target:
                   entity_id: media_player.living_room
+            - entity: sensor.sonos_upcoming_alarms
+              name: Alarm
+              icon: mdi:alarm
+              show_name: true
+              show_icon: true
+              show_background: true
+              state_background: false
+              custom_height: 38
+              fill_width: false
+              visibility:
+                - condition: template
+                  value_template: >-
+                    {% set alarms = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+                    {{ alarms and alarms.debug_all_alarm_entities | selectattr('scheduled_today', 'eq', true) | list | length > 0 }}
+              tap_action:
+                action: more-info
             - entity: weather.forecast_home
               name: Weather
               show_name: false

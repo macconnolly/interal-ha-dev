@@ -368,7 +368,7 @@ input_datetime:
 adaptive_lighting:
   - name: "main_living"
     lights: light.main_living_lights
-    interval: 90
+    interval: 10
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -385,7 +385,7 @@ adaptive_lighting:
 
   - name: "kitchen_island"
     lights: light.kitchen_island_lights
-    interval: 90
+    interval: 10
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -402,7 +402,7 @@ adaptive_lighting:
 
   - name: "bedroom_primary"
     lights: light.bedroom_primary_lights
-    interval: 90
+    interval: 10
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -419,7 +419,7 @@ adaptive_lighting:
 
   - name: "accent_spots"
     lights: light.accent_spots_lights
-    interval: 90
+    interval: 10
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -436,7 +436,7 @@ adaptive_lighting:
 
   - name: "recessed_ceiling"
     lights: light.recessed_ceiling_lights
-    interval: 90
+    interval: 10
     transition: 1
     initial_transition: 3
     take_over_control: true

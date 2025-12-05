@@ -368,7 +368,7 @@ input_datetime:
 adaptive_lighting:
   - name: "main_living"
     lights: light.main_living_lights
-    interval: 10
+    interval: 90
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -385,7 +385,7 @@ adaptive_lighting:
 
   - name: "kitchen_island"
     lights: light.kitchen_island_lights
-    interval: 10
+    interval: 90
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -402,7 +402,7 @@ adaptive_lighting:
 
   - name: "bedroom_primary"
     lights: light.bedroom_primary_lights
-    interval: 10
+    interval: 90
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -419,7 +419,7 @@ adaptive_lighting:
 
   - name: "accent_spots"
     lights: light.accent_spots_lights
-    interval: 10
+    interval: 90
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -436,7 +436,7 @@ adaptive_lighting:
 
   - name: "recessed_ceiling"
     lights: light.recessed_ceiling_lights
-    interval: 10
+    interval: 90
     transition: 1
     initial_transition: 3
     take_over_control: true
@@ -930,28 +930,44 @@ automation:
                     value_template: "{{ prev_controlled_lights | length > 0 }}"
                 sequence:
                   # Release manual control on previously controlled lights
+                  # FIX: Match lights to their respective switches instead of passing all to all
                   - repeat:
                       for_each: "{{ all_switches_expanded }}"
                       sequence:
-                        - service: adaptive_lighting.set_manual_control
-                          target:
-                            entity_id: "{{ repeat.item }}"
-                          data:
-                            lights: "{{ prev_controlled_lights }}"
-                            manual_control: false
-                  
+                        - variables:
+                            # Get lights managed by this switch and expand groups to individuals
+                            switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
+                            switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
+                            # Find which prev_controlled_lights belong to this switch
+                            lights_for_switch: "{{ prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                        - if: "{{ lights_for_switch | length > 0 }}"
+                          then:
+                            - service: adaptive_lighting.set_manual_control
+                              target:
+                                entity_id: "{{ repeat.item }}"
+                              data:
+                                lights: "{{ lights_for_switch }}"
+                                manual_control: false
+
                   # Apply AL without turning lights on (just release control)
+                  # FIX: Same pattern - match lights to their switches
                   - repeat:
                       for_each: "{{ all_switches_expanded }}"
                       sequence:
-                        - service: adaptive_lighting.apply
-                          target:
-                            entity_id: "{{ repeat.item }}"
-                          data:
-                            lights: "{{ prev_controlled_lights }}"
-                            turn_on_lights: false
-                            transition: "{{ transition_speed }}"
-                  
+                        - variables:
+                            switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
+                            switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
+                            lights_for_switch: "{{ prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                        - if: "{{ lights_for_switch | length > 0 }}"
+                          then:
+                            - service: adaptive_lighting.apply
+                              target:
+                                entity_id: "{{ repeat.item }}"
+                              data:
+                                lights: "{{ lights_for_switch }}"
+                                turn_on_lights: false
+                                transition: "{{ transition_speed }}"
+
                   # Clear old handoff flag
                   - service: input_boolean.turn_off
                     target:
@@ -996,15 +1012,24 @@ automation:
                     value_template: "{{ new_controlled_lights | length > 0 }}"
                 sequence:
                   # 3A. Set manual control FIRST (before power changes)
+                  # FIX: Match lights to their respective switches for reliable manual control
                   - repeat:
                       for_each: "{{ all_switches_expanded }}"
                       sequence:
-                        - service: adaptive_lighting.set_manual_control
-                          target:
-                            entity_id: "{{ repeat.item }}"
-                          data:
-                            lights: "{{ new_controlled_lights }}"
-                            manual_control: true
+                        - variables:
+                            # Get lights managed by this switch and expand groups to individuals
+                            switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
+                            switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
+                            # Find which new_controlled_lights belong to this switch
+                            lights_for_switch: "{{ new_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                        - if: "{{ lights_for_switch | length > 0 }}"
+                          then:
+                            - service: adaptive_lighting.set_manual_control
+                              target:
+                                entity_id: "{{ repeat.item }}"
+                              data:
+                                lights: "{{ lights_for_switch }}"
+                                manual_control: true
                   
                   # 3B. Apply dimmed lights
                   - repeat:
@@ -1441,13 +1466,27 @@ automation:
                     - light.all_adaptive_lights
               
               # Set manual control FIRST to prevent AL interference
+              # FIX: Must specify entity_id for each switch - service was broken without target
               - service: adaptive_lighting.set_manual_control
                 continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_main_living
                 data:
-                  lights:
-                    - light.main_living_lights
-                    - light.kitchen_island_lights
-                    - light.recessed_ceiling_lights
+                  lights: light.main_living_lights
+                  manual_control: true
+              - service: adaptive_lighting.set_manual_control
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_kitchen_island
+                data:
+                  lights: light.kitchen_island_lights
+                  manual_control: true
+              - service: adaptive_lighting.set_manual_control
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_recessed_ceiling
+                data:
+                  lights: light.recessed_ceiling_lights
                   manual_control: true
               
               # Now safe to turn lights off

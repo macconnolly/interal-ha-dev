@@ -170,21 +170,19 @@ cards:
       }
 
       .bubble-sub-button-1,
-
       .bubble-sub-button-2,
-
       .bubble-sub-button-3,
-
       .bubble-sub-button-4,
-
       .bubble-sub-button-5,
-
       .bubble-sub-button-6,
-
       .bubble-sub-button-7 {
         background: rgba(255, 255, 255, 0.10) !important;
         border: 1px solid rgba(255, 255, 255, 0.12) !important;
         border-radius: 8px !important;
+        margin-left: 6px !important;
+      }
+      .bubble-sub-button-1 {
+        margin-left: 0 !important;
       }
 
       /* Sub-button 1: All Lights - dynamic on/off styling */
@@ -251,16 +249,17 @@ cards:
 
       ${(() => {
         const config = hass.states['input_select.oal_active_configuration']?.state || '';
-        // Extract just the config number/name
+        // Extract short name based on new preset names
         let shortName = 'Config';
-        if (config.includes('Baseline')) shortName = 'Base';
-        else if (config.includes('Reduced')) shortName = 'Reduced';
-        else if (config.includes('Evening')) shortName = 'Evening';
-        else if (config.includes('Accents')) shortName = 'Accents';
+        if (config.includes('Full Brightness')) shortName = 'Full';
+        else if (config.includes('Dimmed Ambient')) shortName = 'Dimmed';
+        else if (config.includes('Warm Ambient')) shortName = 'Warm';
+        else if (config.includes('TV Mode')) shortName = 'TV';
+        else if (config.includes('Sleep')) shortName = 'Sleep';
         else if (config.includes('Manual')) shortName = 'Manual';
         
-        // Highlight purple for any non-Baseline config
-        const isNonBaseline = !config.includes('Baseline') && config !== '';
+        // Highlight purple for any non-Full Brightness config
+        const isNonBaseline = !config.includes('Full Brightness') && config !== '';
 
         return `
           .bubble-sub-button-2 {
@@ -556,7 +555,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(95px, 22vw, 140px) !important;
+              max-width: clamp(100px, 24vw, 160px) !important;
               margin: 0 auto !important;
             }
         styles: >-
@@ -744,7 +743,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(95px, 22vw, 140px) !important;
+              max-width: clamp(100px, 24vw, 160px) !important;
               margin: 0 auto !important;
             }
         styles: >-
@@ -932,7 +931,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(95px, 22vw, 140px) !important;
+              max-width: clamp(100px, 24vw, 160px) !important;
               margin: 0 auto !important;
             }
         styles: >-
@@ -1102,12 +1101,12 @@ cards:
           display: flex !important;
           justify-content: center !important;
           align-items: stretch !important;
-          gap: 14px !important;
+          gap: 18px !important;
           padding: 8px 20px !important;
         }
         #root > * {
           flex: 1 1 0px !important;
-          max-width: 140px !important;
+          max-width: 160px !important;
           min-width: 0px !important;
         }
   - type: horizontal-stack
@@ -1120,12 +1119,12 @@ cards:
           display: flex !important;
           justify-content: center !important;
           align-items: stretch !important;
-          gap: 14px !important;
+          gap: 18px !important;
           padding: 6px 20px 12px 20px !important;
         }
         #root > * {
           flex: 1 1 0px !important;
-          max-width: 140px !important;
+          max-width: 160px !important;
           min-width: 0px !important;
         }
     cards:
@@ -1156,7 +1155,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(95px, 22vw, 140px) !important;
+              max-width: clamp(100px, 24vw, 160px) !important;
               margin: 0 auto !important;
             }
         styles: >-
@@ -1344,7 +1343,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(95px, 22vw, 140px) !important;
+              max-width: clamp(100px, 24vw, 160px) !important;
               margin: 0 auto !important;
             }
         styles: >-
@@ -1532,7 +1531,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(95px, 22vw, 140px) !important;
+              max-width: clamp(100px, 24vw, 160px) !important;
               margin: 0 auto !important;
             }
         styles: >-

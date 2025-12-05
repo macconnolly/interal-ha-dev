@@ -143,13 +143,13 @@ input_select:
   oal_active_configuration:
     name: "OAL Active Configuration"
     options:
-      - "Config 1: Baseline (All On)"
-      - "Config 2: Reduced Overhead (Recessed 2%)"
-      - "Config 3: Evening Relax (Recessed/Tracks Off)"
-      - "Config 4: Accents Only"
+      - "Full Brightness (All On)"
+      - "Dimmed Ambient (No Recessed)"
+      - "Warm Ambient (No Overhead)"
+      - "TV Mode (Living Dim)"
       - "Sleep Mode"
       - "Global Manual Adjustment"
-    initial: "Config 1: Baseline (All On)"
+    initial: "Full Brightness (All On)"
     icon: mdi:tune-variant
 
   oal_isolated_override_mode:
@@ -784,42 +784,42 @@ automation:
       transition_speed: "{{ states('input_number.oal_control_transition_speed') | int(2) }}"
       
       config_profiles:
-        "Config 1: Baseline (All On)":
+        "Full Brightness (All On)":
           b: 0
           k: 0
           lights_off: []
           lights_dimmed: {}
           is_baseline: true
         
-        "Config 2: Reduced Overhead (Recessed 2%)":
-          b: 5
-          k: 0
+        "Dimmed Ambient (No Recessed)":
+          b: -30
+          k: -500
           lights_off: []
           lights_dimmed:
-            light.recessed_ceiling_lights: 2
+            light.recessed_ceiling_lights: 1  # Minimal glow
+            light.kitchen_main_lights: 1
           is_baseline: false
         
-        "Config 3: Evening Relax (Recessed/Tracks Off)":
-          b: -10
-          k: -500
-          lights_off:
-            - light.recessed_ceiling_lights
-            - light.accent_spots_lights
-          lights_dimmed: {}
-          is_baseline: false
-        
-        "Config 4: Accents Only":
-          b: -40
+        "Warm Ambient (No Overhead)":
+          b: -50
           k: -1000
           lights_off:
             - light.recessed_ceiling_lights
-            - light.accent_spots_lights
-            - light.kitchen_island_lights
-            - light.living_room_floor_lamp
-            - light.living_room_couch_lamp
-            - light.office_desk_lamp
-            - light.master_bedroom_table_lamps
-          lights_dimmed: {}
+            - light.kitchen_main_lights
+          lights_dimmed:
+            light.accent_spots_lights: 10 # Dim spots
+          is_baseline: false
+        
+        "TV Mode (Living Dim)":
+          b: -60 # Global dim
+          k: -1500 # Very warm
+          lights_off:
+            - light.column_lights # Per requirement
+            - light.living_room_floor_lamp # "Floor lamp B" off/5%
+            - light.kitchen_main_lights
+          lights_dimmed:
+            light.living_room_couch_lamp: 5 # "Much dimmer"
+            light.kitchen_island_pendants: 15 # "Pendants down"
           is_baseline: false
 
         "Sleep Mode":
@@ -868,6 +868,21 @@ automation:
         {{ expand(combined) | map(attribute='entity_id') | list }}
 
     action:
+      # =========================================================================
+      # IMMEDIATE TRANSITION FIX (Per User Request)
+      # =========================================================================
+      - service: adaptive_lighting.apply
+        target:
+          entity_id: 
+            - switch.adaptive_lighting_main_living
+            - switch.adaptive_lighting_kitchen_island
+            - switch.adaptive_lighting_bedroom_primary
+            - switch.adaptive_lighting_accent_spots
+            - switch.adaptive_lighting_recessed_ceiling
+            - switch.adaptive_lighting_column_lights
+        data:
+          transition: 1
+          turn_on_lights: false
       # =========================================================================
       # LOCK: Block Core Engine during transition
       # =========================================================================
@@ -3183,3 +3198,123 @@ template:
               {% endif %}
             {% endif %}
 
+
+# =============================================================================
+# LAYER 7: DASHBOARD UI LOGIC (HERO COMPONENT HELPERS)
+# =============================================================================
+
+template:
+  - sensor:
+      # HERO BUTTON: CONFIG STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Button Config State"
+        unique_id: hero_button_config_state
+        state: >
+          {% set config = states('input_select.oal_active_configuration') %}
+          {% if 'Full Brightness' in config %} Baseline
+          {% elif 'Dimmed Ambient' in config %} Dimmed
+          {% elif 'Warm Ambient' in config %} Warm
+          {% elif 'TV Mode' in config %} TV
+          {% elif 'Sleep' in config %} Sleep
+          {% else %} Manual {% endif %}
+        attributes:
+          is_baseline: >
+            {{ 'Full Brightness' in states('input_select.oal_active_configuration') }}
+          icon_color: >
+            {% if 'Full Brightness' in states('input_select.oal_active_configuration') %} rgba(80, 80, 80, 0.5)
+            {% else %} rgba(120, 80, 180, 0.9) {% endif %}
+          bg_color: >
+             {% if 'Full Brightness' in states('input_select.oal_active_configuration') %} rgba(120, 120, 120, 0.10)
+             {% else %} rgba(138, 100, 200, 0.15) {% endif %}
+          border_color: >
+             {% if 'Full Brightness' in states('input_select.oal_active_configuration') %} 1px solid rgba(120, 120, 120, 0.25)
+             {% else %} 1px solid rgba(138, 100, 200, 0.35) {% endif %}
+
+      # HERO BUTTON: RESET STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Button Reset State"
+        unique_id: hero_button_reset_state
+        state: >
+          {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
+                          'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
+                          'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
+          {% set manual_count = namespace(value=0) %}
+          {% for z in zones %}
+             {% set manual_count.value = manual_count.value + (state_attr(z, 'manual_control') | default([]) | length) %}
+          {% endfor %}
+          {{ 'on' if manual_count.value > 0 else 'off' }}
+        attributes:
+          time_remaining: >
+            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
+                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
+                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
+            {% set soonest = namespace(value=999999) %}
+            {% for z in zones %}
+              {% set timer_dict = state_attr(z, 'autoreset_time_remaining') or {} %}
+              {% for k, v in timer_dict.items() %}
+                {% if v|float(0) > 0 and v|float(0) < soonest.value %}
+                  {% set soonest.value = v|float(0) %}
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+            
+            {% if soonest.value < 999999 %}
+              {% set h = (soonest.value / 3600) | int %}
+              {% set m = ((soonest.value % 3600) / 60) | int %}
+              {% if h > 0 %}{{ h }}h {{ m }}m{% else %}{{ m }}m{% endif %}
+            {% else %}
+              0m
+            {% endif %}
+          boost_source: >
+             {{ state_attr('sensor.oal_real_time_monitor', 'Boost source') }}
+          display_label: >
+            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
+                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
+                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
+            {% set manual_active = this.state == 'on' %}
+            {% if manual_active %}
+              {{ state_attr(this.entity_id, 'time_remaining') }}
+            {% else %}
+              Reset
+            {% endif %}
+
+      # HERO BUTTON: ALARM STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Button Alarm State"
+        unique_id: hero_button_alarm_state
+        state: >
+          {{ states('sensor.sonos_next_alarm_chip') }}
+        attributes:
+           formatted_time: >
+             {% set time_raw = state_attr('sensor.sonos_next_alarm_chip', 'time') %}
+             {% if time_raw and time_raw not in ['unknown', 'unavailable'] %}
+               {% set parts = time_raw.split(':') %}
+               {% if parts|length >= 2 %}
+                 {% set h = parts[0]|int %}
+                 {% set m = parts[1] %}
+                 {% set h12 = h % 12 %}
+                 {% if h12 == 0 %}{% set h12 = 12 %}{% endif %}
+                 {{ h12 }}:{{ m }}{{ 'p' if h >= 12 else 'a' }}
+               {% else %}OFF{% endif %}
+             {% else %}OFF{% endif %}
+           is_enabled: >
+             {% set enabled = state_attr('sensor.sonos_next_alarm_chip', 'is_enabled') %}
+             {{ enabled == true or enabled == 'True' }}
+           
+      # HERO BUTTON: SPEAKERS STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Button Speakers State"
+        unique_id: hero_button_speakers_state
+        state: >
+          {% set count = expand('binary_sensor.sonos_living_room_in_playing_group', 
+                              'binary_sensor.sonos_dining_room_in_playing_group',
+                              'binary_sensor.sonos_kitchen_in_playing_group',
+                              'binary_sensor.sonos_bath_in_playing_group',
+                              'binary_sensor.sonos_bedroom_in_playing_group') 
+             | selectattr('state', 'eq', 'on') | list | length %}
+          {{ count }}
+        attributes:
+          is_active: >
+             {{ this.state | int(0) > 0 }}
+          label: >
+             {{ this.state }}/5

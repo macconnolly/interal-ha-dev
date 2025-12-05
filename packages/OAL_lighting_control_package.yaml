@@ -1087,7 +1087,7 @@ automation:
       brightness_offset: >
         {% if 8 >= elevation >= -8 %}
           {% set gauss = e ** ( - (elevation ** 2) / (2 * (4 ** 2)) ) %}
-          {{ (gauss * 15) | round(0) }}
+          {{ (gauss * 8) | round(0) }}
         {% else %}
           0
         {% endif %}

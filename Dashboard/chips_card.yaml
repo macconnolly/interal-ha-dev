@@ -1,0 +1,82 @@
+type: custom:bubble-card
+card_type: sub-buttons
+sub_button:
+  main: []
+  bottom:
+    - name: Home Status Chips
+      buttons_layout: inline
+      group:
+        - entity: sensor.oal_system_status
+          name: Adapting
+          show_name: true
+          show_icon: true
+          show_background: true
+          state_background: false
+          show_state: false
+          show_attribute: true
+          tap_action:
+            action: more-info
+          custom_height: 40
+          content_layout: icon-top
+          light_background: false
+          attribute: zones_adaptive
+        - name: Boost
+          show_name: true
+          show_icon: true
+          show_background: true
+          state_background: true
+          show_state: false
+          show_attribute: true
+          tap_action:
+            action: more-info
+          custom_height: 40
+          content_layout: icon-top
+          entity: sensor.oal_system_status
+          attribute: total_modification
+        - entity: sensor.oal_soonest_override
+          name: Manual Control Remaining
+          show_name: false
+          show_icon: true
+          show_background: true
+          state_background: true
+          show_state: true
+          show_attribute: true
+          attribute: temperature
+          tap_action:
+            action: more-info
+          custom_height: 40
+          content_layout: icon-top
+          icon: mdi:clock-time-eight-outline
+        - entity: weather.home
+          name: Temperature
+          show_name: false
+          show_icon: true
+          show_background: true
+          state_background: true
+          show_state: false
+          show_attribute: true
+          attribute: temperature
+          tap_action:
+            action: more-info
+          custom_height: 40
+          content_layout: icon-top
+          icon: mdi:thermometer
+        - entity: weather.home
+          name: Weather
+          show_name: false
+          show_icon: true
+          show_background: true
+          state_background: true
+          show_state: true
+          show_attribute: false
+          attribute: temperature
+          tap_action:
+            action: more-info
+          custom_height: 40
+          content_layout: icon-top
+  bottom_layout: inline
+rows: 1
+grid_options:
+  columns: full
+hide_main_background: false
+styles: ""

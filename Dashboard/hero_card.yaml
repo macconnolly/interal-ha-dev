@@ -130,11 +130,43 @@ cards:
                     {{ sensors | select('is_state', 'on') | list | length > 0 }}
               tap_action:
                 action: perform-action
-                perform_action: script.sonos_toggle_group_membership
+                perform_action: script.sonos_group_all_to_playing
                 target: {}
               hold_action:
                 action: more-info
                 entity: media_player.living_room
+            - entity: script.oal_global_manual_brighter
+              name: Brighter
+              icon: mdi:brightness-7
+              show_name: false
+              show_icon: true
+              show_background: true
+              state_background: false
+              custom_height: 38
+              fill_width: false
+              tap_action:
+                action: perform-action
+                perform_action: script.oal_global_manual_brighter
+                target: {}
+              hold_action:
+                action: more-info
+                entity: sensor.oal_global_brightness_offset
+            - entity: script.oal_global_manual_dimmer
+              name: Dimmer
+              icon: mdi:brightness-5
+              show_name: false
+              show_icon: true
+              show_background: true
+              state_background: false
+              custom_height: 38
+              fill_width: false
+              tap_action:
+                action: perform-action
+                perform_action: script.oal_global_manual_dimmer
+                target: {}
+              hold_action:
+                action: more-info
+                entity: sensor.oal_global_brightness_offset
     styles: >
       /* Hero card z-index - must appear above room tiles for dropdown */
 
@@ -303,23 +335,21 @@ cards:
         `;
       })()}
 
-      /* Sub-button 4: Media - dynamic styling based on playback state */
+      /* Sub-button 4: Media - uses purple styling when playing */
       ${(() => {
-        const players = [
-          'media_player.living_room',
-          'media_player.kitchen',
-          'media_player.bedroom',
-          'media_player.bath',
-          'media_player.dining_room'
-        ];
-        const anyPlaying = players.some(p => hass.states[p]?.state === 'playing');
+        const s = hass.states['sensor.hero_media_state'];
+        const isPlaying = s?.attributes?.is_playing === true || s?.attributes?.is_playing === 'True';
+        const bgColor = s?.attributes?.bg_color || 'rgba(120, 120, 120, 0.10)';
+        const borderColor = s?.attributes?.border_color || '1px solid rgba(120, 120, 120, 0.25)';
+        const iconColor = s?.attributes?.icon_color || 'rgba(80, 80, 80, 0.5)';
+        
         return `
           .bubble-sub-button-4 {
-            background: ${anyPlaying ? 'rgba(255, 149, 0, 0.15)' : 'rgba(120, 120, 120, 0.10)'} !important;
-            border: ${anyPlaying ? '1px solid rgba(255, 149, 0, 0.4)' : '1px solid rgba(120, 120, 120, 0.25)'} !important;
+            background: ${bgColor} !important;
+            border: ${borderColor} !important;
           }
           .bubble-sub-button-4 .bubble-sub-button-icon {
-            color: ${anyPlaying ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.5)'} !important;
+            color: ${iconColor} !important;
             --mdc-icon-size: 20px !important;
           }
         `;
@@ -354,7 +384,7 @@ cards:
         `;
       })()}
 
-      /* Sub-button 6: Speakers - uses sensor.hero_button_speakers_state */
+      /* Sub-button 6: Speakers - uses purple styling when grouped */
       ${(() => {
         const s = hass.states['sensor.hero_button_speakers_state'];
         const label = s?.attributes?.label || '0/5';
@@ -362,11 +392,11 @@ cards:
         
         return `
           .bubble-sub-button-6 {
-            background: ${isActive ? 'rgba(255, 149, 0, 0.15)' : 'rgba(120, 120, 120, 0.10)'} !important;
-            border: ${isActive ? '1px solid rgba(255, 149, 0, 0.4)' : '1px solid rgba(120, 120, 120, 0.25)'} !important;
+            background: ${isActive ? 'rgba(138, 100, 200, 0.15)' : 'rgba(120, 120, 120, 0.10)'} !important;
+            border: ${isActive ? '1px solid rgba(138, 100, 200, 0.35)' : '1px solid rgba(120, 120, 120, 0.25)'} !important;
           }
           .bubble-sub-button-6 .bubble-sub-button-icon {
-            color: ${isActive ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.5)'} !important;
+            color: ${isActive ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.5)'} !important;
             --mdc-icon-size: 20px !important;
           }
           .bubble-sub-button-6::after {
@@ -376,7 +406,42 @@ cards:
             right: 4px;
             font-size: 8px;
             font-weight: 600;
-            color: ${isActive ? 'rgba(255, 120, 0, 0.95)' : 'transparent'};
+            color: ${isActive ? 'rgba(90, 60, 140, 0.9)' : 'transparent'};
+          }
+        `;
+      })()}
+
+      /* Sub-button 7: Brighter - uses purple styling when offset is active */
+      ${(() => {
+        const s = hass.states['sensor.hero_brightness_state'];
+        const isModified = s?.attributes?.is_modified === true || s?.attributes?.is_modified === 'True';
+        const displayLabel = s?.attributes?.display_label || '0%';
+        
+        return `
+          .bubble-sub-button-7 {
+            background: ${isModified ? 'rgba(138, 100, 200, 0.15)' : 'rgba(120, 120, 120, 0.10)'} !important;
+            border: ${isModified ? '1px solid rgba(138, 100, 200, 0.35)' : '1px solid rgba(120, 120, 120, 0.25)'} !important;
+          }
+          .bubble-sub-button-7 .bubble-sub-button-icon {
+            color: ${isModified ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.5)'} !important;
+            --mdc-icon-size: 18px !important;
+          }
+        `;
+      })()}
+
+      /* Sub-button 8: Dimmer - same styling as Brighter */
+      ${(() => {
+        const s = hass.states['sensor.hero_brightness_state'];
+        const isModified = s?.attributes?.is_modified === true || s?.attributes?.is_modified === 'True';
+        
+        return `
+          .bubble-sub-button-8 {
+            background: ${isModified ? 'rgba(138, 100, 200, 0.15)' : 'rgba(120, 120, 120, 0.10)'} !important;
+            border: ${isModified ? '1px solid rgba(138, 100, 200, 0.35)' : '1px solid rgba(120, 120, 120, 0.25)'} !important;
+          }
+          .bubble-sub-button-8 .bubble-sub-button-icon {
+            color: ${isModified ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.5)'} !important;
+            --mdc-icon-size: 18px !important;
           }
         `;
       })()}

@@ -3318,3 +3318,59 @@ template:
              {{ this.state | int(0) > 0 }}
           label: >
              {{ this.state }}/5
+
+      # HERO BUTTON: ALL LIGHTS STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero All Lights State"
+        unique_id: hero_all_lights_state
+        state: "{{ states('light.all_adaptive_lights') }}"
+        attributes:
+          bg_color: >
+            {{ 'rgba(255, 149, 0, 0.18)' if is_state('light.all_adaptive_lights', 'on')
+               else 'rgba(255, 255, 255, 0.10)' }}
+          border_color: >
+            {{ '1px solid rgba(255, 149, 0, 0.4)' if is_state('light.all_adaptive_lights', 'on')
+               else '1px solid rgba(255, 255, 255, 0.12)' }}
+          icon_color: >
+            {{ 'rgb(255, 149, 0)' if is_state('light.all_adaptive_lights', 'on')
+               else 'rgba(80, 80, 80, 0.7)' }}
+
+      # HERO BUTTON: MEDIA/PLAY STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Media State"
+        unique_id: hero_media_state
+        state: >
+          {% set players = ['media_player.living_room', 'media_player.kitchen', 
+                           'media_player.bedroom', 'media_player.bath', 
+                           'media_player.dining_room'] %}
+          {% set playing = players | select('is_state', 'playing') | list | length > 0 %}
+          {{ 'playing' if playing else 'idle' }}
+        attributes:
+          is_playing: >
+            {{ this.state == 'playing' }}
+          bg_color: >
+            {{ 'rgba(138, 100, 200, 0.15)' if this.state == 'playing'
+               else 'rgba(120, 120, 120, 0.10)' }}
+          border_color: >
+            {{ '1px solid rgba(138, 100, 200, 0.35)' if this.state == 'playing'
+               else '1px solid rgba(120, 120, 120, 0.25)' }}
+          icon_color: >
+            {{ 'rgba(120, 80, 180, 0.9)' if this.state == 'playing'
+               else 'rgba(80, 80, 80, 0.5)' }}
+
+      # HERO BUTTON: GLOBAL BRIGHTNESS STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Brightness State"
+        unique_id: hero_brightness_state
+        state: >
+          {{ states('sensor.oal_global_brightness_offset') | int(0) }}
+        unit_of_measurement: "%"
+        attributes:
+          display_label: >
+            {% set val = states('sensor.oal_global_brightness_offset') | int(0) %}
+            {% if val > 0 %}+{{ val }}%
+            {% elif val < 0 %}{{ val }}%
+            {% else %}0%{% endif %}
+          is_modified: >
+            {{ states('sensor.oal_global_brightness_offset') | int(0) != 0 }}
+

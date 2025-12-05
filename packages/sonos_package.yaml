@@ -94,6 +94,13 @@ input_text:
     mode: text
     initial: ""
 
+  # Store the last manually toggled alarm entity_id for chip functionality
+  sonos_manually_toggled_alarm:
+    name: Sonos Manually Toggled Alarm
+    icon: mdi:alarm-check
+    mode: text
+    initial: ""
+
 
 
 
@@ -394,7 +401,73 @@ template:
           {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
           {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
           {{ soonest | to_json if soonest is mapping else '{}' }}
-      
+
+    # -----------------------------------------------------------------------
+    # Next Alarm Chip Status - for dashboard toggle chip
+    # Shows the next alarm time and whether it's enabled/disabled
+    # -----------------------------------------------------------------------
+    - name: "Sonos Next Alarm Chip"
+      unique_id: sonos_next_alarm_chip
+      icon: >
+        {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
+        {% if entity_id and states(entity_id) == 'on' %}
+          mdi:alarm
+        {% elif entity_id and states(entity_id) == 'off' %}
+          mdi:alarm-off
+        {% else %}
+          mdi:alarm-note-off
+        {% endif %}
+      state: >
+        {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
+        {% set time_str = states('sensor.soonest_sonos_alarm_info') %}
+        {% if entity_id and time_str not in ['unknown', 'unavailable', ''] %}
+          {% if states(entity_id) == 'on' %}
+            {{ time_str }}
+          {% else %}
+            Off
+          {% endif %}
+        {% else %}
+          None
+        {% endif %}
+      attributes:
+        entity_id: >
+          {{ state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') }}
+        is_enabled: >
+          {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
+          {{ entity_id and states(entity_id) == 'on' }}
+        time: >
+          {{ states('sensor.soonest_sonos_alarm_info') }}
+        room: >
+          {{ state_attr('sensor.soonest_sonos_alarm_info', 'room') | default('Unknown') }}
+        friendly_name: >
+          {{ state_attr('sensor.soonest_sonos_alarm_info', 'friendly_name') | default('No alarm') }}
+        timestamp: >
+          {{ state_attr('sensor.soonest_sonos_alarm_info', 'timestamp') }}
+        hours_until: >
+          {% set ts = state_attr('sensor.soonest_sonos_alarm_info', 'timestamp') %}
+          {% if ts %}
+            {{ ((ts - now().timestamp()) / 3600) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+        was_manually_disabled: >
+          {% set toggled = states('input_text.sonos_manually_toggled_alarm') %}
+          {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
+          {{ toggled == entity_id and entity_id and states(entity_id) == 'off' }}
+        display_text: >
+          {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
+          {% set time_str = states('sensor.soonest_sonos_alarm_info') %}
+          {% set room = state_attr('sensor.soonest_sonos_alarm_info', 'room') | default('') %}
+          {% if entity_id and time_str not in ['unknown', 'unavailable', ''] %}
+            {% if states(entity_id) == 'on' %}
+              ⏰ {{ time_str }}{% if room %} ({{ room }}){% endif %}
+            {% else %}
+              🔕 {{ time_str }} OFF
+            {% endif %}
+          {% else %}
+            No alarms
+          {% endif %}
+
     - name: "Sonos Current Playing Group Coordinator"
       unique_id: sonos_current_playing_group
       icon: mdi:speaker-multiple
@@ -1218,16 +1291,92 @@ script:
           message: |
             Soonest Sonos Alarm Info: Entity: {{ soonest_entity_id }}, Time: {{ soonest_time }}, Room: {{ soonest_room }}, Name: {{ soonest_friendly_name }}
           level: info
-      # Optionally, set helpers or notify here if needed
-      # - service: input_text.set_value
-      #   target:
-      #     entity_id: input_text.soonest_sonos_alarm_entity_id
-      #   data:
-      #     value: "{{ soonest_entity_id }}"
-      # - service: persistent_notification.create
-      #   data:
-      #     title: "Soonest Sonos Alarm"
-      #     message: "Entity: {{ soonest_entity_id }}, Time: {{ soonest_time }}, Room: {{ soonest_room }}"
+
+  # -----------------------------------------------------------------------
+  # Toggle Next Alarm - for dashboard chip tap action
+  # Toggles the soonest upcoming alarm on/off and tracks it for re-enabling
+  # -----------------------------------------------------------------------
+  sonos_toggle_next_alarm:
+    alias: Sonos Toggle Next Alarm
+    mode: single
+    icon: mdi:alarm-check
+    sequence:
+      - variables:
+          # Get the soonest alarm entity_id from the sensor
+          alarm_entity_id: >
+            {{ state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') }}
+          # Check if it's currently enabled
+          is_currently_enabled: >
+            {{ alarm_entity_id and states(alarm_entity_id) == 'on' }}
+          # Check if we have a previously toggled alarm to re-enable
+          previously_toggled: >
+            {{ states('input_text.sonos_manually_toggled_alarm') }}
+
+      - choose:
+          # Case 1: No alarm found
+          - conditions:
+              - condition: template
+                value_template: "{{ not alarm_entity_id or alarm_entity_id == 'None' }}"
+            sequence:
+              - service: system_log.write
+                data:
+                  message: "Sonos Toggle Next Alarm: No upcoming alarm found to toggle."
+                  level: info
+
+          # Case 2: Alarm is currently ON - disable it
+          - conditions:
+              - condition: template
+                value_template: "{{ is_currently_enabled }}"
+            sequence:
+              # Store which alarm we're disabling
+              - service: input_text.set_value
+                target:
+                  entity_id: input_text.sonos_manually_toggled_alarm
+                data:
+                  value: "{{ alarm_entity_id }}"
+              # Turn off the alarm
+              - service: switch.turn_off
+                target:
+                  entity_id: "{{ alarm_entity_id }}"
+              - service: system_log.write
+                data:
+                  message: "Sonos Toggle Next Alarm: Disabled {{ alarm_entity_id }}"
+                  level: info
+
+          # Case 3: Alarm is currently OFF - re-enable it (if it was the one we disabled)
+          - conditions:
+              - condition: template
+                value_template: "{{ not is_currently_enabled and previously_toggled == alarm_entity_id }}"
+            sequence:
+              # Turn on the alarm
+              - service: switch.turn_on
+                target:
+                  entity_id: "{{ alarm_entity_id }}"
+              # Clear the tracking helper
+              - service: input_text.set_value
+                target:
+                  entity_id: input_text.sonos_manually_toggled_alarm
+                data:
+                  value: ""
+              - service: system_log.write
+                data:
+                  message: "Sonos Toggle Next Alarm: Re-enabled {{ alarm_entity_id }}"
+                  level: info
+
+        # Default: Alarm is OFF but wasn't toggled by us - just enable it anyway
+        default:
+          - service: switch.turn_on
+            target:
+              entity_id: "{{ alarm_entity_id }}"
+          - service: input_text.set_value
+            target:
+              entity_id: input_text.sonos_manually_toggled_alarm
+            data:
+              value: ""
+          - service: system_log.write
+            data:
+              message: "Sonos Toggle Next Alarm: Enabled {{ alarm_entity_id }} (was not previously toggled by user)"
+              level: info
 
 ############################
 #  AUTOMATION              #

@@ -245,41 +245,30 @@ cards:
         font-size: 12px !important;
       }
 
-      /* Sub-button 2: Config Selector - show abbreviated config name */
-
+      /* Sub-button 2: Config - uses sensor.hero_button_config_state */
       ${(() => {
-        const config = hass.states['input_select.oal_active_configuration']?.state || '';
-        // Extract short name based on new preset names
-        let shortName = 'Config';
-        if (config.includes('Full Brightness')) shortName = 'Full';
-        else if (config.includes('Dimmed Ambient')) shortName = 'Dimmed';
-        else if (config.includes('Warm Ambient')) shortName = 'Warm';
-        else if (config.includes('TV Mode')) shortName = 'TV';
-        else if (config.includes('Sleep')) shortName = 'Sleep';
-        else if (config.includes('Manual')) shortName = 'Manual';
+        const s = hass.states['sensor.hero_button_config_state'];
+        const label = s?.state || 'Config';
+        const isBaseline = s?.attributes?.is_baseline === true || s?.attributes?.is_baseline === 'True';
+        const bgColor = s?.attributes?.bg_color || 'rgba(120, 120, 120, 0.10)';
+        const borderColor = s?.attributes?.border_color || '1px solid rgba(120, 120, 120, 0.25)';
+        const iconColor = s?.attributes?.icon_color || 'rgba(80, 80, 80, 0.5)';
         
-        // Highlight purple for any non-Full Brightness config
-        const isNonBaseline = !config.includes('Full Brightness') && config !== '';
-
         return `
           .bubble-sub-button-2 {
-            background: ${isNonBaseline
-              ? 'rgba(138, 100, 200, 0.15)'
-              : 'rgba(120, 120, 120, 0.10)'} !important;
-            border: ${isNonBaseline
-              ? '1px solid rgba(138, 100, 200, 0.35)'
-              : '1px solid rgba(120, 120, 120, 0.25)'} !important;
+            background: ${bgColor} !important;
+            border: ${borderColor} !important;
             min-width: 50px !important;
           }
           .bubble-sub-button-2 .bubble-sub-button-icon {
-            color: ${isNonBaseline ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.5)'} !important;
+            color: ${iconColor} !important;
             --mdc-icon-size: 18px !important;
           }
           .bubble-sub-button-2::after {
-            content: '${shortName}';
+            content: '${label}';
             font-size: 8px;
             font-weight: 600;
-            color: ${isNonBaseline ? 'rgba(90, 60, 140, 0.9)' : 'rgba(60, 60, 60, 0.7)'};
+            color: ${!isBaseline ? 'rgba(90, 60, 140, 0.9)' : 'rgba(60, 60, 60, 0.7)'};
             position: absolute;
             bottom: 2px;
             right: 4px;
@@ -287,105 +276,34 @@ cards:
         `;
       })()}
 
-      /* Sub-button 3: Reset - purple highlight when any zone has manual control
-      */
-
+      /* Sub-button 3: Reset - uses sensor.hero_button_reset_state */
       ${(() => {
-        const zones = [
-          'switch.adaptive_lighting_main_living',
-          'switch.adaptive_lighting_kitchen_island',
-          'switch.adaptive_lighting_bedroom_primary',
-          'switch.adaptive_lighting_accent_spots',
-          'switch.adaptive_lighting_recessed_ceiling',
-          'switch.adaptive_lighting_column_lights'
-        ];
-        const hasManual = zones.some(z => (hass.states[z]?.attributes?.manual_control || []).length > 0);
-        
-        // Get boost source from OAL Real-Time Monitor (already formatted)
-        const monitor = hass.states['sensor.oal_real_time_monitor']?.attributes || {};
-        const boostSource = monitor['Boost source'] || '';
-        const hasBoost = boostSource && boostSource !== 'Baseline';
-        
-        // Check if any zone has manual offset (negative values mean dimmed below target)
-        const manualOffsetKeys = [
-          'Main living manual offset brightness pct',
-          'Kitchen island manual offset brightness pct',
-          'Bedroom primary manual offset brightness pct',
-          'Accent spots manual offset brightness pct',
-          'Recessed ceiling manual offset brightness pct',
-          'Column lights manual offset brightness pct'
-        ];
-        const hasManualOffset = manualOffsetKeys.some(k => {
-          const val = parseFloat(monitor[k] || 0);
-          return val !== 0;
-        });
-        
-        // Find soonest autoreset time across all zones with manual control
-        let soonestSecs = null;
-        zones.forEach(z => {
-          const timerDict = hass.states[z]?.attributes?.autoreset_time_remaining || {};
-          Object.values(timerDict).forEach(secs => {
-            const s = parseFloat(secs);
-            if (s > 0 && (soonestSecs === null || s < soonestSecs)) {
-              soonestSecs = s;
-            }
-          });
-        });
-        
-        // Format time string
-        let timeStr = '';
-        if (soonestSecs !== null && soonestSecs > 0) {
-          const hours = Math.floor(soonestSecs / 3600);
-          const mins = Math.floor((soonestSecs % 3600) / 60);
-          if (hours > 0) {
-            timeStr = hours + 'h ' + mins + 'm';
-          } else {
-            timeStr = mins + 'm';
-          }
-        }
-        
-        // Build display string - show time if manual control active, otherwise boost source
-        let displayStr = '';
-        if (hasManual && timeStr) {
-          displayStr = timeStr;
-        } else if (hasManualOffset && boostSource) {
-          displayStr = boostSource + ' 🖐️';
-        } else if (hasManualOffset) {
-          displayStr = '🖐️';
-        } else if (boostSource) {
-          displayStr = boostSource;
-        }
-        
-        // Purple highlight when manual control OR manual offsets OR boost active
-        const showPurple = hasManual || hasManualOffset || hasBoost;
+        const s = hass.states['sensor.hero_button_reset_state'];
+        const isActive = s?.state === 'on';
+        const displayLabel = s?.attributes?.display_label || 'Reset';
         
         return `
           .bubble-sub-button-3 {
-            background: ${showPurple 
-              ? 'rgba(138, 100, 200, 0.15)' 
-              : 'rgba(120, 120, 120, 0.10)'} !important;
-            border: ${showPurple 
-              ? '1px solid rgba(138, 100, 200, 0.35)' 
-              : '1px solid rgba(120, 120, 120, 0.25)'} !important;
+            background: ${isActive ? 'rgba(138, 100, 200, 0.15)' : 'rgba(120, 120, 120, 0.10)'} !important;
+            border: ${isActive ? '1px solid rgba(138, 100, 200, 0.35)' : '1px solid rgba(120, 120, 120, 0.25)'} !important;
           }
           .bubble-sub-button-3 .bubble-sub-button-icon {
-            color: ${showPurple ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.5)'} !important;
+            color: ${isActive ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.5)'} !important;
             --mdc-icon-size: 20px !important;
           }
           .bubble-sub-button-3::after {
-            content: '${displayStr}';
+            content: '${displayLabel}';
             position: absolute;
             bottom: 2px;
             right: 4px;
             font-size: 8px;
             font-weight: 600;
-            color: ${showPurple ? 'rgba(90, 60, 140, 0.9)' : 'transparent'};
+            color: ${isActive ? 'rgba(90, 60, 140, 0.9)' : 'transparent'};
           }
         `;
       })()}
 
       /* Sub-button 4: Media - dynamic styling based on playback state */
-
       ${(() => {
         const players = [
           'media_player.living_room',
@@ -397,12 +315,8 @@ cards:
         const anyPlaying = players.some(p => hass.states[p]?.state === 'playing');
         return `
           .bubble-sub-button-4 {
-            background: ${anyPlaying 
-              ? 'rgba(255, 149, 0, 0.15)' 
-              : 'rgba(120, 120, 120, 0.10)'} !important;
-            border: ${anyPlaying 
-              ? '1px solid rgba(255, 149, 0, 0.4)' 
-              : '1px solid rgba(120, 120, 120, 0.25)'} !important;
+            background: ${anyPlaying ? 'rgba(255, 149, 0, 0.15)' : 'rgba(120, 120, 120, 0.10)'} !important;
+            border: ${anyPlaying ? '1px solid rgba(255, 149, 0, 0.4)' : '1px solid rgba(120, 120, 120, 0.25)'} !important;
           }
           .bubble-sub-button-4 .bubble-sub-button-icon {
             color: ${anyPlaying ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.5)'} !important;
@@ -411,118 +325,58 @@ cards:
         `;
       })()}
 
-      /* Sub-button 5: Alarm - lavender styling with dynamic time and toggle state */
-
+      /* Sub-button 5: Alarm - uses sensor.hero_button_alarm_state */
       ${(() => {
-        // Alarm is ALWAYS sub-button-5 in YAML order regardless of visibility
-        const idx = 5;
-
-        // Read from the new chip sensor
-        const chip = hass.states['sensor.sonos_next_alarm_chip'];
-        const chipAttrs = chip?.attributes || {};
-
-        // Check enabled state (handle both boolean and string 'True'/'False')
-        const isEnabledRaw = chipAttrs.is_enabled;
-        const isEnabled = isEnabledRaw === true || isEnabledRaw === 'True';
-
-        // Check if manually disabled by user (for red dot indicator)
-        const wasDisabledRaw = chipAttrs.was_manually_disabled;
-        const wasManuallyDisabled = wasDisabledRaw === true || wasDisabledRaw === 'True';
-
-        // Get time string and convert to 12h format
-        const timeRaw = chipAttrs.time || '';
-        let timeStr = '';
-        if (timeRaw && timeRaw !== 'unknown' && timeRaw !== 'unavailable') {
-          const [h,m] = timeRaw.split(':');
-          if (h && m) {
-            const h12 = parseInt(h) % 12 || 12;
-            timeStr = h12 + ':' + m + (parseInt(h) >= 12 ? 'p' : 'a');
-          }
-        }
-
-        // Add "OFF" suffix when disabled
-        const displayStr = isEnabled ? timeStr : (timeStr ? timeStr + ' OFF' : 'OFF');
-
+        const s = hass.states['sensor.hero_button_alarm_state'];
+        const formattedTime = s?.attributes?.formatted_time || 'OFF';
+        const isEnabled = s?.attributes?.is_enabled === true || s?.attributes?.is_enabled === 'True';
+        const displayStr = isEnabled ? formattedTime : (formattedTime !== 'OFF' ? formattedTime + ' OFF' : 'OFF');
+        
         return `
-          .bubble-sub-button-${idx} {
-            background: ${isEnabled
-              ? 'rgba(138, 100, 200, 0.15)'
-              : 'rgba(120, 120, 120, 0.10)'} !important;
-            border: ${isEnabled
-              ? '1px solid rgba(138, 100, 200, 0.35)'
-              : '1px solid rgba(120, 120, 120, 0.25)'} !important;
-            position: relative !important;
+          .bubble-sub-button-5 {
+            background: ${isEnabled ? 'rgba(138, 100, 200, 0.15)' : 'rgba(120, 120, 120, 0.10)'} !important;
+            border: ${isEnabled ? '1px solid rgba(138, 100, 200, 0.35)' : '1px solid rgba(120, 120, 120, 0.25)'} !important;
           }
-          .bubble-sub-button-${idx} .bubble-sub-button-icon {
-            color: ${isEnabled
-              ? 'rgba(120, 80, 180, 0.9)'
-              : 'rgba(80, 80, 80, 0.5)'} !important;
+          .bubble-sub-button-5 .bubble-sub-button-icon {
+            color: ${isEnabled ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.5)'} !important;
             --mdc-icon-size: 18px !important;
           }
-          .bubble-sub-button-${idx} .bubble-sub-button-name {
-            display: none !important;
-          }
-          .bubble-sub-button-${idx}::after {
+          .bubble-sub-button-5 .bubble-sub-button-name { display: none !important; }
+          .bubble-sub-button-5::after {
             content: '${displayStr}';
             position: absolute;
             bottom: 2px;
             right: 4px;
             font-size: 8px;
             font-weight: 600;
-            color: ${isEnabled
-              ? 'rgba(90, 60, 140, 0.9)'
-              : 'rgba(80, 80, 80, 0.6)'};
-          }
-          .bubble-sub-button-${idx}::before {
-            content: '';
-            position: absolute;
-            top: 3px;
-            right: 3px;
-            width: ${wasManuallyDisabled ? '6px' : '0px'};
-            height: ${wasManuallyDisabled ? '6px' : '0px'};
-            border-radius: 50%;
-            background: rgb(255, 110, 90);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 0 3px rgba(255, 110, 90, 0.4);
+            color: ${isEnabled ? 'rgba(90, 60, 140, 0.9)' : 'rgba(80, 80, 80, 0.6)'};
           }
         `;
       })()}
 
-      /* Sub-button 6: Speaker Group - orange when active */
-
+      /* Sub-button 6: Speakers - uses sensor.hero_button_speakers_state */
       ${(() => {
-        const sensors = [
-          'binary_sensor.sonos_living_room_in_playing_group',
-          'binary_sensor.sonos_dining_room_in_playing_group',
-          'binary_sensor.sonos_kitchen_in_playing_group',
-          'binary_sensor.sonos_bath_in_playing_group',
-          'binary_sensor.sonos_bedroom_in_playing_group'
-        ];
-        const grouped = sensors.filter(s => hass.states[s]?.state === 'on').length;
-        const total = sensors.length;
-        const isGrouped = grouped > 0;
+        const s = hass.states['sensor.hero_button_speakers_state'];
+        const label = s?.attributes?.label || '0/5';
+        const isActive = s?.attributes?.is_active === true || s?.attributes?.is_active === 'True';
         
         return `
           .bubble-sub-button-6 {
-            background: ${isGrouped
-              ? 'rgba(255, 149, 0, 0.15)'
-              : 'rgba(120, 120, 120, 0.10)'} !important;
-            border: ${isGrouped
-              ? '1px solid rgba(255, 149, 0, 0.4)'
-              : '1px solid rgba(120, 120, 120, 0.25)'} !important;
+            background: ${isActive ? 'rgba(255, 149, 0, 0.15)' : 'rgba(120, 120, 120, 0.10)'} !important;
+            border: ${isActive ? '1px solid rgba(255, 149, 0, 0.4)' : '1px solid rgba(120, 120, 120, 0.25)'} !important;
           }
           .bubble-sub-button-6 .bubble-sub-button-icon {
-            color: ${isGrouped ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.5)'} !important;
+            color: ${isActive ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.5)'} !important;
             --mdc-icon-size: 20px !important;
           }
           .bubble-sub-button-6::after {
-            content: '${grouped}/${total}';
+            content: '${label}';
             position: absolute;
             bottom: 2px;
             right: 4px;
             font-size: 8px;
             font-weight: 600;
-            color: ${isGrouped ? 'rgba(255, 120, 0, 0.95)' : 'transparent'};
+            color: ${isActive ? 'rgba(255, 120, 0, 0.95)' : 'transparent'};
           }
         `;
       })()}
@@ -555,7 +409,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(100px, 24vw, 160px) !important;
+              max-width: clamp(100px, 28vw, 200px) !important;
               margin: 0 auto !important;
             }
         styles: >-
@@ -743,7 +597,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(100px, 24vw, 160px) !important;
+              max-width: clamp(100px, 28vw, 200px) !important;
               margin: 0 auto !important;
             }
         styles: >-
@@ -931,7 +785,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(100px, 24vw, 160px) !important;
+              max-width: clamp(100px, 28vw, 200px) !important;
               margin: 0 auto !important;
             }
         styles: >-
@@ -1101,13 +955,13 @@ cards:
           display: flex !important;
           justify-content: center !important;
           align-items: stretch !important;
-          gap: 18px !important;
+          gap: 20px !important;
           padding: 8px 20px !important;
         }
         #root > * {
           flex: 1 1 0px !important;
-          max-width: 160px !important;
-          min-width: 0px !important;
+          max-width: 200px !important;
+          min-width: 100px !important;
         }
   - type: horizontal-stack
     card_mod:
@@ -1119,13 +973,13 @@ cards:
           display: flex !important;
           justify-content: center !important;
           align-items: stretch !important;
-          gap: 18px !important;
+          gap: 20px !important;
           padding: 6px 20px 12px 20px !important;
         }
         #root > * {
           flex: 1 1 0px !important;
-          max-width: 160px !important;
-          min-width: 0px !important;
+          max-width: 200px !important;
+          min-width: 100px !important;
         }
     cards:
       - type: custom:bubble-card
@@ -1155,7 +1009,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(100px, 24vw, 160px) !important;
+              max-width: clamp(100px, 28vw, 200px) !important;
               margin: 0 auto !important;
             }
         styles: >-
@@ -1343,7 +1197,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(100px, 24vw, 160px) !important;
+              max-width: clamp(100px, 28vw, 200px) !important;
               margin: 0 auto !important;
             }
         styles: >-
@@ -1531,7 +1385,7 @@ cards:
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              max-width: clamp(100px, 24vw, 160px) !important;
+              max-width: clamp(100px, 28vw, 200px) !important;
               margin: 0 auto !important;
             }
         styles: >-

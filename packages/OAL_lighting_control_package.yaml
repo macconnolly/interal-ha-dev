@@ -1119,7 +1119,7 @@ automation:
       - platform: homeassistant
         event: start
       - platform: state
-        entity_id: sensor.living_room_presence_light_sensor_light_level
+        entity_id: sensor.living_room_illuminance
       - platform: state
         entity_id: weather.home
       - platform: state
@@ -1132,7 +1132,7 @@ automation:
         state: "off"
       - condition: template
         value_template: >
-          {{ states('sensor.living_room_presence_light_sensor_light_level') not in ['unknown', 'unavailable']
+          {{ states('sensor.living_room_illuminance') not in ['unknown', 'unavailable']
              and states('weather.home') not in ['unknown', 'unavailable'] }}
     variables:
       current_boost: "{{ states('input_number.oal_offset_environmental_brightness') | float(0) }}"
@@ -1141,7 +1141,7 @@ automation:
         {% if is_state('input_boolean.oal_environmental_boost_enabled', 'off') %}
           0
         {% else %}
-          {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+          {% set lux = states('sensor.living_room_illuminance') | float(500) %}
           {% set weather = states('weather.home') %}
           {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
           {% set base_boost = 0 %}
@@ -2982,10 +2982,10 @@ template:
         unique_id: oal_environmental_debug_v13
         icon: mdi:weather-cloudy-alert
         availability: >
-          {{ states('sensor.living_room_presence_light_sensor_light_level') not in ['unknown', 'unavailable']
+          {{ states('sensor.living_room_illuminance') not in ['unknown', 'unavailable']
              and states('weather.home') not in ['unknown', 'unavailable'] }}
         state: >
-          {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+          {% set lux = states('sensor.living_room_illuminance') | float(500) %}
           {% set weather = states('weather.home') %}
           {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
           {% set base_boost = 0 %}
@@ -3028,7 +3028,7 @@ template:
         attributes:
           # Input values
           lux_current: >
-            {{ states('sensor.living_room_presence_light_sensor_light_level') | float(500) }}
+            {{ states('sensor.living_room_illuminance') | float(500) }}
           weather_current: >
             {{ states('weather.home') }}
           season: >
@@ -3040,7 +3040,7 @@ template:
           
           # Calculation breakdown
           lux_boost: >
-            {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+            {% set lux = states('sensor.living_room_illuminance') | float(500) %}
             {% if lux < 10 %} 18
             {% elif lux < 50 %} 10
             {% elif lux < 150 %} 5
@@ -3061,7 +3061,7 @@ template:
           # Time-based adjustments
           time_status: >
             {% set hour = now().hour %}
-            {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+            {% set lux = states('sensor.living_room_illuminance') | float(500) %}
             {% if 22 <= hour or hour <= 6 %}
               Suppressed (Night: {{ hour }}:00)
             {% elif lux > 2500 %}
@@ -3074,7 +3074,7 @@ template:
           
           # Final calculation
           raw_boost_before_time: >
-            {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+            {% set lux = states('sensor.living_room_illuminance') | float(500) %}
             {% set weather = states('weather.home') %}
             {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
             {% set base_boost = 0 %}
@@ -3099,7 +3099,7 @@ template:
             {% if not is_state('input_boolean.oal_environmental_boost_enabled', 'on') %}
               Environmental boost is DISABLED
             {% else %}
-              {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+              {% set lux = states('sensor.living_room_illuminance') | float(500) %}
               {% set hour = now().hour %}
               {% if 22 <= hour or hour <= 6 %}
                 Night time suppression ({{ hour }}:00)

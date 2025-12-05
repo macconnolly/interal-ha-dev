@@ -2237,8 +2237,6 @@ template:
           {{ states('input_boolean.oal_system_paused') not in ['unknown', 'unavailable'] }}
         state: >
           {% set force_sleep = is_state('input_boolean.oal_force_sleep', 'on') %}
-          {% set sleep_switches = states.switch | selectattr('entity_id', 'search', 'adaptive_lighting_sleep_mode_') | selectattr('state', 'eq', 'on') | list %}
-          {% set scheduled_sleep = sleep_switches | length > 0 %}
           {% set b_cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
           {% set b_env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
           {% set b_sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
@@ -2252,9 +2250,7 @@ template:
           ] %}
           {% set max_zone = (zones | map('abs') | max) if zones | length > 0 else 0 %}
           {% if force_sleep %}
-            Force Sleep Mode
-          {% elif scheduled_sleep %}
-            Scheduled Sleep Mode
+            Sleep Mode
           {% elif b_cfg == 0 and b_env == 0 and b_sun == 0 and max_zone == 0 %}
             Baseline
           {% else %}
@@ -2381,11 +2377,13 @@ template:
         state: >
           {% if is_state('input_boolean.oal_system_paused', 'on') %}
             Paused
+          {% elif is_state('input_boolean.oal_force_sleep', 'on') %}
+            Sleep Mode
           {% elif is_state('input_boolean.oal_movie_mode_active', 'on') %}
             Movie Mode
           {% elif states('input_select.oal_isolated_override_mode') != 'Off' %}
             Isolated: {{ states('input_select.oal_isolated_override_mode') }}
-          {% elif states('input_select.oal_active_configuration') != 'Config 1: Baseline (All On)' %}
+          {% elif states('input_select.oal_active_configuration') not in ['Config 1: Baseline (All On)', 'Sleep Mode'] %}
             {{ states('input_select.oal_active_configuration') }}
           {% elif states('input_number.oal_offset_environmental_brightness') | float(0) > 0 %}
             Environmental Boost

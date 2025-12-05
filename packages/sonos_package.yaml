@@ -1305,25 +1305,53 @@ script:
           # Get the soonest alarm entity_id from the sensor
           alarm_entity_id: >
             {{ state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') }}
-          # Check if it's currently enabled
-          is_currently_enabled: >
-            {{ alarm_entity_id and states(alarm_entity_id) == 'on' }}
           # Check if we have a previously toggled alarm to re-enable
           previously_toggled: >
-            {{ states('input_text.sonos_manually_toggled_alarm') }}
+            {{ states('input_text.sonos_manually_toggled_alarm') | default('', true) }}
+          # Determine which entity to work with (previously toggled takes priority)
+          target_entity: >
+            {% if previously_toggled and previously_toggled not in ['', 'unknown', 'unavailable', 'None'] %}
+              {{ previously_toggled }}
+            {% else %}
+              {{ alarm_entity_id }}
+            {% endif %}
+          # Check if target is currently enabled
+          is_currently_enabled: >
+            {{ target_entity and states(target_entity) == 'on' }}
 
       - choose:
-          # Case 1: No alarm found
+          # Case 1: We have a previously disabled alarm - re-enable it
           - conditions:
               - condition: template
-                value_template: "{{ not alarm_entity_id or alarm_entity_id == 'None' }}"
+                value_template: >
+                  {{ previously_toggled and previously_toggled not in ['', 'unknown', 'unavailable', 'None'] }}
+            sequence:
+              # Turn on the previously disabled alarm
+              - service: switch.turn_on
+                target:
+                  entity_id: "{{ previously_toggled }}"
+              # Clear the tracking helper
+              - service: input_text.set_value
+                target:
+                  entity_id: input_text.sonos_manually_toggled_alarm
+                data:
+                  value: ""
+              - service: system_log.write
+                data:
+                  message: "Sonos Toggle Next Alarm: Re-enabled {{ previously_toggled }}"
+                  level: info
+
+          # Case 2: No alarm found at all
+          - conditions:
+              - condition: template
+                value_template: "{{ not alarm_entity_id or alarm_entity_id in ['None', none] }}"
             sequence:
               - service: system_log.write
                 data:
                   message: "Sonos Toggle Next Alarm: No upcoming alarm found to toggle."
                   level: info
 
-          # Case 2: Alarm is currently ON - disable it
+          # Case 3: Alarm is currently ON - disable it
           - conditions:
               - condition: template
                 value_template: "{{ is_currently_enabled }}"
@@ -1343,39 +1371,14 @@ script:
                   message: "Sonos Toggle Next Alarm: Disabled {{ alarm_entity_id }}"
                   level: info
 
-          # Case 3: Alarm is currently OFF - re-enable it (if it was the one we disabled)
-          - conditions:
-              - condition: template
-                value_template: "{{ not is_currently_enabled and previously_toggled == alarm_entity_id }}"
-            sequence:
-              # Turn on the alarm
-              - service: switch.turn_on
-                target:
-                  entity_id: "{{ alarm_entity_id }}"
-              # Clear the tracking helper
-              - service: input_text.set_value
-                target:
-                  entity_id: input_text.sonos_manually_toggled_alarm
-                data:
-                  value: ""
-              - service: system_log.write
-                data:
-                  message: "Sonos Toggle Next Alarm: Re-enabled {{ alarm_entity_id }}"
-                  level: info
-
-        # Default: Alarm is OFF but wasn't toggled by us - just enable it anyway
+        # Default: Alarm exists but is OFF and wasn't toggled by us - enable it
         default:
           - service: switch.turn_on
             target:
               entity_id: "{{ alarm_entity_id }}"
-          - service: input_text.set_value
-            target:
-              entity_id: input_text.sonos_manually_toggled_alarm
-            data:
-              value: ""
           - service: system_log.write
             data:
-              message: "Sonos Toggle Next Alarm: Enabled {{ alarm_entity_id }} (was not previously toggled by user)"
+              message: "Sonos Toggle Next Alarm: Enabled {{ alarm_entity_id }}"
               level: info
 
 ############################

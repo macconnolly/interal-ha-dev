@@ -1144,29 +1144,34 @@ automation:
           {% set lux = states('sensor.living_room_illuminance') | float(500) %}
           {% set weather = states('weather.home') %}
           {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
-          {% set base_boost = 0 %}
 
+          {# Lux-based boost (primary factor - 100% weight) #}
+          {% set lux_boost = 0 %}
           {% if lux < 10 %}
-            {% set base_boost = base_boost + 18 %}
+            {% set lux_boost = 18 %}
           {% elif lux < 50 %}
-            {% set base_boost = base_boost + 10 %}
+            {% set lux_boost = 10 %}
           {% elif lux < 150 %}
-            {% set base_boost = base_boost + 5 %}
+            {% set lux_boost = 5 %}
           {% elif lux < 300 %}
-            {% set base_boost = base_boost + 2 %}
+            {% set lux_boost = 2 %}
           {% endif %}
 
-          {% set weather_boost = {
+          {# Weather boost lookup (40% weight - psychological factor) #}
+          {% set weather_lookup = {
             'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
             'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
             'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
           } %}
-          {% set base_boost = base_boost + weather_boost.get(weather, 0) %}
+          {% set weather_boost = weather_lookup.get(weather, 0) %}
 
-          {% if season == 'winter' %}
-            {% set base_boost = base_boost + 8 %}
-          {% endif %}
+          {# Season boost (25% weight - timing context) #}
+          {% set season_boost = 8 if season == 'winter' else 0 %}
 
+          {# WEIGHTED combination to prevent compounding #}
+          {% set base_boost = lux_boost + (weather_boost * 0.4) + (season_boost * 0.25) %}
+
+          {# Time-based modifiers #}
           {% set hour = now().hour %}
           {% if 22 <= hour or hour <= 6 or lux > 2500 %}
             {% set base_boost = 0 %}

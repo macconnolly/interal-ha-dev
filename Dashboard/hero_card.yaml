@@ -108,19 +108,6 @@ cards:
                 target: {}
               hold_action:
                 action: more-info
-            - entity: weather.home
-              name: Weather
-              show_name: false
-              show_icon: true
-              show_background: true
-              state_background: false
-              custom_height: 38
-              fill_width: false
-              show_state: false
-              show_attribute: true
-              attribute: temperature
-              tap_action:
-                action: more-info
             - entity: climate.dining_room
               name: Climate
               show_icon: false
@@ -237,17 +224,12 @@ cards:
         z-index: 9999 !important;
       }
 
-      /* Sub-buttons 6 icon: Weather (temp now via show_attribute) */
-
-      .bubble-sub-button-6 .bubble-sub-button-icon {
-        color: rgba(80, 80, 80, 0.7) !important;
-        --mdc-icon-size: 20px !important;
-      }
+       /* Sub-button 6: Climate temperature display (Weather removed) */
 
       .bubble-sub-button-6 .bubble-sub-button-attribute {
         color: rgba(60, 60, 60, 0.8) !important;
         font-weight: 600 !important;
-        font-size: 11px !important;
+        font-size: 12px !important;
       }
 
       /* Sub-button 2: Config Selector - show abbreviated config name */
@@ -269,14 +251,14 @@ cards:
           .bubble-sub-button-2 {
             background: ${isNonBaseline
               ? 'rgba(138, 100, 200, 0.15)'
-              : 'rgba(255, 255, 255, 0.10)'} !important;
+              : 'rgba(120, 120, 120, 0.10)'} !important;
             border: ${isNonBaseline
               ? '1px solid rgba(138, 100, 200, 0.35)'
-              : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+              : '1px solid rgba(120, 120, 120, 0.25)'} !important;
             min-width: 50px !important;
           }
           .bubble-sub-button-2 .bubble-sub-button-icon {
-            color: ${isNonBaseline ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.7)'} !important;
+            color: ${isNonBaseline ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.5)'} !important;
             --mdc-icon-size: 18px !important;
           }
           .bubble-sub-button-2::after {
@@ -324,12 +306,40 @@ cards:
           return val !== 0;
         });
         
-        // Build display string - use boost_source, add manual indicator if offsets exist
-        let displayStr = boostSource;
-        if (hasManualOffset && boostSource) {
+        // Find soonest autoreset time across all zones with manual control
+        let soonestSecs = null;
+        zones.forEach(z => {
+          const timerDict = hass.states[z]?.attributes?.autoreset_time_remaining || {};
+          Object.values(timerDict).forEach(secs => {
+            const s = parseFloat(secs);
+            if (s > 0 && (soonestSecs === null || s < soonestSecs)) {
+              soonestSecs = s;
+            }
+          });
+        });
+        
+        // Format time string
+        let timeStr = '';
+        if (soonestSecs !== null && soonestSecs > 0) {
+          const hours = Math.floor(soonestSecs / 3600);
+          const mins = Math.floor((soonestSecs % 3600) / 60);
+          if (hours > 0) {
+            timeStr = hours + 'h ' + mins + 'm';
+          } else {
+            timeStr = mins + 'm';
+          }
+        }
+        
+        // Build display string - show time if manual control active, otherwise boost source
+        let displayStr = '';
+        if (hasManual && timeStr) {
+          displayStr = timeStr;
+        } else if (hasManualOffset && boostSource) {
           displayStr = boostSource + ' 🖐️';
         } else if (hasManualOffset) {
           displayStr = '🖐️';
+        } else if (boostSource) {
+          displayStr = boostSource;
         }
         
         // Purple highlight when manual control OR manual offsets OR boost active
@@ -339,13 +349,13 @@ cards:
           .bubble-sub-button-3 {
             background: ${showPurple 
               ? 'rgba(138, 100, 200, 0.15)' 
-              : 'rgba(255, 255, 255, 0.10)'} !important;
+              : 'rgba(120, 120, 120, 0.10)'} !important;
             border: ${showPurple 
               ? '1px solid rgba(138, 100, 200, 0.35)' 
-              : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+              : '1px solid rgba(120, 120, 120, 0.25)'} !important;
           }
           .bubble-sub-button-3 .bubble-sub-button-icon {
-            color: ${showPurple ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.7)'} !important;
+            color: ${showPurple ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.5)'} !important;
             --mdc-icon-size: 20px !important;
           }
           .bubble-sub-button-3::after {
@@ -375,13 +385,13 @@ cards:
           .bubble-sub-button-4 {
             background: ${anyPlaying 
               ? 'rgba(255, 149, 0, 0.15)' 
-              : 'rgba(255, 255, 255, 0.10)'} !important;
+              : 'rgba(120, 120, 120, 0.10)'} !important;
             border: ${anyPlaying 
               ? '1px solid rgba(255, 149, 0, 0.4)' 
-              : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+              : '1px solid rgba(120, 120, 120, 0.25)'} !important;
           }
           .bubble-sub-button-4 .bubble-sub-button-icon {
-            color: ${anyPlaying ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.7)'} !important;
+            color: ${anyPlaying ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.5)'} !important;
             --mdc-icon-size: 20px !important;
           }
         `;

@@ -12,6 +12,7 @@ cards:
         - name: Quick Controls
           buttons_layout: inline
           group:
+            # 1. All Lights Toggle (always visible)
             - entity: light.all_adaptive_lights
               name: All
               icon: mdi:lightbulb-group
@@ -25,6 +26,21 @@ cards:
                 action: toggle
               hold_action:
                 action: more-info
+            # 2. OAL Config Selector (always visible)
+            - entity: input_select.oal_active_configuration
+              name: Config
+              icon: mdi:tune-variant
+              show_name: false
+              show_icon: true
+              show_background: true
+              state_background: false
+              custom_height: 38
+              fill_width: false
+              tap_action:
+                action: more-info
+              hold_action:
+                action: more-info
+            # 3. Reset (conditional - only when manual control active)
             - entity: script.oal_reset_soft
               name: Reset
               icon: mdi:refresh
@@ -34,10 +50,27 @@ cards:
               state_background: false
               custom_height: 38
               fill_width: false
+              visibility:
+                - condition: template
+                  value_template: >-
+                    {% set zones = [
+                      'switch.adaptive_lighting_main_living',
+                      'switch.adaptive_lighting_kitchen_island',
+                      'switch.adaptive_lighting_bedroom_primary',
+                      'switch.adaptive_lighting_accent_spots',
+                      'switch.adaptive_lighting_recessed_ceiling',
+                      'switch.adaptive_lighting_column_lights'
+                    ] %}
+                    {% set manual_count = namespace(value=0) %}
+                    {% for zone in zones %}
+                      {% set manual_count.value = manual_count.value + (state_attr(zone, 'manual_control') | default([]) | length) %}
+                    {% endfor %}
+                    {{ manual_count.value > 0 }}
               tap_action:
                 action: perform-action
                 perform_action: script.oal_reset_soft
                 target: {}
+            # 4. Media Play/Pause (conditional - any Sonos playing OR paused)
             - entity: media_player.living_room
               name: Media
               icon: mdi:play-pause
@@ -48,20 +81,40 @@ cards:
               custom_height: 38
               fill_width: false
               visibility:
-                - condition: or
-                  conditions:
-                    - condition: state
-                      entity: media_player.living_room
-                      state: playing
-                    - condition: state
-                      entity: media_player.living_room
-                      state: paused
+                - condition: template
+                  value_template: >-
+                    {% set players = [
+                      'media_player.living_room',
+                      'media_player.kitchen',
+                      'media_player.bedroom',
+                      'media_player.bath',
+                      'media_player.dining_room'
+                    ] %}
+                    {{ players | map('states') | select('in', ['playing', 'paused']) | list | length > 0 }}
               tap_action:
                 action: perform-action
                 perform_action: media_player.media_play_pause
                 target:
                   entity_id: media_player.living_room
-            - entity: weather.forecast_home
+            # 5. Alarm (conditional - only when alarm scheduled today)
+            - entity: sensor.sonos_upcoming_alarms
+              name: Alarm
+              icon: mdi:alarm
+              show_name: true
+              show_icon: true
+              show_background: true
+              state_background: false
+              custom_height: 38
+              fill_width: false
+              visibility:
+                - condition: template
+                  value_template: >-
+                    {% set alarms = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+                    {{ alarms and alarms.debug_all_alarm_entities | selectattr('scheduled_today', 'eq', true) | list | length > 0 }}
+              tap_action:
+                action: more-info
+            # 6. Weather (always visible) - shows outdoor temp
+            - entity: weather.home
               name: Weather
               show_name: false
               show_icon: true
@@ -69,8 +122,12 @@ cards:
               state_background: false
               custom_height: 38
               fill_width: false
+              show_state: false
+              show_attribute: true
+              attribute: temperature
               tap_action:
                 action: more-info
+            # 7. Climate/Temperature (always visible)
             - entity: climate.dining_room
               name: Climate
               show_icon: false
@@ -84,6 +141,12 @@ cards:
               tap_action:
                 action: more-info
     styles: |
+      /* Hero card z-index - must appear above room tiles for dropdown */
+      :host {
+        position: relative !important;
+        z-index: 100 !important;
+        overflow: visible !important;
+      }
       ha-card {
         background: transparent !important;
         border: none !important;
@@ -110,11 +173,14 @@ cards:
       .bubble-sub-button-2,
       .bubble-sub-button-3,
       .bubble-sub-button-4,
-      .bubble-sub-button-5 {
+      .bubble-sub-button-5,
+      .bubble-sub-button-6,
+      .bubble-sub-button-7 {
         background: rgba(255, 255, 255, 0.10) !important;
         border: 1px solid rgba(255, 255, 255, 0.12) !important;
         border-radius: 8px !important;
       }
+      /* Sub-button 1: All Lights - dynamic on/off styling */
       .bubble-sub-button-1 {
         background: ${hass.states['light.all_adaptive_lights']?.state === 'on'
           ? 'rgba(255, 255, 255, 0.18)'
@@ -129,17 +195,212 @@ cards:
           : 'rgba(80, 80, 80, 0.7)'} !important;
         --mdc-icon-size: 20px !important;
       }
-      .bubble-sub-button-2 .bubble-sub-button-icon,
-      .bubble-sub-button-3 .bubble-sub-button-icon,
-      .bubble-sub-button-4 .bubble-sub-button-icon {
+      /* Allow dropdowns to overflow card boundaries */
+      .bubble-pop-up,
+      .bubble-pop-up-content,
+      .bubble-header-container {
+        overflow: visible !important;
+      }
+      /* Sub-buttons container - ensure dropdowns appear above room tiles */
+      .bubble-sub-button-container {
+        position: relative !important;
+        z-index: 100 !important;
+      }
+      /* Sub-button 2 (Config dropdown) - high z-index for dropdown overlay */
+      .bubble-sub-button-2 {
+        position: relative !important;
+        z-index: 101 !important;
+      }
+      .bubble-sub-button-2 select,
+      .bubble-sub-button-2 .mdc-select,
+      .bubble-sub-button-2 .mdc-menu,
+      .bubble-sub-button-2 .mdc-list {
+        z-index: 9999 !important;
+      }
+      /* Sub-buttons 6 icon: Weather (temp now via show_attribute) */
+      .bubble-sub-button-6 .bubble-sub-button-icon {
         color: rgba(80, 80, 80, 0.7) !important;
         --mdc-icon-size: 20px !important;
       }
-      .bubble-sub-button-5 .bubble-sub-button-attribute {
+      .bubble-sub-button-6 .bubble-sub-button-attribute {
+        color: rgba(60, 60, 60, 0.8) !important;
+        font-weight: 600 !important;
+        font-size: 11px !important;
+      }
+      /* Sub-button 2: Config Selector - show abbreviated config name */
+      ${(() => {
+        const config = hass.states['input_select.oal_active_configuration']?.state || '';
+        // Extract just the config number/name
+        let shortName = 'Config';
+        if (config.includes('Baseline')) shortName = 'Base';
+        else if (config.includes('Reduced')) shortName = 'Reduced';
+        else if (config.includes('Evening')) shortName = 'Evening';
+        else if (config.includes('Accents')) shortName = 'Accents';
+        else if (config.includes('Manual')) shortName = 'Manual';
+        
+        const isManual = config.includes('Manual');
+        
+        return `
+          .bubble-sub-button-2 {
+            background: ${isManual 
+              ? 'rgba(138, 100, 200, 0.15)' 
+              : 'rgba(255, 255, 255, 0.10)'} !important;
+            border: ${isManual 
+              ? '1px solid rgba(138, 100, 200, 0.35)' 
+              : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+            min-width: 50px !important;
+          }
+          .bubble-sub-button-2 .bubble-sub-button-icon {
+            color: ${isManual ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.7)'} !important;
+            --mdc-icon-size: 18px !important;
+          }
+          .bubble-sub-button-2::after {
+            content: '${shortName}';
+            font-size: 8px;
+            font-weight: 600;
+            color: ${isManual ? 'rgba(90, 60, 140, 0.9)' : 'rgba(60, 60, 60, 0.7)'};
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+          }
+        `;
+      })()}
+      /* Sub-button 3: Reset - purple highlight when any zone has manual control */
+      ${(() => {
+        const zones = [
+          'switch.adaptive_lighting_main_living',
+          'switch.adaptive_lighting_kitchen_island',
+          'switch.adaptive_lighting_bedroom_primary',
+          'switch.adaptive_lighting_accent_spots',
+          'switch.adaptive_lighting_recessed_ceiling',
+          'switch.adaptive_lighting_column_lights'
+        ];
+        const hasManual = zones.some(z => (hass.states[z]?.attributes?.manual_control || []).length > 0);
+        
+        // Get boost source from OAL Real-Time Monitor (already formatted)
+        const monitor = hass.states['sensor.oal_real_time_monitor']?.attributes || {};
+        const boostSource = monitor['Boost source'] || '';
+        const hasBoost = boostSource && boostSource !== 'Baseline';
+        
+        // Check if any zone has manual offset (negative values mean dimmed below target)
+        const manualOffsetKeys = [
+          'Main living manual offset brightness pct',
+          'Kitchen island manual offset brightness pct',
+          'Bedroom primary manual offset brightness pct',
+          'Accent spots manual offset brightness pct',
+          'Recessed ceiling manual offset brightness pct',
+          'Column lights manual offset brightness pct'
+        ];
+        const hasManualOffset = manualOffsetKeys.some(k => {
+          const val = parseFloat(monitor[k] || 0);
+          return val !== 0;
+        });
+        
+        // Build display string - use boost_source, add manual indicator if offsets exist
+        let displayStr = boostSource;
+        if (hasManualOffset && boostSource) {
+          displayStr = boostSource + ' 🖐️';
+        } else if (hasManualOffset) {
+          displayStr = '🖐️';
+        }
+        
+        // Purple highlight when manual control OR manual offsets OR boost active
+        const showPurple = hasManual || hasManualOffset || hasBoost;
+        
+        return `
+          .bubble-sub-button-3 {
+            background: ${showPurple 
+              ? 'rgba(138, 100, 200, 0.15)' 
+              : 'rgba(255, 255, 255, 0.10)'} !important;
+            border: ${showPurple 
+              ? '1px solid rgba(138, 100, 200, 0.35)' 
+              : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+          }
+          .bubble-sub-button-3 .bubble-sub-button-icon {
+            color: ${showPurple ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.7)'} !important;
+            --mdc-icon-size: 20px !important;
+          }
+          .bubble-sub-button-3::after {
+            content: '${displayStr}';
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: 8px;
+            font-weight: 600;
+            color: ${showPurple ? 'rgba(90, 60, 140, 0.9)' : 'transparent'};
+          }
+        `;
+      })()}
+      /* Sub-button 4: Media - dynamic styling based on playback state */
+      ${(() => {
+        const players = [
+          'media_player.living_room',
+          'media_player.kitchen',
+          'media_player.bedroom',
+          'media_player.bath',
+          'media_player.dining_room'
+        ];
+        const anyPlaying = players.some(p => hass.states[p]?.state === 'playing');
+        return `
+          .bubble-sub-button-4 {
+            background: ${anyPlaying 
+              ? 'rgba(255, 149, 0, 0.15)' 
+              : 'rgba(255, 255, 255, 0.10)'} !important;
+            border: ${anyPlaying 
+              ? '1px solid rgba(255, 149, 0, 0.4)' 
+              : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+          }
+          .bubble-sub-button-4 .bubble-sub-button-icon {
+            color: ${anyPlaying ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.7)'} !important;
+            --mdc-icon-size: 20px !important;
+          }
+        `;
+      })()}
+      /* Sub-button 5: Alarm - lavender styling with dynamic time */
+      ${(() => {
+        // Alarm is ALWAYS sub-button-5 in YAML order regardless of visibility
+        const idx = 5;
+        
+        // Calculate alarm time string
+        const alarms = hass.states['sensor.sonos_upcoming_alarms']?.attributes?.all_alarms_data?.debug_all_alarm_entities || [];
+        const today = alarms.filter(a => a.scheduled_today).sort((a,b) => a.time.localeCompare(b.time));
+        let timeStr = '';
+        if (today.length) {
+          const [h,m] = today[0].time.split(':');
+          const h12 = parseInt(h) % 12 || 12;
+          timeStr = h12 + ':' + m + (parseInt(h) >= 12 ? 'p' : 'a');
+        }
+        
+        return `
+          .bubble-sub-button-${idx} {
+            background: rgba(138, 100, 200, 0.15) !important;
+            border: 1px solid rgba(138, 100, 200, 0.35) !important;
+          }
+          .bubble-sub-button-${idx} .bubble-sub-button-icon {
+            color: rgba(120, 80, 180, 0.9) !important;
+            --mdc-icon-size: 18px !important;
+          }
+          .bubble-sub-button-${idx} .bubble-sub-button-name {
+            display: none !important;
+          }
+          .bubble-sub-button-${idx}::after {
+            content: '${timeStr}';
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: 8px;
+            font-weight: 600;
+            color: rgba(90, 60, 140, 0.9);
+          }
+        `;
+      })()}
+      /* Sub-button 7: Climate temperature display */
+      .bubble-sub-button-7 .bubble-sub-button-attribute {
         color: rgba(60, 60, 60, 0.8) !important;
         font-weight: 600 !important;
         font-size: 12px !important;
       }
+  # Row 1: Living, Kitchen, Bedroom
   - type: horizontal-stack
     cards:
       - type: custom:bubble-card
@@ -351,6 +612,15 @@ cards:
             entity_id: light.all_kitchen_lights
           data:
             brightness_pct: 100
+        card_mod:
+          style: |
+            ha-card {
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+              max-width: clamp(95px, 22vw, 140px) !important;
+              margin: 0 auto !important;
+            }
         styles: >-
           .bubble-button-card-container {
             position: relative !important;
@@ -509,18 +779,6 @@ cards:
 
           .is-dragging .bubble-range-value { opacity: 1 !important; }
           .is-dragging .bubble-attribute { opacity: 0 !important; }
-        sub_button:
-          main: []
-          bottom: []
-        card_mod:
-          style: |
-            ha-card {
-              background: transparent !important;
-              border: none !important;
-              box-shadow: none !important;
-              max-width: clamp(95px, 22vw, 140px) !important;
-              margin: 0 auto !important;
-            }
       - type: custom:bubble-card
         card_type: button
         button_type: slider
@@ -726,6 +984,7 @@ cards:
           max-width: 140px !important;
           min-width: 0px !important;
         }
+  # Row 2: Spots, Ceiling, Columns
   - type: horizontal-stack
     card_mod:
       style: |

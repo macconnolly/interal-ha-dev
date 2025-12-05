@@ -528,8 +528,18 @@ automation:
       comp_sunset_b: "{{ states('input_number.oal_offset_sunset_brightness') | float(0) }}"
       comp_sunset_k: "{{ states('input_number.oal_offset_sunset_warmth') | float(0) }}"
 
-      base_config_sunset_b: >
-        {{ comp_config_b + comp_sunset_b }}
+      # Sunset amplifies environmental boost (multiplicative, not additive)
+      # At peak sunset (8), env boost is amplified by 50%
+      sunset_amplifier: >
+        {{ 1 + (comp_sunset_b / 8) * 0.5 if comp_sunset_b > 0 else 1.0 }}
+
+      # Environmental boost with sunset amplification, capped at 30%
+      env_with_sunset_capped: >
+        {{ [30, (comp_env_b_raw * sunset_amplifier)] | min }}
+
+      # Config offset alone (sunset no longer added here)
+      base_config_b: >
+        {{ comp_config_b }}
 
       base_warmth_offset: >
         {{ comp_manual_k + comp_config_k + comp_sunset_k + comp_env_k }}
@@ -645,9 +655,9 @@ automation:
                   {{ state_attr(repeat.item.entity_id, 'brightness_pct')
                      | float((comfort_min_b + comfort_max_b) / 2) }}
 
-                # Auto brightness (config + sunset + env) within comfort band
+                # Auto brightness: config + (env*sunset_multiplier capped at 30%)
                 auto_offset_b: >
-                  {{ base_config_sunset_b + (comp_env_b_raw * env_sensitivity) }}
+                  {{ base_config_b + (env_with_sunset_capped * env_sensitivity) }}
 
                 auto_min_raw: "{{ comfort_min_b + auto_offset_b }}"
                 auto_max_raw: "{{ comfort_max_b + auto_offset_b }}"
@@ -745,12 +755,14 @@ automation:
           trigger_source: >
             {{ trigger.platform ~ ':' ~ (trigger.entity_id | default('n/a')) }}
           final_brightness_offset_total: >
-            {{ base_config_sunset_b + comp_env_b_raw }}
+            {{ base_config_b + env_with_sunset_capped }}
           final_warmth_offset_total: "{{ base_warmth_offset }}"
           comp_b_manual_slider: 0  # Dead code removed (Phase 2A)
           comp_b_config: "{{ comp_config_b }}"
-          comp_b_env: "{{ comp_env_b_raw }}"
+          comp_b_env_raw: "{{ comp_env_b_raw }}"
+          comp_b_env_with_sunset: "{{ env_with_sunset_capped }}"
           comp_b_sunset: "{{ comp_sunset_b }}"
+          sunset_amplifier: "{{ sunset_amplifier }}"
           comp_k_manual: "{{ comp_manual_k }}"
           comp_k_config: "{{ comp_config_k }}"
           comp_k_env: "{{ comp_env_k }}"

@@ -18,7 +18,15 @@
       "mcp__hass-mcp__*",
       "mcp__*",
       "Bash(python3:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)",
+      "Bash(cat:*)",
+      "Bash(git revert:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []

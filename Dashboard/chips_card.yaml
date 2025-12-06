@@ -2,7 +2,7 @@ type: custom:bubble-card
 card_type: sub-buttons
 sub_button:
   main: []
-  bottom:
+  bottom:Q
     - name: Home Status Chips
       buttons_layout: inline
       group:

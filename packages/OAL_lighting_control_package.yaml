@@ -1034,15 +1034,22 @@ automation:
                     value_template: "{{ new_controlled_lights | length > 0 }}"
                 sequence:
                   # 3A. Set manual control FIRST (before power changes)
+                  # FIX: Filter lights per switch (same pattern as Phase 1 cleanup)
                   - repeat:
                       for_each: "{{ all_switches_expanded }}"
                       sequence:
-                        - service: adaptive_lighting.set_manual_control
-                          target:
-                            entity_id: "{{ repeat.item }}"
-                          data:
-                            lights: "{{ new_controlled_lights }}"
-                            manual_control: true
+                        - variables:
+                            switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
+                            switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
+                            lights_for_switch: "{{ new_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                        - if: "{{ lights_for_switch | length > 0 }}"
+                          then:
+                            - service: adaptive_lighting.set_manual_control
+                              target:
+                                entity_id: "{{ repeat.item }}"
+                              data:
+                                lights: "{{ lights_for_switch }}"
+                                manual_control: true
                   
                   # 3B. Apply dimmed lights
                   - repeat:
@@ -3624,4 +3631,177 @@ template:
             {{ base_boost | int }}
           {% endif %}
         
+# =============================================================================
+# LAYER 7: DASHBOARD UI LOGIC (HERO COMPONENT HELPERS)
+# =============================================================================
+  - sensor:
+      # HERO BUTTON: CONFIG STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Button Config State"
+        unique_id: hero_button_config_state
+        state: >
+          {% set config = states('input_select.oal_active_configuration') %}
+          {% if 'Config 1' in config %} Baseline
+          {% elif 'Config 2' in config %} Reduced
+          {% elif 'Config 3' in config %} Evening
+          {% elif 'Config 4' in config %} Accents
+          {% elif 'Sleep' in config %} Sleep
+          {% elif 'Global Manual' in config %} Manual
+          {% else %} Unknown {% endif %}
+        attributes:
+          is_baseline: >
+            {{ 'Config 1' in states('input_select.oal_active_configuration') }}
+          icon_color: >
+            {% if 'Config 1' in states('input_select.oal_active_configuration') %} rgba(80, 80, 80, 0.5)
+            {% else %} rgba(120, 80, 180, 0.9) {% endif %}
+          bg_color: >
+             {% if 'Config 1' in states('input_select.oal_active_configuration') %} rgba(120, 120, 120, 0.10)
+             {% else %} rgba(138, 100, 200, 0.15) {% endif %}
+          border_color: >
+             {% if 'Config 1' in states('input_select.oal_active_configuration') %} 1px solid rgba(120, 120, 120, 0.25)
+             {% else %} 1px solid rgba(138, 100, 200, 0.35) {% endif %}
+
+      # HERO BUTTON: RESET STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Button Reset State"
+        unique_id: hero_button_reset_state
+        state: >
+          {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
+                          'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
+                          'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
+          {% set manual_count = namespace(value=0) %}
+          {% for z in zones %}
+             {% set manual_count.value = manual_count.value + (state_attr(z, 'manual_control') | default([]) | length) %}
+          {% endfor %}
+          {{ 'on' if manual_count.value > 0 else 'off' }}
+        attributes:
+          time_remaining: >
+            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
+                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
+                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
+            {% set soonest = namespace(value=999999) %}
+            {% for z in zones %}
+              {% set timer_dict = state_attr(z, 'autoreset_time_remaining') or {} %}
+              {% for k, v in timer_dict.items() %}
+                {% if v|float(0) > 0 and v|float(0) < soonest.value %}
+                  {% set soonest.value = v|float(0) %}
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+            
+            {% if soonest.value < 999999 %}
+              {% set h = (soonest.value / 3600) | int %}
+              {% set m = ((soonest.value % 3600) / 60) | int %}
+              {% if h > 0 %}{{ h }}h {{ m }}m{% else %}{{ m }}m{% endif %}
+            {% else %}
+              0m
+            {% endif %}
+          boost_source: >
+             {{ state_attr('sensor.oal_real_time_monitor', 'Boost source') }}
+          display_label: >
+            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
+                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
+                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
+            {% set manual_active = this.state == 'on' %}
+            {% if manual_active %}
+              {{ state_attr(this.entity_id, 'time_remaining') }}
+            {% else %}
+              Reset
+            {% endif %}
+
+      # HERO BUTTON: ALARM STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Button Alarm State"
+        unique_id: hero_button_alarm_state
+        state: >
+          {{ states('sensor.sonos_next_alarm_chip') }}
+        attributes:
+           formatted_time: >
+             {% set time_raw = state_attr('sensor.sonos_next_alarm_chip', 'time') %}
+             {% if time_raw and time_raw not in ['unknown', 'unavailable'] %}
+               {% set parts = time_raw.split(':') %}
+               {% if parts|length >= 2 %}
+                 {% set h = parts[0]|int %}
+                 {% set m = parts[1] %}
+                 {% set h12 = h % 12 %}
+                 {% if h12 == 0 %}{% set h12 = 12 %}{% endif %}
+                 {{ h12 }}:{{ m }}{{ 'p' if h >= 12 else 'a' }}
+               {% else %}OFF{% endif %}
+             {% else %}OFF{% endif %}
+           is_enabled: >
+             {% set enabled = state_attr('sensor.sonos_next_alarm_chip', 'is_enabled') %}
+             {{ enabled == true or enabled == 'True' }}
+           
+      # HERO BUTTON: SPEAKERS STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Button Speakers State"
+        unique_id: hero_button_speakers_state
+        state: >
+          {% set count = expand('binary_sensor.sonos_living_room_in_playing_group', 
+                              'binary_sensor.sonos_dining_room_in_playing_group',
+                              'binary_sensor.sonos_kitchen_in_playing_group',
+                              'binary_sensor.sonos_bath_in_playing_group',
+                              'binary_sensor.sonos_bedroom_in_playing_group') 
+             | selectattr('state', 'eq', 'on') | list | length %}
+          {{ count }}
+        attributes:
+          is_active: >
+             {{ this.state | int(0) > 0 }}
+          label: >
+             {{ this.state }}/5
+
+      # HERO BUTTON: ALL LIGHTS STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero All Lights State"
+        unique_id: hero_all_lights_state
+        state: "{{ states('light.all_adaptive_lights') }}"
+        attributes:
+          bg_color: >
+            {{ 'rgba(255, 149, 0, 0.18)' if is_state('light.all_adaptive_lights', 'on')
+               else 'rgba(255, 255, 255, 0.10)' }}
+          border_color: >
+            {{ '1px solid rgba(255, 149, 0, 0.4)' if is_state('light.all_adaptive_lights', 'on')
+               else '1px solid rgba(255, 255, 255, 0.12)' }}
+          icon_color: >
+            {{ 'rgb(255, 149, 0)' if is_state('light.all_adaptive_lights', 'on')
+               else 'rgba(80, 80, 80, 0.7)' }}
+
+      # HERO BUTTON: MEDIA/PLAY STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Media State"
+        unique_id: hero_media_state
+        state: >
+          {% set players = ['media_player.living_room', 'media_player.kitchen', 
+                           'media_player.bedroom', 'media_player.bath', 
+                           'media_player.dining_room'] %}
+          {% set playing = players | select('is_state', 'playing') | list | length > 0 %}
+          {{ 'playing' if playing else 'idle' }}
+        attributes:
+          is_playing: >
+            {{ this.state == 'playing' }}
+          bg_color: >
+            {{ 'rgba(138, 100, 200, 0.15)' if this.state == 'playing'
+               else 'rgba(120, 120, 120, 0.10)' }}
+          border_color: >
+            {{ '1px solid rgba(138, 100, 200, 0.35)' if this.state == 'playing'
+               else '1px solid rgba(120, 120, 120, 0.25)' }}
+          icon_color: >
+            {{ 'rgba(120, 80, 180, 0.9)' if this.state == 'playing'
+               else 'rgba(80, 80, 80, 0.5)' }}
+
+      # HERO BUTTON: GLOBAL BRIGHTNESS STATE
+      # -----------------------------------------------------------------------
+      - name: "Hero Brightness State"
+        unique_id: hero_brightness_state
+        state: >
+          {{ states('sensor.oal_global_brightness_offset') | int(0) }}
+        unit_of_measurement: "%"
+        attributes:
+          display_label: >
+            {% set val = states('sensor.oal_global_brightness_offset') | int(0) %}
+            {% if val > 0 %}+{{ val }}%
+            {% elif val < 0 %}{{ val }}%
+            {% else %}0%{% endif %}
+          is_modified: >
+            {{ states('sensor.oal_global_brightness_offset') | int(0) != 0 }}
         

@@ -1,22 +1,42 @@
 type: vertical-stack
+card_mod:
+  style: |
+    :host {
+      background:
+        linear-gradient(
+          180deg,
+          rgba(20, 30, 50, 0.12) 0%,
+          rgba(15, 25, 45, 0.08) 50%,
+          rgba(10, 20, 40a, 0.18) 100%
+        ),
+        url('/local/image/sonos_bg.png') !important;
+      background-size: cover !important;
+      background-position: center !important;
+      border-radius: 28px !important;
+      overflow: hidden !important;
+      border: none !important;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
+      padding: 0 !important;
+      display: block !important;
+    }
 cards:
   - type: custom:bubble-card
     card_type: media-player
     entity: media_player.living_room
-    name: Sonos
+    name: ""
     icon: mdi:speaker-multiple
     card_layout: large-2-rows
     scrolling_effect: false
-    show_state: true
-    show_icon: true
-    show_name: true
+    show_state: false
+    show_icon: false
+    show_name: false
     show_last_changed: false
     show_attribute: false
     cover_background: true
     hide:
       power_button: true
-      previous_button: true
-      next_button: true
+      previous_button: false
+      next_button: false
       volume_button: false
       play_pause_button: false
     button_action:
@@ -27,144 +47,984 @@ cards:
         action: more-info
     sub_button:
       main:
-        - name: Group all
-          icon: mdi:link-variant
+        - name: Group All
+          icon: mdi:link-variant-plus
           entity: media_player.living_room
           show_state: false
+          show_name: false
           show_background: true
           state_background: false
           tap_action:
             action: call-service
             service: script.sonos_group_all_to_playing
-        - name: Ungroup
-          icon: mdi:link-off
+        - name: Ungroup All
+          icon: mdi:link-variant-off
           entity: media_player.living_room
           show_state: false
+          show_name: false
           show_background: true
           state_background: false
           tap_action:
             action: call-service
             service: script.sonos_ungroup_all
-        - entity: media_player.living_room
-          tap_action:
-            action: perform-action
-            perform_action: media_player.media_next_track
-            target:
-              device_id:
-                - 79e5ed000ae5ba15d2a793433e81ff71
-          icon: mdi:skip-next
-          name: Next Track
-          show_background: true
-          show_icon: true
-        - entity: media_player.living_room
-          tap_action:
-            action: perform-action
-            perform_action: media_player.media_next_track
-            target:
-              device_id: 79e5ed000ae5ba15d2a793433e81ff71
-          icon: mdi:skip-previous
-          name: Previous Track
-          show_background: true
-          show_icon: true
       bottom: []
-  - type: custom:bubble-card
-    card_type: button
-    button_type: state
-    name: Rooms
-    icon: mdi:home-circle
-    card_layout: large-sub-buttons-grid
-    show_state: false
-    show_last_changed: false
-    sub_button:
-      main:
-        - name: Living
-          icon: mdi:sofa
-          entity: binary_sensor.sonos_living_room_in_playing_group
-          show_state: false
-          show_background: true
-          tap_action:
-            action: call-service
-            service: script.sonos_toggle_group_membership
-            data:
-              target_speaker: media_player.living_room
-        - name: Dining
-          icon: mdi:table-furniture
-          entity: binary_sensor.sonos_dining_room_in_playing_group
-          show_state: false
-          show_background: true
-          tap_action:
-            action: call-service
-            service: script.sonos_toggle_group_membership
-            data:
-              target_speaker: media_player.dining_room
-        - name: Kitchen
-          icon: mdi:stove
-          entity: binary_sensor.sonos_kitchen_in_playing_group
-          show_state: false
-          show_background: true
-          tap_action:
-            action: call-service
-            service: script.sonos_toggle_group_membership
-            data:
-              target_speaker: media_player.kitchen
-          hold_action:
-            action: more-info
-        - name: Bath
-          icon: mdi:shower-head
-          entity: binary_sensor.sonos_bath_in_playing_group
-          show_state: false
-          show_background: true
-          tap_action:
-            action: call-service
-            service: script.sonos_toggle_group_membership
-            data:
-              target_speaker: media_player.bath
-        - name: Bedroom
-          icon: mdi:bed
-          entity: binary_sensor.sonos_bedroom_in_playing_group
-          show_state: false
-          show_background: true
-          tap_action:
-            action: call-service
-            service: script.sonos_toggle_group_membership
-            data:
-              target_speaker: media_player.bedroom
-        - name: Pause all
-          icon: mdi:pause-circle
-          entity: media_player.living_room
-          show_state: false
-          show_background: false
-          tap_action:
-            action: call-service
-            service: script.sonos_all_pause
-        - name: Ungroup
-          icon: mdi:link-off
-          entity: media_player.living_room
-          show_state: false
-          show_background: false
-          tap_action:
-            action: call-service
-            service: script.sonos_ungroup_all
-      bottom: []
-    entity: media_player.living_room
-  - type: custom:sonos-card
-    sections:
-      - player
-      - volumes
-      - groups
-      - grouping
-      - media browser
-      - queue
-    hidePlayerControlPowerButton: true
-    heightPercentage: 80
-    topFavorites:
-      - ""
-    hideGroupCurrentTrack: true
-    dynamicVolumeSlider: true
-    dynamicVolumeSliderMax: 100
-    dynamicVolumeSliderThreshold: 1
-    favoritesHideTitleForThumbnailIcons: false
-    showAudioInputFormat: true
-    footerHeight: 3
-    storePlayerInSessionStorage: true
-    artworkMinHeight: 1
+    styles: |
+      ha-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 12px 16px 8px 16px !important;
+      }
+
+      .bubble-media-cover {
+        border-radius: 16px !important;
+        opacity: 0.92 !important;
+      }
+
+      .bubble-media-player-container {
+        padding: 8px !important;
+      }
+
+      /* Track title styling */
+      .bubble-title {
+        color: rgba(255, 255, 255, 0.95) !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+      }
+
+      /* Artist/subtitle */
+      .bubble-sub-title {
+        color: rgba(255, 255, 255, 0.7) !important;
+        font-size: 12px !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+      }
+
+      /* Media control buttons - consistent with design system */
+      .bubble-media-button {
+        background: rgba(255, 255, 255, 0.15) !important;
+        color: rgba(255, 255, 255, 0.95) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 50% !important;
+        transition: all 0.15s ease !important;
+      }
+
+      .bubble-media-button:hover {
+        background: rgba(66, 133, 244, 0.3) !important;
+        border-color: rgba(66, 133, 244, 0.5) !important;
+        transform: scale(1.05) !important;
+      }
+
+      .bubble-media-button:active {
+        transform: scale(0.95) !important;
+      }
+
+      /* Sub-button container - glassmorphic pill */
+      .bubble-sub-button-container {
+        background: transparent !important;
+        backdrop-filter: blur(14px) saturate(140%) !important;
+        -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        padding: 6px 10px !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        width: fit-content !important;
+        margin-left: auto !important;
+        gap: 6px !important;
+      }
+
+      /* Sub-buttons base styling */
+      .bubble-sub-button {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 8px !important;
+        min-width: 40px !important;
+        transition: all 0.15s ease !important;
+      }
+
+      .bubble-sub-button:hover {
+        background: rgba(66, 133, 244, 0.25) !important;
+        border-color: rgba(66, 133, 244, 0.4) !important;
+      }
+
+      .bubble-sub-button:active {
+        transform: scale(0.95) !important;
+      }
+
+      .bubble-sub-button ha-icon {
+        color: rgba(255, 255, 255, 0.9) !important;
+        --mdc-icon-size: 15px !important;
+      }
+
+      /* Volume slider - blue gradient fill */
+      .bubble-range-slider {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-radius: 4px !important;
+      }
+
+      .bubble-range-fill {
+        background: linear-gradient(90deg,
+          rgba(66, 133, 244, 0.7) 0%,
+          rgba(100, 181, 246, 0.9) 100%) !important;
+        border-radius: 4px !important;
+      }
+  - type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(5, 1fr)
+      gap: 14px
+      padding: 10px 16px 14px 16px
+      justify-items: center
+    mediaquery:
+      "(max-width: 600px)":
+        grid-template-columns: repeat(3, 1fr)
+      "(max-width: 400px)":
+        grid-template-columns: repeat(2, 1fr)
+    cards:
+      - type: custom:bubble-card
+        card_type: button
+        button_type: slider
+        entity: media_player.living_room
+        name: Living
+        icon: mdi:sofa
+        show_state: false
+        show_attribute: true
+        attribute: volume_level
+        scrolling_effect: false
+        tap_action:
+          action: call-service
+          service: script.sonos_toggle_group_membership
+          data:
+            target_speaker: media_player.living_room
+        hold_action:
+          action: more-info
+        double_tap_action:
+          action: call-service
+          service: media_player.volume_set
+          target:
+            entity_id: media_player.living_room
+          data:
+            volume_level: 0.3
+        card_mod:
+          style: |
+            ha-card {
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+            }
+        styles: |-
+          ${(() => {
+            const inGroup = hass.states['binary_sensor.sonos_living_room_in_playing_group']?.state === 'on';
+            return `
+              .bubble-button-card-container {
+                position: relative !important;
+                display: grid !important;
+                grid-template-rows: auto auto 1fr auto !important;
+                justify-items: center !important;
+                align-items: center !important;
+                text-align: center !important;
+                min-height: 76px !important;
+                padding: 14px 6px 5px 6px !important;
+                border-radius: 14px !important;
+                overflow: hidden !important;
+                clip-path: inset(0 round 14px) !important;
+                transition: transform 0.1s ease-out, border-color 0.15s ease, background 0.2s ease !important;
+                background: ${inGroup
+                  ? 'rgba(66, 133, 244, 0.15)'
+                  : 'rgba(255, 255, 255, 0.12)'} !important;
+                backdrop-filter: blur(3px) !important;
+                -webkit-backdrop-filter: blur(3px) !important;
+                border: ${inGroup
+                  ? '1px solid rgba(66, 133, 244, 0.6)'
+                  : '1px solid rgba(120, 120, 120, 0.55)'} !important;
+                box-shadow: ${inGroup
+                  ? '0 2px 10px rgba(66, 133, 244, 0.15)'
+                  : 'none'} !important;
+              }
+
+              .bubble-button-card-container:active { transform: scale(0.95) !important; }
+
+              .bubble-content-container {
+                display: grid !important;
+                grid-template-rows: auto auto 1fr !important;
+                justify-items: center !important;
+                width: 100% !important;
+                position: relative !important;
+                z-index: 5 !important;
+                padding-bottom: 10px !important;
+              }
+
+              .bubble-icon-container {
+                min-width: 28px !important;
+                min-height: 28px !important;
+                grid-row: 1 !important;
+                margin: 8px 0 6px 0 !important;
+                border-radius: 50% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background: ${inGroup
+                  ? 'rgba(66, 133, 244, 0.22)'
+                  : 'rgba(60, 60, 60, 0.30)'} !important;
+                border: ${inGroup
+                  ? '1px solid rgba(66, 133, 244, 0.35)'
+                  : '1px solid rgba(60, 60, 60, 0.40)'} !important;
+              }
+
+              .bubble-icon {
+                --mdc-icon-size: 20px !important;
+                color: ${inGroup
+                  ? 'rgb(66, 133, 244)'
+                  : 'rgba(40, 40, 40, 0.80)'} !important;
+                filter: ${inGroup ? 'drop-shadow(0 0 3px rgba(66, 133, 244, 0.35))' : 'none'} !important;
+              }
+
+              .bubble-name-container {
+                grid-row: 2 !important;
+                margin: 0 !important;
+                width: 100% !important;
+              }
+
+              .bubble-name {
+                font-weight: 700 !important;
+                font-size: 10px !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.5px !important;
+                line-height: 1.1 !important;
+                justify-content: center !important;
+                margin: 0 4px !important;
+                text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+                color: ${inGroup
+                  ? 'rgba(40, 40, 40, 0.95)'
+                  : 'rgba(50, 50, 50, 0.75)'} !important;
+              }
+
+              .bubble-attribute {
+                font-size: 10px !important;
+                font-weight: 600 !important;
+                margin-top: 1px !important;
+                justify-content: center !important;
+                color: ${inGroup
+                  ? 'rgb(66, 133, 244)'
+                  : 'rgba(60, 60, 60, 0.7)'} !important;
+              }
+
+              .bubble-range-slider {
+                position: absolute !important;
+                bottom: 4px !important;
+                left: 0 !important;
+                right: 0 !important;
+                margin: 0 auto !important;
+                width: 60% !important;
+                height: 3px !important;
+                border-radius: 3px !important;
+                z-index: 10 !important;
+                background: rgba(0, 0, 0, 0.08) !important;
+                overflow: hidden !important;
+                opacity: 1 !important;
+                transition: opacity 0.2s ease !important;
+              }
+
+              .bubble-range-fill {
+                height: 3px !important;
+                border-radius: 3px !important;
+                background: rgb(66, 133, 244) !important;
+              }
+
+              .bubble-range-value {
+                position: fixed !important;
+                top: 4px !important;
+                right: 5px !important;
+                font-size: 9px !important;
+                font-weight: 600 !important;
+                color: rgba(50, 50, 50, 0.9) !important;
+                opacity: 0 !important;
+                transition: opacity 0.15s ease !important;
+                z-index: 20 !important;
+              }
+
+              .is-dragging .bubble-range-value { opacity: 1 !important; }
+              .is-dragging .bubble-attribute { opacity: 0 !important; }
+            `;
+          })()}
+        sub_button:
+          main: []
+          bottom: []
+      - type: custom:bubble-card
+        card_type: button
+        button_type: slider
+        entity: media_player.kitchen
+        name: Kitchen
+        icon: mdi:stove
+        show_state: false
+        show_attribute: true
+        attribute: volume_level
+        scrolling_effect: false
+        tap_action:
+          action: call-service
+          service: script.sonos_toggle_group_membership
+          data:
+            target_speaker: media_player.kitchen
+        hold_action:
+          action: more-info
+        double_tap_action:
+          action: call-service
+          service: media_player.volume_set
+          target:
+            entity_id: media_player.kitchen
+          data:
+            volume_level: 0.3
+        card_mod:
+          style: |
+            ha-card {
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+            }
+        styles: |-
+          ${(() => {
+            const inGroup = hass.states['binary_sensor.sonos_kitchen_in_playing_group']?.state === 'on';
+            return `
+              .bubble-button-card-container {
+                position: relative !important;
+                display: grid !important;
+                grid-template-rows: auto auto 1fr auto !important;
+                justify-items: center !important;
+                align-items: center !important;
+                text-align: center !important;
+                min-height: 76px !important;
+                padding: 14px 6px 5px 6px !important;
+                border-radius: 14px !important;
+                overflow: hidden !important;
+                clip-path: inset(0 round 14px) !important;
+                transition: transform 0.1s ease-out, border-color 0.15s ease, background 0.2s ease !important;
+                background: ${inGroup
+                  ? 'rgba(66, 133, 244, 0.15)'
+                  : 'rgba(255, 255, 255, 0.12)'} !important;
+                backdrop-filter: blur(3px) !important;
+                -webkit-backdrop-filter: blur(3px) !important;
+                border: ${inGroup
+                  ? '1px solid rgba(66, 133, 244, 0.6)'
+                  : '1px solid rgba(120, 120, 120, 0.55)'} !important;
+                box-shadow: ${inGroup
+                  ? '0 2px 10px rgba(66, 133, 244, 0.15)'
+                  : 'none'} !important;
+              }
+
+              .bubble-button-card-container:active { transform: scale(0.95) !important; }
+
+              .bubble-content-container {
+                display: grid !important;
+                grid-template-rows: auto auto 1fr !important;
+                justify-items: center !important;
+                width: 100% !important;
+                position: relative !important;
+                z-index: 5 !important;
+                padding-bottom: 10px !important;
+              }
+
+              .bubble-icon-container {
+                min-width: 28px !important;
+                min-height: 28px !important;
+                grid-row: 1 !important;
+                margin: 8px 0 6px 0 !important;
+                border-radius: 50% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background: ${inGroup
+                  ? 'rgba(66, 133, 244, 0.22)'
+                  : 'rgba(60, 60, 60, 0.30)'} !important;
+                border: ${inGroup
+                  ? '1px solid rgba(66, 133, 244, 0.35)'
+                  : '1px solid rgba(60, 60, 60, 0.40)'} !important;
+              }
+
+              .bubble-icon {
+                --mdc-icon-size: 20px !important;
+                color: ${inGroup
+                  ? 'rgb(66, 133, 244)'
+                  : 'rgba(40, 40, 40, 0.80)'} !important;
+                filter: ${inGroup ? 'drop-shadow(0 0 3px rgba(66, 133, 244, 0.35))' : 'none'} !important;
+              }
+
+              .bubble-name-container {
+                grid-row: 2 !important;
+                margin: 0 !important;
+                width: 100% !important;
+              }
+
+              .bubble-name {
+                font-weight: 700 !important;
+                font-size: 10px !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.5px !important;
+                line-height: 1.1 !important;
+                justify-content: center !important;
+                margin: 0 4px !important;
+                text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+                color: ${inGroup
+                  ? 'rgba(40, 40, 40, 0.95)'
+                  : 'rgba(50, 50, 50, 0.75)'} !important;
+              }
+
+              .bubble-attribute {
+                font-size: 10px !important;
+                font-weight: 600 !important;
+                margin-top: 1px !important;
+                justify-content: center !important;
+                color: ${inGroup
+                  ? 'rgb(66, 133, 244)'
+                  : 'rgba(60, 60, 60, 0.7)'} !important;
+              }
+
+              .bubble-range-slider {
+                position: absolute !important;
+                bottom: 4px !important;
+                left: 0 !important;
+                right: 0 !important;
+                margin: 0 auto !important;
+                width: 60% !important;
+                height: 3px !important;
+                border-radius: 3px !important;
+                z-index: 10 !important;
+                background: rgba(0, 0, 0, 0.08) !important;
+                overflow: hidden !important;
+                opacity: 1 !important;
+                transition: opacity 0.2s ease !important;
+              }
+
+              .bubble-range-fill {
+                height: 3px !important;
+                border-radius: 3px !important;
+                background: rgb(66, 133, 244) !important;
+              }
+
+              .bubble-range-value {
+                position: fixed !important;
+                top: 4px !important;
+                right: 5px !important;
+                font-size: 9px !important;
+                font-weight: 600 !important;
+                color: rgba(50, 50, 50, 0.9) !important;
+                opacity: 0 !important;
+                transition: opacity 0.15s ease !important;
+                z-index: 20 !important;
+              }
+
+              .is-dragging .bubble-range-value { opacity: 1 !important; }
+              .is-dragging .bubble-attribute { opacity: 0 !important; }
+            `;
+          })()}
+        sub_button:
+          main: []
+          bottom: []
+      - type: custom:bubble-card
+        card_type: button
+        button_type: slider
+        entity: media_player.bedroom
+        name: Bedroom
+        icon: mdi:bed
+        show_state: false
+        show_attribute: true
+        attribute: volume_level
+        scrolling_effect: false
+        tap_action:
+          action: call-service
+          service: script.sonos_toggle_group_membership
+          data:
+            target_speaker: media_player.bedroom
+        hold_action:
+          action: more-info
+        double_tap_action:
+          action: call-service
+          service: media_player.volume_set
+          target:
+            entity_id: media_player.bedroom
+          data:
+            volume_level: 0.3
+        card_mod:
+          style: |
+            ha-card {
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+            }
+        styles: |-
+          ${(() => {
+            const inGroup = hass.states['binary_sensor.sonos_bedroom_in_playing_group']?.state === 'on';
+            return `
+              .bubble-button-card-container {
+                position: relative !important;
+                display: grid !important;
+                grid-template-rows: auto auto 1fr auto !important;
+                justify-items: center !important;
+                align-items: center !important;
+                text-align: center !important;
+                min-height: 76px !important;
+                padding: 14px 6px 5px 6px !important;
+                border-radius: 14px !important;
+                overflow: hidden !important;
+                clip-path: inset(0 round 14px) !important;
+                transition: transform 0.1s ease-out, border-color 0.15s ease, background 0.2s ease !important;
+                background: ${inGroup
+                  ? 'rgba(66, 133, 244, 0.15)'
+                  : 'rgba(255, 255, 255, 0.12)'} !important;
+                backdrop-filter: blur(3px) !important;
+                -webkit-backdrop-filter: blur(3px) !important;
+                border: ${inGroup
+                  ? '1px solid rgba(66, 133, 244, 0.6)'
+                  : '1px solid rgba(120, 120, 120, 0.55)'} !important;
+                box-shadow: ${inGroup
+                  ? '0 2px 10px rgba(66, 133, 244, 0.15)'
+                  : 'none'} !important;
+              }
+
+              .bubble-button-card-container:active { transform: scale(0.95) !important; }
+
+              .bubble-content-container {
+                display: grid !important;
+                grid-template-rows: auto auto 1fr !important;
+                justify-items: center !important;
+                width: 100% !important;
+                position: relative !important;
+                z-index: 5 !important;
+                padding-bottom: 10px !important;
+              }
+
+              .bubble-icon-container {
+                min-width: 28px !important;
+                min-height: 28px !important;
+                grid-row: 1 !important;
+                margin: 8px 0 6px 0 !important;
+                border-radius: 50% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background: ${inGroup
+                  ? 'rgba(66, 133, 244, 0.22)'
+                  : 'rgba(60, 60, 60, 0.30)'} !important;
+                border: ${inGroup
+                  ? '1px solid rgba(66, 133, 244, 0.35)'
+                  : '1px solid rgba(60, 60, 60, 0.40)'} !important;
+              }
+
+              .bubble-icon {
+                --mdc-icon-size: 20px !important;
+                color: ${inGroup
+                  ? 'rgb(66, 133, 244)'
+                  : 'rgba(40, 40, 40, 0.80)'} !important;
+                filter: ${inGroup ? 'drop-shadow(0 0 3px rgba(66, 133, 244, 0.35))' : 'none'} !important;
+              }
+
+              .bubble-name-container {
+                grid-row: 2 !important;
+                margin: 0 !important;
+                width: 100% !important;
+              }
+
+              .bubble-name {
+                font-weight: 700 !important;
+                font-size: 10px !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.5px !important;
+                line-height: 1.1 !important;
+                justify-content: center !important;
+                margin: 0 4px !important;
+                text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+                color: ${inGroup
+                  ? 'rgba(40, 40, 40, 0.95)'
+                  : 'rgba(50, 50, 50, 0.75)'} !important;
+              }
+
+              .bubble-attribute {
+                font-size: 10px !important;
+                font-weight: 600 !important;
+                margin-top: 1px !important;
+                justify-content: center !important;
+                color: ${inGroup
+                  ? 'rgb(66, 133, 244)'
+                  : 'rgba(60, 60, 60, 0.7)'} !important;
+              }
+
+              .bubble-range-slider {
+                position: absolute !important;
+                bottom: 4px !important;
+                left: 0 !important;
+                right: 0 !important;
+                margin: 0 auto !important;
+                width: 60% !important;
+                height: 3px !important;
+                border-radius: 3px !important;
+                z-index: 10 !important;
+                background: rgba(0, 0, 0, 0.08) !important;
+                overflow: hidden !important;
+                opacity: 1 !important;
+                transition: opacity 0.2s ease !important;
+              }
+
+              .bubble-range-fill {
+                height: 3px !important;
+                border-radius: 3px !important;
+                background: rgb(66, 133, 244) !important;
+              }
+
+              .bubble-range-value {
+                position: fixed !important;
+                top: 4px !important;
+                right: 5px !important;
+                font-size: 9px !important;
+                font-weight: 600 !important;
+                color: rgba(50, 50, 50, 0.9) !important;
+                opacity: 0 !important;
+                transition: opacity 0.15s ease !important;
+                z-index: 20 !important;
+              }
+
+              .is-dragging .bubble-range-value { opacity: 1 !important; }
+              .is-dragging .bubble-attribute { opacity: 0 !important; }
+            `;
+          })()}
+        sub_button:
+          main: []
+          bottom: []
+      - type: custom:bubble-card
+        card_type: button
+        button_type: slider
+        entity: media_player.dining_room
+        name: Dining
+        icon: mdi:table-furniture
+        show_state: false
+        show_attribute: true
+        attribute: volume_level
+        scrolling_effect: false
+        tap_action:
+          action: call-service
+          service: script.sonos_toggle_group_membership
+          data:
+            target_speaker: media_player.dining_room
+        hold_action:
+          action: more-info
+        double_tap_action:
+          action: call-service
+          service: media_player.volume_set
+          target:
+            entity_id: media_player.dining_room
+          data:
+            volume_level: 0.3
+        card_mod:
+          style: |
+            ha-card {
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+            }
+        styles: |-
+          ${(() => {
+            const inGroup = hass.states['binary_sensor.sonos_dining_room_in_playing_group']?.state === 'on';
+            return `
+              .bubble-button-card-container {
+                position: relative !important;
+                display: grid !important;
+                grid-template-rows: auto auto 1fr auto !important;
+                justify-items: center !important;
+                align-items: center !important;
+                text-align: center !important;
+                min-height: 76px !important;
+                padding: 14px 6px 5px 6px !important;
+                border-radius: 14px !important;
+                overflow: hidden !important;
+                clip-path: inset(0 round 14px) !important;
+                transition: transform 0.1s ease-out, border-color 0.15s ease, background 0.2s ease !important;
+                background: ${inGroup
+                  ? 'rgba(66, 133, 244, 0.15)'
+                  : 'rgba(255, 255, 255, 0.12)'} !important;
+                backdrop-filter: blur(3px) !important;
+                -webkit-backdrop-filter: blur(3px) !important;
+                border: ${inGroup
+                  ? '1px solid rgba(66, 133, 244, 0.6)'
+                  : '1px solid rgba(120, 120, 120, 0.55)'} !important;
+                box-shadow: ${inGroup
+                  ? '0 2px 10px rgba(66, 133, 244, 0.15)'
+                  : 'none'} !important;
+              }
+
+              .bubble-button-card-container:active { transform: scale(0.95) !important; }
+
+              .bubble-content-container {
+                display: grid !important;
+                grid-template-rows: auto auto 1fr !important;
+                justify-items: center !important;
+                width: 100% !important;
+                position: relative !important;
+                z-index: 5 !important;
+                padding-bottom: 10px !important;
+              }
+
+              .bubble-icon-container {
+                min-width: 28px !important;
+                min-height: 28px !important;
+                grid-row: 1 !important;
+                margin: 8px 0 6px 0 !important;
+                border-radius: 50% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background: ${inGroup
+                  ? 'rgba(66, 133, 244, 0.22)'
+                  : 'rgba(60, 60, 60, 0.30)'} !important;
+                border: ${inGroup
+                  ? '1px solid rgba(66, 133, 244, 0.35)'
+                  : '1px solid rgba(60, 60, 60, 0.40)'} !important;
+              }
+
+              .bubble-icon {
+                --mdc-icon-size: 20px !important;
+                color: ${inGroup
+                  ? 'rgb(66, 133, 244)'
+                  : 'rgba(40, 40, 40, 0.80)'} !important;
+                filter: ${inGroup ? 'drop-shadow(0 0 3px rgba(66, 133, 244, 0.35))' : 'none'} !important;
+              }
+
+              .bubble-name-container {
+                grid-row: 2 !important;
+                margin: 0 !important;
+                width: 100% !important;
+              }
+
+              .bubble-name {
+                font-weight: 700 !important;
+                font-size: 10px !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.5px !important;
+                line-height: 1.1 !important;
+                justify-content: center !important;
+                margin: 0 4px !important;
+                text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+                color: ${inGroup
+                  ? 'rgba(40, 40, 40, 0.95)'
+                  : 'rgba(50, 50, 50, 0.75)'} !important;
+              }
+
+              .bubble-attribute {
+                font-size: 10px !important;
+                font-weight: 600 !important;
+                margin-top: 1px !important;
+                justify-content: center !important;
+                color: ${inGroup
+                  ? 'rgb(66, 133, 244)'
+                  : 'rgba(60, 60, 60, 0.7)'} !important;
+              }
+
+              .bubble-range-slider {
+                position: absolute !important;
+                bottom: 4px !important;
+                left: 0 !important;
+                right: 0 !important;
+                margin: 0 auto !important;
+                width: 60% !important;
+                height: 3px !important;
+                border-radius: 3px !important;
+                z-index: 10 !important;
+                background: rgba(0, 0, 0, 0.08) !important;
+                overflow: hidden !important;
+                opacity: 1 !important;
+                transition: opacity 0.2s ease !important;
+              }
+
+              .bubble-range-fill {
+                height: 3px !important;
+                border-radius: 3px !important;
+                background: rgb(66, 133, 244) !important;
+              }
+
+              .bubble-range-value {
+                position: fixed !important;
+                top: 4px !important;
+                right: 5px !important;
+                font-size: 9px !important;
+                font-weight: 600 !important;
+                color: rgba(50, 50, 50, 0.9) !important;
+                opacity: 0 !important;
+                transition: opacity 0.15s ease !important;
+                z-index: 20 !important;
+              }
+
+              .is-dragging .bubble-range-value { opacity: 1 !important; }
+              .is-dragging .bubble-attribute { opacity: 0 !important; }
+            `;
+          })()}
+        sub_button:
+          main: []
+          bottom: []
+      - type: custom:bubble-card
+        card_type: button
+        button_type: slider
+        entity: media_player.bath
+        name: Bath
+        icon: mdi:shower-head
+        show_state: false
+        show_attribute: true
+        attribute: volume_level
+        scrolling_effect: false
+        tap_action:
+          action: call-service
+          service: script.sonos_toggle_group_membership
+          data:
+            target_speaker: media_player.bath
+        hold_action:
+          action: more-info
+        double_tap_action:
+          action: call-service
+          service: media_player.volume_set
+          target:
+            entity_id: media_player.bath
+          data:
+            volume_level: 0.3
+        card_mod:
+          style: |
+            ha-card {
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+            }
+        styles: |-
+          ${(() => {
+            const inGroup = hass.states['binary_sensor.sonos_bath_in_playing_group']?.state === 'on';
+            return `
+              .bubble-button-card-container {
+                position: relative !important;
+                display: grid !important;
+                grid-template-rows: auto auto 1fr auto !important;
+                justify-items: center !important;
+                align-items: center !important;
+                text-align: center !important;
+                min-height: 76px !important;
+                padding: 14px 6px 5px 6px !important;
+                border-radius: 14px !important;
+                overflow: hidden !important;
+                clip-path: inset(0 round 14px) !important;
+                transition: transform 0.1s ease-out, border-color 0.15s ease, background 0.2s ease !important;
+                background: ${inGroup
+                  ? 'rgba(66, 133, 244, 0.15)'
+                  : 'rgba(255, 255, 255, 0.12)'} !important;
+                backdrop-filter: blur(3px) !important;
+                -webkit-backdrop-filter: blur(3px) !important;
+                border: ${inGroup
+                  ? '1px solid rgba(66, 133, 244, 0.6)'
+                  : '1px solid rgba(120, 120, 120, 0.55)'} !important;
+                box-shadow: ${inGroup
+                  ? '0 2px 10px rgba(66, 133, 244, 0.15)'
+                  : 'none'} !important;
+              }
+
+              .bubble-button-card-container:active { transform: scale(0.95) !important; }
+
+              .bubble-content-container {
+                display: grid !important;
+                grid-template-rows: auto auto 1fr !important;
+                justify-items: center !important;
+                width: 100% !important;
+                position: relative !important;
+                z-index: 5 !important;
+                padding-bottom: 10px !important;
+              }
+
+              .bubble-icon-container {
+                min-width: 28px !important;
+                min-height: 28px !important;
+                grid-row: 1 !important;
+                margin: 8px 0 6px 0 !important;
+                border-radius: 50% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background: ${inGroup
+                  ? 'rgba(66, 133, 244, 0.22)'
+                  : 'rgba(60, 60, 60, 0.30)'} !important;
+                border: ${inGroup
+                  ? '1px solid rgba(66, 133, 244, 0.35)'
+                  : '1px solid rgba(60, 60, 60, 0.40)'} !important;
+              }
+
+              .bubble-icon {
+                --mdc-icon-size: 20px !important;
+                color: ${inGroup
+                  ? 'rgb(66, 133, 244)'
+                  : 'rgba(40, 40, 40, 0.80)'} !important;
+                filter: ${inGroup ? 'drop-shadow(0 0 3px rgba(66, 133, 244, 0.35))' : 'none'} !important;
+              }
+
+              .bubble-name-container {
+                grid-row: 2 !important;
+                margin: 0 !important;
+                width: 100% !important;
+              }
+
+              .bubble-name {
+                font-weight: 700 !important;
+                font-size: 10px !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.5px !important;
+                line-height: 1.1 !important;
+                justify-content: center !important;
+                margin: 0 4px !important;
+                text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+                color: ${inGroup
+                  ? 'rgba(40, 40, 40, 0.95)'
+                  : 'rgba(50, 50, 50, 0.75)'} !important;
+              }
+
+              .bubble-attribute {
+                font-size: 10px !important;
+                font-weight: 600 !important;
+                margin-top: 1px !important;
+                justify-content: center !important;
+                color: ${inGroup
+                  ? 'rgb(66, 133, 244)'
+                  : 'rgba(60, 60, 60, 0.7)'} !important;
+              }
+
+              .bubble-range-slider {
+                position: absolute !important;
+                bottom: 4px !important;
+                left: 0 !important;
+                right: 0 !important;
+                margin: 0 auto !important;
+                width: 60% !important;
+                height: 3px !important;
+                border-radius: 3px !important;
+                z-index: 10 !important;
+                background: rgba(0, 0, 0, 0.08) !important;
+                overflow: hidden !important;
+                opacity: 1 !important;
+                transition: opacity 0.2s ease !important;
+              }
+
+              .bubble-range-fill {
+                height: 3px !important;
+                border-radius: 3px !important;
+                background: rgb(66, 133, 244) !important;
+              }
+
+              .bubble-range-value {
+                position: fixed !important;
+                top: 4px !important;
+                right: 5px !important;
+                font-size: 9px !important;
+                font-weight: 600 !important;
+                color: rgba(50, 50, 50, 0.9) !important;
+                opacity: 0 !important;
+                transition: opacity 0.15s ease !important;
+                z-index: 20 !important;
+              }
+
+              .is-dragging .bubble-range-value { opacity: 1 !important; }
+              .is-dragging .bubble-attribute { opacity: 0 !important; }
+            `;
+          })()}
+        sub_button:
+          main: []
+          bottom: []

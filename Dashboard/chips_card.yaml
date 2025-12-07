@@ -1,243 +1,516 @@
 type: custom:bubble-card
-card_type: sub-buttons
+card_type: button
+button_type: name
+card_layout: large
+show_icon: false
+show_name: false
+show_state: false
 sub_button:
-  main: []
-  bottom:
-    - name: Home Status Chips
+  main:
+    - name: Status Chips
       buttons_layout: inline
       group:
-        - entity: sensor.oal_system_status
-          name: Adapting
+        # ═══════════════════════════════════════════════════════════════════════
+        # CHIP 1: Lights On Count - Always visible
+        # ═══════════════════════════════════════════════════════════════════════
+        - entity: light.all_adaptive_lights
+          name: Lights
+          icon: mdi:lightbulb-group
           show_name: true
           show_icon: true
           show_background: true
           state_background: false
           show_state: false
           show_attribute: true
+          attribute: on_count
+          custom_height: 36
+          fill_width: false
           tap_action:
+            action: toggle
+          hold_action:
             action: more-info
-          custom_height: 50
-          content_layout: icon-top
-          light_background: false
-          attribute: zones_adaptive
-        - name: Boost
+        # ═══════════════════════════════════════════════════════════════════════
+        # CHIP 2: OAL Adapting Zones - Conditional when adapting
+        # ═══════════════════════════════════════════════════════════════════════
+        - entity: sensor.oal_system_status
+          name: Adapting
+          icon: mdi:lightbulb-auto
           show_name: true
           show_icon: true
           show_background: true
-          state_background: true
+          state_background: false
           show_state: false
           show_attribute: true
+          attribute: zones_adaptive
+          custom_height: 36
+          fill_width: false
+          visibility:
+            - condition: template
+              value_template: >-
+                {{ (state_attr('sensor.oal_system_status', 'zones_adaptive') | default(0) | int) > 0 }}
           tap_action:
             action: more-info
-          custom_height: 50
-          content_layout: icon-top
-          entity: sensor.oal_system_status
+          hold_action:
+            action: more-info
+        # ═══════════════════════════════════════════════════════════════════════
+        # CHIP 3: Boost - Conditional when not 0
+        # ═══════════════════════════════════════════════════════════════════════
+        - entity: sensor.oal_system_status
+          name: Boost
+          icon: mdi:arrow-up-bold-circle
+          show_name: true
+          show_icon: true
+          show_background: true
+          state_background: false
+          show_state: false
+          show_attribute: true
           attribute: total_modification
+          custom_height: 36
+          fill_width: false
+          visibility:
+            - condition: template
+              value_template: >-
+                {{ (state_attr('sensor.oal_system_status', 'total_modification') | default(0) | int) != 0 }}
+          tap_action:
+            action: more-info
+          hold_action:
+            action: more-info
+        # ═══════════════════════════════════════════════════════════════════════
+        # CHIP 4: Override Timer - Conditional when overrides exist
+        # ═══════════════════════════════════════════════════════════════════════
         - entity: sensor.oal_soonest_override
-          name: Manual Control Remaining
+          name: Reset
+          icon: mdi:timer-outline
           show_name: false
           show_icon: true
           show_background: true
-          state_background: true
-          show_state: true
-          show_attribute: true
-          attribute: temperature
-          tap_action:
-            action: more-info
-          custom_height: 50
-          content_layout: icon-top
-          icon: mdi:clock-time-eight-outline
-        - entity: weather.home
-          name: Temperature
-          show_name: false
-          show_icon: true
-          show_background: true
-          state_background: true
-          show_state: false
-          show_attribute: true
-          attribute: temperature
-          tap_action:
-            action: more-info
-          custom_height: 50
-          content_layout: icon-top
-          icon: mdi:thermometer
-        - entity: weather.home
-          name: Weather
-          show_name: false
-          show_icon: true
-          show_background: true
-          state_background: true
+          state_background: false
           show_state: true
           show_attribute: false
-          attribute: temperature
+          custom_height: 36
+          fill_width: false
+          visibility:
+            - condition: template
+              value_template: >-
+                {{ states('sensor.oal_soonest_override') not in ['None', 'unknown', 'unavailable', ''] }}
           tap_action:
+            action: perform-action
+            perform_action: script.oal_reset_soft
+            target: {}
+          hold_action:
             action: more-info
-          custom_height: 50
-          content_layout: icon-top
-        - entity: climate.dining_room
-          name: Climate
+        # ═══════════════════════════════════════════════════════════════════════
+        # CHIP 5: Next Alarm - Conditional when alarm exists
+        # ═══════════════════════════════════════════════════════════════════════
+        - entity: sensor.sonos_next_alarm_chip
+          name: Alarm
+          icon: mdi:alarm
           show_name: false
           show_icon: true
           show_background: true
-          state_background: true
+          state_background: false
+          show_state: true
+          show_attribute: false
+          custom_height: 36
+          fill_width: false
+          visibility:
+            - condition: template
+              value_template: >-
+                {{ states('sensor.sonos_next_alarm_chip') not in ['None', 'unknown', 'unavailable', 'No alarms'] }}
+          tap_action:
+            action: perform-action
+            perform_action: script.sonos_toggle_next_alarm
+            target: {}
+          hold_action:
+            action: more-info
+        # ═══════════════════════════════════════════════════════════════════════
+        # CHIP 6: Media Playing - Conditional when playing
+        # ═══════════════════════════════════════════════════════════════════════
+        - entity: sensor.sonos_playing_status
+          name: Media
+          icon: mdi:speaker-play
+          show_name: false
+          show_icon: true
+          show_background: true
+          state_background: false
+          show_state: true
+          show_attribute: false
+          custom_height: 36
+          fill_width: false
+          visibility:
+            - condition: template
+              value_template: >-
+                {{ states('sensor.sonos_playing_status') not in ['Off', 'unknown', 'unavailable'] }}
+          tap_action:
+            action: perform-action
+            perform_action: media_player.media_pause
+            target:
+              entity_id: media_player.living_room
+          hold_action:
+            action: more-info
+            entity: media_player.living_room
+        # ═══════════════════════════════════════════════════════════════════════
+        # CHIP 7: Sleep Mode - Conditional when active
+        # ═══════════════════════════════════════════════════════════════════════
+        - entity: input_boolean.oal_force_sleep
+          name: Sleep
+          icon: mdi:power-sleep
+          show_name: true
+          show_icon: true
+          show_background: true
+          state_background: false
+          show_state: false
+          show_attribute: false
+          custom_height: 36
+          fill_width: false
+          visibility:
+            - condition: state
+              entity: input_boolean.oal_force_sleep
+              state: "on"
+          tap_action:
+            action: toggle
+          hold_action:
+            action: more-info
+        # ═══════════════════════════════════════════════════════════════════════
+        # CHIP 8: OAL Paused - Conditional when paused
+        # ═══════════════════════════════════════════════════════════════════════
+        - entity: input_boolean.oal_system_paused
+          name: Paused
+          icon: mdi:pause-circle
+          show_name: true
+          show_icon: true
+          show_background: true
+          state_background: false
+          show_state: false
+          show_attribute: false
+          custom_height: 36
+          fill_width: false
+          visibility:
+            - condition: state
+              entity: input_boolean.oal_system_paused
+              state: "on"
+          tap_action:
+            action: toggle
+          hold_action:
+            action: more-info
+        # ═══════════════════════════════════════════════════════════════════════
+        # CHIP 9: Outdoor Temperature - Always visible
+        # ═══════════════════════════════════════════════════════════════════════
+        - entity: weather.home
+          name: Out
+          icon: mdi:thermometer
+          show_name: true
+          show_icon: true
+          show_background: true
+          state_background: false
+          show_state: false
+          show_attribute: true
+          attribute: temperature
+          custom_height: 36
+          fill_width: false
+          tap_action:
+            action: more-info
+        # ═══════════════════════════════════════════════════════════════════════
+        # CHIP 10: Indoor Climate - Always visible
+        # ═══════════════════════════════════════════════════════════════════════
+        - entity: climate.dining_room
+          name: In
+          icon: mdi:home-thermometer
+          show_name: true
+          show_icon: true
+          show_background: true
+          state_background: false
           show_state: false
           show_attribute: true
           attribute: current_temperature
+          custom_height: 36
+          fill_width: false
           tap_action:
             action: more-info
-          custom_height: 50
-          content_layout: icon-top
-          icon: mdi:thermostat
-  bottom_layout: inline
-rows: 1
-grid_options:
-  columns: full
-hide_main_background: false
-styles: |
-  /* ═══════════════════════════════════════════════════════════════════════
-     GLASSMORPHISM CONTAINER
-     ═══════════════════════════════════════════════════════════════════════ */
+          hold_action:
+            action: more-info
+  bottom: []
+styles: >
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TRANSPARENT HOST
+     ═══════════════════════════════════════════════════════════════════════════ */
+  :host {
+    position: relative !important;
+    z-index: 50 !important;
+  }
+
   ha-card {
-    background: rgba(255, 255, 255, 0.08) !important;
-    backdrop-filter: blur(8px) saturate(120%) !important;
-    -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 16px !important;
-    padding: 12px 16px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 8px 16px !important;
   }
-  
+
+  .bubble-button-card-container {
+    background: transparent !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIPS CONTAINER
+     ═══════════════════════════════════════════════════════════════════════════ */
   .bubble-sub-button-container {
-    gap: 8px !important;
-  }
-  
-  /* ═══════════════════════════════════════════════════════════════════════
-     CHIP BASE STYLING - Glassmorphic background
-     ═══════════════════════════════════════════════════════════════════════ */
-  .bubble-sub-button {
-    background: rgba(255, 255, 255, 0.08) !important;
-    backdrop-filter: blur(6px) saturate(110%) !important;
-    -webkit-backdrop-filter: blur(6px) saturate(110%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(6px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(6px) saturate(120%) !important;
     border-radius: 12px !important;
-    padding: 8px 12px !important;
-    transition: all 0.3s ease !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    padding: 6px 10px !important;
+    margin: 0 auto !important;
+    box-shadow: none !important;
+    width: fit-content !important;
+    gap: 6px !important;
   }
-  
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIP BASE STYLING - INACTIVE STATE (gray like quick actions)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .bubble-sub-button {
+    background: rgba(60, 60, 60, 0.08) !important;
+    border: 1px solid rgba(60, 60, 60, 0.15) !important;
+    border-radius: 8px !important;
+    padding: 6px 10px !important;
+    transition: all 0.15s ease !important;
+    position: relative !important;
+  }
+
   .bubble-sub-button:hover {
-    background: rgba(255, 255, 255, 0.12) !important;
-    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    background: rgba(60, 60, 60, 0.12) !important;
   }
-  
-  /* ═══════════════════════════════════════════════════════════════════════
-     CHIP 1: OAL System Status - Orange (Adaptive/Active)
-     ═══════════════════════════════════════════════════════════════════════ */
+
+  .bubble-sub-button:active {
+    transform: scale(0.96) !important;
+  }
+
+  /* Base icon and text styling - inactive state */
+  .bubble-sub-button .bubble-sub-button-icon {
+    --mdc-icon-size: 18px !important;
+    color: rgba(60, 60, 60, 0.6) !important;
+  }
+
+  .bubble-sub-button .bubble-sub-button-name {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px !important;
+    text-transform: uppercase !important;
+    color: rgba(60, 60, 60, 0.5) !important;
+  }
+
+  .bubble-sub-button .bubble-sub-button-state,
+  .bubble-sub-button .bubble-sub-button-attribute {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: rgba(60, 60, 60, 0.7) !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIP 1: Lights On Count - Orange when lights are on
+     ═══════════════════════════════════════════════════════════════════════════ */
   ${(() => {
-    const status = hass.states['sensor.oal_system_status']?.state || '';
-    const isActive = !status.includes('Baseline');
-    
+    const lightsOn = parseInt(hass.states['light.all_adaptive_lights']?.attributes?.on_count || '0');
+    const isActive = lightsOn > 0;
     return `
       .bubble-sub-button-1 {
-        background: ${isActive
-          ? 'rgba(255, 149, 0, 0.15)'
-          : 'rgba(255, 255, 255, 0.08)'} !important;
-        border: ${isActive
-          ? '1px solid rgba(255, 149, 0, 0.35)'
-          : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+        background: ${isActive ? 'rgba(255, 149, 0, 0.15)' : 'rgba(60, 60, 60, 0.08)'} !important;
+        border: ${isActive ? '1px solid rgba(255, 149, 0, 0.4)' : '1px solid rgba(60, 60, 60, 0.15)'} !important;
       }
-      .bubble-sub-button-1 .bubble-icon {
-        color: ${isActive ? 'rgba(255, 152, 0, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
+      .bubble-sub-button-1 .bubble-sub-button-icon {
+        color: ${isActive ? 'rgb(255, 149, 0)' : 'rgba(60, 60, 60, 0.6)'} !important;
       }
-      .bubble-sub-button-1 .bubble-attribute {
-        color: ${isActive ? 'rgba(255, 152, 0, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
-        font-weight: 600 !important;
+      .bubble-sub-button-1 .bubble-sub-button-name,
+      .bubble-sub-button-1 .bubble-sub-button-attribute {
+        color: ${isActive ? 'rgba(255, 149, 0, 0.9)' : 'rgba(60, 60, 60, 0.5)'} !important;
       }
     `;
   })()}
-  
-  /* ═══════════════════════════════════════════════════════════════════════
-     CHIP 2: Boost - Orange when boosted
-     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIP 2: OAL Adapting Zones - Orange when active
+     ═══════════════════════════════════════════════════════════════════════════ */
   ${(() => {
-    const monitor = hass.states['sensor.oal_real_time_monitor']?.attributes || {};
-    const boostSource = monitor['Boost source'] || 'Baseline';
-    const isBoosted = boostSource !== 'Baseline';
-    
+    const zones = parseInt(hass.states['sensor.oal_system_status']?.attributes?.zones_adaptive || '0');
+    const isActive = zones > 0;
     return `
       .bubble-sub-button-2 {
-        background: ${isBoosted
-          ? 'rgba(255, 149, 0, 0.15)'
-          : 'rgba(255, 255, 255, 0.08)'} !important;
-        border: ${isBoosted
-          ? '1px solid rgba(255, 149, 0, 0.35)'
-          : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+        background: ${isActive ? 'rgba(255, 149, 0, 0.15)' : 'rgba(60, 60, 60, 0.08)'} !important;
+        border: ${isActive ? '1px solid rgba(255, 149, 0, 0.4)' : '1px solid rgba(60, 60, 60, 0.15)'} !important;
       }
-      .bubble-sub-button-2 .bubble-icon {
-        color: ${isBoosted ? 'rgba(255, 152, 0, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
+      .bubble-sub-button-2 .bubble-sub-button-icon {
+        color: ${isActive ? 'rgb(255, 149, 0)' : 'rgba(60, 60, 60, 0.6)'} !important;
       }
-      .bubble-sub-button-2 .bubble-attribute {
-        color: ${isBoosted ? 'rgba(255, 152, 0, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
-        font-weight: 600 !important;
+      .bubble-sub-button-2 .bubble-sub-button-name,
+      .bubble-sub-button-2 .bubble-sub-button-attribute {
+        color: ${isActive ? 'rgba(255, 149, 0, 0.9)' : 'rgba(60, 60, 60, 0.5)'} !important;
       }
     `;
   })()}
-  
-  /* ═══════════════════════════════════════════════════════════════════════
-     CHIP 3: Manual Control Remaining - Purple when active
-     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIP 3: Boost - Orange when active
+     ═══════════════════════════════════════════════════════════════════════════ */
   ${(() => {
-    const soonest = hass.states['sensor.oal_soonest_override'];
-    const timeVal = soonest?.state || 'None';
-    const hasManual = timeVal !== 'None' && timeVal !== 'unknown' && timeVal !== 'unavailable';
-    
+    const boost = parseInt(hass.states['sensor.oal_system_status']?.attributes?.total_modification || '0');
+    const isActive = boost !== 0;
     return `
       .bubble-sub-button-3 {
-        background: ${hasManual
-          ? 'rgba(156, 39, 176, 0.15)'
-          : 'rgba(255, 255, 255, 0.08)'} !important;
-        border: ${hasManual
-          ? '1px solid rgba(156, 39, 176, 0.35)'
-          : '1px solid rgba(255, 255, 255, 0.12)'} !important;
+        background: ${isActive ? 'rgba(255, 149, 0, 0.15)' : 'rgba(60, 60, 60, 0.08)'} !important;
+        border: ${isActive ? '1px solid rgba(255, 149, 0, 0.4)' : '1px solid rgba(60, 60, 60, 0.15)'} !important;
       }
-      .bubble-sub-button-3 .bubble-icon {
-        color: ${hasManual ? 'rgba(156, 39, 176, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
+      .bubble-sub-button-3 .bubble-sub-button-icon {
+        color: ${isActive ? 'rgb(255, 149, 0)' : 'rgba(60, 60, 60, 0.6)'} !important;
       }
-      .bubble-sub-button-3 .bubble-state {
-        color: ${hasManual ? 'rgba(156, 39, 176, 0.96)' : 'rgba(200, 200, 200, 0.8)'} !important;
-        font-weight: 600 !important;
+      .bubble-sub-button-3 .bubble-sub-button-name,
+      .bubble-sub-button-3 .bubble-sub-button-attribute {
+        color: ${isActive ? 'rgba(255, 149, 0, 0.9)' : 'rgba(60, 60, 60, 0.5)'} !important;
       }
     `;
   })()}
-  
-  /* ═══════════════════════════════════════════════════════════════════════
-     CHIP 4: Weather Temperature - Neutral gray
-     ═══════════════════════════════════════════════════════════════════════ */
-  .bubble-sub-button-4 .bubble-icon {
-    color: rgba(200, 200, 200, 0.8) !important;
-  }
-  .bubble-sub-button-4 .bubble-attribute {
-    color: rgba(200, 200, 200, 0.9) !important;
-    font-weight: 600 !important;
-  }
-  
-  /* ═══════════════════════════════════════════════════════════════════════
-     CHIP 5: Weather State - Neutral gray
-     ═══════════════════════════════════════════════════════════════════════ */
-  .bubble-sub-button-5 .bubble-icon {
-    color: rgba(200, 200, 200, 0.8) !important;
-  }
-  .bubble-sub-button-5 .bubble-state {
-    color: rgba(200, 200, 200, 0.9) !important;
-    font-weight: 600 !important;
-  }
-  
-  /* ═══════════════════════════════════════════════════════════════════════
-     CHIP 6: Climate Temperature - Neutral gray
-     ═══════════════════════════════════════════════════════════════════════ */
-  .bubble-sub-button-6 .bubble-icon {
-    color: rgba(200, 200, 200, 0.8) !important;
-  }
-  .bubble-sub-button-6 .bubble-attribute {
-    color: rgba(200, 200, 200, 0.9) !important;
-    font-weight: 600 !important;
-  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIP 4: Override Timer - Purple when active
+     ═══════════════════════════════════════════════════════════════════════════ */
+  ${(() => {
+    const soonest = hass.states['sensor.oal_soonest_override']?.state || 'None';
+    const hasManual = soonest !== 'None' && soonest !== 'unknown' && soonest !== 'unavailable';
+    return `
+      .bubble-sub-button-4 {
+        background: ${hasManual ? 'rgba(138, 100, 200, 0.15)' : 'rgba(60, 60, 60, 0.08)'} !important;
+        border: ${hasManual ? '1px solid rgba(138, 100, 200, 0.4)' : '1px solid rgba(60, 60, 60, 0.15)'} !important;
+      }
+      .bubble-sub-button-4 .bubble-sub-button-icon {
+        color: ${hasManual ? 'rgba(120, 80, 180, 0.9)' : 'rgba(60, 60, 60, 0.6)'} !important;
+      }
+      .bubble-sub-button-4 .bubble-sub-button-state {
+        color: ${hasManual ? 'rgba(120, 80, 180, 0.9)' : 'rgba(60, 60, 60, 0.5)'} !important;
+      }
+    `;
+  })()}
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIP 5: Next Alarm - Blue when enabled, gray when disabled
+     ═══════════════════════════════════════════════════════════════════════════ */
+  ${(() => {
+    const s = hass.states['sensor.sonos_next_alarm_chip'];
+    const isEnabled = s?.attributes?.is_enabled === true || s?.attributes?.is_enabled === 'True';
+    const hasAlarm = s?.state && s.state !== 'None' && s.state !== 'unknown' && s.state !== 'unavailable';
+    return `
+      .bubble-sub-button-5 {
+        background: ${isEnabled ? 'rgba(66, 133, 244, 0.15)' : 'rgba(60, 60, 60, 0.08)'} !important;
+        border: ${isEnabled ? '1px solid rgba(66, 133, 244, 0.4)' : '1px solid rgba(60, 60, 60, 0.15)'} !important;
+      }
+      .bubble-sub-button-5 .bubble-sub-button-icon {
+        color: ${isEnabled ? 'rgb(66, 133, 244)' : 'rgba(60, 60, 60, 0.6)'} !important;
+      }
+      .bubble-sub-button-5 .bubble-sub-button-state {
+        color: ${isEnabled ? 'rgba(66, 133, 244, 0.9)' : 'rgba(60, 60, 60, 0.5)'} !important;
+      }
+    `;
+  })()}
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIP 6: Media Playing - Blue when playing
+     ═══════════════════════════════════════════════════════════════════════════ */
+  ${(() => {
+    const status = hass.states['sensor.sonos_playing_status']?.state || 'Off';
+    const isPlaying = status !== 'Off' && status !== 'unknown' && status !== 'unavailable';
+    return `
+      .bubble-sub-button-6 {
+        background: ${isPlaying ? 'rgba(66, 133, 244, 0.15)' : 'rgba(60, 60, 60, 0.08)'} !important;
+        border: ${isPlaying ? '1px solid rgba(66, 133, 244, 0.4)' : '1px solid rgba(60, 60, 60, 0.15)'} !important;
+      }
+      .bubble-sub-button-6 .bubble-sub-button-icon {
+        color: ${isPlaying ? 'rgb(66, 133, 244)' : 'rgba(60, 60, 60, 0.6)'} !important;
+      }
+      .bubble-sub-button-6 .bubble-sub-button-state {
+        color: ${isPlaying ? 'rgba(66, 133, 244, 0.9)' : 'rgba(60, 60, 60, 0.5)'} !important;
+      }
+    `;
+  })()}
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIP 7: Sleep Mode - Purple when active
+     ═══════════════════════════════════════════════════════════════════════════ */
+  ${(() => {
+    const isSleep = hass.states['input_boolean.oal_force_sleep']?.state === 'on';
+    return `
+      .bubble-sub-button-7 {
+        background: ${isSleep ? 'rgba(138, 100, 200, 0.15)' : 'rgba(60, 60, 60, 0.08)'} !important;
+        border: ${isSleep ? '1px solid rgba(138, 100, 200, 0.4)' : '1px solid rgba(60, 60, 60, 0.15)'} !important;
+      }
+      .bubble-sub-button-7 .bubble-sub-button-icon,
+      .bubble-sub-button-7 .bubble-sub-button-name {
+        color: ${isSleep ? 'rgba(120, 80, 180, 0.9)' : 'rgba(60, 60, 60, 0.6)'} !important;
+      }
+    `;
+  })()}
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIP 8: OAL Paused - Red when paused
+     ═══════════════════════════════════════════════════════════════════════════ */
+  ${(() => {
+    const isPaused = hass.states['input_boolean.oal_system_paused']?.state === 'on';
+    return `
+      .bubble-sub-button-8 {
+        background: ${isPaused ? 'rgba(244, 67, 54, 0.15)' : 'rgba(60, 60, 60, 0.08)'} !important;
+        border: ${isPaused ? '1px solid rgba(244, 67, 54, 0.4)' : '1px solid rgba(60, 60, 60, 0.15)'} !important;
+      }
+      .bubble-sub-button-8 .bubble-sub-button-icon,
+      .bubble-sub-button-8 .bubble-sub-button-name {
+        color: ${isPaused ? 'rgba(244, 67, 54, 0.9)' : 'rgba(60, 60, 60, 0.6)'} !important;
+      }
+    `;
+  })()}
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIP 9-10: Weather/Climate - Always gray (informational)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  /* Uses base inactive styling - no dynamic coloring needed for info chips */
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHIP 10: Indoor Climate - Dynamic based on HVAC action
+     ═══════════════════════════════════════════════════════════════════════════ */
+  ${(() => {
+    const climate = hass.states['climate.dining_room'];
+    const hvacAction = climate?.attributes?.hvac_action || 'idle';
+    const isHeating = hvacAction === 'heating';
+    const isCooling = hvacAction === 'cooling';
+    
+    let bgColor = 'rgba(60, 60, 60, 0.08)';
+    let borderColor = '1px solid rgba(60, 60, 60, 0.15)';
+    let iconColor = 'rgba(60, 60, 60, 0.6)';
+    let textColor = 'rgba(60, 60, 60, 0.5)';
+    
+    if (isHeating) {
+      bgColor = 'rgba(255, 120, 50, 0.15)';
+      borderColor = '1px solid rgba(255, 120, 50, 0.40)';
+      iconColor = 'rgb(255, 130, 60)';
+      textColor = 'rgba(255, 130, 60, 0.9)';
+    } else if (isCooling) {
+      bgColor = 'rgba(66, 165, 245, 0.15)';
+      borderColor = '1px solid rgba(66, 165, 245, 0.40)';
+      iconColor = 'rgb(66, 165, 245)';
+      textColor = 'rgba(66, 165, 245, 0.9)';
+    }
+    
+    return `
+      .bubble-sub-button-10 {
+        background: ${bgColor} !important;
+        border: ${borderColor} !important;
+      }
+      .bubble-sub-button-10 .bubble-sub-button-icon {
+        color: ${iconColor} !important;
+      }
+      .bubble-sub-button-10 .bubble-sub-button-name,
+      .bubble-sub-button-10 .bubble-sub-button-attribute {
+        color: ${textColor} !important;
+      }
+    `;
+  })()}
+grid_options:
+  columns: full
+rows: 1.406

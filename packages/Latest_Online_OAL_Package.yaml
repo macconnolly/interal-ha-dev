@@ -143,14 +143,12 @@ input_select:
   oal_active_configuration:
     name: "OAL Active Configuration"
     options:
-      - "Adaptive"
-      - "Full Bright"
-      - "Dim Ambient"
-      - "Warm Ambient"
-      - "TV Mode"
-      - "Sleep"
-      - "Manual"
-    initial: "Adaptive"
+      - "Config 1: Baseline (All On)"
+      - "Config 2: Reduced Overhead (Recessed 2%)"
+      - "Config 3: Evening Relax (Recessed/Tracks Off)"
+      - "Config 4: Accents Only"
+      - "Global Manual Adjustment"
+    initial: "Config 1: Baseline (All On)"
     icon: mdi:tune-variant
 
   oal_isolated_override_mode:
@@ -338,13 +336,7 @@ input_boolean:
   oal_force_sleep:
     name: "OAL Force Sleep Mode"
     initial: false
-    icon: mdi:power-sleep
-
-  # Room Card Show/Hide Toggles
-  living_room_expanded:
-    name: "Living Room Card Expanded"
-    initial: true
-    icon: mdi:eye
+    icon: mdi:bed-clock
 
   oal_disable_sleep_mode:
     name: "OAL Disable Sleep Mode"
@@ -401,7 +393,7 @@ adaptive_lighting:
     adapt_delay: 1
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 25
+    min_brightness: 30
     max_brightness: 100
     min_color_temp: 2000
     max_color_temp: 4000
@@ -536,18 +528,8 @@ automation:
       comp_sunset_b: "{{ states('input_number.oal_offset_sunset_brightness') | float(0) }}"
       comp_sunset_k: "{{ states('input_number.oal_offset_sunset_warmth') | float(0) }}"
 
-      # Sunset amplifies environmental boost (multiplicative, not additive)
-      # At peak sunset (8), env boost is amplified by 50%
-      sunset_amplifier: >
-        {{ 1 + (comp_sunset_b / 8) * 0.5 if comp_sunset_b > 0 else 1.0 }}
-
-      # Environmental boost with sunset amplification, capped at 30%
-      env_with_sunset_capped: >
-        {{ [30, (comp_env_b_raw * sunset_amplifier)] | min }}
-
-      # Config offset alone (sunset no longer added here)
-      base_config_b: >
-        {{ comp_config_b }}
+      base_config_sunset_b: >
+        {{ comp_config_b + comp_sunset_b }}
 
       base_warmth_offset: >
         {{ comp_manual_k + comp_config_k + comp_sunset_k + comp_env_k }}
@@ -663,9 +645,9 @@ automation:
                   {{ state_attr(repeat.item.entity_id, 'brightness_pct')
                      | float((comfort_min_b + comfort_max_b) / 2) }}
 
-                # Auto brightness: config + (env*sunset_multiplier capped at 30%)
+                # Auto brightness (config + sunset + env) within comfort band
                 auto_offset_b: >
-                  {{ base_config_b + (env_with_sunset_capped * env_sensitivity) }}
+                  {{ base_config_sunset_b + (comp_env_b_raw * env_sensitivity) }}
 
                 auto_min_raw: "{{ comfort_min_b + auto_offset_b }}"
                 auto_max_raw: "{{ comfort_max_b + auto_offset_b }}"
@@ -763,14 +745,12 @@ automation:
           trigger_source: >
             {{ trigger.platform ~ ':' ~ (trigger.entity_id | default('n/a')) }}
           final_brightness_offset_total: >
-            {{ base_config_b + env_with_sunset_capped }}
+            {{ base_config_sunset_b + comp_env_b_raw }}
           final_warmth_offset_total: "{{ base_warmth_offset }}"
           comp_b_manual_slider: 0  # Dead code removed (Phase 2A)
           comp_b_config: "{{ comp_config_b }}"
-          comp_b_env_raw: "{{ comp_env_b_raw }}"
-          comp_b_env_with_sunset: "{{ env_with_sunset_capped }}"
+          comp_b_env: "{{ comp_env_b_raw }}"
           comp_b_sunset: "{{ comp_sunset_b }}"
-          sunset_amplifier: "{{ sunset_amplifier }}"
           comp_k_manual: "{{ comp_manual_k }}"
           comp_k_config: "{{ comp_config_k }}"
           comp_k_env: "{{ comp_env_k }}"
@@ -791,80 +771,54 @@ automation:
       transition_speed: "{{ states('input_number.oal_control_transition_speed') | int(2) }}"
       
       config_profiles:
-        # Adaptive: True baseline - AL works normally, no interference
-        "Adaptive":
+        "Config 1: Baseline (All On)":
           b: 0
           k: 0
           lights_off: []
           lights_dimmed: {}
           is_baseline: true
-          is_force_on: false
         
-        # Full Brightness: Turn on ALL lights with AL's calculated values
-        "Full Bright":
-          b: 0
+        "Config 2: Reduced Overhead (Recessed 2%)":
+          b: 5
           k: 0
           lights_off: []
+          lights_dimmed:
+            light.recessed_ceiling_lights: 2
+          is_baseline: false
+        
+        "Config 3: Evening Relax (Recessed/Tracks Off)":
+          b: -10
+          k: -500
+          lights_off:
+            - light.recessed_ceiling_lights
+            - light.accent_spots_lights
           lights_dimmed: {}
           is_baseline: false
-          is_force_on: true
         
-        "Dim Ambient":
-          b: -30
-          k: -500
-          lights_off: []
-          lights_dimmed:
-            light.recessed_ceiling_lights: 1  # Minimal glow
-            light.kitchen_main_lights: 1
-          is_baseline: false
-          is_force_on: false
-        
-        "Warm Ambient":
-          b: -50
+        "Config 4: Accents Only":
+          b: -40
           k: -1000
           lights_off:
             - light.recessed_ceiling_lights
-            - light.kitchen_main_lights
-          lights_dimmed:
-            light.accent_spots_lights: 10 # Dim spots
+            - light.accent_spots_lights
+            - light.kitchen_island_lights
+            - light.living_room_floor_lamp
+            - light.living_room_couch_lamp
+            - light.office_desk_lamp
+            - light.master_bedroom_table_lamps
+          lights_dimmed: {}
           is_baseline: false
-          is_force_on: false
         
-        "TV Mode":
-          b: -60 # Global dim
-          k: -1500 # Very warm
-          lights_off:
-            - light.column_lights # Per requirement
-            - light.living_room_floor_lamp # "Floor lamp B" off/5%
-            - light.kitchen_main_lights
-          lights_dimmed:
-            light.living_room_couch_lamp: 5 # "Much dimmer"
-            light.kitchen_island_pendants: 15 # "Pendants down"
-          is_baseline: false
-          is_force_on: false
-
-        "Sleep":
+        "Global Manual Adjustment":
           b: 0
           k: 0
           lights_off: []
           lights_dimmed: {}
           is_baseline: false
-          is_force_on: false
-          is_sleep: true
-
-        "Manual":
-          b: 0
-          k: 0
-          lights_off: []
-          lights_dimmed: {}
-          is_baseline: false
-          is_force_on: false
       
       target_profile: "{{ config_profiles.get(config, {}) }}"
       is_baseline: "{{ target_profile.get('is_baseline', false) }}"
-      is_force_on: "{{ target_profile.get('is_force_on', false) }}"
-      is_sleep: "{{ target_profile.get('is_sleep', false) }}"
-
+      
       # FIX 2: Calculate expanded switches once for efficiency
       all_switches_expanded: >
         {{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}
@@ -872,7 +826,19 @@ automation:
       all_adaptive_lights_expanded: >
         {{ expand('light.all_adaptive_lights') | map(attribute='entity_id') | list }}
       
-      # Expand light groups to individual entities for manual control
+      # FIX 1: Expand light groups to individual entities for manual control
+      prev_controlled_lights: >
+        {% if trigger.from_state is not none and is_state('input_boolean.oal_config_power_handoff_active', 'on') %}
+          {% set prev_config = trigger.from_state.state %}
+          {% set prev_profile = config_profiles.get(prev_config, {}) %}
+          {% set lights_off = prev_profile.get('lights_off', []) %}
+          {% set lights_dimmed = prev_profile.get('lights_dimmed', {}).keys() | list %}
+          {% set combined = (lights_off + lights_dimmed) | unique | list %}
+          {{ expand(combined) | map(attribute='entity_id') | list }}
+        {% else %}
+          []
+        {% endif %}
+      
       new_controlled_lights: >
         {% set lights_off = target_profile.get('lights_off', []) %}
         {% set lights_dimmed = target_profile.get('lights_dimmed', {}).keys() | list %}
@@ -888,24 +854,11 @@ automation:
           entity_id: input_boolean.oal_config_transition_active
 
       # =========================================================================
-      # SLEEP MODE: Toggle force_sleep based on Sleep Mode selection
-      # =========================================================================
-      - if: "{{ is_sleep }}"
-        then:
-          - service: input_boolean.turn_on
-            target:
-              entity_id: input_boolean.oal_force_sleep
-        else:
-          - service: input_boolean.turn_off
-            target:
-              entity_id: input_boolean.oal_force_sleep
-
-      # =========================================================================
       # ROUTE: Choose execution path based on target config
       # =========================================================================
       - choose:
           # =====================================================================
-          # BASELINE PATH: Adaptive - just let AL work normally, no forced turn on
+          # BASELINE PATH: Special handling for "Config 1: Baseline (All On)"
           # =====================================================================
           - conditions:
               - condition: template
@@ -921,49 +874,7 @@ automation:
                       data:
                         manual_control: false
               
-              # 2. Clear handoff flag (no overrides in adaptive baseline)
-              - service: input_boolean.turn_off
-                target:
-                  entity_id: input_boolean.oal_config_power_handoff_active
-              
-              # 3. Set baseline offsets (0, 0)
-              - service: input_number.set_value
-                target:
-                  entity_id: input_number.oal_offset_config_brightness
-                data:
-                  value: 0
-              
-              - service: input_number.set_value
-                target:
-                  entity_id: input_number.oal_offset_config_warmth
-                data:
-                  value: 0
-              
-              # 4. Unlock engine - Core Engine will manage lights naturally
-              - service: input_boolean.turn_off
-                target:
-                  entity_id: input_boolean.oal_config_transition_active
-              
-              # EXIT: Baseline path complete - AL now works normally
-          
-          # =====================================================================
-          # FORCE ON PATH: Full Brightness - turn on ALL lights with AL values
-          # =====================================================================
-          - conditions:
-              - condition: template
-                value_template: "{{ is_force_on }}"
-            sequence:
-              # 1. Release ALL manual controls system-wide
-              - repeat:
-                  for_each: "{{ all_switches_expanded }}"
-                  sequence:
-                    - service: adaptive_lighting.set_manual_control
-                      target:
-                        entity_id: "{{ repeat.item }}"
-                      data:
-                        manual_control: false
-              
-              # 2. Turn on ALL lights with AL's calculated settings
+              # 2. Turn on ALL lights with baseline settings
               - repeat:
                   for_each: "{{ all_switches_expanded }}"
                   sequence:
@@ -974,7 +885,7 @@ automation:
                         turn_on_lights: true
                         transition: "{{ transition_speed }}"
               
-              # 3. Clear handoff flag (no overrides in force-on)
+              # 3. Clear handoff flag (no overrides in baseline)
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_power_handoff_active
@@ -992,32 +903,75 @@ automation:
                 data:
                   value: 0
               
-              # 5. Unlock engine
+              # 5. Unlock engine BEFORE triggering
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_transition_active
               
-              # EXIT: Force-on path complete
+              # 6. Trigger engine to recalculate with baseline offsets
+              - event: oal_watchdog_trigger
+                event_data:
+                  message: "Baseline config applied - recalculating all zones"
+              
+              # EXIT: Baseline path complete
 
         # =======================================================================
-        # OVERRIDE PATH: Handle dimmed/ambient/TV configs
-        # Simplified: Clear ALL manual controls first, then apply new config's overrides
+        # OVERRIDE PATH: Handle configs 2, 3, 4, and Global Manual Adjustment
+        # FIX 3: This implicitly handles baseline→override transitions by 
+        # skipping Phase 1 cleanup (no prev_controlled_lights when coming from 
+        # baseline since handoff flag is off). This is intentional - baseline 
+        # has no overrides to clean up.
         # =======================================================================
         default:
-          # PHASE 1: Clear ALL manual controls on all switches (clean slate)
-          - repeat:
-              for_each: "{{ all_switches_expanded }}"
-              sequence:
-                - service: adaptive_lighting.set_manual_control
-                  target:
-                    entity_id: "{{ repeat.item }}"
-                  data:
-                    manual_control: false
-          
-          # Clear handoff flag
-          - service: input_boolean.turn_off
-            target:
-              entity_id: input_boolean.oal_config_power_handoff_active
+          # PHASE 1: Cleanup previous config's power handoff
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ prev_controlled_lights | length > 0 }}"
+                sequence:
+                  # Release manual control on previously controlled lights
+                  # FIX: Match lights to their respective switches instead of passing all to all
+                  - repeat:
+                      for_each: "{{ all_switches_expanded }}"
+                      sequence:
+                        - variables:
+                            # Get lights managed by this switch and expand groups to individuals
+                            switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
+                            switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
+                            # Find which prev_controlled_lights belong to this switch
+                            lights_for_switch: "{{ prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                        - if: "{{ lights_for_switch | length > 0 }}"
+                          then:
+                            - service: adaptive_lighting.set_manual_control
+                              target:
+                                entity_id: "{{ repeat.item }}"
+                              data:
+                                lights: "{{ lights_for_switch }}"
+                                manual_control: false
+
+                  # Apply AL without turning lights on (just release control)
+                  # FIX: Same pattern - match lights to their switches
+                  - repeat:
+                      for_each: "{{ all_switches_expanded }}"
+                      sequence:
+                        - variables:
+                            switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
+                            switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
+                            lights_for_switch: "{{ prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                        - if: "{{ lights_for_switch | length > 0 }}"
+                          then:
+                            - service: adaptive_lighting.apply
+                              target:
+                                entity_id: "{{ repeat.item }}"
+                              data:
+                                lights: "{{ lights_for_switch }}"
+                                turn_on_lights: false
+                                transition: "{{ transition_speed }}"
+
+                  # Clear old handoff flag
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: input_boolean.oal_config_power_handoff_active
           
           # GLOBAL MANUAL SHORTCUT: Unlock and trigger immediately, skip offset logic
           - choose:
@@ -1032,22 +986,9 @@ automation:
                     event_data:
                       message: "Global Manual mode - triggering immediate update"
 
-          # SLEEP MODE SHORTCUT: Unlock and trigger Core Engine (it handles sleep)
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ is_sleep }}"
-                sequence:
-                  - service: input_boolean.turn_off
-                    target:
-                      entity_id: input_boolean.oal_config_transition_active
-                  - event: oal_watchdog_trigger
-                    event_data:
-                      message: "Sleep Mode activated - Core Engine will apply sleep settings"
-
-          # PHASE 2: Apply new config offset settings (skip for Global Manual and Sleep Mode)
+          # PHASE 2: Apply new config offset settings (skip for Global Manual)
           - condition: template
-            value_template: "{{ config != 'Global Manual Adjustment' and not is_sleep }}"
+            value_template: "{{ config != 'Global Manual Adjustment' }}"
           
           - service: input_number.set_value
             target:
@@ -1070,23 +1011,24 @@ automation:
                   - condition: template
                     value_template: "{{ new_controlled_lights | length > 0 }}"
                 sequence:
-                  # 3A. Set manual control on lights being overridden (per-switch)
+                  # 3A. Set manual control FIRST (before power changes)
+                  # FIX: Match lights to their respective switches for reliable manual control
                   - repeat:
                       for_each: "{{ all_switches_expanded }}"
                       sequence:
                         - variables:
-                            switch_id: "{{ repeat.item }}"
-                            switch_lights: "{{ state_attr(switch_id, 'lights') | default([]) }}"
-                            lights_for_this_switch: "{{ switch_lights | select('in', new_controlled_lights) | list }}"
-                        - if:
-                            - condition: template
-                              value_template: "{{ lights_for_this_switch | length > 0 }}"
+                            # Get lights managed by this switch and expand groups to individuals
+                            switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
+                            switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
+                            # Find which new_controlled_lights belong to this switch
+                            lights_for_switch: "{{ new_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                        - if: "{{ lights_for_switch | length > 0 }}"
                           then:
                             - service: adaptive_lighting.set_manual_control
                               target:
-                                entity_id: "{{ switch_id }}"
+                                entity_id: "{{ repeat.item }}"
                               data:
-                                lights: "{{ lights_for_this_switch }}"
+                                lights: "{{ lights_for_switch }}"
                                 manual_control: true
                   
                   # 3B. Apply dimmed lights
@@ -1145,7 +1087,7 @@ automation:
       brightness_offset: >
         {% if 8 >= elevation >= -8 %}
           {% set gauss = e ** ( - (elevation ** 2) / (2 * (4 ** 2)) ) %}
-          {{ (gauss * 8) | round(0) }}
+          {{ (gauss * 15) | round(0) }}
         {% else %}
           0
         {% endif %}
@@ -1202,34 +1144,29 @@ automation:
           {% set lux = states('sensor.living_room_illuminance') | float(500) %}
           {% set weather = states('weather.home') %}
           {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
+          {% set base_boost = 0 %}
 
-          {# Lux-based boost (primary factor - 100% weight) #}
-          {% set lux_boost = 0 %}
           {% if lux < 10 %}
-            {% set lux_boost = 18 %}
+            {% set base_boost = base_boost + 18 %}
           {% elif lux < 50 %}
-            {% set lux_boost = 10 %}
+            {% set base_boost = base_boost + 10 %}
           {% elif lux < 150 %}
-            {% set lux_boost = 5 %}
+            {% set base_boost = base_boost + 5 %}
           {% elif lux < 300 %}
-            {% set lux_boost = 2 %}
+            {% set base_boost = base_boost + 2 %}
           {% endif %}
 
-          {# Weather boost lookup (40% weight - psychological factor) #}
-          {% set weather_lookup = {
+          {% set weather_boost = {
             'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
             'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
             'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
           } %}
-          {% set weather_boost = weather_lookup.get(weather, 0) %}
+          {% set base_boost = base_boost + weather_boost.get(weather, 0) %}
 
-          {# Season boost (25% weight - timing context) #}
-          {% set season_boost = 8 if season == 'winter' else 0 %}
+          {% if season == 'winter' %}
+            {% set base_boost = base_boost + 8 %}
+          {% endif %}
 
-          {# WEIGHTED combination to prevent compounding #}
-          {% set base_boost = lux_boost + (weather_boost * 0.4) + (season_boost * 0.25) %}
-
-          {# Time-based modifiers #}
           {% set hour = now().hour %}
           {% if 22 <= hour or hour <= 6 or lux > 2500 %}
             {% set base_boost = 0 %}
@@ -1606,7 +1543,7 @@ automation:
                   entity_id: input_boolean.oal_movie_mode_active
 
   # ---------------------------------------------------------------------------
-  # 4.11 Sleep-mode schedule (sets input_select → Config Manager → Core Engine)
+  # 4.11 Sleep-mode schedule (toggle AL sleep switches)
   # ---------------------------------------------------------------------------
   - id: oal_manage_sleep_mode_v13
     alias: "OAL v13 - Manage Sleep Mode Schedule"
@@ -1625,13 +1562,15 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_disable_sleep_mode
         state: "off"
+    variables:
+      sleep_switches: >
+        {{ states.switch
+           | selectattr('entity_id', 'search', 'adaptive_lighting_sleep_mode_')
+           | map(attribute='entity_id') | list }}
     action:
-      # Set input_select - Config Manager handles sleep toggle + Core Engine applies
-      - service: input_select.select_option
+      - action: "switch.turn_{{ 'on' if trigger.id == 'start_sleep' else 'off' }}"
         target:
-          entity_id: input_select.oal_active_configuration
-        data:
-          option: "{{ 'Sleep' if trigger.id == 'start_sleep' else 'Adaptive' }}"
+          entity_id: "{{ sleep_switches }}"
 
   # ---------------------------------------------------------------------------
   # 4.12 System startup
@@ -1913,10 +1852,9 @@ script:
           option: "Global Manual Adjustment"
 
   # Single shared manual brightness stepper (per-zone, B_base-aware)
-  # Supports optional 'lights' param for per-room control
   oal_manual_brightness_step:
     alias: "OAL v13 - Manual Brightness Step (Per-Zone, B_base-aware)"
-    description: "Adjusts zone brightness offsets. Optionally filter to specific lights/zones."
+    description: "Adjusts all zone brightness offsets by a dynamic step based on current brightness."
     icon: mdi:brightness-percent
     fields:
       direction:
@@ -1930,69 +1868,14 @@ script:
                 value: "1"
               - label: "Dimmer"
                 value: "-1"
-      lights:
-        description: "Optional: Light entities or group to adjust. If omitted, adjusts all zones."
-        required: false
-        selector:
-          entity:
-            domain: light
-            multiple: true
     sequence:
       - variables:
           dir: "{{ direction | int(1) }}"
-          
-          # Expand input lights (handles groups and individual lights)
-          input_lights: >
-            {% if lights is defined and lights %}
-              {% set expanded = expand(lights) | map(attribute='entity_id') | list %}
-              {{ expanded if expanded | length > 0 else [lights] if lights is string else lights }}
-            {% else %}
-              []
-            {% endif %}
-          
-          # Zone group definitions (existing groups)
-          zone_groups:
-            main_living: light.main_living_lights
-            kitchen_island: light.kitchen_island_lights
-            bedroom_primary: light.bedroom_primary_lights
-            accent_spots: light.accent_spots_lights
-            recessed_ceiling: light.recessed_ceiling_lights
-            column_lights: light.column_lights
-          
-          # All zone IDs
-          all_zone_ids:
-            - main_living
-            - kitchen_island
-            - bedroom_primary
-            - accent_spots
-            - recessed_ceiling
-            - column_lights
-          
-          # Determine which zones contain the input lights
-          target_zones: >
-            {% if input_lights | length == 0 %}
-              {{ all_zone_ids }}
-            {% else %}
-              {% set ns = namespace(zones=[]) %}
-              {% for zone_id in all_zone_ids %}
-                {% set group_entity = zone_groups[zone_id] %}
-                {% set group_members = expand(group_entity) | map(attribute='entity_id') | list %}
-                {% for light in input_lights %}
-                  {% if light in group_members and zone_id not in ns.zones %}
-                    {% set ns.zones = ns.zones + [zone_id] %}
-                  {% endif %}
-                {% endfor %}
-              {% endfor %}
-              {{ ns.zones }}
-            {% endif %}
       
       # Execute all zone updates in parallel for instant responsiveness
       - parallel:
           # Main Living
-          - if:
-              - condition: template
-                value_template: "{{ 'main_living' in target_zones }}"
-            then:
+          - sequence:
               - variables:
                   b_base: >
                     {{ state_attr('switch.adaptive_lighting_main_living', 'brightness_pct') | float(50) }}
@@ -2019,10 +1902,7 @@ script:
                   value: "{{ new_value }}"
           
           # Kitchen Island
-          - if:
-              - condition: template
-                value_template: "{{ 'kitchen_island' in target_zones }}"
-            then:
+          - sequence:
               - variables:
                   b_base: >
                     {{ state_attr('switch.adaptive_lighting_kitchen_island', 'brightness_pct') | float(50) }}
@@ -2049,10 +1929,7 @@ script:
                   value: "{{ new_value }}"
           
           # Bedroom Primary
-          - if:
-              - condition: template
-                value_template: "{{ 'bedroom_primary' in target_zones }}"
-            then:
+          - sequence:
               - variables:
                   b_base: >
                     {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'brightness_pct') | float(50) }}
@@ -2079,10 +1956,7 @@ script:
                   value: "{{ new_value }}"
           
           # Accent Spots
-          - if:
-              - condition: template
-                value_template: "{{ 'accent_spots' in target_zones }}"
-            then:
+          - sequence:
               - variables:
                   b_base: >
                     {{ state_attr('switch.adaptive_lighting_accent_spots', 'brightness_pct') | float(50) }}
@@ -2109,10 +1983,7 @@ script:
                   value: "{{ new_value }}"
           
           # Recessed Ceiling
-          - if:
-              - condition: template
-                value_template: "{{ 'recessed_ceiling' in target_zones }}"
-            then:
+          - sequence:
               - variables:
                   b_base: >
                     {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'brightness_pct') | float(50) }}
@@ -2139,10 +2010,7 @@ script:
                   value: "{{ new_value }}"
 
           # Column Lights
-          - if:
-              - condition: template
-                value_template: "{{ 'column_lights' in target_zones }}"
-            then:
+          - sequence:
               - variables:
                   b_base: >
                     {{ state_attr('switch.adaptive_lighting_column_lights', 'brightness_pct') | float(50) }}
@@ -2261,7 +2129,7 @@ script:
         target:
           entity_id: input_select.oal_active_configuration
         data:
-          option: "Adaptive"
+          option: "Config 1: Baseline (All On)"
       - service: input_select.select_option
         target:
           entity_id: input_select.oal_isolated_override_mode
@@ -2302,110 +2170,6 @@ script:
         data:
           use_defaults: "configuration"
 
-  # -------------------------------------------------------------------------
-  # Parameterized Room Reset Script (replaces hardcoded oal_reset_living_room)
-  # -------------------------------------------------------------------------
-  oal_reset_room:
-    alias: "OAL Reset Room"
-    description: "Resets manual control and offsets for zones containing specified lights"
-    icon: mdi:refresh
-    fields:
-      lights:
-        description: "Light group or entities to reset (e.g., light.all_living_room_lights)"
-        required: true
-        selector:
-          entity:
-            domain: light
-            multiple: true
-    sequence:
-      - variables:
-          # Same zone detection logic as brightness_step
-          input_lights: >
-            {% set expanded = expand(lights) | map(attribute='entity_id') | list %}
-            {{ expanded if expanded | length > 0 else [lights] if lights is string else lights }}
-
-          zone_groups:
-            main_living: light.main_living_lights
-            kitchen_island: light.kitchen_island_lights
-            bedroom_primary: light.bedroom_primary_lights
-            accent_spots: light.accent_spots_lights
-            recessed_ceiling: light.recessed_ceiling_lights
-            column_lights: light.column_lights
-
-          zone_switches:
-            main_living: switch.adaptive_lighting_main_living
-            kitchen_island: switch.adaptive_lighting_kitchen_island
-            bedroom_primary: switch.adaptive_lighting_bedroom_primary
-            accent_spots: switch.adaptive_lighting_accent_spots
-            recessed_ceiling: switch.adaptive_lighting_recessed_ceiling
-            column_lights: switch.adaptive_lighting_column_lights
-
-          zone_offsets:
-            main_living: input_number.oal_manual_offset_main_living_brightness
-            kitchen_island: input_number.oal_manual_offset_kitchen_island_brightness
-            bedroom_primary: input_number.oal_manual_offset_bedroom_primary_brightness
-            accent_spots: input_number.oal_manual_offset_accent_spots_brightness
-            recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
-            column_lights: input_number.oal_manual_offset_column_lights_brightness
-
-          all_zone_ids:
-            - main_living
-            - kitchen_island
-            - bedroom_primary
-            - accent_spots
-            - recessed_ceiling
-            - column_lights
-
-          target_zones: >
-            {% set ns = namespace(zones=[]) %}
-            {% for zone_id in all_zone_ids %}
-              {% set group_entity = zone_groups[zone_id] %}
-              {% set group_members = expand(group_entity) | map(attribute='entity_id') | list %}
-              {% for light in input_lights %}
-                {% if light in group_members and zone_id not in ns.zones %}
-                  {% set ns.zones = ns.zones + [zone_id] %}
-                {% endif %}
-              {% endfor %}
-            {% endfor %}
-            {{ ns.zones }}
-
-          # Build target lists using namespace loop
-          target_switches: >
-            {% set ns = namespace(items=[]) %}
-            {% for zone in target_zones %}
-              {% set ns.items = ns.items + [zone_switches[zone]] %}
-            {% endfor %}
-            {{ ns.items }}
-
-          target_offsets: >
-            {% set ns = namespace(items=[]) %}
-            {% for zone in target_zones %}
-              {% set ns.items = ns.items + [zone_offsets[zone]] %}
-            {% endfor %}
-            {{ ns.items }}
-
-      # Clear manual control for affected zones
-      - service: adaptive_lighting.set_manual_control
-        target:
-          entity_id: "{{ target_switches }}"
-        data:
-          manual_control: false
-
-      # Reset brightness offsets for affected zones
-      - service: input_number.set_value
-        target:
-          entity_id: "{{ target_offsets }}"
-        data:
-          value: 0
-
-      # Re-apply adaptive lighting
-      - service: adaptive_lighting.apply
-        target:
-          entity_id: "{{ target_switches }}"
-        data:
-          turn_on_lights: true
-          transition: 1
-
 # =============================================================================
 # LAYER 6: TEMPLATE SENSORS (DIAGNOSTICS & MONITORING)
 # =============================================================================
@@ -2422,6 +2186,8 @@ template:
           {{ states('input_boolean.oal_system_paused') not in ['unknown', 'unavailable'] }}
         state: >
           {% set force_sleep = is_state('input_boolean.oal_force_sleep', 'on') %}
+          {% set sleep_switches = states.switch | selectattr('entity_id', 'search', 'adaptive_lighting_sleep_mode_') | selectattr('state', 'eq', 'on') | list %}
+          {% set scheduled_sleep = sleep_switches | length > 0 %}
           {% set b_cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
           {% set b_env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
           {% set b_sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
@@ -2435,7 +2201,9 @@ template:
           ] %}
           {% set max_zone = (zones | map('abs') | max) if zones | length > 0 else 0 %}
           {% if force_sleep %}
-            Sleep Mode
+            Force Sleep Mode
+          {% elif scheduled_sleep %}
+            Scheduled Sleep Mode
           {% elif b_cfg == 0 and b_env == 0 and b_sun == 0 and max_zone == 0 %}
             Baseline
           {% else %}
@@ -2562,13 +2330,11 @@ template:
         state: >
           {% if is_state('input_boolean.oal_system_paused', 'on') %}
             Paused
-          {% elif is_state('input_boolean.oal_force_sleep', 'on') %}
-            Sleep Mode
           {% elif is_state('input_boolean.oal_movie_mode_active', 'on') %}
             Movie Mode
           {% elif states('input_select.oal_isolated_override_mode') != 'Off' %}
             Isolated: {{ states('input_select.oal_isolated_override_mode') }}
-          {% elif states('input_select.oal_active_configuration') not in ['Adaptive', 'Sleep'] %}
+          {% elif states('input_select.oal_active_configuration') != 'Config 1: Baseline (All On)' %}
             {{ states('input_select.oal_active_configuration') }}
           {% elif states('input_number.oal_offset_environmental_brightness') | float(0) > 0 %}
             Environmental Boost
@@ -3222,39 +2988,43 @@ template:
           {% set lux = states('sensor.living_room_illuminance') | float(500) %}
           {% set weather = states('weather.home') %}
           {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
-
-          {# Lux boost (100% weight) #}
-          {% set lux_boost = 0 %}
-          {% if lux < 10 %}{% set lux_boost = 18 %}
-          {% elif lux < 50 %}{% set lux_boost = 10 %}
-          {% elif lux < 150 %}{% set lux_boost = 5 %}
-          {% elif lux < 300 %}{% set lux_boost = 2 %}
+          {% set base_boost = 0 %}
+          
+          {% if lux < 10 %}
+            {% set base_boost = base_boost + 18 %}
+          {% elif lux < 50 %}
+            {% set base_boost = base_boost + 10 %}
+          {% elif lux < 150 %}
+            {% set base_boost = base_boost + 5 %}
+          {% elif lux < 300 %}
+            {% set base_boost = base_boost + 2 %}
           {% endif %}
-
-          {# Weather boost (40% weight) #}
-          {% set weather_lookup = {
+          
+          {% set weather_boost = {
             'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
             'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
             'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
           } %}
-          {% set weather_boost = weather_lookup.get(weather, 0) %}
-
-          {# Season boost (25% weight) #}
-          {% set season_boost = 8 if season == 'winter' else 0 %}
-
-          {# WEIGHTED combination #}
-          {% set base_boost = lux_boost + (weather_boost * 0.4) + (season_boost * 0.25) %}
-
+          {% set weather_bonus = weather_boost.get(weather, 0) %}
+          {% set base_boost = base_boost + weather_bonus %}
+          
+          {% if season == 'winter' %}
+            {% set base_boost = base_boost + 8 %}
+          {% endif %}
+          
           {% set hour = now().hour %}
-          {% if 22 <= hour or hour <= 6 or lux > 2500 %}
+          {% set time_suppressed = (22 <= hour or hour <= 6 or lux > 2500) %}
+          {% set time_reduced = (6 < hour <= 8 or 18 <= hour < 22) %}
+          
+          {% if time_suppressed %}
             {% set final_boost = 0 %}
-          {% elif 6 < hour <= 8 or 18 <= hour < 22 %}
+          {% elif time_reduced %}
             {% set final_boost = base_boost * 0.7 %}
           {% else %}
             {% set final_boost = base_boost %}
           {% endif %}
-
-          {{ [50, final_boost] | min | round(1) }}%
+          
+          {{ [50, final_boost] | min | round(0) }}%
         attributes:
           # Input values
           lux_current: >
@@ -3267,9 +3037,9 @@ template:
             {{ now().hour }}
           boost_enabled: >
             {{ is_state('input_boolean.oal_environmental_boost_enabled', 'on') }}
-
-          # Raw component values (before weighting)
-          lux_boost_raw: >
+          
+          # Calculation breakdown
+          lux_boost: >
             {% set lux = states('sensor.living_room_illuminance') | float(500) %}
             {% if lux < 10 %} 18
             {% elif lux < 50 %} 10
@@ -3277,46 +3047,17 @@ template:
             {% elif lux < 300 %} 2
             {% else %} 0
             {% endif %}
-          weather_boost_raw: >
+          weather_boost: >
             {% set weather = states('weather.home') %}
-            {% set weather_lookup = {
+            {% set weather_boost = {
               'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
               'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
               'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
             } %}
-            {{ weather_lookup.get(weather, 0) }}
-          season_boost_raw: >
+            {{ weather_boost.get(weather, 0) }}
+          season_boost: >
             {{ 8 if now().month in [11, 12, 1, 2, 3] else 0 }}
-
-          # Weighted contributions
-          lux_weighted: >
-            {% set lux = states('sensor.living_room_illuminance') | float(500) %}
-            {% if lux < 10 %}{{ 18 }}
-            {% elif lux < 50 %}{{ 10 }}
-            {% elif lux < 150 %}{{ 5 }}
-            {% elif lux < 300 %}{{ 2 }}
-            {% else %}{{ 0 }}
-            {% endif %}
-          weather_weighted: >
-            {% set weather = states('weather.home') %}
-            {% set weather_lookup = {
-              'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
-              'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
-              'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
-            } %}
-            {{ (weather_lookup.get(weather, 0) * 0.4) | round(1) }}
-          season_weighted: >
-            {% set season_boost = 8 if now().month in [11, 12, 1, 2, 3] else 0 %}
-            {{ (season_boost * 0.25) | round(1) }}
-          weights_formula: "lux×1.0 + weather×0.4 + season×0.25"
-
-          # Sunset amplifier info
-          sunset_boost: >
-            {{ states('input_number.oal_offset_sunset_brightness') | float(0) }}
-          sunset_amplifier: >
-            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
-            {{ (1 + (sun / 8) * 0.5) | round(2) if sun > 0 else 1.0 }}
-
+          
           # Time-based adjustments
           time_status: >
             {% set hour = now().hour %}
@@ -3330,25 +3071,26 @@ template:
             {% else %}
               Normal ({{ hour }}:00)
             {% endif %}
-
-          # Final calculations
-          weighted_boost_before_time: >
+          
+          # Final calculation
+          raw_boost_before_time: >
             {% set lux = states('sensor.living_room_illuminance') | float(500) %}
             {% set weather = states('weather.home') %}
-            {% set lux_boost = 0 %}
-            {% if lux < 10 %}{% set lux_boost = 18 %}
-            {% elif lux < 50 %}{% set lux_boost = 10 %}
-            {% elif lux < 150 %}{% set lux_boost = 5 %}
-            {% elif lux < 300 %}{% set lux_boost = 2 %}
+            {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
+            {% set base_boost = 0 %}
+            {% if lux < 10 %} {% set base_boost = base_boost + 18 %}
+            {% elif lux < 50 %} {% set base_boost = base_boost + 10 %}
+            {% elif lux < 150 %} {% set base_boost = base_boost + 5 %}
+            {% elif lux < 300 %} {% set base_boost = base_boost + 2 %}
             {% endif %}
-            {% set weather_lookup = {
+            {% set weather_boost = {
               'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
               'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
               'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
             } %}
-            {% set weather_boost = weather_lookup.get(weather, 0) %}
-            {% set season_boost = 8 if now().month in [11, 12, 1, 2, 3] else 0 %}
-            {{ (lux_boost + (weather_boost * 0.4) + (season_boost * 0.25)) | round(1) }}
+            {% set base_boost = base_boost + weather_boost.get(weather, 0) %}
+            {% if season == 'winter' %} {% set base_boost = base_boost + 8 %} {% endif %}
+            {{ base_boost }}
           
           actual_applied_boost: >
             {{ states('input_number.oal_offset_environmental_brightness') | float(0) }}
@@ -3368,721 +3110,3 @@ template:
               {% endif %}
             {% endif %}
 
-
-# =============================================================================
-# LAYER 7: DASHBOARD UI LOGIC (HERO COMPONENT HELPERS)
-# =============================================================================
-
-      # HERO BUTTON: CONFIG STATE
-      # -----------------------------------------------------------------------
-      - name: "Hero Button Config State"
-        unique_id: hero_button_config_state
-        state: >
-          {% set config = states('input_select.oal_active_configuration') %}
-          {% if 'Full Brightness' in config %} Baseline
-          {% elif 'Dimmed Ambient' in config %} Dimmed
-          {% elif 'Warm Ambient' in config %} Warm
-          {% elif 'TV Mode' in config %} TV
-          {% elif 'Sleep' in config %} Sleep
-          {% else %} Manual {% endif %}
-        attributes:
-          is_baseline: >
-            {{ 'Full Brightness' in states('input_select.oal_active_configuration') }}
-          icon_color: >
-            {% if 'Full Brightness' in states('input_select.oal_active_configuration') %} rgba(80, 80, 80, 0.5)
-            {% else %} rgba(120, 80, 180, 0.9) {% endif %}
-          bg_color: >
-             {% if 'Full Brightness' in states('input_select.oal_active_configuration') %} rgba(120, 120, 120, 0.10)
-             {% else %} rgba(138, 100, 200, 0.15) {% endif %}
-          border_color: >
-             {% if 'Full Brightness' in states('input_select.oal_active_configuration') %} 1px solid rgba(120, 120, 120, 0.25)
-             {% else %} 1px solid rgba(138, 100, 200, 0.35) {% endif %}
-
-      # HERO BUTTON: RESET STATE
-      # -----------------------------------------------------------------------
-      - name: "Hero Button Reset State"
-        unique_id: hero_button_reset_state
-        state: >
-          {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
-                          'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
-                          'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
-          {% set manual_count = namespace(value=0) %}
-          {% for z in zones %}
-             {% set manual_count.value = manual_count.value + (state_attr(z, 'manual_control') | default([]) | length) %}
-          {% endfor %}
-          {{ 'on' if manual_count.value > 0 else 'off' }}
-        attributes:
-          time_remaining: >
-            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
-                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
-                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
-            {% set soonest = namespace(value=999999) %}
-            {% for z in zones %}
-              {% set timer_dict = state_attr(z, 'autoreset_time_remaining') or {} %}
-              {% for k, v in timer_dict.items() %}
-                {% if v|float(0) > 0 and v|float(0) < soonest.value %}
-                  {% set soonest.value = v|float(0) %}
-                {% endif %}
-              {% endfor %}
-            {% endfor %}
-            
-            {% if soonest.value < 999999 %}
-              {% set h = (soonest.value / 3600) | int %}
-              {% set m = ((soonest.value % 3600) / 60) | int %}
-              {% if h > 0 %}{{ h }}h {{ m }}m{% else %}{{ m }}m{% endif %}
-            {% else %}
-              0m
-            {% endif %}
-          boost_source: >
-             {{ state_attr('sensor.oal_real_time_monitor', 'Boost source') }}
-          display_label: >
-            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
-                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
-                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
-            {% set manual_active = this.state == 'on' %}
-            {% if manual_active %}
-              {{ state_attr(this.entity_id, 'time_remaining') }}
-            {% else %}
-              Reset
-            {% endif %}
-
-      # HERO BUTTON: ALARM STATE
-      # -----------------------------------------------------------------------
-      - name: "Hero Button Alarm State"
-        unique_id: hero_button_alarm_state
-        state: >
-          {{ states('sensor.sonos_next_alarm_chip') }}
-        attributes:
-           formatted_time: >
-             {% set time_raw = state_attr('sensor.sonos_next_alarm_chip', 'time') %}
-             {% if time_raw and time_raw not in ['unknown', 'unavailable'] %}
-               {% set parts = time_raw.split(':') %}
-               {% if parts|length >= 2 %}
-                 {% set h = parts[0]|int %}
-                 {% set m = parts[1] %}
-                 {% set h12 = h % 12 %}
-                 {% if h12 == 0 %}{% set h12 = 12 %}{% endif %}
-                 {{ h12 }}:{{ m }}{{ 'p' if h >= 12 else 'a' }}
-               {% else %}OFF{% endif %}
-             {% else %}OFF{% endif %}
-           is_enabled: >
-             {% set enabled = state_attr('sensor.sonos_next_alarm_chip', 'is_enabled') %}
-             {{ enabled == true or enabled == 'True' }}
-           
-      # HERO BUTTON: SPEAKERS STATE
-      # -----------------------------------------------------------------------
-      - name: "Hero Button Speakers State"
-        unique_id: hero_button_speakers_state
-        state: >
-          {% set count = expand('binary_sensor.sonos_living_room_in_playing_group', 
-                              'binary_sensor.sonos_dining_room_in_playing_group',
-                              'binary_sensor.sonos_kitchen_in_playing_group',
-                              'binary_sensor.sonos_bath_in_playing_group',
-                              'binary_sensor.sonos_bedroom_in_playing_group') 
-             | selectattr('state', 'eq', 'on') | list | length %}
-          {{ count }}
-        attributes:
-          is_active: >
-             {{ this.state | int(0) > 0 }}
-          label: >
-             {{ this.state }}/5
-
-      # HERO BUTTON: ALL LIGHTS STATE
-      # -----------------------------------------------------------------------
-      - name: "Hero All Lights State"
-        unique_id: hero_all_lights_state
-        state: "{{ states('light.all_adaptive_lights') }}"
-        attributes:
-          # Styling attributes
-          bg_color: >
-            {{ 'rgba(255, 149, 0, 0.18)' if is_state('light.all_adaptive_lights', 'on')
-               else 'rgba(255, 255, 255, 0.10)' }}
-          border_color: >
-            {{ '1px solid rgba(255, 149, 0, 0.4)' if is_state('light.all_adaptive_lights', 'on')
-               else '1px solid rgba(255, 255, 255, 0.12)' }}
-          icon_color: >
-            {{ 'rgb(255, 149, 0)' if is_state('light.all_adaptive_lights', 'on')
-               else 'rgba(80, 80, 80, 0.7)' }}
-          # Counting attributes
-          number_on: >
-            {% set lights = expand('light.living_room_adaptive_light',
-                                   'light.kitchen_island_adaptive_light',
-                                   'light.bedroom_primary_adaptive_light',
-                                   'light.accent_spots_adaptive_light',
-                                   'light.recessed_ceiling_adaptive_light',
-                                   'light.column_lights_adaptive_light') %}
-            {{ lights | selectattr('state', 'eq', 'on') | list | length }}
-          total_lights: 6
-          all_on: >
-            {% set lights = expand('light.living_room_adaptive_light',
-                                   'light.kitchen_island_adaptive_light',
-                                   'light.bedroom_primary_adaptive_light',
-                                   'light.accent_spots_adaptive_light',
-                                   'light.recessed_ceiling_adaptive_light',
-                                   'light.column_lights_adaptive_light') %}
-            {{ (lights | selectattr('state', 'eq', 'on') | list | length) == lights | length }} 
-          all_off: >
-            {% set lights = expand('light.living_room_adaptive_light',
-                                   'light.kitchen_island_adaptive_light',
-                                   'light.bedroom_primary_adaptive_light',
-                                   'light.accent_spots_adaptive_light',
-                                   'light.recessed_ceiling_adaptive_light',
-                                   'light.column_lights_adaptive_light') %}
-            {{ (lights | selectattr('state', 'eq', 'on') | list | length) == 0 }}
-          manually_controlled: >
-            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
-                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
-                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
-            {% set manual_count = namespace(value=0) %}
-            {% for z in zones %}
-               {% set manual_count.value = manual_count.value + (state_attr(z, 'manual_control') | default([]) | length) %}
-            {% endfor %}
-            {{ manual_count.value }}
-
-      # HERO BUTTON: MEDIA/PLAY STATE
-      # -----------------------------------------------------------------------
-      - name: "Hero Media State"
-        unique_id: hero_media_state
-        state: >
-          {% set players = ['media_player.living_room', 'media_player.kitchen', 
-                           'media_player.bedroom', 'media_player.bath', 
-                           'media_player.dining_room'] %}
-          {% set playing = players | select('is_state', 'playing') | list | length > 0 %}
-          {{ 'playing' if playing else 'idle' }}
-        attributes:
-          is_playing: >
-            {{ this.state == 'playing' }}
-          coordinator_entity: >
-            {% set coord = states('sensor.sonos_current_playing_group_coordinator') %}
-            {{ coord if coord not in ['none', 'unknown', 'unavailable'] else 'media_player.living_room' }}
-          room: >
-            {% set coord = states('sensor.sonos_current_playing_group_coordinator') %}
-            {{ state_attr(coord, 'friendly_name') | default('Living Room') if coord not in ['none', 'unknown', 'unavailable'] else 'Living Room' }}
-          media_title: >
-            {% set coord = states('sensor.sonos_current_playing_group_coordinator') %}
-            {{ state_attr(coord, 'media_title') | default('') if coord not in ['none', 'unknown', 'unavailable'] else '' }}
-          bg_color: >
-            {{ 'rgba(138, 100, 200, 0.15)' if this.state == 'playing'
-               else 'rgba(120, 120, 120, 0.10)' }}
-          border_color: >
-            {{ '1px solid rgba(138, 100, 200, 0.35)' if this.state == 'playing'
-               else '1px solid rgba(120, 120, 120, 0.25)' }}
-          icon_color: >
-            {{ 'rgba(120, 80, 180, 0.9)' if this.state == 'playing'
-               else 'rgba(80, 80, 80, 0.5)' }}
-          display_label: >
-            {% set players = ['media_player.living_room', 'media_player.kitchen', 
-                             'media_player.bedroom', 'media_player.bath', 
-                             'media_player.dining_room'] %}
-            {% set playing_players = players | select('is_state', 'playing') | list %}
-            {% if playing_players | length == 0 %}
-              Idle
-            {% else %}
-              {{ this.attributes.media_title | default('Playing') }}
-            {% endif %}
-
-      # HERO BUTTON: GLOBAL BRIGHTNESS STATE
-      # -----------------------------------------------------------------------
-      - name: "Hero Brightness State"
-        unique_id: hero_brightness_state
-        state: >
-          {{ states('sensor.oal_global_brightness_offset') | int(0) }}
-        unit_of_measurement: "%"
-        attributes:
-          display_label: >
-            {% set val = states('sensor.oal_global_brightness_offset') | int(0) %}
-            {% if val > 0 %}+{{ val }}%
-            {% elif val < 0 %}{{ val }}%
-            {% else %}0%{% endif %}
-          is_modified: >
-            {{ states('sensor.oal_global_brightness_offset') | int(0) != 0 }}
-
-      # HERO BUTTON: CLIMATE STATE
-      # -----------------------------------------------------------------------
-      # Provides climate status for chip styling with target temp display
-      # Blue for cooling, orange for heating
-      # -----------------------------------------------------------------------
-      - name: "Hero Climate State"
-        unique_id: hero_climate_state
-        icon: mdi:thermostat
-        state: >
-          {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
-          {{ hvac }}
-        attributes:
-          is_active: >
-            {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
-            {{ hvac in ['heating', 'cooling'] }}
-          is_heating: >
-            {{ state_attr('climate.dining_room', 'hvac_action') == 'heating' }}
-          is_cooling: >
-            {{ state_attr('climate.dining_room', 'hvac_action') == 'cooling' }}
-          current_temp: >
-            {{ state_attr('climate.dining_room', 'current_temperature') | float(0) | round(0) }}
-          target_temp: >
-            {{ state_attr('climate.dining_room', 'temperature') | float(0) | round(0) }}
-          target_temp_low: >
-            {{ state_attr('climate.dining_room', 'target_temp_low') | default(state_attr('climate.dining_room', 'temperature')) | float(0) | round(0) }}
-          target_temp_high: >
-            {{ state_attr('climate.dining_room', 'target_temp_high') | default(state_attr('climate.dining_room', 'temperature')) | float(0) | round(0) }}
-          display_label: >
-            {% set low = state_attr('climate.dining_room', 'target_temp_low') %}
-            {% set high = state_attr('climate.dining_room', 'target_temp_high') %}
-            {% set target = state_attr('climate.dining_room', 'temperature') %}
-            {% if low and high %}
-              {{ low | round(0) }}-{{ high | round(0) }}°
-            {% elif target %}
-              {{ target | round(0) }}°
-            {% else %}
-              --°
-            {% endif %}
-          # Styling attributes
-          bg_color: >
-            {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
-            {% if hvac == 'heating' %}rgba(255, 149, 0, 0.15)
-            {% elif hvac == 'cooling' %}rgba(66, 165, 245, 0.15)
-            {% else %}rgba(255, 255, 255, 0.08){% endif %}
-          border_color: >
-            {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
-            {% if hvac == 'heating' %}1px solid rgba(255, 149, 0, 0.35)
-            {% elif hvac == 'cooling' %}1px solid rgba(66, 165, 245, 0.35)
-            {% else %}1px solid rgba(255, 255, 255, 0.12){% endif %}
-          icon_color: >
-            {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
-            {% if hvac == 'heating' %}rgba(255, 152, 0, 0.96)
-            {% elif hvac == 'cooling' %}rgba(66, 165, 245, 0.96)
-            {% else %}rgba(200, 200, 200, 0.8){% endif %}
-          text_color: >
-            {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
-            {% if hvac == 'heating' %}rgba(255, 152, 0, 0.9)
-            {% elif hvac == 'cooling' %}rgba(66, 165, 245, 0.9)
-            {% else %}rgba(200, 200, 200, 0.7){% endif %}
-
-      # =========================================================================
-      #  ROOM COMPOSITE STATE SENSORS
-      #  Per-room intelligence with state machine, audio, lights, and styling
-      # =========================================================================
-
-      # ROOM: LIVING ROOM
-      # -----------------------------------------------------------------------
-      - name: "Room Living State"
-        unique_id: room_living_state_v13
-        icon: mdi:sofa
-        state: >
-          {% set lights = [
-            'light.living_room_floor_lamp',
-            'light.living_room_couch_lamp',
-            'light.living_room_corner_accent',
-            'light.living_room_credenza_light',
-            'light.living_room_spot_lights',
-            'light.living_room_hallway_lights',
-            'light.living_col_accent'
-          ] %}
-          {% set lights_on = lights | select('is_state', 'on') | list | length %}
-          {% set is_playing = is_state('media_player.living_room', 'playing') %}
-          {% set has_override = (state_attr('switch.adaptive_lighting_main_living', 'manual_control') or []) | length > 0 %}
-          
-          {% if has_override %}override
-          {% elif is_playing %}playing
-          {% elif lights_on > 0 %}active
-          {% else %}idle{% endif %}
-        attributes:
-          # Light status
-          lights_on: >
-            {% set lights = [
-              'light.living_room_floor_lamp',
-              'light.living_room_couch_lamp',
-              'light.living_room_corner_accent',
-              'light.living_room_credenza_light',
-              'light.living_room_spot_lights',
-              'light.living_room_hallway_lights',
-              'light.living_col_accent'
-            ] %}
-            {{ lights | select('is_state', 'on') | list | length }}
-          total_lights: 7
-          brightness_avg: >
-            {% set lights = [
-              'light.living_room_floor_lamp',
-              'light.living_room_couch_lamp',
-              'light.living_room_corner_accent',
-              'light.living_room_credenza_light',
-              'light.living_room_spot_lights'
-            ] %}
-            {% set on_lights = lights | select('is_state', 'on') | list %}
-            {% if on_lights | length > 0 %}
-              {% set total = namespace(val=0) %}
-              {% for l in on_lights %}
-                {% set total.val = total.val + (state_attr(l, 'brightness') | default(0) | int) %}
-              {% endfor %}
-              {{ (total.val / (on_lights | length) / 2.55) | round(0) }}
-            {% else %}0{% endif %}
-          # Audio status
-          audio_state: "{{ states('media_player.living_room') }}"
-          audio_track: "{{ state_attr('media_player.living_room', 'media_title') | default('') }}"
-          audio_artist: "{{ state_attr('media_player.living_room', 'media_artist') | default('') }}"
-          in_group: "{{ states('sensor.sonos_living_room_in_playing_group') in ['True', 'on', true] }}"
-          is_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') == 'media_player.living_room' }}"
-          # Override status - aggregated from all switches controlling living room lights
-          manually_controlled_lights: >
-            {% set main = state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) %}
-            {% set spots = state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) %}
-            {% set columns = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
-            {% set living_lights = [
-              'light.living_room_floor_lamp',
-              'light.living_room_couch_lamp', 
-              'light.living_room_corner_accent',
-              'light.living_room_credenza_light',
-              'light.living_room_spot_lights',
-              'light.living_room_hallway_lights',
-              'light.living_col_accent',
-              'light.entryway_lamp'
-            ] %}
-            {% set all_manual = (main + spots + columns) | unique | list %}
-            {{ all_manual | select('in', living_lights) | list }}
-          has_override: >
-            {{ (this.attributes.manually_controlled_lights | default([])) | length > 0 }}
-          override_count: >
-            {{ (this.attributes.manually_controlled_lights | default([])) | length }}
-          # Styling attributes
-          card_background: >
-            {% set state = this.state %}
-            {% if state == 'override' %}linear-gradient(180deg, rgba(156,39,176,0.08) 0%, rgba(255,255,255,0.06) 100%)
-            {% elif state == 'playing' %}linear-gradient(180deg, rgba(66,165,245,0.08) 0%, rgba(26,26,46,0.95) 100%)
-            {% elif state == 'active' %}linear-gradient(180deg, rgba(255,152,0,0.08) 0%, rgba(255,255,255,0.06) 100%)
-            {% else %}rgba(255,255,255,0.06){% endif %}
-          card_border: >
-            {% set state = this.state %}
-            {% if state == 'override' %}1px solid rgba(156,39,176,0.3)
-            {% elif state == 'playing' %}1px solid rgba(66,165,245,0.25)
-            {% elif state == 'active' %}1px solid rgba(255,152,0,0.25)
-            {% else %}1px solid rgba(255,255,255,0.08){% endif %}
-          subtitle: >
-            {% set state = this.state %}
-            {% set track = state_attr('media_player.living_room', 'media_title') | default('') %}
-            {% set override_count = (state_attr('switch.adaptive_lighting_main_living', 'manual_control') or []) | length %}
-            {% set lights_on = this.attributes.lights_on | default(0) %}
-            {% if state == 'override' %}
-              ✋ {{ override_count }} override{% if override_count > 1 %}s{% endif %}
-            {% elif state == 'playing' %}
-              🎵 {{ track[:25] }}{% if track | length > 25 %}...{% endif %}
-            {% elif state == 'active' %}
-              {{ lights_on }}/7 lights
-            {% else %}Ready{% endif %}
-          # Brightness offset - average of zone offsets affecting this room
-          brightness_offset: >
-            {% set offsets = [
-              states('input_number.oal_manual_offset_main_living_brightness') | float(0),
-              states('input_number.oal_manual_offset_accent_spots_brightness') | float(0),
-              states('input_number.oal_manual_offset_column_lights_brightness') | float(0)
-            ] %}
-            {{ (offsets | sum / offsets | length) | round(0) }}
-          offset_direction: >
-            {% set offset = this.attributes.brightness_offset | default(0) | float(0) %}
-            {% if offset > 0 %}brighter
-            {% elif offset < 0 %}dimmer
-            {% else %}neutral{% endif %}
-          # Alarm attributes - Living Room speaker
-          next_alarm_entity: >
-            {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-            {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
-            {% set room_alarms = alarms | selectattr('friendly_name', 'search', '(?i)^living') | list %}
-            {{ room_alarms[0].entity_id if room_alarms | length > 0 else 'none' }}
-          next_alarm_time: >
-            {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-            {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
-            {% set room_alarms = alarms | selectattr('friendly_name', 'search', '(?i)^living') | list %}
-            {% if room_alarms | length > 0 %}
-              {% set t = room_alarms[0].time.split(':') %}
-              {% set h = t[0] | int %}{% set m = t[1] %}
-              {% set h12 = h % 12 %}{% if h12 == 0 %}{% set h12 = 12 %}{% endif %}
-              {{ h12 }}:{{ m }}{{ 'p' if h >= 12 else 'a' }}
-            {% else %}None{% endif %}
-          next_alarm_enabled: >
-            {% set entity_id = this.attributes.next_alarm_entity %}
-            {{ entity_id and entity_id != 'none' and is_state(entity_id, 'on') }}
-          has_upcoming_alarm: >
-            {{ this.attributes.next_alarm_entity not in ['none', none, ''] }}
-
-      # ROOM: KITCHEN
-      # -----------------------------------------------------------------------
-      - name: "Room Kitchen State"
-        unique_id: room_kitchen_state_v13
-        icon: mdi:countertop
-        state: >
-          {% set is_on = is_state('light.kitchen_main_lights', 'on') %}
-          {% set is_playing = is_state('media_player.kitchen', 'playing') %}
-          {% set has_override = (state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') or []) | length > 0 %}
-          
-          {% if has_override %}override
-          {% elif is_playing %}playing
-          {% elif is_on %}active
-          {% else %}idle{% endif %}
-        attributes:
-          lights_on: "{{ 1 if is_state('light.kitchen_main_lights', 'on') else 0 }}"
-          total_lights: 1
-          brightness: "{{ (state_attr('light.kitchen_main_lights', 'brightness') | default(0) / 2.55) | round(0) }}"
-          audio_state: "{{ states('media_player.kitchen') }}"
-          audio_track: "{{ state_attr('media_player.kitchen', 'media_title') | default('') }}"
-          in_group: "{{ states('sensor.sonos_kitchen_in_playing_group') in ['True', 'on', true] }}"
-          has_override: "{{ (state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') or []) | length > 0 }}"
-          card_background: >
-            {% set state = this.state %}
-            {% if state == 'override' %}linear-gradient(180deg, rgba(156,39,176,0.08) 0%, rgba(255,255,255,0.06) 100%)
-            {% elif state == 'playing' %}linear-gradient(180deg, rgba(66,165,245,0.08) 0%, rgba(26,26,46,0.95) 100%)
-            {% elif state == 'active' %}linear-gradient(180deg, rgba(255,152,0,0.08) 0%, rgba(255,255,255,0.06) 100%)
-            {% else %}rgba(255,255,255,0.06){% endif %}
-          card_border: >
-            {% set state = this.state %}
-            {% if state == 'override' %}1px solid rgba(156,39,176,0.3)
-            {% elif state == 'playing' %}1px solid rgba(66,165,245,0.25)
-            {% elif state == 'active' %}1px solid rgba(255,152,0,0.25)
-            {% else %}1px solid rgba(255,255,255,0.08){% endif %}
-          subtitle: >
-            {% set state = this.state %}
-            {% set track = state_attr('media_player.kitchen', 'media_title') | default('') %}
-            {% if state == 'playing' %}🎵 {{ track[:25] }}{% if track | length > 25 %}...{% endif %}
-            {% elif state == 'active' %}{{ ((state_attr('light.kitchen_main_lights', 'brightness') | default(0)) / 2.55) | round(0) }}%
-            {% elif state == 'override' %}✋ Manual
-            {% else %}Ready{% endif %}
-          # Brightness offset - kitchen zone offset
-          brightness_offset: >
-            {{ states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) | round(0) }}
-          offset_direction: >
-            {% set offset = states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) %}
-            {% if offset > 0 %}brighter{% elif offset < 0 %}dimmer{% else %}neutral{% endif %}
-          # Alarm attributes - Kitchen speaker
-          next_alarm_entity: >
-            {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-            {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
-            {% set room_alarms = alarms | selectattr('friendly_name', 'search', '(?i)^kitchen') | list %}
-            {{ room_alarms[0].entity_id if room_alarms | length > 0 else 'none' }}
-          next_alarm_time: >
-            {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-            {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
-            {% set room_alarms = alarms | selectattr('friendly_name', 'search', '(?i)^kitchen') | list %}
-            {% if room_alarms | length > 0 %}
-              {% set t = room_alarms[0].time.split(':') %}
-              {% set h = t[0] | int %}{% set m = t[1] %}
-              {% set h12 = h % 12 %}{% if h12 == 0 %}{% set h12 = 12 %}{% endif %}
-              {{ h12 }}:{{ m }}{{ 'p' if h >= 12 else 'a' }}
-            {% else %}None{% endif %}
-          next_alarm_enabled: >
-            {% set entity_id = this.attributes.next_alarm_entity %}
-            {{ entity_id and entity_id != 'none' and is_state(entity_id, 'on') }}
-          has_upcoming_alarm: >
-            {{ this.attributes.next_alarm_entity not in ['none', none, ''] }}
-
-      # ROOM: BEDROOM
-      # -----------------------------------------------------------------------
-      - name: "Room Bedroom State"
-        unique_id: room_bedroom_state_v13
-        icon: mdi:bed
-        state: >
-          {% set lights = ['light.master_bedroom_table_lamps', 'light.master_bedroom_corner_accent'] %}
-          {% set lights_on = lights | select('is_state', 'on') | list | length %}
-          {% set is_playing = is_state('media_player.bedroom', 'playing') %}
-          {% set has_override = (state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') or []) | length > 0 %}
-          
-          {# Check for alarm proximity #}
-          {% set alarms = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-          {% set has_bedroom_alarm = false %}
-          {% if alarms and alarms.debug_all_alarm_entities %}
-            {% set bedroom_alarms = alarms.debug_all_alarm_entities | selectattr('friendly_name', 'search', '(?i)bedroom') | list %}
-            {% set has_bedroom_alarm = bedroom_alarms | length > 0 %}
-          {% endif %}
-          
-          {% if has_bedroom_alarm %}alarm
-          {% elif has_override %}override
-          {% elif is_playing %}playing
-          {% elif lights_on > 0 %}active
-          {% else %}idle{% endif %}
-        attributes:
-          lights_on: >
-            {% set lights = ['light.master_bedroom_table_lamps', 'light.master_bedroom_corner_accent'] %}
-            {{ lights | select('is_state', 'on') | list | length }}
-          total_lights: 2
-          audio_state: "{{ states('media_player.bedroom') }}"
-          audio_track: "{{ state_attr('media_player.bedroom', 'media_title') | default('') }}"
-          in_group: "{{ states('sensor.sonos_bedroom_in_playing_group') in ['True', 'on', true] }}"
-          has_override: "{{ (state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') or []) | length > 0 }}"
-          # Brightness offset - bedroom zone offset
-          brightness_offset: >
-            {{ states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0) | round(0) }}
-          offset_direction: >
-            {% set offset = states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0) %}
-            {% if offset > 0 %}brighter{% elif offset < 0 %}dimmer{% else %}neutral{% endif %}
-          # Enhanced alarm attributes (include Bath speaker - same room)
-          next_alarm_entity: >
-            {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-            {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
-            {% set room_alarms = alarms | selectattr('friendly_name', 'search', '(?i)^(bedroom|bath)') | list %}
-            {{ room_alarms[0].entity_id if room_alarms | length > 0 else 'none' }}
-          next_alarm_time: >
-            {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-            {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
-            {% set room_alarms = alarms | selectattr('friendly_name', 'search', '(?i)^(bedroom|bath)') | list %}
-            {% if room_alarms | length > 0 %}
-              {% set t = room_alarms[0].time.split(':') %}
-              {% set h = t[0] | int %}{% set m = t[1] %}
-              {% set h12 = h % 12 %}{% if h12 == 0 %}{% set h12 = 12 %}{% endif %}
-              {{ h12 }}:{{ m }}{{ 'p' if h >= 12 else 'a' }}
-            {% else %}None{% endif %}
-          next_alarm_enabled: >
-            {% set entity_id = this.attributes.next_alarm_entity %}
-            {{ entity_id and entity_id != 'none' and is_state(entity_id, 'on') }}
-          has_upcoming_alarm: >
-            {{ this.attributes.next_alarm_entity not in ['none', none, ''] }}
-          has_alarm: >
-            {{ this.attributes.has_upcoming_alarm }}
-          card_background: >
-            {% set state = this.state %}
-            {% if state == 'alarm' %}linear-gradient(180deg, rgba(66,165,245,0.12) 0%, rgba(255,255,255,0.06) 100%)
-            {% elif state == 'override' %}linear-gradient(180deg, rgba(156,39,176,0.08) 0%, rgba(255,255,255,0.06) 100%)
-            {% elif state == 'playing' %}linear-gradient(180deg, rgba(66,165,245,0.08) 0%, rgba(26,26,46,0.95) 100%)
-            {% elif state == 'active' %}linear-gradient(180deg, rgba(255,152,0,0.08) 0%, rgba(255,255,255,0.06) 100%)
-            {% else %}rgba(255,255,255,0.06){% endif %}
-          card_border: >
-            {% set state = this.state %}
-            {% if state == 'alarm' %}2px solid rgba(66,165,245,0.4)
-            {% elif state == 'override' %}1px solid rgba(156,39,176,0.3)
-            {% elif state == 'playing' %}1px solid rgba(66,165,245,0.25)
-            {% elif state == 'active' %}1px solid rgba(255,152,0,0.25)
-            {% else %}1px solid rgba(255,255,255,0.08){% endif %}
-          subtitle: >
-            {% set state = this.state %}
-            {% set alarm_time = this.attributes.next_alarm_time | default('None') %}
-            {% set track = state_attr('media_player.bedroom', 'media_title') | default('') %}
-            {% if state == 'alarm' %}⏰ {{ alarm_time }}
-            {% elif state == 'playing' %}🎵 {{ track[:25] }}{% if track | length > 25 %}...{% endif %}
-            {% elif state == 'override' %}✋ Manual
-            {% elif state == 'active' %}{{ this.attributes.lights_on }}/2 lights
-            {% else %}Ready{% endif %}
-
-      # ROOM: DINING
-      # -----------------------------------------------------------------------
-      - name: "Room Dining State"
-        unique_id: room_dining_state_v13
-        icon: mdi:table-furniture
-        state: >
-          {% set lights = ['light.dining_room_spot_lights', 'light.dining_col_accent'] %}
-          {% set lights_on = lights | select('is_state', 'on') | list | length %}
-          {% set is_playing = is_state('media_player.dining_room', 'playing') %}
-          {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
-          {% set has_override = (state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') or []) | length > 0 %}
-          
-          {% if has_override %}override
-          {% elif hvac in ['heating', 'cooling'] %}climate_active
-          {% elif is_playing %}playing
-          {% elif lights_on > 0 %}active
-          {% else %}idle{% endif %}
-        attributes:
-          lights_on: >
-            {% set lights = ['light.dining_room_spot_lights', 'light.dining_col_accent'] %}
-            {{ lights | select('is_state', 'on') | list | length }}
-          total_lights: 2
-          audio_state: "{{ states('media_player.dining_room') }}"
-          in_group: "{{ states('sensor.sonos_dining_room_in_playing_group') in ['True', 'on', true] }}"
-          hvac_action: "{{ state_attr('climate.dining_room', 'hvac_action') | default('idle') }}"
-          current_temp: "{{ state_attr('climate.dining_room', 'current_temperature') | float(0) | round(0) }}"
-          target_temp: "{{ state_attr('climate.dining_room', 'temperature') | float(0) | round(0) }}"
-          card_background: >
-            {% set state = this.state %}
-            {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
-            {% if state == 'climate_active' and hvac == 'heating' %}linear-gradient(180deg, rgba(255,152,0,0.12) 0%, rgba(255,255,255,0.06) 100%)
-            {% elif state == 'climate_active' and hvac == 'cooling' %}linear-gradient(180deg, rgba(66,165,245,0.12) 0%, rgba(255,255,255,0.06) 100%)
-            {% elif state == 'override' %}linear-gradient(180deg, rgba(156,39,176,0.08) 0%, rgba(255,255,255,0.06) 100%)
-            {% elif state == 'playing' %}linear-gradient(180deg, rgba(66,165,245,0.08) 0%, rgba(26,26,46,0.95) 100%)
-            {% elif state == 'active' %}linear-gradient(180deg, rgba(255,152,0,0.08) 0%, rgba(255,255,255,0.06) 100%)
-            {% else %}rgba(255,255,255,0.06){% endif %}
-          card_border: >
-            {% set state = this.state %}
-            {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
-            {% if state == 'climate_active' and hvac == 'heating' %}1px solid rgba(255,152,0,0.35)
-            {% elif state == 'climate_active' and hvac == 'cooling' %}1px solid rgba(66,165,245,0.35)
-            {% elif state == 'override' %}1px solid rgba(156,39,176,0.3)
-            {% elif state == 'playing' %}1px solid rgba(66,165,245,0.25)
-            {% elif state == 'active' %}1px solid rgba(255,152,0,0.25)
-            {% else %}1px solid rgba(255,255,255,0.08){% endif %}
-          subtitle: >
-            {% set state = this.state %}
-            {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
-            {% set current = state_attr('climate.dining_room', 'current_temperature') | default(0) | round(0) %}
-            {% set target = state_attr('climate.dining_room', 'temperature') | default(0) | round(0) %}
-            {% if state == 'climate_active' %}
-              {% if hvac == 'heating' %}🔥 {{ current }}° → {{ target }}°
-              {% else %}❄️ {{ current }}° → {{ target }}°{% endif %}
-            {% elif state == 'playing' %}🎵 Playing
-            {% elif state == 'override' %}✋ Manual
-            {% elif state == 'active' %}{{ this.attributes.lights_on }}/2 lights
-            {% else %}{{ current }}°{% endif %}
-
-      # ROOM: BATHROOM
-      # -----------------------------------------------------------------------
-      - name: "Room Bathroom State"
-        unique_id: room_bathroom_state_v13
-        icon: mdi:shower-head
-        state: >
-          {% set is_playing = is_state('media_player.bath', 'playing') %}
-          {% set in_group = states('sensor.sonos_bath_in_playing_group') in ['True', 'on', true] %}
-          
-          {% if is_playing %}playing
-          {% elif in_group %}grouped
-          {% else %}idle{% endif %}
-        attributes:
-          audio_state: "{{ states('media_player.bath') }}"
-          audio_track: "{{ state_attr('media_player.bath', 'media_title') | default('') }}"
-          in_group: "{{ states('sensor.sonos_bath_in_playing_group') in ['True', 'on', true] }}"
-          humidity: "{{ states('sensor.dining_room_humidity') | default('--') }}"
-          card_background: >
-            {% set state = this.state %}
-            {% if state == 'playing' %}linear-gradient(180deg, rgba(66,165,245,0.08) 0%, rgba(26,26,46,0.95) 100%)
-            {% elif state == 'grouped' %}linear-gradient(180deg, rgba(138,100,200,0.08) 0%, rgba(255,255,255,0.06) 100%)
-            {% else %}rgba(255,255,255,0.06){% endif %}
-          card_border: >
-            {% set state = this.state %}
-            {% if state == 'playing' %}1px solid rgba(66,165,245,0.25)
-            {% elif state == 'grouped' %}1px solid rgba(138,100,200,0.25)
-            {% else %}1px solid rgba(255,255,255,0.08){% endif %}
-          subtitle: >
-            {% set state = this.state %}
-            {% set track = state_attr('media_player.bath', 'media_title') | default('') %}
-            {% if state == 'playing' %}🎵 {{ track[:25] }}{% if track | length > 25 %}...{% endif %}
-            {% elif state == 'grouped' %}🔗 In group
-            {% else %}💧 {{ states('sensor.dining_room_humidity') | default('--') }}%{% endif %}
-
-            # GLOBAL ENVIRONMENTAL BRIGHTNESS BOOST SENSOR
-      # -----------------------------------------------------------------------
-      - name: "OAL Global Environmental Brightness Boost"
-        unique_id: oal_global_environmental_brightness_boost
-        state: >
-          {% if not is_state('input_boolean.oal_environmental_boost_enabled', 'on') %}
-            0
-          {% endif %}
-          {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
-          {% set weather = states('weather.home') %}
-          {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
-          
-          {% set base_boost = 0 %}
-          {% if lux < 10 %} {% set base_boost = base_boost + 18 %}
-          {% elif lux < 50 %} {% set base_boost = base_boost + 10 %}
-          {% elif lux < 150 %} {% set base_boost = base_boost + 5 %}
-          {% elif lux < 300 %} {% set base_boost = base_boost + 2 %}
-          {% endif %}
-          
-          {% set weather_boost = {
-            'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
-            'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
-            'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
-          } %}
-          {% set base_boost = base_boost + weather_boost.get(weather, 0) %}
-          {% if season == 'winter' %} {% set base_boost = base_boost + 8 %} {% endif %}
-          
-          {% set hour = now().hour %}
-          {% if 22 <= hour or hour <= 6 %}
-            0
-          {% elif lux > 2500 %}
-            0
-          {% elif 6 < hour <= 8 or 18 <= hour < 22 %}
-            {{ (base_boost * 0.3) | int }}
-          {% else %}
-            {{ base_boost | int }}
-          {% endif %}

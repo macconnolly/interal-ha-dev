@@ -89,7 +89,10 @@ cards:
                 action: perform-action
                 perform_action: media_player.media_play_pause
                 target:
-                  entity_id: media_player.living_room
+                  entity_id: |
+                    {{ states('sensor.sonos_current_playing_group_coordinator') 
+                       if states('sensor.sonos_current_playing_group_coordinator') not in ['none', 'unknown', 'unavailable']
+                       else 'media_player.living_room' }}
             - entity: sensor.sonos_next_alarm_chip
               name: Alarm
               icon: mdi:alarm
@@ -130,8 +133,9 @@ cards:
                     {{ sensors | select('is_state', 'on') | list | length > 0 }}
               tap_action:
                 action: perform-action
-                perform_action: script.sonos_group_all_to_playing
-                target: {}
+                perform_action: script.sonos_toggle_group_membership
+                data:
+                  target_speaker: media_player.living_room
               hold_action:
                 action: more-info
                 entity: media_player.living_room
@@ -167,6 +171,19 @@ cards:
               hold_action:
                 action: more-info
                 entity: sensor.oal_global_brightness_offset
+            - entity: input_boolean.oal_system_paused
+              name: Pause
+              icon: mdi:pause-circle
+              show_name: false
+              show_icon: true
+              show_background: true
+              state_background: false
+              custom_height: 38
+              fill_width: false
+              tap_action:
+                action: toggle
+              hold_action:
+                action: more-info
     styles: >
       /* Hero card z-index - must appear above room tiles for dropdown */
 
@@ -207,7 +224,9 @@ cards:
       .bubble-sub-button-4,
       .bubble-sub-button-5,
       .bubble-sub-button-6,
-      .bubble-sub-button-7 {
+      .bubble-sub-button-7,
+      .bubble-sub-button-8,
+      .bubble-sub-button-9 {
         background: rgba(255, 255, 255, 0.10) !important;
         border: 1px solid rgba(255, 255, 255, 0.12) !important;
         border-radius: 8px !important;
@@ -224,13 +243,13 @@ cards:
           ? 'rgba(255, 255, 255, 0.18)'
           : 'rgba(255, 255, 255, 0.10)'} !important;
         border: ${hass.states['light.all_adaptive_lights']?.state === 'on'
-          ? '1px solid rgba(255, 149, 0, 0.4)'
+          ? '1px solid rgba(138, 100, 200, 0.5)'
           : '1px solid rgba(255, 255, 255, 0.12)'} !important;
       }
 
       .bubble-sub-button-1 .bubble-sub-button-icon {
         color: ${hass.states['light.all_adaptive_lights']?.state === 'on'
-          ? 'rgb(255, 149, 0)'
+          ? 'rgb(138, 100, 200)'
           : 'rgba(80, 80, 80, 0.7)'} !important;
         --mdc-icon-size: 20px !important;
       }
@@ -442,6 +461,22 @@ cards:
           .bubble-sub-button-8 .bubble-sub-button-icon {
             color: ${isModified ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.5)'} !important;
             --mdc-icon-size: 18px !important;
+          }
+        `;
+      })()}
+
+      /* Sub-button 9: System Pause - purple when paused */
+      ${(() => {
+        const isPaused = hass.states['input_boolean.oal_system_paused']?.state === 'on';
+        
+        return `
+          .bubble-sub-button-9 {
+            background: ${isPaused ? 'rgba(138, 100, 200, 0.15)' : 'rgba(120, 120, 120, 0.10)'} !important;
+            border: ${isPaused ? '1px solid rgba(138, 100, 200, 0.35)' : '1px solid rgba(120, 120, 120, 0.25)'} !important;
+          }
+          .bubble-sub-button-9 .bubble-sub-button-icon {
+            color: ${isPaused ? 'rgba(120, 80, 180, 0.9)' : 'rgba(80, 80, 80, 0.5)'} !important;
+            --mdc-icon-size: 20px !important;
           }
         `;
       })()}

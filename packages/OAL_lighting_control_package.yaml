@@ -147,6 +147,7 @@ input_select:
       - "Config 2: Reduced Overhead (Recessed 2%)"
       - "Config 3: Evening Relax (Recessed/Tracks Off)"
       - "Config 4: Accents Only"
+      - "Sleep Mode"
       - "Global Manual Adjustment"
     initial: "Config 1: Baseline (All On)"
     icon: mdi:tune-variant
@@ -528,8 +529,18 @@ automation:
       comp_sunset_b: "{{ states('input_number.oal_offset_sunset_brightness') | float(0) }}"
       comp_sunset_k: "{{ states('input_number.oal_offset_sunset_warmth') | float(0) }}"
 
-      base_config_sunset_b: >
-        {{ comp_config_b + comp_sunset_b }}
+      # Sunset amplifies environmental boost (multiplicative, not additive)
+      # At peak sunset (8), env boost is amplified by 50%
+      sunset_amplifier: >
+        {{ 1 + (comp_sunset_b / 8) * 0.5 if comp_sunset_b > 0 else 1.0 }}
+
+      # Environmental boost with sunset amplification, capped at 30%
+      env_with_sunset_capped: >
+        {{ [30, (comp_env_b_raw * sunset_amplifier)] | min }}
+
+      # Config offset alone (sunset no longer added here)
+      base_config_b: >
+        {{ comp_config_b }}
 
       base_warmth_offset: >
         {{ comp_manual_k + comp_config_k + comp_sunset_k + comp_env_k }}
@@ -645,9 +656,9 @@ automation:
                   {{ state_attr(repeat.item.entity_id, 'brightness_pct')
                      | float((comfort_min_b + comfort_max_b) / 2) }}
 
-                # Auto brightness (config + sunset + env) within comfort band
+                # Auto brightness: config + (env*sunset_multiplier capped at 30%)
                 auto_offset_b: >
-                  {{ base_config_sunset_b + (comp_env_b_raw * env_sensitivity) }}
+                  {{ base_config_b + (env_with_sunset_capped * env_sensitivity) }}
 
                 auto_min_raw: "{{ comfort_min_b + auto_offset_b }}"
                 auto_max_raw: "{{ comfort_max_b + auto_offset_b }}"
@@ -745,12 +756,14 @@ automation:
           trigger_source: >
             {{ trigger.platform ~ ':' ~ (trigger.entity_id | default('n/a')) }}
           final_brightness_offset_total: >
-            {{ base_config_sunset_b + comp_env_b_raw }}
+            {{ base_config_b + env_with_sunset_capped }}
           final_warmth_offset_total: "{{ base_warmth_offset }}"
           comp_b_manual_slider: 0  # Dead code removed (Phase 2A)
           comp_b_config: "{{ comp_config_b }}"
-          comp_b_env: "{{ comp_env_b_raw }}"
+          comp_b_env_raw: "{{ comp_env_b_raw }}"
+          comp_b_env_with_sunset: "{{ env_with_sunset_capped }}"
           comp_b_sunset: "{{ comp_sunset_b }}"
+          sunset_amplifier: "{{ sunset_amplifier }}"
           comp_k_manual: "{{ comp_manual_k }}"
           comp_k_config: "{{ comp_config_k }}"
           comp_k_env: "{{ comp_env_k }}"
@@ -808,7 +821,15 @@ automation:
             - light.master_bedroom_table_lamps
           lights_dimmed: {}
           is_baseline: false
-        
+
+        "Sleep Mode":
+          b: 0
+          k: 0
+          lights_off: []
+          lights_dimmed: {}
+          is_baseline: false
+          is_sleep: true
+
         "Global Manual Adjustment":
           b: 0
           k: 0
@@ -818,7 +839,8 @@ automation:
       
       target_profile: "{{ config_profiles.get(config, {}) }}"
       is_baseline: "{{ target_profile.get('is_baseline', false) }}"
-      
+      is_sleep: "{{ target_profile.get('is_sleep', false) }}"
+
       # FIX 2: Calculate expanded switches once for efficiency
       all_switches_expanded: >
         {{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}
@@ -852,6 +874,19 @@ automation:
       - service: input_boolean.turn_on
         target:
           entity_id: input_boolean.oal_config_transition_active
+
+      # =========================================================================
+      # SLEEP MODE: Toggle force_sleep based on Sleep Mode selection
+      # =========================================================================
+      - if: "{{ is_sleep }}"
+        then:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.oal_force_sleep
+        else:
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.oal_force_sleep
 
       # =========================================================================
       # ROUTE: Choose execution path based on target config
@@ -930,28 +965,44 @@ automation:
                     value_template: "{{ prev_controlled_lights | length > 0 }}"
                 sequence:
                   # Release manual control on previously controlled lights
+                  # FIX: Match lights to their respective switches instead of passing all to all
                   - repeat:
                       for_each: "{{ all_switches_expanded }}"
                       sequence:
-                        - service: adaptive_lighting.set_manual_control
-                          target:
-                            entity_id: "{{ repeat.item }}"
-                          data:
-                            lights: "{{ prev_controlled_lights }}"
-                            manual_control: false
-                  
+                        - variables:
+                            # Get lights managed by this switch and expand groups to individuals
+                            switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
+                            switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
+                            # Find which prev_controlled_lights belong to this switch
+                            lights_for_switch: "{{ prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                        - if: "{{ lights_for_switch | length > 0 }}"
+                          then:
+                            - service: adaptive_lighting.set_manual_control
+                              target:
+                                entity_id: "{{ repeat.item }}"
+                              data:
+                                lights: "{{ lights_for_switch }}"
+                                manual_control: false
+
                   # Apply AL without turning lights on (just release control)
+                  # FIX: Same pattern - match lights to their switches
                   - repeat:
                       for_each: "{{ all_switches_expanded }}"
                       sequence:
-                        - service: adaptive_lighting.apply
-                          target:
-                            entity_id: "{{ repeat.item }}"
-                          data:
-                            lights: "{{ prev_controlled_lights }}"
-                            turn_on_lights: false
-                            transition: "{{ transition_speed }}"
-                  
+                        - variables:
+                            switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
+                            switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
+                            lights_for_switch: "{{ prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                        - if: "{{ lights_for_switch | length > 0 }}"
+                          then:
+                            - service: adaptive_lighting.apply
+                              target:
+                                entity_id: "{{ repeat.item }}"
+                              data:
+                                lights: "{{ lights_for_switch }}"
+                                turn_on_lights: false
+                                transition: "{{ transition_speed }}"
+
                   # Clear old handoff flag
                   - service: input_boolean.turn_off
                     target:
@@ -970,9 +1021,22 @@ automation:
                     event_data:
                       message: "Global Manual mode - triggering immediate update"
 
-          # PHASE 2: Apply new config offset settings (skip for Global Manual)
+          # SLEEP MODE SHORTCUT: Unlock and trigger Core Engine (it handles sleep)
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ is_sleep }}"
+                sequence:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: input_boolean.oal_config_transition_active
+                  - event: oal_watchdog_trigger
+                    event_data:
+                      message: "Sleep Mode activated - Core Engine will apply sleep settings"
+
+          # PHASE 2: Apply new config offset settings (skip for Global Manual and Sleep Mode)
           - condition: template
-            value_template: "{{ config != 'Global Manual Adjustment' }}"
+            value_template: "{{ config != 'Global Manual Adjustment' and not is_sleep }}"
           
           - service: input_number.set_value
             target:
@@ -996,15 +1060,24 @@ automation:
                     value_template: "{{ new_controlled_lights | length > 0 }}"
                 sequence:
                   # 3A. Set manual control FIRST (before power changes)
+                  # FIX: Match lights to their respective switches for reliable manual control
                   - repeat:
                       for_each: "{{ all_switches_expanded }}"
                       sequence:
-                        - service: adaptive_lighting.set_manual_control
-                          target:
-                            entity_id: "{{ repeat.item }}"
-                          data:
-                            lights: "{{ new_controlled_lights }}"
-                            manual_control: true
+                        - variables:
+                            # Get lights managed by this switch and expand groups to individuals
+                            switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
+                            switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
+                            # Find which new_controlled_lights belong to this switch
+                            lights_for_switch: "{{ new_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                        - if: "{{ lights_for_switch | length > 0 }}"
+                          then:
+                            - service: adaptive_lighting.set_manual_control
+                              target:
+                                entity_id: "{{ repeat.item }}"
+                              data:
+                                lights: "{{ lights_for_switch }}"
+                                manual_control: true
                   
                   # 3B. Apply dimmed lights
                   - repeat:
@@ -1062,7 +1135,7 @@ automation:
       brightness_offset: >
         {% if 8 >= elevation >= -8 %}
           {% set gauss = e ** ( - (elevation ** 2) / (2 * (4 ** 2)) ) %}
-          {{ (gauss * 15) | round(0) }}
+          {{ (gauss * 8) | round(0) }}
         {% else %}
           0
         {% endif %}
@@ -1094,7 +1167,7 @@ automation:
       - platform: homeassistant
         event: start
       - platform: state
-        entity_id: sensor.living_room_presence_light_sensor_light_level
+        entity_id: sensor.living_room_illuminance
       - platform: state
         entity_id: weather.home
       - platform: state
@@ -1107,7 +1180,7 @@ automation:
         state: "off"
       - condition: template
         value_template: >
-          {{ states('sensor.living_room_presence_light_sensor_light_level') not in ['unknown', 'unavailable']
+          {{ states('sensor.living_room_illuminance') not in ['unknown', 'unavailable']
              and states('weather.home') not in ['unknown', 'unavailable'] }}
     variables:
       current_boost: "{{ states('input_number.oal_offset_environmental_brightness') | float(0) }}"
@@ -1116,32 +1189,37 @@ automation:
         {% if is_state('input_boolean.oal_environmental_boost_enabled', 'off') %}
           0
         {% else %}
-          {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+          {% set lux = states('sensor.living_room_illuminance') | float(500) %}
           {% set weather = states('weather.home') %}
           {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
-          {% set base_boost = 0 %}
 
+          {# Lux-based boost (primary factor - 100% weight) #}
+          {% set lux_boost = 0 %}
           {% if lux < 10 %}
-            {% set base_boost = base_boost + 18 %}
+            {% set lux_boost = 18 %}
           {% elif lux < 50 %}
-            {% set base_boost = base_boost + 10 %}
+            {% set lux_boost = 10 %}
           {% elif lux < 150 %}
-            {% set base_boost = base_boost + 5 %}
+            {% set lux_boost = 5 %}
           {% elif lux < 300 %}
-            {% set base_boost = base_boost + 2 %}
+            {% set lux_boost = 2 %}
           {% endif %}
 
-          {% set weather_boost = {
+          {# Weather boost lookup (40% weight - psychological factor) #}
+          {% set weather_lookup = {
             'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
             'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
             'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
           } %}
-          {% set base_boost = base_boost + weather_boost.get(weather, 0) %}
+          {% set weather_boost = weather_lookup.get(weather, 0) %}
 
-          {% if season == 'winter' %}
-            {% set base_boost = base_boost + 8 %}
-          {% endif %}
+          {# Season boost (25% weight - timing context) #}
+          {% set season_boost = 8 if season == 'winter' else 0 %}
 
+          {# WEIGHTED combination to prevent compounding #}
+          {% set base_boost = lux_boost + (weather_boost * 0.4) + (season_boost * 0.25) %}
+
+          {# Time-based modifiers #}
           {% set hour = now().hour %}
           {% if 22 <= hour or hour <= 6 or lux > 2500 %}
             {% set base_boost = 0 %}
@@ -1441,13 +1519,27 @@ automation:
                     - light.all_adaptive_lights
               
               # Set manual control FIRST to prevent AL interference
+              # FIX: Must specify entity_id for each switch - service was broken without target
               - service: adaptive_lighting.set_manual_control
                 continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_main_living
                 data:
-                  lights:
-                    - light.main_living_lights
-                    - light.kitchen_island_lights
-                    - light.recessed_ceiling_lights
+                  lights: light.main_living_lights
+                  manual_control: true
+              - service: adaptive_lighting.set_manual_control
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_kitchen_island
+                data:
+                  lights: light.kitchen_island_lights
+                  manual_control: true
+              - service: adaptive_lighting.set_manual_control
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_recessed_ceiling
+                data:
+                  lights: light.recessed_ceiling_lights
                   manual_control: true
               
               # Now safe to turn lights off
@@ -1504,7 +1596,7 @@ automation:
                   entity_id: input_boolean.oal_movie_mode_active
 
   # ---------------------------------------------------------------------------
-  # 4.11 Sleep-mode schedule (toggle AL sleep switches)
+  # 4.11 Sleep-mode schedule (sets input_select → Config Manager → Core Engine)
   # ---------------------------------------------------------------------------
   - id: oal_manage_sleep_mode_v13
     alias: "OAL v13 - Manage Sleep Mode Schedule"
@@ -1523,15 +1615,13 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_disable_sleep_mode
         state: "off"
-    variables:
-      sleep_switches: >
-        {{ states.switch
-           | selectattr('entity_id', 'search', 'adaptive_lighting_sleep_mode_')
-           | map(attribute='entity_id') | list }}
     action:
-      - action: "switch.turn_{{ 'on' if trigger.id == 'start_sleep' else 'off' }}"
+      # Set input_select - Config Manager handles sleep toggle + Core Engine applies
+      - service: input_select.select_option
         target:
-          entity_id: "{{ sleep_switches }}"
+          entity_id: input_select.oal_active_configuration
+        data:
+          option: "{{ 'Sleep Mode' if trigger.id == 'start_sleep' else 'Config 1: Baseline (All On)' }}"
 
   # ---------------------------------------------------------------------------
   # 4.12 System startup
@@ -2147,8 +2237,6 @@ template:
           {{ states('input_boolean.oal_system_paused') not in ['unknown', 'unavailable'] }}
         state: >
           {% set force_sleep = is_state('input_boolean.oal_force_sleep', 'on') %}
-          {% set sleep_switches = states.switch | selectattr('entity_id', 'search', 'adaptive_lighting_sleep_mode_') | selectattr('state', 'eq', 'on') | list %}
-          {% set scheduled_sleep = sleep_switches | length > 0 %}
           {% set b_cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
           {% set b_env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
           {% set b_sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
@@ -2162,9 +2250,7 @@ template:
           ] %}
           {% set max_zone = (zones | map('abs') | max) if zones | length > 0 else 0 %}
           {% if force_sleep %}
-            Force Sleep Mode
-          {% elif scheduled_sleep %}
-            Scheduled Sleep Mode
+            Sleep Mode
           {% elif b_cfg == 0 and b_env == 0 and b_sun == 0 and max_zone == 0 %}
             Baseline
           {% else %}
@@ -2291,11 +2377,13 @@ template:
         state: >
           {% if is_state('input_boolean.oal_system_paused', 'on') %}
             Paused
+          {% elif is_state('input_boolean.oal_force_sleep', 'on') %}
+            Sleep Mode
           {% elif is_state('input_boolean.oal_movie_mode_active', 'on') %}
             Movie Mode
           {% elif states('input_select.oal_isolated_override_mode') != 'Off' %}
             Isolated: {{ states('input_select.oal_isolated_override_mode') }}
-          {% elif states('input_select.oal_active_configuration') != 'Config 1: Baseline (All On)' %}
+          {% elif states('input_select.oal_active_configuration') not in ['Config 1: Baseline (All On)', 'Sleep Mode'] %}
             {{ states('input_select.oal_active_configuration') }}
           {% elif states('input_number.oal_offset_environmental_brightness') | float(0) > 0 %}
             Environmental Boost
@@ -2379,6 +2467,16 @@ template:
             {{ is_state('input_boolean.oal_movie_mode_active', 'on') }}
           isolated_mode: >
             {{ states('input_select.oal_isolated_override_mode') }}
+          lights_on: >
+            {% set all_lights = expand('light.all_adaptive_lights') %}
+            {% set on_lights = all_lights | selectattr('state', 'eq', 'on') | list %}
+            {{ on_lights | length }}
+          lights_total: >
+            {{ expand('light.all_adaptive_lights') | list | length }}
+          lights_on_formatted: >
+            {% set all_lights = expand('light.all_adaptive_lights') %}
+            {% set on_lights = all_lights | selectattr('state', 'eq', 'on') | list %}
+            {{ on_lights | length }}/{{ all_lights | length }}
 
       # -----------------------------------------------------------------------
       # 6.4 Per-Zone Status Sensors (for OAL Hero Card Dashboard)
@@ -2933,53 +3031,49 @@ template:
         unique_id: oal_environmental_debug_v13
         icon: mdi:weather-cloudy-alert
         availability: >
-          {{ states('sensor.living_room_presence_light_sensor_light_level') not in ['unknown', 'unavailable']
+          {{ states('sensor.living_room_illuminance') not in ['unknown', 'unavailable']
              and states('weather.home') not in ['unknown', 'unavailable'] }}
         state: >
-          {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+          {% set lux = states('sensor.living_room_illuminance') | float(500) %}
           {% set weather = states('weather.home') %}
           {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
-          {% set base_boost = 0 %}
-          
-          {% if lux < 10 %}
-            {% set base_boost = base_boost + 18 %}
-          {% elif lux < 50 %}
-            {% set base_boost = base_boost + 10 %}
-          {% elif lux < 150 %}
-            {% set base_boost = base_boost + 5 %}
-          {% elif lux < 300 %}
-            {% set base_boost = base_boost + 2 %}
+
+          {# Lux boost (100% weight) #}
+          {% set lux_boost = 0 %}
+          {% if lux < 10 %}{% set lux_boost = 18 %}
+          {% elif lux < 50 %}{% set lux_boost = 10 %}
+          {% elif lux < 150 %}{% set lux_boost = 5 %}
+          {% elif lux < 300 %}{% set lux_boost = 2 %}
           {% endif %}
-          
-          {% set weather_boost = {
+
+          {# Weather boost (40% weight) #}
+          {% set weather_lookup = {
             'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
             'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
             'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
           } %}
-          {% set weather_bonus = weather_boost.get(weather, 0) %}
-          {% set base_boost = base_boost + weather_bonus %}
-          
-          {% if season == 'winter' %}
-            {% set base_boost = base_boost + 8 %}
-          {% endif %}
-          
+          {% set weather_boost = weather_lookup.get(weather, 0) %}
+
+          {# Season boost (25% weight) #}
+          {% set season_boost = 8 if season == 'winter' else 0 %}
+
+          {# WEIGHTED combination #}
+          {% set base_boost = lux_boost + (weather_boost * 0.4) + (season_boost * 0.25) %}
+
           {% set hour = now().hour %}
-          {% set time_suppressed = (22 <= hour or hour <= 6 or lux > 2500) %}
-          {% set time_reduced = (6 < hour <= 8 or 18 <= hour < 22) %}
-          
-          {% if time_suppressed %}
+          {% if 22 <= hour or hour <= 6 or lux > 2500 %}
             {% set final_boost = 0 %}
-          {% elif time_reduced %}
+          {% elif 6 < hour <= 8 or 18 <= hour < 22 %}
             {% set final_boost = base_boost * 0.7 %}
           {% else %}
             {% set final_boost = base_boost %}
           {% endif %}
-          
-          {{ [50, final_boost] | min | round(0) }}%
+
+          {{ [50, final_boost] | min | round(1) }}%
         attributes:
           # Input values
           lux_current: >
-            {{ states('sensor.living_room_presence_light_sensor_light_level') | float(500) }}
+            {{ states('sensor.living_room_illuminance') | float(500) }}
           weather_current: >
             {{ states('weather.home') }}
           season: >
@@ -2988,31 +3082,60 @@ template:
             {{ now().hour }}
           boost_enabled: >
             {{ is_state('input_boolean.oal_environmental_boost_enabled', 'on') }}
-          
-          # Calculation breakdown
-          lux_boost: >
-            {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+
+          # Raw component values (before weighting)
+          lux_boost_raw: >
+            {% set lux = states('sensor.living_room_illuminance') | float(500) %}
             {% if lux < 10 %} 18
             {% elif lux < 50 %} 10
             {% elif lux < 150 %} 5
             {% elif lux < 300 %} 2
             {% else %} 0
             {% endif %}
-          weather_boost: >
+          weather_boost_raw: >
             {% set weather = states('weather.home') %}
-            {% set weather_boost = {
+            {% set weather_lookup = {
               'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
               'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
               'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
             } %}
-            {{ weather_boost.get(weather, 0) }}
-          season_boost: >
+            {{ weather_lookup.get(weather, 0) }}
+          season_boost_raw: >
             {{ 8 if now().month in [11, 12, 1, 2, 3] else 0 }}
-          
+
+          # Weighted contributions
+          lux_weighted: >
+            {% set lux = states('sensor.living_room_illuminance') | float(500) %}
+            {% if lux < 10 %}{{ 18 }}
+            {% elif lux < 50 %}{{ 10 }}
+            {% elif lux < 150 %}{{ 5 }}
+            {% elif lux < 300 %}{{ 2 }}
+            {% else %}{{ 0 }}
+            {% endif %}
+          weather_weighted: >
+            {% set weather = states('weather.home') %}
+            {% set weather_lookup = {
+              'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
+              'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
+              'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
+            } %}
+            {{ (weather_lookup.get(weather, 0) * 0.4) | round(1) }}
+          season_weighted: >
+            {% set season_boost = 8 if now().month in [11, 12, 1, 2, 3] else 0 %}
+            {{ (season_boost * 0.25) | round(1) }}
+          weights_formula: "lux×1.0 + weather×0.4 + season×0.25"
+
+          # Sunset amplifier info
+          sunset_boost: >
+            {{ states('input_number.oal_offset_sunset_brightness') | float(0) }}
+          sunset_amplifier: >
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {{ (1 + (sun / 8) * 0.5) | round(2) if sun > 0 else 1.0 }}
+
           # Time-based adjustments
           time_status: >
             {% set hour = now().hour %}
-            {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+            {% set lux = states('sensor.living_room_illuminance') | float(500) %}
             {% if 22 <= hour or hour <= 6 %}
               Suppressed (Night: {{ hour }}:00)
             {% elif lux > 2500 %}
@@ -3022,26 +3145,25 @@ template:
             {% else %}
               Normal ({{ hour }}:00)
             {% endif %}
-          
-          # Final calculation
-          raw_boost_before_time: >
-            {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+
+          # Final calculations
+          weighted_boost_before_time: >
+            {% set lux = states('sensor.living_room_illuminance') | float(500) %}
             {% set weather = states('weather.home') %}
-            {% set season = 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' %}
-            {% set base_boost = 0 %}
-            {% if lux < 10 %} {% set base_boost = base_boost + 18 %}
-            {% elif lux < 50 %} {% set base_boost = base_boost + 10 %}
-            {% elif lux < 150 %} {% set base_boost = base_boost + 5 %}
-            {% elif lux < 300 %} {% set base_boost = base_boost + 2 %}
+            {% set lux_boost = 0 %}
+            {% if lux < 10 %}{% set lux_boost = 18 %}
+            {% elif lux < 50 %}{% set lux_boost = 10 %}
+            {% elif lux < 150 %}{% set lux_boost = 5 %}
+            {% elif lux < 300 %}{% set lux_boost = 2 %}
             {% endif %}
-            {% set weather_boost = {
+            {% set weather_lookup = {
               'fog': 20, 'pouring': 18, 'hail': 18, 'snowy': 15, 'snowy-rainy': 15,
               'rainy': 12, 'lightning-rainy': 12, 'cloudy': 10, 'lightning': 8,
               'partlycloudy': 5, 'windy': 2, 'windy-variant': 2, 'exceptional': 15
             } %}
-            {% set base_boost = base_boost + weather_boost.get(weather, 0) %}
-            {% if season == 'winter' %} {% set base_boost = base_boost + 8 %} {% endif %}
-            {{ base_boost }}
+            {% set weather_boost = weather_lookup.get(weather, 0) %}
+            {% set season_boost = 8 if now().month in [11, 12, 1, 2, 3] else 0 %}
+            {{ (lux_boost + (weather_boost * 0.4) + (season_boost * 0.25)) | round(1) }}
           
           actual_applied_boost: >
             {{ states('input_number.oal_offset_environmental_brightness') | float(0) }}
@@ -3050,7 +3172,7 @@ template:
             {% if not is_state('input_boolean.oal_environmental_boost_enabled', 'on') %}
               Environmental boost is DISABLED
             {% else %}
-              {% set lux = states('sensor.living_room_presence_light_sensor_light_level') | float(500) %}
+              {% set lux = states('sensor.living_room_illuminance') | float(500) %}
               {% set hour = now().hour %}
               {% if 22 <= hour or hour <= 6 %}
                 Night time suppression ({{ hour }}:00)

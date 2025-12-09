@@ -106,10 +106,13 @@ cards:
                 - condition: template
                   value_template: "{{ states('sensor.sonos_next_alarm_chip') != 'None' }}"
               tap_action:
+                action: navigate
+                navigation_path: '#sonos-alarms'
+              hold_action:
                 action: perform-action
                 perform_action: script.sonos_toggle_next_alarm
                 target: {}
-              hold_action:
+              double_tap_action:
                 action: more-info
             - entity: binary_sensor.sonos_living_room_in_playing_group
               name: Speakers

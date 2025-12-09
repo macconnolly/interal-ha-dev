@@ -472,17 +472,15 @@ adaptive_lighting:
     min_brightness: 1
     max_brightness: 80
     brightness_mode: tanh
-    brightness_mode_time_light: 1800
-    brightness_mode_time_dark: 900
     min_color_temp: 2000
     max_color_temp: 3000
     prefer_rgb_color: true
     sleep_brightness: 1
     sleep_rgb_or_color_temp: "rgb_color"
-    sleep_color_temp: 1000
     sleep_rgb_color: [255, 165, 0]
     sleep_transition: 1
-    transition_until_sleep: true
+    send_split_delay: true
+    separate_turn_on_commands: true
 
 # =============================================================================
 # LAYER 4: CORE ENGINE + GLOBAL LOGIC (AUTOMATIONS)
@@ -2296,6 +2294,19 @@ script:
       - service: switch.turn_on
         target:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+      # Reset column lights switch settings to ensure fast transitions
+      - service: adaptive_lighting.change_switch_settings
+        data:
+          entity_id: switch.adaptive_lighting_column_lights
+          use_defaults: configuration
+          include_config_in_attributes: true
+          initial_transition: 1
+          sleep_transition: 1
+          transition: 1
+          separate_turn_on_commands: true
+          send_split_delay: true
+          prefer_rgb_color: true
+          sleep_rgb_or_color_temp: "rgb_color"
       # THEN: Clear manual_control so Core Engine will apply changes
       - service: adaptive_lighting.set_manual_control
         target:
@@ -2336,7 +2347,7 @@ script:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
         data:
           turn_on_lights: true
-          transition: 2
+          transition: 1
 
   oal_reset_global:
     alias: "OAL v13 Reset Global (Nuclear)"

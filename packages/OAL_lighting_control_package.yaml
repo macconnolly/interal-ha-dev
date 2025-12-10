@@ -485,6 +485,10 @@ adaptive_lighting:
     sleep_transition: 1
     send_split_delay: true
     separate_turn_on_commands: true
+    skip_redundant_commands: true
+    intercept: true
+    multi_light_intercept: true
+
 
 # =============================================================================
 # LAYER 4: CORE ENGINE + GLOBAL LOGIC (AUTOMATIONS)
@@ -496,8 +500,7 @@ automation:
   # ---------------------------------------------------------------------------
   - id: oal_core_adjustment_engine_v13
     alias: "OAL v13 - Core Adjustment Engine (Master)"
-    mode: queued
-    max: 3
+    mode: parallel
     trigger:
       - platform: state
         entity_id:
@@ -3935,7 +3938,15 @@ template:
           audio_state: "{{ states('media_player.kitchen') }}"
           audio_track: "{{ state_attr('media_player.kitchen', 'media_title') | default('') }}"
           in_group: "{{ states('sensor.sonos_kitchen_in_playing_group') in ['True', 'on', true] }}"
-          has_override: "{{ (state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') or []) | length > 0 }}"
+          # Override status - aggregated from kitchen AL switch
+          manually_controlled_lights: >
+            {% set kitchen = state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) %}
+            {% set kitchen_lights = ['light.kitchen_main_lights', 'light.kitchen_island_pendants'] %}
+            {{ kitchen | select('in', kitchen_lights) | list }}
+          has_override: >
+            {{ (this.attributes.manually_controlled_lights | default([])) | length > 0 }}
+          override_count: >
+            {{ (this.attributes.manually_controlled_lights | default([])) | length }}
           card_background: >
             {% set state = this.state %}
             {% if state == 'override' %}linear-gradient(180deg, rgba(156,39,176,0.08) 0%, rgba(255,255,255,0.06) 100%)
@@ -4019,7 +4030,18 @@ template:
           audio_state: "{{ states('media_player.bedroom') }}"
           audio_track: "{{ state_attr('media_player.bedroom', 'media_title') | default('') }}"
           in_group: "{{ states('sensor.sonos_bedroom_in_playing_group') in ['True', 'on', true] }}"
-          has_override: "{{ (state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') or []) | length > 0 }}"
+          # Override status - aggregated from bedroom AL switch
+          manually_controlled_lights: >
+            {% set bedroom = state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) %}
+            {% set bedroom_lights = [
+              'light.master_bedroom_table_lamps',
+              'light.master_bedroom_corner_accent'
+            ] %}
+            {{ bedroom | select('in', bedroom_lights) | list }}
+          has_override: >
+            {{ (this.attributes.manually_controlled_lights | default([])) | length > 0 }}
+          override_count: >
+            {{ (this.attributes.manually_controlled_lights | default([])) | length }}
           # Brightness offset - bedroom zone offset
           brightness_offset: >
             {{ states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0) | round(0) }}
@@ -4101,6 +4123,20 @@ template:
           total_lights: 2
           audio_state: "{{ states('media_player.dining_room') }}"
           in_group: "{{ states('sensor.sonos_dining_room_in_playing_group') in ['True', 'on', true] }}"
+          # Override status - aggregated from dining room AL switches
+          manually_controlled_lights: >
+            {% set spots = state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) %}
+            {% set columns = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+            {% set dining_lights = [
+              'light.dining_room_spot_lights',
+              'light.dining_col_accent'
+            ] %}
+            {% set all_manual = (spots + columns) | unique | list %}
+            {{ all_manual | select('in', dining_lights) | list }}
+          has_override: >
+            {{ (this.attributes.manually_controlled_lights | default([])) | length > 0 }}
+          override_count: >
+            {{ (this.attributes.manually_controlled_lights | default([])) | length }}
           hvac_action: "{{ state_attr('climate.dining_room', 'hvac_action') | default('idle') }}"
           current_temp: "{{ state_attr('climate.dining_room', 'current_temperature') | float(0) | round(0) }}"
           target_temp: "{{ state_attr('climate.dining_room', 'temperature') | float(0) | round(0) }}"
@@ -4176,6 +4212,86 @@ template:
             {% if state == 'playing' %}🎵 {{ track[:25] }}{% if track | length > 25 %}...{% endif %}
             {% elif state == 'grouped' %}🔗 In group
             {% else %}💧 {{ states('sensor.dining_room_humidity') | default('--') }}%{% endif %}
+
+      # ROOM: ACCENT LIGHTS (cross-room)
+      # -----------------------------------------------------------------------
+      - name: "Room Accent State"
+        unique_id: room_accent_state_v13
+        icon: mdi:lamp
+        state: >
+          {% set lights = [
+            'light.living_room_corner_accent',
+            'light.living_room_credenza_light',
+            'light.dining_col_accent',
+            'light.living_col_accent'
+          ] %}
+          {% set lights_on = lights | select('is_state', 'on') | list | length %}
+          {% set has_override = (this.attributes.manually_controlled_lights | default([])) | length > 0 %}
+          
+          {% if has_override %}override
+          {% elif lights_on > 0 %}active
+          {% else %}idle{% endif %}
+        attributes:
+          lights_on: >
+            {% set lights = [
+              'light.living_room_corner_accent',
+              'light.living_room_credenza_light',
+              'light.dining_col_accent',
+              'light.living_col_accent'
+            ] %}
+            {{ lights | select('is_state', 'on') | list | length }}
+          total_lights: 4
+          brightness_avg: >
+            {% set lights = [
+              'light.living_room_corner_accent',
+              'light.living_room_credenza_light',
+              'light.dining_col_accent',
+              'light.living_col_accent'
+            ] %}
+            {% set on_lights = lights | select('is_state', 'on') | list %}
+            {% if on_lights | length > 0 %}
+              {% set total = namespace(val=0) %}
+              {% for l in on_lights %}
+                {% set total.val = total.val + (state_attr(l, 'brightness') | default(0) | int) %}
+              {% endfor %}
+              {{ (total.val / (on_lights | length) / 2.55) | round(0) }}
+            {% else %}0{% endif %}
+          # Override status - aggregated from main_living and column_lights switches
+          manually_controlled_lights: >
+            {% set main = state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) %}
+            {% set columns = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+            {% set accent_lights = [
+              'light.living_room_corner_accent',
+              'light.living_room_credenza_light',
+              'light.dining_col_accent',
+              'light.living_col_accent'
+            ] %}
+            {% set all_manual = (main + columns) | unique | list %}
+            {{ all_manual | select('in', accent_lights) | list }}
+          has_override: >
+            {{ (this.attributes.manually_controlled_lights | default([])) | length > 0 }}
+          override_count: >
+            {{ (this.attributes.manually_controlled_lights | default([])) | length }}
+          # Styling attributes
+          card_background: >
+            {% set state = this.state %}
+            {% if state == 'override' %}linear-gradient(180deg, rgba(156,39,176,0.08) 0%, rgba(255,255,255,0.06) 100%)
+            {% elif state == 'active' %}linear-gradient(180deg, rgba(255,152,0,0.08) 0%, rgba(255,255,255,0.06) 100%)
+            {% else %}rgba(255,255,255,0.06){% endif %}
+          card_border: >
+            {% set state = this.state %}
+            {% if state == 'override' %}1px solid rgba(156,39,176,0.3)
+            {% elif state == 'active' %}1px solid rgba(255,152,0,0.25)
+            {% else %}1px solid rgba(255,255,255,0.08){% endif %}
+          subtitle: >
+            {% set state = this.state %}
+            {% set override_count = (this.attributes.manually_controlled_lights | default([])) | length %}
+            {% set lights_on = this.attributes.lights_on | default(0) %}
+            {% if state == 'override' %}
+              ✋ {{ override_count }} override{% if override_count > 1 %}s{% endif %}
+            {% elif state == 'active' %}
+              {{ lights_on }}/4 accents
+            {% else %}Ready{% endif %}
 
             # GLOBAL ENVIRONMENTAL BRIGHTNESS BOOST SENSOR
       # -----------------------------------------------------------------------

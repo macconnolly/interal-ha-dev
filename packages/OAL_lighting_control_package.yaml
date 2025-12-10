@@ -468,12 +468,16 @@ adaptive_lighting:
     detect_non_ha_changes: true
     adapt_delay: 1
     include_config_in_attributes: true
-    autoreset_control_seconds: 3200
+    autoreset_control_seconds: 14400
     min_brightness: 1
     max_brightness: 80
     brightness_mode: tanh
     min_color_temp: 2000
     max_color_temp: 3000
+    brightness_mode_time_light: 1800
+    brightness_mode_time_dark: 900
+    sunset_offset: -1800
+    separate_turn_on_commands: true
     prefer_rgb_color: true
     sleep_brightness: 1
     sleep_rgb_or_color_temp: "rgb_color"

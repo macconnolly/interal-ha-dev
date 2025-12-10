@@ -2010,6 +2010,134 @@ automation:
         data:
           option: "Manual"
 
+  # -------------------------------------------------------------------------
+  # Learning Event Logger - Captures manual brightness adjustments for analysis
+  # -------------------------------------------------------------------------
+  - id: oal_learning_event_logger
+    alias: "OAL - Learning Event Logger"
+    description: "Captures manual brightness adjustments with full context for later Claude analysis"
+    mode: queued
+    max: 10
+    trigger:
+      # Trigger when any zone enters manual control (from empty to non-empty)
+      - platform: template
+        value_template: >
+          {{ state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) | length > 0 }}
+        id: main_living
+      - platform: template
+        value_template: >
+          {{ state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) | length > 0 }}
+        id: kitchen_island
+      - platform: template
+        value_template: >
+          {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) | length > 0 }}
+        id: bedroom_primary
+      - platform: template
+        value_template: >
+          {{ state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) | length > 0 }}
+        id: accent_spots
+      - platform: template
+        value_template: >
+          {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'manual_control') | default([]) | length > 0 }}
+        id: recessed_ceiling
+      - platform: template
+        value_template: >
+          {{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length > 0 }}
+        id: column_lights
+
+    variables:
+      zone_map:
+        main_living:
+          switch: switch.adaptive_lighting_main_living
+          friendly: "Main Living"
+        kitchen_island:
+          switch: switch.adaptive_lighting_kitchen_island
+          friendly: "Kitchen Island"
+        bedroom_primary:
+          switch: switch.adaptive_lighting_bedroom_primary
+          friendly: "Bedroom"
+        accent_spots:
+          switch: switch.adaptive_lighting_accent_spots
+          friendly: "Accent Spots"
+        recessed_ceiling:
+          switch: switch.adaptive_lighting_recessed_ceiling
+          friendly: "Recessed Ceiling"
+        column_lights:
+          switch: switch.adaptive_lighting_column_lights
+          friendly: "Column Lights"
+
+      zone_id: "{{ trigger.id }}"
+      zone_info: "{{ zone_map[zone_id] }}"
+      switch_entity: "{{ zone_info.switch }}"
+      zone_friendly: "{{ zone_info.friendly }}"
+
+      # Get manually controlled lights
+      manual_lights: "{{ state_attr(switch_entity, 'manual_control') | default([]) }}"
+
+      # AL's intended values
+      al_brightness: "{{ state_attr(switch_entity, 'brightness_pct') | float(0) }}"
+      al_color_temp: "{{ state_attr(switch_entity, 'color_temp_kelvin') | int(0) }}"
+
+      # Environmental context
+      lux: "{{ states('sensor.living_room_presence_light_sensor_light_level') | float(0) }}"
+      weather: "{{ states('weather.home') }}"
+      season: "{{ 'winter' if now().month in [11, 12, 1, 2, 3] else 'summer' }}"
+      sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(0) }}"
+      sun_rising: "{{ state_attr('sun.sun', 'rising') | default(false) }}"
+      env_boost: "{{ states('input_number.oal_offset_environmental_brightness') | float(0) }}"
+
+    action:
+      # Process each manually controlled light
+      - repeat:
+          for_each: "{{ manual_lights }}"
+          sequence:
+            - variables:
+                light_entity: "{{ repeat.item }}"
+                # Get actual brightness (0-255 scale, convert to %)
+                actual_brightness_raw: "{{ state_attr(light_entity, 'brightness') | float(0) }}"
+                actual_brightness: "{{ (actual_brightness_raw / 255 * 100) | round(1) }}"
+                actual_color_temp: "{{ state_attr(light_entity, 'color_temp_kelvin') | default(0) }}"
+                delta: "{{ (actual_brightness - al_brightness) | round(1) }}"
+
+            - variables:
+                event_payload:
+                  zone_id: "{{ zone_id }}"
+                  zone_friendly: "{{ zone_friendly }}"
+                  light_entity: "{{ light_entity }}"
+                  timestamp: "{{ now().isoformat() }}"
+                  hour: "{{ now().hour }}"
+                  day_of_week: "{{ now().weekday() }}"
+                  is_weekend: "{{ now().weekday() >= 5 }}"
+                  al_brightness_pct: "{{ al_brightness }}"
+                  actual_brightness_pct: "{{ actual_brightness }}"
+                  delta: "{{ delta }}"
+                  al_color_temp_k: "{{ al_color_temp }}"
+                  actual_color_temp_k: "{{ actual_color_temp }}"
+                  lux: "{{ lux }}"
+                  weather: "{{ weather }}"
+                  season: "{{ season }}"
+                  sun_elevation: "{{ sun_elevation }}"
+                  sun_rising: "{{ sun_rising }}"
+                  environmental_boost: "{{ env_boost }}"
+
+            # Fire custom event for sensor tracking
+            - event: oal_learning_event
+              event_data: "{{ event_payload }}"
+
+            # Optional: Write to log file for persistent storage
+            # Requires notify.file to be configured in configuration.yaml:
+            #   notify:
+            #     - platform: file
+            #       name: oal_learning_log
+            #       filename: /config/oal_learning_events.jsonl
+            #       timestamp: false
+            - service: notify.send_message
+              continue_on_error: true
+              target:
+                entity_id: notify.oal_learning_log
+              data:
+                message: "{{ event_payload | to_json }}"
+
 # =============================================================================
 # LAYER 5: SCRIPTS (MANUAL PIPELINE + CART/CARB + RESETS)
 # =============================================================================
@@ -3594,11 +3722,78 @@ template:
               {% endif %}
             {% endif %}
 
+  # -------------------------------------------------------------------------
+  # 6.4a Learning Events Tracker (trigger-based for event updates)
+  # -------------------------------------------------------------------------
+  - trigger:
+      - platform: event
+        event_type: oal_learning_event
+        id: learning_event
+      - platform: time
+        at: "00:00:00"
+        id: midnight_reset
+    sensor:
+      - name: "OAL Learning Events"
+        unique_id: oal_learning_events_tracker
+        icon: mdi:school-outline
+        state: >
+          {% if trigger.id == 'midnight_reset' %}
+            0
+          {% else %}
+            {{ (this.state | int(0)) + 1 }}
+          {% endif %}
+        attributes:
+          events_today: >
+            {% if trigger.id == 'midnight_reset' %}
+              0
+            {% else %}
+              {{ (this.attributes.events_today | int(0)) + 1 }}
+            {% endif %}
+          events_this_week: >
+            {% if trigger.id == 'midnight_reset' and now().weekday() == 0 %}
+              0
+            {% elif trigger.id == 'midnight_reset' %}
+              {{ this.attributes.events_this_week | int(0) }}
+            {% else %}
+              {{ (this.attributes.events_this_week | int(0)) + 1 }}
+            {% endif %}
+          last_event_zone: >
+            {% if trigger.id == 'learning_event' %}
+              {{ trigger.event.data.zone_friendly | default('unknown') }}
+            {% else %}
+              {{ this.attributes.last_event_zone | default('none') }}
+            {% endif %}
+          last_event_delta: >
+            {% if trigger.id == 'learning_event' %}
+              {{ trigger.event.data.delta | default(0) }}
+            {% else %}
+              {{ this.attributes.last_event_delta | default(0) }}
+            {% endif %}
+          last_event_time: >
+            {% if trigger.id == 'learning_event' %}
+              {{ now().strftime('%H:%M') }}
+            {% else %}
+              {{ this.attributes.last_event_time | default('never') }}
+            {% endif %}
+          last_event_light: >
+            {% if trigger.id == 'learning_event' %}
+              {{ trigger.event.data.light_entity | default('unknown') }}
+            {% else %}
+              {{ this.attributes.last_event_light | default('unknown') }}
+            {% endif %}
+          last_event_context: >
+            {% if trigger.id == 'learning_event' %}
+              {{ 'lux=' ~ (trigger.event.data.lux | round(0)) ~ ', ' ~ trigger.event.data.weather ~ ', sun=' ~ (trigger.event.data.sun_elevation | round(1)) ~ '°' }}
+            {% else %}
+              {{ this.attributes.last_event_context | default('none') }}
+            {% endif %}
+
 
 # =============================================================================
 # LAYER 7: DASHBOARD UI LOGIC (HERO COMPONENT HELPERS)
 # =============================================================================
 
+  - sensor:
       # HERO BUTTON: CONFIG STATE
       # -----------------------------------------------------------------------
       - name: "Hero Button Config State"

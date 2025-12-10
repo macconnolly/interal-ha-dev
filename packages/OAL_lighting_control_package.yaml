@@ -348,7 +348,7 @@ input_boolean:
 
   oal_disable_sleep_mode:
     name: "OAL Disable Sleep Mode"
-    initial: false
+    initial: true
     icon: mdi:sleep-off
 
 input_datetime:
@@ -1634,6 +1634,42 @@ automation:
           entity_id: input_select.oal_active_configuration
         data:
           option: "{{ 'Sleep' if trigger.id == 'start_sleep' else 'Adaptive' }}"
+
+  # ---------------------------------------------------------------------------
+  # 4.11b Force Sleep Mode Sync (bidirectional sync between toggle and config)
+  # ---------------------------------------------------------------------------
+  - id: oal_force_sleep_sync_v13
+    alias: "OAL v13 - Force Sleep Sync"
+    description: "Syncs force_sleep toggle with config selection - Config Manager handles the rest"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.oal_force_sleep
+        from: "off"
+        to: "on"
+        id: "sleep_enabled"
+      - platform: state
+        entity_id: input_boolean.oal_force_sleep
+        from: "on"
+        to: "off"
+        id: "sleep_disabled"
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+    action:
+      # Just set the config - Config Manager handles all AL switch settings
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.oal_active_configuration
+        data:
+          option: >
+            {% if trigger.id == 'sleep_enabled' and states('input_select.oal_active_configuration') != 'Sleep' %}
+              Sleep
+            {% elif trigger.id == 'sleep_disabled' and states('input_select.oal_active_configuration') == 'Sleep' %}
+              Adaptive
+            {% else %}
+              {{ states('input_select.oal_active_configuration') }}
+            {% endif %}
 
   # ---------------------------------------------------------------------------
   # 4.12 System startup

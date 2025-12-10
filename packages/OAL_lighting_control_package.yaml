@@ -2143,91 +2143,87 @@ automation:
   # -------------------------------------------------------------------------
   - id: oal_manual_control_sync_offset
     alias: "OAL - Sync Manual Offset on AL Detection"
-    description: "Updates zone manual offset helpers when Adaptive Lighting detects manual brightness changes"
+    description: "Updates zone manual offset helpers when Adaptive Lighting detects manual brightness changes, resets to 0 on autoreset"
     mode: queued
     max: 10
     trigger:
-      - platform: template
-        value_template: >
-          {{ state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) | length > 0 }}
-        id: main_living
-      - platform: template
-        value_template: >
-          {{ state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) | length > 0 }}
-        id: kitchen_island
-      - platform: template
-        value_template: >
-          {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) | length > 0 }}
-        id: bedroom_primary
-      - platform: template
-        value_template: >
-          {{ state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) | length > 0 }}
-        id: accent_spots
-      - platform: template
-        value_template: >
-          {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'manual_control') | default([]) | length > 0 }}
-        id: recessed_ceiling
-      - platform: template
-        value_template: >
-          {{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length > 0 }}
-        id: column_lights
+      # Single state trigger - fires on ANY manual_control attribute change
+      - platform: state
+        entity_id:
+          - switch.adaptive_lighting_main_living
+          - switch.adaptive_lighting_kitchen_island
+          - switch.adaptive_lighting_bedroom_primary
+          - switch.adaptive_lighting_accent_spots
+          - switch.adaptive_lighting_recessed_ceiling
+          - switch.adaptive_lighting_column_lights
+        attribute: manual_control
 
     variables:
-      zone_switch_map:
-        main_living: switch.adaptive_lighting_main_living
-        kitchen_island: switch.adaptive_lighting_kitchen_island
-        bedroom_primary: switch.adaptive_lighting_bedroom_primary
-        accent_spots: switch.adaptive_lighting_accent_spots
-        recessed_ceiling: switch.adaptive_lighting_recessed_ceiling
-        column_lights: switch.adaptive_lighting_column_lights
+      # Map switch entity to offset helper
+      switch_to_helper:
+        switch.adaptive_lighting_main_living: input_number.oal_manual_offset_main_living_brightness
+        switch.adaptive_lighting_kitchen_island: input_number.oal_manual_offset_kitchen_island_brightness
+        switch.adaptive_lighting_bedroom_primary: input_number.oal_manual_offset_bedroom_primary_brightness
+        switch.adaptive_lighting_accent_spots: input_number.oal_manual_offset_accent_spots_brightness
+        switch.adaptive_lighting_recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
+        switch.adaptive_lighting_column_lights: input_number.oal_manual_offset_column_lights_brightness
 
-      zone_helper_map:
-        main_living: input_number.oal_manual_offset_main_living_brightness
-        kitchen_island: input_number.oal_manual_offset_kitchen_island_brightness
-        bedroom_primary: input_number.oal_manual_offset_bedroom_primary_brightness
-        accent_spots: input_number.oal_manual_offset_accent_spots_brightness
-        recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
-        column_lights: input_number.oal_manual_offset_column_lights_brightness
+      switch_entity: "{{ trigger.entity_id }}"
+      helper_entity: "{{ switch_to_helper[switch_entity] }}"
 
-      zone_id: "{{ trigger.id }}"
-      switch_entity: "{{ zone_switch_map[zone_id] }}"
-      helper_entity: "{{ zone_helper_map[zone_id] }}"
-      manual_lights: "{{ state_attr(switch_entity, 'manual_control') | default([]) }}"
+      # Get manual_control from trigger (new value after change)
+      manual_lights: "{{ trigger.to_state.attributes.manual_control | default([]) }}"
+      is_reset: "{{ manual_lights | length == 0 }}"
+
       al_brightness: "{{ state_attr(switch_entity, 'brightness_pct') | float(0) }}"
 
     action:
-      # Calculate average delta across all manually controlled lights in zone
-      # Skip lights that are off (brightness = 0 or None) to avoid incorrect offsets
-      - variables:
-          avg_delta: >
-            {% set ns = namespace(total=0, count=0) %}
-            {% for light in manual_lights %}
-              {% set actual_raw = state_attr(light, 'brightness') %}
-              {% if actual_raw is not none and actual_raw | float(0) > 0 %}
-                {% set actual_pct = (actual_raw | float / 255 * 100) %}
-                {% set ns.total = ns.total + (actual_pct - al_brightness) %}
-                {% set ns.count = ns.count + 1 %}
-              {% endif %}
-            {% endfor %}
-            {% if ns.count > 0 %}
-              {{ (ns.total / ns.count) | round(0) | int }}
-            {% else %}
-              {{ none }}
-            {% endif %}
+      - choose:
+          # Reset case - manual_control is now empty (autoreset fired)
+          - conditions:
+              - condition: template
+                value_template: "{{ is_reset }}"
+            sequence:
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ helper_entity }}"
+                data:
+                  value: 0
 
-      # Only update if we have a valid delta (at least one light was on)
-      - condition: template
-        value_template: "{{ avg_delta is not none }}"
+        # Default case - manual control detected, calculate and set delta
+        default:
+          # Calculate average delta across all manually controlled lights in zone
+          # Skip lights that are off (brightness = 0 or None) to avoid incorrect offsets
+          - variables:
+              avg_delta: >
+                {% set ns = namespace(total=0, count=0) %}
+                {% for light in manual_lights %}
+                  {% set actual_raw = state_attr(light, 'brightness') %}
+                  {% if actual_raw is not none and actual_raw | float(0) > 0 %}
+                    {% set actual_pct = (actual_raw | float / 255 * 100) %}
+                    {% set ns.total = ns.total + (actual_pct - al_brightness) %}
+                    {% set ns.count = ns.count + 1 %}
+                  {% endif %}
+                {% endfor %}
+                {% if ns.count > 0 %}
+                  {{ (ns.total / ns.count) | round(0) | int }}
+                {% else %}
+                  {{ none }}
+                {% endif %}
 
-      - variables:
-          clamped_delta: "{{ [[-100, avg_delta | int] | max, 100] | min }}"
+          # Only update if we have a valid delta (at least one light was on)
+          - condition: template
+            value_template: "{{ avg_delta is not none }}"
 
-      # Update the zone's manual offset helper
-      - service: input_number.set_value
-        target:
-          entity_id: "{{ helper_entity }}"
-        data:
-          value: "{{ clamped_delta }}"
+          - variables:
+              clamped_delta: "{{ [[-100, avg_delta | int] | max, 100] | min }}"
+
+          # Update the zone's manual offset helper
+          - service: input_number.set_value
+            target:
+              entity_id: "{{ helper_entity }}"
+            data:
+              value: "{{ clamped_delta }}"
 
 # =============================================================================
 # LAYER 5: SCRIPTS (MANUAL PIPELINE + CART/CARB + RESETS)

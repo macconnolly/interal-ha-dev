@@ -483,8 +483,8 @@ adaptive_lighting:
     sleep_rgb_or_color_temp: "rgb_color"
     sleep_rgb_color: [255, 165, 0]
     sleep_transition: 1
+    transition_until_sleep: true
     send_split_delay: true
-    separate_turn_on_commands: true
     skip_redundant_commands: true
     intercept: true
     multi_light_intercept: true
@@ -819,9 +819,11 @@ automation:
           k: -500
           lights_off: []
           lights_dimmed:
+            light.main_living_lights: 40      # Soft ambient
+            light.kitchen_island_pendants: 30 # Lower than normal
+            light.column_lights: 30           # Accent glow
+            light.accent_spots_lights: 20     # Subtle spots
             light.recessed_ceiling_lights: 1  # Minimal glow
-            light.kitchen_main_lights: 1
-            light.kitchen_island_lights: 10 # Low pendant glow
           is_baseline: false
           is_force_on: false
         
@@ -841,12 +843,15 @@ automation:
           b: -60 # Global dim
           k: -1500 # Very warm
           lights_off:
-            - light.column_lights # Per requirement
-            - light.living_room_floor_lamp # "Floor lamp B" off/5%
-            - light.kitchen_main_lights
+            - light.column_lights            # Off - near TV glare
+            - light.living_room_floor_lamp   # Off - direct line of sight
+            - light.recessed_ceiling_lights  # Off - harsh overhead
           lights_dimmed:
-            light.living_room_couch_lamp: 5 # "Much dimmer"
-            light.kitchen_island_pendants: 15 # "Pendants down"
+            light.living_room_couch_lamp: 5   # Barely visible
+            light.kitchen_island_pendants: 15 # Background glow
+            light.accent_spots_lights: 5      # Subtle ambient
+            light.entryway_lamp: 8            # Navigation/safety
+            light.living_room_credenza_light: 3  # Bias lighting
           is_baseline: false
           is_force_on: false
 

@@ -19,6 +19,8 @@
 #  FIXED: Empty string split bug in alarms_to_reenable ('' → [''] not [])     #
 #  FIXED: confirm_actions built dynamically (conditions can't be in actions)  #
 #  UPDATED: Scripts use sonos_alarms_for_tomorrow (tomorrow only, not today)  #
+#  ADDED: Per-room alarm tracker input_texts (living, kitchen, bedroom)       #
+#  ADDED: alarm_entity and tracker params to sonos_toggle_next_alarm script   #
 ###############################################################################
 
 # The soonest-alarm helpers and their update script are now deprecated and replaced by the centralized sensor.
@@ -1624,3 +1626,1080 @@ automation:
             data:
               message: "No Sonos alarms to re-enable at 21:00."
               level: info
+
+###############################################################################
+#  SONOS ALARM MANAGEMENT SECTION                                              #
+#  Uses the sonos.update_alarm service for advanced alarm modifications        #
+#                                                                              #
+#  The sonos.update_alarm service accepts:                                     #
+#    - alarm_id (required): Integer ID from switch.sonos_alarm_XXX entity      #
+#    - time: New alarm time (HH:MM:SS format)                                  #
+#    - volume: Float between 0.0 and 1.0                                       #
+#    - enabled: Boolean to enable/disable the alarm                            #
+#    - include_linked_zones: Boolean for grouped speaker playback              #
+#                                                                              #
+#  Alarm switch entities expose these attributes:                              #
+#    - alarm_id: The Sonos internal alarm ID                                   #
+#    - time: Current scheduled time                                            #
+#    - duration: How long the alarm plays                                      #
+#    - recurrence: DAILY, WEEKDAYS, WEEKENDS, or ON_# patterns                 #
+#    - volume: Current volume level (0.0-1.0)                                  #
+#    - play_mode: Playback mode (NORMAL, SHUFFLE, etc.)                        #
+#    - scheduled_today: Boolean if alarm is scheduled for today                #
+#    - include_linked_zones: Boolean for group playback                        #
+###############################################################################
+
+# ============================================================================
+# ALARM MANAGEMENT SCRIPTS
+# ============================================================================
+# These scripts use the sonos.update_alarm service for advanced modifications
+# that go beyond simple enable/disable (which uses switch.turn_on/off)
+# ============================================================================
+
+script:
+  # -------------------------------------------------------------------------
+  # Update Alarm Time - Change when an alarm triggers
+  # -------------------------------------------------------------------------
+  sonos_update_alarm_time:
+    alias: Sonos - Update Alarm Time
+    description: "Updates the time for a specific Sonos alarm using sonos.update_alarm"
+    icon: mdi:alarm-plus
+    mode: single
+    fields:
+      alarm_entity:
+        description: "The switch.sonos_alarm_XXX entity to modify"
+        required: true
+        example: "switch.sonos_alarm_938"
+        selector:
+          entity:
+            domain: switch
+            integration: sonos
+      new_time:
+        description: "New alarm time in HH:MM or HH:MM:SS format"
+        required: true
+        example: "07:30:00"
+        selector:
+          time:
+    sequence:
+      - variables:
+          alarm_id: "{{ state_attr(alarm_entity, 'alarm_id') | int(0) }}"
+          current_time: "{{ state_attr(alarm_entity, 'time') }}"
+          # Ensure time format includes seconds
+          formatted_time: >
+            {% set parts = new_time.split(':') %}
+            {% if parts | length == 2 %}
+              {{ new_time }}:00
+            {% else %}
+              {{ new_time }}
+            {% endif %}
+      - condition: template
+        value_template: "{{ alarm_id > 0 }}"
+        alias: "Verify alarm_id is valid"
+      - service: sonos.update_alarm
+        data:
+          alarm_id: "{{ alarm_id }}"
+          time: "{{ formatted_time }}"
+      - service: system_log.write
+        data:
+          message: "Sonos alarm {{ alarm_entity }} (ID: {{ alarm_id }}) time updated from {{ current_time }} to {{ formatted_time }}"
+          level: info
+
+  # -------------------------------------------------------------------------
+  # Update Alarm Volume - Change how loud an alarm plays
+  # -------------------------------------------------------------------------
+  sonos_update_alarm_volume:
+    alias: Sonos - Update Alarm Volume
+    description: "Updates the volume for a specific Sonos alarm"
+    icon: mdi:volume-high
+    mode: single
+    fields:
+      alarm_entity:
+        description: "The switch.sonos_alarm_XXX entity to modify"
+        required: true
+        example: "switch.sonos_alarm_938"
+        selector:
+          entity:
+            domain: switch
+            integration: sonos
+      volume:
+        description: "New volume level (0.0 to 1.0, or 0 to 100 as percentage)"
+        required: true
+        example: 0.25
+        selector:
+          number:
+            min: 0
+            max: 100
+            step: 1
+            unit_of_measurement: "%"
+    sequence:
+      - variables:
+          alarm_id: "{{ state_attr(alarm_entity, 'alarm_id') | int(0) }}"
+          current_volume: "{{ state_attr(alarm_entity, 'volume') | float(0) }}"
+          # Normalize volume: if > 1, treat as percentage
+          normalized_volume: >
+            {% if volume | float > 1 %}
+              {{ (volume | float / 100) | round(2) }}
+            {% else %}
+              {{ volume | float | round(2) }}
+            {% endif %}
+      - condition: template
+        value_template: "{{ alarm_id > 0 }}"
+        alias: "Verify alarm_id is valid"
+      - service: sonos.update_alarm
+        data:
+          alarm_id: "{{ alarm_id }}"
+          volume: "{{ normalized_volume }}"
+      - service: system_log.write
+        data:
+          message: "Sonos alarm {{ alarm_entity }} (ID: {{ alarm_id }}) volume updated from {{ (current_volume * 100) | int }}% to {{ (normalized_volume * 100) | int }}%"
+          level: info
+
+  # -------------------------------------------------------------------------
+  # Update Alarm Linked Zones - Enable/disable group playback
+  # -------------------------------------------------------------------------
+  sonos_update_alarm_linked_zones:
+    alias: Sonos - Update Alarm Linked Zones
+    description: "Enable or disable playing alarm on all grouped speakers"
+    icon: mdi:speaker-multiple
+    mode: single
+    fields:
+      alarm_entity:
+        description: "The switch.sonos_alarm_XXX entity to modify"
+        required: true
+        example: "switch.sonos_alarm_938"
+        selector:
+          entity:
+            domain: switch
+            integration: sonos
+      include_linked_zones:
+        description: "Whether to play on all grouped speakers"
+        required: true
+        example: true
+        selector:
+          boolean:
+    sequence:
+      - variables:
+          alarm_id: "{{ state_attr(alarm_entity, 'alarm_id') | int(0) }}"
+          current_linked: "{{ state_attr(alarm_entity, 'include_linked_zones') | default(false) }}"
+      - condition: template
+        value_template: "{{ alarm_id > 0 }}"
+        alias: "Verify alarm_id is valid"
+      - service: sonos.update_alarm
+        data:
+          alarm_id: "{{ alarm_id }}"
+          include_linked_zones: "{{ include_linked_zones }}"
+      - service: system_log.write
+        data:
+          message: "Sonos alarm {{ alarm_entity }} (ID: {{ alarm_id }}) linked zones changed from {{ current_linked }} to {{ include_linked_zones }}"
+          level: info
+
+  # -------------------------------------------------------------------------
+  # Generic Alarm Update - Update multiple properties at once
+  # -------------------------------------------------------------------------
+  sonos_update_alarm:
+    alias: Sonos - Update Alarm (Generic)
+    description: "Update any combination of alarm properties using sonos.update_alarm"
+    icon: mdi:alarm-check
+    mode: single
+    fields:
+      alarm_entity:
+        description: "The switch.sonos_alarm_XXX entity to modify"
+        required: true
+        example: "switch.sonos_alarm_938"
+        selector:
+          entity:
+            domain: switch
+            integration: sonos
+      time:
+        description: "New alarm time (optional, HH:MM:SS)"
+        required: false
+        example: "07:30:00"
+        selector:
+          time:
+      volume:
+        description: "New volume level (optional, 0.0-1.0 or 0-100)"
+        required: false
+        example: 25
+        selector:
+          number:
+            min: 0
+            max: 100
+            step: 1
+            unit_of_measurement: "%"
+      enabled:
+        description: "Enable or disable the alarm (optional)"
+        required: false
+        example: true
+        selector:
+          boolean:
+      include_linked_zones:
+        description: "Play on grouped speakers (optional)"
+        required: false
+        example: false
+        selector:
+          boolean:
+    sequence:
+      - variables:
+          alarm_id: "{{ state_attr(alarm_entity, 'alarm_id') | int(0) }}"
+          # Build service data dynamically based on provided parameters
+          service_data: >
+            {% set data = {'alarm_id': alarm_id} %}
+            {% if time is defined and time %}
+              {% set parts = time.split(':') %}
+              {% if parts | length == 2 %}
+                {% set data = dict(data, time=time ~ ':00') %}
+              {% else %}
+                {% set data = dict(data, time=time) %}
+              {% endif %}
+            {% endif %}
+            {% if volume is defined and volume is not none %}
+              {% set vol = volume | float %}
+              {% if vol > 1 %}
+                {% set vol = (vol / 100) | round(2) %}
+              {% endif %}
+              {% set data = dict(data, volume=vol) %}
+            {% endif %}
+            {% if enabled is defined and enabled is not none %}
+              {% set data = dict(data, enabled=enabled) %}
+            {% endif %}
+            {% if include_linked_zones is defined and include_linked_zones is not none %}
+              {% set data = dict(data, include_linked_zones=include_linked_zones) %}
+            {% endif %}
+            {{ data }}
+      - condition: template
+        value_template: "{{ alarm_id > 0 }}"
+        alias: "Verify alarm_id is valid"
+      - service: sonos.update_alarm
+        data: "{{ service_data }}"
+      - service: system_log.write
+        data:
+          message: "Sonos alarm {{ alarm_entity }} (ID: {{ alarm_id }}) updated with: {{ service_data }}"
+          level: info
+
+  # -------------------------------------------------------------------------
+  # Snooze Alarm - Delay the next alarm by a specified amount
+  # -------------------------------------------------------------------------
+  sonos_snooze_alarm:
+    alias: Sonos - Snooze/Delay Alarm
+    description: "Delays an alarm by adding minutes to its current time"
+    icon: mdi:alarm-snooze
+    mode: single
+    fields:
+      alarm_entity:
+        description: "The switch.sonos_alarm_XXX entity to snooze"
+        required: true
+        example: "switch.sonos_alarm_938"
+        selector:
+          entity:
+            domain: switch
+            integration: sonos
+      snooze_minutes:
+        description: "Minutes to delay the alarm (default: 9)"
+        required: false
+        default: 9
+        example: 15
+        selector:
+          number:
+            min: 1
+            max: 120
+            step: 1
+            unit_of_measurement: "min"
+    sequence:
+      - variables:
+          alarm_id: "{{ state_attr(alarm_entity, 'alarm_id') | int(0) }}"
+          current_time: "{{ state_attr(alarm_entity, 'time') }}"
+          minutes_to_add: "{{ snooze_minutes | default(9) | int }}"
+          # Calculate new time
+          new_time: >
+            {% set parts = current_time.split(':') %}
+            {% set h = parts[0] | int %}
+            {% set m = parts[1] | int %}
+            {% set s = parts[2] | int if parts | length > 2 else 0 %}
+            {% set total_minutes = h * 60 + m + minutes_to_add %}
+            {% set new_h = (total_minutes // 60) % 24 %}
+            {% set new_m = total_minutes % 60 %}
+            {{ '%02d:%02d:%02d' | format(new_h, new_m, s) }}
+      - condition: template
+        value_template: "{{ alarm_id > 0 and current_time is not none }}"
+        alias: "Verify alarm_id and current time are valid"
+      - service: sonos.update_alarm
+        data:
+          alarm_id: "{{ alarm_id }}"
+          time: "{{ new_time }}"
+      - service: system_log.write
+        data:
+          message: "Sonos alarm {{ alarm_entity }} (ID: {{ alarm_id }}) snoozed from {{ current_time }} to {{ new_time }} (+{{ minutes_to_add }} min)"
+          level: info
+
+  # -------------------------------------------------------------------------
+  # Set Soonest Alarm Volume - Quick volume adjustment for next alarm
+  # -------------------------------------------------------------------------
+  sonos_set_next_alarm_volume:
+    alias: Sonos - Set Next Alarm Volume
+    description: "Sets the volume for the soonest upcoming alarm"
+    icon: mdi:volume-medium
+    mode: single
+    fields:
+      volume:
+        description: "Volume level (0-100 as percentage)"
+        required: true
+        example: 30
+        selector:
+          number:
+            min: 0
+            max: 100
+            step: 5
+            unit_of_measurement: "%"
+    sequence:
+      - variables:
+          alarm_entity: "{{ state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') }}"
+          alarm_id: >
+            {% if alarm_entity %}
+              {{ state_attr(alarm_entity, 'alarm_id') | int(0) }}
+            {% else %}
+              0
+            {% endif %}
+          normalized_volume: "{{ (volume | float / 100) | round(2) }}"
+      - condition: template
+        value_template: "{{ alarm_id > 0 }}"
+        alias: "Verify we have a valid upcoming alarm"
+      - service: sonos.update_alarm
+        data:
+          alarm_id: "{{ alarm_id }}"
+          volume: "{{ normalized_volume }}"
+      - service: system_log.write
+        data:
+          message: "Soonest Sonos alarm {{ alarm_entity }} volume set to {{ volume }}%"
+          level: info
+
+  # -------------------------------------------------------------------------
+  # Bulk Update All Alarm Volumes - Set volume for all alarms on a speaker
+  # -------------------------------------------------------------------------
+  sonos_set_all_alarm_volumes_by_room:
+    alias: Sonos - Set All Alarm Volumes by Room
+    description: "Sets volume for all alarms on a specific Sonos speaker"
+    icon: mdi:volume-equal
+    mode: single
+    fields:
+      room:
+        description: "Room/speaker name to filter alarms (e.g., 'Bath', 'Kitchen', 'Bedroom')"
+        required: true
+        example: "Bath"
+        selector:
+          text:
+      volume:
+        description: "Volume level (0-100 as percentage)"
+        required: true
+        example: 25
+        selector:
+          number:
+            min: 0
+            max: 100
+            step: 5
+            unit_of_measurement: "%"
+    sequence:
+      - variables:
+          normalized_volume: "{{ (volume | float / 100) | round(2) }}"
+          room_lower: "{{ room | lower }}"
+          # Find all alarm switches matching the room
+          matching_alarms: >
+            {{ states.switch
+                | selectattr('entity_id', 'search', 'sonos_alarm_')
+                | selectattr('attributes.friendly_name', 'defined')
+                | selectattr('attributes.friendly_name', 'search', room, ignorecase=True)
+                | map(attribute='entity_id')
+                | list }}
+      - condition: template
+        value_template: "{{ matching_alarms | length > 0 }}"
+        alias: "Verify we found matching alarms"
+      - repeat:
+          for_each: "{{ matching_alarms }}"
+          sequence:
+            - variables:
+                current_alarm_id: "{{ state_attr(repeat.item, 'alarm_id') | int(0) }}"
+            - condition: template
+              value_template: "{{ current_alarm_id > 0 }}"
+            - service: sonos.update_alarm
+              data:
+                alarm_id: "{{ current_alarm_id }}"
+                volume: "{{ normalized_volume }}"
+      - service: system_log.write
+        data:
+          message: "Updated volume to {{ volume }}% for {{ matching_alarms | length }} alarm(s) in {{ room }}: {{ matching_alarms }}"
+          level: info
+
+# ============================================================================
+# ALARM MANAGEMENT SENSORS
+# ============================================================================
+# Enhanced sensors providing detailed alarm information for dashboards
+# ============================================================================
+
+template:
+  sensor:
+    # -----------------------------------------------------------------------
+    # Detailed Alarm Info Sensor - Shows comprehensive alarm details
+    # -----------------------------------------------------------------------
+    - name: "Sonos Alarm Details"
+      unique_id: sonos_alarm_details
+      icon: mdi:alarm-note
+      state: >
+        {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+        {% set count = data.get('alarm_count', 0) if data is mapping else 0 %}
+        {{ count }} upcoming alarm{{ 's' if count != 1 else '' }}
+      attributes:
+        # Next alarm quick info
+        next_alarm_time: >
+          {{ states('sensor.soonest_sonos_alarm_info') }}
+        next_alarm_room: >
+          {{ state_attr('sensor.soonest_sonos_alarm_info', 'room') | default('Unknown') }}
+        next_alarm_volume: >
+          {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
+          {% if entity_id %}
+            {{ (state_attr(entity_id, 'volume') | float(0) * 100) | int }}
+          {% else %}
+            0
+          {% endif %}
+        next_alarm_entity: >
+          {{ state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') }}
+        next_alarm_id: >
+          {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
+          {% if entity_id %}
+            {{ state_attr(entity_id, 'alarm_id') | default('unknown') }}
+          {% else %}
+            unknown
+          {% endif %}
+        # All alarms with full details
+        all_alarms_detailed: >
+          {%- set ns = namespace(alarms=[]) -%}
+          {%- for alarm in states.switch | selectattr('entity_id', 'search', 'sonos_alarm_') -%}
+            {%- set alarm_info = {
+                'entity_id': alarm.entity_id,
+                'enabled': alarm.state == 'on',
+                'alarm_id': alarm.attributes.get('alarm_id', 'unknown'),
+                'time': alarm.attributes.get('time', 'unknown'),
+                'duration': alarm.attributes.get('duration', 'unknown'),
+                'recurrence': alarm.attributes.get('recurrence', 'unknown'),
+                'volume': (alarm.attributes.get('volume', 0) | float * 100) | int,
+                'include_linked_zones': alarm.attributes.get('include_linked_zones', false),
+                'scheduled_today': alarm.attributes.get('scheduled_today', false),
+                'friendly_name': alarm.attributes.get('friendly_name', alarm.name),
+                'room': alarm.attributes.get('friendly_name', '').split(' ')[0] if alarm.attributes.get('friendly_name') else 'Unknown'
+            } -%}
+            {%- set ns.alarms = ns.alarms + [alarm_info] -%}
+          {%- endfor -%}
+          {{ ns.alarms | sort(attribute='time') }}
+        # Counts by state
+        enabled_count: >
+          {{ states.switch | selectattr('entity_id', 'search', 'sonos_alarm_') | selectattr('state', 'eq', 'on') | list | length }}
+        disabled_count: >
+          {{ states.switch | selectattr('entity_id', 'search', 'sonos_alarm_') | selectattr('state', 'eq', 'off') | list | length }}
+        total_count: >
+          {{ states.switch | selectattr('entity_id', 'search', 'sonos_alarm_') | list | length }}
+        # Alarms by room
+        alarms_by_room: >
+          {%- set ns = namespace(rooms={}) -%}
+          {%- for alarm in states.switch | selectattr('entity_id', 'search', 'sonos_alarm_') | selectattr('state', 'eq', 'on') -%}
+            {%- set name = alarm.attributes.get('friendly_name', '') -%}
+            {%- set room = name.split(' ')[0] if name else 'Unknown' -%}
+            {%- if room in ns.rooms -%}
+              {%- set ns.rooms = dict(ns.rooms, **{room: ns.rooms[room] + 1}) -%}
+            {%- else -%}
+              {%- set ns.rooms = dict(ns.rooms, **{room: 1}) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ ns.rooms }}
+
+    # -----------------------------------------------------------------------
+    # Per-Room Alarm Sensors for Dashboard Cards
+    # -----------------------------------------------------------------------
+    - name: "Sonos Alarms - Bath"
+      unique_id: sonos_alarms_bath
+      icon: mdi:alarm
+      state: >
+        {% set alarms = states.switch
+            | selectattr('entity_id', 'search', 'sonos_alarm_')
+            | selectattr('attributes.friendly_name', 'defined')
+            | selectattr('attributes.friendly_name', 'search', 'Bath', ignorecase=True)
+            | selectattr('state', 'eq', 'on')
+            | list %}
+        {{ alarms | length }} enabled
+      attributes:
+        enabled_alarms: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Bath', ignorecase=True)
+              | selectattr('state', 'eq', 'on')
+              | list %}
+          {{ alarms | map(attribute='entity_id') | list }}
+        all_alarms: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Bath', ignorecase=True)
+              | list %}
+          {{ alarms | map(attribute='entity_id') | list }}
+        next_alarm_time: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Bath', ignorecase=True)
+              | selectattr('state', 'eq', 'on')
+              | selectattr('attributes.time', 'defined')
+              | sort(attribute='attributes.time')
+              | list %}
+          {{ alarms[0].attributes.time if alarms | length > 0 else 'None' }}
+
+    - name: "Sonos Alarms - Kitchen"
+      unique_id: sonos_alarms_kitchen
+      icon: mdi:alarm
+      state: >
+        {% set alarms = states.switch
+            | selectattr('entity_id', 'search', 'sonos_alarm_')
+            | selectattr('attributes.friendly_name', 'defined')
+            | selectattr('attributes.friendly_name', 'search', 'Kitchen', ignorecase=True)
+            | selectattr('state', 'eq', 'on')
+            | list %}
+        {{ alarms | length }} enabled
+      attributes:
+        enabled_alarms: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Kitchen', ignorecase=True)
+              | selectattr('state', 'eq', 'on')
+              | list %}
+          {{ alarms | map(attribute='entity_id') | list }}
+        all_alarms: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Kitchen', ignorecase=True)
+              | list %}
+          {{ alarms | map(attribute='entity_id') | list }}
+        next_alarm_time: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Kitchen', ignorecase=True)
+              | selectattr('state', 'eq', 'on')
+              | selectattr('attributes.time', 'defined')
+              | sort(attribute='attributes.time')
+              | list %}
+          {{ alarms[0].attributes.time if alarms | length > 0 else 'None' }}
+
+    - name: "Sonos Alarms - Bedroom"
+      unique_id: sonos_alarms_bedroom
+      icon: mdi:alarm
+      state: >
+        {% set alarms = states.switch
+            | selectattr('entity_id', 'search', 'sonos_alarm_')
+            | selectattr('attributes.friendly_name', 'defined')
+            | selectattr('attributes.friendly_name', 'search', 'Bedroom', ignorecase=True)
+            | selectattr('state', 'eq', 'on')
+            | list %}
+        {{ alarms | length }} enabled
+      attributes:
+        enabled_alarms: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Bedroom', ignorecase=True)
+              | selectattr('state', 'eq', 'on')
+              | list %}
+          {{ alarms | map(attribute='entity_id') | list }}
+        all_alarms: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Bedroom', ignorecase=True)
+              | list %}
+          {{ alarms | map(attribute='entity_id') | list }}
+        next_alarm_time: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Bedroom', ignorecase=True)
+              | selectattr('state', 'eq', 'on')
+              | selectattr('attributes.time', 'defined')
+              | sort(attribute='attributes.time')
+              | list %}
+          {{ alarms[0].attributes.time if alarms | length > 0 else 'None' }}
+
+    - name: "Sonos Alarms - Living Room"
+      unique_id: sonos_alarms_living_room
+      icon: mdi:alarm
+      state: >
+        {% set alarms = states.switch
+            | selectattr('entity_id', 'search', 'sonos_alarm_')
+            | selectattr('attributes.friendly_name', 'defined')
+            | selectattr('attributes.friendly_name', 'search', 'Living', ignorecase=True)
+            | selectattr('state', 'eq', 'on')
+            | list %}
+        {{ alarms | length }} enabled
+      attributes:
+        enabled_alarms: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Living', ignorecase=True)
+              | selectattr('state', 'eq', 'on')
+              | list %}
+          {{ alarms | map(attribute='entity_id') | list }}
+        all_alarms: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Living', ignorecase=True)
+              | list %}
+          {{ alarms | map(attribute='entity_id') | list }}
+        next_alarm_time: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Living', ignorecase=True)
+              | selectattr('state', 'eq', 'on')
+              | selectattr('attributes.time', 'defined')
+              | sort(attribute='attributes.time')
+              | list %}
+          {{ alarms[0].attributes.time if alarms | length > 0 else 'None' }}
+
+    - name: "Sonos Alarms - Dining Room"
+      unique_id: sonos_alarms_dining_room
+      icon: mdi:alarm
+      state: >
+        {% set alarms = states.switch
+            | selectattr('entity_id', 'search', 'sonos_alarm_')
+            | selectattr('attributes.friendly_name', 'defined')
+            | selectattr('attributes.friendly_name', 'search', 'Dining', ignorecase=True)
+            | selectattr('state', 'eq', 'on')
+            | list %}
+        {{ alarms | length }} enabled
+      attributes:
+        enabled_alarms: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Dining', ignorecase=True)
+              | selectattr('state', 'eq', 'on')
+              | list %}
+          {{ alarms | map(attribute='entity_id') | list }}
+        all_alarms: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Dining', ignorecase=True)
+              | list %}
+          {{ alarms | map(attribute='entity_id') | list }}
+        next_alarm_time: >
+          {% set alarms = states.switch
+              | selectattr('entity_id', 'search', 'sonos_alarm_')
+              | selectattr('attributes.friendly_name', 'defined')
+              | selectattr('attributes.friendly_name', 'search', 'Dining', ignorecase=True)
+              | selectattr('state', 'eq', 'on')
+              | selectattr('attributes.time', 'defined')
+              | sort(attribute='attributes.time')
+              | list %}
+          {{ alarms[0].attributes.time if alarms | length > 0 else 'None' }}
+
+# =============================================================================
+# SONOS ALARM EDIT - UI HELPERS
+# =============================================================================
+# These helpers support the alarm edit popup workflow
+# =============================================================================
+
+input_datetime:
+  sonos_alarm_edit_time:
+    name: "Sonos Alarm Edit Time"
+    has_date: false
+    has_time: true
+    icon: mdi:clock-edit
+
+input_number:
+  sonos_alarm_edit_volume:
+    name: "Sonos Alarm Edit Volume"
+    min: 0
+    max: 100
+    step: 5
+    unit_of_measurement: "%"
+    icon: mdi:volume-high
+    mode: slider
+
+input_text:
+  sonos_alarm_edit_id:
+    name: "Sonos Editing Alarm ID"
+    max: 10
+    icon: mdi:identifier
+    initial: ""
+
+  sonos_alarm_edit_entity:
+    name: "Sonos Editing Alarm Entity"
+    max: 50
+    icon: mdi:toggle-switch
+    initial: ""
+
+  sonos_alarm_edit_speaker:
+    name: "Sonos Editing Alarm Speaker"
+    max: 50
+    icon: mdi:speaker
+    initial: ""
+
+  sonos_alarm_edit_name:
+    name: "Sonos Editing Alarm Name"
+    max: 100
+    icon: mdi:label
+    initial: ""
+
+input_boolean:
+  sonos_alarm_edit_linked_zones:
+    name: "Sonos Alarm Edit Linked Zones"
+    icon: mdi:speaker-multiple
+    initial: false
+
+# =============================================================================
+# SONOS ALARM EDIT - DISPLAY SENSORS
+# =============================================================================
+
+template:
+  sensor:
+    # -------------------------------------------------------------------------
+    # Enabled Alarm Count - for popup header
+    # -------------------------------------------------------------------------
+    - name: "Sonos Enabled Alarm Count"
+      unique_id: sonos_enabled_alarm_count
+      icon: >
+        {{ 'mdi:alarm-check' if this.state | int(0) > 0 else 'mdi:alarm-off' }}
+      state: >
+        {{ states.switch
+           | selectattr('entity_id', 'match', 'switch.sonos_alarm_')
+           | selectattr('state', 'eq', 'on')
+           | list | count }}
+
+    # -------------------------------------------------------------------------
+    # Next Enabled Alarm - shows time and room
+    # -------------------------------------------------------------------------
+    - name: "Sonos Next Alarm"
+      unique_id: sonos_next_alarm_ui
+      icon: mdi:alarm
+      state: >
+        {% set ns = namespace(next_time='99:99:99', next_entity=none, next_room='') %}
+        {% for entity in states.switch %}
+          {% if entity.entity_id.startswith('switch.sonos_alarm_') and entity.state == 'on' %}
+            {% set alarm_time = state_attr(entity.entity_id, 'time') | default('99:99:99') %}
+            {% if alarm_time < ns.next_time %}
+              {% set ns.next_time = alarm_time %}
+              {% set ns.next_entity = entity.entity_id %}
+              {% set friendly = state_attr(entity.entity_id, 'friendly_name') | default('') %}
+              {% set ns.next_room = friendly.split(' ')[0] %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {% if ns.next_entity %}
+          {{ ns.next_time[:5] }} · {{ ns.next_room }}
+        {% else %}
+          No alarms
+        {% endif %}
+      attributes:
+        next_alarm_entity: >
+          {% set ns = namespace(next_time='99:99:99', next_entity=none) %}
+          {% for entity in states.switch %}
+            {% if entity.entity_id.startswith('switch.sonos_alarm_') and entity.state == 'on' %}
+              {% set alarm_time = state_attr(entity.entity_id, 'time') | default('99:99:99') %}
+              {% if alarm_time < ns.next_time %}
+                {% set ns.next_time = alarm_time %}
+                {% set ns.next_entity = entity.entity_id %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.next_entity }}
+
+    # -------------------------------------------------------------------------
+    # Edit Display Helper - shows current editing alarm time
+    # -------------------------------------------------------------------------
+    - name: "Sonos Edit Alarm Display"
+      unique_id: sonos_edit_alarm_display
+      icon: mdi:alarm-plus
+      state: >
+        {% set entity = states('input_text.sonos_alarm_edit_entity') %}
+        {% if entity and entity != 'unknown' and entity != '' %}
+          {% set time = state_attr(entity, 'time') | default('--:--') %}
+          {{ time[:5] }}
+        {% else %}
+          --:--
+        {% endif %}
+
+    # -------------------------------------------------------------------------
+    # Recurrence Display - Human-readable recurrence
+    # -------------------------------------------------------------------------
+    - name: "Sonos Edit Recurrence Display"
+      unique_id: sonos_edit_recurrence_display
+      icon: mdi:calendar-repeat
+      state: >
+        {% set entity = states('input_text.sonos_alarm_edit_entity') %}
+        {% set recurrence = state_attr(entity, 'recurrence') | default('') %}
+        {% set map = {
+          'DAILY': 'Every day',
+          'WEEKDAYS': 'Weekdays',
+          'WEEKENDS': 'Weekends',
+          'ONCE': 'Once',
+          'ON_0': 'Sunday',
+          'ON_1': 'Monday',
+          'ON_2': 'Tuesday',
+          'ON_3': 'Wednesday',
+          'ON_4': 'Thursday',
+          'ON_5': 'Friday',
+          'ON_6': 'Saturday'
+        } %}
+        {{ map.get(recurrence, recurrence) }}
+
+# =============================================================================
+# SONOS ALARM EDIT - SCRIPTS
+# =============================================================================
+
+script:
+  # ---------------------------------------------------------------------------
+  # Load Alarm For Edit - Populate helpers and open edit popup
+  # ---------------------------------------------------------------------------
+  sonos_load_alarm_for_edit:
+    alias: "Sonos - Load Alarm For Edit"
+    description: "Populate edit helpers with alarm data, then open edit popup"
+    icon: mdi:pencil
+    mode: restart
+    fields:
+      alarm_entity:
+        description: "The switch entity for the alarm"
+        example: "switch.sonos_alarm_182"
+        required: true
+        selector:
+          entity:
+            domain: switch
+    sequence:
+      - variables:
+          alarm_id: "{{ state_attr(alarm_entity, 'alarm_id') }}"
+          alarm_time: "{{ state_attr(alarm_entity, 'time') | default('06:00:00') }}"
+          alarm_volume: "{{ (state_attr(alarm_entity, 'volume') | default(0.25) * 100) | int }}"
+          alarm_name: "{{ state_attr(alarm_entity, 'friendly_name') | default('Alarm') }}"
+          alarm_linked: "{{ state_attr(alarm_entity, 'include_linked_zones') | default(false) }}"
+          speaker: >
+            {% set name = state_attr(alarm_entity, 'friendly_name') | default('') %}
+            {% if 'Bedroom' in name %}media_player.bedroom
+            {% elif 'Bath' in name %}media_player.bath
+            {% elif 'Kitchen' in name %}media_player.kitchen
+            {% elif 'Living' in name %}media_player.living_room
+            {% elif 'Dining' in name %}media_player.dining_room
+            {% else %}media_player.living_room{% endif %}
+
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.sonos_alarm_edit_id
+        data:
+          value: "{{ alarm_id }}"
+
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.sonos_alarm_edit_entity
+        data:
+          value: "{{ alarm_entity }}"
+
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.sonos_alarm_edit_speaker
+        data:
+          value: "{{ speaker }}"
+
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.sonos_alarm_edit_name
+        data:
+          value: "{{ alarm_name }}"
+
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.sonos_alarm_edit_time
+        data:
+          time: "{{ alarm_time }}"
+
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.sonos_alarm_edit_volume
+        data:
+          value: "{{ alarm_volume }}"
+
+      - service: >
+          {{ 'input_boolean.turn_on' if alarm_linked else 'input_boolean.turn_off' }}
+        target:
+          entity_id: input_boolean.sonos_alarm_edit_linked_zones
+
+      # Small delay to ensure helpers are populated
+      - delay:
+          milliseconds: 100
+
+      # Fire event for navigation (can be caught by automation if needed)
+      - event: sonos_alarm_edit_ready
+        event_data:
+          alarm_entity: "{{ alarm_entity }}"
+          alarm_id: "{{ alarm_id }}"
+
+  # ---------------------------------------------------------------------------
+  # Save Alarm Changes - Apply edits via sonos.update_alarm
+  # ---------------------------------------------------------------------------
+  sonos_save_alarm_changes:
+    alias: "Sonos - Save Alarm Changes"
+    description: "Save edited alarm settings via sonos.update_alarm"
+    icon: mdi:content-save
+    mode: single
+    sequence:
+      - variables:
+          alarm_id: "{{ states('input_text.sonos_alarm_edit_id') | int }}"
+          speaker: "{{ states('input_text.sonos_alarm_edit_speaker') }}"
+          new_time: "{{ states('input_datetime.sonos_alarm_edit_time') }}"
+          new_volume: "{{ states('input_number.sonos_alarm_edit_volume') | float / 100 }}"
+          linked_zones: "{{ is_state('input_boolean.sonos_alarm_edit_linked_zones', 'on') }}"
+
+      - condition: template
+        value_template: "{{ alarm_id > 0 }}"
+
+      - service: sonos.update_alarm
+        data:
+          alarm_id: "{{ alarm_id }}"
+          time: "{{ new_time }}"
+          volume: "{{ new_volume }}"
+          include_linked_zones: "{{ linked_zones }}"
+
+      - service: system_log.write
+        data:
+          message: "Sonos alarm {{ alarm_id }} updated: time={{ new_time }}, volume={{ (new_volume * 100) | int }}%, linked={{ linked_zones }}"
+          level: info
+
+  # ---------------------------------------------------------------------------
+  # Adjust Edit Time - Add/subtract minutes from edit helper
+  # ---------------------------------------------------------------------------
+  sonos_adjust_edit_time:
+    alias: "Sonos - Adjust Edit Time"
+    description: "Add or subtract minutes from the edit time helper"
+    icon: mdi:clock-fast
+    mode: restart
+    fields:
+      minutes:
+        description: "Minutes to add (negative to subtract)"
+        required: true
+        selector:
+          number:
+            min: -60
+            max: 60
+            step: 5
+    sequence:
+      - variables:
+          current: "{{ states('input_datetime.sonos_alarm_edit_time') }}"
+          parts: "{{ current.split(':') }}"
+          total_mins: "{{ (parts[0] | int) * 60 + (parts[1] | int) + minutes }}"
+          adjusted_mins: >
+            {% set m = total_mins | int %}
+            {% if m < 0 %}{{ m + 1440 }}
+            {% elif m >= 1440 %}{{ m - 1440 }}
+            {% else %}{{ m }}{% endif %}
+          new_time: "{{ '%02d:%02d:00' | format(adjusted_mins // 60, adjusted_mins % 60) }}"
+
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.sonos_alarm_edit_time
+        data:
+          time: "{{ new_time }}"
+
+  # ---------------------------------------------------------------------------
+  # Enable Weekday Alarms - Quick preset
+  # ---------------------------------------------------------------------------
+  sonos_enable_weekday_alarms:
+    alias: "Sonos - Enable Weekday Alarms"
+    description: "Enable all weekday-scheduled alarms"
+    icon: mdi:alarm-check
+    mode: single
+    sequence:
+      - service: switch.turn_on
+        target:
+          entity_id: >
+            {{ states.switch
+                | selectattr('entity_id', 'search', 'sonos_alarm_')
+                | selectattr('attributes.recurrence', 'defined')
+                | selectattr('attributes.recurrence', 'eq', 'WEEKDAYS')
+                | map(attribute='entity_id')
+                | list }}
+      - service: system_log.write
+        data:
+          message: "Enabled all Sonos weekday alarms"
+          level: info
+
+  # ---------------------------------------------------------------------------
+  # Enable Weekend Alarms - Quick preset
+  # ---------------------------------------------------------------------------
+  sonos_enable_weekend_alarms:
+    alias: "Sonos - Enable Weekend Alarms"
+    description: "Enable all weekend-scheduled alarms"
+    icon: mdi:weather-sunny
+    mode: single
+    sequence:
+      - service: switch.turn_on
+        target:
+          entity_id: >
+            {{ states.switch
+                | selectattr('entity_id', 'search', 'sonos_alarm_')
+                | selectattr('attributes.recurrence', 'defined')
+                | selectattr('attributes.recurrence', 'eq', 'WEEKENDS')
+                | map(attribute='entity_id')
+                | list }}
+      - service: system_log.write
+        data:
+          message: "Enabled all Sonos weekend alarms"
+          level: info
+
+  # ---------------------------------------------------------------------------
+  # Disable All Alarms - Quick preset
+  # ---------------------------------------------------------------------------
+  sonos_disable_all_alarms:
+    alias: "Sonos - Disable All Alarms"
+    description: "Disable all Sonos alarms"
+    icon: mdi:alarm-off
+    mode: single
+    sequence:
+      - service: switch.turn_off
+        target:
+          entity_id: >
+            {{ states.switch
+                | selectattr('entity_id', 'search', 'sonos_alarm_')
+                | map(attribute='entity_id')
+                | list }}
+      - service: system_log.write
+        data:
+          message: "Disabled all Sonos alarms"
+          level: info
+
+  # ---------------------------------------------------------------------------
+  # Snooze Next Alarm - Delay by 15 minutes
+  # ---------------------------------------------------------------------------
+  sonos_snooze_next_alarm:
+    alias: "Sonos - Snooze Next Alarm"
+    description: "Snooze the next upcoming alarm by 15 minutes"
+    icon: mdi:alarm-snooze
+    mode: single
+    sequence:
+      - variables:
+          next_alarm: "{{ state_attr('sensor.sonos_next_alarm_ui', 'next_alarm_entity') }}"
+      - condition: template
+        value_template: "{{ next_alarm is not none and next_alarm != '' and next_alarm != 'None' }}"
+      - variables:
+          alarm_id: "{{ state_attr(next_alarm, 'alarm_id') | int(0) }}"
+          current: "{{ state_attr(next_alarm, 'time') }}"
+          parts: "{{ current.split(':') }}"
+          total_mins: "{{ (parts[0] | int) * 60 + (parts[1] | int) + 15 }}"
+          new_mins: "{{ total_mins if total_mins < 1440 else total_mins - 1440 }}"
+          new_time: "{{ '%02d:%02d:00' | format(new_mins // 60, new_mins % 60) }}"
+      - condition: template
+        value_template: "{{ alarm_id > 0 }}"
+      - service: sonos.update_alarm
+        data:
+          alarm_id: "{{ alarm_id }}"
+          time: "{{ new_time }}"
+      - service: system_log.write
+        data:
+          message: "Snoozed Sonos alarm {{ next_alarm }} from {{ current }} to {{ new_time }}"
+          level: info

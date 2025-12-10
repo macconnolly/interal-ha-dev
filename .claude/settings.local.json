@@ -26,7 +26,9 @@
       "Bash(git checkout:*)",
       "Bash(cat:*)",
       "Bash(git revert:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(claude:*)",
+      "Bash(npm show:*)"
     ],
     "deny": [],
     "ask": []

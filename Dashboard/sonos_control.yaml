@@ -1,0 +1,170 @@
+type: vertical-stack
+cards:
+  - type: custom:bubble-card
+    card_type: media-player
+    entity: media_player.living_room
+    name: Sonos
+    icon: mdi:speaker-multiple
+    card_layout: large-2-rows
+    scrolling_effect: false
+    show_state: true
+    show_icon: true
+    show_name: true
+    show_last_changed: false
+    show_attribute: false
+    cover_background: true
+    hide:
+      power_button: true
+      previous_button: true
+      next_button: true
+      volume_button: false
+      play_pause_button: false
+    button_action:
+      double_tap_action:
+        action: navigate
+        navigation_path: "#sonos-detail"
+      hold_action:
+        action: more-info
+    sub_button:
+      main:
+        - name: Group all
+          icon: mdi:link-variant
+          entity: media_player.living_room
+          show_state: false
+          show_background: true
+          state_background: false
+          tap_action:
+            action: call-service
+            service: script.sonos_group_all_to_playing
+        - name: Ungroup
+          icon: mdi:link-off
+          entity: media_player.living_room
+          show_state: false
+          show_background: true
+          state_background: false
+          tap_action:
+            action: call-service
+            service: script.sonos_ungroup_all
+        - entity: media_player.living_room
+          tap_action:
+            action: perform-action
+            perform_action: media_player.media_next_track
+            target:
+              device_id:
+                - 79e5ed000ae5ba15d2a793433e81ff71
+          icon: mdi:skip-next
+          name: Next Track
+          show_background: true
+          show_icon: true
+        - entity: media_player.living_room
+          tap_action:
+            action: perform-action
+            perform_action: media_player.media_next_track
+            target:
+              device_id: 79e5ed000ae5ba15d2a793433e81ff71
+          icon: mdi:skip-previous
+          name: Previous Track
+          show_background: true
+          show_icon: true
+      bottom: []
+  - type: custom:bubble-card
+    card_type: button
+    button_type: state
+    name: Rooms
+    icon: mdi:home-circle
+    card_layout: large-sub-buttons-grid
+    show_state: false
+    show_last_changed: false
+    sub_button:
+      main:
+        - name: Living
+          icon: mdi:sofa
+          entity: binary_sensor.sonos_living_room_in_playing_group
+          show_state: false
+          show_background: true
+          tap_action:
+            action: call-service
+            service: script.sonos_toggle_group_membership
+            data:
+              target_speaker: media_player.living_room
+        - name: Dining
+          icon: mdi:table-furniture
+          entity: binary_sensor.sonos_dining_room_in_playing_group
+          show_state: false
+          show_background: true
+          tap_action:
+            action: call-service
+            service: script.sonos_toggle_group_membership
+            data:
+              target_speaker: media_player.dining_room
+        - name: Kitchen
+          icon: mdi:stove
+          entity: binary_sensor.sonos_kitchen_in_playing_group
+          show_state: false
+          show_background: true
+          tap_action:
+            action: call-service
+            service: script.sonos_toggle_group_membership
+            data:
+              target_speaker: media_player.kitchen
+          hold_action:
+            action: more-info
+        - name: Bath
+          icon: mdi:shower-head
+          entity: binary_sensor.sonos_bath_in_playing_group
+          show_state: false
+          show_background: true
+          tap_action:
+            action: call-service
+            service: script.sonos_toggle_group_membership
+            data:
+              target_speaker: media_player.bath
+        - name: Bedroom
+          icon: mdi:bed
+          entity: binary_sensor.sonos_bedroom_in_playing_group
+          show_state: false
+          show_background: true
+          tap_action:
+            action: call-service
+            service: script.sonos_toggle_group_membership
+            data:
+              target_speaker: media_player.bedroom
+        - name: Pause all
+          icon: mdi:pause-circle
+          entity: media_player.living_room
+          show_state: false
+          show_background: false
+          tap_action:
+            action: call-service
+            service: script.sonos_all_pause
+        - name: Ungroup
+          icon: mdi:link-off
+          entity: media_player.living_room
+          show_state: false
+          show_background: false
+          tap_action:
+            action: call-service
+            service: script.sonos_ungroup_all
+      bottom: []
+    entity: media_player.living_room
+  - type: custom:sonos-card
+    sections:
+      - player
+      - volumes
+      - groups
+      - grouping
+      - media browser
+      - queue
+    hidePlayerControlPowerButton: true
+    heightPercentage: 80
+    topFavorites:
+      - ""
+    hideGroupCurrentTrack: true
+    dynamicVolumeSlider: true
+    dynamicVolumeSliderMax: 100
+    dynamicVolumeSliderThreshold: 1
+    favoritesHideTitleForThumbnailIcons: false
+    showAudioInputFormat: true
+    footerHeight: 3
+    storePlayerInSessionStorage: true
+    artworkMinHeight: 1

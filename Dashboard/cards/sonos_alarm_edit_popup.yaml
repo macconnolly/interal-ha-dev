@@ -1,0 +1,275 @@
+# =============================================================================
+# SONOS ALARM - EDIT POPUP
+# =============================================================================
+# Navigation: #edit-alarm
+#
+# Reads from shared helpers populated by script.sonos_load_alarm_for_edit
+# Save button calls script.sonos_save_alarm_changes then navigates back
+# =============================================================================
+
+type: vertical-stack
+cards:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EDIT POPUP HEADER
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:bubble-card
+    card_type: pop-up
+    hash: '#edit-alarm'
+    name: Edit Alarm
+    icon: mdi:alarm-plus
+    entity: input_text.sonos_alarm_edit_entity
+    state: sensor.sonos_edit_alarm_display
+    width_desktop: 360px
+    margin_top_mobile: 18vh
+    margin_top_desktop: 18vh
+    bg_opacity: 95
+    auto_close: ''
+    back_open: true
+    styles: |
+      .bubble-pop-up-container {
+        backdrop-filter: blur(30px) saturate(200%);
+        -webkit-backdrop-filter: blur(30px) saturate(200%);
+        background: rgba(28, 28, 30, 0.94) !important;
+        border-radius: 28px !important;
+      }
+      .bubble-header-container {
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .bubble-name {
+        font-weight: 600;
+        font-size: 1.1em;
+      }
+      .bubble-icon-container {
+        background: rgba(255, 149, 0, 0.18) !important;
+      }
+      .bubble-icon {
+        color: rgb(255, 149, 0) !important;
+      }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ALARM INFO DISPLAY
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:mushroom-template-card
+    primary: "{{ states('input_text.sonos_alarm_edit_name') }}"
+    secondary: "{{ states('sensor.sonos_edit_recurrence_display') }}"
+    icon: mdi:speaker
+    icon_color: orange
+    card_mod:
+      style: |
+        ha-card {
+          background: transparent !important;
+          box-shadow: none !important;
+          --card-primary-font-size: 1em;
+          --card-secondary-font-size: 0.85em;
+          --card-secondary-color: rgba(255, 255, 255, 0.5);
+        }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TIME DISPLAY & PICKER
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:mushroom-entity-card
+    entity: input_datetime.sonos_alarm_edit_time
+    name: " "
+    icon: mdi:clock-outline
+    tap_action:
+      action: more-info
+    card_mod:
+      style: |
+        ha-card {
+          background: rgba(255, 149, 0, 0.12) !important;
+          border: 1px solid rgba(255, 149, 0, 0.25);
+          border-radius: 16px;
+        }
+        mushroom-state-info {
+          --card-primary-font-size: 2.5em !important;
+          --card-primary-font-weight: 600;
+          --card-primary-color: rgb(255, 149, 0);
+        }
+        mushroom-shape-icon {
+          display: none !important;
+        }
+        .container {
+          justify-content: center !important;
+        }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # QUICK TIME ADJUSTMENTS
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:bubble-card
+    card_type: separator
+    name: Adjust Time
+    icon: mdi:clock-fast
+    styles: |
+      .bubble-separator { margin-top: 12px !important; }
+      .bubble-name {
+        font-size: 0.8em;
+        opacity: 0.5;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .bubble-line { opacity: 0.1; }
+    sub_button:
+      - name: "-15"
+        icon: mdi:rewind-15
+        tap_action:
+          action: call-service
+          service: script.sonos_adjust_edit_time
+          data:
+            minutes: -15
+        styles: |
+          .bubble-sub-button-container {
+            background: rgba(255, 69, 58, 0.15) !important;
+            border-radius: 12px;
+          }
+          .bubble-sub-button-icon { color: rgb(255, 69, 58) !important; }
+      - name: "-5"
+        icon: mdi:rewind-5
+        tap_action:
+          action: call-service
+          service: script.sonos_adjust_edit_time
+          data:
+            minutes: -5
+        styles: |
+          .bubble-sub-button-container {
+            background: rgba(255, 159, 10, 0.15) !important;
+            border-radius: 12px;
+          }
+          .bubble-sub-button-icon { color: rgb(255, 159, 10) !important; }
+      - name: "+5"
+        icon: mdi:fast-forward-5
+        tap_action:
+          action: call-service
+          service: script.sonos_adjust_edit_time
+          data:
+            minutes: 5
+        styles: |
+          .bubble-sub-button-container {
+            background: rgba(48, 209, 88, 0.15) !important;
+            border-radius: 12px;
+          }
+          .bubble-sub-button-icon { color: rgb(48, 209, 88) !important; }
+      - name: "+15"
+        icon: mdi:fast-forward-15
+        tap_action:
+          action: call-service
+          service: script.sonos_adjust_edit_time
+          data:
+            minutes: 15
+        styles: |
+          .bubble-sub-button-container {
+            background: rgba(10, 132, 255, 0.15) !important;
+            border-radius: 12px;
+          }
+          .bubble-sub-button-icon { color: rgb(10, 132, 255) !important; }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # VOLUME SLIDER
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:bubble-card
+    card_type: button
+    button_type: slider
+    entity: input_number.sonos_alarm_edit_volume
+    name: Volume
+    icon: mdi:volume-high
+    styles: |
+      .bubble-button-card-container {
+        background: rgba(118, 118, 128, 0.12) !important;
+        border-radius: 16px;
+        margin-top: 12px;
+      }
+      .bubble-range-fill {
+        background: linear-gradient(90deg, rgba(255, 149, 0, 0.3), rgba(255, 149, 0, 0.8)) !important;
+      }
+      .bubble-icon {
+        color: rgb(255, 149, 0) !important;
+      }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LINKED ZONES TOGGLE
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:mushroom-entity-card
+    entity: input_boolean.sonos_alarm_edit_linked_zones
+    name: Play on grouped speakers
+    icon: mdi:speaker-multiple
+    tap_action:
+      action: toggle
+    card_mod:
+      style: |
+        ha-card {
+          background: rgba(118, 118, 128, 0.12) !important;
+          border-radius: 16px;
+          margin-top: 8px;
+        }
+        mushroom-state-info {
+          --card-primary-font-size: 0.95em;
+        }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ACTION BUTTONS
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: horizontal-stack
+    cards:
+      # Cancel button - just navigate back
+      - type: custom:bubble-card
+        card_type: button
+        button_type: name
+        name: Cancel
+        icon: mdi:close
+        tap_action:
+          action: navigate
+          navigation_path: '#sonos-alarms'
+        styles: |
+          .bubble-button-card-container {
+            background: rgba(118, 118, 128, 0.18) !important;
+            border-radius: 14px;
+            margin-top: 16px;
+          }
+          .bubble-name {
+            color: rgba(235, 235, 245, 0.7) !important;
+            font-weight: 500;
+          }
+          .bubble-icon {
+            color: rgba(235, 235, 245, 0.5) !important;
+          }
+
+      # Save button - call script then navigate back
+      - type: custom:bubble-card
+        card_type: button
+        button_type: name
+        name: Save
+        icon: mdi:check
+        tap_action:
+          - action: call-service
+            service: script.sonos_save_alarm_changes
+          - action: navigate
+            navigation_path: '#sonos-alarms'
+        styles: |
+          .bubble-button-card-container {
+            background: rgba(255, 149, 0, 0.25) !important;
+            border: 1px solid rgba(255, 149, 0, 0.4);
+            border-radius: 14px;
+            margin-top: 16px;
+          }
+          .bubble-name {
+            color: rgb(255, 149, 0) !important;
+            font-weight: 600;
+          }
+          .bubble-icon {
+            color: rgb(255, 149, 0) !important;
+          }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # HINT TEXT
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: markdown
+    content: |
+      <center style="opacity: 0.35; font-size: 0.75em; margin-top: 8px;">
+        Tap time to use picker
+      </center>
+    card_mod:
+      style: |
+        ha-card {
+          background: transparent !important;
+          box-shadow: none !important;
+        }

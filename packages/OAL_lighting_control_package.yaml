@@ -4158,6 +4158,28 @@ template:
           hvac_action: "{{ state_attr('climate.dining_room', 'hvac_action') | default('idle') }}"
           current_temp: "{{ state_attr('climate.dining_room', 'current_temperature') | float(0) | round(0) }}"
           target_temp: "{{ state_attr('climate.dining_room', 'temperature') | float(0) | round(0) }}"
+          
+          # Alarm attributes - Dining Room speaker
+          next_alarm_entity: >
+            {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
+            {% set room_alarms = alarms | selectattr('friendly_name', 'search', '(?i)^dining') | list %}
+            {{ room_alarms[0].entity_id if room_alarms | length > 0 else 'none' }}
+          next_alarm_time: >
+            {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
+            {% set room_alarms = alarms | selectattr('friendly_name', 'search', '(?i)^dining') | list %}
+            {% if room_alarms | length > 0 %}
+              {% set t = room_alarms[0].time.split(':') %}
+              {% set h = t[0] | int %}{% set m = t[1] %}
+              {% set h12 = h % 12 %}{% if h12 == 0 %}{% set h12 = 12 %}{% endif %}
+              {{ h12 }}:{{ m }}{{ 'p' if h >= 12 else 'a' }}
+            {% else %}None{% endif %}
+          next_alarm_enabled: >
+            {% set entity_id = this.attributes.next_alarm_entity %}
+            {{ entity_id and entity_id != 'none' and is_state(entity_id, 'on') }}
+          has_upcoming_alarm: >
+            {{ this.attributes.next_alarm_entity not in ['none', none, ''] }}
           total_alarms: >
             {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
             {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
@@ -4185,11 +4207,13 @@ template:
             {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
             {% set current = state_attr('climate.dining_room', 'current_temperature') | default(0) | round(0) %}
             {% set target = state_attr('climate.dining_room', 'temperature') | default(0) | round(0) %}
+            {% set alarm_time = this.attributes.next_alarm_time | default('None') %}
             {% if state == 'climate_active' %}
               {% if hvac == 'heating' %}🔥 {{ current }}° → {{ target }}°
               {% else %}❄️ {{ current }}° → {{ target }}°{% endif %}
             {% elif state == 'playing' %}🎵 Playing
             {% elif state == 'override' %}✋ Manual
+            {% elif this.attributes.has_upcoming_alarm %}⏰ {{ alarm_time }}
             {% elif state == 'active' %}{{ this.attributes.lights_on }}/2 lights
             {% else %}{{ current }}°{% endif %}
 
@@ -4210,6 +4234,27 @@ template:
           audio_track: "{{ state_attr('media_player.bath', 'media_title') | default('') }}"
           in_group: "{{ states('sensor.sonos_bath_in_playing_group') in ['True', 'on', true] }}"
           humidity: "{{ states('sensor.dining_room_humidity') | default('--') }}"
+          # Alarm attributes - Bath speaker
+          next_alarm_entity: >
+            {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
+            {% set room_alarms = alarms | selectattr('friendly_name', 'search', '(?i)^bath') | list %}
+            {{ room_alarms[0].entity_id if room_alarms | length > 0 else 'none' }}
+          next_alarm_time: >
+            {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
+            {% set room_alarms = alarms | selectattr('friendly_name', 'search', '(?i)^bath') | list %}
+            {% if room_alarms | length > 0 %}
+              {% set t = room_alarms[0].time.split(':') %}
+              {% set h = t[0] | int %}{% set m = t[1] %}
+              {% set h12 = h % 12 %}{% if h12 == 0 %}{% set h12 = 12 %}{% endif %}
+              {{ h12 }}:{{ m }}{{ 'p' if h >= 12 else 'a' }}
+            {% else %}None{% endif %}
+          next_alarm_enabled: >
+            {% set entity_id = this.attributes.next_alarm_entity %}
+            {{ entity_id and entity_id != 'none' and is_state(entity_id, 'on') }}
+          has_upcoming_alarm: >
+            {{ this.attributes.next_alarm_entity not in ['none', none, ''] }}
           total_alarms: >
             {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
             {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
@@ -4227,8 +4272,10 @@ template:
           subtitle: >
             {% set state = this.state %}
             {% set track = state_attr('media_player.bath', 'media_title') | default('') %}
+            {% set alarm_time = this.attributes.next_alarm_time | default('None') %}
             {% if state == 'playing' %}🎵 {{ track[:25] }}{% if track | length > 25 %}...{% endif %}
             {% elif state == 'grouped' %}🔗 In group
+            {% elif this.attributes.has_upcoming_alarm %}⏰ {{ alarm_time }}
             {% else %}💧 {{ states('sensor.dining_room_humidity') | default('--') }}%{% endif %}
 
       # ROOM: ACCENT LIGHTS (cross-room)

@@ -2346,8 +2346,8 @@ script:
           initial_transition: 1
           sleep_transition: 1
           transition: 1
-          separate_turn_on_commands: true
-          send_split_delay: true
+          separate_turn_on_commands: false
+          send_split_delay: false
           prefer_rgb_color: true
           sleep_rgb_or_color_temp: "rgb_color"
       # THEN: Clear manual_control so Core Engine will apply changes
@@ -2385,9 +2385,22 @@ script:
       # This ensures lights are updated regardless of whether config actually changed
       - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
         timeout: "00:00:10"
+      # Apply to non-column switches first
       - service: adaptive_lighting.apply
         target:
-          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+          entity_id:
+            - switch.adaptive_lighting_main_living
+            - switch.adaptive_lighting_kitchen_island
+            - switch.adaptive_lighting_bedroom_primary
+            - switch.adaptive_lighting_accent_spots
+            - switch.adaptive_lighting_recessed_ceiling
+        data:
+          turn_on_lights: true
+          transition: 1
+      # Apply to column lights separately with forced fast transition
+      - service: adaptive_lighting.apply
+        target:
+          entity_id: switch.adaptive_lighting_column_lights
         data:
           turn_on_lights: true
           transition: 1

@@ -500,7 +500,8 @@ automation:
   # ---------------------------------------------------------------------------
   - id: oal_core_adjustment_engine_v13
     alias: "OAL v13 - Core Adjustment Engine (Master)"
-    mode: parallel
+    mode: queued
+    max: 10
     trigger:
       - platform: state
         entity_id:
@@ -1732,23 +1733,26 @@ automation:
           message: "Engine run time stale, proactively triggering."
 
   # ---------------------------------------------------------------------------
-  # 4.14 Nightly maintenance
+  # 5.11 Nightly maintenance (force clear sticky manual flags)
   # ---------------------------------------------------------------------------
-  - id: oal_nightly_maintenance_v13
+  - id: oal_v13_nightly_maintenance_clear_stuck_manual
     alias: "OAL v13 - Nightly Maintenance (Clear Stuck Manual)"
     trigger:
       - platform: time
         at: "03:00:00"
     action:
+      # Force clear any stuck manual_control flags
       - service: adaptive_lighting.set_manual_control
         target:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
         data:
           manual_control: false
+      # Only reset offsets if zen32 hasn't been touched in 24h
       - condition: template
         value_template: >
           {{ (now().timestamp() - (states('input_datetime.zen32_last_button_press') | as_timestamp(0))) > 86400 }}
       - service: script.oal_reset_soft
+
 
   # ---------------------------------------------------------------------------
   # 4.15 Global pause (toggle all AL switches)

@@ -2871,25 +2871,16 @@ script:
       # This ensures lights are updated regardless of whether config actually changed
       - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
         timeout: "00:00:10"
-      # Apply to non-column switches first
-      - service: adaptive_lighting.apply
-        target:
-          entity_id:
-            - switch.adaptive_lighting_main_living
-            - switch.adaptive_lighting_kitchen_island
-            - switch.adaptive_lighting_bedroom_primary
-            - switch.adaptive_lighting_accent_spots
-            - switch.adaptive_lighting_recessed_ceiling
-        data:
-          turn_on_lights: true
-          transition: 1
-      # Apply to column lights separately with forced fast transition
-      - service: adaptive_lighting.apply
-        target:
-          entity_id: switch.adaptive_lighting_column_lights
-        data:
-          turn_on_lights: true
-          transition: 1
+      # Apply to each switch individually (AL apply doesn't support multiple targets)
+      - repeat:
+          for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+          sequence:
+            - service: adaptive_lighting.apply
+              target:
+                entity_id: "{{ repeat.item }}"
+              data:
+                turn_on_lights: true
+                transition: 1
 
   oal_reset_global:
     alias: "OAL v13 Reset Global (Nuclear)"

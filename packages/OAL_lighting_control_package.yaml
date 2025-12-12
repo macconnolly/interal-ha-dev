@@ -2925,15 +2925,11 @@ template:
         unique_id: living_col_accent_safe
         state: "{{ states('light.living_col_accent') }}"
         level: "{{ state_attr('light.living_col_accent', 'brightness') | int(0) }}"
-        color_mode: "{{ state_attr('light.living_col_accent', 'color_mode') | default('hs') }}"
         hs: "{{ state_attr('light.living_col_accent', 'hs_color') | default([0, 0]) }}"
-        color_temp: "{{ state_attr('light.living_col_accent', 'color_temp') | default(370) }}"
-        min_color_temp_kelvin: 2000
-        max_color_temp_kelvin: 6500
-        supported_color_modes:
-          - color_temp
-          - hs
-          - rgb
+        rgb: "{{ state_attr('light.living_col_accent', 'rgb_color') | default([255, 255, 255]) }}"
+        temperature: "{{ state_attr('light.living_col_accent', 'color_temp') | default(370) }}"
+        min_mireds: 153
+        max_mireds: 500
 
         turn_on:
           - variables:
@@ -3046,6 +3042,84 @@ template:
             data:
               transition: "{{ transition | default(omit) }}"
 
+        # set_level: Called when only brightness is set (no color)
+        set_level:
+          - service: light.turn_on
+            target:
+              entity_id: light.living_col_accent
+            data:
+              brightness: "{{ brightness }}"
+              transition: "{{ transition | default(omit) }}"
+
+        # set_temperature: Called when color_temp is set
+        # At brightness < 20%, convert to RGB for warm appearance
+        set_temperature:
+          - variables:
+              curr_brightness: "{{ state_attr('light.living_col_accent', 'brightness') | int(128) }}"
+              brightness_pct: "{{ (curr_brightness / 255 * 100) | round(1) }}"
+              use_rgb: "{{ brightness_pct < 20 }}"
+              kelvin: "{{ (1000000 / color_temp) | int }}"
+              # Convert color_temp to RGB at low brightness
+              temp_rgb: >
+                {% if use_rgb %}
+                  {% set t = ((kelvin - 2000) / 4500) %}
+                  {% set t = [0, [1, t] | min] | max %}
+                  {{ [255, (165 + 75 * t) | int, (200 * t) | int] }}
+                {% else %}
+                  {{ none }}
+                {% endif %}
+          - choose:
+              - conditions: "{{ use_rgb and temp_rgb is not none }}"
+                sequence:
+                  - service: light.turn_on
+                    target:
+                      entity_id: light.living_col_accent
+                    data:
+                      rgb_color: "{{ temp_rgb }}"
+                      transition: "{{ transition | default(omit) }}"
+            default:
+              - service: light.turn_on
+                target:
+                  entity_id: light.living_col_accent
+                data:
+                  color_temp: "{{ color_temp }}"
+                  brightness: "{{ brightness | default(omit) }}"
+                  transition: "{{ transition | default(omit) }}"
+
+        # set_hs: Called when hs_color is set
+        # Clamp hue 30-37° to 38° at low brightness to avoid purple bug
+        set_hs:
+          - variables:
+              curr_brightness: "{{ state_attr('light.living_col_accent', 'brightness') | int(128) }}"
+              brightness_pct: "{{ (curr_brightness / 255 * 100) | round(1) }}"
+              is_orange: "{{ 20 <= hs[0] | float <= 50 and hs[1] | float > 80 }}"
+              needs_clamp: "{{ is_orange and brightness_pct < 45 and hs[0] | float < 38 }}"
+              safe_hs: "{{ [38, hs[1]] if needs_clamp else hs }}"
+          - service: light.turn_on
+            target:
+              entity_id: light.living_col_accent
+            data:
+              hs_color: "{{ safe_hs }}"
+              brightness: "{{ brightness | default(omit) }}"
+              transition: "{{ transition | default(omit) }}"
+
+        # set_rgb: Called when rgb_color is set
+        # Clamp blue to 0 at low brightness in orange range to avoid purple bug
+        set_rgb:
+          - variables:
+              curr_brightness: "{{ state_attr('light.living_col_accent', 'brightness') | int(128) }}"
+              brightness_pct: "{{ (curr_brightness / 255 * 100) | round(1) }}"
+              is_orange: "{{ rgb[0] | int > 200 and 100 < rgb[1] | int < 220 }}"
+              needs_clamp: "{{ is_orange and brightness_pct < 45 and rgb[2] | int >= 5 }}"
+              safe_rgb: "{{ [rgb[0] | int, rgb[1] | int, 0] if needs_clamp else rgb }}"
+          - service: light.turn_on
+            target:
+              entity_id: light.living_col_accent
+            data:
+              rgb_color: "{{ safe_rgb }}"
+              brightness: "{{ brightness | default(omit) }}"
+              transition: "{{ transition | default(omit) }}"
+
       # -------------------------------------------------------------------------
       # Dining Column Accent - Safe Wrapper
       # - Brightness < 20%: Use RGB mode (warm orange, blue clamping for bug)
@@ -3055,15 +3129,11 @@ template:
         unique_id: dining_col_accent_safe
         state: "{{ states('light.dining_col_accent') }}"
         level: "{{ state_attr('light.dining_col_accent', 'brightness') | int(0) }}"
-        color_mode: "{{ state_attr('light.dining_col_accent', 'color_mode') | default('hs') }}"
         hs: "{{ state_attr('light.dining_col_accent', 'hs_color') | default([0, 0]) }}"
-        color_temp: "{{ state_attr('light.dining_col_accent', 'color_temp') | default(370) }}"
-        min_color_temp_kelvin: 2000
-        max_color_temp_kelvin: 6500
-        supported_color_modes:
-          - color_temp
-          - hs
-          - rgb
+        rgb: "{{ state_attr('light.dining_col_accent', 'rgb_color') | default([255, 255, 255]) }}"
+        temperature: "{{ state_attr('light.dining_col_accent', 'color_temp') | default(370) }}"
+        min_mireds: 153
+        max_mireds: 500
 
         turn_on:
           - variables:
@@ -3164,6 +3234,84 @@ template:
             target:
               entity_id: light.dining_col_accent
             data:
+              transition: "{{ transition | default(omit) }}"
+
+        # set_level: Called when only brightness is set (no color)
+        set_level:
+          - service: light.turn_on
+            target:
+              entity_id: light.dining_col_accent
+            data:
+              brightness: "{{ brightness }}"
+              transition: "{{ transition | default(omit) }}"
+
+        # set_temperature: Called when color_temp is set
+        # At brightness < 20%, convert to RGB for warm appearance
+        set_temperature:
+          - variables:
+              curr_brightness: "{{ state_attr('light.dining_col_accent', 'brightness') | int(128) }}"
+              brightness_pct: "{{ (curr_brightness / 255 * 100) | round(1) }}"
+              use_rgb: "{{ brightness_pct < 20 }}"
+              kelvin: "{{ (1000000 / color_temp) | int }}"
+              # Convert color_temp to RGB at low brightness
+              temp_rgb: >
+                {% if use_rgb %}
+                  {% set t = ((kelvin - 2000) / 4500) %}
+                  {% set t = [0, [1, t] | min] | max %}
+                  {{ [255, (165 + 75 * t) | int, (200 * t) | int] }}
+                {% else %}
+                  {{ none }}
+                {% endif %}
+          - choose:
+              - conditions: "{{ use_rgb and temp_rgb is not none }}"
+                sequence:
+                  - service: light.turn_on
+                    target:
+                      entity_id: light.dining_col_accent
+                    data:
+                      rgb_color: "{{ temp_rgb }}"
+                      transition: "{{ transition | default(omit) }}"
+            default:
+              - service: light.turn_on
+                target:
+                  entity_id: light.dining_col_accent
+                data:
+                  color_temp: "{{ color_temp }}"
+                  brightness: "{{ brightness | default(omit) }}"
+                  transition: "{{ transition | default(omit) }}"
+
+        # set_hs: Called when hs_color is set
+        # Clamp hue 30-37° to 38° at low brightness to avoid purple bug
+        set_hs:
+          - variables:
+              curr_brightness: "{{ state_attr('light.dining_col_accent', 'brightness') | int(128) }}"
+              brightness_pct: "{{ (curr_brightness / 255 * 100) | round(1) }}"
+              is_orange: "{{ 20 <= hs[0] | float <= 50 and hs[1] | float > 80 }}"
+              needs_clamp: "{{ is_orange and brightness_pct < 45 and hs[0] | float < 38 }}"
+              safe_hs: "{{ [38, hs[1]] if needs_clamp else hs }}"
+          - service: light.turn_on
+            target:
+              entity_id: light.dining_col_accent
+            data:
+              hs_color: "{{ safe_hs }}"
+              brightness: "{{ brightness | default(omit) }}"
+              transition: "{{ transition | default(omit) }}"
+
+        # set_rgb: Called when rgb_color is set
+        # Clamp blue to 0 at low brightness in orange range to avoid purple bug
+        set_rgb:
+          - variables:
+              curr_brightness: "{{ state_attr('light.dining_col_accent', 'brightness') | int(128) }}"
+              brightness_pct: "{{ (curr_brightness / 255 * 100) | round(1) }}"
+              is_orange: "{{ rgb[0] | int > 200 and 100 < rgb[1] | int < 220 }}"
+              needs_clamp: "{{ is_orange and brightness_pct < 45 and rgb[2] | int >= 5 }}"
+              safe_rgb: "{{ [rgb[0] | int, rgb[1] | int, 0] if needs_clamp else rgb }}"
+          - service: light.turn_on
+            target:
+              entity_id: light.dining_col_accent
+            data:
+              rgb_color: "{{ safe_rgb }}"
+              brightness: "{{ brightness | default(omit) }}"
               transition: "{{ transition | default(omit) }}"
 
   - sensor:

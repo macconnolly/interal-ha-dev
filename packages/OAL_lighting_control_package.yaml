@@ -697,7 +697,7 @@ automation:
                 auto_min_clamped: >
                   {{ [comfort_min_b, [comfort_max_b, auto_min_raw] | min] | max }}
                 auto_max_clamped: >
-                  {{ [comfort_min_b, [comfort_max_b, auto_max_raw] | min] | max }}
+                  {{ [comfort_min_b, [hard_max_b, auto_max_raw] | min] | max }}
 
                 # Per-zone manual helper (single manual brightness source)
                 per_zone_manual_helper: >

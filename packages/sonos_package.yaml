@@ -137,6 +137,40 @@ input_text:
     initial: ""
 
   # ---------------------------------------------------------------------------
+  # SNOOZED ALARM TRACKING - Store original times for reset after snooze
+  # Format: "entity_id|HH:MM:SS" or empty if not snoozed
+  # ---------------------------------------------------------------------------
+  sonos_snoozed_alarm_bedroom:
+    name: Sonos Snoozed Alarm - Bedroom
+    icon: mdi:alarm-snooze
+    mode: text
+    initial: ""
+
+  sonos_snoozed_alarm_bath:
+    name: Sonos Snoozed Alarm - Bath
+    icon: mdi:alarm-snooze
+    mode: text
+    initial: ""
+
+  sonos_snoozed_alarm_kitchen:
+    name: Sonos Snoozed Alarm - Kitchen
+    icon: mdi:alarm-snooze
+    mode: text
+    initial: ""
+
+  sonos_snoozed_alarm_living_room:
+    name: Sonos Snoozed Alarm - Living Room
+    icon: mdi:alarm-snooze
+    mode: text
+    initial: ""
+
+  sonos_snoozed_alarm_dining_room:
+    name: Sonos Snoozed Alarm - Dining Room
+    icon: mdi:alarm-snooze
+    mode: text
+    initial: ""
+
+  # ---------------------------------------------------------------------------
   # ALARM EDIT HELPERS - Track which alarm is being edited
   # ---------------------------------------------------------------------------
   sonos_alarm_edit_id:
@@ -1965,6 +1999,24 @@ script:
             {% elif 'Kitchen' in name %}media_player.kitchen
             {% elif 'Living' in name %}media_player.living_room
             {% else %}media_player.dining_room{% endif %}
+          # Room key for snoozed alarm helper (matches input_text suffix)
+          room_key: >
+            {% set name = state_attr(target_alarm, 'friendly_name') %}
+            {% if 'Bedroom' in name %}bedroom
+            {% elif 'Bath' in name %}bath
+            {% elif 'Kitchen' in name %}kitchen
+            {% elif 'Living' in name %}living_room
+            {% else %}dining_room{% endif %}
+          snoozed_helper: "input_text.sonos_snoozed_alarm_{{ room_key }}"
+
+      # Store original time before snoozing (only if not already snoozed)
+      - if: "{{ states(snoozed_helper) in ['', 'unknown', 'unavailable'] }}"
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: "{{ snoozed_helper }}"
+            data:
+              value: "{{ target_alarm }}|{{ current }}"
 
       # Stop playback if requested (for notification snooze)
       - if: "{{ stop_playback | default(false) }}"
@@ -2014,6 +2066,79 @@ script:
       - action: media_player.media_stop
         target:
           entity_id: "{{ playing_speaker }}"
+
+  # -----------------------------------------------------------------------
+  # Reset Snoozed Alarm - Restore original time after snooze
+  # Can be called with room parameter or will reset all snoozed alarms
+  # -----------------------------------------------------------------------
+  sonos_reset_snoozed_alarm:
+    alias: "Sonos - Reset Snoozed Alarm"
+    description: "Restore a snoozed alarm to its original time"
+    icon: mdi:alarm-check
+    mode: queued
+    fields:
+      room:
+        description: "Room to reset (bedroom, bath, kitchen, living_room, dining_room). If omitted, resets all."
+        required: false
+        selector:
+          select:
+            options:
+              - bedroom
+              - bath
+              - kitchen
+              - living_room
+              - dining_room
+    sequence:
+      - variables:
+          # List of rooms to process
+          rooms_to_check: >
+            {% if room is defined and room %}
+              {{ [room] }}
+            {% else %}
+              {{ ['bedroom', 'bath', 'kitchen', 'living_room', 'dining_room'] }}
+            {% endif %}
+
+      - repeat:
+          for_each: "{{ rooms_to_check }}"
+          sequence:
+            - variables:
+                current_room: "{{ repeat.item }}"
+                helper_entity: "input_text.sonos_snoozed_alarm_{{ current_room }}"
+                helper_value: "{{ states(helper_entity) }}"
+                has_snoozed: "{{ helper_value not in ['', 'unknown', 'unavailable'] and '|' in helper_value }}"
+
+            - if: "{{ has_snoozed }}"
+              then:
+                - variables:
+                    alarm_entity: "{{ helper_value.split('|')[0] }}"
+                    original_time: "{{ helper_value.split('|')[1] }}"
+                    alarm_id: "{{ state_attr(alarm_entity, 'alarm_id') }}"
+                    speaker: >
+                      {% if current_room == 'bedroom' %}media_player.bedroom
+                      {% elif current_room == 'bath' %}media_player.bath
+                      {% elif current_room == 'kitchen' %}media_player.kitchen
+                      {% elif current_room == 'living_room' %}media_player.living_room
+                      {% else %}media_player.dining_room{% endif %}
+
+                # Restore the original alarm time
+                - action: sonos.update_alarm
+                  data:
+                    alarm_id: "{{ alarm_id | int }}"
+                    time: "{{ original_time }}"
+                  target:
+                    entity_id: "{{ speaker }}"
+
+                # Clear the helper
+                - action: input_text.set_value
+                  target:
+                    entity_id: "{{ helper_entity }}"
+                  data:
+                    value: ""
+
+                - action: system_log.write
+                  data:
+                    message: "Sonos Reset: Alarm {{ alarm_entity }} restored to original time {{ original_time }}"
+                    level: info
 
   # -----------------------------------------------------------------------
   # Toggle Next Alarm - for dashboard chip tap action
@@ -2205,6 +2330,56 @@ automation:
     condition: [] # Conditions can be added here if needed
     action:
       - service: script.evening_alarm_check_notification
+
+  # -------------------------------------------------------------------------
+  # Reset snoozed alarm after it finishes playing
+  # Triggers when sensor.sonos_alarm_playing goes from True to False
+  # -------------------------------------------------------------------------
+  - id: sonos_reset_snoozed_after_play
+    alias: "Sonos - Reset Snoozed Alarm After Play"
+    description: "Restore alarm to original time after snoozed alarm finishes playing"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: sensor.sonos_alarm_playing
+        from: "True"
+        to: "False"
+    action:
+      - variables:
+          # Get the speaker that was playing (from the 'from' state attributes)
+          last_speaker: "{{ trigger.from_state.attributes.speaker | default('') }}"
+          room_key: >
+            {% if last_speaker == 'media_player.bedroom' %}bedroom
+            {% elif last_speaker == 'media_player.bath' %}bath
+            {% elif last_speaker == 'media_player.kitchen' %}kitchen
+            {% elif last_speaker == 'media_player.living_room' %}living_room
+            {% elif last_speaker == 'media_player.dining_room' %}dining_room
+            {% else %}{% endif %}
+      # Only proceed if we have a valid room
+      - condition: template
+        value_template: "{{ room_key != '' }}"
+      # Small delay to ensure alarm has fully stopped
+      - delay:
+          seconds: 5
+      # Reset the snoozed alarm for this room
+      - action: script.sonos_reset_snoozed_alarm
+        data:
+          room: "{{ room_key }}"
+
+  # -------------------------------------------------------------------------
+  # Midnight safety reset for any snoozed alarms
+  # Ensures alarms are restored even if the after-play trigger didn't fire
+  # -------------------------------------------------------------------------
+  - id: sonos_midnight_snoozed_reset
+    alias: "Sonos - Midnight Snoozed Alarm Reset"
+    description: "Safety reset of all snoozed alarms at midnight"
+    mode: single
+    trigger:
+      - platform: time
+        at: "00:00:00"
+    action:
+      # Reset all snoozed alarms (script handles checking if any exist)
+      - action: script.sonos_reset_snoozed_alarm
 
   # Apple TV Auto-Off Automation with configurable entity ID
 

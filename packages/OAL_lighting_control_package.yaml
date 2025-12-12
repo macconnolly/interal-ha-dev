@@ -29,7 +29,7 @@ light:
     unique_id: "oal_bedroom_primary_lights_group_v13"
     entities:
       - light.master_bedroom_table_lamps
-      - light.master_bedroom_corner_accent
+      - light.master_bedroom_corner_accent_mqtt
   - platform: group
     name: "accent_spots_lights"
     unique_id: "oal_accent_spots_lights_group_v13"

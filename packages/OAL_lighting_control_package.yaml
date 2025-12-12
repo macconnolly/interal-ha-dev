@@ -468,6 +468,12 @@ adaptive_lighting:
     sleep_brightness: 1
     sleep_color_temp: 2700
 
+  # COLUMN LIGHTS AL CONFIG
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SYNC REQUIRED: When changing these values, also update:
+  #   1. OAL Engine config (~line 625): comfort_max_b, max_k
+  #   2. oal_reset_soft script (~line 2818): prefer_rgb_color
+  # ═══════════════════════════════════════════════════════════════════════════
   - name: "column_lights"
     lights:
       - light.living_room_column_mqtt
@@ -481,15 +487,15 @@ adaptive_lighting:
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
     min_brightness: 1
-    max_brightness: 80
+    max_brightness: 70                    # SYNC: OAL Engine comfort_max_b
     brightness_mode: tanh
     min_color_temp: 2000
-    max_color_temp: 3000
+    max_color_temp: 2702                  # SYNC: OAL Engine max_k
     brightness_mode_time_light: 1800
     brightness_mode_time_dark: 900
     sunset_offset: -1800
     separate_turn_on_commands: true
-    prefer_rgb_color: true
+    prefer_rgb_color: false               # SYNC: oal_reset_soft script
     sleep_brightness: 1
     sleep_rgb_or_color_temp: "rgb_color"
     sleep_rgb_color: [255, 165, 0]
@@ -622,12 +628,13 @@ automation:
           hard_min_b: 1
           hard_max_b: 40
 
+        # SYNC: Keep in sync with AL column_lights config (~line 477)
         - entity_id: switch.adaptive_lighting_column_lights
           id: column_lights
           comfort_min_b: 1
-          comfort_max_b: 80
+          comfort_max_b: 70               # SYNC: AL max_brightness
           min_k: 2000
-          max_k: 3500
+          max_k: 2702                     # SYNC: AL max_color_temp
           env_sensitivity: 0.7
           hard_min_b: 1
           hard_max_b: 100
@@ -2815,6 +2822,7 @@ script:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
       # Reset column lights switch settings to match YAML config
       # Govee RGBICW COB strips need separate commands for proper color rendering
+      # SYNC: Keep in sync with AL column_lights config (~line 477)
       - service: adaptive_lighting.change_switch_settings
         data:
           entity_id: switch.adaptive_lighting_column_lights
@@ -2825,9 +2833,9 @@ script:
           transition: 1
           separate_turn_on_commands: true
           send_split_delay: true
-          prefer_rgb_color: true
+          prefer_rgb_color: false         # SYNC: AL prefer_rgb_color
           sleep_rgb_or_color_temp: "rgb_color"
-          sleep_rgb_color: [255, 165, 0]
+          sleep_rgb_color: [255, 165, 0]  # SYNC: AL sleep_rgb_color
       # THEN: Clear manual_control so Core Engine will apply changes
       - service: adaptive_lighting.set_manual_control
         target:

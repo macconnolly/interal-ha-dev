@@ -732,6 +732,43 @@ template:
         recurrence: "{{ state_attr('switch.sonos_alarm_bath', 'recurrence') | default('Daily') }}"
 
     # ------------------------------------------------------------------
+    # Sonos Alarm Playing Sensor
+    # Detects if any Sonos is currently playing an alarm
+    # ------------------------------------------------------------------
+    - name: "Sonos Alarm Playing"
+      unique_id: sonos_alarm_playing
+      icon: mdi:alarm-bell
+      state: >
+        {% set speakers = [
+          'media_player.bedroom',
+          'media_player.bath', 
+          'media_player.kitchen',
+          'media_player.living_room',
+          'media_player.dining_room'
+        ] %}
+        {% set ns = namespace(playing=none) %}
+        {% for speaker in speakers %}
+          {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
+            {% set ns.playing = speaker %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.playing is not none }}
+      attributes:
+        speaker: >
+          {% set speakers = [
+            'media_player.bedroom',
+            'media_player.bath', 
+            'media_player.kitchen',
+            'media_player.living_room',
+            'media_player.dining_room'
+          ] %}
+          {% for speaker in speakers %}
+            {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
+              {{ speaker }}
+            {% endif %}
+          {% endfor %}
+
+    # ------------------------------------------------------------------
     # Sonos Current Playing Group Coordinator
     # Returns the coordinator of the LARGEST playing group
     # Coordinator is always group_members[0] in Sonos
@@ -1682,7 +1719,7 @@ script:
           speaker: >
             {% set name = state_attr(alarm_entity, 'friendly_name') | default('') %}
             {% if 'Bedroom' in name %}media_player.bedroom
-            {% elif 'Bath' in name %}media_player.bathroom
+            {% elif 'Bath' in name %}media_player.bath
             {% elif 'Kitchen' in name %}media_player.kitchen
             {% elif 'Living' in name %}media_player.living_room
             {% elif 'Dining' in name %}media_player.dining_room
@@ -1888,16 +1925,30 @@ script:
           speaker: >
             {% set name = state_attr(next_alarm, 'friendly_name') %}
             {% if 'Bedroom' in name %}media_player.bedroom
-            {% elif 'Bath' in name %}media_player.bathroom
+            {% elif 'Bath' in name %}media_player.bath
             {% elif 'Kitchen' in name %}media_player.kitchen
             {% elif 'Living' in name %}media_player.living_room
             {% else %}media_player.dining_room{% endif %}
+          # Also find which speaker is actively playing the alarm
+          playing_speaker: >
+            {% set speakers = [
+              'media_player.bedroom',
+              'media_player.bath',
+              'media_player.kitchen',
+              'media_player.living_room',
+              'media_player.dining_room'
+            ] %}
+            {% for s in speakers %}
+              {% if states(s) == 'playing' and 'x-rincon-buzzer' in (state_attr(s, 'media_content_id') | default('', true)) %}
+                {{ s }}
+              {% endif %}
+            {% endfor %}
       # Stop playback if requested (for notification snooze)
       - if: "{{ stop_playback | default(false) }}"
         then:
           - action: media_player.media_stop
             target:
-              entity_id: "{{ speaker }}"
+              entity_id: "{{ playing_speaker if playing_speaker else speaker }}"
       - action: sonos.update_alarm
         data:
           alarm_id: "{{ alarm_id | int }}"
@@ -1919,7 +1970,7 @@ script:
           playing_speaker: >
             {% set speakers = [
               'media_player.bedroom',
-              'media_player.bathroom',
+              'media_player.bath',
               'media_player.kitchen',
               'media_player.living_room',
               'media_player.dining_room'
@@ -2239,21 +2290,9 @@ automation:
     description: "Send notification when Sonos alarm is ringing with snooze/dismiss actions"
     mode: single
     trigger:
-      # Trigger when any speaker starts playing something with x-rincon-buzzer (alarm)
-      - platform: template
-        value_template: >
-          {% set speakers = [
-            'media_player.bedroom',
-            'media_player.bathroom',
-            'media_player.kitchen',
-            'media_player.living_room',
-            'media_player.dining_room'
-          ] %}
-          {% for speaker in speakers %}
-            {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
-              true
-            {% endif %}
-          {% endfor %}
+      - platform: state
+        entity_id: sensor.sonos_alarm_playing
+        to: "True"
     condition:
       - condition: state
         entity_id: input_boolean.sonos_alarm_notifications
@@ -2261,20 +2300,7 @@ automation:
     action:
       - variables:
           dev_id: "{{ states('input_text.notify_target_device_id') }}"
-          # Find which speaker is playing
-          alarm_speaker: >
-            {% set speakers = [
-              'media_player.bedroom',
-              'media_player.bathroom',
-              'media_player.kitchen',
-              'media_player.living_room',
-              'media_player.dining_room'
-            ] %}
-            {% for speaker in speakers %}
-              {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
-                {{ speaker }}
-              {% endif %}
-            {% endfor %}
+          alarm_speaker: "{{ state_attr('sensor.sonos_alarm_playing', 'speaker') | trim }}"
           room_name: "{{ state_attr(alarm_speaker, 'friendly_name') | default('Sonos', true) }}"
       - condition: template
         value_template: "{{ dev_id != '' and dev_id != none and dev_id != 'unavailable' }}"

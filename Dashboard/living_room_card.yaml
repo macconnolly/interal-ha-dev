@@ -67,7 +67,7 @@ cards:
         return `
           ha-card { background: transparent !important; border: none !important; box-shadow: none !important; padding: 10px 16px 4px 16px !important; margin: 0 !important; }
           .bubble-icon-container { background: ${iconBg} !important; border-radius: 50% !important; min-width: 44px !important; min-height: 44px !important; }
-          .bubble-icon { color: ${iconColor} !important; --mdc-icon-size: 26px !important; ${(lightsOn || isPlaying) ? `filter: drop-shadow(0 0 4px ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.4)')}) !important;` : ''} }
+          .bubble-icon { color: ${iconColor} !important; --mdc-icon-size: 35px !important; ${(lightsOn || isPlaying) ? `filter: drop-shadow(0 0 4px ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.4)')}) !important;` : ''} }
           .bubble-name { font-size: 18px !important; font-weight: 700 !important; color: rgba(30, 30, 30, 0.95) !important; }
           .bubble-sub-button-container { gap: 8px !important; }
           .bubble-sub-button { background: ${iconBg} !important; border: 1px solid ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.3)')} !important; border-radius: 50% !important; min-width: 44px !important; min-height: 44px !important; }
@@ -163,7 +163,7 @@ cards:
             min-width: 48px !important;
             min-height: 48px !important;
             grid-row: 1 !important;
-            margin: 4px 0 8px 0 !important;
+            margin: 4px 0 4px 0 !important;
             border-radius: 50% !important;
             display: flex !important;
             align-items: center !important;
@@ -172,7 +172,7 @@ cards:
             border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.3)' : '1.5px solid rgba(180, 180, 180, 0.3)'} !important;
           }
           .bubble-icon {
-            --mdc-icon-size: 26px !important;
+            --mdc-icon-size: 35px !important;
             color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.6)'} !important;
             filter: ${state === 'on' ? 'drop-shadow(0 0 4px rgba(255, 149, 0, 0.4))' : 'none'} !important;
           }
@@ -182,17 +182,16 @@ cards:
             width: 100% !important;
           }
           .bubble-name {
-            font-weight: 600 !important;
-            font-size: 13px !important;
-            line-height: 1.2 !important;
+            font-weight: 700 !important;
+            font-size: 14px !important;
+            line-height: 1 !important;
             justify-content: center !important;
-            margin: 0 4px !important;
+            margin: 0 0px !important;
             color: ${state === 'on' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(60, 60, 60, 0.7)'} !important;
           }
           .bubble-state {
-            font-size: 12px !important;
-            font-weight: 500 !important;
-            margin-top: 2px !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
             justify-content: center !important;
             color: ${state === 'on' ? 'rgba(60, 60, 60, 0.9)' : 'rgba(100, 100, 100, 0.7)'} !important;
           }
@@ -289,27 +288,23 @@ cards:
           !important; box-shadow: 0 0 4px rgba(255, 110, 90, 0.5) !important;
           transition: width 0.2s ease, height 0.2s ease !important; z-index: 25
           !important; } .bubble-icon-container { min-width: 48px !important;
-          min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 8px
-          0 !important; border-radius: 50% !important; display: flex !important;
+          min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 4px 0 !important; border-radius: 50% !important; display: flex !important;
           align-items: center !important; justify-content: center !important;
           background: ${state === 'on' ? 'rgba(255, 149, 0, 0.15)' : 'rgba(180,
           180, 180, 0.2)'} !important; border: ${state === 'on' ? '1.5px solid
           rgba(255, 149, 0, 0.3)' : '1.5px solid rgba(180, 180, 180, 0.3)'}
-          !important; } .bubble-icon { --mdc-icon-size: 26px !important; color:
+          !important; } .bubble-icon { --mdc-icon-size: 35px !important; color:
           ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.6)'}
           !important; filter: ${state === 'on' ? 'drop-shadow(0 0 4px rgba(255,
           149, 0, 0.4))' : 'none'} !important; } .bubble-name-container {
           grid-row: 2 !important; margin: 0 !important; width: 100% !important;
-          } .bubble-name { font-weight: 600 !important; font-size: 13px
-          !important; line-height: 1.2 !important; justify-content: center
-          !important; margin: 0 4px !important; color: ${state === 'on' ?
+          } .bubble-name { font-weight: 700 !important; font-size: 14px
+          !important; line-height: 1 !important; justify-content: center
+          !important; margin: 0 0px !important; color: ${state === 'on' ?
           'rgba(30, 30, 30, 0.95)' : 'rgba(60, 60, 60, 0.7)'} !important; }
-          .bubble-state { font-size: 12px !important; font-weight: 500
-          !important; margin-top: 2px !important; justify-content: center
-          !important; color: ${state === 'on' ? (hass.themes.darkMode ?
-          'rgba(30, 30, 30, 0.85)' : 'rgba(80, 80, 80, 0.8)') :
-          (hass.themes.darkMode ? 'rgba(50, 50, 50, 0.7)' : 'rgba(100, 100, 100,
-          0.6)')} !important; } .bubble-range-slider { position: absolute
+          .bubble-state { font-size: 13px !important; font-weight: 700
+          !important; justify-content: center
+          !important; color: ${state === 'on' ? 'rgba(60, 60, 60, 1)' : 'rgba(100, 100, 100, 0.6)'} !important; } .bubble-range-slider { position: absolute
           !important; bottom: 0 !important; left: 0 !important; right: 0
           !important; width: 100% !important; height: 4px !important;
           border-radius: 0 0 16px 16px !important; z-index: 10 !important;
@@ -320,7 +315,7 @@ cards:
             position: fixed !important;
             top: 4px !important;
             left: 6px !important;
-            font-size: 11px !important;
+            font-size: 13px !important;
             font-weight: 700 !important;
             color: rgb(255, 149, 0) !important;
             opacity: 0 !important;
@@ -384,27 +379,23 @@ cards:
           !important; box-shadow: 0 0 4px rgba(255, 110, 90, 0.5) !important;
           transition: width 0.2s ease, height 0.2s ease !important; z-index: 25
           !important; } .bubble-icon-container { min-width: 48px !important;
-          min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 8px
-          0 !important; border-radius: 50% !important; display: flex !important;
+          min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 4px 0 !important; border-radius: 50% !important; display: flex !important;
           align-items: center !important; justify-content: center !important;
           background: ${state === 'on' ? 'rgba(255, 149, 0, 0.15)' : 'rgba(180,
           180, 180, 0.2)'} !important; border: ${state === 'on' ? '1.5px solid
           rgba(255, 149, 0, 0.3)' : '1.5px solid rgba(180, 180, 180, 0.3)'}
-          !important; } .bubble-icon { --mdc-icon-size: 26px !important; color:
+          !important; } .bubble-icon { --mdc-icon-size: 35px !important; color:
           ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.6)'}
           !important; filter: ${state === 'on' ? 'drop-shadow(0 0 4px rgba(255,
           149, 0, 0.4))' : 'none'} !important; } .bubble-name-container {
           grid-row: 2 !important; margin: 0 !important; width: 100% !important;
-          } .bubble-name { font-weight: 600 !important; font-size: 13px
-          !important; line-height: 1.2 !important; justify-content: center
-          !important; margin: 0 4px !important; color: ${state === 'on' ?
+          } .bubble-name { font-weight: 700 !important; font-size: 14px
+          !important; line-height: 1 !important; justify-content: center
+          !important; margin: 0 0px !important; color: ${state === 'on' ?
           'rgba(30, 30, 30, 0.95)' : 'rgba(60, 60, 60, 0.7)'} !important; }
-          .bubble-state { font-size: 12px !important; font-weight: 500
-          !important; margin-top: 2px !important; justify-content: center
-          !important; color: ${state === 'on' ? (hass.themes.darkMode ?
-          'rgba(30, 30, 30, 0.85)' : 'rgba(80, 80, 80, 0.8)') :
-          (hass.themes.darkMode ? 'rgba(50, 50, 50, 0.7)' : 'rgba(100, 100, 100,
-          0.6)')} !important; } .bubble-range-slider { position: absolute
+          .bubble-state { font-size: 13px !important; font-weight: 700
+          !important; justify-content: center
+          !important; color: ${state === 'on' ? 'rgba(60, 60, 60, 1)' : 'rgba(100, 100, 100, 0.6)'} !important; } .bubble-range-slider { position: absolute
           !important; bottom: 0 !important; left: 0 !important; right: 0
           !important; width: 100% !important; height: 4px !important;
           border-radius: 0 0 16px 16px !important; z-index: 10 !important;
@@ -415,7 +406,7 @@ cards:
             position: fixed !important;
             top: 4px !important;
             left: 6px !important;
-            font-size: 11px !important;
+            font-size: 13px !important;
             font-weight: 700 !important;
             color: rgb(255, 149, 0) !important;
             opacity: 0 !important;
@@ -487,27 +478,23 @@ cards:
           !important; box-shadow: 0 0 4px rgba(255, 110, 90, 0.5) !important;
           transition: width 0.2s ease, height 0.2s ease !important; z-index: 25
           !important; } .bubble-icon-container { min-width: 48px !important;
-          min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 8px
-          0 !important; border-radius: 50% !important; display: flex !important;
+          min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 4px 0 !important; border-radius: 50% !important; display: flex !important;
           align-items: center !important; justify-content: center !important;
           background: ${state === 'on' ? 'rgba(255, 149, 0, 0.15)' : 'rgba(180,
           180, 180, 0.2)'} !important; border: ${state === 'on' ? '1.5px solid
           rgba(255, 149, 0, 0.3)' : '1.5px solid rgba(180, 180, 180, 0.3)'}
-          !important; } .bubble-icon { --mdc-icon-size: 26px !important; color:
+          !important; } .bubble-icon { --mdc-icon-size: 35px !important; color:
           ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.6)'}
           !important; filter: ${state === 'on' ? 'drop-shadow(0 0 4px rgba(255,
           149, 0, 0.4))' : 'none'} !important; } .bubble-name-container {
           grid-row: 2 !important; margin: 0 !important; width: 100% !important;
-          } .bubble-name { font-weight: 600 !important; font-size: 13px
-          !important; line-height: 1.2 !important; justify-content: center
-          !important; margin: 0 4px !important; color: ${state === 'on' ?
+          } .bubble-name { font-weight: 700 !important; font-size: 14px
+          !important; line-height: 1 !important; justify-content: center
+          !important; margin: 0 0px !important; color: ${state === 'on' ?
           'rgba(30, 30, 30, 0.95)' : 'rgba(60, 60, 60, 0.7)'} !important; }
-          .bubble-state { font-size: 12px !important; font-weight: 500
-          !important; margin-top: 2px !important; justify-content: center
-          !important; color: ${state === 'on' ? (hass.themes.darkMode ?
-          'rgba(30, 30, 30, 0.85)' : 'rgba(80, 80, 80, 0.8)') :
-          (hass.themes.darkMode ? 'rgba(50, 50, 50, 0.7)' : 'rgba(100, 100, 100,
-          0.6)')} !important; } .bubble-range-slider { position: absolute
+          .bubble-state { font-size: 13px !important; font-weight: 700
+          !important; justify-content: center
+          !important; color: ${state === 'on' ? 'rgba(60, 60, 60, 1)' : 'rgba(100, 100, 100, 0.6)'} !important; } .bubble-range-slider { position: absolute
           !important; bottom: 0 !important; left: 0 !important; right: 0
           !important; width: 100% !important; height: 4px !important;
           border-radius: 0 0 16px 16px !important; z-index: 10 !important;
@@ -518,7 +505,7 @@ cards:
             position: fixed !important;
             top: 4px !important;
             left: 6px !important;
-            font-size: 11px !important;
+            font-size: 13px !important;
             font-weight: 700 !important;
             color: rgb(255, 149, 0) !important;
             opacity: 0 !important;
@@ -581,18 +568,18 @@ cards:
               .bubble-button-card-container:active { transform: scale(0.96) !important; }
               .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 6px !important; right: 6px !important; width: ${inGroup ? '8px' : '0px'} !important; height: ${inGroup ? '8px' : '0px'} !important; border-radius: 50% !important; background: rgb(66, 133, 244) !important; border: 1.5px solid rgba(255, 255, 255, 0.9) !important; box-shadow: 0 0 4px rgba(66, 133, 244, 0.5) !important; transition: width 0.2s ease, height 0.2s ease !important; z-index: 25 !important; }
               .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 12px !important; }
-              .bubble-icon-container { min-width: 48px !important; min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 8px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${inGroup ? 'rgba(66, 133, 244, 0.18)' : 'rgba(180, 180, 180, 0.2)'} !important; border: ${inGroup ? '1.5px solid rgba(66, 133, 244, 0.35)' : '1.5px solid rgba(180, 180, 180, 0.3)'} !important; }
-              .bubble-icon { --mdc-icon-size: 26px !important; color: ${inGroup ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.6)'} !important; filter: ${inGroup ? 'drop-shadow(0 0 4px rgba(66, 133, 244, 0.5))' : 'none'} !important; }
+              .bubble-icon-container { min-width: 48px !important; min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${inGroup ? 'rgba(66, 133, 244, 0.18)' : 'rgba(180, 180, 180, 0.2)'} !important; border: ${inGroup ? '1.5px solid rgba(66, 133, 244, 0.35)' : '1.5px solid rgba(180, 180, 180, 0.3)'} !important; }
+              .bubble-icon { --mdc-icon-size: 35px !important; color: ${inGroup ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.6)'} !important; filter: ${inGroup ? 'drop-shadow(0 0 4px rgba(66, 133, 244, 0.5))' : 'none'} !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
-              .bubble-name { font-weight: 600 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; color: ${inGroup ? 'rgba(30, 30, 30, 0.95)' : 'rgba(60, 60, 60, 0.7)'} !important; }
-              .bubble-state { font-size: 12px !important; font-weight: 500 !important; margin-top: 2px !important; justify-content: center !important; color: ${inGroup ? 'rgb(66, 133, 244)' : 'rgba(100, 100, 100, 0.6)'} !important; }
+              .bubble-name { font-weight: 700 !important; font-size: 14px !important; line-height: 1 !important; justify-content: center !important; color: ${inGroup ? 'rgba(30, 30, 30, 0.95)' : 'rgba(60, 60, 60, 0.7)'} !important; }
+              .bubble-state { font-size: 13px !important; font-weight: 700 !important; justify-content: center !important; color: ${inGroup ? 'rgb(66, 133, 244)' : 'rgba(100, 100, 100, 0.6)'} !important; }
               .bubble-range-slider { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 5px !important; border-radius: 0 0 16px 16px !important; z-index: 10 !important; background: rgba(0, 0, 0, 0.06) !important; overflow: hidden !important; opacity: 1 !important; }
               .bubble-range-fill { height: 8px !important; background: rgb(66, 133, 244) !important; }
               .bubble-range-value {
                 position: fixed !important;
                 top: 4px !important;
                 left: 6px !important;
-                font-size: 11px !important;
+                font-size: 13px !important;
                 font-weight: 700 !important;
                 color: rgb(66, 133, 244) !important;
                 opacity: 0 !important;
@@ -635,10 +622,10 @@ cards:
               .bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto 1fr auto !important; justify-items: center !important; align-items: center !important; text-align: center !important; min-height: 100px !important; padding: 14px 6px 8px 6px !important; border-radius: 16px !important; overflow: hidden !important; clip-path: inset(0 round 16px) !important; transition: transform 0.1s ease-out, border-color 0.15s ease, background 0.2s ease !important; background: ${isPlaying ? 'rgba(66, 133, 244, 0.12)' : 'rgba(255, 255, 255, 0.7)'} !important; border: ${isPlaying ? '2px solid rgba(66, 133, 244, 0.55)' : '2px solid rgba(200, 200, 200, 0.4)'} !important; box-shadow: ${isPlaying ? '0 2px 12px rgba(66, 133, 244, 0.15)' : '0 1px 4px rgba(0, 0, 0, 0.05)'} !important; }
               .bubble-button-card-container:active { transform: scale(0.95) !important; }
               .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 12px !important; }
-              .bubble-icon-container { min-width: 48px !important; min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 8px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isPlaying ? 'rgba(66, 133, 244, 0.18)' : 'rgba(180, 180, 180, 0.2)'} !important; border: ${isPlaying ? '1.5px solid rgba(66, 133, 244, 0.35)' : '1.5px solid rgba(180, 180, 180, 0.3)'} !important; }
-              .bubble-icon { --mdc-icon-size: 26px !important; color: ${isPlaying ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.6)'} !important; filter: ${isPlaying ? 'drop-shadow(0 0 4px rgba(66, 133, 244, 0.5))' : 'none'} !important; }
+              .bubble-icon-container { min-width: 48px !important; min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isPlaying ? 'rgba(66, 133, 244, 0.18)' : 'rgba(180, 180, 180, 0.2)'} !important; border: ${isPlaying ? '1.5px solid rgba(66, 133, 244, 0.35)' : '1.5px solid rgba(180, 180, 180, 0.3)'} !important; }
+              .bubble-icon { --mdc-icon-size: 35px !important; color: ${isPlaying ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.6)'} !important; filter: ${isPlaying ? 'drop-shadow(0 0 4px rgba(66, 133, 244, 0.5))' : 'none'} !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
-              .bubble-name { font-weight: 600 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; color: ${isPlaying ? 'rgba(30, 30, 30, 0.95)' : 'rgba(60, 60, 60, 0.7)'} !important; }
+              .bubble-name { font-weight: 700 !important; font-size: 14px !important; line-height: 1 !important; justify-content: center !important; color: ${isPlaying ? 'rgba(30, 30, 30, 0.95)' : 'rgba(60, 60, 60, 0.7)'} !important; }
             `;
           })()}
       - type: custom:bubble-card
@@ -663,10 +650,10 @@ cards:
               .bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto 1fr auto !important; justify-items: center !important; align-items: center !important; text-align: center !important; min-height: 100px !important; padding: 14px 6px 8px 6px !important; border-radius: 16px !important; overflow: hidden !important; clip-path: inset(0 round 16px) !important; transition: transform 0.1s ease-out, border-color 0.15s ease, background 0.2s ease !important; background: ${isOn ? 'rgba(66, 133, 244, 0.12)' : 'rgba(255, 255, 255, 0.7)'} !important; border: ${isOn ? '2px solid rgba(66, 133, 244, 0.55)' : '2px solid rgba(200, 200, 200, 0.4)'} !important; box-shadow: ${isOn ? '0 2px 12px rgba(66, 133, 244, 0.15)' : '0 1px 4px rgba(0, 0, 0, 0.05)'} !important; }
               .bubble-button-card-container:active { transform: scale(0.95) !important; }
               .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 12px !important; }
-              .bubble-icon-container { min-width: 48px !important; min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 8px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isOn ? 'rgba(66, 133, 244, 0.18)' : 'rgba(180, 180, 180, 0.2)'} !important; border: ${isOn ? '1.5px solid rgba(66, 133, 244, 0.35)' : '1.5px solid rgba(180, 180, 180, 0.3)'} !important; }
-              .bubble-icon { --mdc-icon-size: 26px !important; color: ${isOn ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.6)'} !important; filter: ${isOn ? 'drop-shadow(0 0 4px rgba(66, 133, 244, 0.5))' : 'none'} !important; }
+              .bubble-icon-container { min-width: 48px !important; min-height: 48px !important; grid-row: 1 !important; margin: 4px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isOn ? 'rgba(66, 133, 244, 0.18)' : 'rgba(180, 180, 180, 0.2)'} !important; border: ${isOn ? '1.5px solid rgba(66, 133, 244, 0.35)' : '1.5px solid rgba(180, 180, 180, 0.3)'} !important; }
+              .bubble-icon { --mdc-icon-size: 35px !important; color: ${isOn ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.6)'} !important; filter: ${isOn ? 'drop-shadow(0 0 4px rgba(66, 133, 244, 0.5))' : 'none'} !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
-              .bubble-name { font-weight: 600 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; color: ${isOn ? 'rgba(30, 30, 30, 0.95)' : 'rgba(60, 60, 60, 0.7)'} !important; }
+              .bubble-name { font-weight: 700 !important; font-size: 14px !important; line-height: 1 !important; justify-content: center !important; color: ${isOn ? 'rgba(30, 30, 30, 0.95)' : 'rgba(60, 60, 60, 0.7)'} !important; }
             `;
           })()}
 card_mod:

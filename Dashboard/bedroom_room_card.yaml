@@ -257,7 +257,7 @@ cards:
             min-width: 48px !important;
             min-height: 48px !important;
             grid-row: 1 !important;
-            margin: 4px 0 8px 0 !important;
+            margin: 4px 0 4px 0 !important;
             border-radius: 50% !important;
             display: flex !important;
             align-items: center !important;
@@ -271,7 +271,7 @@ cards:
           }
 
           .bubble-icon {
-            --mdc-icon-size: 26px !important;
+            --mdc-icon-size: 35px !important;
             color: ${state === 'on'
               ? 'rgb(255, 149, 0)'
               : 'rgba(80, 80, 80, 0.6)'} !important;
@@ -285,23 +285,22 @@ cards:
           }
 
           .bubble-name {
-            font-weight: 600 !important;
-            font-size: 13px !important;
-            line-height: 1.2 !important;
+            font-weight: 700 !important;
+            font-size: 14px !important;
+            line-height: 1 !important;
             justify-content: center !important;
-            margin: 0 4px !important;
+            margin: 0 0px !important;
             color: ${state === 'on'
               ? 'rgba(30, 30, 30, 0.95)'
               : 'rgba(60, 60, 60, 0.7)'} !important;
           }
 
           .bubble-state {
-            font-size: 12px !important;
-            font-weight: 500 !important;
-            margin-top: 2px !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
             justify-content: center !important;
             color: ${state === 'on'
-              ? 'rgba(80, 80, 80, 0.8)'
+              ? 'rgba(60, 60, 60, 1)'
               : 'rgba(100, 100, 100, 0.6)'} !important;
           }
 
@@ -424,7 +423,7 @@ cards:
             min-width: 48px !important;
             min-height: 48px !important;
             grid-row: 1 !important;
-            margin: 4px 0 8px 0 !important;
+            margin: 4px 0 4px 0 !important;
             border-radius: 50% !important;
             display: flex !important;
             align-items: center !important;
@@ -438,7 +437,7 @@ cards:
           }
 
           .bubble-icon {
-            --mdc-icon-size: 26px !important;
+            --mdc-icon-size: 35px !important;
             color: ${state === 'on'
               ? 'rgb(255, 149, 0)'
               : 'rgba(80, 80, 80, 0.6)'} !important;
@@ -452,23 +451,22 @@ cards:
           }
 
           .bubble-name {
-            font-weight: 600 !important;
-            font-size: 13px !important;
-            line-height: 1.2 !important;
+            font-weight: 700 !important;
+            font-size: 14px !important;
+            line-height: 1 !important;
             justify-content: center !important;
-            margin: 0 4px !important;
+            margin: 0 0px !important;
             color: ${state === 'on'
               ? 'rgba(30, 30, 30, 0.95)'
               : 'rgba(60, 60, 60, 0.7)'} !important;
           }
 
           .bubble-state {
-            font-size: 12px !important;
-            font-weight: 500 !important;
-            margin-top: 2px !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
             justify-content: center !important;
             color: ${state === 'on'
-              ? 'rgba(80, 80, 80, 0.8)'
+              ? 'rgba(60, 60, 60, 1)'
               : 'rgba(100, 100, 100, 0.6)'} !important;
           }
 
@@ -602,7 +600,7 @@ cards:
                 min-width: 48px !important;
                 min-height: 48px !important;
                 grid-row: 1 !important;
-                margin: 4px 0 8px 0 !important;
+                margin: 4px 0 4px 0 !important;
                 border-radius: 50% !important;
                 display: flex !important;
                 align-items: center !important;
@@ -614,38 +612,38 @@ cards:
                   ? '1.5px solid rgba(66, 133, 244, 0.35)'
                   : '1.5px solid rgba(180, 180, 180, 0.3)'} !important;
               }
-              
+
               .bubble-icon {
-                --mdc-icon-size: 26px !important;
+                --mdc-icon-size: 35px !important;
                 color: ${inGroup
                   ? 'rgb(66, 133, 244)'
                   : 'rgba(80, 80, 80, 0.6)'} !important;
                 filter: ${inGroup ? 'drop-shadow(0 0 4px rgba(66, 133, 244, 0.5))' : 'none'} !important;
               }
-              
+
               .bubble-name-container {
                 grid-row: 2 !important;
                 margin: 0 !important;
                 width: 100% !important;
               }
-              
+
               .bubble-name {
-                font-weight: 600 !important;
-                font-size: 13px !important;
-                line-height: 1.2 !important;
+                font-weight: 700 !important;
+                font-size: 14px !important;
+                line-height: 1 !important;
                 justify-content: center !important;
+                margin: 0 0px !important;
                 color: ${inGroup
                   ? 'rgba(30, 30, 30, 0.95)'
                   : 'rgba(60, 60, 60, 0.7)'} !important;
               }
-              
+
               .bubble-state {
-                font-size: 12px !important;
-                font-weight: 500 !important;
-                margin-top: 2px !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 justify-content: center !important;
                 color: ${inGroup
-                  ? 'rgb(66, 133, 244)'
+                  ? 'rgba(60, 60, 60, 1)'
                   : 'rgba(100, 100, 100, 0.6)'} !important;
               }
               
@@ -775,7 +773,7 @@ cards:
                 min-width: 48px !important;
                 min-height: 48px !important;
                 grid-row: 1 !important;
-                margin: 4px 0 8px 0 !important;
+                margin: 4px 0 4px 0 !important;
                 border-radius: 50% !important;
                 display: flex !important;
                 align-items: center !important;
@@ -787,38 +785,38 @@ cards:
                   ? '1.5px solid rgba(66, 133, 244, 0.35)'
                   : '1.5px solid rgba(180, 180, 180, 0.3)'} !important;
               }
-              
+
               .bubble-icon {
-                --mdc-icon-size: 26px !important;
+                --mdc-icon-size: 35px !important;
                 color: ${inGroup
                   ? 'rgb(66, 133, 244)'
                   : 'rgba(80, 80, 80, 0.6)'} !important;
                 filter: ${inGroup ? 'drop-shadow(0 0 4px rgba(66, 133, 244, 0.5))' : 'none'} !important;
               }
-              
+
               .bubble-name-container {
                 grid-row: 2 !important;
                 margin: 0 !important;
                 width: 100% !important;
               }
-              
+
               .bubble-name {
-                font-weight: 600 !important;
-                font-size: 13px !important;
-                line-height: 1.2 !important;
+                font-weight: 700 !important;
+                font-size: 14px !important;
+                line-height: 1 !important;
                 justify-content: center !important;
+                margin: 0 0px !important;
                 color: ${inGroup
                   ? 'rgba(30, 30, 30, 0.95)'
                   : 'rgba(60, 60, 60, 0.7)'} !important;
               }
-              
+
               .bubble-state {
-                font-size: 12px !important;
-                font-weight: 500 !important;
-                margin-top: 2px !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 justify-content: center !important;
                 color: ${inGroup
-                  ? 'rgb(66, 133, 244)'
+                  ? 'rgba(60, 60, 60, 1)'
                   : 'rgba(100, 100, 100, 0.6)'} !important;
               }
               

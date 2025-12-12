@@ -506,7 +506,7 @@ cards:
                 letter-spacing: 0.5px !important;
                 line-height: 1.1 !important;
                 justify-content: center !important;
-                margin: 0 4px !important;
+                margin: 0 0px !important;
                 text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                 color: ${state === 'on'
                   ? 'rgba(40, 40, 40, 0.95)'
@@ -514,13 +514,10 @@ cards:
               }
 
               .bubble-state {
-                font-size: 12px !important;
-                font-weight: 600 !important;
-                margin-top: 1px !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 justify-content: center !important;
-                color: ${state === 'on'
-                  ? 'rgb(255, 149, 0)'
-                  : 'rgba(60, 60, 60, 0.7)'} !important;
+                color: ${state === 'on' ? 'rgba(60, 60, 60, 1)' : 'rgba(100, 100, 100, 0.6)'} !important;
               }
 
               .bubble-range-slider {
@@ -551,8 +548,8 @@ cards:
                 position: fixed !important;
                 top: 4px !important;
                 right: 5px !important;
-                font-size: 9px !important;
-                font-weight: 600 !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 color: rgba(50, 50, 50, 0.9) !important;
                 opacity: 0 !important;
                 transition: opacity 0.15s ease !important;
@@ -681,7 +678,7 @@ cards:
                 letter-spacing: 0.5px !important;
                 line-height: 1.1 !important;
                 justify-content: center !important;
-                margin: 0 4px !important;
+                margin: 0 0px !important;
                 text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                 color: ${state === 'on'
                   ? 'rgba(40, 40, 40, 0.95)'
@@ -689,13 +686,10 @@ cards:
               }
 
               .bubble-state {
-                font-size: 12px !important;
-                font-weight: 600 !important;
-                margin-top: 1px !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 justify-content: center !important;
-                color: ${state === 'on'
-                  ? 'rgb(255, 149, 0)'
-                  : 'rgba(60, 60, 60, 0.7)'} !important;
+                color: ${state === 'on' ? 'rgba(60, 60, 60, 1)' : 'rgba(100, 100, 100, 0.6)'} !important;
               }
 
               .bubble-range-slider {
@@ -726,8 +720,8 @@ cards:
                 position: fixed !important;
                 top: 4px !important;
                 right: 5px !important;
-                font-size: 9px !important;
-                font-weight: 600 !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 color: rgba(50, 50, 50, 0.9) !important;
                 opacity: 0 !important;
                 transition: opacity 0.15s ease !important;
@@ -856,7 +850,7 @@ cards:
                 letter-spacing: 0.5px !important;
                 line-height: 1.1 !important;
                 justify-content: center !important;
-                margin: 0 4px !important;
+                margin: 0 0px !important;
                 text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                 color: ${state === 'on'
                   ? 'rgba(40, 40, 40, 0.95)'
@@ -864,13 +858,10 @@ cards:
               }
 
               .bubble-state {
-                font-size: 12px !important;
-                font-weight: 600 !important;
-                margin-top: 1px !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 justify-content: center !important;
-                color: ${state === 'on'
-                  ? 'rgb(255, 149, 0)'
-                  : 'rgba(60, 60, 60, 0.7)'} !important;
+                color: ${state === 'on' ? 'rgba(60, 60, 60, 1)' : 'rgba(100, 100, 100, 0.6)'} !important;
               }
 
               .bubble-range-slider {
@@ -901,8 +892,8 @@ cards:
                 position: fixed !important;
                 top: 4px !important;
                 right: 5px !important;
-                font-size: 9px !important;
-                font-weight: 600 !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 color: rgba(50, 50, 50, 0.9) !important;
                 opacity: 0 !important;
                 transition: opacity 0.15s ease !important;
@@ -1031,7 +1022,7 @@ cards:
                 letter-spacing: 0.5px !important;
                 line-height: 1.1 !important;
                 justify-content: center !important;
-                margin: 0 4px !important;
+                margin: 0 0px !important;
                 text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                 color: ${state === 'on'
                   ? 'rgba(40, 40, 40, 0.95)'
@@ -1039,13 +1030,10 @@ cards:
               }
 
               .bubble-state {
-                font-size: 12px !important;
-                font-weight: 600 !important;
-                margin-top: 1px !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 justify-content: center !important;
-                color: ${state === 'on'
-                  ? 'rgb(255, 149, 0)'
-                  : 'rgba(60, 60, 60, 0.7)'} !important;
+                color: ${state === 'on' ? 'rgba(60, 60, 60, 1)' : 'rgba(100, 100, 100, 0.6)'} !important;
               }
 
               .bubble-range-slider {
@@ -1076,8 +1064,8 @@ cards:
                 position: fixed !important;
                 top: 4px !important;
                 right: 5px !important;
-                font-size: 9px !important;
-                font-weight: 600 !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 color: rgba(50, 50, 50, 0.9) !important;
                 opacity: 0 !important;
                 transition: opacity 0.15s ease !important;
@@ -1206,7 +1194,7 @@ cards:
                 letter-spacing: 0.5px !important;
                 line-height: 1.1 !important;
                 justify-content: center !important;
-                margin: 0 4px !important;
+                margin: 0 0px !important;
                 text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                 color: ${state === 'on'
                   ? 'rgba(40, 40, 40, 0.95)'
@@ -1214,13 +1202,10 @@ cards:
               }
 
               .bubble-state {
-                font-size: 12px !important;
-                font-weight: 600 !important;
-                margin-top: 1px !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 justify-content: center !important;
-                color: ${state === 'on'
-                  ? 'rgb(255, 149, 0)'
-                  : 'rgba(60, 60, 60, 0.7)'} !important;
+                color: ${state === 'on' ? 'rgba(60, 60, 60, 1)' : 'rgba(100, 100, 100, 0.6)'} !important;
               }
 
               .bubble-range-slider {
@@ -1251,8 +1236,8 @@ cards:
                 position: fixed !important;
                 top: 4px !important;
                 right: 5px !important;
-                font-size: 9px !important;
-                font-weight: 600 !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 color: rgba(50, 50, 50, 0.9) !important;
                 opacity: 0 !important;
                 transition: opacity 0.15s ease !important;
@@ -1381,7 +1366,7 @@ cards:
                 letter-spacing: 0.5px !important;
                 line-height: 1.1 !important;
                 justify-content: center !important;
-                margin: 0 4px !important;
+                margin: 0 0px !important;
                 text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                 color: ${state === 'on'
                   ? 'rgba(40, 40, 40, 0.95)'
@@ -1389,13 +1374,10 @@ cards:
               }
 
               .bubble-state {
-                font-size: 12px !important;
-                font-weight: 600 !important;
-                margin-top: 1px !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 justify-content: center !important;
-                color: ${state === 'on'
-                  ? 'rgb(255, 149, 0)'
-                  : 'rgba(60, 60, 60, 0.7)'} !important;
+                color: ${state === 'on' ? 'rgba(60, 60, 60, 1)' : 'rgba(100, 100, 100, 0.6)'} !important;
               }
 
               .bubble-range-slider {
@@ -1426,8 +1408,8 @@ cards:
                 position: fixed !important;
                 top: 4px !important;
                 right: 5px !important;
-                font-size: 9px !important;
-                font-weight: 600 !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
                 color: rgba(50, 50, 50, 0.9) !important;
                 opacity: 0 !important;
                 transition: opacity 0.15s ease !important;
@@ -1553,8 +1535,8 @@ cards:
             }
             .bubble-title {
               color: rgba(255, 255, 255, 0.95) !important;
-              font-size: 12px !important;
-              font-weight: 600 !important;
+              font-size: 13px !important;
+              font-weight: 700 !important;
               text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
             }
             .bubble-sub-title {
@@ -1687,8 +1669,8 @@ cards:
             }
             .bubble-title {
               color: rgba(255, 255, 255, 0.95) !important;
-              font-size: 12px !important;
-              font-weight: 600 !important;
+              font-size: 13px !important;
+              font-weight: 700 !important;
               text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
             }
             .bubble-sub-title {
@@ -1821,8 +1803,8 @@ cards:
             }
             .bubble-title {
               color: rgba(255, 255, 255, 0.95) !important;
-              font-size: 12px !important;
-              font-weight: 600 !important;
+              font-size: 13px !important;
+              font-weight: 700 !important;
               text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
             }
             .bubble-sub-title {
@@ -1955,8 +1937,8 @@ cards:
             }
             .bubble-title {
               color: rgba(255, 255, 255, 0.95) !important;
-              font-size: 12px !important;
-              font-weight: 600 !important;
+              font-size: 13px !important;
+              font-weight: 700 !important;
               text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
             }
             .bubble-sub-title {
@@ -2089,8 +2071,8 @@ cards:
             }
             .bubble-title {
               color: rgba(255, 255, 255, 0.95) !important;
-              font-size: 12px !important;
-              font-weight: 600 !important;
+              font-size: 13px !important;
+              font-weight: 700 !important;
               text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
             }
             .bubble-sub-title {
@@ -2263,7 +2245,7 @@ cards:
                     letter-spacing: 0.5px !important;
                     line-height: 1.1 !important;
                     justify-content: center !important;
-                    margin: 0 4px !important;
+                    margin: 0 0px !important;
                     text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                     color: ${inGroup
                       ? 'rgba(40, 40, 40, 0.95)'
@@ -2271,9 +2253,8 @@ cards:
                   }
 
                   .bubble-state {
-                    font-size: 12px !important;
-                    font-weight: 600 !important;
-                    margin-top: 1px !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     justify-content: center !important;
                     color: ${inGroup
                       ? 'rgb(66, 133, 244)'
@@ -2308,8 +2289,8 @@ cards:
                     position: fixed !important;
                     top: 4px !important;
                     right: 5px !important;
-                    font-size: 9px !important;
-                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     color: rgba(50, 50, 50, 0.9) !important;
                     opacity: 0 !important;
                     transition: opacity 0.15s ease !important;
@@ -2431,7 +2412,7 @@ cards:
                     letter-spacing: 0.5px !important;
                     line-height: 1.1 !important;
                     justify-content: center !important;
-                    margin: 0 4px !important;
+                    margin: 0 0px !important;
                     text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                     color: ${inGroup
                       ? 'rgba(40, 40, 40, 0.95)'
@@ -2439,9 +2420,8 @@ cards:
                   }
 
                   .bubble-state {
-                    font-size: 12px !important;
-                    font-weight: 600 !important;
-                    margin-top: 1px !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     justify-content: center !important;
                     color: ${inGroup
                       ? 'rgb(66, 133, 244)'
@@ -2476,8 +2456,8 @@ cards:
                     position: fixed !important;
                     top: 4px !important;
                     right: 5px !important;
-                    font-size: 9px !important;
-                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     color: rgba(50, 50, 50, 0.9) !important;
                     opacity: 0 !important;
                     transition: opacity 0.15s ease !important;
@@ -2599,7 +2579,7 @@ cards:
                     letter-spacing: 0.5px !important;
                     line-height: 1.1 !important;
                     justify-content: center !important;
-                    margin: 0 4px !important;
+                    margin: 0 0px !important;
                     text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                     color: ${inGroup
                       ? 'rgba(40, 40, 40, 0.95)'
@@ -2607,9 +2587,8 @@ cards:
                   }
 
                   .bubble-state {
-                    font-size: 12px !important;
-                    font-weight: 600 !important;
-                    margin-top: 1px !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     justify-content: center !important;
                     color: ${inGroup
                       ? 'rgb(66, 133, 244)'
@@ -2644,8 +2623,8 @@ cards:
                     position: fixed !important;
                     top: 4px !important;
                     right: 5px !important;
-                    font-size: 9px !important;
-                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     color: rgba(50, 50, 50, 0.9) !important;
                     opacity: 0 !important;
                     transition: opacity 0.15s ease !important;
@@ -2767,7 +2746,7 @@ cards:
                     letter-spacing: 0.5px !important;
                     line-height: 1.1 !important;
                     justify-content: center !important;
-                    margin: 0 4px !important;
+                    margin: 0 0px !important;
                     text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                     color: ${inGroup
                       ? 'rgba(40, 40, 40, 0.95)'
@@ -2775,9 +2754,8 @@ cards:
                   }
 
                   .bubble-state {
-                    font-size: 12px !important;
-                    font-weight: 600 !important;
-                    margin-top: 1px !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     justify-content: center !important;
                     color: ${inGroup
                       ? 'rgb(66, 133, 244)'
@@ -2812,8 +2790,8 @@ cards:
                     position: fixed !important;
                     top: 4px !important;
                     right: 5px !important;
-                    font-size: 9px !important;
-                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     color: rgba(50, 50, 50, 0.9) !important;
                     opacity: 0 !important;
                     transition: opacity 0.15s ease !important;
@@ -2935,7 +2913,7 @@ cards:
                     letter-spacing: 0.5px !important;
                     line-height: 1.1 !important;
                     justify-content: center !important;
-                    margin: 0 4px !important;
+                    margin: 0 0px !important;
                     text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                     color: ${inGroup
                       ? 'rgba(40, 40, 40, 0.95)'
@@ -2943,9 +2921,8 @@ cards:
                   }
 
                   .bubble-state {
-                    font-size: 12px !important;
-                    font-weight: 600 !important;
-                    margin-top: 1px !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     justify-content: center !important;
                     color: ${inGroup
                       ? 'rgb(66, 133, 244)'
@@ -2980,8 +2957,8 @@ cards:
                     position: fixed !important;
                     top: 4px !important;
                     right: 5px !important;
-                    font-size: 9px !important;
-                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     color: rgba(50, 50, 50, 0.9) !important;
                     opacity: 0 !important;
                     transition: opacity 0.15s ease !important;
@@ -3100,7 +3077,7 @@ cards:
                     letter-spacing: 0.5px !important;
                     line-height: 1.1 !important;
                     justify-content: center !important;
-                    margin: 0 4px !important;
+                    margin: 0 0px !important;
                     text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
                     color: ${isPlaying
                       ? 'rgba(40, 40, 40, 0.95)'
@@ -3108,9 +3085,8 @@ cards:
                   }
 
                   .bubble-state {
-                    font-size: 12px !important;
-                    font-weight: 600 !important;
-                    margin-top: 1px !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     justify-content: center !important;
                     color: ${isPlaying
                       ? 'rgb(30, 215, 96)'
@@ -3145,8 +3121,8 @@ cards:
                     position: fixed !important;
                     top: 4px !important;
                     right: 5px !important;
-                    font-size: 9px !important;
-                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
                     color: rgba(50, 50, 50, 0.9) !important;
                     opacity: 0 !important;
                     transition: opacity 0.15s ease !important;

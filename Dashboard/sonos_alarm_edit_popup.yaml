@@ -11,21 +11,11 @@ cards:
     bg_blur: 20
     close_on_click: false
     back_open: true
-    styles: |
-      .bubble-pop-up-container {
-        padding: 16px !important;
-      }
-      .bubble-header {
-        margin-bottom: 8px !important;
-      }
-      .bubble-name {
-        font-weight: 600 !important;
-        font-size: 1.3em !important;
-      }
+
+  # Time Display with inline recurrence
   - type: custom:mushroom-entity-card
     entity: input_datetime.sonos_alarm_edit_time
-    name: " "
-    icon: mdi:clock-outline
+    name: Alarm Time
     tap_action:
       action: more-info
     card_mod:
@@ -38,212 +28,20 @@ cards:
           --primary-text-color: rgba(0,0,0,0.9);
           --secondary-text-color: rgba(255, 152, 0, 0.9);
         }
-        mushroom-state-info {
-          flex-direction: column !important;
-          align-items: center !important;
-        }
-        .primary {
-          font-size: 0 !important;
-        }
-        .primary::after {
-          font-size: 32px !important;
-          font-weight: 700 !important;
-          letter-spacing: -1px !important;
-          content: '{{ states("input_datetime.sonos_alarm_edit_time")[:5] }}';
-        }
-        .secondary {
-          font-size: 12px !important;
-          font-weight: 500 !important;
-          margin-top: 2px !important;
-        }
-        .secondary::after {
-          content: 'Tap to change';
-          color: rgba(255, 152, 0, 0.8);
-        }
         mushroom-shape-icon {
           --shape-color: rgba(255, 152, 0, 0.18) !important;
           --icon-color: rgba(255, 152, 0, 0.95) !important;
         }
-  - type: horizontal-stack
-    cards:
-      - type: custom:bubble-card
-        card_type: button
-        button_type: name
-        name: "-15"
-        icon: mdi:minus
-        tap_action:
-          action: perform-action
-          perform_action: script.sonos_adjust_edit_time
-          data:
-            minutes: -15
-        styles: |
-          .bubble-button-card-container {
-            min-height: 48px !important;
-            padding: 10px !important;
-            border-radius: 12px !important;
-            background: linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04)) !important;
-            border: 1px solid rgba(0,0,0,0.06) !important;
-            justify-content: center !important;
-            transition: all 0.2s ease !important;
-          }
-          .bubble-button-card-container:active {
-            transform: scale(0.95) !important;
-            background: rgba(255, 152, 0, 0.15) !important;
-          }
-          .bubble-icon-container {
-            display: none !important;
-          }
-          .bubble-name-container,
-          .bubble-name {
-            pointer-events: none !important;
-          }
-          .bubble-name {
-            font-weight: 600 !important;
-            font-size: 15px !important;
-            color: rgba(0,0,0,0.7) !important;
-          }
-        card_mod:
-          style: |
-            ha-card { 
-              background: transparent !important; 
-              border: none !important; 
-              box-shadow: none !important;
-            }
-      - type: custom:bubble-card
-        card_type: button
-        button_type: name
-        name: "-5"
-        icon: mdi:minus
-        tap_action:
-          action: perform-action
-          perform_action: script.sonos_adjust_edit_time
-          data:
-            minutes: -5
-        styles: |
-          .bubble-button-card-container {
-            min-height: 48px !important;
-            padding: 10px !important;
-            border-radius: 12px !important;
-            background: linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04)) !important;
-            border: 1px solid rgba(0,0,0,0.06) !important;
-            justify-content: center !important;
-            transition: all 0.2s ease !important;
-          }
-          .bubble-button-card-container:active {
-            transform: scale(0.95) !important;
-            background: rgba(255, 152, 0, 0.15) !important;
-          }
-          .bubble-icon-container {
-            display: none !important;
-          }
-          .bubble-name-container,
-          .bubble-name {
-            pointer-events: none !important;
-          }
-          .bubble-name {
-            font-weight: 600 !important;
-            font-size: 15px !important;
-            color: rgba(0,0,0,0.7) !important;
-          }
-        card_mod:
-          style: |
-            ha-card { 
-              background: transparent !important; 
-              border: none !important; 
-              box-shadow: none !important;
-            }
-      - type: custom:bubble-card
-        card_type: button
-        button_type: name
-        name: "+5"
-        icon: mdi:plus
-        tap_action:
-          action: perform-action
-          perform_action: script.sonos_adjust_edit_time
-          data:
-            minutes: 5
-        styles: |
-          .bubble-button-card-container {
-            min-height: 48px !important;
-            padding: 10px !important;
-            border-radius: 12px !important;
-            background: linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04)) !important;
-            border: 1px solid rgba(0,0,0,0.06) !important;
-            justify-content: center !important;
-            transition: all 0.2s ease !important;
-          }
-          .bubble-button-card-container:active {
-            transform: scale(0.95) !important;
-            background: rgba(255, 152, 0, 0.15) !important;
-          }
-          .bubble-icon-container {
-            display: none !important;
-          }
-          .bubble-name-container,
-          .bubble-name {
-            pointer-events: none !important;
-          }
-          .bubble-name {
-            font-weight: 600 !important;
-            font-size: 15px !important;
-            color: rgba(0,0,0,0.7) !important;
-          }
-        card_mod:
-          style: |
-            ha-card { 
-              background: transparent !important; 
-              border: none !important; 
-              box-shadow: none !important;
-            }
-      - type: custom:bubble-card
-        card_type: button
-        button_type: name
-        name: "+15"
-        icon: mdi:plus
-        tap_action:
-          action: perform-action
-          perform_action: script.sonos_adjust_edit_time
-          data:
-            minutes: 15
-        styles: |
-          .bubble-button-card-container {
-            min-height: 48px !important;
-            padding: 10px !important;
-            border-radius: 12px !important;
-            background: linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04)) !important;
-            border: 1px solid rgba(0,0,0,0.06) !important;
-            justify-content: center !important;
-            transition: all 0.2s ease !important;
-          }
-          .bubble-button-card-container:active {
-            transform: scale(0.95) !important;
-            background: rgba(255, 152, 0, 0.15) !important;
-          }
-          .bubble-icon-container {
-            display: none !important;
-          }
-          .bubble-name-container,
-          .bubble-name {
-            pointer-events: none !important;
-          }
-          .bubble-name {
-            font-weight: 600 !important;
-            font-size: 15px !important;
-            color: rgba(0,0,0,0.7) !important;
-          }
-        card_mod:
-          style: |
-            ha-card { 
-              background: transparent !important; 
-              border: none !important; 
-              box-shadow: none !important;
-            }
+        .secondary::after {
+          content: ' · {{ states("sensor.sonos_edit_recurrence_display") }}';
+        }
+
   - type: custom:bubble-card
     card_type: separator
     name: Volume
     icon: mdi:volume-high
     styles: |
-      .bubble-separator { margin: 16px 0 8px 0 !important; }
+      .bubble-separator { margin: 8px 0 4px 0 !important; }
       .bubble-name {
         color: rgba(0,0,0,0.6) !important;
         font-weight: 600;
@@ -251,10 +49,10 @@ cards:
       }
       .bubble-icon { color: rgba(0,0,0,0.5) !important; }
       .bubble-line { background: rgba(0,0,0,0.08) !important; }
+
   - type: custom:mushroom-number-card
     entity: input_number.sonos_alarm_edit_volume
     name: Alarm Volume
-    icon: mdi:volume-medium
     display_mode: slider
     card_mod:
       style: |
@@ -273,12 +71,13 @@ cards:
           --slider-color: rgb(255, 152, 0) !important;
           --slider-bg-color: rgba(0,0,0,0.08) !important;
         }
+
   - type: custom:bubble-card
     card_type: separator
     name: Options
     icon: mdi:cog
     styles: |
-      .bubble-separator { margin: 16px 0 8px 0 !important; }
+      .bubble-separator { margin: 8px 0 4px 0 !important; }
       .bubble-name {
         color: rgba(0,0,0,0.6) !important;
         font-weight: 600;
@@ -286,6 +85,7 @@ cards:
       }
       .bubble-icon { color: rgba(0,0,0,0.5) !important; }
       .bubble-line { background: rgba(0,0,0,0.08) !important; }
+
   - type: custom:mushroom-entity-card
     entity: input_boolean.sonos_alarm_edit_linked_zones
     name: Include Linked Zones
@@ -308,11 +108,13 @@ cards:
         mushroom-state-info .primary {
           color: {{ 'rgba(0,0,0,0.9)' if is_state('input_boolean.sonos_alarm_edit_linked_zones', 'on') else 'rgba(0,0,0,0.5)' }} !important;
         }
+
   - type: custom:bubble-card
     card_type: separator
     styles: |
-      .bubble-separator { margin: 20px 0 12px 0 !important; }
+      .bubble-separator { margin: 12px 0 8px 0 !important; }
       .bubble-line { background: rgba(0,0,0,0.08) !important; }
+
   - type: horizontal-stack
     cards:
       - type: custom:bubble-card
@@ -324,20 +126,6 @@ cards:
           action: navigate
           navigation_path: "#sonos-alarms"
         styles: ""
-        sub_button:
-          main: []
-          bottom: []
-        button_action:
-          tap_action:
-            action: navigate
-            navigation_path: "#sonos-alarms"
-        card_mod:
-          style: |
-            ha-card { 
-              background: transparent !important; 
-              border: none !important; 
-              box-shadow: none !important;
-            }
       - type: custom:bubble-card
         card_type: button
         button_type: name
@@ -348,18 +136,3 @@ cards:
           perform_action: script.sonos_save_alarm_changes
           data: {}
         styles: ""
-        sub_button:
-          main: []
-          bottom: []
-        button_action:
-          tap_action:
-            action: perform-action
-            perform_action: script.sonos_save_alarm_changes
-            target: {}
-        card_mod:
-          style: |
-            ha-card { 
-              background: transparent !important; 
-              border: none !important; 
-              box-shadow: none !important;
-            }

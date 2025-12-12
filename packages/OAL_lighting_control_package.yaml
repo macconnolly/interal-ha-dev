@@ -122,8 +122,8 @@ light:
     name: "Column Lights"
     unique_id: column_lights
     entities:
-      - light.living_col_accent
-      - light.dining_col_accent
+      - light.living_column_accent_safe
+      - light.dining_column_accent_safe
 group:
   oal_control_switches:
     name: "OAL Control Switches"
@@ -460,7 +460,9 @@ adaptive_lighting:
     sleep_color_temp: 2700
 
   - name: "column_lights"
-    lights: light.column_lights
+    lights:
+      - light.living_column_accent_safe
+      - light.dining_column_accent_safe
     interval: 15
     transition: 1
     initial_transition: 1
@@ -2706,7 +2708,8 @@ script:
       - service: switch.turn_on
         target:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
-      # Reset column lights switch settings to ensure fast transitions
+      # Reset column lights switch settings to match YAML config
+      # Govee RGBICW COB strips need separate commands for proper color rendering
       - service: adaptive_lighting.change_switch_settings
         data:
           entity_id: switch.adaptive_lighting_column_lights
@@ -2715,10 +2718,11 @@ script:
           initial_transition: 1
           sleep_transition: 1
           transition: 1
-          separate_turn_on_commands: false
-          send_split_delay: false
+          separate_turn_on_commands: true
+          send_split_delay: true
           prefer_rgb_color: true
           sleep_rgb_or_color_temp: "rgb_color"
+          sleep_rgb_color: [255, 165, 0]
       # THEN: Clear manual_control so Core Engine will apply changes
       - service: adaptive_lighting.set_manual_control
         target:
@@ -2900,10 +2904,268 @@ script:
           transition: 1
 
 # =============================================================================
-# LAYER 6: TEMPLATE SENSORS (DIAGNOSTICS & MONITORING)
+# LAYER 6: TEMPLATE LIGHTS & SENSORS
 # =============================================================================
 
 template:
+  # ---------------------------------------------------------------------------
+  # 6.0 Govee Blue Channel Workaround - Template Light Wrappers
+  # ---------------------------------------------------------------------------
+  # Wraps Govee Matter lights to clamp blue channel when firmware bug conditions are met.
+  # Bug: blue >= 5 at brightness < 45% in orange range displays as purple instead of orange.
+  # These wrappers intercept color commands and clamp blue to 0 when needed.
+
+  - light:
+      # -------------------------------------------------------------------------
+      # Living Column Accent - Safe Wrapper
+      # - Brightness < 20%: Use RGB mode (warm orange, blue clamping for bug)
+      # - Brightness >= 20%: Use color_temp mode (white LEDs for neutral daytime)
+      # -------------------------------------------------------------------------
+      - name: "Living Column Accent Safe"
+        unique_id: living_col_accent_safe
+        state: "{{ states('light.living_col_accent') }}"
+        level: "{{ state_attr('light.living_col_accent', 'brightness') | int(0) }}"
+        color_mode: "{{ state_attr('light.living_col_accent', 'color_mode') | default('hs') }}"
+        hs: "{{ state_attr('light.living_col_accent', 'hs_color') | default([0, 0]) }}"
+        color_temp: "{{ state_attr('light.living_col_accent', 'color_temp') | default(370) }}"
+        min_color_temp_kelvin: 2000
+        max_color_temp_kelvin: 6500
+        supported_color_modes:
+          - color_temp
+          - hs
+          - rgb
+
+        turn_on:
+          - variables:
+              target: light.living_col_accent
+              in_hs: "{{ hs_color | default(none) }}"
+              in_rgb: "{{ rgb_color | default(none) }}"
+              in_brightness: "{{ brightness | default(none) }}"
+              in_brightness_pct: "{{ brightness_pct | default(none) }}"
+              in_color_temp: "{{ color_temp | default(none) }}"
+              in_kelvin: "{{ color_temp_kelvin | default(none) }}"
+              in_transition: "{{ transition | default(none) }}"
+
+              # Calculate effective brightness first (needed for mode decision)
+              eff_brightness: >
+                {% if in_brightness is not none %}{{ in_brightness }}
+                {% elif in_brightness_pct is not none %}{{ (in_brightness_pct / 100 * 255) | int }}
+                {% else %}{{ state_attr(target, 'brightness') | int(255) }}{% endif %}
+              eff_brightness_pct: "{{ (eff_brightness / 255 * 100) | round(1) }}"
+
+              # Threshold: below 20% use RGB, above use color_temp
+              use_rgb_mode: "{{ eff_brightness_pct < 20 }}"
+
+              # Convert color_temp to Kelvin if provided in mireds
+              kelvin_value: >
+                {% if in_kelvin is not none %}
+                  {{ in_kelvin | int }}
+                {% elif in_color_temp is not none %}
+                  {{ (1000000 / (in_color_temp | int)) | int }}
+                {% else %}
+                  0
+                {% endif %}
+
+              # Convert color_temp to warm RGB ONLY if brightness < 20%
+              # 2000K = [255, 165, 0] (warm orange), 6500K = [255, 240, 200]
+              color_temp_rgb: >
+                {% if kelvin_value > 0 and use_rgb_mode %}
+                  {% set k = kelvin_value | int %}
+                  {% set t = ((k - 2000) / 4500) %}
+                  {% set t = [0, [1, t] | min] | max %}
+                  {% set r = 255 %}
+                  {% set g = (165 + (75 * t)) | int %}
+                  {% set b = (0 + (200 * t)) | int %}
+                  {{ [r, g, b] }}
+                {% else %}
+                  {{ none }}
+                {% endif %}
+
+              # Determine which RGB to use: explicit RGB, converted from color_temp, or none
+              working_rgb: >
+                {% if in_rgb is not none %}
+                  {{ in_rgb }}
+                {% elif color_temp_rgb is not none and color_temp_rgb != 'None' %}
+                  {{ color_temp_rgb }}
+                {% else %}
+                  {{ none }}
+                {% endif %}
+
+              # For HS colors, check if in orange range (hue 20-50)
+              is_orange_hs: "{{ in_hs is not none and 20 <= in_hs[0] | float <= 50 and in_hs[1] | float > 80 }}"
+              needs_clamp_hs: "{{ is_orange_hs and eff_brightness_pct < 45 }}"
+              safe_hs: "{{ [38, in_hs[1]] if needs_clamp_hs and in_hs[0] | float < 38 else in_hs }}"
+
+              # For RGB colors, check orange range and clamp blue at low brightness
+              is_orange_rgb: >
+                {% if working_rgb is not none and working_rgb != 'None' %}
+                  {{ working_rgb[0] | int > 200 and 100 < working_rgb[1] | int < 220 }}
+                {% else %}
+                  false
+                {% endif %}
+              # Purple bug: blue >= 5 at brightness < 45% in orange range = purple
+              needs_clamp_rgb: >
+                {% if working_rgb is not none and working_rgb != 'None' %}
+                  {{ working_rgb[2] | int >= 5 and eff_brightness_pct < 45 and is_orange_rgb }}
+                {% else %}
+                  false
+                {% endif %}
+              safe_rgb: >
+                {% if working_rgb is not none and working_rgb != 'None' %}
+                  {% if needs_clamp_rgb %}
+                    {{ [working_rgb[0] | int, working_rgb[1] | int, 0] }}
+                  {% else %}
+                    {{ working_rgb }}
+                  {% endif %}
+                {% else %}
+                  {{ none }}
+                {% endif %}
+
+              # Pass through color_temp if brightness >= 20% (use white LEDs)
+              pass_color_temp: "{{ kelvin_value > 0 and not use_rgb_mode }}"
+              pass_color_temp_kelvin: "{{ kelvin_value if pass_color_temp else none }}"
+
+              # Flag: did we convert color_temp to RGB?
+              converted_to_rgb: "{{ kelvin_value > 0 and use_rgb_mode }}"
+
+          - service: light.turn_on
+            target:
+              entity_id: light.living_col_accent
+            data:
+              brightness: "{{ in_brightness if in_brightness is not none else omit }}"
+              brightness_pct: "{{ in_brightness_pct if in_brightness_pct is not none else omit }}"
+              hs_color: "{{ safe_hs if in_hs is not none and not converted_to_rgb else omit }}"
+              rgb_color: "{{ safe_rgb if safe_rgb is not none and safe_rgb != 'None' else omit }}"
+              color_temp_kelvin: "{{ pass_color_temp_kelvin if pass_color_temp_kelvin is not none else omit }}"
+              transition: "{{ in_transition if in_transition is not none else omit }}"
+
+        turn_off:
+          - service: light.turn_off
+            target:
+              entity_id: light.living_col_accent
+            data:
+              transition: "{{ transition | default(omit) }}"
+
+      # -------------------------------------------------------------------------
+      # Dining Column Accent - Safe Wrapper
+      # - Brightness < 20%: Use RGB mode (warm orange, blue clamping for bug)
+      # - Brightness >= 20%: Use color_temp mode (white LEDs for neutral daytime)
+      # -------------------------------------------------------------------------
+      - name: "Dining Column Accent Safe"
+        unique_id: dining_col_accent_safe
+        state: "{{ states('light.dining_col_accent') }}"
+        level: "{{ state_attr('light.dining_col_accent', 'brightness') | int(0) }}"
+        color_mode: "{{ state_attr('light.dining_col_accent', 'color_mode') | default('hs') }}"
+        hs: "{{ state_attr('light.dining_col_accent', 'hs_color') | default([0, 0]) }}"
+        color_temp: "{{ state_attr('light.dining_col_accent', 'color_temp') | default(370) }}"
+        min_color_temp_kelvin: 2000
+        max_color_temp_kelvin: 6500
+        supported_color_modes:
+          - color_temp
+          - hs
+          - rgb
+
+        turn_on:
+          - variables:
+              target: light.dining_col_accent
+              in_hs: "{{ hs_color | default(none) }}"
+              in_rgb: "{{ rgb_color | default(none) }}"
+              in_brightness: "{{ brightness | default(none) }}"
+              in_brightness_pct: "{{ brightness_pct | default(none) }}"
+              in_color_temp: "{{ color_temp | default(none) }}"
+              in_kelvin: "{{ color_temp_kelvin | default(none) }}"
+              in_transition: "{{ transition | default(none) }}"
+
+              eff_brightness: >
+                {% if in_brightness is not none %}{{ in_brightness }}
+                {% elif in_brightness_pct is not none %}{{ (in_brightness_pct / 100 * 255) | int }}
+                {% else %}{{ state_attr(target, 'brightness') | int(255) }}{% endif %}
+              eff_brightness_pct: "{{ (eff_brightness / 255 * 100) | round(1) }}"
+
+              use_rgb_mode: "{{ eff_brightness_pct < 20 }}"
+
+              kelvin_value: >
+                {% if in_kelvin is not none %}
+                  {{ in_kelvin | int }}
+                {% elif in_color_temp is not none %}
+                  {{ (1000000 / (in_color_temp | int)) | int }}
+                {% else %}
+                  0
+                {% endif %}
+
+              color_temp_rgb: >
+                {% if kelvin_value > 0 and use_rgb_mode %}
+                  {% set k = kelvin_value | int %}
+                  {% set t = ((k - 2000) / 4500) %}
+                  {% set t = [0, [1, t] | min] | max %}
+                  {% set r = 255 %}
+                  {% set g = (165 + (75 * t)) | int %}
+                  {% set b = (0 + (200 * t)) | int %}
+                  {{ [r, g, b] }}
+                {% else %}
+                  {{ none }}
+                {% endif %}
+
+              working_rgb: >
+                {% if in_rgb is not none %}
+                  {{ in_rgb }}
+                {% elif color_temp_rgb is not none and color_temp_rgb != 'None' %}
+                  {{ color_temp_rgb }}
+                {% else %}
+                  {{ none }}
+                {% endif %}
+
+              is_orange_hs: "{{ in_hs is not none and 20 <= in_hs[0] | float <= 50 and in_hs[1] | float > 80 }}"
+              needs_clamp_hs: "{{ is_orange_hs and eff_brightness_pct < 45 }}"
+              safe_hs: "{{ [38, in_hs[1]] if needs_clamp_hs and in_hs[0] | float < 38 else in_hs }}"
+
+              is_orange_rgb: >
+                {% if working_rgb is not none and working_rgb != 'None' %}
+                  {{ working_rgb[0] | int > 200 and 100 < working_rgb[1] | int < 220 }}
+                {% else %}
+                  false
+                {% endif %}
+              # Purple bug: blue >= 5 at brightness < 45% in orange range = purple
+              needs_clamp_rgb: >
+                {% if working_rgb is not none and working_rgb != 'None' %}
+                  {{ working_rgb[2] | int >= 5 and eff_brightness_pct < 45 and is_orange_rgb }}
+                {% else %}
+                  false
+                {% endif %}
+              safe_rgb: >
+                {% if working_rgb is not none and working_rgb != 'None' %}
+                  {% if needs_clamp_rgb %}
+                    {{ [working_rgb[0] | int, working_rgb[1] | int, 0] }}
+                  {% else %}
+                    {{ working_rgb }}
+                  {% endif %}
+                {% else %}
+                  {{ none }}
+                {% endif %}
+
+              pass_color_temp: "{{ kelvin_value > 0 and not use_rgb_mode }}"
+              pass_color_temp_kelvin: "{{ kelvin_value if pass_color_temp else none }}"
+
+              converted_to_rgb: "{{ kelvin_value > 0 and use_rgb_mode }}"
+
+          - service: light.turn_on
+            target:
+              entity_id: light.dining_col_accent
+            data:
+              brightness: "{{ in_brightness if in_brightness is not none else omit }}"
+              brightness_pct: "{{ in_brightness_pct if in_brightness_pct is not none else omit }}"
+              hs_color: "{{ safe_hs if in_hs is not none and not converted_to_rgb else omit }}"
+              rgb_color: "{{ safe_rgb if safe_rgb is not none and safe_rgb != 'None' else omit }}"
+              color_temp_kelvin: "{{ pass_color_temp_kelvin if pass_color_temp_kelvin is not none else omit }}"
+              transition: "{{ in_transition if in_transition is not none else omit }}"
+
+        turn_off:
+          - service: light.turn_off
+            target:
+              entity_id: light.dining_col_accent
+            data:
+              transition: "{{ transition | default(omit) }}"
+
   - sensor:
       # -----------------------------------------------------------------------
       # 6.1 Real-time monitor (baseline vs boosted, per-zone)

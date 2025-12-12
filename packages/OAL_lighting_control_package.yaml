@@ -2832,7 +2832,7 @@ script:
           sleep_transition: 1
           transition: 1
           separate_turn_on_commands: true
-          send_split_delay: true
+          send_split_delay: 1
           prefer_rgb_color: false         # SYNC: AL prefer_rgb_color
           sleep_rgb_or_color_temp: "rgb_color"
           sleep_rgb_color: [255, 165, 0]  # SYNC: AL sleep_rgb_color

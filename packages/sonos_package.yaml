@@ -1854,11 +1854,27 @@ script:
 
   sonos_snooze_next_alarm:
     alias: "Sonos - Snooze Next Alarm"
-    description: "Snooze the next upcoming alarm by 15 minutes"
+    description: "Snooze the next upcoming alarm by configurable minutes (default 15)"
     icon: mdi:alarm-snooze
     mode: single
+    fields:
+      minutes:
+        description: "Number of minutes to snooze (default: 15)"
+        required: false
+        default: 15
+        selector:
+          number:
+            min: 1
+            max: 60
+      stop_playback:
+        description: "Stop alarm playback before snoozing (default: false)"
+        required: false
+        default: false
+        selector:
+          boolean:
     sequence:
       - variables:
+          snooze_mins: "{{ minutes | default(15) | int }}"
           next_alarm: "{{ state_attr('sensor.sonos_next_alarm', 'next_alarm_entity') }}"
       - condition: template
         value_template: "{{ next_alarm is not none and next_alarm != '' and next_alarm != 'None' }}"
@@ -1866,7 +1882,7 @@ script:
           alarm_id: "{{ state_attr(next_alarm, 'alarm_id') }}"
           current: "{{ state_attr(next_alarm, 'time') }}"
           parts: "{{ current.split(':') }}"
-          total_mins: "{{ (parts[0] | int) * 60 + (parts[1] | int) + 15 }}"
+          total_mins: "{{ (parts[0] | int) * 60 + (parts[1] | int) + snooze_mins }}"
           new_mins: "{{ total_mins if total_mins < 1440 else total_mins - 1440 }}"
           new_time: "{{ '%02d:%02d:00' | format(new_mins // 60, new_mins % 60) }}"
           speaker: >
@@ -1876,12 +1892,48 @@ script:
             {% elif 'Kitchen' in name %}media_player.kitchen
             {% elif 'Living' in name %}media_player.living_room
             {% else %}media_player.dining_room{% endif %}
+      # Stop playback if requested (for notification snooze)
+      - if: "{{ stop_playback | default(false) }}"
+        then:
+          - action: media_player.media_stop
+            target:
+              entity_id: "{{ speaker }}"
       - action: sonos.update_alarm
         data:
           alarm_id: "{{ alarm_id | int }}"
           time: "{{ new_time }}"
         target:
           entity_id: "{{ speaker }}"
+
+  # -----------------------------------------------------------------------
+  # Dismiss Alarm - Stop current alarm playback
+  # -----------------------------------------------------------------------
+  sonos_dismiss_alarm:
+    alias: "Sonos - Dismiss Alarm"
+    description: "Stop alarm playback on the currently playing speaker"
+    icon: mdi:alarm-off
+    mode: single
+    sequence:
+      - variables:
+          # Find which speaker is currently playing the alarm
+          playing_speaker: >
+            {% set speakers = [
+              'media_player.bedroom',
+              'media_player.bathroom',
+              'media_player.kitchen',
+              'media_player.living_room',
+              'media_player.dining_room'
+            ] %}
+            {% for speaker in speakers %}
+              {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
+                {{ speaker }}
+              {% endif %}
+            {% endfor %}
+      - condition: template
+        value_template: "{{ playing_speaker is not none and playing_speaker != '' }}"
+      - action: media_player.media_stop
+        target:
+          entity_id: "{{ playing_speaker }}"
 
   # -----------------------------------------------------------------------
   # Toggle Next Alarm - for dashboard chip tap action
@@ -2177,3 +2229,96 @@ automation:
             data:
               message: "No Sonos alarms to re-enable at 21:00."
               level: info
+
+  # -------------------------------------------------------------------------
+  # Sonos Alarm Playing Notification
+  # Triggers when alarm starts playing, sends actionable notification
+  # -------------------------------------------------------------------------
+  - id: sonos_alarm_playing_notification
+    alias: "Sonos Alarm Playing Notification"
+    description: "Send notification when Sonos alarm is ringing with snooze/dismiss actions"
+    mode: single
+    trigger:
+      # Trigger when any speaker starts playing something with x-rincon-buzzer (alarm)
+      - platform: template
+        value_template: >
+          {% set speakers = [
+            'media_player.bedroom',
+            'media_player.bathroom',
+            'media_player.kitchen',
+            'media_player.living_room',
+            'media_player.dining_room'
+          ] %}
+          {% for speaker in speakers %}
+            {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
+              true
+            {% endif %}
+          {% endfor %}
+    condition:
+      - condition: state
+        entity_id: input_boolean.sonos_alarm_notifications
+        state: "on"
+    action:
+      - variables:
+          dev_id: "{{ states('input_text.notify_target_device_id') }}"
+          # Find which speaker is playing
+          alarm_speaker: >
+            {% set speakers = [
+              'media_player.bedroom',
+              'media_player.bathroom',
+              'media_player.kitchen',
+              'media_player.living_room',
+              'media_player.dining_room'
+            ] %}
+            {% for speaker in speakers %}
+              {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
+                {{ speaker }}
+              {% endif %}
+            {% endfor %}
+          room_name: "{{ state_attr(alarm_speaker, 'friendly_name') | default('Sonos', true) }}"
+      - condition: template
+        value_template: "{{ dev_id != '' and dev_id != none and dev_id != 'unavailable' }}"
+      - action: notify.notify
+        data:
+          title: "⏰ Alarm - {{ room_name }}"
+          message: "Your alarm is ringing"
+          data:
+            actions:
+              - action: "SONOS_SNOOZE_ALARM"
+                title: "Snooze 6 min"
+              - action: "SONOS_DISMISS_ALARM"
+                title: "Dismiss"
+
+  # -------------------------------------------------------------------------
+  # Handle Alarm Notification Actions
+  # -------------------------------------------------------------------------
+  - id: sonos_alarm_notification_action_handler
+    alias: "Sonos Alarm Notification Action Handler"
+    description: "Handle snooze and dismiss actions from alarm notification"
+    mode: single
+    trigger:
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "SONOS_SNOOZE_ALARM"
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "SONOS_DISMISS_ALARM"
+    action:
+      - choose:
+          - conditions: "{{ trigger.event.data.action == 'SONOS_SNOOZE_ALARM' }}"
+            sequence:
+              - action: script.sonos_snooze_next_alarm
+                data:
+                  minutes: 6
+                  stop_playback: true
+              - action: notify.notify
+                data:
+                  message: "Alarm snoozed for 6 minutes"
+          - conditions: "{{ trigger.event.data.action == 'SONOS_DISMISS_ALARM' }}"
+            sequence:
+              - action: script.sonos_dismiss_alarm
+              - action: notify.notify
+                data:
+                  message: "Alarm dismissed"

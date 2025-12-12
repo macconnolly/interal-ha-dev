@@ -732,10 +732,11 @@ automation:
                 final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
 
                 # Warmth behavior (global offset within zone band)
+                # Clamp to zone-specific min_k/max_k bounds (like brightness uses comfort_min_b/hard_max_b)
                 final_min_k: >
                   {% if repeat.item.id != 'recessed_ceiling' %}
                     {% set proposed_min_k = repeat.item.min_k + base_warmth_offset %}
-                    {{ [1800, [6500, proposed_min_k] | min] | max }}
+                    {{ [repeat.item.min_k, [repeat.item.max_k, proposed_min_k] | min] | max }}
                   {% else %}
                     {{ repeat.item.min_k }}
                   {% endif %}
@@ -743,7 +744,7 @@ automation:
                 final_max_k: >
                   {% if repeat.item.id != 'recessed_ceiling' %}
                     {% set proposed_max_k = repeat.item.max_k + base_warmth_offset %}
-                    {% set clamped_k = [1800, [6500, proposed_max_k] | min] | max %}
+                    {% set clamped_k = [repeat.item.min_k, [repeat.item.max_k, proposed_max_k] | min] | max %}
                     {{ [final_min_k, clamped_k] | max }}
                   {% else %}
                     {{ repeat.item.max_k }}

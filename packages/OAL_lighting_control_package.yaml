@@ -2378,24 +2378,44 @@ automation:
 script:
   oal_global_adjustment_start:
     alias: "OAL Global Adjustment Start (Helper)"
-    description: "Sets manual control on ON lights and switches config to 'Manual' mode."
+    description: "Applies offset changes immediately, then sets manual control for autoreset/UI."
     icon: mdi:cog-transfer
     sequence:
-      # First: Set manual control on all AL switches for lights that are ON
-      # This enables Reset button highlighting and auto-reset timer
-      - service: adaptive_lighting.set_manual_control
-        target:
-          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
-        data:
-          # Only set manual control for lights that are currently on
-          lights: >
-            {{ expand('light.all_adaptive_lights')
-               | selectattr('state', 'eq', 'on')
-               | map(attribute='entity_id')
-               | list }}
-          manual_control: true
-      
-      # Then: Switch config to Manual
+      # Step 1: Force Core Engine to apply offset changes IMMEDIATELY
+      # This bypasses the 1s trigger delay and ensures lights respond instantly
+      - event: oal_watchdog_trigger
+        event_data:
+          message: "Manual adjustment - forcing immediate apply"
+
+      # Step 2: Brief pause to let Core Engine complete before setting manual_control
+      # Otherwise manual_control would cause Core Engine to skip apply
+      - delay: "00:00:02"
+
+      # Step 3: Set manual control on each AL switch for its lights that are ON
+      # Must iterate per-switch because set_manual_control doesn't support
+      # multiple switches with lights argument
+      - repeat:
+          for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+          sequence:
+            - variables:
+                switch_lights: "{{ state_attr(repeat.item, 'lights') | default([]) }}"
+                on_lights: >
+                  {{ expand(switch_lights)
+                     | selectattr('state', 'eq', 'on')
+                     | map(attribute='entity_id')
+                     | list }}
+            - if:
+                - condition: template
+                  value_template: "{{ on_lights | length > 0 }}"
+              then:
+                - service: adaptive_lighting.set_manual_control
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  data:
+                    lights: "{{ on_lights }}"
+                    manual_control: true
+
+      # Step 4: Switch config to Manual
       - service: input_select.select_option
         target:
           entity_id: input_select.oal_active_configuration

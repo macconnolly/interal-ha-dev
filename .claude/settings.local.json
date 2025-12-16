@@ -18,7 +18,14 @@
       "mcp__hass-mcp__*",
       "mcp__*",
       "Bash(python3:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(git show:*)",
+      "Bash(git commit:*)",
+      "Skill(claude-mem:mem-search*)",
+      "mcp__plugin_claude-mem_claude-mem-search__search*",
+      "mcp__plugin_claude-mem_claude-mem-search__get_batch_observations",
+      "mcp__plugin_claude-mem_claude-mem-search__get_observation"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,1 @@
+- Try to use explore sub agents to call adaptive lighting MCP tools to save context. Report very specific directions as input and request very specific and detailed return output.

@@ -71,7 +71,15 @@ max(2700, min(6500, calculated_color_temp))
 
 ## Common HA MCP Tool Calls
 
-### Entity State & Search
+### MCP Server Priority
+
+> **IMPORTANT:** Favor `hass-mcp` over `homeassistant-mcp` for quick context gathering.
+>
+> **All `homeassistant-mcp` calls MUST be made from sub-agents** with highly engineered prompts to extract optimal context and delivery. Never call homeassistant-mcp tools directly in the main conversation—spawn an Explore or ha-integration-researcher agent with specific:
+> - Input: Exact entity IDs, line ranges, or search terms
+> - Output: Precisely formatted results with file:line references
+
+### Entity State & Search (via sub-agent)
 ```python
 # Get entity state with all attributes
 ha_get_state(entity_id="switch.adaptive_lighting_main_living")
@@ -86,7 +94,7 @@ ha_search_entities(query="bedroom", area_filter="master_bedroom")
 ha_deep_search(query="environmental", search_types=["automation"])
 ```
 
-### Service Calls
+### Service Calls (via sub-agent)
 ```python
 # Turn on light with parameters
 ha_call_service("light", "turn_on", entity_id="light.living_room_couch_lamp",
@@ -111,7 +119,7 @@ ha_call_service("adaptive_lighting", "set_manual_control",
                 data={"lights": ["light.living_room_couch_lamp"], "manual_control": false})
 ```
 
-### Debugging & Traces
+### Debugging & Traces (via sub-agent)
 ```python
 # Get automation execution traces
 ha_get_automation_traces(automation_id="automation.oal_environmental_manager_v13", limit=5)
@@ -131,7 +139,7 @@ ha_get_history(entity_ids="sensor.living_room_lux", start_time="24h", limit=100)
 ha_get_logbook(hours_back=2, entity_id="automation.oal_core_adjustment_engine_v13")
 ```
 
-### Configuration Management
+### Configuration Management (via sub-agent)
 ```python
 # Get full automation config
 ha_config_get_automation(identifier="automation.oal_environmental_manager_v13")
@@ -163,7 +171,7 @@ ha_get_state(entity_id="switch.adaptive_lighting_main_living")
 | `sensor.oal_system_status` | Current mode (Paused, Movie Mode, Isolated, etc.) | System state overview |
 | `sensor.oal_environmental_debug` | `twilight_factor`, `why_not_boosted`, weighted factors | Troubleshoot env boost |
 
-### Quick Debug Commands
+### Quick Debug Commands (via sub-agent)
 ```python
 # Check why environmental boost isn't working
 ha_get_state(entity_id="sensor.oal_environmental_debug")

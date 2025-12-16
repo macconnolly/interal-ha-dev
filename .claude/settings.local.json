@@ -25,7 +25,11 @@
       "Skill(claude-mem:mem-search*)",
       "mcp__plugin_claude-mem_claude-mem-search__search*",
       "mcp__plugin_claude-mem_claude-mem-search__get_batch_observations",
-      "mcp__plugin_claude-mem_claude-mem-search__get_observation"
+      "mcp__plugin_claude-mem_claude-mem-search__get_observation",
+      "mcp__plugin_claude-mem_claude-mem-search__search",
+      "plugin:claude-mem:claude-mem-search - search(query:*)",
+      "plugin:claude-mem:claude-mem-search - get_observation(id:*)",
+      "plugin:claude-mem:claude-mem-search - get_batch_observations(ids:*)"
     ],
     "deny": [],
     "ask": []

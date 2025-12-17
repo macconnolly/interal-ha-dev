@@ -417,6 +417,7 @@ input_datetime:
 # =============================================================================
 
 adaptive_lighting:
+  # SYNC: AL is SOURCE OF TRUTH - Core Engine zone_configs (~line 626) must match these values
   - name: "main_living"
     lights: light.main_living_lights
     interval: 15
@@ -427,10 +428,10 @@ adaptive_lighting:
     adapt_delay: 1
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 55
-    max_brightness: 100
-    min_color_temp: 2203
-    max_color_temp: 2700
+    min_brightness: 60                    # SYNC: comfort_min_b (was 55, +5 per user)
+    max_brightness: 100                   # SYNC: comfort_max_b
+    min_color_temp: 2203                  # SYNC: min_k (restored)
+    max_color_temp: 3400                  # SYNC: max_k (restored)
     sleep_brightness: 25
     sleep_color_temp: 1800
 
@@ -444,10 +445,10 @@ adaptive_lighting:
     adapt_delay: 1
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 25
-    max_brightness: 100
-    min_color_temp: 2000
-    max_color_temp: 4000
+    min_brightness: 20                    # SYNC: comfort_min_b (was 25, -5 per user)
+    max_brightness: 100                   # SYNC: comfort_max_b
+    min_color_temp: 2000                  # SYNC: min_k
+    max_color_temp: 4000                  # SYNC: max_k
     sleep_brightness: 5
     sleep_color_temp: 2000
 
@@ -461,10 +462,10 @@ adaptive_lighting:
     adapt_delay: 1
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 20
-    max_brightness: 65
-    min_color_temp: 2700                  # Govee hardware min (group contains Govee light)
-    max_color_temp: 2700                  # Keep very warm for bedroom
+    min_brightness: 30                    # SYNC: comfort_min_b (was 20, +10 per user)
+    max_brightness: 65                    # SYNC: comfort_max_b (restored)
+    min_color_temp: 2700                  # SYNC: min_k - Govee hardware min
+    max_color_temp: 2700                  # SYNC: max_k - Keep very warm
     sleep_brightness: 5
     sleep_color_temp: 2700                # Govee hardware min
     sleep_rgb_or_color_temp: "rgb_color"
@@ -480,10 +481,10 @@ adaptive_lighting:
     adapt_delay: 1
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 20
-    max_brightness: 50
-    min_color_temp: 2000
-    max_color_temp: 6500
+    min_brightness: 20                    # SYNC: comfort_min_b
+    max_brightness: 50                    # SYNC: comfort_max_b
+    min_color_temp: 2000                  # SYNC: min_k
+    max_color_temp: 6500                  # SYNC: max_k
     sleep_brightness: 1
     sleep_color_temp: 2000
 
@@ -497,10 +498,10 @@ adaptive_lighting:
     adapt_delay: 1
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 1
-    max_brightness: 18
-    min_color_temp: 2700
-    max_color_temp: 2700
+    min_brightness: 1                     # SYNC: comfort_min_b
+    max_brightness: 23                    # SYNC: comfort_max_b
+    min_color_temp: 2700                  # SYNC: min_k
+    max_color_temp: 2700                  # SYNC: max_k
     sleep_brightness: 1
     sleep_color_temp: 2700
 
@@ -625,56 +626,56 @@ automation:
       zone_configs:
         - entity_id: switch.adaptive_lighting_main_living
           id: main_living
-          comfort_min_b: 55
-          comfort_max_b: 100
-          min_k: 2250
-          max_k: 2700
+          comfort_min_b: 60                 # SYNC: AL min_brightness
+          comfort_max_b: 100                # SYNC: AL max_brightness
+          min_k: 2203                       # SYNC: AL min_color_temp
+          max_k: 3400                       # SYNC: AL max_color_temp
           env_sensitivity: 1.0
-          night_sensitivity: 0.5          # Reduced night dim (was 0.8)
+          night_sensitivity: 0.5            # Reduced night dim (was 0.8)
           hard_min_b: 1
           hard_max_b: 100
 
         - entity_id: switch.adaptive_lighting_kitchen_island
           id: kitchen_island
-          comfort_min_b: 30
-          comfort_max_b: 100
-          min_k: 2000
-          max_k: 4000
+          comfort_min_b: 20                 # SYNC: AL min_brightness
+          comfort_max_b: 100                # SYNC: AL max_brightness
+          min_k: 2000                       # SYNC: AL min_color_temp
+          max_k: 4000                       # SYNC: AL max_color_temp
           env_sensitivity: 1.0
-          night_sensitivity: 0.5          # Moderate night dim
+          night_sensitivity: 0.5            # Moderate night dim
           hard_min_b: 1
           hard_max_b: 100
 
         - entity_id: switch.adaptive_lighting_bedroom_primary
           id: bedroom_primary
-          comfort_min_b: 20
-          comfort_max_b: 40
-          min_k: 2700                     # Govee hardware min (group contains Govee light)
-          max_k: 2700                     # Keep very warm for bedroom
+          comfort_min_b: 30                 # SYNC: AL min_brightness
+          comfort_max_b: 65                 # SYNC: AL max_brightness
+          min_k: 2700                       # SYNC: AL min_color_temp - Govee hardware min
+          max_k: 2700                       # SYNC: AL max_color_temp - Keep very warm
           env_sensitivity: 0.5
-          night_sensitivity: 0.0          # NO night dim (uses sleep mode)
+          night_sensitivity: 0.0            # NO night dim (uses sleep mode)
           hard_min_b: 1
           hard_max_b: 80
 
         - entity_id: switch.adaptive_lighting_accent_spots
           id: accent_spots
-          comfort_min_b: 20
-          comfort_max_b: 50
-          min_k: 2000
-          max_k: 6500
+          comfort_min_b: 20                 # SYNC: AL min_brightness
+          comfort_max_b: 50                 # SYNC: AL max_brightness
+          min_k: 2000                       # SYNC: AL min_color_temp
+          max_k: 6500                       # SYNC: AL max_color_temp
           env_sensitivity: 0.8
-          night_sensitivity: 1.0          # FULL night dim (too bright now)
+          night_sensitivity: 1.0            # FULL night dim (too bright now)
           hard_min_b: 1
           hard_max_b: 80
 
         - entity_id: switch.adaptive_lighting_recessed_ceiling
           id: recessed_ceiling
-          comfort_min_b: 1
-          comfort_max_b: 23
-          min_k: 2700
-          max_k: 2700
+          comfort_min_b: 1                  # SYNC: AL min_brightness
+          comfort_max_b: 23                 # SYNC: AL max_brightness
+          min_k: 2700                       # SYNC: AL min_color_temp
+          max_k: 2700                       # SYNC: AL max_color_temp
           env_sensitivity: 0.6
-          night_sensitivity: 0.3          # Minimal dim (already low bounds)
+          night_sensitivity: 0.3            # Minimal dim (already low bounds)
           hard_min_b: 1
           hard_max_b: 30
 

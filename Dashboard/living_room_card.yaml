@@ -205,26 +205,30 @@ cards:
             border-radius: 0 0 16px 16px !important;
             z-index: 10 !important;
             background: rgba(0, 0, 0, 0.06) !important;
-            overflow: hidden !important;
+            overflow: visible !important;
             opacity: 1 !important;
           }
           .bubble-range-fill {
             height: 4px !important;
             background: rgb(255, 149, 0) !important;
           }
-
-          .bubble-range-value {
-            position: fixed !important;
-            top: 4px !important;
-            left: 6px !important;
+          .bubble-range-slider .bubble-range-value {
+            position: absolute !important;
+            bottom: 88px !important;
+            top: unset !important;
+            right: unset !important;
+            left: 0 !important;
+            transform: none !important;
+            display: flex !important;
             font-size: 13px !important;
             font-weight: 700 !important;
             color: rgb(255, 149, 0) !important;
             opacity: 0 !important;
+            pointer-events: none !important;
             transition: opacity 0.15s ease !important;
-            z-index: 20 !important;
+            z-index: 30 !important;
           }
-          .is-dragging .bubble-range-value {
+          .is-dragging .bubble-range-slider .bubble-range-value {
             opacity: 1 !important;
           }
           .is-dragging .bubble-state {
@@ -308,21 +312,25 @@ cards:
           !important; bottom: 0 !important; left: 0 !important; right: 0
           !important; width: 100% !important; height: 4px !important;
           border-radius: 0 0 16px 16px !important; z-index: 10 !important;
-          background: rgba(0, 0, 0, 0.06) !important; overflow: hidden
+          background: rgba(0, 0, 0, 0.06) !important; overflow: visible
           !important; opacity: 1 !important; } .bubble-range-fill { height: 4px
           !important; background: rgb(255, 149, 0) !important; }
-          .bubble-range-value {
-            position: fixed !important;
-            top: 4px !important;
-            left: 6px !important;
+          .bubble-range-slider .bubble-range-value {
+            position: absolute !important;
+            bottom: 88px !important;
+            top: unset !important;
+            right: unset !important;
+            left: 0 !important;
+            transform: none !important;
             font-size: 13px !important;
             font-weight: 700 !important;
             color: rgb(255, 149, 0) !important;
             opacity: 0 !important;
             transition: opacity 0.15s ease !important;
-            z-index: 20 !important;
-          } .is-dragging .bubble-range-value {
+            z-index: 30 !important;
+          } .is-dragging .bubble-range-slider .bubble-range-value {
             opacity: 1 !important;
+            display: flex !important;
           } .is-dragging .bubble-state {
             opacity: 0 !important;
           }

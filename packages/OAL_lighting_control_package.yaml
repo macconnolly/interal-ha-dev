@@ -236,6 +236,35 @@ input_number:
     unit_of_measurement: ""
     icon: mdi:palette
 
+  # Night behavior offsets (post-twilight dimming)
+  oal_offset_night_brightness:
+    name: "OAL Offset: Night B"
+    min: -30
+    max: 0
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+    icon: mdi:weather-night
+
+  oal_offset_night_warmth:
+    name: "OAL Offset: Night K"
+    min: -500
+    max: 0
+    step: 50
+    initial: 0
+    unit_of_measurement: "K"
+    icon: mdi:thermometer-low
+
+  # Global night dimming strength slider
+  oal_night_dimming_strength:
+    name: "OAL Night Dimming Strength"
+    min: 0
+    max: 100
+    step: 10
+    initial: 100
+    unit_of_measurement: "%"
+    icon: mdi:brightness-percent
+
   # Control parameters
   oal_control_zonal_timeout_hours:
     name: "OAL Zonal Timeout (Hrs)"
@@ -319,6 +348,11 @@ input_boolean:
     initial: true
     icon: mdi:weather-partly-cloudy
 
+  oal_night_dimming_enabled:
+    name: "OAL Night Dimming Enabled"
+    initial: true
+    icon: mdi:moon-waning-crescent
+
   oal_config_transition_active:
     name: "OAL Config Transition Active"
     icon: mdi:swap-horizontal
@@ -396,7 +430,7 @@ adaptive_lighting:
     min_brightness: 55
     max_brightness: 100
     min_color_temp: 2203
-    max_color_temp: 3400
+    max_color_temp: 2700
     sleep_brightness: 25
     sleep_color_temp: 1800
 
@@ -433,6 +467,8 @@ adaptive_lighting:
     max_color_temp: 2700                  # Keep very warm for bedroom
     sleep_brightness: 5
     sleep_color_temp: 2700                # Govee hardware min
+    sleep_rgb_or_color_temp: "rgb_color"
+    sleep_rgb_color: [255, 165, 0]
 
   - name: "accent_spots"
     lights: light.accent_spots_lights
@@ -461,8 +497,8 @@ adaptive_lighting:
     adapt_delay: 1
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 2
-    max_brightness: 23
+    min_brightness: 1
+    max_brightness: 18
     min_color_temp: 2700
     max_color_temp: 2700
     sleep_brightness: 1
@@ -490,7 +526,7 @@ adaptive_lighting:
     max_brightness: 70                    # SYNC: OAL Engine comfort_max_b
     brightness_mode: tanh
     min_color_temp: 2700                  # Govee actual hardware min (not reported 2000)
-    max_color_temp: 3000                  # SYNC: OAL Engine max_k - Govee actual hardware max
+    max_color_temp: 2750                  # SYNC: OAL Engine max_k - warm limit for column lights
     brightness_mode_time_light: 1800
     brightness_mode_time_dark: 900
     sunset_offset: -1800
@@ -530,6 +566,9 @@ automation:
           - input_number.oal_offset_environmental_warmth
           - input_number.oal_offset_sunset_brightness
           - input_number.oal_offset_sunset_warmth
+          - input_number.oal_offset_night_brightness
+          - input_number.oal_offset_night_warmth
+          - input_number.oal_night_dimming_strength
           - input_number.oal_manual_offset_main_living_brightness
           - input_number.oal_manual_offset_kitchen_island_brightness
           - input_number.oal_manual_offset_bedroom_primary_brightness
@@ -560,6 +599,11 @@ automation:
       comp_sunset_b: "{{ states('input_number.oal_offset_sunset_brightness') | float(0) }}"
       comp_sunset_k: "{{ states('input_number.oal_offset_sunset_warmth') | float(0) }}"
 
+      # Night behavior offsets (raw values - sensitivity applied per-zone)
+      comp_night_b_raw: "{{ states('input_number.oal_offset_night_brightness') | float(0) }}"
+      comp_night_k_raw: "{{ states('input_number.oal_offset_night_warmth') | float(0) }}"
+      night_strength: "{{ states('input_number.oal_night_dimming_strength') | float(100) / 100 }}"
+
       # Sunset amplifies environmental boost (multiplicative, not additive)
       # At peak sunset (8), env boost is amplified by 50%
       sunset_amplifier: >
@@ -581,11 +625,12 @@ automation:
       zone_configs:
         - entity_id: switch.adaptive_lighting_main_living
           id: main_living
-          comfort_min_b: 45
+          comfort_min_b: 55
           comfort_max_b: 100
           min_k: 2250
-          max_k: 2950
+          max_k: 2700
           env_sensitivity: 1.0
+          night_sensitivity: 0.5          # Reduced night dim (was 0.8)
           hard_min_b: 1
           hard_max_b: 100
 
@@ -596,6 +641,7 @@ automation:
           min_k: 2000
           max_k: 4000
           env_sensitivity: 1.0
+          night_sensitivity: 0.5          # Moderate night dim
           hard_min_b: 1
           hard_max_b: 100
 
@@ -606,6 +652,7 @@ automation:
           min_k: 2700                     # Govee hardware min (group contains Govee light)
           max_k: 2700                     # Keep very warm for bedroom
           env_sensitivity: 0.5
+          night_sensitivity: 0.0          # NO night dim (uses sleep mode)
           hard_min_b: 1
           hard_max_b: 80
 
@@ -616,18 +663,20 @@ automation:
           min_k: 2000
           max_k: 6500
           env_sensitivity: 0.8
+          night_sensitivity: 1.0          # FULL night dim (too bright now)
           hard_min_b: 1
           hard_max_b: 80
 
         - entity_id: switch.adaptive_lighting_recessed_ceiling
           id: recessed_ceiling
-          comfort_min_b: 2
+          comfort_min_b: 1
           comfort_max_b: 23
           min_k: 2700
           max_k: 2700
           env_sensitivity: 0.6
+          night_sensitivity: 0.3          # Minimal dim (already low bounds)
           hard_min_b: 1
-          hard_max_b: 40
+          hard_max_b: 30
 
         # SYNC: Keep in sync with AL column_lights config (~line 477)
         - entity_id: switch.adaptive_lighting_column_lights
@@ -635,8 +684,9 @@ automation:
           comfort_min_b: 1
           comfort_max_b: 70               # SYNC: AL max_brightness
           min_k: 2700                     # Govee actual hardware min (not reported 2000)
-          max_k: 6500                     # SYNC: AL max_color_temp - Govee actual hardware max
+          max_k: 2750                     # SYNC: AL max_color_temp - warm limit for column lights
           env_sensitivity: 0.7
+          night_sensitivity: 0.0          # NO night dim (uses RGB sleep mode)
           hard_min_b: 1
           hard_max_b: 100
 
@@ -680,17 +730,26 @@ automation:
                 comfort_min_b: "{{ repeat.item.comfort_min_b | float }}"
                 comfort_max_b: "{{ repeat.item.comfort_max_b | float }}"
                 env_sensitivity: "{{ repeat.item.env_sensitivity | float }}"
+                night_sensitivity: "{{ repeat.item.night_sensitivity | float(0) }}"
                 hard_min_b: "{{ repeat.item.hard_min_b | float }}"
                 hard_max_b: "{{ repeat.item.hard_max_b | float }}"
+
+                # Night dimming with SEPARATE sensitivity (independent from env boost)
+                night_with_sensitivity: >
+                  {{ comp_night_b_raw * night_strength * night_sensitivity }}
+
+                # Night warmth with SEPARATE sensitivity
+                night_warmth_with_sensitivity: >
+                  {{ comp_night_k_raw * night_strength * night_sensitivity }}
 
                 # Baseline brightness from AL (for diagnostics only)
                 base_brightness_zone: >
                   {{ state_attr(repeat.item.entity_id, 'brightness_pct')
                      | float((comfort_min_b + comfort_max_b) / 2) }}
 
-                # Auto brightness: config + (env*sunset_multiplier capped at 30%)
+                # Auto brightness: config + (env*sunset_multiplier capped) + night_dim
                 auto_offset_b: >
-                  {{ base_config_b + (env_with_sunset_capped * env_sensitivity) }}
+                  {{ base_config_b + (env_with_sunset_capped * env_sensitivity) + night_with_sensitivity }}
 
                 auto_min_raw: "{{ comfort_min_b + auto_offset_b }}"
                 auto_max_raw: "{{ comfort_max_b + auto_offset_b }}"
@@ -741,7 +800,7 @@ automation:
                   {% if repeat.item.id == 'recessed_ceiling' %}
                     {{ repeat.item.min_k }}
                   {% else %}
-                    {% set proposed_min_k = repeat.item.min_k + base_warmth_offset %}
+                    {% set proposed_min_k = repeat.item.min_k + base_warmth_offset + night_warmth_with_sensitivity %}
                     {% if repeat.item.id in govee_zones %}
                       {{ [2700, [6500, proposed_min_k] | min] | max }}
                     {% else %}
@@ -753,7 +812,7 @@ automation:
                   {% if repeat.item.id == 'recessed_ceiling' %}
                     {{ repeat.item.max_k }}
                   {% else %}
-                    {% set proposed_max_k = repeat.item.max_k + base_warmth_offset %}
+                    {% set proposed_max_k = repeat.item.max_k + base_warmth_offset + night_warmth_with_sensitivity %}
                     {% if repeat.item.id in govee_zones %}
                       {% set clamped_k = [2700, [6500, proposed_max_k] | min] | max %}
                     {% else %}
@@ -1250,10 +1309,22 @@ automation:
         {% endif %}
       column_rgb_green: >
         {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+
+        {# EVENING: Fade green from 200 to 165 as sun drops from 0 to -5 #}
         {% if not rising and elevation <= 0 and elevation >= -5 %}
-          {# Linear evening transition: 200 at 0°, 165 at -5° #}
           {% set progress = (0 - elevation) / 5 %}
           {{ (200 - (35 * progress)) | round(0) }}
+
+        {# MORNING: Fade green from 165 to 200 as sun rises from 5 to 12 #}
+        {% elif rising and elevation >= 5 and elevation <= 12 %}
+          {% set progress = (elevation - 5) / 7 %}
+          {{ (165 + (35 * progress)) | round(0) }}
+
+        {# NIGHT (between -5 and +5): Hold at 165 (warm orange) #}
+        {% elif elevation < 5 %}
+          165
+
+        {# DAY: Default to 200 (yellow-orange) #}
         {% else %}
           200
         {% endif %}
@@ -1277,6 +1348,80 @@ automation:
   # ---------------------------------------------------------------------------
   # 4.3b Column Lights RGB Transition (Sun-Based)
   # ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 4.3a Column Lights Prepare RGB Mode (Govee Pink Fix)
+  # ---------------------------------------------------------------------------
+  - id: oal_column_lights_prepare_rgb_mode_v13
+    alias: "OAL v13 - Column Lights Prepare RGB Mode"
+    description: "Switches column lights to RGB mode at safe brightness before color transition to prevent Govee purple bug"
+    trigger:
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        below: 1
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+      - condition: template
+        value_template: "{{ not state_attr('sun.sun', 'rising') | default(true) }}"
+      - condition: state
+        entity_id: switch.adaptive_lighting_sleep_mode_column_lights
+        state: "off"
+      - condition: template
+        value_template: >
+          {{ 'light.living_room_column_mqtt' not in
+             (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) }}
+    action:
+      # Step 1: Raise brightness to safe level (above 33%)
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_room_column_mqtt
+            - light.dining_col_accent_mqtt
+        data:
+          brightness_pct: 35
+          transition: 5
+      - delay: "00:00:06"
+
+      # Step 2: Switch to RGB mode with safe orange (hue > 38)
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_room_column_mqtt
+            - light.dining_col_accent_mqtt
+        data:
+          rgb_color: [255, 200, 0]
+          transition: 3
+      - delay: "00:00:04"
+
+      # Step 3: Set manual control to prevent AL interference
+      - service: adaptive_lighting.set_manual_control
+        continue_on_error: true
+        target:
+          entity_id: switch.adaptive_lighting_column_lights
+        data:
+          lights:
+            - light.living_room_column_mqtt
+            - light.dining_col_accent_mqtt
+          manual_control: true
+
+      # Step 4: Reduce brightness for evening
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_room_column_mqtt
+            - light.dining_col_accent_mqtt
+        data:
+          brightness_pct: 20
+          transition: 30
+
+  # ---------------------------------------------------------------------------
+  # 4.3b Column Lights RGB Transition
+  # ---------------------------------------------------------------------------
   - id: oal_column_lights_rgb_transition_v13
     alias: "OAL v13 - Column Lights RGB Transition"
     description: "Applies smooth RGB color transition to column lights during evening"
@@ -1290,6 +1435,10 @@ automation:
       - condition: state
         entity_id: switch.adaptive_lighting_sleep_mode_column_lights
         state: "off"
+      # Ensure prepare automation has run (manual_control set)
+      - condition: template
+        value_template: >
+          {{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length > 0 }}
     variables:
       green_value: "{{ states('input_number.oal_offset_column_rgb_green') | int(200) }}"
     action:
@@ -1303,7 +1452,69 @@ automation:
           transition: 60
 
   # ---------------------------------------------------------------------------
-  # 4.3c Column Lights Sleep Mode (Final Safety)
+  # 4.3c Column Lights Morning Exit RGB Mode
+  # ---------------------------------------------------------------------------
+  - id: oal_column_lights_morning_exit_rgb_v13
+    alias: "OAL v13 - Column Lights Morning Exit RGB Mode"
+    description: "Transitions column lights from RGB back to color_temp mode in the morning"
+    trigger:
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        above: 12
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+      - condition: template
+        value_template: "{{ state_attr('sun.sun', 'rising') | default(false) }}"
+    action:
+      # Step 1: Raise to safe brightness
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_room_column_mqtt
+            - light.dining_col_accent_mqtt
+        data:
+          brightness_pct: 40
+          transition: 5
+      - delay: "00:00:06"
+
+      # Step 2: Switch to color_temp mode
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_room_column_mqtt
+            - light.dining_col_accent_mqtt
+        data:
+          color_temp_kelvin: 2750
+          transition: 10
+      - delay: "00:00:11"
+
+      # Step 3: Release manual control
+      - service: adaptive_lighting.set_manual_control
+        continue_on_error: true
+        target:
+          entity_id: switch.adaptive_lighting_column_lights
+        data:
+          lights:
+            - light.living_room_column_mqtt
+            - light.dining_col_accent_mqtt
+          manual_control: false
+
+      # Step 4: Let AL take over
+      - service: adaptive_lighting.apply
+        continue_on_error: true
+        target:
+          entity_id: switch.adaptive_lighting_column_lights
+        data:
+          turn_on_lights: false
+          transition: 5
+
+  # ---------------------------------------------------------------------------
+  # 4.3d Column Lights Sleep Mode (Final Safety)
   # ---------------------------------------------------------------------------
   - id: oal_column_lights_sleep_trigger_v13
     alias: "OAL v13 - Column Lights Sleep Mode (Final Safety)"
@@ -1319,7 +1530,7 @@ automation:
       - platform: numeric_state
         entity_id: sun.sun
         attribute: elevation
-        above: 5
+        above: 5   # Exit sleep mode earlier for morning RGB fade (was: 12)
         id: "morning_trigger"
     condition:
       - condition: state
@@ -1477,6 +1688,97 @@ automation:
       - service: input_number.set_value
         target:
           entity_id: input_number.oal_offset_environmental_warmth
+        data:
+          value: "{{ final_warmth }}"
+
+  # ---------------------------------------------------------------------------
+  # 4.4b Night behavior manager (post-twilight dimming + warmth continuation)
+  # ---------------------------------------------------------------------------
+  - id: oal_night_behavior_manager_v13
+    alias: "OAL v13 - Night Behavior Manager"
+    description: "Applies gradual dimming and warmth shift during deep night (elevation < -4)"
+    trigger:
+      - platform: homeassistant
+        event: start
+      - platform: state
+        entity_id: input_boolean.oal_night_dimming_enabled
+      - platform: time_pattern
+        minutes: "/5"
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        below: -3
+        id: "entering_night"
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        above: -5
+        id: "exiting_night"
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+    variables:
+      elevation: "{{ state_attr('sun.sun', 'elevation') | float(0) }}"
+      current_dim: "{{ states('input_number.oal_offset_night_brightness') | float(0) }}"
+      current_warmth: "{{ states('input_number.oal_offset_night_warmth') | float(0) }}"
+
+      # Calculate raw night dimming offset
+      # Formula: max(-30, (elevation + 4) * 3) when elevation < -4
+      # At -4°: 0%, At -10°: -18%, At -14°+: -30% (capped)
+      calculated_dim: >
+        {% if is_state('input_boolean.oal_night_dimming_enabled', 'off') or elevation >= -4 %}
+          0
+        {% else %}
+          {% set raw = (elevation + 4) * 3 %}
+          {{ [raw, -30] | max | round(0) }}
+        {% endif %}
+
+      # Calculate raw night warmth offset
+      # Formula: max(-500, (elevation + 4) * 50) when elevation < -4
+      # At -4°: 0K, At -10°: -300K, At -14°+: -500K (capped)
+      calculated_warmth: >
+        {% if is_state('input_boolean.oal_night_dimming_enabled', 'off') or elevation >= -4 %}
+          0
+        {% else %}
+          {% set raw = (elevation + 4) * 50 %}
+          {{ [raw, -500] | max | round(0) }}
+        {% endif %}
+
+      # Hysteresis: quick to dim (delta -2), slow to recover (delta +3)
+      final_dim: >
+        {% set delta = calculated_dim - current_dim %}
+        {% if delta < 0 and (delta | abs) >= 2 %}
+          {{ calculated_dim }}
+        {% elif delta > 0 and delta >= 3 %}
+          {{ calculated_dim }}
+        {% elif current_dim == 0 and calculated_dim < 0 %}
+          {{ calculated_dim }}
+        {% elif calculated_dim == 0 and current_dim < 0 %}
+          {{ 0 }}
+        {% else %}
+          {{ current_dim }}
+        {% endif %}
+
+      # Warmth hysteresis: 100K threshold
+      final_warmth: >
+        {% if (calculated_warmth - current_warmth) | abs >= 100 %}
+          {{ calculated_warmth }}
+        {% elif calculated_warmth == 0 and current_warmth != 0 %}
+          {{ 0 }}
+        {% else %}
+          {{ current_warmth }}
+        {% endif %}
+
+    action:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_night_brightness
+        data:
+          value: "{{ final_dim }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_night_warmth
         data:
           value: "{{ final_warmth }}"
 
@@ -2955,6 +3257,8 @@ script:
             - input_number.oal_offset_environmental_warmth
             - input_number.oal_offset_sunset_brightness
             - input_number.oal_offset_sunset_warmth
+            - input_number.oal_offset_night_brightness
+            - input_number.oal_offset_night_warmth
         data:
           value: 0
       - service: adaptive_lighting.change_switch_settings
@@ -3125,6 +3429,9 @@ template:
           k_config_offset: "{{ states('input_number.oal_offset_config_warmth') | float(0) }}"
           k_environmental_offset: "{{ states('input_number.oal_offset_environmental_warmth') | float(0) }}"
           k_sunset_offset: "{{ states('input_number.oal_offset_sunset_warmth') | float(0) }}"
+          b_night_offset: "{{ states('input_number.oal_offset_night_brightness') | float(0) }}"
+          k_night_offset: "{{ states('input_number.oal_offset_night_warmth') | float(0) }}"
+          night_dimming_strength: "{{ states('input_number.oal_night_dimming_strength') | float(100) }}"
 
           # Main living
           main_living_baseline_brightness_pct: >
@@ -3190,9 +3497,11 @@ template:
             {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
             {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
             {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% set night = states('input_number.oal_offset_night_brightness') | float(0) %}
             {% if env > 0 %}{% set sources = sources + ['☀️+' ~ env | int ~ '%'] %}{% endif %}
             {% if cfg != 0 %}{% set sources = sources + ['⚙️' ~ ('+' if cfg > 0 else '') ~ cfg | int ~ '%'] %}{% endif %}
             {% if sun != 0 %}{% set sources = sources + ['🌅' ~ ('+' if sun > 0 else '') ~ sun | int ~ '%'] %}{% endif %}
+            {% if night < 0 %}{% set sources = sources + ['🌙' ~ night | int ~ '%'] %}{% endif %}
             {{ sources | join(' ') if sources else 'Baseline' }}
 
             
@@ -3247,6 +3556,8 @@ template:
             {{ states('input_select.oal_active_configuration') }}
           {% elif states('input_number.oal_offset_environmental_brightness') | float(0) > 0 %}
             Environmental Boost
+          {% elif states('input_number.oal_offset_night_brightness') | float(0) < 0 %}
+            Night Dimming
           {% else %}
             Baseline Adaptation
           {% endif %}
@@ -4121,6 +4432,48 @@ template:
               {% else %}
                 Active: lux={{ lux | round(0) }}, weather={{ states('weather.home') }}
               {% endif %}
+            {% endif %}
+
+      # -----------------------------------------------------------------------
+      # 6.3b Night behavior debug (for troubleshooting night dimming)
+      # -----------------------------------------------------------------------
+      - name: "OAL Night Debug"
+        unique_id: oal_night_debug_v13
+        icon: mdi:moon-waning-crescent
+        availability: >
+          {{ states('sun.sun') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set elevation = state_attr('sun.sun', 'elevation') | float(0) %}
+          {% set enabled = is_state('input_boolean.oal_night_dimming_enabled', 'on') %}
+          {% if not enabled %}
+            Disabled
+          {% elif elevation >= -4 %}
+            Inactive ({{ elevation | round(1) }}°)
+          {% else %}
+            {{ states('input_number.oal_offset_night_brightness') | int }}% dim
+          {% endif %}
+        attributes:
+          is_enabled: >
+            {{ is_state('input_boolean.oal_night_dimming_enabled', 'on') }}
+          sun_elevation: >
+            {{ state_attr('sun.sun', 'elevation') | float(0) | round(1) }}
+          in_night_phase: >
+            {{ state_attr('sun.sun', 'elevation') | float(0) < -4 }}
+          night_dim_current: >
+            {{ states('input_number.oal_offset_night_brightness') | float(0) }}
+          night_warmth_current: >
+            {{ states('input_number.oal_offset_night_warmth') | float(0) }}
+          night_dim_strength: >
+            {{ states('input_number.oal_night_dimming_strength') | float(100) }}%
+          night_dim_calculated: >
+            {% set elevation = state_attr('sun.sun', 'elevation') | float(0) %}
+            {% if elevation >= -4 %}0
+            {% else %}{{ [(elevation + 4) * 3, -30] | max | round(0) }}
+            {% endif %}
+          night_warmth_calculated: >
+            {% set elevation = state_attr('sun.sun', 'elevation') | float(0) %}
+            {% if elevation >= -4 %}0
+            {% else %}{{ [(elevation + 4) * 50, -500] | max | round(0) }}
             {% endif %}
 
   # -------------------------------------------------------------------------

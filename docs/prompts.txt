@@ -1,0 +1,21 @@
+Use claude-mem search,
+  sequential-thinking and the hass-mcp to gather a full picture - feed
+  back a Highly detailed exploratory prompt to the HA agent and specific
+  and highly feedback from with a comprehensive request for investigation
+  asking it to find its own conclusion about the optimal changes to be
+  made and potential options. Remember the architectural principles and
+  best practices are top of mind and incredibly important We should use
+  modify or extend existing functionality wherever possible, and produce
+  an output on par with what the Home Assistant Development team
+  themselves might write not simple bare code. The investigation must
+  also cover not a subset the items but a actual full deep dive into each
+  so it must be reminded that in order to garner the full picture we
+  must actually look at every line of code. You can instruct the HA agent
+  to also use claude-mem search, the MCP, or other tools like Context7
+  or web-search - The output must be exhaustive detailed and architected
+  the degree of excellence represented in this package: anything short
+  will be considered a failure. I'm counting on you manage and direct the
+  investigation findings and planning the remediation of these issues -
+  you live in this home, these lights affect you every day, and it's your
+  personal mission to make them feel so fine tuned you never need to
+  touch a light switch again - that's your mission.

@@ -114,8 +114,7 @@ light:
     name: "Overhead Lights"
     unique_id: overhead_lights_group
     entities:
-      - light.kitchen_main_lights
-      - light.living_room_hallway_lights
+
       - light.dining_room_spot_lights
       - light.living_room_spot_lights
   - platform: group
@@ -724,6 +723,35 @@ automation:
               transition: 5
           - stop: "Force sleep mode active"
 
+      # =========================================================================
+      # MANUAL CONTROL SANDWICH PATTERN - Pre-Protection Phase
+      # =========================================================================
+      # SYNC: This MUST run BEFORE change_switch_settings to prevent race condition
+      # where AL integration applies new bounds to manual lights before our apply filter.
+      # Pattern: Pre-protect → Change bounds → Apply filtered (see lines ~849, ~859)
+      - repeat:
+          for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+          sequence:
+            - variables:
+                switch_id: "{{ repeat.item }}"
+                manual_lights: "{{ state_attr(switch_id, 'manual_control') | default([]) }}"
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ manual_lights | length > 0 }}"
+                  sequence:
+                    # Re-assert manual control to ensure protection during bounds change
+                    - service: adaptive_lighting.set_manual_control
+                      continue_on_error: true
+                      target:
+                        entity_id: "{{ switch_id }}"
+                      data:
+                        lights: "{{ manual_lights }}"
+                        manual_control: true
+
+      # =========================================================================
+      # Zone Configuration Loop - Calculate and apply per-zone brightness/warmth
+      # =========================================================================
       - repeat:
           for_each: "{{ zone_configs }}"
           sequence:
@@ -822,6 +850,8 @@ automation:
                     {{ [final_min_k | float, clamped_k] | max }}
                   {% endif %}
 
+            # SYNC: Manual Control Sandwich Pattern - Bounds Change Phase
+            # Manual lights protected by pre-protection phase above (~line 732)
             - service: adaptive_lighting.change_switch_settings
               target:
                 entity_id: "{{ repeat.item.entity_id }}"
@@ -832,7 +862,11 @@ automation:
                 max_color_temp: "{{ final_max_k | round(0) }}"
                 transition: "{{ transition_speed }}"
 
-      # Apply to each switch, excluding only the specific lights in manual_control
+      # =========================================================================
+      # MANUAL CONTROL SANDWICH PATTERN - Apply Phase
+      # =========================================================================
+      # SYNC: Apply to each switch, excluding lights in manual_control
+      # Manual lights were pre-protected above (~line 732) and filtered here
       - repeat:
           for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
           sequence:

@@ -428,10 +428,10 @@ adaptive_lighting:
     adapt_delay: 1
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 60                    # SYNC: comfort_min_b (was 55, +5 per user)
+    min_brightness: 70                    # SYNC: comfort_min_b (was 60, +10 per user)
     max_brightness: 100                   # SYNC: comfort_max_b
-    min_color_temp: 2203                  # SYNC: min_k (restored)
-    max_color_temp: 3400                  # SYNC: max_k (restored)
+    min_color_temp: 2000                  # SYNC: min_k (restored)
+    max_color_temp: 3150                  # SYNC: max_k (restored)
     sleep_brightness: 25
     sleep_color_temp: 1800
 
@@ -464,10 +464,10 @@ adaptive_lighting:
     autoreset_control_seconds: 14400
     min_brightness: 30                    # SYNC: comfort_min_b (was 20, +10 per user)
     max_brightness: 65                    # SYNC: comfort_max_b (restored)
-    min_color_temp: 2700                  # SYNC: min_k - Govee hardware min
+    min_color_temp: 2000                  # SYNC: min_k
     max_color_temp: 2700                  # SYNC: max_k - Keep very warm
     sleep_brightness: 5
-    sleep_color_temp: 2700                # Govee hardware min
+    sleep_color_temp: 2700                # Keep warm for sleep
     sleep_rgb_or_color_temp: "rgb_color"
     sleep_rgb_color: [255, 165, 0]
 
@@ -481,7 +481,7 @@ adaptive_lighting:
     adapt_delay: 1
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 20                    # SYNC: comfort_min_b
+    min_brightness: 25                    # SYNC: comfort_min_b (was 20, +5 per user)
     max_brightness: 50                    # SYNC: comfort_max_b
     min_color_temp: 2000                  # SYNC: min_k
     max_color_temp: 6500                  # SYNC: max_k
@@ -536,7 +536,7 @@ adaptive_lighting:
     sleep_brightness: 1
     sleep_color_temp: 2700                # Govee actual hardware min
     sleep_rgb_or_color_temp: "rgb_color"
-    sleep_rgb_color: [255, 165, 0]
+    sleep_rgb_color: [245, 120, 0]
     sleep_transition: 1
     transition_until_sleep: true
     send_split_delay: 1
@@ -626,10 +626,10 @@ automation:
       zone_configs:
         - entity_id: switch.adaptive_lighting_main_living
           id: main_living
-          comfort_min_b: 60                 # SYNC: AL min_brightness
+          comfort_min_b: 70                 # SYNC: AL min_brightness
           comfort_max_b: 100                # SYNC: AL max_brightness
-          min_k: 2203                       # SYNC: AL min_color_temp
-          max_k: 3400                       # SYNC: AL max_color_temp
+          min_k: 2000                       # SYNC: AL min_color_temp
+          max_k: 3150                       # SYNC: AL max_color_temp
           env_sensitivity: 1.0
           night_sensitivity: 0.5            # Reduced night dim (was 0.8)
           hard_min_b: 1
@@ -650,7 +650,7 @@ automation:
           id: bedroom_primary
           comfort_min_b: 30                 # SYNC: AL min_brightness
           comfort_max_b: 65                 # SYNC: AL max_brightness
-          min_k: 2700                       # SYNC: AL min_color_temp - Govee hardware min
+          min_k: 2000                       # SYNC: AL min_color_temp
           max_k: 2700                       # SYNC: AL max_color_temp - Keep very warm
           env_sensitivity: 0.5
           night_sensitivity: 0.0            # NO night dim (uses sleep mode)
@@ -659,7 +659,7 @@ automation:
 
         - entity_id: switch.adaptive_lighting_accent_spots
           id: accent_spots
-          comfort_min_b: 20                 # SYNC: AL min_brightness
+          comfort_min_b: 25                 # SYNC: AL min_brightness
           comfort_max_b: 50                 # SYNC: AL max_brightness
           min_k: 2000                       # SYNC: AL min_color_temp
           max_k: 6500                       # SYNC: AL max_color_temp
@@ -1359,7 +1359,7 @@ automation:
       - platform: numeric_state
         entity_id: sun.sun
         attribute: elevation
-        below: 1
+        below: 3
     condition:
       - condition: state
         entity_id: input_boolean.oal_system_paused

@@ -1,0 +1,499 @@
+# =============================================================================
+# SONOS ALARM MANAGEMENT - MAIN POPUP
+# =============================================================================
+# Navigation: #sonos-alarms
+#
+# Tap alarm to toggle, Hold to edit
+# Quick actions for weekday/weekend presets
+# =============================================================================
+
+type: vertical-stack
+cards:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # POPUP HEADER
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:bubble-card
+    card_type: pop-up
+    hash: '#sonos-alarms'
+    name: Sonos Alarms
+    icon: mdi:alarm-multiple
+    entity: sensor.sonos_enabled_alarm_count
+    state: sensor.sonos_next_alarm
+    width_desktop: 540px
+    margin_top_mobile: 18px
+    margin_top_desktop: 74px
+    bg_opacity: 85
+    auto_close: ''
+    close_on_click: false
+    styles: |
+      .bubble-pop-up-container {
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
+        background: rgba(28, 28, 30, 0.88) !important;
+      }
+      .bubble-header-container {
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 8px;
+      }
+      .bubble-name {
+        font-weight: 600;
+        font-size: 1.25em;
+        color: #fff;
+      }
+      .bubble-state {
+        opacity: 0.7;
+        font-size: 0.95em;
+      }
+      .bubble-icon-container {
+        background: rgba(255, 149, 0, 0.18) !important;
+        border-radius: 14px;
+      }
+      .bubble-icon {
+        color: rgb(255, 149, 0) !important;
+      }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # QUICK ACTIONS
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:bubble-card
+    card_type: separator
+    name: Quick Actions
+    icon: mdi:lightning-bolt
+    styles: |
+      .bubble-line { opacity: 0.1; }
+      .bubble-name {
+        font-size: 0.85em;
+        font-weight: 500;
+        opacity: 0.5;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    sub_button:
+      - name: Weekday
+        icon: mdi:alarm-check
+        show_name: true
+        tap_action:
+          action: call-service
+          service: script.sonos_enable_weekday_alarms
+        styles: |
+          .bubble-sub-button-container {
+            background: rgba(76, 175, 80, 0.2) !important;
+            border-radius: 12px;
+          }
+          .bubble-sub-button-icon { color: rgb(76, 175, 80) !important; }
+      - name: Weekend
+        icon: mdi:weather-sunny
+        show_name: true
+        tap_action:
+          action: call-service
+          service: script.sonos_enable_weekend_alarms
+        styles: |
+          .bubble-sub-button-container {
+            background: rgba(255, 193, 7, 0.2) !important;
+            border-radius: 12px;
+          }
+          .bubble-sub-button-icon { color: rgb(255, 193, 7) !important; }
+      - name: All Off
+        icon: mdi:alarm-off
+        show_name: true
+        tap_action:
+          action: call-service
+          service: script.sonos_disable_all_alarms
+        styles: |
+          .bubble-sub-button-container {
+            background: rgba(244, 67, 54, 0.2) !important;
+            border-radius: 12px;
+          }
+          .bubble-sub-button-icon { color: rgb(244, 67, 54) !important; }
+      - name: Snooze
+        icon: mdi:alarm-snooze
+        show_name: true
+        tap_action:
+          action: call-service
+          service: script.sonos_snooze_next_alarm
+        styles: |
+          .bubble-sub-button-container {
+            background: rgba(156, 39, 176, 0.2) !important;
+            border-radius: 12px;
+          }
+          .bubble-sub-button-icon { color: rgb(156, 39, 176) !important; }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # BEDROOM SECTION
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:bubble-card
+    card_type: separator
+    name: Bedroom
+    icon: mdi:bed
+    styles: |
+      .bubble-separator { margin-top: 16px !important; }
+      .bubble-name {
+        color: rgb(255, 149, 0) !important;
+        font-weight: 600;
+        font-size: 0.95em;
+      }
+      .bubble-icon { color: rgb(255, 149, 0) !important; }
+      .bubble-line { background: rgba(255, 149, 0, 0.3) !important; }
+
+  - type: horizontal-stack
+    cards:
+      # Bedroom Weekdays 05:15
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.sonos_alarm_182
+        name: "05:15"
+        icon: mdi:alarm
+        show_state: false
+        tap_action:
+          action: toggle
+        hold_action:
+          action: call-service
+          service: script.sonos_load_alarm_for_edit
+          data:
+            alarm_entity: switch.sonos_alarm_182
+        sub_button:
+          - name: Weekdays
+            show_background: false
+        styles: |
+          .bubble-button-card-container {
+            background: ${state === 'on' ? 'rgba(255, 149, 0, 0.22)' : 'rgba(118, 118, 128, 0.12)'} !important;
+            border-radius: 16px;
+            border: ${state === 'on' ? '1px solid rgba(255, 149, 0, 0.3)' : '1px solid transparent'};
+            transition: all 0.25s ease;
+          }
+          .bubble-icon {
+            color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(235, 235, 245, 0.4)'} !important;
+          }
+          .bubble-name {
+            font-weight: 600;
+            font-size: 1.15em;
+            color: ${state === 'on' ? '#fff' : 'rgba(235, 235, 245, 0.5)'};
+          }
+          .bubble-sub-button-name {
+            font-size: 0.7em;
+            opacity: ${state === 'on' ? '0.7' : '0.4'};
+          }
+
+      # Bedroom Weekends 09:15
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.sonos_alarm_234
+        name: "09:15"
+        icon: mdi:alarm
+        show_state: false
+        tap_action:
+          action: toggle
+        hold_action:
+          action: call-service
+          service: script.sonos_load_alarm_for_edit
+          data:
+            alarm_entity: switch.sonos_alarm_234
+        sub_button:
+          - name: Weekends
+            show_background: false
+        styles: |
+          .bubble-button-card-container {
+            background: ${state === 'on' ? 'rgba(255, 149, 0, 0.22)' : 'rgba(118, 118, 128, 0.12)'} !important;
+            border-radius: 16px;
+            border: ${state === 'on' ? '1px solid rgba(255, 149, 0, 0.3)' : '1px solid transparent'};
+            transition: all 0.25s ease;
+          }
+          .bubble-icon {
+            color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(235, 235, 245, 0.4)'} !important;
+          }
+          .bubble-name {
+            font-weight: 600;
+            font-size: 1.15em;
+            color: ${state === 'on' ? '#fff' : 'rgba(235, 235, 245, 0.5)'};
+          }
+          .bubble-sub-button-name {
+            font-size: 0.7em;
+            opacity: ${state === 'on' ? '0.7' : '0.4'};
+          }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # BATHROOM SECTION
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:bubble-card
+    card_type: separator
+    name: Bathroom
+    icon: mdi:shower
+    styles: |
+      .bubble-separator { margin-top: 16px !important; }
+      .bubble-name {
+        color: rgb(10, 132, 255) !important;
+        font-weight: 600;
+        font-size: 0.95em;
+      }
+      .bubble-icon { color: rgb(10, 132, 255) !important; }
+      .bubble-line { background: rgba(10, 132, 255, 0.3) !important; }
+
+  - type: horizontal-stack
+    cards:
+      # Bathroom Weekdays 05:25
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.sonos_alarm_37
+        name: "05:25"
+        icon: mdi:alarm
+        show_state: false
+        tap_action:
+          action: toggle
+        hold_action:
+          action: call-service
+          service: script.sonos_load_alarm_for_edit
+          data:
+            alarm_entity: switch.sonos_alarm_37
+        sub_button:
+          - name: Weekdays
+            show_background: false
+        styles: |
+          .bubble-button-card-container {
+            background: ${state === 'on' ? 'rgba(10, 132, 255, 0.22)' : 'rgba(118, 118, 128, 0.12)'} !important;
+            border-radius: 16px;
+            border: ${state === 'on' ? '1px solid rgba(10, 132, 255, 0.3)' : '1px solid transparent'};
+            transition: all 0.25s ease;
+          }
+          .bubble-icon {
+            color: ${state === 'on' ? 'rgb(10, 132, 255)' : 'rgba(235, 235, 245, 0.4)'} !important;
+          }
+          .bubble-name {
+            font-weight: 600;
+            font-size: 1.15em;
+            color: ${state === 'on' ? '#fff' : 'rgba(235, 235, 245, 0.5)'};
+          }
+          .bubble-sub-button-name {
+            font-size: 0.7em;
+            opacity: ${state === 'on' ? '0.7' : '0.4'};
+          }
+
+      # Bathroom Weekends 10:00
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.sonos_alarm_823
+        name: "10:00"
+        icon: mdi:alarm
+        show_state: false
+        tap_action:
+          action: toggle
+        hold_action:
+          action: call-service
+          service: script.sonos_load_alarm_for_edit
+          data:
+            alarm_entity: switch.sonos_alarm_823
+        sub_button:
+          - name: Weekends
+            show_background: false
+        styles: |
+          .bubble-button-card-container {
+            background: ${state === 'on' ? 'rgba(10, 132, 255, 0.22)' : 'rgba(118, 118, 128, 0.12)'} !important;
+            border-radius: 16px;
+            border: ${state === 'on' ? '1px solid rgba(10, 132, 255, 0.3)' : '1px solid transparent'};
+            transition: all 0.25s ease;
+          }
+          .bubble-icon {
+            color: ${state === 'on' ? 'rgb(10, 132, 255)' : 'rgba(235, 235, 245, 0.4)'} !important;
+          }
+          .bubble-name {
+            font-weight: 600;
+            font-size: 1.15em;
+            color: ${state === 'on' ? '#fff' : 'rgba(235, 235, 245, 0.5)'};
+          }
+          .bubble-sub-button-name {
+            font-size: 0.7em;
+            opacity: ${state === 'on' ? '0.7' : '0.4'};
+          }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # KITCHEN SECTION
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:bubble-card
+    card_type: separator
+    name: Kitchen
+    icon: mdi:stove
+    styles: |
+      .bubble-separator { margin-top: 16px !important; }
+      .bubble-name {
+        color: rgb(175, 82, 222) !important;
+        font-weight: 600;
+        font-size: 0.95em;
+      }
+      .bubble-icon { color: rgb(175, 82, 222) !important; }
+      .bubble-line { background: rgba(175, 82, 222, 0.3) !important; }
+
+  - type: horizontal-stack
+    cards:
+      # Kitchen Weekdays 06:35
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.sonos_alarm_15
+        name: "06:35"
+        icon: mdi:alarm
+        show_state: false
+        tap_action:
+          action: toggle
+        hold_action:
+          action: call-service
+          service: script.sonos_load_alarm_for_edit
+          data:
+            alarm_entity: switch.sonos_alarm_15
+        sub_button:
+          - name: Weekdays
+            show_background: false
+        styles: |
+          .bubble-button-card-container {
+            background: ${state === 'on' ? 'rgba(175, 82, 222, 0.22)' : 'rgba(118, 118, 128, 0.12)'} !important;
+            border-radius: 16px;
+            border: ${state === 'on' ? '1px solid rgba(175, 82, 222, 0.3)' : '1px solid transparent'};
+            transition: all 0.25s ease;
+          }
+          .bubble-icon {
+            color: ${state === 'on' ? 'rgb(175, 82, 222)' : 'rgba(235, 235, 245, 0.4)'} !important;
+          }
+          .bubble-name {
+            font-weight: 600;
+            font-size: 1.15em;
+            color: ${state === 'on' ? '#fff' : 'rgba(235, 235, 245, 0.5)'};
+          }
+          .bubble-sub-button-name {
+            font-size: 0.7em;
+            opacity: ${state === 'on' ? '0.7' : '0.4'};
+          }
+
+      # Kitchen Weekdays 07:00
+      - type: custom:bubble-card
+        card_type: button
+        button_type: switch
+        entity: switch.sonos_alarm_1
+        name: "07:00"
+        icon: mdi:alarm
+        show_state: false
+        tap_action:
+          action: toggle
+        hold_action:
+          action: call-service
+          service: script.sonos_load_alarm_for_edit
+          data:
+            alarm_entity: switch.sonos_alarm_1
+        sub_button:
+          - name: Weekdays
+            show_background: false
+        styles: |
+          .bubble-button-card-container {
+            background: ${state === 'on' ? 'rgba(175, 82, 222, 0.22)' : 'rgba(118, 118, 128, 0.12)'} !important;
+            border-radius: 16px;
+            border: ${state === 'on' ? '1px solid rgba(175, 82, 222, 0.3)' : '1px solid transparent'};
+            transition: all 0.25s ease;
+          }
+          .bubble-icon {
+            color: ${state === 'on' ? 'rgb(175, 82, 222)' : 'rgba(235, 235, 245, 0.4)'} !important;
+          }
+          .bubble-name {
+            font-weight: 600;
+            font-size: 1.15em;
+            color: ${state === 'on' ? '#fff' : 'rgba(235, 235, 245, 0.5)'};
+          }
+          .bubble-sub-button-name {
+            font-size: 0.7em;
+            opacity: ${state === 'on' ? '0.7' : '0.4'};
+          }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LIVING & DINING (COMPACT)
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: custom:bubble-card
+    card_type: separator
+    name: Living & Dining
+    icon: mdi:sofa
+    styles: |
+      .bubble-separator { margin-top: 16px !important; }
+      .bubble-name {
+        color: rgba(235, 235, 245, 0.6) !important;
+        font-weight: 500;
+        font-size: 0.9em;
+      }
+      .bubble-icon { color: rgba(235, 235, 245, 0.5) !important; }
+      .bubble-line { background: rgba(235, 235, 245, 0.15) !important; }
+    sub_button:
+      # Living Room alarm toggle
+      - entity: switch.sonos_alarm_520
+        icon: mdi:alarm
+        tap_action:
+          action: toggle
+        hold_action:
+          action: call-service
+          service: script.sonos_load_alarm_for_edit
+          data:
+            alarm_entity: switch.sonos_alarm_520
+        styles: |
+          .bubble-sub-button-container {
+            background: ${hass.states['switch.sonos_alarm_520'].state === 'on' ?
+              'rgba(48, 209, 88, 0.2)' : 'rgba(118, 118, 128, 0.12)'} !important;
+            border-radius: 10px;
+          }
+          .bubble-sub-button-icon {
+            color: ${hass.states['switch.sonos_alarm_520'].state === 'on' ?
+              'rgb(48, 209, 88)' : 'rgba(235, 235, 245, 0.4)'} !important;
+          }
+      # Living Room second alarm
+      - entity: switch.sonos_alarm_521
+        icon: mdi:alarm
+        tap_action:
+          action: toggle
+        hold_action:
+          action: call-service
+          service: script.sonos_load_alarm_for_edit
+          data:
+            alarm_entity: switch.sonos_alarm_521
+        styles: |
+          .bubble-sub-button-container {
+            background: ${hass.states['switch.sonos_alarm_521'].state === 'on' ?
+              'rgba(48, 209, 88, 0.2)' : 'rgba(118, 118, 128, 0.12)'} !important;
+            border-radius: 10px;
+          }
+          .bubble-sub-button-icon {
+            color: ${hass.states['switch.sonos_alarm_521'].state === 'on' ?
+              'rgb(48, 209, 88)' : 'rgba(235, 235, 245, 0.4)'} !important;
+          }
+      # Dining Room alarm toggle
+      - entity: switch.sonos_alarm_414
+        icon: mdi:alarm
+        tap_action:
+          action: toggle
+        hold_action:
+          action: call-service
+          service: script.sonos_load_alarm_for_edit
+          data:
+            alarm_entity: switch.sonos_alarm_414
+        styles: |
+          .bubble-sub-button-container {
+            background: ${hass.states['switch.sonos_alarm_414'].state === 'on' ?
+              'rgba(255, 214, 10, 0.2)' : 'rgba(118, 118, 128, 0.12)'} !important;
+            border-radius: 10px;
+          }
+          .bubble-sub-button-icon {
+            color: ${hass.states['switch.sonos_alarm_414'].state === 'on' ?
+              'rgb(255, 214, 10)' : 'rgba(235, 235, 245, 0.4)'} !important;
+          }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # FOOTER
+  # ═══════════════════════════════════════════════════════════════════════════
+  - type: markdown
+    content: |
+      <center style="opacity: 0.4; font-size: 0.8em;">
+        <strong>Tap</strong> toggle &middot; <strong>Hold</strong> edit
+      </center>
+    card_mod:
+      style: |
+        ha-card {
+          background: transparent !important;
+          box-shadow: none !important;
+          margin-top: 12px;
+        }

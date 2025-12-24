@@ -31,7 +31,12 @@
       "Plugin:claude-mem:claude-mem-search - get_observation(id:*)",
       "Plugin:claude-mem:claude-mem-search - get_batch_observations(ids:*)",
       "mcp__plugin_context7_context7__resolve-library-id",
-      "mcp__plugin_context7_context7__get-library-docs"
+      "mcp__plugin_context7_context7__get-library-docs",
+      "Bash(gh issue list:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh label:*)",
+      "Bash(hass-mcp search_entities:*)",
+      "Skill(claude-mem:mem-search)"
     ],
     "deny": [],
     "ask": []

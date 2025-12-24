@@ -59,8 +59,8 @@ light:
       - light.living_room_spot_lights
       - light.kitchen_main_lights
       - light.living_room_hallway_lights
-      - light.living_room_column_mqtt
-      - light.dining_col_accent_mqtt
+      - light.living_col_accent
+      - light.dining_col_accent
   - platform: group
     name: Living Room Lights
     unique_id: living_room_lights_group
@@ -99,7 +99,7 @@ light:
     entities:
       - light.living_room_credenza_light
       - light.dining_room_spot_lights
-      - light.dining_col_accent_mqtt
+      - light.dining_col_accent
       - light.living_room_corner_accent
   - platform: group
     name: "Hue Lamps Only"
@@ -121,8 +121,8 @@ light:
     name: "Column Lights"
     unique_id: column_lights
     entities:
-      - light.living_room_column_mqtt
-      - light.dining_col_accent_mqtt
+      - light.living_col_accent
+      - light.dining_col_accent
 group:
   oal_control_switches:
     name: "OAL Control Switches"
@@ -512,8 +512,8 @@ adaptive_lighting:
   # ═══════════════════════════════════════════════════════════════════════════
   - name: "column_lights"
     lights:
-      - light.living_room_column_mqtt
-      - light.dining_col_accent_mqtt
+      - light.living_col_accent
+      - light.dining_col_accent
     interval: 90
     transition: 1
     initial_transition: 1
@@ -1405,7 +1405,7 @@ automation:
         state: "off"
       - condition: template
         value_template: >
-          {{ 'light.living_room_column_mqtt' not in
+          {{ 'light.living_col_accent' not in
              (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) }}
     action:
       # Step 1: Raise brightness to safe level (above 33%)
@@ -1413,8 +1413,8 @@ automation:
         continue_on_error: true
         target:
           entity_id:
-            - light.living_room_column_mqtt
-            - light.dining_col_accent_mqtt
+            - light.living_col_accent
+            - light.dining_col_accent
         data:
           brightness_pct: 35
           transition: 5
@@ -1425,8 +1425,8 @@ automation:
         continue_on_error: true
         target:
           entity_id:
-            - light.living_room_column_mqtt
-            - light.dining_col_accent_mqtt
+            - light.living_col_accent
+            - light.dining_col_accent
         data:
           rgb_color: [255, 200, 0]
           transition: 3
@@ -1439,8 +1439,8 @@ automation:
           entity_id: switch.adaptive_lighting_column_lights
         data:
           lights:
-            - light.living_room_column_mqtt
-            - light.dining_col_accent_mqtt
+            - light.living_col_accent
+            - light.dining_col_accent
           manual_control: true
 
       # Step 4: Reduce brightness for evening
@@ -1448,8 +1448,8 @@ automation:
         continue_on_error: true
         target:
           entity_id:
-            - light.living_room_column_mqtt
-            - light.dining_col_accent_mqtt
+            - light.living_col_accent
+            - light.dining_col_accent
         data:
           brightness_pct: 20
           transition: 30
@@ -1480,8 +1480,8 @@ automation:
       - service: light.turn_on
         target:
           entity_id:
-            - light.living_room_column_mqtt
-            - light.dining_col_accent_mqtt
+            - light.living_col_accent
+            - light.dining_col_accent
         data:
           rgb_color: [255, "{{ green_value }}", 0]
           transition: 60
@@ -1509,8 +1509,8 @@ automation:
         continue_on_error: true
         target:
           entity_id:
-            - light.living_room_column_mqtt
-            - light.dining_col_accent_mqtt
+            - light.living_col_accent
+            - light.dining_col_accent
         data:
           brightness_pct: 40
           transition: 5
@@ -1521,8 +1521,8 @@ automation:
         continue_on_error: true
         target:
           entity_id:
-            - light.living_room_column_mqtt
-            - light.dining_col_accent_mqtt
+            - light.living_col_accent
+            - light.dining_col_accent
         data:
           color_temp_kelvin: 2750
           transition: 10
@@ -1535,8 +1535,8 @@ automation:
           entity_id: switch.adaptive_lighting_column_lights
         data:
           lights:
-            - light.living_room_column_mqtt
-            - light.dining_col_accent_mqtt
+            - light.living_col_accent
+            - light.dining_col_accent
           manual_control: false
 
       # Step 4: Let AL take over
@@ -2700,8 +2700,8 @@ automation:
         id: recessed_ceiling
       - platform: state
         entity_id:
-          - light.living_room_column_mqtt
-          - light.dining_col_accent_mqtt
+          - light.living_col_accent
+          - light.dining_col_accent
         attribute: brightness
         id: column_lights
 
@@ -3414,13 +3414,13 @@ template:
   # ---------------------------------------------------------------------------
   # 6.0 DEPRECATED: Govee Template Light Wrappers
   # ---------------------------------------------------------------------------
-  # Template wrappers removed in favor of MQTT entities + AL sleep mode approach.
-  # MQTT entities (light.living_room_column_mqtt, light.dining_col_accent_mqtt)
+  # Template wrappers removed in favor of Matter entities + AL sleep mode approach.
+  # Matter entities (light.living_col_accent, light.dining_col_accent)
   # provide native RGB support, and AL sleep mode enforces safe [255, 165, 0] color.
   # See: docs/govee_matter_color_issues_technical_report.md
   #
   # Previous implementation used template lights to clamp blue channel, but:
-  # - MQTT entities with native RGB bypass the Matter hue conversion bug
+  # - Matter entities with native RGB bypass the Matter hue conversion bug
   # - AL sleep mode with sleep_rgb_color provides simpler, more reliable control
   # - RGB transition automations (4.3b, 4.3c) handle evening color nuance
   # ---------------------------------------------------------------------------
@@ -4917,7 +4917,7 @@ template:
             'light.living_room_credenza_light',
             'light.living_room_spot_lights',
             'light.living_room_hallway_lights',
-            'light.living_room_column_mqtt'
+            'light.living_col_accent'
           ] %}
           {% set lights_on = lights | select('is_state', 'on') | list | length %}
           {% set is_playing = is_state('media_player.living_room', 'playing') %}
@@ -4937,7 +4937,7 @@ template:
               'light.living_room_credenza_light',
               'light.living_room_spot_lights',
               'light.living_room_hallway_lights',
-              'light.living_room_column_mqtt'
+              'light.living_col_accent'
             ] %}
             {{ lights | select('is_state', 'on') | list | length }}
           total_lights: 7
@@ -4975,7 +4975,7 @@ template:
               'light.living_room_credenza_light',
               'light.living_room_spot_lights',
               'light.living_room_hallway_lights',
-              'light.living_room_column_mqtt',
+              'light.living_col_accent',
               'light.entryway_lamp'
             ] %}
             {% set all_manual = (main + spots + columns) | unique | list %}
@@ -5240,7 +5240,7 @@ template:
         unique_id: room_dining_state_v13
         icon: mdi:table-furniture
         state: >
-          {% set lights = ['light.dining_room_spot_lights', 'light.dining_col_accent_mqtt'] %}
+          {% set lights = ['light.dining_room_spot_lights', 'light.dining_col_accent'] %}
           {% set lights_on = lights | select('is_state', 'on') | list | length %}
           {% set is_playing = is_state('media_player.dining_room', 'playing') %}
           {% set hvac = state_attr('climate.dining_room', 'hvac_action') | default('idle') %}
@@ -5253,7 +5253,7 @@ template:
           {% else %}idle{% endif %}
         attributes:
           lights_on: >
-            {% set lights = ['light.dining_room_spot_lights', 'light.dining_col_accent_mqtt'] %}
+            {% set lights = ['light.dining_room_spot_lights', 'light.dining_col_accent'] %}
             {{ lights | select('is_state', 'on') | list | length }}
           total_lights: 2
           audio_state: "{{ states('media_player.dining_room') }}"
@@ -5264,7 +5264,7 @@ template:
             {% set columns = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
             {% set dining_lights = [
               'light.dining_room_spot_lights',
-              'light.dining_col_accent_mqtt'
+              'light.dining_col_accent'
             ] %}
             {% set all_manual = (spots + columns) | unique | list %}
             {{ all_manual | select('in', dining_lights) | list }}
@@ -5404,8 +5404,8 @@ template:
           {% set lights = [
             'light.living_room_corner_accent',
             'light.living_room_credenza_light',
-            'light.dining_col_accent_mqtt',
-            'light.living_room_column_mqtt'
+            'light.dining_col_accent',
+            'light.living_col_accent'
           ] %}
           {% set lights_on = lights | select('is_state', 'on') | list | length %}
           {% set has_override = (this.attributes.manually_controlled_lights | default([])) | length > 0 %}
@@ -5418,8 +5418,8 @@ template:
             {% set lights = [
               'light.living_room_corner_accent',
               'light.living_room_credenza_light',
-              'light.dining_col_accent_mqtt',
-              'light.living_room_column_mqtt'
+              'light.dining_col_accent',
+              'light.living_col_accent'
             ] %}
             {{ lights | select('is_state', 'on') | list | length }}
           total_lights: 4
@@ -5427,8 +5427,8 @@ template:
             {% set lights = [
               'light.living_room_corner_accent',
               'light.living_room_credenza_light',
-              'light.dining_col_accent_mqtt',
-              'light.living_room_column_mqtt'
+              'light.dining_col_accent',
+              'light.living_col_accent'
             ] %}
             {% set on_lights = lights | select('is_state', 'on') | list %}
             {% if on_lights | length > 0 %}
@@ -5445,8 +5445,8 @@ template:
             {% set accent_lights = [
               'light.living_room_corner_accent',
               'light.living_room_credenza_light',
-              'light.dining_col_accent_mqtt',
-              'light.living_room_column_mqtt'
+              'light.dining_col_accent',
+              'light.living_col_accent'
             ] %}
             {% set all_manual = (main + columns) | unique | list %}
             {{ all_manual | select('in', accent_lights) | list }}

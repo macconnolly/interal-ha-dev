@@ -1390,15 +1390,17 @@ automation:
           - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed' and is_light_mode }}"
             sequence:
               - repeat:
-                  count: 10  # Safeguard against infinite loop
+                  while:
+                    - condition: template
+                      value_template: >
+                        {{ states('input_select.oal_active_configuration') == 'Manual'
+                           and repeat.index <= 10 }}
                   sequence:
                     - service: input_select.select_next
                       target:
                         entity_id: input_select.oal_active_configuration
                       data:
                         cycle: true
-                  until: >
-                    {{ states('input_select.oal_active_configuration') != 'Manual' }}
 
           # [1] LIGHT - 1x Press (MUSIC mode): Switch to LIGHT mode
           - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed' and is_music_mode }}"

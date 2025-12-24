@@ -58,8 +58,13 @@ homeassistant:
   customize:
     # Marker to indicate this package is loaded
     package.zen32_modal_controller:
-      version: "1.0.0"
-      device_id_placeholder: "REPLACE_WITH_ZEN32_DEVICE_ID"
+      version: "1.0.1"
+    # Node anchors for DRY configuration - YAML anchor definitions
+    # To configure: Replace the device_id below with your actual ZEN32 device_id
+    # Find it via: Developer Tools > Template > {{ device_id('event.scene_controller_scene_001') }}
+    package.node_anchors:
+      zen32_device_config: &zen32_device_config
+        controller_device_id: "REPLACE_WITH_ZEN32_DEVICE_ID"
 
 # =============================================================================
 # INPUT HELPERS - Mode State Tracking
@@ -80,6 +85,27 @@ input_datetime:
     has_date: true
     has_time: true
     icon: mdi:clock-check-outline
+
+input_number:
+  # Index for cycling through Sonos favorites
+  sonos_favorite_index:
+    name: "Sonos Favorite Index"
+    min: 0
+    max: 20
+    step: 1
+    initial: 0
+    mode: box
+    icon: mdi:playlist-music
+
+  # Default volume when starting music from ZEN32
+  sonos_zen32_default_volume:
+    name: "ZEN32 Sonos Default Volume"
+    min: 0
+    max: 1
+    step: 0.05
+    initial: 0.5
+    mode: slider
+    icon: mdi:volume-medium
 
 # =============================================================================
 # TEMPLATE SENSORS - Mode Status & Diagnostics
@@ -217,8 +243,8 @@ script:
               - medium
               - low
     variables:
-      # CRITICAL: Replace this with your actual ZEN32 device_id
-      controller_device_id: "REPLACE_WITH_ZEN32_DEVICE_ID"
+      # Device ID from centralized anchor (line 66-67)
+      <<: *zen32_device_config
 
       # Color value mapping
       color_map:
@@ -340,8 +366,8 @@ script:
               - medium
               - low
     variables:
-      # CRITICAL: Replace this with your actual ZEN32 device_id
-      controller_device_id: "REPLACE_WITH_ZEN32_DEVICE_ID"
+      # Device ID from centralized anchor (line 66-67)
+      <<: *zen32_device_config
 
       color_map:
         white: 0
@@ -498,9 +524,16 @@ script:
   # ---------------------------------------------------------------------------
   # Mode Transition - Switch to LIGHT Mode
   # ---------------------------------------------------------------------------
+  # LED DESIGN (Three-Tier Brightness Hierarchy):
+  #   Button 1 (LIGHT): Yellow HIGH - Active mode indicator
+  #   Button 2 (UP):    Yellow MEDIUM - Active mode action
+  #   Button 3 (MUSIC): Blue LOW - Inactive mode (available to switch)
+  #   Button 4 (DOWN):  Yellow MEDIUM - Active mode action
+  #   Button 5 (BIG):   Managed separately by state tracking automation
+  # ---------------------------------------------------------------------------
   zen32_set_mode_light:
     alias: "ZEN32 - Set LIGHT Mode"
-    description: "Switches to LIGHT mode, updates state, and sets all LEDs to yellow"
+    description: "Switches to LIGHT mode with differentiated LED brightness hierarchy"
     icon: mdi:lightbulb-on
     mode: single
     sequence:
@@ -518,19 +551,50 @@ script:
         data:
           datetime: "{{ now() }}"
 
-      # Set all LEDs to yellow with always_on
-      - service: script.zen32_set_all_leds
-        data:
-          color: "yellow"
-          toggle: "always_on"
-          brightness: "bright"
+      # Set differentiated LED states in parallel
+      - parallel:
+          # Button 1 (LIGHT): Yellow HIGH - Active mode selector
+          - service: script.zen32_set_led
+            data:
+              button: 1
+              color: "yellow"
+              toggle: "always_on"
+              brightness: "bright"
+          # Button 2 (UP): Yellow MEDIUM - Active mode action
+          - service: script.zen32_set_led
+            data:
+              button: 2
+              color: "yellow"
+              toggle: "always_on"
+              brightness: "medium"
+          # Button 3 (MUSIC): Blue LOW - Inactive mode indicator
+          - service: script.zen32_set_led
+            data:
+              button: 3
+              color: "blue"
+              toggle: "always_on"
+              brightness: "low"
+          # Button 4 (DOWN): Yellow MEDIUM - Active mode action
+          - service: script.zen32_set_led
+            data:
+              button: 4
+              color: "yellow"
+              toggle: "always_on"
+              brightness: "medium"
 
   # ---------------------------------------------------------------------------
   # Mode Transition - Switch to MUSIC Mode
   # ---------------------------------------------------------------------------
+  # LED DESIGN (Three-Tier Brightness Hierarchy):
+  #   Button 1 (LIGHT): Yellow LOW - Inactive mode (available to switch)
+  #   Button 2 (UP):    Blue MEDIUM - Active mode action
+  #   Button 3 (MUSIC): Blue HIGH - Active mode indicator
+  #   Button 4 (DOWN):  Blue MEDIUM - Active mode action
+  #   Button 5 (BIG):   Managed separately by state tracking automation
+  # ---------------------------------------------------------------------------
   zen32_set_mode_music:
     alias: "ZEN32 - Set MUSIC Mode"
-    description: "Switches to MUSIC mode, updates state, and sets all LEDs to blue"
+    description: "Switches to MUSIC mode with differentiated LED brightness hierarchy"
     icon: mdi:music
     mode: single
     sequence:
@@ -548,15 +612,93 @@ script:
         data:
           datetime: "{{ now() }}"
 
-      # Set all LEDs to blue with always_on
-      - service: script.zen32_set_all_leds
-        data:
-          color: "blue"
-          toggle: "always_on"
-          brightness: "bright"
+      # Set differentiated LED states in parallel
+      - parallel:
+          # Button 1 (LIGHT): Yellow LOW - Inactive mode indicator
+          - service: script.zen32_set_led
+            data:
+              button: 1
+              color: "yellow"
+              toggle: "always_on"
+              brightness: "low"
+          # Button 2 (UP): Blue MEDIUM - Active mode action
+          - service: script.zen32_set_led
+            data:
+              button: 2
+              color: "blue"
+              toggle: "always_on"
+              brightness: "medium"
+          # Button 3 (MUSIC): Blue HIGH - Active mode selector
+          - service: script.zen32_set_led
+            data:
+              button: 3
+              color: "blue"
+              toggle: "always_on"
+              brightness: "bright"
+          # Button 4 (DOWN): Blue MEDIUM - Active mode action
+          - service: script.zen32_set_led
+            data:
+              button: 4
+              color: "blue"
+              toggle: "always_on"
+              brightness: "medium"
 
   # ---------------------------------------------------------------------------
-  # Emergency All-Off (Mode-Independent)
+  # LED Blink Confirmation - Visual feedback on mode switch
+  # ---------------------------------------------------------------------------
+  # Called before mode transition to provide tactile feedback
+  # Green blink = "action acknowledged"
+  # ---------------------------------------------------------------------------
+  zen32_blink_confirm:
+    alias: "ZEN32 - Blink Confirmation"
+    description: "Blinks a button LED green to confirm action was received"
+    icon: mdi:led-on
+    mode: single
+    fields:
+      button:
+        description: "Button number to blink (1-5)"
+        example: 3
+        required: true
+        selector:
+          number:
+            min: 1
+            max: 5
+      blink_count:
+        description: "Number of blinks (default: 2)"
+        example: 2
+        required: false
+        selector:
+          number:
+            min: 1
+            max: 5
+    variables:
+      count: "{{ blink_count | default(2) | int }}"
+    sequence:
+      - repeat:
+          count: "{{ count }}"
+          sequence:
+            # LED off
+            - service: script.zen32_set_led
+              data:
+                button: "{{ button }}"
+                toggle: "always_off"
+            - delay:
+                milliseconds: 100
+            # LED green bright
+            - service: script.zen32_set_led
+              data:
+                button: "{{ button }}"
+                color: "green"
+                toggle: "always_on"
+                brightness: "bright"
+            - delay:
+                milliseconds: 100
+
+  # ---------------------------------------------------------------------------
+  # Emergency All-Off (Mode-Independent) - DEPRECATED
+  # ---------------------------------------------------------------------------
+  # NOTE: Button 5 Hold now triggers soft reset instead (see P1-4 update)
+  # This script kept for backwards compatibility / direct invocation
   # ---------------------------------------------------------------------------
   zen32_emergency_all_off:
     alias: "ZEN32 - Emergency All Off"
@@ -630,6 +772,47 @@ script:
       - service: script.oal_global_adjustment_start
 
   # ---------------------------------------------------------------------------
+  # Update Big Button LED - Called by startup and state tracking
+  # ---------------------------------------------------------------------------
+  zen32_update_big_button_led:
+    alias: "ZEN32 - Update Big Button LED"
+    description: "Sets Button 5 LED based on current light/movie state"
+    icon: mdi:gesture-tap-button
+    mode: single
+    sequence:
+      - choose:
+          # Movie Mode Active: Red
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.oal_movie_mode_active
+                state: "on"
+            sequence:
+              - service: script.zen32_set_led
+                data:
+                  button: 5
+                  color: "red"
+                  toggle: "always_on"
+                  brightness: "medium"
+          # Lights ON: White
+          - conditions:
+              - condition: state
+                entity_id: light.all_adaptive_lights
+                state: "on"
+            sequence:
+              - service: script.zen32_set_led
+                data:
+                  button: 5
+                  color: "white"
+                  toggle: "always_on"
+                  brightness: "medium"
+        # Lights OFF: LED off
+        default:
+          - service: script.zen32_set_led
+            data:
+              button: 5
+              toggle: "always_off"
+
+  # ---------------------------------------------------------------------------
   # Update Mode Timestamp - For Timeout Reset
   # Called by button handler to reset the 60s timeout on any interaction
   # ---------------------------------------------------------------------------
@@ -690,45 +873,49 @@ automation:
   # ---------------------------------------------------------------------------
   - id: zen32_startup_init
     alias: "ZEN32 - Initialize LEDs on Startup"
-    description: "Sets LEDs to match current mode when Home Assistant starts"
+    description: "Initializes LEDs with differentiated brightness hierarchy on HA start"
     mode: single
     trigger:
       - platform: homeassistant
         event: start
     action:
-      # Wait for Z-Wave network to stabilize
-      - delay:
-          seconds: 45
+      # Force LIGHT mode on startup (prevents stale music mode from persisting)
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.zen32_control_mode
+        data:
+          option: "light"
 
-      # Set LEDs based on current mode
-      - choose:
-          - conditions:
-              - condition: state
-                entity_id: input_select.zen32_control_mode
-                state: "music"
-            sequence:
-              - service: script.zen32_set_all_leds
-                data:
-                  color: "blue"
-                  toggle: "always_on"
-        default:
-          # Default to LIGHT mode
-          - service: input_select.select_option
-            target:
-              entity_id: input_select.zen32_control_mode
-            data:
-              option: "light"
-          - service: script.zen32_set_all_leds
-            data:
-              color: "yellow"
-              toggle: "always_on"
+      # Clear stale timestamp
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_mode_last_change
+        data:
+          datetime: "{{ now() }}"
+
+      # Wait for Z-Wave network to stabilize (reduced from 45s with retry)
+      - delay:
+          seconds: 15
+
+      # Initial LED set (may fail if Z-Wave not ready)
+      - service: script.zen32_set_mode_light
+        continue_on_error: true
+
+      # Retry after full stabilization
+      - delay:
+          seconds: 30
+
+      - service: script.zen32_set_mode_light
+
+      # Initialize big button state
+      - service: script.zen32_update_big_button_led
 
   # ---------------------------------------------------------------------------
   # LED Sync on Mode Change - Ensures LEDs match mode after external changes
   # ---------------------------------------------------------------------------
   - id: zen32_mode_led_sync
     alias: "ZEN32 - Sync LEDs on Mode Change"
-    description: "Updates LED colors when mode is changed externally (UI, automation, etc.)"
+    description: "Updates LEDs with proper hierarchy when mode changes externally"
     mode: restart
     trigger:
       - platform: state
@@ -744,10 +931,57 @@ automation:
                 entity_id: input_select.zen32_control_mode
                 state: "music"
             sequence:
-              - service: script.zen32_set_all_leds
-                data:
-                  color: "blue"
+              # Use differentiated LED script instead of all-same-color
+              - service: script.zen32_set_mode_music
         default:
-          - service: script.zen32_set_all_leds
+          - service: script.zen32_set_mode_light
+
+  # ---------------------------------------------------------------------------
+  # Big Button State Tracking - Independent of Mode
+  # ---------------------------------------------------------------------------
+  # LED STATE DESIGN:
+  #   Lights ON, Normal:      White MEDIUM
+  #   Lights OFF:             OFF (always_off)
+  #   Movie Mode Active:      Red MEDIUM (overrides normal state)
+  # ---------------------------------------------------------------------------
+  - id: zen32_big_button_state_sync
+    alias: "ZEN32 - Big Button LED State Tracking"
+    description: "Updates Button 5 LED based on lights and movie mode state"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: light.all_adaptive_lights
+      - platform: state
+        entity_id: input_boolean.oal_movie_mode_active
+    action:
+      - choose:
+          # Movie Mode Active: Red overrides everything
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.oal_movie_mode_active
+                state: "on"
+            sequence:
+              - service: script.zen32_set_led
+                data:
+                  button: 5
+                  color: "red"
+                  toggle: "always_on"
+                  brightness: "medium"
+          # Lights ON: White
+          - conditions:
+              - condition: state
+                entity_id: light.all_adaptive_lights
+                state: "on"
+            sequence:
+              - service: script.zen32_set_led
+                data:
+                  button: 5
+                  color: "white"
+                  toggle: "always_on"
+                  brightness: "medium"
+        # Lights OFF: LED off
+        default:
+          - service: script.zen32_set_led
             data:
-              color: "yellow"
+              button: 5
+              toggle: "always_off"

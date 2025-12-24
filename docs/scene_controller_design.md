@@ -293,3 +293,79 @@
 | [3] Bottom-Left | 🎵 Music note | MUSIC | - |
 | [4] Bottom-Right | - | DOWN | - |
 | [5] Big Center | 💡 Lightbulb | LIGHTS | - |
+
+---
+
+## Implementation Review (2024-12-24)
+
+### Status: DRAFT - Remediation Required
+
+Implementation completed with known gaps. Critical code review identified blocking issues that must be resolved before deployment.
+
+### Implementation Files
+
+| File | Status | Lines | Description |
+|------|--------|-------|-------------|
+| `packages/zen32_modal_controller_package.yaml` | **CREATED** | 754 | Mode state, LED control, timeouts |
+| `packages/sonos_package.yaml` | **MODIFIED** | 1205-1394 | ZEN32 Sonos control scripts |
+| `packages/OAL_lighting_control_package.yaml` | **MODIFIED** | 1857-2186 | Modal button handler (30+ branches) |
+
+### Blocking Issues (P0)
+
+| Issue | Description | Status |
+|-------|-------------|--------|
+| BUG-1 | Device ID placeholder in 3 locations | 🔴 OPEN |
+| BUG-2 | DRY violation - duplicate device_id definition | 🔴 OPEN |
+| BUG-3 | KeyReleased events processed without action | 🔴 OPEN |
+
+### Design Specification Gaps
+
+| Issue | Description | Status |
+|-------|-------------|--------|
+| SPEC-1 | LED blink confirmation not implemented | 🟡 OPEN |
+| SPEC-2 | Big button LED state tracking missing | 🟡 OPEN |
+| SPEC-4 | Source cycling not implemented | 🟡 OPEN |
+| SPEC-5 | LED state table mismatch - all same color | 🔴 MUST FIX |
+
+### Required Remediation (in priority order)
+
+1. **Device ID Centralization** - Use YAML anchor pattern
+2. **Differentiated LED States** - Mode button ON, opposite OFF
+3. **Active Mode Button Pulse** - Continuous blink while active
+4. **Big Button State Tracking** - White=on, Red=movie, OFF=off
+5. **Button 5 Hold → Soft Reset** - Replace emergency all-off
+6. **Music Mode Default Volume** - Set 50% if not playing
+7. **Offline Device Notification** - Mobile alert on unavailable
+
+### Git Reference
+
+**Commit:** `5573499`
+**Branch:** `feature/hero-card-refactor`
+
+Full gap analysis available in: `~/.claude/plans/groovy-gathering-tulip.md`
+
+---
+
+## Outstanding: GitHub Issue #5 - Response Time
+
+**Status:** ⚪ DEFERRED - Not addressed in current sprint
+
+The underlying button response latency issue (GitHub Issue #5) has **not yet been investigated**. This includes:
+
+- 500ms debounce (may feel sluggish to users)
+- Z-Wave network latency profiling
+- LED transition timing optimization
+- Mode switch responsiveness
+
+**Rationale:** Focus is on P0 blocking bugs and P1 design gaps first. Speed optimization is Phase 5 work requiring the physical device to be online for measurement.
+
+---
+
+## Sub-Agent Research Findings
+
+| Topic | Agent | Key Finding |
+|-------|-------|-------------|
+| YAML Anchors | ha-integration-researcher | Use `package.node_anchors` pattern for DRY config |
+| LED UX | sequential-thinking | Three-tier brightness: HIGH/MEDIUM/LOW for mode clarity |
+| Blueprint Patterns | explore | Offset-based param math; keep `continue_on_error: true` |
+| Sonos Favorites | ha-integration-researcher | Counter-based cycling with `media_content_type: favorite_item_id` |

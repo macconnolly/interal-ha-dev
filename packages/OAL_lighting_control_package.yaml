@@ -1905,9 +1905,9 @@ automation:
       lights_are_on: "{{ is_state('light.all_adaptive_lights', 'on') }}"
 
     condition:
-      # Valid event types only
+      # Valid event types only (KeyReleased removed - no handler uses it, wastes resources)
       - condition: template
-        value_template: "{{ event_type in ['KeyPressed', 'KeyHeldDown', 'KeyPressed2x', 'KeyPressed3x', 'KeyReleased'] }}"
+        value_template: "{{ event_type in ['KeyPressed', 'KeyHeldDown', 'KeyPressed2x', 'KeyPressed3x'] }}"
       # Debounce: 500ms minimum between presses (prevents double-triggers)
       - condition: template
         value_template: >
@@ -2099,11 +2099,18 @@ automation:
             sequence:
               - service: script.sonos_ungroup_all
 
-          # [3] MUSIC - 3x Tap (any mode): Cycle Sonos source (future: Spotify/TuneIn)
-          # Placeholder for future implementation
-          # - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed3x' }}"
-          #   sequence:
-          #     - service: ...
+          # [3] MUSIC - 3x Tap (any mode): Cycle Sonos favorites
+          # Cycles through favorites configured in sensor.sonos_favorites
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed3x' }}"
+            sequence:
+              # Ensure we're in music mode first
+              - if:
+                  - condition: template
+                    value_template: "{{ is_light_mode }}"
+                then:
+                  - service: script.zen32_set_mode_music
+              # Cycle to next favorite
+              - service: script.zen32_cycle_sonos_favorite
 
           # =======================================================================
           # BUTTON 4 - DOWN BUTTON (Context-Sensitive Decrease)
@@ -2167,10 +2174,11 @@ automation:
                 target:
                   entity_id: light.all_adaptive_lights
 
-          # [5] BIG - Hold: EMERGENCY ALL-OFF (lights + music)
+          # [5] BIG - Hold: SOFT RESET (clear manual overrides)
+          # Changed from emergency all-off - soft reset is more commonly needed
           - conditions: "{{ button_id == 'button_5' and event_type == 'KeyHeldDown' }}"
             sequence:
-              - service: script.zen32_emergency_all_off
+              - service: script.oal_reset_soft
 
           # [5] BIG - 2x Tap: Toggle Movie Mode
           - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed2x' }}"
@@ -2179,10 +2187,12 @@ automation:
                 target:
                   entity_id: input_boolean.oal_movie_mode_active
 
-          # [5] BIG - 3x Tap: Soft reset (clear manual overrides)
+          # [5] BIG - 3x Tap: Toggle Sleep Mode
           - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed3x' }}"
             sequence:
-              - service: script.oal_reset_soft
+              - service: input_boolean.toggle
+                target:
+                  entity_id: input_boolean.oal_disable_sleep_mode
 
   # ---------------------------------------------------------------------------
   # 4.8 Dynamic sunrise from Sonos alarms

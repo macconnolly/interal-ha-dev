@@ -1389,6 +1389,73 @@ script:
         data:
           is_volume_muted: "{{ not is_muted }}"
 
+  # ---------------------------------------------------------------------------
+  # Cycle Sonos Favorites - 3x tap on MUSIC button
+  # ---------------------------------------------------------------------------
+  zen32_cycle_sonos_favorite:
+    alias: "ZEN32 - Cycle Sonos Favorite"
+    description: "Cycles through Sonos favorites on 3x tap (MUSIC button)"
+    icon: mdi:playlist-star
+    mode: single
+    sequence:
+      - variables:
+          # Get favorites from sensor
+          favorites_dict: "{{ state_attr('sensor.sonos_favorites', 'items') | default({}) }}"
+          favorites_keys: "{{ favorites_dict.keys() | list }}"
+          favorites_count: "{{ favorites_keys | length }}"
+          # Current index from input_number
+          current_index: "{{ states('input_number.sonos_favorite_index') | int(0) }}"
+          # Calculate next index with wrap-around
+          next_index: "{{ (current_index + 1) % favorites_count if favorites_count > 0 else 0 }}"
+          next_favorite_id: "{{ favorites_keys[next_index] if favorites_count > 0 else '' }}"
+          next_favorite_name: "{{ favorites_dict[next_favorite_id] if next_favorite_id else 'Unknown' }}"
+          # Get coordinator - prefer playing speaker, fallback to living room
+          raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
+          coordinator: >
+            {% if raw_coordinator not in ['none', 'unknown', 'unavailable', ''] %}
+              {{ raw_coordinator }}
+            {% else %}
+              media_player.living_room
+            {% endif %}
+          # Default volume from input_number
+          default_volume: "{{ states('input_number.sonos_zen32_default_volume') | float(0.5) }}"
+
+      # Skip if no favorites available
+      - condition: template
+        value_template: "{{ favorites_count > 0 }}"
+
+      # Update index
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.sonos_favorite_index
+        data:
+          value: "{{ next_index }}"
+
+      # If not currently playing, set default volume first
+      - if:
+          - condition: template
+            value_template: "{{ not is_state(coordinator, 'playing') }}"
+        then:
+          - service: media_player.volume_set
+            target:
+              entity_id: "{{ coordinator }}"
+            data:
+              volume_level: "{{ default_volume }}"
+
+      # Play the favorite
+      - service: media_player.play_media
+        target:
+          entity_id: "{{ coordinator }}"
+        data:
+          media_content_type: "favorite_item_id"
+          media_content_id: "{{ next_favorite_id }}"
+
+      # Log which favorite is playing
+      - service: system_log.write
+        data:
+          message: "ZEN32: Now playing Sonos favorite {{ next_index + 1 }}/{{ favorites_count }}: {{ next_favorite_name }}"
+          level: info
+
   # ===========================================================================
   # END ZEN32 SONOS SCRIPTS
   # ===========================================================================

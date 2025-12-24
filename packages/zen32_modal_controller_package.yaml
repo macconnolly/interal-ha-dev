@@ -1,0 +1,753 @@
+# =============================================================================
+# ZEN32 MODAL SCENE CONTROLLER PACKAGE
+# =============================================================================
+# Version: 1.0.0
+# Author: Claude Code Implementation
+#
+# ARCHITECTURE:
+#   This package provides modal control for the Zooz ZEN32 scene controller,
+#   enabling context-switching between LIGHT mode (brightness/color temp) and
+#   MUSIC mode (volume/tracks). LED colors indicate active mode.
+#
+# DEPENDENCIES:
+#   - packages/OAL_lighting_control_package.yaml (lighting scripts + handler)
+#   - packages/sonos_package.yaml (Sonos control scripts)
+#   - Z-Wave JS integration with ZEN32 device configured
+#
+# BUTTON LAYOUT:
+#   ┌─────────────────────────────┐
+#   │   ┌─────────────────────┐   │
+#   │   │   [5] BIG BUTTON    │   │  Toggle all lights / Emergency off
+#   │   │       LIGHTS        │   │
+#   │   └─────────────────────┘   │
+#   │                             │
+#   │  ┌──────────┐ ┌──────────┐  │
+#   │  │ [1]LIGHT │ │ [2] UP   │  │  Mode select / Increase
+#   │  └──────────┘ └──────────┘  │
+#   │                             │
+#   │  ┌──────────┐ ┌──────────┐  │
+#   │  │ [3]MUSIC │ │ [4] DOWN │  │  Mode select+Play / Decrease
+#   │  └──────────┘ └──────────┘  │
+#   └─────────────────────────────┘
+#
+# LED COLOR SCHEME:
+#   LIGHT MODE: All buttons YELLOW (color value 5)
+#   MUSIC MODE: All buttons BLUE (color value 1)
+#   BIG BUTTON: Follows mode color (independent light state tracking optional)
+#
+# MODE TIMEOUT:
+#   After 60 seconds of no interaction in MUSIC mode, automatically returns
+#   to LIGHT mode. Music continues playing; only control context changes.
+#
+# =============================================================================
+
+# =============================================================================
+# CONFIGURATION - MUST BE UPDATED BEFORE USE
+# =============================================================================
+# To find your ZEN32 device_id:
+#   1. Go to Settings > Devices & Services > Z-Wave JS
+#   2. Find "Scene Controller" (or your ZEN32's name)
+#   3. Click on it, device_id is in the URL after /device/
+#   4. Or run in Developer Tools > Template:
+#      {{ device_id('event.scene_controller_scene_001') }}
+#
+# Replace the placeholder below with your actual device_id:
+# =============================================================================
+
+homeassistant:
+  customize:
+    # Marker to indicate this package is loaded
+    package.zen32_modal_controller:
+      version: "1.0.0"
+      device_id_placeholder: "REPLACE_WITH_ZEN32_DEVICE_ID"
+
+# =============================================================================
+# INPUT HELPERS - Mode State Tracking
+# =============================================================================
+
+input_select:
+  zen32_control_mode:
+    name: "ZEN32 Control Mode"
+    options:
+      - "light"
+      - "music"
+    initial: "light"
+    icon: mdi:toggle-switch-variant
+
+input_datetime:
+  zen32_mode_last_change:
+    name: "ZEN32 Mode Last Change"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-check-outline
+
+# =============================================================================
+# TEMPLATE SENSORS - Mode Status & Diagnostics
+# =============================================================================
+
+template:
+  - sensor:
+      - name: "ZEN32 Mode Status"
+        unique_id: zen32_mode_status
+        icon: >
+          {% if is_state('input_select.zen32_control_mode', 'music') %}
+            mdi:music-circle
+          {% else %}
+            mdi:lightbulb-group
+          {% endif %}
+        state: "{{ states('input_select.zen32_control_mode') }}"
+        attributes:
+          mode_color: >
+            {% if is_state('input_select.zen32_control_mode', 'music') %}
+              blue
+            {% else %}
+              yellow
+            {% endif %}
+          mode_color_value: >
+            {% if is_state('input_select.zen32_control_mode', 'music') %}
+              1
+            {% else %}
+              5
+            {% endif %}
+          seconds_in_mode: >
+            {% set last_change = states('input_datetime.zen32_mode_last_change') | as_datetime %}
+            {% if last_change %}
+              {{ ((now() - last_change).total_seconds()) | int }}
+            {% else %}
+              0
+            {% endif %}
+          timeout_remaining: >
+            {% if is_state('input_select.zen32_control_mode', 'music') %}
+              {% set last_change = states('input_datetime.zen32_mode_last_change') | as_datetime %}
+              {% if last_change %}
+                {{ [0, 60 - (((now() - last_change).total_seconds()) | int)] | max }}
+              {% else %}
+                60
+              {% endif %}
+            {% else %}
+              0
+            {% endif %}
+          is_music_mode: "{{ is_state('input_select.zen32_control_mode', 'music') }}"
+          is_light_mode: "{{ is_state('input_select.zen32_control_mode', 'light') }}"
+
+# =============================================================================
+# SCRIPTS - LED Control
+# =============================================================================
+# ZEN32 Z-Wave Configuration Parameters:
+#
+# LED Toggle (On/Off) Parameters:
+#   Parameter 1: Big Button (Button 5)
+#   Parameter 2: Button 1 (LIGHT)
+#   Parameter 3: Button 2 (UP)
+#   Parameter 4: Button 3 (MUSIC)
+#   Parameter 5: Button 4 (DOWN)
+#   Values: 0=On when load off, 1=On when load on, 2=Always Off, 3=Always On
+#
+# LED Color Parameters:
+#   Parameter 6:  Big Button (Button 5)
+#   Parameter 7:  Button 1 (LIGHT)
+#   Parameter 8:  Button 2 (UP)
+#   Parameter 9:  Button 3 (MUSIC)
+#   Parameter 10: Button 4 (DOWN)
+#   Values: 0=White, 1=Blue, 2=Green, 3=Red, 4=Magenta, 5=Yellow, 6=Cyan
+#
+# LED Brightness Parameters:
+#   Parameter 11: Big Button (Button 5)
+#   Parameter 12: Button 1 (LIGHT)
+#   Parameter 13: Button 2 (UP)
+#   Parameter 14: Button 3 (MUSIC)
+#   Parameter 15: Button 4 (DOWN)
+#   Values: 0=Bright, 1=Medium, 2=Low
+#
+# =============================================================================
+
+script:
+  # ---------------------------------------------------------------------------
+  # Core LED Control - Set Single Button LED
+  # ---------------------------------------------------------------------------
+  zen32_set_led:
+    alias: "ZEN32 - Set Single LED"
+    description: "Sets color, toggle state, and brightness for a single ZEN32 button LED"
+    icon: mdi:led-on
+    mode: parallel
+    max: 10
+    fields:
+      button:
+        description: "Button number (1-5, where 5 is the big button)"
+        example: 1
+        required: true
+        selector:
+          number:
+            min: 1
+            max: 5
+            mode: box
+      color:
+        description: "LED color (white/blue/green/red/magenta/yellow/cyan)"
+        example: "yellow"
+        required: false
+        selector:
+          select:
+            options:
+              - white
+              - blue
+              - green
+              - red
+              - magenta
+              - yellow
+              - cyan
+      toggle:
+        description: "LED toggle state (on_when_off/on_when_on/always_off/always_on)"
+        example: "always_on"
+        required: false
+        selector:
+          select:
+            options:
+              - on_when_off
+              - on_when_on
+              - always_off
+              - always_on
+      brightness:
+        description: "LED brightness (bright/medium/low)"
+        example: "bright"
+        required: false
+        selector:
+          select:
+            options:
+              - bright
+              - medium
+              - low
+    variables:
+      # CRITICAL: Replace this with your actual ZEN32 device_id
+      controller_device_id: "REPLACE_WITH_ZEN32_DEVICE_ID"
+
+      # Color value mapping
+      color_map:
+        white: 0
+        blue: 1
+        green: 2
+        red: 3
+        magenta: 4
+        yellow: 5
+        cyan: 6
+
+      # Toggle value mapping
+      toggle_map:
+        on_when_off: 0
+        on_when_on: 1
+        always_off: 2
+        always_on: 3
+
+      # Brightness value mapping
+      brightness_map:
+        bright: 0
+        medium: 1
+        low: 2
+
+      # Button to parameter offset mapping
+      # Button 5 (big) uses offset 0, Buttons 1-4 use offset 1-4
+      button_param_offset:
+        1: 1
+        2: 2
+        3: 3
+        4: 4
+        5: 0
+
+      param_offset: "{{ button_param_offset[button | int] }}"
+      color_param: "{{ 6 + param_offset }}"
+      toggle_param: "{{ 1 + param_offset }}"
+      brightness_param: "{{ 11 + param_offset }}"
+
+    sequence:
+      # Set color if specified
+      - if:
+          - condition: template
+            value_template: "{{ color is defined and color }}"
+        then:
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: "{{ color_param }}"
+              value: "{{ color_map[color | lower] | default(0) }}"
+            target:
+              device_id: "{{ controller_device_id }}"
+
+      # Set toggle state if specified
+      - if:
+          - condition: template
+            value_template: "{{ toggle is defined and toggle }}"
+        then:
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: "{{ toggle_param }}"
+              value: "{{ toggle_map[toggle | lower] | default(3) }}"
+            target:
+              device_id: "{{ controller_device_id }}"
+
+      # Set brightness if specified
+      - if:
+          - condition: template
+            value_template: "{{ brightness is defined and brightness }}"
+        then:
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: "{{ brightness_param }}"
+              value: "{{ brightness_map[brightness | lower] | default(0) }}"
+            target:
+              device_id: "{{ controller_device_id }}"
+
+  # ---------------------------------------------------------------------------
+  # Bulk LED Control - Set All Button LEDs to Same Color
+  # ---------------------------------------------------------------------------
+  zen32_set_all_leds:
+    alias: "ZEN32 - Set All LEDs"
+    description: "Sets all 5 ZEN32 button LEDs to the same color with optional toggle/brightness"
+    icon: mdi:led-variant-on
+    mode: single
+    fields:
+      color:
+        description: "LED color for all buttons"
+        example: "yellow"
+        required: true
+        selector:
+          select:
+            options:
+              - white
+              - blue
+              - green
+              - red
+              - magenta
+              - yellow
+              - cyan
+      toggle:
+        description: "LED toggle state for all buttons (optional)"
+        required: false
+        selector:
+          select:
+            options:
+              - on_when_off
+              - on_when_on
+              - always_off
+              - always_on
+      brightness:
+        description: "LED brightness for all buttons (optional)"
+        required: false
+        selector:
+          select:
+            options:
+              - bright
+              - medium
+              - low
+    variables:
+      # CRITICAL: Replace this with your actual ZEN32 device_id
+      controller_device_id: "REPLACE_WITH_ZEN32_DEVICE_ID"
+
+      color_map:
+        white: 0
+        blue: 1
+        green: 2
+        red: 3
+        magenta: 4
+        yellow: 5
+        cyan: 6
+
+      toggle_map:
+        on_when_off: 0
+        on_when_on: 1
+        always_off: 2
+        always_on: 3
+
+      brightness_map:
+        bright: 0
+        medium: 1
+        low: 2
+
+      color_value: "{{ color_map[color | lower] | default(5) }}"
+      toggle_value: "{{ toggle_map[toggle | lower] | default(3) if toggle is defined and toggle else none }}"
+      brightness_value: "{{ brightness_map[brightness | lower] | default(0) if brightness is defined and brightness else none }}"
+
+    sequence:
+      # Set all 5 button colors in parallel for speed
+      - parallel:
+          # Button 5 (Big) - Parameter 6
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 6
+              value: "{{ color_value }}"
+            target:
+              device_id: "{{ controller_device_id }}"
+          # Button 1 (LIGHT) - Parameter 7
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 7
+              value: "{{ color_value }}"
+            target:
+              device_id: "{{ controller_device_id }}"
+          # Button 2 (UP) - Parameter 8
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 8
+              value: "{{ color_value }}"
+            target:
+              device_id: "{{ controller_device_id }}"
+          # Button 3 (MUSIC) - Parameter 9
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 9
+              value: "{{ color_value }}"
+            target:
+              device_id: "{{ controller_device_id }}"
+          # Button 4 (DOWN) - Parameter 10
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 10
+              value: "{{ color_value }}"
+            target:
+              device_id: "{{ controller_device_id }}"
+
+      # Set toggle states if specified
+      - if:
+          - condition: template
+            value_template: "{{ toggle_value is not none }}"
+        then:
+          - parallel:
+              - service: zwave_js.set_config_parameter
+                continue_on_error: true
+                data:
+                  parameter: 1
+                  value: "{{ toggle_value }}"
+                target:
+                  device_id: "{{ controller_device_id }}"
+              - service: zwave_js.set_config_parameter
+                continue_on_error: true
+                data:
+                  parameter: 2
+                  value: "{{ toggle_value }}"
+                target:
+                  device_id: "{{ controller_device_id }}"
+              - service: zwave_js.set_config_parameter
+                continue_on_error: true
+                data:
+                  parameter: 3
+                  value: "{{ toggle_value }}"
+                target:
+                  device_id: "{{ controller_device_id }}"
+              - service: zwave_js.set_config_parameter
+                continue_on_error: true
+                data:
+                  parameter: 4
+                  value: "{{ toggle_value }}"
+                target:
+                  device_id: "{{ controller_device_id }}"
+              - service: zwave_js.set_config_parameter
+                continue_on_error: true
+                data:
+                  parameter: 5
+                  value: "{{ toggle_value }}"
+                target:
+                  device_id: "{{ controller_device_id }}"
+
+      # Set brightness if specified
+      - if:
+          - condition: template
+            value_template: "{{ brightness_value is not none }}"
+        then:
+          - parallel:
+              - service: zwave_js.set_config_parameter
+                continue_on_error: true
+                data:
+                  parameter: 11
+                  value: "{{ brightness_value }}"
+                target:
+                  device_id: "{{ controller_device_id }}"
+              - service: zwave_js.set_config_parameter
+                continue_on_error: true
+                data:
+                  parameter: 12
+                  value: "{{ brightness_value }}"
+                target:
+                  device_id: "{{ controller_device_id }}"
+              - service: zwave_js.set_config_parameter
+                continue_on_error: true
+                data:
+                  parameter: 13
+                  value: "{{ brightness_value }}"
+                target:
+                  device_id: "{{ controller_device_id }}"
+              - service: zwave_js.set_config_parameter
+                continue_on_error: true
+                data:
+                  parameter: 14
+                  value: "{{ brightness_value }}"
+                target:
+                  device_id: "{{ controller_device_id }}"
+              - service: zwave_js.set_config_parameter
+                continue_on_error: true
+                data:
+                  parameter: 15
+                  value: "{{ brightness_value }}"
+                target:
+                  device_id: "{{ controller_device_id }}"
+
+  # ---------------------------------------------------------------------------
+  # Mode Transition - Switch to LIGHT Mode
+  # ---------------------------------------------------------------------------
+  zen32_set_mode_light:
+    alias: "ZEN32 - Set LIGHT Mode"
+    description: "Switches to LIGHT mode, updates state, and sets all LEDs to yellow"
+    icon: mdi:lightbulb-on
+    mode: single
+    sequence:
+      # Update mode state
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.zen32_control_mode
+        data:
+          option: "light"
+
+      # Update interaction timestamp
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_mode_last_change
+        data:
+          datetime: "{{ now() }}"
+
+      # Set all LEDs to yellow with always_on
+      - service: script.zen32_set_all_leds
+        data:
+          color: "yellow"
+          toggle: "always_on"
+          brightness: "bright"
+
+  # ---------------------------------------------------------------------------
+  # Mode Transition - Switch to MUSIC Mode
+  # ---------------------------------------------------------------------------
+  zen32_set_mode_music:
+    alias: "ZEN32 - Set MUSIC Mode"
+    description: "Switches to MUSIC mode, updates state, and sets all LEDs to blue"
+    icon: mdi:music
+    mode: single
+    sequence:
+      # Update mode state
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.zen32_control_mode
+        data:
+          option: "music"
+
+      # Update interaction timestamp (resets 60s timeout)
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_mode_last_change
+        data:
+          datetime: "{{ now() }}"
+
+      # Set all LEDs to blue with always_on
+      - service: script.zen32_set_all_leds
+        data:
+          color: "blue"
+          toggle: "always_on"
+          brightness: "bright"
+
+  # ---------------------------------------------------------------------------
+  # Emergency All-Off (Mode-Independent)
+  # ---------------------------------------------------------------------------
+  zen32_emergency_all_off:
+    alias: "ZEN32 - Emergency All Off"
+    description: "Immediately turns off all lights and pauses all Sonos speakers"
+    icon: mdi:alert-octagon
+    mode: single
+    sequence:
+      - parallel:
+          # Turn off all adaptive lights
+          - service: light.turn_off
+            target:
+              entity_id: light.all_adaptive_lights
+            data:
+              transition: 0
+
+          # Pause all Sonos speakers
+          # DEPENDENCY: script.sonos_all_pause from sonos_package.yaml
+          - service: script.sonos_all_pause
+
+  # ---------------------------------------------------------------------------
+  # Full Brightness - Set All Zones to Maximum
+  # ---------------------------------------------------------------------------
+  zen32_full_brightness:
+    alias: "ZEN32 - Full Brightness All Zones"
+    description: "Sets all lighting zones to maximum brightness via OAL offset pipeline"
+    icon: mdi:brightness-7
+    mode: single
+    sequence:
+      # Set all per-zone manual brightness offsets to +50%
+      # This pushes all zones toward their max brightness
+      # DEPENDENCY: These input_numbers are from OAL_lighting_control_package.yaml
+      - service: input_number.set_value
+        target:
+          entity_id:
+            - input_number.oal_manual_offset_main_living_brightness
+            - input_number.oal_manual_offset_kitchen_island_brightness
+            - input_number.oal_manual_offset_bedroom_primary_brightness
+            - input_number.oal_manual_offset_accent_spots_brightness
+            - input_number.oal_manual_offset_recessed_ceiling_brightness
+            - input_number.oal_manual_offset_column_lights_brightness
+        data:
+          value: 50
+
+      # Trigger the OAL global adjustment pipeline to apply immediately
+      # DEPENDENCY: script.oal_global_adjustment_start from OAL_lighting_control_package.yaml
+      - service: script.oal_global_adjustment_start
+
+  # ---------------------------------------------------------------------------
+  # Minimum Brightness - Set All Zones to Ambient Minimum
+  # ---------------------------------------------------------------------------
+  zen32_minimum_brightness:
+    alias: "ZEN32 - Minimum Brightness All Zones"
+    description: "Sets all lighting zones to minimum ambient brightness"
+    icon: mdi:brightness-4
+    mode: single
+    sequence:
+      # Set all per-zone manual brightness offsets to -50%
+      - service: input_number.set_value
+        target:
+          entity_id:
+            - input_number.oal_manual_offset_main_living_brightness
+            - input_number.oal_manual_offset_kitchen_island_brightness
+            - input_number.oal_manual_offset_bedroom_primary_brightness
+            - input_number.oal_manual_offset_accent_spots_brightness
+            - input_number.oal_manual_offset_recessed_ceiling_brightness
+            - input_number.oal_manual_offset_column_lights_brightness
+        data:
+          value: -50
+
+      # Trigger OAL pipeline
+      - service: script.oal_global_adjustment_start
+
+  # ---------------------------------------------------------------------------
+  # Update Mode Timestamp - For Timeout Reset
+  # Called by button handler to reset the 60s timeout on any interaction
+  # ---------------------------------------------------------------------------
+  zen32_update_interaction:
+    alias: "ZEN32 - Update Interaction Timestamp"
+    description: "Resets the mode timeout by updating the last interaction time"
+    icon: mdi:timer-refresh
+    mode: parallel
+    max: 5
+    sequence:
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_mode_last_change
+        data:
+          datetime: "{{ now() }}"
+
+# =============================================================================
+# AUTOMATIONS - Mode Management
+# =============================================================================
+
+automation:
+  # ---------------------------------------------------------------------------
+  # Music Mode Timeout - Return to LIGHT after 60 seconds of inactivity
+  # ---------------------------------------------------------------------------
+  - id: zen32_mode_timeout
+    alias: "ZEN32 - Music Mode Timeout (60s)"
+    description: "Returns to LIGHT mode after 60 seconds of no interaction in MUSIC mode"
+    mode: restart
+    trigger:
+      # Trigger when entering MUSIC mode
+      - platform: state
+        entity_id: input_select.zen32_control_mode
+        to: "music"
+      # Also re-trigger on any interaction timestamp update (extends timeout)
+      - platform: state
+        entity_id: input_datetime.zen32_mode_last_change
+    condition:
+      # Only run if currently in MUSIC mode
+      - condition: state
+        entity_id: input_select.zen32_control_mode
+        state: "music"
+    action:
+      # Wait 60 seconds
+      - delay:
+          seconds: 60
+
+      # Verify still in MUSIC mode (might have manually switched)
+      - condition: state
+        entity_id: input_select.zen32_control_mode
+        state: "music"
+
+      # Silently return to LIGHT mode
+      # Music continues playing - only control context changes
+      - service: script.zen32_set_mode_light
+
+  # ---------------------------------------------------------------------------
+  # Startup Initialization - Restore LED State on HA Restart
+  # ---------------------------------------------------------------------------
+  - id: zen32_startup_init
+    alias: "ZEN32 - Initialize LEDs on Startup"
+    description: "Sets LEDs to match current mode when Home Assistant starts"
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      # Wait for Z-Wave network to stabilize
+      - delay:
+          seconds: 45
+
+      # Set LEDs based on current mode
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_select.zen32_control_mode
+                state: "music"
+            sequence:
+              - service: script.zen32_set_all_leds
+                data:
+                  color: "blue"
+                  toggle: "always_on"
+        default:
+          # Default to LIGHT mode
+          - service: input_select.select_option
+            target:
+              entity_id: input_select.zen32_control_mode
+            data:
+              option: "light"
+          - service: script.zen32_set_all_leds
+            data:
+              color: "yellow"
+              toggle: "always_on"
+
+  # ---------------------------------------------------------------------------
+  # LED Sync on Mode Change - Ensures LEDs match mode after external changes
+  # ---------------------------------------------------------------------------
+  - id: zen32_mode_led_sync
+    alias: "ZEN32 - Sync LEDs on Mode Change"
+    description: "Updates LED colors when mode is changed externally (UI, automation, etc.)"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: input_select.zen32_control_mode
+    condition:
+      # Ignore initial unknown state
+      - condition: template
+        value_template: "{{ trigger.from_state.state in ['light', 'music'] }}"
+    action:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_select.zen32_control_mode
+                state: "music"
+            sequence:
+              - service: script.zen32_set_all_leds
+                data:
+                  color: "blue"
+        default:
+          - service: script.zen32_set_all_leds
+            data:
+              color: "yellow"

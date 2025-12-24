@@ -394,10 +394,7 @@ input_boolean:
     icon: mdi:sleep-off
 
 input_datetime:
-  zen32_last_button_press:
-    has_date: true
-    has_time: true
-    icon: mdi:gesture-tap-button
+  # zen32_last_button_press moved to zen32_modal_controller_package.yaml
 
   oal_last_engine_run:
     has_date: true

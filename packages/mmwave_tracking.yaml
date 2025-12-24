@@ -1,0 +1,180 @@
+# Inovelli VZM32-SN mmWave Target Tracking Package
+# 
+# Installation:
+#   1. Create packages directory if needed: mkdir -p config/packages
+#   2. Add to configuration.yaml (if not already present):
+#      homeassistant:
+#        packages: !include_dir_named packages
+#   3. Save this file as config/packages/mmwave_tracking.yaml
+#   4. Restart Home Assistant
+#
+# Prerequisites:
+#   - mmWaveTargetInfoReport must be set to "Enable" on the device
+#   - Update DEVICE_TOPIC below if your device has a different name
+#
+# Data Format (when mmWaveTargetInfoReport = Enable):
+#   Byte 3: Frame counter (incrementing)
+#   Byte 4: Target count (0-4)
+#   Byte 5: Target 1 ID
+#   Bytes 6-7: Target 1 X (little-endian signed int16, cm)
+#   Bytes 8-9: Target 1 Y (little-endian signed int16, cm)
+#   Bytes 10-11: Target 1 Z (little-endian signed int16, cm)
+#   Bytes 12-13: Target 1 Doppler (little-endian signed int16)
+#
+# Coordinate System:
+#   X: Left(-) / Right(+) from sensor center
+#   Y: Depth (distance forward from sensor)
+#   Z: Height relative to sensor level (negative = below sensor)
+
+# ==============================================================================
+# MQTT Sensors - Direct from Zigbee2MQTT
+# ==============================================================================
+mqtt:
+  sensor:
+    - name: "Living Room mmWave Target Count"
+      unique_id: living_room_mmwave_target_count
+      state_topic: "zigbee2mqtt/Living Room Presence Dimmer"
+      value_template: "{{ value_json['4'] | default(0) }}"
+      unit_of_measurement: "targets"
+      icon: "mdi:account-multiple"
+
+    - name: "Living Room mmWave Frame Counter"
+      unique_id: living_room_mmwave_frame_counter
+      state_topic: "zigbee2mqtt/Living Room Presence Dimmer"
+      value_template: "{{ value_json['3'] | default(0) }}"
+      icon: "mdi:counter"
+
+    - name: "Living Room mmWave Target ID"
+      unique_id: living_room_mmwave_target_id
+      state_topic: "zigbee2mqtt/Living Room Presence Dimmer"
+      value_template: "{{ value_json['5'] | default(0) }}"
+      icon: "mdi:identifier"
+
+    - name: "Living Room mmWave Target X"
+      unique_id: living_room_mmwave_target_x
+      state_topic: "zigbee2mqtt/Living Room Presence Dimmer"
+      value_template: >-
+        {% set b0 = value_json['6'] | default(0) | int %}
+        {% set b1 = value_json['7'] | default(0) | int %}
+        {% set val = b0 + b1 * 256 %}
+        {% if val > 32767 %}{{ val - 65536 }}{% else %}{{ val }}{% endif %}
+      unit_of_measurement: "cm"
+      icon: "mdi:arrow-left-right"
+
+    - name: "Living Room mmWave Target Y"
+      unique_id: living_room_mmwave_target_y
+      state_topic: "zigbee2mqtt/Living Room Presence Dimmer"
+      value_template: >-
+        {% set b0 = value_json['8'] | default(0) | int %}
+        {% set b1 = value_json['9'] | default(0) | int %}
+        {% set val = b0 + b1 * 256 %}
+        {% if val > 32767 %}{{ val - 65536 }}{% else %}{{ val }}{% endif %}
+      unit_of_measurement: "cm"
+      icon: "mdi:arrow-up-down"
+
+    - name: "Living Room mmWave Target Z"
+      unique_id: living_room_mmwave_target_z
+      state_topic: "zigbee2mqtt/Living Room Presence Dimmer"
+      value_template: >-
+        {% set b0 = value_json['10'] | default(0) | int %}
+        {% set b1 = value_json['11'] | default(0) | int %}
+        {% set val = b0 + b1 * 256 %}
+        {% if val > 32767 %}{{ val - 65536 }}{% else %}{{ val }}{% endif %}
+      unit_of_measurement: "cm"
+      icon: "mdi:arrow-up-down-bold"
+
+    - name: "Living Room mmWave Target Doppler"
+      unique_id: living_room_mmwave_target_doppler
+      state_topic: "zigbee2mqtt/Living Room Presence Dimmer"
+      value_template: >-
+        {% set b0 = value_json['12'] | default(0) | int %}
+        {% set b1 = value_json['13'] | default(0) | int %}
+        {% set val = b0 + b1 * 256 %}
+        {% if val > 32767 %}{{ val - 65536 }}{% else %}{{ val }}{% endif %}
+      unit_of_measurement: "cm/s"
+      icon: "mdi:speedometer"
+
+    - name: "Living Room mmWave Target Distance"
+      unique_id: living_room_mmwave_target_distance
+      state_topic: "zigbee2mqtt/Living Room Presence Dimmer"
+      value_template: >-
+        {% set x_b0 = value_json['6'] | default(0) | int %}
+        {% set x_b1 = value_json['7'] | default(0) | int %}
+        {% set x_raw = x_b0 + x_b1 * 256 %}
+        {% set x = (x_raw - 65536) if x_raw > 32767 else x_raw %}
+        {% set y_b0 = value_json['8'] | default(0) | int %}
+        {% set y_b1 = value_json['9'] | default(0) | int %}
+        {% set y_raw = y_b0 + y_b1 * 256 %}
+        {% set y = (y_raw - 65536) if y_raw > 32767 else y_raw %}
+        {% set z_b0 = value_json['10'] | default(0) | int %}
+        {% set z_b1 = value_json['11'] | default(0) | int %}
+        {% set z_raw = z_b0 + z_b1 * 256 %}
+        {% set z = (z_raw - 65536) if z_raw > 32767 else z_raw %}
+        {{ ((x**2 + y**2 + z**2) ** 0.5) | round(0) }}
+      unit_of_measurement: "cm"
+      icon: "mdi:ruler"
+
+    - name: "Living Room mmWave Report Type"
+      unique_id: living_room_mmwave_report_type
+      state_topic: "zigbee2mqtt/Living Room Presence Dimmer"
+      value_template: >-
+        {% set b14 = value_json['14'] | default(0) | int %}
+        {% set b15 = value_json['15'] | default(0) | int %}
+        {% set b16 = value_json['16'] | default(0) | int %}
+        {% set b17 = value_json['17'] | default(0) | int %}
+        {% if b14 == 168 and b15 == 253 and b16 == 88 and b17 == 2 %}
+          area_config
+        {% else %}
+          target_info
+        {% endif %}
+      icon: "mdi:information"
+
+# ==============================================================================
+# Template Sensors - Derived values
+# ==============================================================================
+template:
+  - sensor:
+      - name: "Living Room mmWave Position Summary"
+        unique_id: living_room_mmwave_position_summary
+        state: >-
+          {% set x = states('sensor.living_room_mmwave_target_x') | float(0) %}
+          {% set y = states('sensor.living_room_mmwave_target_y') | float(0) %}
+          {% set z = states('sensor.living_room_mmwave_target_z') | float(0) %}
+          {% set count = states('sensor.living_room_mmwave_target_count') | int(0) %}
+          {% if count > 0 %}
+            {{ count }} target: X={{ x | round(0) }}, Y={{ y | round(0) }}, Z={{ z | round(0) }} cm
+          {% else %}
+            No targets
+          {% endif %}
+        icon: "mdi:radar"
+        attributes:
+          target_count: "{{ states('sensor.living_room_mmwave_target_count') | int(0) }}"
+          x_cm: "{{ states('sensor.living_room_mmwave_target_x') | float(0) }}"
+          y_cm: "{{ states('sensor.living_room_mmwave_target_y') | float(0) }}"
+          z_cm: "{{ states('sensor.living_room_mmwave_target_z') | float(0) }}"
+          distance_cm: "{{ states('sensor.living_room_mmwave_target_distance') | float(0) }}"
+          doppler: "{{ states('sensor.living_room_mmwave_target_doppler') | float(0) }}"
+
+      - name: "Living Room mmWave Target X Meters"
+        unique_id: living_room_mmwave_target_x_m
+        state: "{{ (states('sensor.living_room_mmwave_target_x') | float(0) / 100) | round(2) }}"
+        unit_of_measurement: "m"
+        icon: "mdi:arrow-left-right"
+
+      - name: "Living Room mmWave Target Y Meters"
+        unique_id: living_room_mmwave_target_y_m
+        state: "{{ (states('sensor.living_room_mmwave_target_y') | float(0) / 100) | round(2) }}"
+        unit_of_measurement: "m"
+        icon: "mdi:arrow-up-down"
+
+      - name: "Living Room mmWave Target Z Meters"
+        unique_id: living_room_mmwave_target_z_m
+        state: "{{ (states('sensor.living_room_mmwave_target_z') | float(0) / 100) | round(2) }}"
+        unit_of_measurement: "m"
+        icon: "mdi:arrow-up-down-bold"
+
+      - name: "Living Room mmWave Distance Meters"
+        unique_id: living_room_mmwave_distance_m
+        state: "{{ (states('sensor.living_room_mmwave_target_distance') | float(0) / 100) | round(2) }}"
+        unit_of_measurement: "m"
+        icon: "mdi:map-marker-distance"

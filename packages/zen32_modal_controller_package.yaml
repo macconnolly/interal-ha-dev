@@ -915,11 +915,11 @@ script:
               entity_id: "{{ target_speaker }}"
 
   # ---------------------------------------------------------------------------
-  # Start Playback - Resumes or starts playback
+  # Start Playback - Resumes or starts a favorite
   # ---------------------------------------------------------------------------
   zen32_sonos_start:
     alias: "ZEN32 - Sonos Start Playback"
-    description: "Starts or resumes playback on Sonos coordinator or Living Room"
+    description: "Resumes playback or starts first favorite if nothing queued"
     icon: mdi:play
     mode: single
     sequence:
@@ -931,9 +931,25 @@ script:
             {% else %}
               media_player.living_room
             {% endif %}
-      - service: media_player.media_play
-        target:
-          entity_id: "{{ target_speaker }}"
+          is_idle: "{{ states(target_speaker) in ['idle', 'off', 'unknown', 'unavailable'] }}"
+          default_volume: "{{ states('input_number.sonos_default_volume') | float(0.25) }}"
+      - choose:
+          # If idle/off, start a favorite
+          - conditions: "{{ is_idle }}"
+            sequence:
+              # Set default volume first
+              - service: media_player.volume_set
+                target:
+                  entity_id: "{{ target_speaker }}"
+                data:
+                  volume_level: "{{ default_volume }}"
+              # Start first favorite (or cycle to next if already set)
+              - service: script.zen32_cycle_sonos_favorite
+        # Otherwise just resume
+        default:
+          - service: media_player.media_play
+            target:
+              entity_id: "{{ target_speaker }}"
 
   # ---------------------------------------------------------------------------
   # Volume Step - Adjusts volume by +/- 10%
@@ -953,7 +969,6 @@ script:
           number:
             min: -1
             max: 1
-            mode: box
     sequence:
       - variables:
           raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
@@ -1173,11 +1188,13 @@ automation:
   # ---------------------------------------------------------------------------
   - id: zen32_startup_init
     alias: "ZEN32 - Initialize LEDs on Startup"
-    description: "Initializes LEDs with differentiated brightness hierarchy on HA start"
+    description: "Initializes LEDs with proper toggle behavior and colors on HA start"
     mode: single
     trigger:
       - platform: homeassistant
         event: start
+    variables:
+      controller_device_id: "{{ states('sensor.zen32_controller_device_id') }}"
     action:
       # Force LIGHT mode on startup (prevents stale VOLUME mode from persisting)
       - service: input_select.select_option
@@ -1193,11 +1210,59 @@ automation:
         data:
           datetime: "{{ now() }}"
 
-      # Wait for Z-Wave network to stabilize (reduced from 45s with retry)
+      # Wait for Z-Wave network to stabilize
       - delay:
           seconds: 15
 
-      # Initial LED set (may fail if Z-Wave not ready)
+      # CRITICAL: Set all LED toggle parameters to "always_on" (value 3)
+      # This prevents the device's default behavior from fighting our LED control
+      - parallel:
+          # Parameter 1: Big Button toggle
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 1
+              value: 3
+            target:
+              device_id: "{{ controller_device_id }}"
+          # Parameter 2: Button 1 toggle
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 2
+              value: 3
+            target:
+              device_id: "{{ controller_device_id }}"
+          # Parameter 3: Button 2 toggle
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 3
+              value: 3
+            target:
+              device_id: "{{ controller_device_id }}"
+          # Parameter 4: Button 3 toggle
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 4
+              value: 3
+            target:
+              device_id: "{{ controller_device_id }}"
+          # Parameter 5: Button 4 toggle
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 5
+              value: 3
+            target:
+              device_id: "{{ controller_device_id }}"
+
+      # Small delay for Z-Wave commands to process
+      - delay:
+          seconds: 2
+
+      # Now set initial LED colors for LIGHT mode
       - service: script.zen32_set_mode_light
         continue_on_error: true
 
@@ -1347,8 +1412,15 @@ automation:
       current_mode: "{{ states('input_select.zen32_control_mode') | default('light') }}"
       is_light_mode: "{{ current_mode == 'light' }}"
       is_music_mode: "{{ current_mode == 'music' }}"
-      # System state
-      sonos_is_playing: "{{ state_attr('sensor.sonos_playing_status', 'is_playing') | default(false) }}"
+      # System state - check if any Sonos is playing
+      # Use coordinator sensor or fallback to checking living room directly
+      sonos_is_playing: >
+        {% set coordinator = states('sensor.sonos_current_playing_group_coordinator') %}
+        {% if coordinator not in ['none', 'unknown', 'unavailable', ''] %}
+          {{ is_state(coordinator, 'playing') }}
+        {% else %}
+          {{ is_state('media_player.living_room', 'playing') }}
+        {% endif %}
       lights_are_on: "{{ is_state('light.all_adaptive_lights', 'on') }}"
 
     condition:

@@ -7,7 +7,7 @@
 # ARCHITECTURE:
 #   This package provides modal control for the Zooz ZEN32 scene controller,
 #   enabling context-switching between LIGHT mode (brightness/color temp) and
-#   MUSIC mode (volume/tracks). LED colors indicate active mode.
+#   VOLUME mode (Sonos volume/tracks). LED colors indicate active mode.
 #
 # DEPENDENCIES:
 #   - packages/OAL_lighting_control_package.yaml (lighting scripts + handler)
@@ -17,7 +17,7 @@
 # BUTTON LAYOUT:
 #   ┌─────────────────────────────┐
 #   │   ┌─────────────────────┐   │
-#   │   │   [5] BIG BUTTON    │   │  Toggle all lights / Emergency off
+#   │   │   [5] BIG BUTTON    │   │  Toggle all lights / Soft Reset
 #   │   │       LIGHTS        │   │
 #   │   └─────────────────────┘   │
 #   │                             │
@@ -26,17 +26,17 @@
 #   │  └──────────┘ └──────────┘  │
 #   │                             │
 #   │  ┌──────────┐ ┌──────────┐  │
-#   │  │ [3]MUSIC │ │ [4] DOWN │  │  Mode select+Play / Decrease
+#   │  │[3]VOLUME │ │ [4] DOWN │  │  Mode select+Play / Decrease
 #   │  └──────────┘ └──────────┘  │
 #   └─────────────────────────────┘
 #
 # LED COLOR SCHEME:
-#   LIGHT MODE: All buttons YELLOW (color value 5)
-#   MUSIC MODE: All buttons BLUE (color value 1)
-#   BIG BUTTON: Follows mode color (independent light state tracking optional)
+#   LIGHT MODE: Light button YELLOW bright, UP/DOWN YELLOW medium, Volume button BLUE dim
+#   VOLUME MODE: Volume button BLUE bright, UP/DOWN BLUE medium, Light button YELLOW dim
+#   BIG BUTTON: White when lights on, Red for Movie/Sleep mode, Off when lights off
 #
 # MODE TIMEOUT:
-#   After 60 seconds of no interaction in MUSIC mode, automatically returns
+#   After 60 seconds of no interaction in VOLUME mode, automatically returns
 #   to LIGHT mode. Music continues playing; only control context changes.
 #
 # =============================================================================
@@ -53,14 +53,6 @@
 #
 # Replace the placeholder below with your actual device_id:
 # =============================================================================
-
-homeassistant:
-  customize:
-    # Marker to indicate this package is loaded
-    package.zen32_modal_controller:
-      version: "1.2.0"
-      # Device ID is now auto-discovered via sensor.zen32_controller_device_id
-      # No manual configuration required - sensor discovers from event.scene_controller_scene_001
 
 # =============================================================================
 # INPUT HELPERS - Mode State Tracking
@@ -98,7 +90,6 @@ input_number:
     max: 20
     step: 1
     initial: 0
-    mode: box
     icon: mdi:playlist-music
 
 # =============================================================================
@@ -196,7 +187,7 @@ template:
 #   Parameter 1: Big Button (Button 5)
 #   Parameter 2: Button 1 (LIGHT)
 #   Parameter 3: Button 2 (UP)
-#   Parameter 4: Button 3 (MUSIC)
+#   Parameter 4: Button 3 (VOLUME)
 #   Parameter 5: Button 4 (DOWN)
 #   Values: 0=On when load off, 1=On when load on, 2=Always Off, 3=Always On
 #
@@ -204,7 +195,7 @@ template:
 #   Parameter 6:  Big Button (Button 5)
 #   Parameter 7:  Button 1 (LIGHT)
 #   Parameter 8:  Button 2 (UP)
-#   Parameter 9:  Button 3 (MUSIC)
+#   Parameter 9:  Button 3 (VOLUME)
 #   Parameter 10: Button 4 (DOWN)
 #   Values: 0=White, 1=Blue, 2=Green, 3=Red, 4=Magenta, 5=Yellow, 6=Cyan
 #
@@ -212,7 +203,7 @@ template:
 #   Parameter 11: Big Button (Button 5)
 #   Parameter 12: Button 1 (LIGHT)
 #   Parameter 13: Button 2 (UP)
-#   Parameter 14: Button 3 (MUSIC)
+#   Parameter 14: Button 3 (VOLUME)
 #   Parameter 15: Button 4 (DOWN)
 #   Values: 0=Bright, 1=Medium, 2=Low
 #
@@ -463,7 +454,7 @@ script:
               value: "{{ color_value }}"
             target:
               device_id: "{{ controller_device_id }}"
-          # Button 3 (MUSIC) - Parameter 9
+          # Button 3 (VOLUME) - Parameter 9
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
@@ -568,11 +559,11 @@ script:
   # Mode Transition - Switch to LIGHT Mode
   # ---------------------------------------------------------------------------
   # LED DESIGN (Three-Tier Brightness Hierarchy):
-  #   Button 1 (LIGHT): Yellow HIGH - Active mode indicator
-  #   Button 2 (UP):    Yellow MEDIUM - Active mode action
-  #   Button 3 (MUSIC): Blue LOW - Inactive mode (available to switch)
-  #   Button 4 (DOWN):  Yellow MEDIUM - Active mode action
-  #   Button 5 (BIG):   Managed separately by state tracking automation
+  #   Button 1 (LIGHT):  Yellow BRIGHT - Active mode indicator
+  #   Button 2 (UP):     Yellow MEDIUM - Active mode action (brightness)
+  #   Button 3 (VOLUME): Blue LOW - Inactive mode (available to switch)
+  #   Button 4 (DOWN):   Yellow MEDIUM - Active mode action (brightness)
+  #   Button 5 (BIG):    Managed separately by state tracking automation
   # ---------------------------------------------------------------------------
   zen32_set_mode_light:
     alias: "ZEN32 - Set LIGHT Mode"
@@ -610,14 +601,14 @@ script:
               color: "yellow"
               toggle: "always_on"
               brightness: "medium"
-          # Button 3 (MUSIC): Blue LOW - Inactive mode indicator
+          # Button 3 (VOLUME): Blue LOW - Inactive mode indicator
           - service: script.zen32_set_led
             data:
               button: 3
               color: "blue"
               toggle: "always_on"
               brightness: "low"
-          # Button 4 (DOWN): Yellow MEDIUM - Active mode action
+          # Button 4 (DOWN): Yellow MEDIUM - Active mode action (brightness)
           - service: script.zen32_set_led
             data:
               button: 4
@@ -626,19 +617,19 @@ script:
               brightness: "medium"
 
   # ---------------------------------------------------------------------------
-  # Mode Transition - Switch to MUSIC Mode
+  # Mode Transition - Switch to VOLUME Mode
   # ---------------------------------------------------------------------------
   # LED DESIGN (Three-Tier Brightness Hierarchy):
-  #   Button 1 (LIGHT): Yellow LOW - Inactive mode (available to switch)
-  #   Button 2 (UP):    Blue MEDIUM - Active mode action
-  #   Button 3 (MUSIC): Blue HIGH - Active mode indicator
-  #   Button 4 (DOWN):  Blue MEDIUM - Active mode action
-  #   Button 5 (BIG):   Managed separately by state tracking automation
+  #   Button 1 (LIGHT):  Yellow LOW - Inactive mode (available to switch)
+  #   Button 2 (UP):     Blue MEDIUM - Active mode action (volume)
+  #   Button 3 (VOLUME): Blue BRIGHT - Active mode indicator
+  #   Button 4 (DOWN):   Blue MEDIUM - Active mode action (volume)
+  #   Button 5 (BIG):    Managed separately by state tracking automation
   # ---------------------------------------------------------------------------
   zen32_set_mode_music:
-    alias: "ZEN32 - Set MUSIC Mode"
-    description: "Switches to MUSIC mode with differentiated LED brightness hierarchy"
-    icon: mdi:music
+    alias: "ZEN32 - Set VOLUME Mode"
+    description: "Switches to VOLUME mode with differentiated LED brightness hierarchy"
+    icon: mdi:volume-high
     mode: single
     sequence:
       # Update mode state
@@ -664,21 +655,21 @@ script:
               color: "yellow"
               toggle: "always_on"
               brightness: "low"
-          # Button 2 (UP): Blue MEDIUM - Active mode action
+          # Button 2 (UP): Blue MEDIUM - Active mode action (volume)
           - service: script.zen32_set_led
             data:
               button: 2
               color: "blue"
               toggle: "always_on"
               brightness: "medium"
-          # Button 3 (MUSIC): Blue HIGH - Active mode selector
+          # Button 3 (VOLUME): Blue BRIGHT - Active mode selector
           - service: script.zen32_set_led
             data:
               button: 3
               color: "blue"
               toggle: "always_on"
               brightness: "bright"
-          # Button 4 (DOWN): Blue MEDIUM - Active mode action
+          # Button 4 (DOWN): Blue MEDIUM - Active mode action (volume)
           - service: script.zen32_set_led
             data:
               button: 4
@@ -1144,14 +1135,14 @@ script:
 
 automation:
   # ---------------------------------------------------------------------------
-  # Music Mode Timeout - Return to LIGHT after 60 seconds of inactivity
+  # Volume Mode Timeout - Return to LIGHT after 60 seconds of inactivity
   # ---------------------------------------------------------------------------
   - id: zen32_mode_timeout
-    alias: "ZEN32 - Music Mode Timeout (60s)"
-    description: "Returns to LIGHT mode after 60 seconds of no interaction in MUSIC mode"
+    alias: "ZEN32 - Volume Mode Timeout (60s)"
+    description: "Returns to LIGHT mode after 60 seconds of no interaction in VOLUME mode"
     mode: restart
     trigger:
-      # Trigger when entering MUSIC mode
+      # Trigger when entering VOLUME mode
       - platform: state
         entity_id: input_select.zen32_control_mode
         to: "music"
@@ -1159,7 +1150,7 @@ automation:
       - platform: state
         entity_id: input_datetime.zen32_mode_last_change
     condition:
-      # Only run if currently in MUSIC mode
+      # Only run if currently in VOLUME mode
       - condition: state
         entity_id: input_select.zen32_control_mode
         state: "music"
@@ -1168,7 +1159,7 @@ automation:
       - delay:
           seconds: 61
 
-      # Verify still in MUSIC mode (might have manually switched)
+      # Verify still in VOLUME mode (might have manually switched)
       - condition: state
         entity_id: input_select.zen32_control_mode
         state: "music"
@@ -1188,7 +1179,7 @@ automation:
       - platform: homeassistant
         event: start
     action:
-      # Force LIGHT mode on startup (prevents stale music mode from persisting)
+      # Force LIGHT mode on startup (prevents stale VOLUME mode from persisting)
       - service: input_select.select_option
         target:
           entity_id: input_select.zen32_control_mode
@@ -1320,7 +1311,7 @@ automation:
   # BUTTON LAYOUT:
   #   [1] LIGHT (top-left)  - Mode select / Preset cycle / Color temp
   #   [2] UP (top-right)    - Context: Brightness+/Volume+ / Color cool/Next
-  #   [3] MUSIC (bot-left)  - Mode select+Play/Pause / Grouping
+  #   [3] VOLUME (bot-left) - Mode select+Play/Pause / Grouping
   #   [4] DOWN (bot-right)  - Context: Brightness-/Volume- / Color warm/Prev
   #   [5] BIG (center)      - Toggle lights / Soft Reset / Movie mode
   #
@@ -1330,7 +1321,7 @@ automation:
   # ---------------------------------------------------------------------------
   - id: zen32_modal_controller_handler
     alias: "ZEN32 - Modal Controller Handler"
-    description: "Modal ZEN32 handler with LIGHT (brightness/color) and MUSIC (volume/tracks) modes"
+    description: "Modal ZEN32 handler with LIGHT (brightness/color) and VOLUME (Sonos volume/tracks) modes"
     mode: single
     trigger:
       - platform: state
@@ -1341,7 +1332,7 @@ automation:
         id: "button_2"  # UP button (top-right)
       - platform: state
         entity_id: event.scene_controller_scene_003
-        id: "button_3"  # MUSIC button (bottom-left)
+        id: "button_3"  # VOLUME button (bottom-left)
       - platform: state
         entity_id: event.scene_controller_scene_004
         id: "button_4"  # DOWN button (bottom-right)
@@ -1364,23 +1355,19 @@ automation:
       # Valid event types only (KeyReleased removed - no handler uses it, wastes resources)
       - condition: template
         value_template: "{{ event_type in ['KeyPressed', 'KeyHeldDown', 'KeyPressed2x', 'KeyPressed3x'] }}"
-      # Debounce: 200ms minimum between presses (prevents double-triggers)
-      - condition: template
-        value_template: >
-          {{ (now().timestamp() - (states('input_datetime.zen32_last_button_press') | as_timestamp(0))) > 0.2 }}
 
     action:
-      # Step 1: Update debounce timestamp
+      # Update button press timestamp (for OAL 24h activity check)
       - action: input_datetime.set_datetime
         target:
           entity_id: input_datetime.zen32_last_button_press
         data:
           datetime: "{{ now() }}"
 
-      # Step 2: Update mode interaction timestamp (resets 61s MUSIC mode timeout)
+      # Update mode interaction timestamp (resets 61s VOLUME mode timeout)
       - action: script.zen32_update_interaction
 
-      # Step 3: Modal action dispatch
+      # Modal action dispatch
       - choose:
           # =======================================================================
           # BUTTON 1 - LIGHT BUTTON (Mode Select + Lighting Presets)
@@ -1512,57 +1499,57 @@ automation:
               - service: script.zen32_sonos_default_volume
 
           # =======================================================================
-          # BUTTON 3 - MUSIC BUTTON (Mode Select + Play/Pause + Grouping)
+          # BUTTON 3 - VOLUME BUTTON (Mode Select + Play/Pause + Grouping)
           # =======================================================================
 
-          # [3] MUSIC - 1x Press (LIGHT mode, Sonos playing): Switch to MUSIC
+          # [3] VOLUME - 1x Press (LIGHT mode, Sonos playing): Switch to VOLUME
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_light_mode and sonos_is_playing }}"
             sequence:
               - service: script.zen32_set_mode_music
 
-          # [3] MUSIC - 1x Press (LIGHT mode, Sonos NOT playing): Switch to MUSIC + Start
+          # [3] VOLUME - 1x Press (LIGHT mode, Sonos NOT playing): Switch to VOLUME + Start
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_light_mode and not sonos_is_playing }}"
             sequence:
               - service: script.zen32_set_mode_music
               - service: script.zen32_sonos_start
 
-          # [3] MUSIC - 1x Press (MUSIC mode, playing): Pause
+          # [3] VOLUME - 1x Press (VOLUME mode, playing): Pause
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music_mode and sonos_is_playing }}"
             sequence:
               - service: script.zen32_sonos_play_pause
 
-          # [3] MUSIC - 1x Press (MUSIC mode, NOT playing): Start playback
+          # [3] VOLUME - 1x Press (VOLUME mode, NOT playing): Start playback
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music_mode and not sonos_is_playing }}"
             sequence:
               - service: script.zen32_sonos_start
 
-          # [3] MUSIC - Hold (LIGHT mode): Switch to MUSIC + Group ALL
+          # [3] VOLUME - Hold (LIGHT mode): Switch to VOLUME + Group ALL
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_light_mode }}"
             sequence:
               - service: script.zen32_set_mode_music
               - service: script.sonos_group_all_to_playing
 
-          # [3] MUSIC - Hold (MUSIC mode): Group ALL Sonos speakers
+          # [3] VOLUME - Hold (VOLUME mode): Group ALL Sonos speakers
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_music_mode }}"
             sequence:
               - service: script.sonos_group_all_to_playing
 
-          # [3] MUSIC - 2x Tap (LIGHT mode): Switch to MUSIC + Ungroup
+          # [3] VOLUME - 2x Tap (LIGHT mode): Switch to VOLUME + Ungroup
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed2x' and is_light_mode }}"
             sequence:
               - service: script.zen32_set_mode_music
               - service: script.sonos_ungroup_all
 
-          # [3] MUSIC - 2x Tap (MUSIC mode): Ungroup all speakers
+          # [3] VOLUME - 2x Tap (VOLUME mode): Ungroup all speakers
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed2x' and is_music_mode }}"
             sequence:
               - service: script.sonos_ungroup_all
 
-          # [3] MUSIC - 3x Tap (any mode): Cycle Sonos favorites
+          # [3] VOLUME - 3x Tap (any mode): Cycle Sonos favorites
           # Cycles through favorites configured in sensor.sonos_favorites
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed3x' }}"
             sequence:
-              # Ensure we're in music mode first
+              # Ensure we're in VOLUME mode first
               - if:
                   - condition: template
                     value_template: "{{ is_light_mode }}"

@@ -58,13 +58,9 @@ homeassistant:
   customize:
     # Marker to indicate this package is loaded
     package.zen32_modal_controller:
-      version: "1.0.1"
-    # Node anchors for DRY configuration - YAML anchor definitions
-    # To configure: Replace the device_id below with your actual ZEN32 device_id
-    # Find it via: Developer Tools > Template > {{ device_id('event.scene_controller_scene_001') }}
-    package.node_anchors:
-      zen32_device_config: &zen32_device_config
-        controller_device_id: "REPLACE_WITH_ZEN32_DEVICE_ID"
+      version: "1.2.0"
+      # Device ID is now auto-discovered via sensor.zen32_controller_device_id
+      # No manual configuration required - sensor discovers from event.scene_controller_scene_001
 
 # =============================================================================
 # INPUT HELPERS - Mode State Tracking
@@ -86,6 +82,14 @@ input_datetime:
     has_time: true
     icon: mdi:clock-check-outline
 
+  # Debounce timestamp for button press handler
+  # Prevents double-triggers within 500ms window
+  zen32_last_button_press:
+    name: "ZEN32 Last Button Press"
+    has_date: true
+    has_time: true
+    icon: mdi:gesture-tap
+
 input_number:
   # Index for cycling through Sonos favorites
   sonos_favorite_index:
@@ -96,16 +100,6 @@ input_number:
     initial: 0
     mode: box
     icon: mdi:playlist-music
-
-  # Default volume when starting music from ZEN32
-  sonos_zen32_default_volume:
-    name: "ZEN32 Sonos Default Volume"
-    min: 0
-    max: 1
-    step: 0.05
-    initial: 0.5
-    mode: slider
-    icon: mdi:volume-medium
 
 # =============================================================================
 # TEMPLATE SENSORS - Mode Status & Diagnostics
@@ -155,6 +149,43 @@ template:
             {% endif %}
           is_music_mode: "{{ is_state('input_select.zen32_control_mode', 'music') }}"
           is_light_mode: "{{ is_state('input_select.zen32_control_mode', 'light') }}"
+
+      # ---------------------------------------------------------------------------
+      # Device ID Auto-Discovery Sensor
+      # ---------------------------------------------------------------------------
+      # Automatically discovers the ZEN32 device_id from the scene controller entity.
+      # This eliminates the need for manual device_id configuration.
+      # Usage: states('sensor.zen32_controller_device_id') in scripts/automations
+      # ---------------------------------------------------------------------------
+      - name: "ZEN32 Controller Device ID"
+        unique_id: zen32_controller_device_id
+        state: "{{ device_id('event.scene_controller_scene_001') }}"
+        availability: "{{ device_id('event.scene_controller_scene_001') is not none }}"
+        icon: mdi:gesture-tap-button
+        attributes:
+          entity_source: "event.scene_controller_scene_001"
+          device_available: "{{ device_id('event.scene_controller_scene_001') is not none }}"
+
+      # ---------------------------------------------------------------------------
+      # Sonos Favorites Sensor
+      # ---------------------------------------------------------------------------
+      # Provides favorites list for zen32_cycle_sonos_favorite script.
+      # Uses source_list from living room speaker as favorites source.
+      # ---------------------------------------------------------------------------
+      - name: "Sonos Favorites"
+        unique_id: sonos_favorites
+        state: "{{ state_attr('media_player.living_room', 'source_list') | default([]) | length }}"
+        icon: mdi:playlist-star
+        attributes:
+          items: >
+            {% set ns = namespace(items={}) %}
+            {% set sources = state_attr('media_player.living_room', 'source_list') | default([]) %}
+            {% for i in range(sources | length) %}
+              {% set ns.items = dict(ns.items, **{i|string: sources[i]}) %}
+            {% endfor %}
+            {{ ns.items }}
+          source_speaker: "media_player.living_room"
+          favorites_count: "{{ state_attr('media_player.living_room', 'source_list') | default([]) | length }}"
 
 # =============================================================================
 # SCRIPTS - LED Control
@@ -243,8 +274,9 @@ script:
               - medium
               - low
     variables:
-      # Device ID from centralized anchor (line 66-67)
-      <<: *zen32_device_config
+      # Device ID from auto-discovery sensor
+      controller_device_id: "{{ states('sensor.zen32_controller_device_id') }}"
+      device_available: "{{ states('sensor.zen32_controller_device_id') not in ['unknown', 'unavailable', ''] }}"
 
       # Color value mapping
       color_map:
@@ -284,6 +316,11 @@ script:
       brightness_param: "{{ 11 + param_offset }}"
 
     sequence:
+      # Pre-flight check: Skip if ZEN32 device unavailable
+      - condition: template
+        value_template: "{{ device_available }}"
+        alias: "Skip if ZEN32 device unavailable"
+
       # Set color if specified
       - if:
           - condition: template
@@ -366,8 +403,9 @@ script:
               - medium
               - low
     variables:
-      # Device ID from centralized anchor (line 66-67)
-      <<: *zen32_device_config
+      # Device ID from auto-discovery sensor
+      controller_device_id: "{{ states('sensor.zen32_controller_device_id') }}"
+      device_available: "{{ states('sensor.zen32_controller_device_id') not in ['unknown', 'unavailable', ''] }}"
 
       color_map:
         white: 0
@@ -394,6 +432,11 @@ script:
       brightness_value: "{{ brightness_map[brightness | lower] | default(0) if brightness is defined and brightness else none }}"
 
     sequence:
+      # Pre-flight check: Skip if ZEN32 device unavailable
+      - condition: template
+        value_template: "{{ device_available }}"
+        alias: "Skip if ZEN32 device unavailable"
+
       # Set all 5 button colors in parallel for speed
       - parallel:
           # Button 5 (Big) - Parameter 6
@@ -781,7 +824,7 @@ script:
     mode: single
     sequence:
       - choose:
-          # Movie Mode Active: Red
+          # Movie Mode Active: Red MEDIUM
           - conditions:
               - condition: state
                 entity_id: input_boolean.oal_movie_mode_active
@@ -793,7 +836,19 @@ script:
                   color: "red"
                   toggle: "always_on"
                   brightness: "medium"
-          # Lights ON: White
+          # Sleep Mode Active: Red LOW (distinguish from movie mode)
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.oal_disable_sleep_mode
+                state: "on"
+            sequence:
+              - service: script.zen32_set_led
+                data:
+                  button: 5
+                  color: "red"
+                  toggle: "always_on"
+                  brightness: "low"
+          # Lights ON: White MEDIUM
           - conditions:
               - condition: state
                 entity_id: light.all_adaptive_lights
@@ -829,6 +884,260 @@ script:
         data:
           datetime: "{{ now() }}"
 
+  # ===========================================================================
+  # ZEN32 SONOS CONTROL SCRIPTS
+  # ===========================================================================
+  # These scripts provide Sonos control for the ZEN32 modal scene controller.
+  # They target the current playing group coordinator or fall back to Living Room.
+  #
+  # DEPENDENCY: sensor.sonos_current_playing_group_coordinator (in sonos_package)
+  # CALLED BY: automation.zen32_modal_controller_handler (below)
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # Play/Pause Toggle - Toggles playback on active coordinator
+  # ---------------------------------------------------------------------------
+  zen32_sonos_play_pause:
+    alias: "ZEN32 - Sonos Play/Pause Toggle"
+    description: "Toggles playback on the current Sonos coordinator or Living Room fallback"
+    icon: mdi:play-pause
+    mode: single
+    sequence:
+      - variables:
+          raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
+          target_speaker: >
+            {% if raw_coordinator not in ['none', 'unknown', 'unavailable', ''] %}
+              {{ raw_coordinator }}
+            {% else %}
+              media_player.living_room
+            {% endif %}
+          is_playing: "{{ is_state(target_speaker, 'playing') }}"
+      - choose:
+          - conditions: "{{ is_playing }}"
+            sequence:
+              - service: media_player.media_pause
+                target:
+                  entity_id: "{{ target_speaker }}"
+        default:
+          - service: media_player.media_play
+            target:
+              entity_id: "{{ target_speaker }}"
+
+  # ---------------------------------------------------------------------------
+  # Start Playback - Resumes or starts playback
+  # ---------------------------------------------------------------------------
+  zen32_sonos_start:
+    alias: "ZEN32 - Sonos Start Playback"
+    description: "Starts or resumes playback on Sonos coordinator or Living Room"
+    icon: mdi:play
+    mode: single
+    sequence:
+      - variables:
+          raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
+          target_speaker: >
+            {% if raw_coordinator not in ['none', 'unknown', 'unavailable', ''] %}
+              {{ raw_coordinator }}
+            {% else %}
+              media_player.living_room
+            {% endif %}
+      - service: media_player.media_play
+        target:
+          entity_id: "{{ target_speaker }}"
+
+  # ---------------------------------------------------------------------------
+  # Volume Step - Adjusts volume by +/- 10%
+  # ---------------------------------------------------------------------------
+  zen32_sonos_volume_step:
+    alias: "ZEN32 - Sonos Volume Step"
+    description: "Adjusts volume on Sonos coordinator by +/- 10%"
+    icon: mdi:volume-medium
+    mode: queued
+    max: 5
+    fields:
+      direction:
+        description: "1 for volume up, -1 for volume down"
+        example: 1
+        required: true
+        selector:
+          number:
+            min: -1
+            max: 1
+            mode: box
+    sequence:
+      - variables:
+          raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
+          target_speaker: >
+            {% if raw_coordinator not in ['none', 'unknown', 'unavailable', ''] %}
+              {{ raw_coordinator }}
+            {% else %}
+              media_player.living_room
+            {% endif %}
+          current_volume: "{{ state_attr(target_speaker, 'volume_level') | float(0.5) }}"
+          step: 0.10
+          new_volume: "{{ [0.0, [1.0, current_volume + (step * (direction | int))] | min] | max }}"
+      - service: media_player.volume_set
+        target:
+          entity_id: "{{ target_speaker }}"
+        data:
+          volume_level: "{{ new_volume }}"
+
+  # ---------------------------------------------------------------------------
+  # Next Track - Skips to next track
+  # ---------------------------------------------------------------------------
+  zen32_sonos_next_track:
+    alias: "ZEN32 - Sonos Next Track"
+    description: "Skips to next track on Sonos coordinator"
+    icon: mdi:skip-next
+    mode: single
+    sequence:
+      - variables:
+          raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
+          target_speaker: >
+            {% if raw_coordinator not in ['none', 'unknown', 'unavailable', ''] %}
+              {{ raw_coordinator }}
+            {% else %}
+              media_player.living_room
+            {% endif %}
+      - service: media_player.media_next_track
+        target:
+          entity_id: "{{ target_speaker }}"
+
+  # ---------------------------------------------------------------------------
+  # Previous Track - Goes to previous track
+  # ---------------------------------------------------------------------------
+  zen32_sonos_prev_track:
+    alias: "ZEN32 - Sonos Previous Track"
+    description: "Goes to previous track on Sonos coordinator"
+    icon: mdi:skip-previous
+    mode: single
+    sequence:
+      - variables:
+          raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
+          target_speaker: >
+            {% if raw_coordinator not in ['none', 'unknown', 'unavailable', ''] %}
+              {{ raw_coordinator }}
+            {% else %}
+              media_player.living_room
+            {% endif %}
+      - service: media_player.media_previous_track
+        target:
+          entity_id: "{{ target_speaker }}"
+
+  # ---------------------------------------------------------------------------
+  # Set Default Volume - Sets coordinator to default volume level
+  # ---------------------------------------------------------------------------
+  zen32_sonos_default_volume:
+    alias: "ZEN32 - Sonos Set Default Volume"
+    description: "Sets Sonos coordinator to the configured default volume"
+    icon: mdi:volume-source
+    mode: single
+    sequence:
+      - variables:
+          raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
+          target_speaker: >
+            {% if raw_coordinator not in ['none', 'unknown', 'unavailable', ''] %}
+              {{ raw_coordinator }}
+            {% else %}
+              media_player.living_room
+            {% endif %}
+          default_vol: "{{ states('input_number.sonos_default_volume') | float(0.25) }}"
+      - service: media_player.volume_set
+        target:
+          entity_id: "{{ target_speaker }}"
+        data:
+          volume_level: "{{ default_vol }}"
+
+  # ---------------------------------------------------------------------------
+  # Mute Toggle - Mutes or unmutes coordinator
+  # ---------------------------------------------------------------------------
+  zen32_sonos_mute:
+    alias: "ZEN32 - Sonos Mute Toggle"
+    description: "Toggles mute on Sonos coordinator"
+    icon: mdi:volume-off
+    mode: single
+    sequence:
+      - variables:
+          raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
+          target_speaker: >
+            {% if raw_coordinator not in ['none', 'unknown', 'unavailable', ''] %}
+              {{ raw_coordinator }}
+            {% else %}
+              media_player.living_room
+            {% endif %}
+          is_muted: "{{ state_attr(target_speaker, 'is_volume_muted') | default(false) }}"
+      - service: media_player.volume_mute
+        target:
+          entity_id: "{{ target_speaker }}"
+        data:
+          is_volume_muted: "{{ not is_muted }}"
+
+  # ---------------------------------------------------------------------------
+  # Cycle Sonos Favorites - 3x tap on MUSIC button
+  # ---------------------------------------------------------------------------
+  zen32_cycle_sonos_favorite:
+    alias: "ZEN32 - Cycle Sonos Favorite"
+    description: "Cycles through Sonos favorites on 3x tap (MUSIC button)"
+    icon: mdi:playlist-star
+    mode: single
+    sequence:
+      - variables:
+          # Get favorites from sensor
+          favorites_dict: "{{ state_attr('sensor.sonos_favorites', 'items') | default({}) }}"
+          favorites_keys: "{{ favorites_dict.keys() | list }}"
+          favorites_count: "{{ favorites_keys | length }}"
+          # Current index from input_number
+          current_index: "{{ states('input_number.sonos_favorite_index') | int(0) }}"
+          # Calculate next index with wrap-around
+          next_index: "{{ (current_index + 1) % favorites_count if favorites_count > 0 else 0 }}"
+          next_favorite_id: "{{ favorites_keys[next_index] if favorites_count > 0 else '' }}"
+          next_favorite_name: "{{ favorites_dict[next_favorite_id] if next_favorite_id else 'Unknown' }}"
+          # Get coordinator - prefer playing speaker, fallback to living room
+          raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
+          coordinator: >
+            {% if raw_coordinator not in ['none', 'unknown', 'unavailable', ''] %}
+              {{ raw_coordinator }}
+            {% else %}
+              media_player.living_room
+            {% endif %}
+          # Default volume from input_number (unified to sonos_default_volume)
+          default_volume: "{{ states('input_number.sonos_default_volume') | float(0.5) }}"
+
+      # Skip if no favorites available
+      - condition: template
+        value_template: "{{ favorites_count > 0 }}"
+
+      # Update index
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.sonos_favorite_index
+        data:
+          value: "{{ next_index }}"
+
+      # If not currently playing, set default volume first
+      - if:
+          - condition: template
+            value_template: "{{ not is_state(coordinator, 'playing') }}"
+        then:
+          - service: media_player.volume_set
+            target:
+              entity_id: "{{ coordinator }}"
+            data:
+              volume_level: "{{ default_volume }}"
+
+      # Play the favorite
+      - service: media_player.play_media
+        target:
+          entity_id: "{{ coordinator }}"
+        data:
+          media_content_type: "favorite_item_id"
+          media_content_id: "{{ next_favorite_id }}"
+
+      # Log which favorite is playing
+      - service: system_log.write
+        data:
+          message: "ZEN32: Now playing Sonos favorite {{ next_index + 1 }}/{{ favorites_count }}: {{ next_favorite_name }}"
+          level: info
+
 # =============================================================================
 # AUTOMATIONS - Mode Management
 # =============================================================================
@@ -855,9 +1164,9 @@ automation:
         entity_id: input_select.zen32_control_mode
         state: "music"
     action:
-      # Wait 60 seconds
+      # Wait 61 seconds (1s buffer for race condition at timeout boundary)
       - delay:
-          seconds: 60
+          seconds: 61
 
       # Verify still in MUSIC mode (might have manually switched)
       - condition: state
@@ -946,16 +1255,18 @@ automation:
   # ---------------------------------------------------------------------------
   - id: zen32_big_button_state_sync
     alias: "ZEN32 - Big Button LED State Tracking"
-    description: "Updates Button 5 LED based on lights and movie mode state"
+    description: "Updates Button 5 LED based on lights, movie mode, and sleep mode state"
     mode: restart
     trigger:
       - platform: state
         entity_id: light.all_adaptive_lights
       - platform: state
         entity_id: input_boolean.oal_movie_mode_active
+      - platform: state
+        entity_id: input_boolean.oal_disable_sleep_mode
     action:
       - choose:
-          # Movie Mode Active: Red overrides everything
+          # Movie Mode Active: Red MEDIUM (highest priority)
           - conditions:
               - condition: state
                 entity_id: input_boolean.oal_movie_mode_active
@@ -967,7 +1278,19 @@ automation:
                   color: "red"
                   toggle: "always_on"
                   brightness: "medium"
-          # Lights ON: White
+          # Sleep Mode Active: Red LOW (distinguish from movie mode)
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.oal_disable_sleep_mode
+                state: "on"
+            sequence:
+              - service: script.zen32_set_led
+                data:
+                  button: 5
+                  color: "red"
+                  toggle: "always_on"
+                  brightness: "low"
+          # Lights ON: White MEDIUM
           - conditions:
               - condition: state
                 entity_id: light.all_adaptive_lights
@@ -985,3 +1308,345 @@ automation:
             data:
               button: 5
               toggle: "always_off"
+
+  # ---------------------------------------------------------------------------
+  # Modal Controller Handler - Button Event Dispatch
+  # ---------------------------------------------------------------------------
+  # CONSOLIDATED from OAL_lighting_control_package.yaml for self-contained design
+  #
+  # This automation handles all ZEN32 button presses with modal context.
+  # Mode state is tracked via input_select.zen32_control_mode.
+  #
+  # BUTTON LAYOUT:
+  #   [1] LIGHT (top-left)  - Mode select / Preset cycle / Color temp
+  #   [2] UP (top-right)    - Context: Brightness+/Volume+ / Color cool/Next
+  #   [3] MUSIC (bot-left)  - Mode select+Play/Pause / Grouping
+  #   [4] DOWN (bot-right)  - Context: Brightness-/Volume- / Color warm/Prev
+  #   [5] BIG (center)      - Toggle lights / Soft Reset / Movie mode
+  #
+  # EXTERNAL DEPENDENCIES (remain in their packages):
+  #   - OAL: oal_global_manual_*, oal_reset_soft
+  #   - Sonos: sonos_group_all_to_playing, sonos_ungroup_all
+  # ---------------------------------------------------------------------------
+  - id: zen32_modal_controller_handler
+    alias: "ZEN32 - Modal Controller Handler"
+    description: "Modal ZEN32 handler with LIGHT (brightness/color) and MUSIC (volume/tracks) modes"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: event.scene_controller_scene_001
+        id: "button_1"  # LIGHT button (top-left)
+      - platform: state
+        entity_id: event.scene_controller_scene_002
+        id: "button_2"  # UP button (top-right)
+      - platform: state
+        entity_id: event.scene_controller_scene_003
+        id: "button_3"  # MUSIC button (bottom-left)
+      - platform: state
+        entity_id: event.scene_controller_scene_004
+        id: "button_4"  # DOWN button (bottom-right)
+      - platform: state
+        entity_id: event.scene_controller_scene_005
+        id: "button_5"  # BIG button (main/center)
+
+    variables:
+      event_type: "{{ trigger.to_state.attributes.event_type | default('unknown') }}"
+      button_id: "{{ trigger.id }}"
+      # Mode state from this package
+      current_mode: "{{ states('input_select.zen32_control_mode') | default('light') }}"
+      is_light_mode: "{{ current_mode == 'light' }}"
+      is_music_mode: "{{ current_mode == 'music' }}"
+      # System state
+      sonos_is_playing: "{{ state_attr('sensor.sonos_playing_status', 'is_playing') | default(false) }}"
+      lights_are_on: "{{ is_state('light.all_adaptive_lights', 'on') }}"
+
+    condition:
+      # Valid event types only (KeyReleased removed - no handler uses it, wastes resources)
+      - condition: template
+        value_template: "{{ event_type in ['KeyPressed', 'KeyHeldDown', 'KeyPressed2x', 'KeyPressed3x'] }}"
+      # Debounce: 200ms minimum between presses (prevents double-triggers)
+      - condition: template
+        value_template: >
+          {{ (now().timestamp() - (states('input_datetime.zen32_last_button_press') | as_timestamp(0))) > 0.2 }}
+
+    action:
+      # Step 1: Update debounce timestamp
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_last_button_press
+        data:
+          datetime: "{{ now() }}"
+
+      # Step 2: Update mode interaction timestamp (resets 61s MUSIC mode timeout)
+      - action: script.zen32_update_interaction
+
+      # Step 3: Modal action dispatch
+      - choose:
+          # =======================================================================
+          # BUTTON 1 - LIGHT BUTTON (Mode Select + Lighting Presets)
+          # =======================================================================
+
+          # [1] LIGHT - 1x Press (LIGHT mode): Cycle presets (skip Manual)
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed' and is_light_mode }}"
+            sequence:
+              - repeat:
+                  count: 10  # Safeguard against infinite loop
+                  sequence:
+                    - service: input_select.select_next
+                      target:
+                        entity_id: input_select.oal_active_configuration
+                      data:
+                        cycle: true
+                  until: >
+                    {{ states('input_select.oal_active_configuration') != 'Manual' }}
+
+          # [1] LIGHT - 1x Press (MUSIC mode): Switch to LIGHT mode
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed' and is_music_mode }}"
+            sequence:
+              - service: script.zen32_set_mode_light
+
+          # [1] LIGHT - Hold (LIGHT mode): Color temp warmer
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyHeldDown' and is_light_mode }}"
+            sequence:
+              - service: script.oal_global_manual_warmer
+
+          # [1] LIGHT - Hold (MUSIC mode): Switch to LIGHT mode
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyHeldDown' and is_music_mode }}"
+            sequence:
+              - service: script.zen32_set_mode_light
+
+          # [1] LIGHT - 2x Tap (LIGHT mode): Full brightness all zones
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed2x' and is_light_mode }}"
+            sequence:
+              - service: script.zen32_full_brightness
+
+          # [1] LIGHT - 2x Tap (MUSIC mode): Switch to LIGHT + Full brightness
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed2x' and is_music_mode }}"
+            sequence:
+              - service: script.zen32_set_mode_light
+              - service: script.zen32_full_brightness
+
+          # [1] LIGHT - 3x Tap (any mode): Toggle color temp warm/cool
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed3x' }}"
+            sequence:
+              # First ensure we're in LIGHT mode
+              - if:
+                  - condition: template
+                    value_template: "{{ is_music_mode }}"
+                then:
+                  - service: script.zen32_set_mode_light
+              # Toggle between warm and cool
+              - choose:
+                  - conditions: >
+                      {{ states('input_number.oal_offset_global_manual_warmth') | float(0) <= 0 }}
+                    sequence:
+                      - service: input_number.set_value
+                        target:
+                          entity_id: input_number.oal_offset_global_manual_warmth
+                        data:
+                          value: 500
+                default:
+                  - service: input_number.set_value
+                    target:
+                      entity_id: input_number.oal_offset_global_manual_warmth
+                    data:
+                      value: -500
+
+          # =======================================================================
+          # BUTTON 2 - UP BUTTON (Context-Sensitive Increase)
+          # =======================================================================
+
+          # [2] UP - 1x Press (LIGHT mode, lights OFF): Turn lights on first
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_light_mode and not lights_are_on }}"
+            sequence:
+              - service: light.turn_on
+                target:
+                  entity_id: light.all_adaptive_lights
+              # Small delay then increase brightness
+              - delay:
+                  milliseconds: 300
+              - service: script.oal_global_manual_brighter
+
+          # [2] UP - 1x Press (LIGHT mode, lights ON): Brightness up
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_light_mode and lights_are_on }}"
+            sequence:
+              - service: script.oal_global_manual_brighter
+
+          # [2] UP - 1x Press (MUSIC mode, NOT playing): Start + Volume up
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_music_mode and not sonos_is_playing }}"
+            sequence:
+              - service: script.zen32_sonos_start
+              - delay:
+                  milliseconds: 300
+              - service: script.zen32_sonos_volume_step
+                data:
+                  direction: 1
+
+          # [2] UP - 1x Press (MUSIC mode, playing): Volume up
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_music_mode and sonos_is_playing }}"
+            sequence:
+              - service: script.zen32_sonos_volume_step
+                data:
+                  direction: 1
+
+          # [2] UP - Hold (LIGHT mode): Color temp cooler
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyHeldDown' and is_light_mode }}"
+            sequence:
+              - service: script.oal_global_manual_cooler
+
+          # [2] UP - Hold (MUSIC mode): Next track
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyHeldDown' and is_music_mode }}"
+            sequence:
+              - service: script.zen32_sonos_next_track
+
+          # [2] UP - 2x Tap (LIGHT mode): Full brightness
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed2x' and is_light_mode }}"
+            sequence:
+              - service: script.zen32_full_brightness
+
+          # [2] UP - 2x Tap (MUSIC mode): Set default volume
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed2x' and is_music_mode }}"
+            sequence:
+              - service: script.zen32_sonos_default_volume
+
+          # =======================================================================
+          # BUTTON 3 - MUSIC BUTTON (Mode Select + Play/Pause + Grouping)
+          # =======================================================================
+
+          # [3] MUSIC - 1x Press (LIGHT mode, Sonos playing): Switch to MUSIC
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_light_mode and sonos_is_playing }}"
+            sequence:
+              - service: script.zen32_set_mode_music
+
+          # [3] MUSIC - 1x Press (LIGHT mode, Sonos NOT playing): Switch to MUSIC + Start
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_light_mode and not sonos_is_playing }}"
+            sequence:
+              - service: script.zen32_set_mode_music
+              - service: script.zen32_sonos_start
+
+          # [3] MUSIC - 1x Press (MUSIC mode, playing): Pause
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music_mode and sonos_is_playing }}"
+            sequence:
+              - service: script.zen32_sonos_play_pause
+
+          # [3] MUSIC - 1x Press (MUSIC mode, NOT playing): Start playback
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music_mode and not sonos_is_playing }}"
+            sequence:
+              - service: script.zen32_sonos_start
+
+          # [3] MUSIC - Hold (LIGHT mode): Switch to MUSIC + Group ALL
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_light_mode }}"
+            sequence:
+              - service: script.zen32_set_mode_music
+              - service: script.sonos_group_all_to_playing
+
+          # [3] MUSIC - Hold (MUSIC mode): Group ALL Sonos speakers
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_music_mode }}"
+            sequence:
+              - service: script.sonos_group_all_to_playing
+
+          # [3] MUSIC - 2x Tap (LIGHT mode): Switch to MUSIC + Ungroup
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed2x' and is_light_mode }}"
+            sequence:
+              - service: script.zen32_set_mode_music
+              - service: script.sonos_ungroup_all
+
+          # [3] MUSIC - 2x Tap (MUSIC mode): Ungroup all speakers
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed2x' and is_music_mode }}"
+            sequence:
+              - service: script.sonos_ungroup_all
+
+          # [3] MUSIC - 3x Tap (any mode): Cycle Sonos favorites
+          # Cycles through favorites configured in sensor.sonos_favorites
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed3x' }}"
+            sequence:
+              # Ensure we're in music mode first
+              - if:
+                  - condition: template
+                    value_template: "{{ is_light_mode }}"
+                then:
+                  - service: script.zen32_set_mode_music
+              # Cycle to next favorite
+              - service: script.zen32_cycle_sonos_favorite
+
+          # =======================================================================
+          # BUTTON 4 - DOWN BUTTON (Context-Sensitive Decrease)
+          # =======================================================================
+
+          # [4] DOWN - 1x Press (LIGHT mode, lights OFF): Turn on then dim to ambient
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_light_mode and not lights_are_on }}"
+            sequence:
+              - service: light.turn_on
+                target:
+                  entity_id: light.all_adaptive_lights
+              - delay:
+                  milliseconds: 300
+              - service: script.oal_global_manual_dimmer
+
+          # [4] DOWN - 1x Press (LIGHT mode, lights ON): Brightness down
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_light_mode and lights_are_on }}"
+            sequence:
+              - service: script.oal_global_manual_dimmer
+
+          # [4] DOWN - 1x Press (MUSIC mode, playing): Volume down
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_music_mode and sonos_is_playing }}"
+            sequence:
+              - service: script.zen32_sonos_volume_step
+                data:
+                  direction: -1
+
+          # [4] DOWN - 1x Press (MUSIC mode, NOT playing): No action
+          # Intentionally empty - don't start music just to lower volume
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_music_mode and not sonos_is_playing }}"
+            sequence: []
+
+          # [4] DOWN - Hold (LIGHT mode): Color temp warmer
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyHeldDown' and is_light_mode }}"
+            sequence:
+              - service: script.oal_global_manual_warmer
+
+          # [4] DOWN - Hold (MUSIC mode): Previous track
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyHeldDown' and is_music_mode }}"
+            sequence:
+              - service: script.zen32_sonos_prev_track
+
+          # [4] DOWN - 2x Tap (LIGHT mode): Minimum ambient brightness
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed2x' and is_light_mode }}"
+            sequence:
+              - service: script.zen32_minimum_brightness
+
+          # [4] DOWN - 2x Tap (MUSIC mode): Mute toggle
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed2x' and is_music_mode }}"
+            sequence:
+              - service: script.zen32_sonos_mute
+
+          # =======================================================================
+          # BUTTON 5 - BIG BUTTON (Mode-Independent Master Controls)
+          # =======================================================================
+
+          # [5] BIG - 1x Press: Toggle all adaptive lights
+          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed' }}"
+            sequence:
+              - service: light.toggle
+                target:
+                  entity_id: light.all_adaptive_lights
+
+          # [5] BIG - Hold: SOFT RESET (clear manual overrides)
+          # Changed from emergency all-off - soft reset is more commonly needed
+          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyHeldDown' }}"
+            sequence:
+              - service: script.oal_reset_soft
+
+          # [5] BIG - 2x Tap: Toggle Movie Mode
+          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed2x' }}"
+            sequence:
+              - service: input_boolean.toggle
+                target:
+                  entity_id: input_boolean.oal_movie_mode_active
+
+          # [5] BIG - 3x Tap: Toggle Sleep Mode
+          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed3x' }}"
+            sequence:
+              - service: input_boolean.toggle
+                target:
+                  entity_id: input_boolean.oal_disable_sleep_mode

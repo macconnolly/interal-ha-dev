@@ -1161,26 +1161,22 @@ automation:
   # ---------------------------------------------------------------------------
   # Startup Initialization - Restore LED State on HA Restart
   # ---------------------------------------------------------------------------
-  # STRATEGY: Ping device first, wait 60s for Z-Wave stability, then set ALL
-  # parameters in one pass. No availability checks needed - continue_on_error
-  # handles any transient issues.
-  #
-  # CRITICAL PARAMETERS for automation-controlled LEDs:
-  #   - Parameter 23 = 1: Disable LED flash on setting change
-  #   - Parameter 27 = 1: Disable LED flash on button press
-  #   - Parameters 1-5 = 3: LED always on (automation controls state)
+  # STRATEGY (v4.0 - Race Condition Safe):
+  #   1. Force LIGHT mode immediately (input_select always available)
+  #   2. Wait for Z-Wave entities to be available (not arbitrary delay)
+  #   3. Disable LED flash via select entity
+  #   4. Set mode LEDs via sequencer
+  #   5. Log success/failure
   # ---------------------------------------------------------------------------
   - id: zen32_startup_init
-    alias: "ZEN32 - Initialize LEDs on Startup"
-    description: "Initializes all LED parameters including flash disable for automation control"
+    alias: "ZEN32 - Initialize on Startup"
+    description: "Initializes ZEN32 with wait_template for entity availability"
     mode: single
     trigger:
       - platform: homeassistant
         event: start
-    variables:
-      device_id: "{{ device_id('event.scene_controller_scene_001') }}"
     action:
-      # Force LIGHT mode on startup (prevents stale VOLUME mode from persisting)
+      # Force LIGHT mode immediately (input_select is always available)
       - service: input_select.select_option
         target:
           entity_id: input_select.zen32_control_mode
@@ -1194,91 +1190,52 @@ automation:
         data:
           datetime: "{{ now() }}"
 
-      # Ping the device to wake it up (benign operation)
-      - service: zwave_js.ping
-        target:
-          device_id: "{{ device_id }}"
-        continue_on_error: true
+      - service: system_log.write
+        data:
+          message: "ZEN32 startup: Waiting for Z-Wave entities..."
+          level: info
 
-      # Wait 60 seconds for full Z-Wave network stability
-      - delay:
-          seconds: 60
+      # Wait for Z-Wave select entities to be available (not arbitrary 60s delay)
+      - wait_template: >
+          {{ states('select.scene_controller_led_indicator_color_button_1')
+             not in ['unavailable', 'unknown'] }}
+        timeout:
+          seconds: 120
+        continue_on_timeout: true
 
-      # Set ALL LED configuration parameters in parallel
-      - parallel:
-          # =====================================================================
-          # CRITICAL: Disable LED flash behaviors for automation control
-          # =====================================================================
-          # Parameter 23: Disable LED flash on setting/parameter change
-          - service: zwave_js.set_config_parameter
-            continue_on_error: true
+      # Check if entities are actually available
+      - if:
+          - condition: template
+            value_template: >
+              {{ states('select.scene_controller_led_indicator_color_button_1')
+                 in ['unavailable', 'unknown'] }}
+        then:
+          - service: system_log.write
             data:
-              parameter: 23
-              value: 1
+              message: "ZEN32 startup: LED entities unavailable after 120s timeout - skipping LED init"
+              level: warning
+        else:
+          # Disable LED flash (critical for automation control)
+          - service: select.select_option
             target:
-              device_id: "{{ device_id }}"
-          # Parameter 27: Disable LED flash on button press
-          - service: zwave_js.set_config_parameter
-            continue_on_error: true
+              entity_id: select.scene_controller_led_settings_indicator
             data:
-              parameter: 27
-              value: 1
-            target:
-              device_id: "{{ device_id }}"
+              option: "Disable"
 
-          # =====================================================================
-          # LED Toggle Behavior: Always On (automation controls via color/off)
-          # =====================================================================
-          # Parameter 1: Big Button (5) toggle → always_on
-          - service: zwave_js.set_config_parameter
-            continue_on_error: true
-            data:
-              parameter: 1
-              value: 3
-            target:
-              device_id: "{{ device_id }}"
-          # Parameter 2: Button 1 (LIGHT) toggle → always_on
-          - service: zwave_js.set_config_parameter
-            continue_on_error: true
-            data:
-              parameter: 2
-              value: 3
-            target:
-              device_id: "{{ device_id }}"
-          # Parameter 3: Button 2 (UP) toggle → always_on
-          - service: zwave_js.set_config_parameter
-            continue_on_error: true
-            data:
-              parameter: 3
-              value: 3
-            target:
-              device_id: "{{ device_id }}"
-          # Parameter 4: Button 3 (VOLUME) toggle → always_on
-          - service: zwave_js.set_config_parameter
-            continue_on_error: true
-            data:
-              parameter: 4
-              value: 3
-            target:
-              device_id: "{{ device_id }}"
-          # Parameter 5: Button 4 (DOWN) toggle → always_on
-          - service: zwave_js.set_config_parameter
-            continue_on_error: true
-            data:
-              parameter: 5
-              value: 3
-            target:
-              device_id: "{{ device_id }}"
+          # Brief delay for flash disable to apply
+          - delay:
+              seconds: 1
 
-      # Brief delay for Z-Wave commands to process
-      - delay:
-          seconds: 2
+          # Set LIGHT mode LEDs via sequencer (Z-Wave safe)
+          - service: script.zen32_set_mode_light
 
-      # Set initial LED colors for LIGHT mode
-      - service: script.zen32_set_mode_light
+          # Set big button based on current state
+          - service: script.zen32_update_big_button_led
 
-      # Initialize big button state based on current light/movie status
-      - service: script.zen32_update_big_button_led
+          - service: system_log.write
+            data:
+              message: "ZEN32 startup: Initialization complete"
+              level: info
 
   # ---------------------------------------------------------------------------
   # LED Sync on Mode Change - Ensures LEDs match mode after external changes

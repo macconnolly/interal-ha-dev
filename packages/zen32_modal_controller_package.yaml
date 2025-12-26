@@ -566,16 +566,16 @@ script:
   # ---------------------------------------------------------------------------
   # Mode Transition - Switch to LIGHT Mode
   # ---------------------------------------------------------------------------
-  # LED DESIGN (Three-Tier Brightness Hierarchy):
-  #   Button 1 (LIGHT):  Yellow BRIGHT - Active mode indicator
-  #   Button 2 (UP):     Yellow MEDIUM - Active mode action (brightness)
-  #   Button 3 (VOLUME): Blue LOW - Inactive mode (available to switch)
-  #   Button 4 (DOWN):   Yellow MEDIUM - Active mode action (brightness)
+  # LED DESIGN (v4.0 - Same color = same function):
+  #   Button 1 (LIGHT):  Yellow ON - Active mode selector
+  #   Button 2 (UP):     Yellow ON - Active mode action (brightness)
+  #   Button 3 (VOLUME): OFF - Inactive mode (not dimmed per design spec)
+  #   Button 4 (DOWN):   Yellow ON - Active mode action (brightness)
   #   Button 5 (BIG):    Managed separately by state tracking automation
   # ---------------------------------------------------------------------------
   zen32_set_mode_light:
     alias: "ZEN32 - Set LIGHT Mode"
-    description: "Switches to LIGHT mode with differentiated LED brightness hierarchy"
+    description: "Switches to LIGHT mode with sequential LED updates (Z-Wave safe)"
     icon: mdi:lightbulb-on
     mode: single
     sequence:
@@ -586,57 +586,50 @@ script:
         data:
           option: "light"
 
-      # Update interaction timestamp
+      # Update mode change timestamp (for diagnostics)
       - service: input_datetime.set_datetime
         target:
           entity_id: input_datetime.zen32_mode_last_change
         data:
           datetime: "{{ now() }}"
 
-      # Set differentiated LED states in parallel
-      - parallel:
-          # Button 1 (LIGHT): Yellow HIGH - Active mode selector
-          - service: script.zen32_set_led
-            data:
-              button: 1
-              color: "yellow"
-              toggle: "always_on"
-              brightness: "bright"
-          # Button 2 (UP): Yellow MEDIUM - Active mode action
-          - service: script.zen32_set_led
-            data:
-              button: 2
-              color: "yellow"
-              toggle: "always_on"
-              brightness: "medium"
-          # Button 3 (VOLUME): Blue LOW - Inactive mode indicator
-          - service: script.zen32_set_led
-            data:
-              button: 3
-              color: "blue"
-              toggle: "always_on"
-              brightness: "low"
-          # Button 4 (DOWN): Yellow MEDIUM - Active mode action (brightness)
-          - service: script.zen32_set_led
-            data:
-              button: 4
-              color: "yellow"
-              toggle: "always_on"
-              brightness: "medium"
+      # Set LEDs sequentially to avoid Z-Wave radio flooding
+      - service: script.zen32_led_sequencer
+        data:
+          delay_ms: 100
+          updates:
+            # Button 1 (LIGHT): Yellow ON
+            - entity: select.scene_controller_led_indicator_color_button_1
+              option: "Yellow"
+            - entity: select.scene_controller_led_indicator_button_1
+              option: "Always on"
+            # Button 2 (UP): Yellow ON
+            - entity: select.scene_controller_led_indicator_color_button_2
+              option: "Yellow"
+            - entity: select.scene_controller_led_indicator_button_2
+              option: "Always on"
+            # Button 3 (VOLUME): OFF (inactive mode per design spec)
+            - entity: select.scene_controller_led_indicator_button_3
+              option: "Always off"
+            # Button 4 (DOWN): Yellow ON
+            - entity: select.scene_controller_led_indicator_color_button_4
+              option: "Yellow"
+            - entity: select.scene_controller_led_indicator_button_4
+              option: "Always on"
 
   # ---------------------------------------------------------------------------
   # Mode Transition - Switch to VOLUME Mode
   # ---------------------------------------------------------------------------
-  # LED DESIGN (Three-Tier Brightness Hierarchy):
-  #   Button 1 (LIGHT):  Yellow LOW - Inactive mode (available to switch)
-  #   Button 2 (UP):     Blue MEDIUM - Active mode action (volume)
-  #   Button 3 (VOLUME): Blue BRIGHT - Active mode indicator
-  #   Button 4 (DOWN):   Blue MEDIUM - Active mode action (volume)
+  # LED DESIGN (v4.0 - Same color = same function):
+  #   Button 1 (LIGHT):  OFF - Inactive mode (not dimmed per design spec)
+  #   Button 2 (UP):     Blue ON - Active mode action (volume)
+  #   Button 3 (VOLUME): Blue ON - Active mode selector
+  #   Button 4 (DOWN):   Blue ON - Active mode action (volume)
   #   Button 5 (BIG):    Managed separately by state tracking automation
   # ---------------------------------------------------------------------------
   zen32_set_mode_music:
     alias: "ZEN32 - Set VOLUME Mode"
-    description: "Switches to VOLUME mode with differentiated LED brightness hierarchy"
+    description: "Switches to VOLUME mode with sequential LED updates (Z-Wave safe)"
     icon: mdi:volume-high
     mode: single
     sequence:
@@ -654,36 +647,29 @@ script:
         data:
           datetime: "{{ now() }}"
 
-      # Set differentiated LED states in parallel
-      - parallel:
-          # Button 1 (LIGHT): Yellow LOW - Inactive mode indicator
-          - service: script.zen32_set_led
-            data:
-              button: 1
-              color: "yellow"
-              toggle: "always_on"
-              brightness: "low"
-          # Button 2 (UP): Blue MEDIUM - Active mode action (volume)
-          - service: script.zen32_set_led
-            data:
-              button: 2
-              color: "blue"
-              toggle: "always_on"
-              brightness: "medium"
-          # Button 3 (VOLUME): Blue BRIGHT - Active mode selector
-          - service: script.zen32_set_led
-            data:
-              button: 3
-              color: "blue"
-              toggle: "always_on"
-              brightness: "bright"
-          # Button 4 (DOWN): Blue MEDIUM - Active mode action (volume)
-          - service: script.zen32_set_led
-            data:
-              button: 4
-              color: "blue"
-              toggle: "always_on"
-              brightness: "medium"
+      # Set LEDs sequentially to avoid Z-Wave radio flooding
+      - service: script.zen32_led_sequencer
+        data:
+          delay_ms: 100
+          updates:
+            # Button 1 (LIGHT): OFF (inactive mode per design spec)
+            - entity: select.scene_controller_led_indicator_button_1
+              option: "Always off"
+            # Button 2 (UP): Blue ON
+            - entity: select.scene_controller_led_indicator_color_button_2
+              option: "Blue"
+            - entity: select.scene_controller_led_indicator_button_2
+              option: "Always on"
+            # Button 3 (VOLUME): Blue ON
+            - entity: select.scene_controller_led_indicator_color_button_3
+              option: "Blue"
+            - entity: select.scene_controller_led_indicator_button_3
+              option: "Always on"
+            # Button 4 (DOWN): Blue ON
+            - entity: select.scene_controller_led_indicator_color_button_4
+              option: "Blue"
+            - entity: select.scene_controller_led_indicator_button_4
+              option: "Always on"
 
   # ---------------------------------------------------------------------------
   # LED Blink Confirmation - Visual feedback on mode switch

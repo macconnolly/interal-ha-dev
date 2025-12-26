@@ -833,44 +833,6 @@ script:
           entity_id: "{{ coordinator }}"
 
   # ---------------------------------------------------------------------------
-  # Default Volume
-  # ---------------------------------------------------------------------------
-  zen32_sonos_default_volume:
-    alias: "ZEN32 - Sonos Default Volume"
-    icon: mdi:volume-source
-    mode: single
-    variables:
-      coordinator: >
-        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
-        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
-      default_vol: "{{ states('input_number.sonos_default_volume') | float(0.25) }}"
-    sequence:
-      - service: media_player.volume_set
-        target:
-          entity_id: "{{ coordinator }}"
-        data:
-          volume_level: "{{ default_vol }}"
-
-  # ---------------------------------------------------------------------------
-  # Mute Toggle
-  # ---------------------------------------------------------------------------
-  zen32_sonos_mute:
-    alias: "ZEN32 - Sonos Mute Toggle"
-    icon: mdi:volume-off
-    mode: single
-    variables:
-      coordinator: >
-        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
-        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
-      is_muted: "{{ state_attr(coordinator, 'is_volume_muted') | default(false) }}"
-    sequence:
-      - service: media_player.volume_mute
-        target:
-          entity_id: "{{ coordinator }}"
-        data:
-          is_volume_muted: "{{ not is_muted }}"
-
-  # ---------------------------------------------------------------------------
   # Smart Group Toggle - Calls EXISTING scripts (DRY)
   # ---------------------------------------------------------------------------
   zen32_sonos_smart_group_toggle:

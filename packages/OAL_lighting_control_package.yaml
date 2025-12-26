@@ -24,6 +24,7 @@ light:
     unique_id: "oal_kitchen_island_lights_group_v13"
     entities:
       - light.kitchen_island_pendants
+      - light.kitchen_counter_cabinet_underlights
   - platform: group
     name: "bedroom_primary_lights"
     unique_id: "oal_bedroom_primary_lights_group_v13"
@@ -61,6 +62,7 @@ light:
       - light.living_room_hallway_lights
       - light.living_column_strip_light_matter
       - light.dining_column_strip_light_matter
+      - light.kitchen_counter_cabinet_underlights
   - platform: group
     name: Living Room Lights
     unique_id: living_room_lights_group
@@ -80,6 +82,7 @@ light:
     entities:
       - light.kitchen_island_pendants
       - light.kitchen_main_lights
+      - light.kitchen_counter_cabinet_underlights
   - platform: group
     name: "All Living Room Lights"
     unique_id: all_living_room_lights
@@ -942,6 +945,7 @@ automation:
           lights_dimmed:
             light.main_living_lights: 40      # Soft ambient
             light.kitchen_island_pendants: 30 # Lower than normal
+            light.kitchen_counter_cabinet_underlights: 20  # Subtle counter glow
             light.column_lights: 30           # Accent glow
             light.accent_spots_lights: 20     # Subtle spots
             light.recessed_ceiling_lights: 1  # Minimal glow
@@ -970,6 +974,7 @@ automation:
           lights_dimmed:
             light.living_room_couch_lamp: 5   # Barely visible
             light.kitchen_island_pendants: 15 # Background glow
+            light.kitchen_counter_cabinet_underlights: 10  # Safety/navigation glow
             light.accent_spots_lights: 5      # Subtle ambient
             light.entryway_lamp: 8            # Navigation/safety
             light.living_room_credenza_light: 3  # Bias lighting
@@ -4992,7 +4997,7 @@ template:
           # Override status - aggregated from kitchen AL switch
           manually_controlled_lights: >
             {% set kitchen = state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) %}
-            {% set kitchen_lights = ['light.kitchen_main_lights', 'light.kitchen_island_pendants'] %}
+            {% set kitchen_lights = ['light.kitchen_main_lights', 'light.kitchen_island_pendants', 'light.kitchen_counter_cabinet_underlights'] %}
             {{ kitchen | select('in', kitchen_lights) | list }}
           has_override: >
             {{ (this.attributes.manually_controlled_lights | default([])) | length > 0 }}

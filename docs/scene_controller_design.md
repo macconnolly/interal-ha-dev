@@ -1,6 +1,6 @@
 # ZEN32 Modal Scene Controller - Design Specification
 
-## Status: v3.0 - Complete Redesign (2025-12-25)
+## Status: v4.0 - Simplified UX + Robustness (2025-12-25)
 
 ---
 
@@ -10,7 +10,9 @@ The ZEN32 functions as a **modal controller** with two primary control contexts:
 - **LIGHT Mode** (default) - Controls OAL lighting brightness and color temperature
 - **VOLUME Mode** - Controls Sonos playback and volume
 
-LED colors indicate the active mode. UP/DOWN buttons are context-sensitive.
+**Key UX Principle:** User explicitly controls mode. No auto-timeout.
+
+LED colors indicate the active mode. UP/DOWN buttons are context-sensitive. Mode persists until the user explicitly switches it - this is simpler, more predictable, and respects user intent.
 
 ---
 
@@ -25,25 +27,25 @@ LED colors indicate the active mode. UP/DOWN buttons are context-sensitive.
 ### Physical Layout
 
 ```
-        ┌─────────────────────────┐
-        │                         │
-        │   ┌─────────────────┐   │
-        │   │    💡           │   │
-        │   │   LIGHTS        │   │  [5] Big button (relay)
-        │   │              •  │   │  LED: White=on, Red=Manual, Off=off
-        │   └─────────────────┘   │
-        │                         │
-        │  ┌─────────┐ ┌─────────┐│
-        │  │ 💡    • │ │ •    +  ││  [1] LIGHT    [2] UP
-        │  │ LIGHT   │ │   UP    ││  Mode select   Increase
-        │  └─────────┘ └─────────┘│
-        │                         │
-        │  ┌─────────┐ ┌─────────┐│
-        │  │ 🎵    • │ │ •    -  ││  [3] VOLUME   [4] DOWN
-        │  │ VOLUME  │ │  DOWN   ││  Mode+Play    Decrease
-        │  └─────────┘ └─────────┘│
-        │                         │
-        └─────────────────────────┘
+        +---------------------------+
+        |                           |
+        |   +-------------------+   |
+        |   |                   |   |
+        |   |   LIGHTS          |   |  [5] Big button (relay)
+        |   |              *    |   |  LED: White=on, Red=Manual, Off=off
+        |   +-------------------+   |
+        |                           |
+        |  +---------+ +---------+  |
+        |  |      *  | |  *      |  |  [1] LIGHT    [2] UP
+        |  | LIGHT   | |   UP    |  |  Mode select   Increase
+        |  +---------+ +---------+  |
+        |                           |
+        |  +---------+ +---------+  |
+        |  |      *  | |  *      |  |  [3] VOLUME   [4] DOWN
+        |  | VOLUME  | |  DOWN   |  |  Mode+Play    Decrease
+        |  +---------+ +---------+  |
+        |                           |
+        +---------------------------+
 ```
 
 ---
@@ -96,30 +98,73 @@ LED colors indicate the active mode. UP/DOWN buttons are context-sensitive.
 |--------|----------------|---------|
 | `select.scene_controller_led_settings_indicator` | **Disable** | Prevents LED flash on button press |
 
-### Service Call Pattern
+### Z-Wave Safe LED Updates (CRITICAL)
+
+**Problem:** Parallel `select.select_option` calls flood the Z-Wave radio, causing message drops or device resets.
+
+**Solution:** Use sequential updates with delays via the LED sequencer script.
 
 ```yaml
-# Set color
-- service: select.select_option
-  target:
-    entity_id: select.scene_controller_led_indicator_color_button_1
-  data:
-    option: "Yellow"
+# WRONG - floods Z-Wave radio
+- parallel:
+    - service: select.select_option
+      target:
+        entity_id: select.scene_controller_led_indicator_color_button_1
+      data:
+        option: "Yellow"
+    - service: select.select_option
+      target:
+        entity_id: select.scene_controller_led_indicator_color_button_2
+      data:
+        option: "Yellow"
+    # ... more parallel calls
 
-# Turn LED on
-- service: select.select_option
-  target:
-    entity_id: select.scene_controller_led_indicator_button_1
+# CORRECT - sequential with delays
+- service: script.zen32_led_sequencer
   data:
-    option: "Always on"
-
-# Turn LED off
-- service: select.select_option
-  target:
-    entity_id: select.scene_controller_led_indicator_button_1
-  data:
-    option: "Always off"
+    delay_ms: 100
+    updates:
+      - entity: select.scene_controller_led_indicator_color_button_1
+        option: "Yellow"
+      - entity: select.scene_controller_led_indicator_button_1
+        option: "Always on"
+      - entity: select.scene_controller_led_indicator_color_button_2
+        option: "Yellow"
+      - entity: select.scene_controller_led_indicator_button_2
+        option: "Always on"
 ```
+
+**LED Sequencer Script Pattern:**
+```yaml
+script:
+  zen32_led_sequencer:
+    alias: "ZEN32 - LED Sequencer"
+    description: "Sequential LED updates with configurable delay to prevent Z-Wave flooding"
+    mode: single
+    fields:
+      updates:
+        description: "List of {entity, option} dicts"
+        required: true
+      delay_ms:
+        description: "Milliseconds between calls (default: 100)"
+        default: 100
+    sequence:
+      - repeat:
+          for_each: "{{ updates }}"
+          sequence:
+            - service: select.select_option
+              target:
+                entity_id: "{{ repeat.item.entity }}"
+              data:
+                option: "{{ repeat.item.option }}"
+            - delay:
+                milliseconds: "{{ delay_ms | default(100) }}"
+```
+
+**Guidelines:**
+- Use 50-200ms delay between calls (100ms is safe default)
+- Mode transitions (4 buttons) take ~400-800ms total - acceptable latency
+- For startup/bulk updates, consider `zwave_js.bulk_set_partial_config_parameters`
 
 ---
 
@@ -127,27 +172,27 @@ LED colors indicate the active mode. UP/DOWN buttons are context-sensitive.
 
 ### Core Principle
 
-**Same color = same function.** All buttons in the active mode share the same color.
+**Same color = same function.** All buttons in the active mode share the same color. Inactive mode button is OFF (not dimmed).
 
 ### LIGHT Mode (Default)
 
 ```
-        ┌─────────────────────────┐
-        │   ┌─────────────────┐   │
-        │   │    💡       ○   │   │  [5] BIG: White/Red/Off (see below)
-        │   │   LIGHTS        │   │
-        │   └─────────────────┘   │
-        │                         │
-        │  ┌─────────┐ ┌─────────┐│
-        │  │ 💡  🟡  │ │  🟡  +  ││  [1] LIGHT: YELLOW ON
-        │  │ LIGHT   │ │   UP    ││  [2] UP: YELLOW ON
-        │  └─────────┘ └─────────┘│
-        │                         │
-        │  ┌─────────┐ ┌─────────┐│
-        │  │ 🎵  ⚫  │ │  🟡  -  ││  [3] VOLUME: OFF
-        │  │ VOLUME  │ │  DOWN   ││  [4] DOWN: YELLOW ON
-        │  └─────────┘ └─────────┘│
-        └─────────────────────────┘
+        +---------------------------+
+        |   +-------------------+   |
+        |   |              O    |   |  [5] BIG: White/Red/Off (see below)
+        |   |   LIGHTS          |   |
+        |   +-------------------+   |
+        |                           |
+        |  +---------+ +---------+  |
+        |  |      Y  | |  Y      |  |  [1] LIGHT: YELLOW ON
+        |  | LIGHT   | |   UP    |  |  [2] UP: YELLOW ON
+        |  +---------+ +---------+  |
+        |                           |
+        |  +---------+ +---------+  |
+        |  |      -  | |  Y      |  |  [3] VOLUME: OFF
+        |  | VOLUME  | |  DOWN   |  |  [4] DOWN: YELLOW ON
+        |  +---------+ +---------+  |
+        +---------------------------+
 ```
 
 | Button | Color | Toggle State |
@@ -160,22 +205,22 @@ LED colors indicate the active mode. UP/DOWN buttons are context-sensitive.
 ### VOLUME Mode
 
 ```
-        ┌─────────────────────────┐
-        │   ┌─────────────────┐   │
-        │   │    💡       ○   │   │  [5] BIG: (unchanged)
-        │   │   LIGHTS        │   │
-        │   └─────────────────┘   │
-        │                         │
-        │  ┌─────────┐ ┌─────────┐│
-        │  │ 💡  ⚫  │ │  🔵  +  ││  [1] LIGHT: OFF
-        │  │ LIGHT   │ │   UP    ││  [2] UP: BLUE ON
-        │  └─────────┘ └─────────┘│
-        │                         │
-        │  ┌─────────┐ ┌─────────┐│
-        │  │ 🎵  🔵  │ │  🔵  -  ││  [3] VOLUME: BLUE ON
-        │  │ VOLUME  │ │  DOWN   ││  [4] DOWN: BLUE ON
-        │  └─────────┘ └─────────┘│
-        └─────────────────────────┘
+        +---------------------------+
+        |   +-------------------+   |
+        |   |              O    |   |  [5] BIG: (unchanged)
+        |   |   LIGHTS          |   |
+        |   +-------------------+   |
+        |                           |
+        |  +---------+ +---------+  |
+        |  |      -  | |  B      |  |  [1] LIGHT: OFF
+        |  | LIGHT   | |   UP    |  |  [2] UP: BLUE ON
+        |  +---------+ +---------+  |
+        |                           |
+        |  +---------+ +---------+  |
+        |  |      B  | |  B      |  |  [3] VOLUME: BLUE ON
+        |  | VOLUME  | |  DOWN   |  |  [4] DOWN: BLUE ON
+        |  +---------+ +---------+  |
+        +---------------------------+
 ```
 
 | Button | Color | Toggle State |
@@ -187,61 +232,68 @@ LED colors indicate the active mode. UP/DOWN buttons are context-sensitive.
 
 ### Big Button (5/Relay) - Mode Independent
 
-| Condition | Color | Toggle State |
-|-----------|-------|--------------|
-| `input_select.oal_active_configuration` == "Manual" | **Red** | Always on |
-| `light.all_adaptive_lights` == "on" | White | Always on |
-| `light.all_adaptive_lights` == "off" | - | Always off |
+| Priority | Condition | Color | Toggle State |
+|----------|-----------|-------|--------------|
+| 1 (highest) | `input_select.oal_active_configuration` == "Manual" | **Red** | Always on |
+| 2 | `input_boolean.oal_movie_mode_active` == "on" | Red | Always on |
+| 3 | `input_boolean.oal_disable_sleep_mode` == "on" | Red | Always on |
+| 4 | `light.all_adaptive_lights` == "on" | White | Always on |
+| 5 (default) | `light.all_adaptive_lights` == "off" | - | Always off |
 
-**Note:** Big button state is independent of LIGHT/VOLUME mode. It always reflects light system state.
-
-**Big button LED implementation detail:** Use the relay-specific select entities for the big button LED — `select.scene_controller_led_indicator_color_relay` and `select.scene_controller_led_indicator_brightness_relay` — rather than repurposing per-button toggle selects. This keeps the relay LED authoritative and avoids conflicting logic between per-button trackers and the relay state.
-
-**Big button LED implementation detail:** Use the relay-specific select entities for the big button LED — `select.scene_controller_led_indicator_color_relay` and `select.scene_controller_led_indicator_brightness_relay` — rather than repurposing per-button toggle selects. This keeps the relay LED authoritative and avoids conflicting logic between per-button trackers and the relay state.
+**Note:** Big button state is independent of LIGHT/VOLUME mode. It always reflects system state with Manual mode as highest priority.
 
 ---
 
-## Mode Timeout Behavior
+## Mode Behavior (No Auto-Timeout)
 
-### Specification
+### Design Decision
 
-- **Timeout:** 60 seconds of no interaction while in VOLUME mode
-- **Trigger:** Any button press resets the timer
-- **Action:** Silently return to LIGHT mode (update LEDs)
-- **Playback:** Music continues - only control context changes
+**No automatic timeout.** Mode persists until user explicitly switches.
 
-### Implementation (Timer Helper)
+**Rationale:**
+1. **Respects user intent** - User chose VOLUME mode, we respect that choice
+2. **Predictable behavior** - Same action always produces same result
+3. **No confusion** - User doesn't wonder "when will it switch back?"
+4. **Simpler code** - No timer management, restart logic, or edge cases
+5. **LED feedback sufficient** - Colors clearly show current mode
+
+**Switching modes is trivial:**
+- Press LIGHT button → LIGHT mode
+- Press VOLUME button → VOLUME mode
+
+### Implementation
 
 ```yaml
-timer:
-  zen32_volume_timeout:
-    name: "ZEN32 Volume Mode Timeout"
-    duration: "00:01:00"
-    restore: true  # Survives HA restarts
-    icon: mdi:timer-outline
+# Mode set scripts simply update the input_select and LEDs
+# No timers, no delays, no timeout logic
 
-automation:
-  - id: zen32_timeout_handler
-    alias: "ZEN32 - Volume Mode Timeout"
-    trigger:
-      - platform: event
-        event_type: timer.finished
-        event_data:
-          entity_id: timer.zen32_volume_timeout
-    action:
-      - service: script.zen32_set_mode_light
+script:
+  zen32_set_mode_light:
+    sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.zen32_control_mode
+        data:
+          option: "light"
+      - service: script.zen32_led_sequencer
+        data:
+          delay_ms: 100
+          updates:
+            # ... LIGHT mode LED updates
+
+  zen32_set_mode_music:
+    sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.zen32_control_mode
+        data:
+          option: "music"
+      - service: script.zen32_led_sequencer
+        data:
+          delay_ms: 100
+          updates:
+            # ... VOLUME mode LED updates
 ```
-
-**Why Timer Helper vs Automation Delay:**
-- `restore: true` survives HA restarts
-- Remaining time visible in UI
-- Can be cancelled explicitly
-- Cleaner separation of concerns
-
-**Implementation rules (critical):**
-- **Every interaction must `timer.start`** — all button handlers, mode-switch scripts, and interaction entry points MUST call `timer.start` for `timer.zen32_volume_timeout` to reliably extend the timeout window.
-- **Cancel on return to LIGHT mode:** `script.zen32_set_mode_light` must call `timer.cancel` for `timer.zen32_volume_timeout` to avoid false timeouts after mode transitions.
-- **Confirm configuration:** Ensure `timer.zen32_volume_timeout` is created with `restore: true` and add a small validation test that calls `service: timer.start` and verifies `timer.finished` fires as expected after the duration.
 
 ---
 
@@ -251,7 +303,7 @@ automation:
 
 | Action | LIGHT Mode | VOLUME Mode |
 |--------|------------|-------------|
-| **1x Press** | Cycle OAL presets (skip Manual) | Switch to LIGHT mode |
+| **1x Press** | Cycle OAL presets (skip Manual) + trigger engine | Switch to LIGHT mode |
 | **2x Press** | Full brightness (100%) | Switch + Full brightness |
 | **Hold** | Color temp warmer | Switch to LIGHT mode |
 
@@ -260,8 +312,8 @@ automation:
 | Action | LIGHT Mode (on) | LIGHT Mode (off) | VOLUME Mode (playing) | VOLUME Mode (stopped) |
 |--------|-----------------|------------------|----------------------|----------------------|
 | **1x Press** | Brightness +15% | Turn ON | Volume +10% | Start playback |
-| **2x Press** | Full brightness | Turn ON → 100% | Default volume (50%) | Start → 50% |
-| **Hold** | Color temp cooler | Turn ON → cooler | Next track | Start → next track |
+| **2x Press** | Full brightness | Turn ON + 100% | Default volume (50%) | Start + 50% |
+| **Hold** | Color temp cooler | Turn ON + cooler | Next track | Start + next track |
 
 ### Button 3 (VOLUME) - Mode Selector + Play Control
 
@@ -270,28 +322,30 @@ automation:
 | **1x Press** | Switch + Start if stopped | Pause | Start playback |
 | **2x Press** | Switch + Ungroup all | Ungroup all | Ungroup all |
 | **Hold** | Switch + Group all | Group all speakers | Group all speakers |
+| **3x Press** | Switch + Cycle favorites | Cycle favorites | Cycle favorites |
 
 ### Button 4 (DOWN) - Context-Sensitive Decrease
 
 | Action | LIGHT Mode (on) | LIGHT Mode (off) | VOLUME Mode (playing) | VOLUME Mode (stopped) |
 |--------|-----------------|------------------|----------------------|----------------------|
-| **1x Press** | Brightness -15% | Turn ON → minimum | Volume -10% | (no action) |
-| **2x Press** | Minimum brightness | Turn ON → minimum | Mute toggle | (no action) |
-| **Hold** | Color temp warmer | Turn ON → warmer | Previous track | (no action) |
+| **1x Press** | Brightness -15% | Turn ON + minimum | Volume -10% | (no action) |
+| **2x Press** | Minimum brightness | Turn ON + minimum | Mute toggle | (no action) |
+| **Hold** | Color temp warmer | Turn ON + warmer | Previous track | (no action) |
 
 ### Button 5 (BIG) - Mode-Independent Master
 
 | Action | Behavior |
 |--------|----------|
 | **1x Press** | Toggle all adaptive lights |
-| **2x Press** | Clear all manual overrides (reset to Adaptive preset) |
-| **Hold** | (reserved) |
+| **2x Press** | Toggle movie mode |
+| **3x Press** | Toggle sleep mode |
+| **Hold** | Soft reset (clear manual overrides) |
 
 ---
 
 ## State Architecture
 
-### Required Helpers (Minimal Footprint)
+### Required Helpers (Minimal)
 
 ```yaml
 input_select:
@@ -299,16 +353,24 @@ input_select:
     name: "ZEN32 Control Mode"
     options:
       - "light"
-      - "volume"
+      - "music"
     initial: "light"
     icon: mdi:toggle-switch-variant
 
-timer:
-  zen32_volume_timeout:
-    name: "ZEN32 Volume Mode Timeout"
-    duration: "00:01:00"
-    restore: true
-    icon: mdi:timer-outline
+input_datetime:
+  zen32_mode_last_change:
+    name: "ZEN32 Mode Last Change"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-check-outline
+    # For diagnostics/debugging only - no timeout logic
+
+  zen32_last_button_press:
+    name: "ZEN32 Last Button Press"
+    has_date: true
+    has_time: true
+    icon: mdi:gesture-tap
+    # For OAL 24h activity check
 ```
 
 ### State NOT Stored (Derived Instead)
@@ -319,6 +381,7 @@ timer:
 | Sonos playing | `states('media_player.living_room')` in ['playing', 'buffering', 'paused'] |
 | Lights on/off | `states('light.all_adaptive_lights')` |
 | Manual control active | `states('input_select.oal_active_configuration') == 'Manual'` |
+| LED colors | Derived from `input_select.zen32_control_mode` |
 
 ### Entities That Already Exist (No Changes)
 
@@ -329,172 +392,131 @@ timer:
 
 ---
 
-## Home Assistant Best Practices for Modal Controllers
+## Startup Initialization (Race Condition Safe)
 
-### 1. Event-Driven vs State-Driven Architecture
+### Problem
 
-**Recommendation:**
-- Use **event-driven triggers** for button presses that are stateless (Central Scene, multi-tap, hold)
-- Use **state-driven triggers** when the device exposes persistent state you care about (relay on/off)
+After HA restart, Z-Wave entities may not be immediately available. Arbitrary delays (e.g., 60s) are unreliable - entities might be ready in 10s or take 120s.
 
-**Why:**
-- Events are precise and intentful (scene/multi-tap/hold) - no ambiguity, simpler to map to modes
-- State triggers are good for long-lived conditions with built-in `for:` and attribute semantics
+### Solution
 
-**Latency & Reliability:**
-- Latency is dominated by wireless and node processing, not HA trigger choice
-- Events are slightly faster (no intermediate entity update), but both are millisecond-comparable
-- State triggers are more "forgiving" when entities are stable
-- Events are more precise but require careful filtering and debouncing
+Use `wait_template` to wait for entity availability with explicit timeout handling.
 
-**Practical Pattern for ZEN32:**
 ```yaml
-# Button presses: use event entity triggers
+automation:
+  - id: zen32_startup_init
+    alias: "ZEN32 - Initialize on Startup"
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      # Force LIGHT mode immediately (input_select is always available)
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.zen32_control_mode
+        data:
+          option: "light"
+
+      # Wait for Z-Wave LED entities to be available
+      - wait_template: >
+          {{ states('select.scene_controller_led_indicator_color_button_1')
+             not in ['unavailable', 'unknown'] }}
+        timeout:
+          seconds: 120
+        continue_on_timeout: true
+
+      # Check if entities are actually available
+      - if:
+          - condition: template
+            value_template: >
+              {{ states('select.scene_controller_led_indicator_color_button_1')
+                 in ['unavailable', 'unknown'] }}
+        then:
+          - service: system_log.write
+            data:
+              message: "ZEN32 startup: LED entities unavailable after 120s timeout"
+              level: warning
+        else:
+          # Disable LED flash (critical for automation control)
+          - service: select.select_option
+            target:
+              entity_id: select.scene_controller_led_settings_indicator
+            data:
+              option: "Disable"
+
+          # Set LIGHT mode LEDs via sequencer
+          - service: script.zen32_set_mode_light
+
+          # Set big button based on current state
+          - service: script.zen32_update_big_button_led
+
+          - service: system_log.write
+            data:
+              message: "ZEN32 startup: Initialization complete"
+              level: info
+```
+
+**Benefits:**
+- Proceeds as soon as entities ready (faster)
+- Explicit timeout with logging (observable)
+- Graceful degradation (doesn't crash if unavailable)
+
+---
+
+## Home Assistant Best Practices
+
+### 1. Event-Driven Button Handling
+
+**Use event entity triggers** for button presses (Central Scene, multi-tap, hold):
+
+```yaml
 trigger:
   - platform: state
     entity_id: event.scene_controller_scene_001
     id: "button_1"
-
-# Relay state: use switch state trigger
-trigger:
   - platform: state
-    entity_id: switch.scene_controller_relay
+    entity_id: event.scene_controller_scene_002
+    id: "button_2"
+  # ...
 ```
 
----
+**Why:**
+- Events are precise and intentful
+- Lower latency than state-based triggers
+- Clear mapping between physical action and automation
 
 ### 2. Adaptive Lighting Manual Control Detection
 
-**Key Rule:** Inspect the actual entity in Developer Tools - different AL versions expose fields differently.
+**For this implementation:** Use `input_select.oal_active_configuration == 'Manual'` which is simpler and authoritative.
 
-**Common Forms:**
-```yaml
-# Direct attribute (most common)
-state_attr('switch.adaptive_lighting_X', 'manual_control')
-
-# Nested under configuration
-state_attr('switch.adaptive_lighting_X', 'configuration')['manual_control']
-```
-
-**What the List Contains:** Entity IDs of lights in manual control (e.g., `["light.kitchen", "light.shelf"]`)
-
-**Robust Template Check (safe across versions):**
+**Robust Template Check (if checking AL directly):**
 ```yaml
 "{{ 'light.zone' in (state_attr('switch.adaptive_lighting_zone', 'manual_control') | default([]))
     or 'light.zone' in (state_attr('switch.adaptive_lighting_zone', 'configuration') | default({}).get('manual_control', [])) }}"
 ```
 
-**For This Implementation:** We use `input_select.oal_active_configuration == 'Manual'` which is simpler and authoritative.
+### 3. LED Control: Select Entities vs zwave_js.set_config_parameter
 
----
+**Recommendation:** Use **native select entities** (`select.scene_controller_led_indicator_*`)
 
-### 3. Mode Timeout Implementation
-
-**Best Practice (Robust, Restart-Friendly):**
-- Use **Timer helper** (`timer` integration) - persists across restarts
-- Alternative: `input_datetime` + time trigger
-- Avoid: automation with `delay:` - does NOT survive HA restart
-
-**Recommended Patterns:**
-
-**Timer Helper (Preferred):**
-```yaml
-timer:
-  zen32_volume_timeout:
-    duration: "00:01:00"
-    restore: true  # CRITICAL: survives restarts
-
-# On any interaction:
-- service: timer.start
-  target:
-    entity_id: timer.zen32_volume_timeout
-
-# On timeout:
-trigger:
-  - platform: event
-    event_type: timer.finished
-    event_data:
-      entity_id: timer.zen32_volume_timeout
-```
-
-**Automation with mode: restart (Simpler but not restart-safe):**
-```yaml
-automation:
-  mode: restart  # Each trigger restarts the delay
-  trigger:
-    - platform: state
-      entity_id: input_select.zen32_control_mode
-      to: "volume"
-  action:
-```
-
-**Note on using `mode: restart`:** Use `mode: restart` only where intended — for example, automations that use an internal `delay:` to implement a timeout should use `mode: restart` so each trigger restarts the delay window. Prefer using the **Timer helper** for restart-safe, restart-surviving timeouts; use `mode: restart` for short-lived behavior where a running automation should be restarted on a new trigger.
-    - delay: { seconds: 60 }
-    - condition: state
-        entity_id: input_select.zen32_control_mode
-        state: "volume"
-    - service: script.zen32_set_mode_light
-```
-
-**Why Timer is Preferred:**
-- Survives HA restarts
-- Remaining time visible in UI
-- Explicit cancel/start semantics
-- Easier to debug
-
----
-
-### 4. LED Control: Select Entities vs zwave_js.set_config_parameter
-
-**Recommendation:**
-- Use **native select entities** (`select.scene_controller_led_indicator_*`) when available
-- Use `zwave_js.set_config_parameter` only if select entity not exposed or bulk atomic update needed
-
-**Why Select Entities:**
+**Why:**
 - Higher-level, readable, safer
-- No need to remember parameter numbers or bitmasks
+- No parameter numbers or bitmasks to remember
 - Validation at integration level
 - Easier to debug in UI
 
-**Reliability & Latency:**
-- Both route to same Z-Wave network - latency is similar
-- Dominated by Z-Wave command throughput, not HA service choice
+**CRITICAL:** Use the LED sequencer for multiple updates to avoid Z-Wave flooding.
 
-**Batching Considerations:**
-```yaml
-# Multiple select calls can run in parallel (but beware flooding the Z-Wave network)
-- parallel:
-    - service: select.select_option
-      target:
-        entity_id: select.scene_controller_led_indicator_color_button_1
-      data:
-        option: "Yellow"
-    - service: select.select_option
-      target:
-        entity_id: select.scene_controller_led_indicator_color_button_2
-      data:
-        option: "Yellow"
-```
+### 4. Parallel Block Variable Safety
 
-**Caution:** Each call generates a Z-Wave message. For mass reconfiguration you have two safe approaches:
+When using `parallel:` in scripts:
+- Use **unique variable names** per parallel branch
+- Avoid parallelizing actions that depend on shared script variables
+- Prefer passing explicit per-branch data (e.g., `repeat.item`)
 
-- **Small sequencing:** issue `select.select_option` calls with short, explicit delays (e.g., 50-200ms) or a small sequential loop instead of a large parallel block to avoid saturating the radio.
-
-- **Bulk API:** when supported by the device, use `zwave_js.bulk_set_partial_config_parameters` to batch writes into a single node-level message.
-
-Choose sequencing for frequent UI-driven updates and bulk API for initial/mass reconfiguration (firmware/config changes). Document the chosen approach in scripts that perform LED mass updates so the runbook clearly states the selected policy and parameters.
-
-**Parallelization & variable safety:** When using `parallel:` in scripts or automations, **use unique variable names per parallel branch**, or avoid parallelizing actions that depend on shared script variables. Parallel branches run concurrently and can clobber shared variables or produce race conditions — prefer passing explicit per-branch data (e.g., `repeat.item`) and avoid relying on mutable shared variables inside parallel blocks.
-
----
+**Best practice:** Avoid parallel LED updates entirely - use the sequencer script instead.
 
 ### 5. Minimal State Footprint
-
-**Guiding Principles:**
-1. Derive state from authoritative entities (lights, media players, switches) wherever possible
-2. Only store in helpers when persistence, UI visibility, or authoritative control is required
-
-**Practical Guidelines:**
 
 | Do This | Not This |
 |---------|----------|
@@ -503,45 +525,10 @@ Choose sequencing for frequent UI-driven updates and bulk API for initial/mass r
 | Derive LED color from mode | `input_text.button_1_color` |
 | `device_id('event.scene_controller_scene_001')` | `sensor.zen32_device_id` |
 
-**When to Use Helpers (Decision Matrix):**
-
-| Requirement | Use Helper? | Example |
-|-------------|-------------|---------|
-| Must persist across HA restart | Yes | `input_select.zen32_control_mode` |
-| User needs to see/control in UI | Yes | `timer.zen32_volume_timeout` |
-| No authoritative source exists | Yes | Control mode (invented concept) |
-| Value exists on another entity | **No** | Light on/off state |
-| Value can be computed | **No** | LED color based on mode |
-| Transient state during script | **No** | Use script variables |
-
-**State Derivation Examples:**
-```yaml
-# Big button color - derived, not stored
-{% if states('input_select.oal_active_configuration') == 'Manual' %}
-  Red
-{% elif states('light.all_adaptive_lights') == 'on' %}
-  White
-{% else %}
-  Off
-{% endif %}
-
-# Button colors - derived from mode, not stored
-{% set mode = states('input_select.zen32_control_mode') %}
-{% if mode == 'light' %}
-  Yellow  # for buttons 1, 2, 4
-{% else %}
-  Blue    # for buttons 2, 3, 4
-{% endif %}
-
-# Sonos playing - read directly, never store
-{% set playing = states('media_player.living_room') in ['playing', 'buffering'] %}
-```
-
-**Small Checklist:**
-- [ ] Persist helper if restart robustness or manual override exposure needed
-- [ ] Use short-lived helpers (`timer`) for timeouts
-- [ ] Keep computed state derived via templates
-- [ ] Do not write computed attributes back to helpers unless necessary
+**When to Use Helpers:**
+- Must persist across HA restart (e.g., control mode)
+- No authoritative source exists (mode is an invented concept)
+- NOT for values that exist on other entities
 
 ---
 
@@ -549,7 +536,7 @@ Choose sequencing for frequent UI-driven updates and bulk API for initial/mass r
 
 ### Problem
 
-OAL core adjustment engine runs periodically. When brightness is changed via button press, the change may not apply immediately.
+OAL core adjustment engine runs periodically. Button-triggered changes may not apply immediately.
 
 ### Solution
 
@@ -569,9 +556,8 @@ Immediately trigger the OAL engine after any brightness/warmth modification:
     entity_id: automation.oal_core_adjustment_engine_v13
 ```
 
-### Implementation Locations
+### Required Trigger Locations
 
-Add engine trigger after:
 - Brightness increase (UP in LIGHT mode)
 - Brightness decrease (DOWN in LIGHT mode)
 - Color temp warmer (HOLD on DOWN or LIGHT)
@@ -581,50 +567,7 @@ Add engine trigger after:
 
 ---
 
-## Startup Initialization
-
-```yaml
-automation:
-  - id: zen32_startup_init
-    alias: "ZEN32 - Initialize on Startup"
-    trigger:
-      - platform: homeassistant
-        event: start
-    action:
-      # Force LIGHT mode
-      - service: input_select.select_option
-        target:
-          entity_id: input_select.zen32_control_mode
-        data:
-          option: "light"
-
-      # Disable LED flash on button press
-      - service: select.select_option
-        target:
-          entity_id: select.scene_controller_led_settings_indicator
-        data:
-          option: "Disable"
-
-      # Set all toggle modes to "Always on" (except we'll turn some off)
-      - service: select.select_option
-        target:
-          entity_id:
-            - select.scene_controller_led_indicator_button_1
-            - select.scene_controller_led_indicator_button_2
-            - select.scene_controller_led_indicator_button_4
-        data:
-          option: "Always on"
-
-      # Set LIGHT mode LEDs
-      - service: script.zen32_set_mode_light
-
-      # Set big button state
-      - service: script.zen32_update_big_button_led
-```
-
----
-
-## Scripts
+## Reference Implementation
 
 ### zen32_set_mode_light
 
@@ -641,62 +584,43 @@ script:
         data:
           option: "light"
 
-      # Cancel volume timeout if running
-      - service: timer.cancel
+      # Update timestamp for diagnostics
+      - service: input_datetime.set_datetime
         target:
-          entity_id: timer.zen32_volume_timeout
+          entity_id: input_datetime.zen32_mode_last_change
+        data:
+          datetime: "{{ now() }}"
 
-      # Set LEDs in parallel
-      - parallel:
-          # Button 1 (LIGHT): Yellow ON
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_color_button_1
-            data:
+      # Set LEDs sequentially to avoid Z-Wave flooding
+      - service: script.zen32_led_sequencer
+        data:
+          delay_ms: 100
+          updates:
+            # Button 1 (LIGHT): Yellow ON
+            - entity: select.scene_controller_led_indicator_color_button_1
               option: "Yellow"
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_button_1
-            data:
+            - entity: select.scene_controller_led_indicator_button_1
               option: "Always on"
-
-          # Button 2 (UP): Yellow ON
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_color_button_2
-            data:
+            # Button 2 (UP): Yellow ON
+            - entity: select.scene_controller_led_indicator_color_button_2
               option: "Yellow"
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_button_2
-            data:
+            - entity: select.scene_controller_led_indicator_button_2
               option: "Always on"
-
-          # Button 3 (VOLUME): OFF
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_button_3
-            data:
+            # Button 3 (VOLUME): OFF
+            - entity: select.scene_controller_led_indicator_button_3
               option: "Always off"
-
-          # Button 4 (DOWN): Yellow ON
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_color_button_4
-            data:
+            # Button 4 (DOWN): Yellow ON
+            - entity: select.scene_controller_led_indicator_color_button_4
               option: "Yellow"
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_button_4
-            data:
+            - entity: select.scene_controller_led_indicator_button_4
               option: "Always on"
 ```
 
-### zen32_set_mode_volume
+### zen32_set_mode_music
 
 ```yaml
 script:
-  zen32_set_mode_volume:
+  zen32_set_mode_music:
     alias: "ZEN32 - Set VOLUME Mode"
     mode: single
     sequence:
@@ -705,58 +629,37 @@ script:
         target:
           entity_id: input_select.zen32_control_mode
         data:
-          option: "volume"
+          option: "music"
 
-      # Start/restart 60-second timeout
-      - service: timer.start
+      # Update timestamp for diagnostics
+      - service: input_datetime.set_datetime
         target:
-          entity_id: timer.zen32_volume_timeout
+          entity_id: input_datetime.zen32_mode_last_change
         data:
-          duration: "00:01:00"
+          datetime: "{{ now() }}"
 
-      # Set LEDs in parallel
-      - parallel:
-          # Button 1 (LIGHT): OFF
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_button_1
-            data:
+      # Set LEDs sequentially to avoid Z-Wave flooding
+      - service: script.zen32_led_sequencer
+        data:
+          delay_ms: 100
+          updates:
+            # Button 1 (LIGHT): OFF
+            - entity: select.scene_controller_led_indicator_button_1
               option: "Always off"
-
-          # Button 2 (UP): Blue ON
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_color_button_2
-            data:
+            # Button 2 (UP): Blue ON
+            - entity: select.scene_controller_led_indicator_color_button_2
               option: "Blue"
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_button_2
-            data:
+            - entity: select.scene_controller_led_indicator_button_2
               option: "Always on"
-
-          # Button 3 (VOLUME): Blue ON
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_color_button_3
-            data:
+            # Button 3 (VOLUME): Blue ON
+            - entity: select.scene_controller_led_indicator_color_button_3
               option: "Blue"
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_button_3
-            data:
+            - entity: select.scene_controller_led_indicator_button_3
               option: "Always on"
-
-          # Button 4 (DOWN): Blue ON
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_color_button_4
-            data:
+            # Button 4 (DOWN): Blue ON
+            - entity: select.scene_controller_led_indicator_color_button_4
               option: "Blue"
-          - service: select.select_option
-            target:
-              entity_id: select.scene_controller_led_indicator_button_4
-            data:
+            - entity: select.scene_controller_led_indicator_button_4
               option: "Always on"
 ```
 
@@ -769,11 +672,35 @@ script:
     mode: single
     sequence:
       - choose:
-          # Manual Control Active: RED
+          # Manual Mode: RED (highest priority)
           - conditions:
               - condition: state
                 entity_id: input_select.oal_active_configuration
                 state: "Manual"
+            sequence:
+              - service: select.select_option
+                target:
+                  entity_id: select.scene_controller_led_indicator_color_relay
+                data:
+                  option: "Red"
+
+          # Movie Mode: RED
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.oal_movie_mode_active
+                state: "on"
+            sequence:
+              - service: select.select_option
+                target:
+                  entity_id: select.scene_controller_led_indicator_color_relay
+                data:
+                  option: "Red"
+
+          # Sleep Mode: RED
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.oal_disable_sleep_mode
+                state: "on"
             sequence:
               - service: select.select_option
                 target:
@@ -793,82 +720,86 @@ script:
                 data:
                   option: "White"
 
-        # Default (Lights OFF): Use toggle off approach
-        # Note: Relay doesn't have a toggle select, use low brightness or leave white
+        # Default (Lights OFF): OFF
+        default:
+          - service: select.select_option
+            target:
+              entity_id: select.scene_controller_led_indicator_button_relay
+            data:
+              option: "Always off"
 ```
 
----
+### Manual Mode Guard Pattern
 
-## Reference Implementation Patterns
-
-### Key Behaviors (High Level)
-
-1. **Button presses** → event trigger → choose by press type and current mode
-2. **Any button interaction** → restart `timer.zen32_mode_timeout` (extends timeout)
-3. **When Manual mode active** (`input_select.oal_active_configuration == "Manual"`):
-   - Avoid automatic changes that would override manual control
-   - Skip automated brightness/warmth changes to OAL
-   - Still update LEDs as normal
-4. **On `timer.finished`** → set mode back to `light` if still in `volume`
-
-### Entities Required
-
-| Entity | Type | Purpose |
-|--------|------|---------|
-| `input_select.zen32_control_mode` | input_select | Canonical mode state (light/volume) |
-| `timer.zen32_mode_timeout` | timer | 60s timeout with restore:true |
-| `input_select.oal_active_configuration` | input_select | Manual detection authority |
-| `event.scene_controller_scene_00X` | event | Button press events |
-| `select.scene_controller_led_indicator_*` | select | LED control |
-
----
-
-### Timer Helper Pattern
+Scripts that modify OAL should check Manual mode first:
 
 ```yaml
-timer:
-  zen32_mode_timeout:
-    name: "ZEN32 Mode Timeout"
-    duration: "00:01:00"
-    restore: true  # CRITICAL: survives restarts
-    icon: mdi:timer-outline
+script:
+  zen32_brightness_up:
+    alias: "ZEN32 - Brightness Up"
+    mode: single
+    sequence:
+      # Turn on lights if off
+      - if:
+          - condition: state
+            entity_id: light.all_adaptive_lights
+            state: "off"
+        then:
+          - service: light.turn_on
+            target:
+              entity_id: light.all_adaptive_lights
+
+      # Only adjust OAL if NOT in Manual mode
+      - if:
+          - condition: template
+            value_template: "{{ not is_state('input_select.oal_active_configuration', 'Manual') }}"
+        then:
+          - service: input_number.set_value
+            target:
+              entity_id: input_number.oal_offset_global_manual_brightness
+            data:
+              value: >
+                {{ [states('input_number.oal_offset_global_manual_brightness') | float + 15, 100] | min }}
+          - service: automation.trigger
+            target:
+              entity_id: automation.oal_core_adjustment_engine_v13
+        else:
+          - service: system_log.write
+            data:
+              message: "ZEN32: Skipping brightness change - OAL in Manual mode"
+              level: info
 ```
 
-**Usage (on any interaction):**
-```yaml
-- service: timer.start
-  target:
-    entity_id: timer.zen32_mode_timeout
-```
+### Big Button LED Sync Automation
 
-**Timeout Automation:**
 ```yaml
 automation:
-  - id: zen32_mode_timeout
-    alias: "ZEN32 - Mode timeout -> Light"
+  - id: zen32_big_button_sync
+    alias: "ZEN32 - Sync Big Button LED"
+    mode: restart
     trigger:
-      - platform: event
-        event_type: timer.finished
-        event_data:
-          entity_id: timer.zen32_mode_timeout
-    condition:
-      - condition: state
-        entity_id: input_select.zen32_control_mode
-        state: "volume"
+      # Trigger on Manual mode changes (highest priority)
+      - platform: state
+        entity_id: input_select.oal_active_configuration
+      # Trigger on movie/sleep mode changes
+      - platform: state
+        entity_id: input_boolean.oal_movie_mode_active
+      - platform: state
+        entity_id: input_boolean.oal_disable_sleep_mode
+      # Trigger on light state changes
+      - platform: state
+        entity_id: light.all_adaptive_lights
     action:
-      - service: script.zen32_set_mode_light
+      - service: script.zen32_update_big_button_led
 ```
 
----
-
-### Button Handler Pattern (Event-Driven)
+### Button Handler Pattern
 
 ```yaml
 automation:
   - id: zen32_button_handler
     alias: "ZEN32 - Button Event Handler"
-    mode: parallel
-    max: 10
+    mode: single
     trigger:
       - platform: state
         entity_id: event.scene_controller_scene_001
@@ -889,17 +820,22 @@ automation:
       event_type: "{{ trigger.to_state.attributes.event_type | default('unknown') }}"
       button_id: "{{ trigger.id }}"
       is_light_mode: "{{ is_state('input_select.zen32_control_mode', 'light') }}"
-      is_volume_mode: "{{ is_state('input_select.zen32_control_mode', 'volume') }}"
+      is_volume_mode: "{{ is_state('input_select.zen32_control_mode', 'music') }}"
       is_manual: "{{ is_state('input_select.oal_active_configuration', 'Manual') }}"
+    condition:
+      - condition: template
+        value_template: "{{ event_type in ['KeyPressed', 'KeyPressed2x', 'KeyPressed3x', 'KeyHeldDown'] }}"
     action:
-      # ALWAYS restart timeout on any button press
-      - service: timer.start
+      # Update last button press timestamp (for OAL 24h activity check)
+      - service: input_datetime.set_datetime
         target:
-          entity_id: timer.zen32_mode_timeout
+          entity_id: input_datetime.zen32_last_button_press
+        data:
+          datetime: "{{ now() }}"
 
-      # Route to appropriate handler based on button and event type
+      # Route to appropriate handler
       - choose:
-          # Button 1 (LIGHT) - KeyPressed
+          # Button 1 (LIGHT) - 1x Press
           - conditions:
               - condition: template
                 value_template: "{{ button_id == 'button_1' and event_type == 'KeyPressed' }}"
@@ -909,10 +845,13 @@ automation:
                     value_template: "{{ is_light_mode }}"
                 then:
                   - service: script.zen32_cycle_presets
+                  - service: automation.trigger
+                    target:
+                      entity_id: automation.oal_core_adjustment_engine_v13
                 else:
                   - service: script.zen32_set_mode_light
 
-          # Button 3 (VOLUME) - KeyPressed
+          # Button 3 (VOLUME) - 1x Press
           - conditions:
               - condition: template
                 value_template: "{{ button_id == 'button_3' and event_type == 'KeyPressed' }}"
@@ -921,271 +860,57 @@ automation:
                   - condition: template
                     value_template: "{{ is_volume_mode }}"
                 then:
-                  - service: script.zen32_toggle_playback
+                  - service: script.zen32_sonos_play_pause
                 else:
-                  - service: script.zen32_set_mode_volume
+                  - service: script.zen32_set_mode_music
 
-          # Button 2 (UP) - KeyPressed in LIGHT mode
-          - conditions:
-              - condition: template
-                value_template: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_light_mode }}"
-            sequence:
-              - service: script.zen32_brightness_up
-
-          # Button 2 (UP) - KeyPressed in VOLUME mode
-          - conditions:
-              - condition: template
-                value_template: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_volume_mode }}"
-            sequence:
-              - service: script.zen32_volume_up
-
-          # Button 4 (DOWN) - KeyPressed in LIGHT mode
-          - conditions:
-              - condition: template
-                value_template: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_light_mode }}"
-            sequence:
-              - service: script.zen32_brightness_down
-
-          # Button 4 (DOWN) - KeyPressed in VOLUME mode
-          - conditions:
-              - condition: template
-                value_template: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_volume_mode }}"
-            sequence:
-              - service: script.zen32_volume_down
-
-          # Button 5 (BIG) - KeyPressed
-          - conditions:
-              - condition: template
-                value_template: "{{ button_id == 'button_5' and event_type == 'KeyPressed' }}"
-            sequence:
-              - service: light.toggle
-                target:
-                  entity_id: light.all_adaptive_lights
-              - service: script.zen32_update_big_button_led
-```
-
-**Key Points:**
-- Keep button automations small - call scripts for complex logic
-- Always restart timer in first action so timeout extends on every press
-- Use variables to DRY up conditions
-
----
-
-### Manual Mode Guard Pattern
-
-Scripts should check `input_select.oal_active_configuration` and:
-- **If Manual:** Avoid applying brightness/warmth to OAL, but still update LEDs
-- **If Auto:** Perform normal automated commands
-
-**Template Check:**
-```yaml
-{% set is_manual = is_state('input_select.oal_active_configuration', 'Manual') %}
-```
-
-**Guard Condition Example:**
-```yaml
-# Only apply OAL changes if NOT in Manual mode
-- condition: template
-  value_template: "{{ not is_state('input_select.oal_active_configuration', 'Manual') }}"
-# Then apply OAL changes
-- service: input_number.set_value
-  target:
-    entity_id: input_number.oal_offset_global_manual_brightness
-  data:
-    value: "{{ new_value }}"
-- service: automation.trigger
-  target:
-    entity_id: automation.oal_core_adjustment_engine_v13
-```
-
-**Brightness Script with Manual Guard:**
-```yaml
-script:
-  zen32_brightness_up:
-    alias: "ZEN32 - Brightness Up"
-    mode: single
-    sequence:
-      # Turn on lights if off
-      - if:
-          - condition: state
-            entity_id: light.all_adaptive_lights
-            state: "off"
-        then:
-          - service: light.turn_on
-            target:
-              entity_id: light.all_adaptive_lights
-
-      # Only adjust OAL offset if NOT in Manual mode
-      - if:
-          - condition: template
-            value_template: "{{ not is_state('input_select.oal_active_configuration', 'Manual') }}"
-        then:
-          - service: input_number.set_value
-            target:
-              entity_id: input_number.oal_offset_global_manual_brightness
-            data:
-              value: >
-                {{ [states('input_number.oal_offset_global_manual_brightness') | float + 15, 100] | min }}
-          # Immediately trigger OAL engine
-          - service: automation.trigger
-            target:
-              entity_id: automation.oal_core_adjustment_engine_v13
-        else:
-          # Log skip for debugging
-          - service: system_log.write
-            data:
-              message: "ZEN32: Skipping brightness change - OAL in Manual mode"
-              level: info
+          # ... additional button handlers
 ```
 
 ---
 
-### Startup Initialization Pattern
+## Design Intent & Validation
 
-```yaml
-automation:
-  - id: zen32_startup_init
-    alias: "ZEN32 - Initialize on Startup"
-    trigger:
-      - platform: homeassistant
-        event: start
-    action:
-      # Force LIGHT mode (UI mode, safe to set)
-      - service: input_select.select_option
-        target:
-          entity_id: input_select.zen32_control_mode
-        data:
-          option: "light"
+### Explicit Mode Control (No Timeout)
+- **Intent:** Respect user's explicit choice. Mode persists until user switches.
+- **Rationale:** Simpler, more predictable, matches Apple UX principles
+- **Validation:** No timer entities exist; mode only changes via button press
 
-      # Disable LED flash on button press (critical for automation control)
-      - service: select.select_option
-        target:
-          entity_id: select.scene_controller_led_settings_indicator
-        data:
-          option: "Disable"
+### Event-Driven Button Handling
+- **Intent:** Map taps, multi-taps, and holds precisely to UX actions
+- **Validation:** Automations trigger on event entities; trace logs show correct KeyPressed/KeyPressed2x/KeyHeldDown mapping
 
-      # Set LIGHT mode LEDs
-      - service: script.zen32_set_mode_light
+### Manual Mode Guard
+- **Intent:** Never override explicit user manual control
+- **Validation:** All OAL-modifying scripts check `oal_active_configuration == 'Manual'` and log when skipped
 
-      # Set big button state based on current conditions
-      - service: script.zen32_update_big_button_led
+### Z-Wave Safe LED Updates
+- **Intent:** Prevent radio flooding; ensure reliable LED state changes
+- **Validation:** LED scripts use sequencer with delays; no parallel `select.select_option` blocks for LEDs
 
-      # If NOT in Manual mode, optionally trigger OAL engine to sync state
-      - if:
-          - condition: template
-            value_template: "{{ not is_state('input_select.oal_active_configuration', 'Manual') }}"
-        then:
-          - service: automation.trigger
-            target:
-              entity_id: automation.oal_core_adjustment_engine_v13
-```
+### Big Button Authoritative Source
+- **Intent:** Big button reflects system state (Manual > Movie > Sleep > Lights)
+- **Validation:** `zen32_update_big_button_led` checks priority order; syncs on all relevant state changes
+
+### Minimal State Footprint
+- **Intent:** Derive state from authoritative entities; only persist what's necessary
+- **Validation:** No redundant `input_boolean` for existing states; mode is the only custom state
 
 ---
 
-### Big Button LED Sync Automation
+## Implementation Checklist
 
-Automatically update big button LED when relevant states change:
-
-```yaml
-automation:
-  - id: zen32_big_button_sync
-    alias: "ZEN32 - Sync Big Button LED"
-    mode: restart
-    trigger:
-      # Trigger on OAL config change
-      - platform: state
-        entity_id: input_select.oal_active_configuration
-      # Trigger on light state change
-      - platform: state
-        entity_id: light.all_adaptive_lights
-    action:
-      - service: script.zen32_update_big_button_led
-```
-
----
-
-### Logging & Safe Guards
-
-Log when skipping automated changes due to Manual mode:
-
-```yaml
-- service: system_log.write
-  data:
-    message: "ZEN32: Skipping automatic brightness change because OAL is Manual"
-    level: info
-```
-
----
-
-### Design Intent & Validation
-Document the underlying intent for each high-level UX decision and include a short validation step so the implementation can be tested to confirm it matches the intended behavior even if the implementation details change later.
-
-- **Mode timeout via timer helper**
-  - Intent: Keep the controller in the user-selected mode while the user is actively interacting and automatically return to the safe default (LIGHT) after inactivity, surviving HA restarts.
-  - Validation: `timer.zen32_volume_timeout` exists with `restore: true`; all interaction handlers call `timer.start`; `script.zen32_set_mode_light` cancels (`timer.cancel`) the timer and `timer.finished` triggers return to LIGHT.
-
-- **Event-driven button handling**
-  - Intent: Map taps, multi-taps and holds precisely to UX actions with minimal ambiguity and low latency.
-  - Validation: Automations trigger on `zwave_js_value_notification` or event entities; trace logs show correct mapping for KeyPressed/KeyPressed2x/KeyHeldDown.
-
-- **Manual mode guard (OAL Manual)**
-  - Intent: Never override explicit user manual control of lighting.
-  - Validation: All scripts that change OAL check `input_select.oal_active_configuration == 'Manual'` and log/skips changes when Manual is active.
-
-- **LED control via select entities & batching policy**
-  - Intent: Use high-level, readable entities to control LEDs and avoid Z-Wave parameter errors; avoid flooding the Z-Wave network when many LEDs change.
-  - Validation: LED scripts use `select.select_option` for day-to-day updates; mass/initial updates use either small sequencing (documented) or `zwave_js.bulk_set_partial_config_parameters` where supported; run a high-frequency update test to check for failures.
-
-- **Big button LED authoritative source**
-  - Intent: The big button should reflect the relay/light system state (including Manual) and not be driven by per-button LED heuristics.
-  - Validation: `script.zen32_update_big_button_led` sets `select.scene_controller_led_indicator_color_relay` and `select.scene_controller_led_indicator_brightness_relay` and is triggered on OAL config and lights state changes.
-
-- **Minimal state footprint**
-  - Intent: Derive as much state as possible from authoritative entities and use helpers only when persistence/UI visibility is required.
-  - Validation: Spot-check scripts and automations to ensure no redundant `input_boolean` or copying of light states is introduced; derived templates are used for LED color and big button status.
-
----
-
-### Design Intent & Validation
-Document the underlying intent for each high-level UX decision and include a short validation step to ensure the implementation matches the intended behavior even if implementation details change later.
-
-- **Mode timeout via timer helper**
-  - Intent: Keep the controller in the user-selected mode while the user is actively interacting and automatically return to the safe default (LIGHT) after inactivity, surviving HA restarts.
-  - Validation: `timer.zen32_volume_timeout` exists with `restore: true`; all interaction handlers call `timer.start`; `script.zen32_set_mode_light` cancels (`timer.cancel`) the timer and `timer.finished` triggers return to LIGHT.
-
-- **Event-driven button handling**
-  - Intent: Map taps, multi-taps and holds precisely to UX actions with minimal ambiguity and low latency.
-  - Validation: Automations trigger on `zwave_js_value_notification` or event entities; trace logs show correct mapping for KeyPressed/KeyPressed2x/KeyHeldDown.
-
-- **Manual mode guard (OAL Manual)**
-  - Intent: Never override explicit user manual control of lighting.
-  - Validation: All scripts that change OAL check `input_select.oal_active_configuration == 'Manual'` and log/skips changes when Manual is active.
-
-- **LED control via select entities & batching policy**
-  - Intent: Use high-level, readable entities to control LEDs and avoid Z-Wave parameter errors; avoid flooding the Z-Wave network when many LEDs change.
-  - Validation: LED scripts use `select.select_option` for day-to-day updates; mass/initial updates use either small sequencing (documented) or `zwave_js.bulk_set_partial_config_parameters` where supported; run a high-frequency update test to check for failures.
-
-- **Big button LED authoritative source**
-  - Intent: The big button should reflect the relay/light system state (including Manual) and not be driven by per-button LED heuristics.
-  - Validation: `script.zen32_update_big_button_led` sets `select.scene_controller_led_indicator_color_relay` and `select.scene_controller_led_indicator_brightness_relay` and is triggered on OAL config and lights state changes.
-
-- **Minimal state footprint**
-  - Intent: Derive as much state as possible from authoritative entities and use helpers only when persistence/UI visibility is required.
-  - Validation: Spot-check scripts and automations to ensure no redundant `input_boolean` or copying of light states is introduced; derived templates are used for LED color and big button status.
-
----
-
-### Implementation Checklist
-
-- [ ] Add `timer.zen32_mode_timeout` helper (60s, restore: true)
-- [ ] Add event-driven automation for scene events → call scripts
-- [ ] Implement scripts: mode set, LED apply, brightness/volume handlers
-- [ ] Add `condition` checks for `input_select.oal_active_configuration == "Manual"`
-- [ ] Add startup init automation
-- [ ] Add big button sync automation
-- [ ] Add logging for Manual mode skips
-- [ ] Add LED sequencing wrapper script with optional `zwave_js.bulk_set_partial_config_parameters` support and a test automation
-- [ ] Test: press sequences, Manual mode behavior, restart behavior, timeout
+- [ ] Implement `zen32_led_sequencer` script with delay parameter
+- [ ] Refactor `zen32_set_mode_light` to use sequencer
+- [ ] Refactor `zen32_set_mode_music` to use sequencer
+- [ ] Update startup init with `wait_template` for entity availability
+- [ ] Add Manual mode as highest priority in big button LED script
+- [ ] Add Manual mode guards to brightness/warmth scripts
+- [ ] Add OAL config trigger to big button sync automation
+- [ ] Add OAL engine trigger after preset cycling
+- [ ] Set inactive mode buttons to "Always off" (not dim)
+- [ ] Remove any timeout-related code
+- [ ] Test: mode switching, Manual mode behavior, LED sequencing, startup
 
 ---
 
@@ -1196,12 +921,12 @@ Document the underlying intent for each high-level UX decision and include a sho
 The `ZEN32-control-track-blueprint.yaml` file should **not be used** with this implementation.
 
 **Reasons:**
-1. Blueprint's LED tracking will conflict with modal LED logic
+1. Blueprint's LED tracking conflicts with modal LED logic
 2. Blueprint has no concept of "modes"
 3. Custom package is more maintainable
 4. Avoids two systems fighting over the same device
 
-**Action:** The blueprint file can remain in the packages folder but should not be instantiated. Consider adding a comment header noting it's deprecated.
+**Action:** Blueprint file can remain but should not be instantiated.
 
 ---
 
@@ -1220,44 +945,11 @@ The `ZEN32-control-track-blueprint.yaml` file should **not be used** with this i
 3. Guest presses DOWN (blue) → volume lowers
 4. **Intuition:** Color change = now controlling something different
 
-### Scenario 3: After 60 seconds of no interaction
+### Scenario 3: Guest leaves and returns
 1. Controller was in VOLUME mode (blue)
-2. 60 seconds pass with no button presses
-3. LEDs silently return to yellow (LIGHT mode)
-4. Music continues playing - only control context changed
-
----
-
-## Implementation Checklist
-
-### Phase 1: Refactor Package
-- [ ] Replace `zwave_js.set_config_parameter` with `select.select_option`
-- [ ] Remove `sensor.zen32_controller_device_id` (use inline template)
-- [ ] Replace `input_datetime.zen32_mode_last_change` with `timer.zen32_volume_timeout`
-- [ ] Update all LED scripts to use select entities
-
-### Phase 2: Fix Timeout
-- [ ] Add `timer.zen32_volume_timeout` with `restore: true`
-- [ ] Create timeout handler automation
-- [ ] Add timer start/restart to mode switching
-- [ ] Add timer cancel when returning to LIGHT mode
-
-### Phase 3: Response Time
-- [ ] Add `automation.trigger` for OAL engine after brightness changes
-- [ ] Add `automation.trigger` for OAL engine after warmth changes
-- [ ] Add `automation.trigger` for OAL engine after preset changes
-
-### Phase 4: Big Button
-- [ ] Implement `input_select.oal_active_configuration` == "Manual" check
-- [ ] Create big button LED update script
-- [ ] Add triggers for OAL config changes and light state changes
-
-### Phase 5: Testing
-- [ ] Test LIGHT mode LED states (Yellow for 1,2,4; Off for 3)
-- [ ] Test VOLUME mode LED states (Blue for 2,3,4; Off for 1)
-- [ ] Test 60-second timeout returns to LIGHT mode
-- [ ] Test big button shows Red when Manual config active
-- [ ] Test brightness changes are immediately visible
+2. Guest returns later - controller still blue
+3. **Intuition:** "It's where I left it" (predictable)
+4. Guest presses LIGHT → back to yellow for lights
 
 ---
 
@@ -1265,7 +957,5 @@ The `ZEN32-control-track-blueprint.yaml` file should **not be used** with this i
 
 - [Zooz ZEN32 Programming Guide](https://www.support.getzooz.com/kb/article/601-how-to-program-your-zen32-scene-controller-on-home-assistant/)
 - [Adaptive Lighting GitHub](https://github.com/basnijholt/adaptive-lighting)
-- [Home Assistant Timer Integration](https://www.home-assistant.io/integrations/timer/)
 - [Z-Wave JS Integration](https://www.home-assistant.io/integrations/zwave_js/)
 - [ZEN32 Community Blueprint](https://community.home-assistant.io/t/zen32-scene-controller-z-wave-js/292610)
-- [Timer vs Automation Delay Discussion](https://community.home-assistant.io/t/lights-via-motion-and-automation-timer-vs-restart-automation/362760)

@@ -31,13 +31,13 @@
 #   └─────────────────────────────┘
 #
 # LED COLOR SCHEME:
-#   LIGHT MODE: Light button YELLOW bright, UP/DOWN YELLOW medium, Volume button BLUE dim
-#   VOLUME MODE: Volume button BLUE bright, UP/DOWN BLUE medium, Light button YELLOW dim
-#   BIG BUTTON: White when lights on, Red for Movie/Sleep mode, Off when lights off
+#   LIGHT MODE: Button 1/2/4 YELLOW ON, Button 3 (VOLUME) OFF
+#   VOLUME MODE: Button 2/3/4 BLUE ON, Button 1 (LIGHT) OFF
+#   BIG BUTTON: Red=Manual/Movie/Sleep, White=lights on, Off=lights off
 #
-# MODE TIMEOUT:
-#   After 60 seconds of no interaction in VOLUME mode, automatically returns
-#   to LIGHT mode. Music continues playing; only control context changes.
+# MODE PERSISTENCE (Option A - v4.0):
+#   Mode persists until user explicitly switches via button press.
+#   No auto-timeout. Press LIGHT/VOLUME button to switch modes.
 #
 # =============================================================================
 
@@ -127,17 +127,7 @@ template:
             {% else %}
               0
             {% endif %}
-          timeout_remaining: >
-            {% if is_state('input_select.zen32_control_mode', 'music') %}
-              {% set last_change = states('input_datetime.zen32_mode_last_change') | as_datetime %}
-              {% if last_change %}
-                {{ [0, 60 - (((now() - last_change).total_seconds()) | int)] | max }}
-              {% else %}
-                60
-              {% endif %}
-            {% else %}
-              0
-            {% endif %}
+          # timeout_remaining: REMOVED - no auto-timeout per Option A (v4.0)
           is_music_mode: "{{ is_state('input_select.zen32_control_mode', 'music') }}"
           is_light_mode: "{{ is_state('input_select.zen32_control_mode', 'light') }}"
 
@@ -657,7 +647,7 @@ script:
         data:
           option: "music"
 
-      # Update interaction timestamp (resets 60s timeout)
+      # Update mode change timestamp (for diagnostics)
       - service: input_datetime.set_datetime
         target:
           entity_id: input_datetime.zen32_mode_last_change
@@ -877,13 +867,13 @@ script:
               toggle: "always_off"
 
   # ---------------------------------------------------------------------------
-  # Update Mode Timestamp - For Timeout Reset
-  # Called by button handler to reset the 60s timeout on any interaction
+  # Update Mode Timestamp - For Diagnostics
+  # Called by button handler to track last interaction (no timeout logic)
   # ---------------------------------------------------------------------------
   zen32_update_interaction:
     alias: "ZEN32 - Update Interaction Timestamp"
-    description: "Resets the mode timeout by updating the last interaction time"
-    icon: mdi:timer-refresh
+    description: "Records last mode interaction time for diagnostics"
+    icon: mdi:gesture-tap
     mode: parallel
     max: 5
     sequence:
@@ -1165,42 +1155,11 @@ script:
 # =============================================================================
 # AUTOMATIONS - Mode Management
 # =============================================================================
+# NOTE: Mode timeout removed per Option A design decision (v4.0).
+# Mode persists until user explicitly switches via button press.
+# =============================================================================
 
 automation:
-  # ---------------------------------------------------------------------------
-  # Volume Mode Timeout - Return to LIGHT after 60 seconds of inactivity
-  # ---------------------------------------------------------------------------
-  - id: zen32_mode_timeout
-    alias: "ZEN32 - Volume Mode Timeout (60s)"
-    description: "Returns to LIGHT mode after 60 seconds of no interaction in VOLUME mode"
-    mode: restart
-    trigger:
-      # Trigger when entering VOLUME mode
-      - platform: state
-        entity_id: input_select.zen32_control_mode
-        to: "music"
-      # Also re-trigger on any interaction timestamp update (extends timeout)
-      - platform: state
-        entity_id: input_datetime.zen32_mode_last_change
-    condition:
-      # Only run if currently in VOLUME mode
-      - condition: state
-        entity_id: input_select.zen32_control_mode
-        state: "music"
-    action:
-      # Wait 61 seconds (1s buffer for race condition at timeout boundary)
-      - delay:
-          seconds: 61
-
-      # Verify still in VOLUME mode (might have manually switched)
-      - condition: state
-        entity_id: input_select.zen32_control_mode
-        state: "music"
-
-      # Silently return to LIGHT mode
-      # Music continues playing - only control context changes
-      - service: script.zen32_set_mode_light
-
   # ---------------------------------------------------------------------------
   # Startup Initialization - Restore LED State on HA Restart
   # ---------------------------------------------------------------------------
@@ -1484,7 +1443,7 @@ automation:
         data:
           datetime: "{{ now() }}"
 
-      # Update mode interaction timestamp (resets 61s VOLUME mode timeout)
+      # Update mode interaction timestamp (for diagnostics)
       - action: script.zen32_update_interaction
 
       # Modal action dispatch

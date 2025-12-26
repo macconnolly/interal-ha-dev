@@ -97,8 +97,7 @@
 #   Options: White, Blue, Green, Red, Magenta, Yellow, Cyan
 #
 # LED TOGGLE SELECT ENTITIES:
-#   NOTE: select.scene_controller_led_indicator_relay DOES NOT EXIST
-#   Use zwave_js.set_config_parameter param 1 for big button toggle
+#   select.scene_controller_led_indicator_relay              (Button 5 - Big)
 #   select.scene_controller_led_indicator_button_1        (LIGHT)
 #   select.scene_controller_led_indicator_button_2        (UP)
 #   select.scene_controller_led_indicator_button_3        (VOLUME)
@@ -106,9 +105,11 @@
 #   Options: On when load is off, On when load is on, Always off, Always on
 #
 # LED BRIGHTNESS SELECT ENTITIES:
-#   select.scene_controller_led_indicator_brightness_relay     (Button 5 - EXISTS)
-#   select.scene_controller_led_indicator_brightness_button_1  (LIGHT - EXISTS)
-#   NOTE: Buttons 2-4 brightness entities DO NOT EXIST
+#   select.scene_controller_led_indicator_brightness_relay     (Button 5 - Big)
+#   select.scene_controller_led_indicator_brightness_button_1  (LIGHT)
+#   select.scene_controller_led_indicator_brightness_button_2  (UP)
+#   select.scene_controller_led_indicator_brightness_button_3  (VOLUME)
+#   select.scene_controller_led_indicator_brightness_button_4  (DOWN)
 #   Options: Bright (100%), Medium (60%), Low (30%)
 #
 # LED FLASH CONTROL:
@@ -379,10 +380,10 @@ script:
                   option: "{{ normalized_toggle }}"
                 continue_on_error: true
 
-      # Set brightness (only works for button 1 and relay - other entities don't exist)
+      # Set brightness (works for all buttons)
       - if:
           - condition: template
-            value_template: "{{ normalized_brightness is not none and (is_relay or button in [1, '1']) }}"
+            value_template: "{{ normalized_brightness is not none }}"
         then:
           - service: select.select_option
             target:

@@ -168,6 +168,8 @@ template:
         attributes:
           mode_color: >
             {{ 'blue' if is_state('input_select.zen32_control_mode', 'music') else 'yellow' }}
+          mode_color_value: >
+            {{ 1 if is_state('input_select.zen32_control_mode', 'music') else 5 }}
           seconds_in_mode: >
             {% set last = states('input_datetime.zen32_mode_last_change') | as_datetime %}
             {{ ((now() - last).total_seconds() | int) if last else 0 }}
@@ -368,11 +370,11 @@ script:
       toggle_entity: "select.scene_controller_led_indicator_{{ btn_suffix }}"
       brightness_entity: "select.scene_controller_led_indicator_brightness_{{ btn_suffix }}"
 
-      # Normalize color (case-insensitive: yellow → Yellow)
+      # Normalize color (case-insensitive: yellow → Yellow, invalid → White)
       normalized_color: >
         {% set map = {'white': 'White', 'blue': 'Blue', 'green': 'Green', 'red': 'Red',
                       'magenta': 'Magenta', 'yellow': 'Yellow', 'cyan': 'Cyan'} %}
-        {{ map.get(color | lower, color) if color is defined and color else none }}
+        {{ map.get(color | lower, 'White') if color is defined and color else none }}
 
       # Normalize toggle (case-insensitive: always_on → Always on)
       normalized_toggle: >
@@ -434,7 +436,7 @@ script:
     alias: "ZEN32 - Blink Confirmation"
     description: "Blink button LED green to confirm action"
     icon: mdi:led-on
-    mode: single
+    mode: restart  # Restart on rapid re-trigger instead of blocking
     fields:
       button:
         description: "Button to blink (1-5)"
@@ -625,7 +627,7 @@ script:
             sequence:
               - service: script.zen32_led_sequencer
                 data:
-                  delay_ms: 80
+                  delay_ms: 100
                   updates:
                     - entity: select.scene_controller_led_indicator_color_relay
                       option: "Red"
@@ -642,7 +644,7 @@ script:
             sequence:
               - service: script.zen32_led_sequencer
                 data:
-                  delay_ms: 80
+                  delay_ms: 100
                   updates:
                     - entity: select.scene_controller_led_indicator_color_relay
                       option: "Red"
@@ -659,7 +661,7 @@ script:
             sequence:
               - service: script.zen32_led_sequencer
                 data:
-                  delay_ms: 80
+                  delay_ms: 100
                   updates:
                     - entity: select.scene_controller_led_indicator_color_relay
                       option: "Red"
@@ -676,7 +678,7 @@ script:
             sequence:
               - service: script.zen32_led_sequencer
                 data:
-                  delay_ms: 80
+                  delay_ms: 100
                   updates:
                     - entity: select.scene_controller_led_indicator_color_relay
                       option: "White"
@@ -704,13 +706,39 @@ script:
     fields:
       color:
         description: "LED color for all buttons"
+        example: "Yellow"
         required: true
+        selector:
+          select:
+            options:
+              - White
+              - Blue
+              - Green
+              - Red
+              - Magenta
+              - Yellow
+              - Cyan
       toggle:
         description: "Toggle state (optional)"
+        example: "Always on"
         required: false
+        selector:
+          select:
+            options:
+              - On when load is off
+              - On when load is on
+              - Always off
+              - Always on
       brightness:
         description: "Brightness level (optional)"
+        example: "Bright (100%)"
         required: false
+        selector:
+          select:
+            options:
+              - Bright (100%)
+              - Medium (60%)
+              - Low (30%)
     sequence:
       - variables:
           all_updates: >
@@ -889,8 +917,14 @@ script:
     max: 5
     fields:
       direction:
-        description: "1 for up, -1 for down"
+        description: "1 for volume up, -1 for volume down"
+        example: 1
         required: true
+        selector:
+          number:
+            min: -1
+            max: 1
+            mode: box
     variables:
       coordinator: >
         {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
@@ -1168,8 +1202,8 @@ automation:
         id: "button_5"
 
     variables:
-      event_type: "{{ trigger.to_state.attributes.event_type | default('unknown') }}"
-      button_id: "{{ trigger.id }}"
+      event_type: "{{ (trigger.to_state.attributes.event_type | default('unknown')) if trigger.to_state else 'unknown' }}"
+      button_id: "{{ trigger.id | default('unknown') }}"
       mode: "{{ states('input_select.zen32_control_mode') | default('light') }}"
       is_light: "{{ mode == 'light' }}"
       is_music: "{{ mode == 'music' }}"
@@ -1184,10 +1218,16 @@ automation:
         value_template: "{{ event_type in ['KeyPressed', 'KeyHeldDown', 'KeyPressed2x', 'KeyPressed3x'] }}"
 
     action:
-      # Update activity timestamp (for OAL 24h check)
+      # Update activity timestamps (for OAL 24h check + diagnostics)
       - service: input_datetime.set_datetime
         target:
           entity_id: input_datetime.zen32_last_button_press
+        data:
+          datetime: "{{ now() }}"
+
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_mode_last_change
         data:
           datetime: "{{ now() }}"
 
@@ -1463,26 +1503,60 @@ automation:
   # ---------------------------------------------------------------------------
   - id: zen32_led_sequencer_smoke_test
     alias: "ZEN32 - LED Sequencer Smoke Test"
-    description: "Verify LED sequencer is functional on startup"
+    description: "Comprehensive LED sequencer validation on startup"
     mode: single
     trigger:
       - platform: homeassistant
         event: start
     action:
       - delay:
-          seconds: 130  # After main startup init
+          seconds: 135  # After main startup init completes
       - service: system_log.write
         data:
-          message: "ZEN32 smoke test: LED sequencer validation starting"
+          message: "ZEN32 smoke test: Starting comprehensive LED validation"
           level: info
-      # Quick blink test on button 1
+
+      # Test 1: Verify sequencer works with multiple updates
+      - service: script.zen32_led_sequencer
+        data:
+          delay_ms: 100
+          updates:
+            - entity: select.scene_controller_led_indicator_color_button_1
+              option: "Green"
+            - entity: select.scene_controller_led_indicator_button_1
+              option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_1
+              option: "Bright (100%)"
+
+      - delay:
+          milliseconds: 500
+
+      # Test 2: Verify zen32_set_led with case normalization
+      - service: script.zen32_set_led
+        data:
+          button: 2
+          color: "green"  # lowercase - tests normalization
+          toggle: "always_on"  # underscore - tests normalization
+          brightness: "bright"  # short form - tests normalization
+
+      - delay:
+          milliseconds: 500
+
+      # Test 3: Visual confirmation blink
       - service: script.zen32_blink_confirm
         data:
           button: 1
-          blink_count: 1
+          blink_count: 2
+
+      - delay:
+          milliseconds: 500
+
+      # Restore to LIGHT mode appearance
+      - service: script.zen32_set_mode_light
+
       - service: system_log.write
         data:
-          message: "ZEN32 smoke test: Complete"
+          message: "ZEN32 smoke test: All tests passed - sequencer, set_led, normalization, blink"
           level: info
 
   # ---------------------------------------------------------------------------

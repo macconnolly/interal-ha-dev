@@ -511,11 +511,11 @@ adaptive_lighting:
       - light.living_column_strip_light_matter
       - light.dining_column_strip_light_matter
     interval: 90
-    transition: 1
+    transition: 0
     initial_transition: 1
     take_over_control: false
     detect_non_ha_changes: false
-    adapt_delay: 1
+    adapt_delay: 0
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
     min_brightness: 1
@@ -532,9 +532,9 @@ adaptive_lighting:
     sleep_color_temp: 2700                # Govee actual hardware min
     sleep_rgb_or_color_temp: "rgb_color"
     sleep_rgb_color: [245, 120, 0]
-    sleep_transition: 1
+    sleep_transition: 0
     transition_until_sleep: true
-    send_split_delay: 1
+    send_split_delay: 10000
     intercept: true
     multi_light_intercept: true
 
@@ -708,7 +708,7 @@ automation:
                     max_brightness: 5
                     min_color_temp: 1800
                     max_color_temp: 1800
-                    transition: 5
+                    transition: 1
           - service: adaptive_lighting.apply
             continue_on_error: true
             target:
@@ -1412,8 +1412,8 @@ automation:
             - light.dining_column_strip_light_matter
         data:
           brightness_pct: 35
-          transition: 5
-      - delay: "00:00:06"
+          transition: 0
+      - delay: "00:00:10"
 
       # Step 2: Switch to RGB mode with safe orange (hue > 38)
       - service: light.turn_on
@@ -1424,8 +1424,8 @@ automation:
             - light.dining_column_strip_light_matter
         data:
           rgb_color: [255, 200, 0]
-          transition: 3
-      - delay: "00:00:04"
+          transition: 0
+      - delay: "00:00:10"
 
       # Step 3: Set manual control to prevent AL interference
       - service: adaptive_lighting.set_manual_control
@@ -1447,7 +1447,7 @@ automation:
             - light.dining_column_strip_light_matter
         data:
           brightness_pct: 20
-          transition: 30
+          transition: 0
 
   # ---------------------------------------------------------------------------
   # 4.3b Column Lights RGB Transition
@@ -1479,7 +1479,7 @@ automation:
             - light.dining_column_strip_light_matter
         data:
           rgb_color: [255, "{{ green_value }}", 0]
-          transition: 60
+          transition: 0
 
   # ---------------------------------------------------------------------------
   # 4.3c Column Lights Morning Exit RGB Mode
@@ -1508,7 +1508,7 @@ automation:
             - light.dining_column_strip_light_matter
         data:
           brightness_pct: 40
-          transition: 5
+          transition: 0
       - delay: "00:00:06"
 
       # Step 2: Switch to color_temp mode
@@ -1520,7 +1520,7 @@ automation:
             - light.dining_column_strip_light_matter
         data:
           color_temp_kelvin: 2750
-          transition: 10
+          transition: 0
       - delay: "00:00:11"
 
       # Step 3: Release manual control
@@ -1541,7 +1541,7 @@ automation:
           entity_id: switch.adaptive_lighting_column_lights
         data:
           turn_on_lights: false
-          transition: 5
+          transition: 0
 
   # ---------------------------------------------------------------------------
   # 4.3d Column Lights Sleep Mode (Final Safety)
@@ -1959,7 +1959,7 @@ automation:
         data:
           entity_id: switch.adaptive_lighting_bedroom_primary
           brightness_pct: 80
-          transition: 600
+          transition: 0
 
   # ---------------------------------------------------------------------------
   # 4.10 Movie mode (snapshot + restore)

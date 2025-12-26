@@ -183,6 +183,13 @@ template:
 # =============================================================================
 # ZEN32 Z-Wave Configuration Parameters:
 #
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │ CRITICAL FOR AUTOMATION CONTROL (set at startup):                       │
+# │   Parameter 23: LED flash on setting change → 1 (disabled)              │
+# │   Parameter 27: LED flash on button press   → 1 (disabled)              │
+# │   Without these, LEDs toggle/flash when buttons pressed!                │
+# └─────────────────────────────────────────────────────────────────────────┘
+#
 # LED Toggle (On/Off) Parameters:
 #   Parameter 1: Big Button (Button 5)
 #   Parameter 2: Button 1 (LIGHT)
@@ -207,9 +214,53 @@ template:
 #   Parameter 15: Button 4 (DOWN)
 #   Values: 0=Bright, 1=Medium, 2=Low
 #
+# LED Flash Control Parameters:
+#   Parameter 23: Flash on setting change → 0=flash (default), 1=no flash
+#   Parameter 27: Flash on button press   → 0=flash (default), 1=no flash
+#
 # =============================================================================
 
 script:
+  zen32_led_sequencer:
+    alias: "ZEN32 - LED Sequencer"
+    description: "Sequentially apply select.select_option updates with configurable delay; optional zwave_js bulk mode when bulk data provided."
+    mode: single
+    sequence:
+      - variables:
+          updates: "{{ updates | default([]) }}"
+          delay_ms: "{{ delay_ms | default(100) | int }}"
+          use_bulk: "{{ use_bulk | default(false) }}"
+          bulk: "{{ bulk | default({}) }}"
+
+      # Bulk path: expects `bulk` to contain at least entity_id, parameter, value
+      - choose:
+          - conditions: "{{ use_bulk | bool and bulk != {} }}"
+            sequence:
+              - service: zwave_js.bulk_set_partial_config_parameters
+                target:
+                  entity_id: "{{ bulk.entity_id }}"
+                data:
+                  parameter: "{{ bulk.parameter }}"
+                  value: "{{ bulk.value }}"
+
+          # Default sequential path: iterate and apply with configurable delay
+          - conditions: []
+            sequence:
+              - repeat:
+                  for_each: "{{ updates }}"
+                  sequence:
+                    - service: select.select_option
+                      target:
+                        entity_id: "{{ repeat.item.entity }}"
+                      data:
+                        option: "{{ repeat.item.option }}"
+                    - delay:
+                        milliseconds: "{{ delay_ms }}"
+
+      - service: system_log.write
+        data:
+          message: "zen32_led_sequencer: applied {{ updates|length }} updates (delay_ms={{ delay_ms }}, use_bulk={{ use_bulk }})"
+          level: info
   # ---------------------------------------------------------------------------
   # Core LED Control - Set Single Button LED
   # ---------------------------------------------------------------------------
@@ -265,53 +316,35 @@ script:
               - medium
               - low
     variables:
-      # Device ID from auto-discovery sensor
-      controller_device_id: "{{ states('sensor.zen32_controller_device_id') }}"
-      device_available: "{{ states('sensor.zen32_controller_device_id') not in ['unknown', 'unavailable', ''] }}"
+      # Device ID - direct lookup, no sensor dependency
+      zen32_device_id: "{{ device_id('event.scene_controller_scene_001') }}"
 
-      # Color value mapping
-      color_map:
-        white: 0
-        blue: 1
-        green: 2
-        red: 3
-        magenta: 4
-        yellow: 5
-        cyan: 6
+      # Parameter offset formula (from blueprint pattern):
+      # Button 1-4 → offset 1-4, Button 5 → offset 0
+      # Formula: button % 5 gives correct offset for all buttons
+      param_offset: "{{ (button | int) % 5 }}"
 
-      # Toggle value mapping
-      toggle_map:
-        on_when_off: 0
-        on_when_on: 1
-        always_off: 2
-        always_on: 3
+      # Calculated parameter numbers
+      toggle_param: "{{ 1 + (param_offset | int) }}"
+      color_param: "{{ 6 + (param_offset | int) }}"
+      brightness_param: "{{ 11 + (param_offset | int) }}"
 
-      # Brightness value mapping
-      brightness_map:
-        bright: 0
-        medium: 1
-        low: 2
+      # Color name to Z-Wave value (0-6)
+      color_value: >
+        {% set colors = {'white': 0, 'blue': 1, 'green': 2, 'red': 3, 'magenta': 4, 'yellow': 5, 'cyan': 6} %}
+        {{ colors.get(color | lower, 0) if color is defined else 0 }}
 
-      # Button to parameter offset mapping
-      # Button 5 (big) uses offset 0, Buttons 1-4 use offset 1-4
-      button_param_offset:
-        1: 1
-        2: 2
-        3: 3
-        4: 4
-        5: 0
+      # Toggle name to Z-Wave value (0-3)
+      toggle_value: >
+        {% set toggles = {'on_when_off': 0, 'on_when_on': 1, 'always_off': 2, 'always_on': 3} %}
+        {{ toggles.get(toggle | lower, 3) if toggle is defined else 3 }}
 
-      param_offset: "{{ button_param_offset[button | int] }}"
-      color_param: "{{ 6 + param_offset }}"
-      toggle_param: "{{ 1 + param_offset }}"
-      brightness_param: "{{ 11 + param_offset }}"
+      # Brightness name to Z-Wave value (0-2)
+      brightness_value: >
+        {% set levels = {'bright': 0, 'medium': 1, 'low': 2} %}
+        {{ levels.get(brightness | lower, 0) if brightness is defined else 0 }}
 
     sequence:
-      # Pre-flight check: Skip if ZEN32 device unavailable
-      - condition: template
-        value_template: "{{ device_available }}"
-        alias: "Skip if ZEN32 device unavailable"
-
       # Set color if specified
       - if:
           - condition: template
@@ -320,10 +353,10 @@ script:
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
-              parameter: "{{ color_param }}"
-              value: "{{ color_map[color | lower] | default(0) }}"
+              parameter: "{{ color_param | int }}"
+              value: "{{ color_value | int }}"
             target:
-              device_id: "{{ controller_device_id }}"
+              device_id: "{{ zen32_device_id }}"
 
       # Set toggle state if specified
       - if:
@@ -333,10 +366,10 @@ script:
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
-              parameter: "{{ toggle_param }}"
-              value: "{{ toggle_map[toggle | lower] | default(3) }}"
+              parameter: "{{ toggle_param | int }}"
+              value: "{{ toggle_value | int }}"
             target:
-              device_id: "{{ controller_device_id }}"
+              device_id: "{{ zen32_device_id }}"
 
       # Set brightness if specified
       - if:
@@ -346,10 +379,10 @@ script:
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
-              parameter: "{{ brightness_param }}"
-              value: "{{ brightness_map[brightness | lower] | default(0) }}"
+              parameter: "{{ brightness_param | int }}"
+              value: "{{ brightness_value | int }}"
             target:
-              device_id: "{{ controller_device_id }}"
+              device_id: "{{ zen32_device_id }}"
 
   # ---------------------------------------------------------------------------
   # Bulk LED Control - Set All Button LEDs to Same Color
@@ -394,40 +427,25 @@ script:
               - medium
               - low
     variables:
-      # Device ID from auto-discovery sensor
-      controller_device_id: "{{ states('sensor.zen32_controller_device_id') }}"
-      device_available: "{{ states('sensor.zen32_controller_device_id') not in ['unknown', 'unavailable', ''] }}"
+      # Device ID - direct lookup
+      zen32_device_id: "{{ device_id('event.scene_controller_scene_001') }}"
 
-      color_map:
-        white: 0
-        blue: 1
-        green: 2
-        red: 3
-        magenta: 4
-        yellow: 5
-        cyan: 6
+      # Color name to Z-Wave value
+      color_value: >
+        {% set colors = {'white': 0, 'blue': 1, 'green': 2, 'red': 3, 'magenta': 4, 'yellow': 5, 'cyan': 6} %}
+        {{ colors.get(color | lower, 5) }}
 
-      toggle_map:
-        on_when_off: 0
-        on_when_on: 1
-        always_off: 2
-        always_on: 3
+      # Toggle name to Z-Wave value (none if not specified)
+      toggle_value: >
+        {% set toggles = {'on_when_off': 0, 'on_when_on': 1, 'always_off': 2, 'always_on': 3} %}
+        {{ toggles.get(toggle | lower) if toggle is defined and toggle else none }}
 
-      brightness_map:
-        bright: 0
-        medium: 1
-        low: 2
-
-      color_value: "{{ color_map[color | lower] | default(5) }}"
-      toggle_value: "{{ toggle_map[toggle | lower] | default(3) if toggle is defined and toggle else none }}"
-      brightness_value: "{{ brightness_map[brightness | lower] | default(0) if brightness is defined and brightness else none }}"
+      # Brightness name to Z-Wave value (none if not specified)
+      brightness_value: >
+        {% set levels = {'bright': 0, 'medium': 1, 'low': 2} %}
+        {{ levels.get(brightness | lower) if brightness is defined and brightness else none }}
 
     sequence:
-      # Pre-flight check: Skip if ZEN32 device unavailable
-      - condition: template
-        value_template: "{{ device_available }}"
-        alias: "Skip if ZEN32 device unavailable"
-
       # Set all 5 button colors in parallel for speed
       - parallel:
           # Button 5 (Big) - Parameter 6
@@ -435,41 +453,41 @@ script:
             continue_on_error: true
             data:
               parameter: 6
-              value: "{{ color_value }}"
+              value: "{{ color_value | int }}"
             target:
-              device_id: "{{ controller_device_id }}"
+              device_id: "{{ zen32_device_id }}"
           # Button 1 (LIGHT) - Parameter 7
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
               parameter: 7
-              value: "{{ color_value }}"
+              value: "{{ color_value | int }}"
             target:
-              device_id: "{{ controller_device_id }}"
+              device_id: "{{ zen32_device_id }}"
           # Button 2 (UP) - Parameter 8
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
               parameter: 8
-              value: "{{ color_value }}"
+              value: "{{ color_value | int }}"
             target:
-              device_id: "{{ controller_device_id }}"
+              device_id: "{{ zen32_device_id }}"
           # Button 3 (VOLUME) - Parameter 9
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
               parameter: 9
-              value: "{{ color_value }}"
+              value: "{{ color_value | int }}"
             target:
-              device_id: "{{ controller_device_id }}"
+              device_id: "{{ zen32_device_id }}"
           # Button 4 (DOWN) - Parameter 10
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
               parameter: 10
-              value: "{{ color_value }}"
+              value: "{{ color_value | int }}"
             target:
-              device_id: "{{ controller_device_id }}"
+              device_id: "{{ zen32_device_id }}"
 
       # Set toggle states if specified
       - if:
@@ -481,37 +499,37 @@ script:
                 continue_on_error: true
                 data:
                   parameter: 1
-                  value: "{{ toggle_value }}"
+                  value: "{{ toggle_value | int }}"
                 target:
-                  device_id: "{{ controller_device_id }}"
+                  device_id: "{{ zen32_device_id }}"
               - service: zwave_js.set_config_parameter
                 continue_on_error: true
                 data:
                   parameter: 2
-                  value: "{{ toggle_value }}"
+                  value: "{{ toggle_value | int }}"
                 target:
-                  device_id: "{{ controller_device_id }}"
+                  device_id: "{{ zen32_device_id }}"
               - service: zwave_js.set_config_parameter
                 continue_on_error: true
                 data:
                   parameter: 3
-                  value: "{{ toggle_value }}"
+                  value: "{{ toggle_value | int }}"
                 target:
-                  device_id: "{{ controller_device_id }}"
+                  device_id: "{{ zen32_device_id }}"
               - service: zwave_js.set_config_parameter
                 continue_on_error: true
                 data:
                   parameter: 4
-                  value: "{{ toggle_value }}"
+                  value: "{{ toggle_value | int }}"
                 target:
-                  device_id: "{{ controller_device_id }}"
+                  device_id: "{{ zen32_device_id }}"
               - service: zwave_js.set_config_parameter
                 continue_on_error: true
                 data:
                   parameter: 5
-                  value: "{{ toggle_value }}"
+                  value: "{{ toggle_value | int }}"
                 target:
-                  device_id: "{{ controller_device_id }}"
+                  device_id: "{{ zen32_device_id }}"
 
       # Set brightness if specified
       - if:
@@ -523,37 +541,37 @@ script:
                 continue_on_error: true
                 data:
                   parameter: 11
-                  value: "{{ brightness_value }}"
+                  value: "{{ brightness_value | int }}"
                 target:
-                  device_id: "{{ controller_device_id }}"
+                  device_id: "{{ zen32_device_id }}"
               - service: zwave_js.set_config_parameter
                 continue_on_error: true
                 data:
                   parameter: 12
-                  value: "{{ brightness_value }}"
+                  value: "{{ brightness_value | int }}"
                 target:
-                  device_id: "{{ controller_device_id }}"
+                  device_id: "{{ zen32_device_id }}"
               - service: zwave_js.set_config_parameter
                 continue_on_error: true
                 data:
                   parameter: 13
-                  value: "{{ brightness_value }}"
+                  value: "{{ brightness_value | int }}"
                 target:
-                  device_id: "{{ controller_device_id }}"
+                  device_id: "{{ zen32_device_id }}"
               - service: zwave_js.set_config_parameter
                 continue_on_error: true
                 data:
                   parameter: 14
-                  value: "{{ brightness_value }}"
+                  value: "{{ brightness_value | int }}"
                 target:
-                  device_id: "{{ controller_device_id }}"
+                  device_id: "{{ zen32_device_id }}"
               - service: zwave_js.set_config_parameter
                 continue_on_error: true
                 data:
                   parameter: 15
-                  value: "{{ brightness_value }}"
+                  value: "{{ brightness_value | int }}"
                 target:
-                  device_id: "{{ controller_device_id }}"
+                  device_id: "{{ zen32_device_id }}"
 
   # ---------------------------------------------------------------------------
   # Mode Transition - Switch to LIGHT Mode
@@ -1186,15 +1204,24 @@ automation:
   # ---------------------------------------------------------------------------
   # Startup Initialization - Restore LED State on HA Restart
   # ---------------------------------------------------------------------------
+  # STRATEGY: Ping device first, wait 60s for Z-Wave stability, then set ALL
+  # parameters in one pass. No availability checks needed - continue_on_error
+  # handles any transient issues.
+  #
+  # CRITICAL PARAMETERS for automation-controlled LEDs:
+  #   - Parameter 23 = 1: Disable LED flash on setting change
+  #   - Parameter 27 = 1: Disable LED flash on button press
+  #   - Parameters 1-5 = 3: LED always on (automation controls state)
+  # ---------------------------------------------------------------------------
   - id: zen32_startup_init
     alias: "ZEN32 - Initialize LEDs on Startup"
-    description: "Initializes LEDs with proper toggle behavior and colors on HA start"
+    description: "Initializes all LED parameters including flash disable for automation control"
     mode: single
     trigger:
       - platform: homeassistant
         event: start
     variables:
-      controller_device_id: "{{ states('sensor.zen32_controller_device_id') }}"
+      device_id: "{{ device_id('event.scene_controller_scene_001') }}"
     action:
       # Force LIGHT mode on startup (prevents stale VOLUME mode from persisting)
       - service: input_select.select_option
@@ -1210,69 +1237,90 @@ automation:
         data:
           datetime: "{{ now() }}"
 
-      # Wait for Z-Wave network to stabilize
-      - delay:
-          seconds: 15
+      # Ping the device to wake it up (benign operation)
+      - service: zwave_js.ping
+        target:
+          device_id: "{{ device_id }}"
+        continue_on_error: true
 
-      # CRITICAL: Set all LED toggle parameters to "always_on" (value 3)
-      # This prevents the device's default behavior from fighting our LED control
+      # Wait 60 seconds for full Z-Wave network stability
+      - delay:
+          seconds: 60
+
+      # Set ALL LED configuration parameters in parallel
       - parallel:
-          # Parameter 1: Big Button toggle
+          # =====================================================================
+          # CRITICAL: Disable LED flash behaviors for automation control
+          # =====================================================================
+          # Parameter 23: Disable LED flash on setting/parameter change
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 23
+              value: 1
+            target:
+              device_id: "{{ device_id }}"
+          # Parameter 27: Disable LED flash on button press
+          - service: zwave_js.set_config_parameter
+            continue_on_error: true
+            data:
+              parameter: 27
+              value: 1
+            target:
+              device_id: "{{ device_id }}"
+
+          # =====================================================================
+          # LED Toggle Behavior: Always On (automation controls via color/off)
+          # =====================================================================
+          # Parameter 1: Big Button (5) toggle → always_on
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
               parameter: 1
               value: 3
             target:
-              device_id: "{{ controller_device_id }}"
-          # Parameter 2: Button 1 toggle
+              device_id: "{{ device_id }}"
+          # Parameter 2: Button 1 (LIGHT) toggle → always_on
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
               parameter: 2
               value: 3
             target:
-              device_id: "{{ controller_device_id }}"
-          # Parameter 3: Button 2 toggle
+              device_id: "{{ device_id }}"
+          # Parameter 3: Button 2 (UP) toggle → always_on
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
               parameter: 3
               value: 3
             target:
-              device_id: "{{ controller_device_id }}"
-          # Parameter 4: Button 3 toggle
+              device_id: "{{ device_id }}"
+          # Parameter 4: Button 3 (VOLUME) toggle → always_on
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
               parameter: 4
               value: 3
             target:
-              device_id: "{{ controller_device_id }}"
-          # Parameter 5: Button 4 toggle
+              device_id: "{{ device_id }}"
+          # Parameter 5: Button 4 (DOWN) toggle → always_on
           - service: zwave_js.set_config_parameter
             continue_on_error: true
             data:
               parameter: 5
               value: 3
             target:
-              device_id: "{{ controller_device_id }}"
+              device_id: "{{ device_id }}"
 
-      # Small delay for Z-Wave commands to process
+      # Brief delay for Z-Wave commands to process
       - delay:
           seconds: 2
 
-      # Now set initial LED colors for LIGHT mode
-      - service: script.zen32_set_mode_light
-        continue_on_error: true
-
-      # Retry after full stabilization
-      - delay:
-          seconds: 30
-
+      # Set initial LED colors for LIGHT mode
       - service: script.zen32_set_mode_light
 
-      # Initialize big button state
+      # Initialize big button state based on current light/movie status
       - service: script.zen32_update_big_button_led
 
   # ---------------------------------------------------------------------------
@@ -1711,3 +1759,39 @@ automation:
               - service: input_boolean.toggle
                 target:
                   entity_id: input_boolean.oal_disable_sleep_mode
+  - id: zen32_led_sequencer_smoke_test_startup
+    alias: "ZEN32 - LED Sequencer Smoke Test (startup)"
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      - service: script.zen32_led_sequencer
+        data:
+          updates:
+            - entity: select.scene_controller_led_indicator_color_button_1
+              option: "Yellow"
+            - entity: select.scene_controller_led_indicator_brightness_button_1
+              option: "Bright (100%)"
+            - entity: select.scene_controller_led_indicator_color_button_2
+              option: "Yellow"
+            - entity: select.scene_controller_led_indicator_brightness_button_2
+              option: "Medium (60%)"
+          delay_ms: 120
+          use_bulk: false
+
+  - id: zen32_led_sequencer_manual_test
+    alias: "ZEN32 - LED Sequencer Manual Test (callable)"
+    trigger:
+      - platform: event
+        event_type: zen32_led_sequencer_manual_test
+    action:
+      - service: script.zen32_led_sequencer
+        data:
+          updates: "{{ trigger.event.data.updates | default([]) }}"
+          delay_ms: "{{ trigger.event.data.delay_ms | default(120) }}"
+          use_bulk: "{{ trigger.event.data.use_bulk | default(false) }}"
+          bulk: "{{ trigger.event.data.bulk | default({}) }}"
+      - service: system_log.write
+        data:
+          message: "zen32_led_sequencer_manual_test executed (from event)"
+          level: info

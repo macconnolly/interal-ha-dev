@@ -1,0 +1,93 @@
+# Package: ZEN32 LED Sequencer (wrapper + tests)
+# Provides a safe sequencer for issuing many select.select_option calls
+# and an optional bulk path that calls zwave_js.bulk_set_partial_config_parameters
+
+script:
+  zen32_led_sequencer:
+    alias: "ZEN32 - LED Sequencer"
+    description: "Sequentially apply select.select_option updates with configurable delay; optional zwave_js bulk mode when bulk data provided."
+    mode: single
+    sequence:
+      - variables:
+          updates: "{{ updates | default([]) }}"
+          delay_ms: "{{ delay_ms | default(100) | int }}"
+          use_bulk: "{{ use_bulk | default(false) }}"
+          bulk: "{{ bulk | default({}) }}"
+
+      # Bulk path: expects `bulk` to contain at least entity_id, parameter, value
+      - choose:
+          - conditions: "{{ use_bulk | bool and bulk != {} }}"
+            sequence:
+              - service: zwave_js.bulk_set_partial_config_parameters
+                target:
+                  entity_id: "{{ bulk.entity_id }}"
+                data:
+                  parameter: "{{ bulk.parameter }}"
+                  value: "{{ bulk.value }}"
+
+          # Default sequential path: iterate and apply with configurable delay
+          - conditions: []
+            sequence:
+              - repeat:
+                  for_each: "{{ updates }}"
+                  sequence:
+                    - service: select.select_option
+                      target:
+                        entity_id: "{{ repeat.item.entity }}"
+                      data:
+                        option: "{{ repeat.item.option }}"
+                    - delay:
+                        milliseconds: "{{ delay_ms }}"
+
+      - service: system_log.write
+        data:
+          message: "zen32_led_sequencer: applied {{ updates|length }} updates (delay_ms={{ delay_ms }}, use_bulk={{ use_bulk }})"
+          level: info
+
+
+automation:
+  - id: zen32_led_sequencer_smoke_test_startup
+    alias: "ZEN32 - LED Sequencer Smoke Test (startup)"
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      - service: script.zen32_led_sequencer
+        data:
+          updates:
+            - entity: select.scene_controller_led_indicator_color_button_1
+              option: "Yellow"
+            - entity: select.scene_controller_led_indicator_brightness_button_1
+              option: "Bright (100%)"
+            - entity: select.scene_controller_led_indicator_color_button_2
+              option: "Yellow"
+            - entity: select.scene_controller_led_indicator_brightness_button_2
+              option: "Medium (60%)"
+          delay_ms: 120
+          use_bulk: false
+
+  - id: zen32_led_sequencer_manual_test
+    alias: "ZEN32 - LED Sequencer Manual Test (callable)"
+    trigger:
+      - platform: event
+        event_type: zen32_led_sequencer_manual_test
+    action:
+      - service: script.zen32_led_sequencer
+        data:
+          updates: "{{ trigger.event.data.updates | default([]) }}"
+          delay_ms: "{{ trigger.event.data.delay_ms | default(120) }}"
+          use_bulk: "{{ trigger.event.data.use_bulk | default(false) }}"
+          bulk: "{{ trigger.event.data.bulk | default({}) }}"
+      - service: system_log.write
+        data:
+          message: "zen32_led_sequencer_manual_test executed (from event)"
+          level: info
+
+# Bulk usage example (commented):
+# Trigger the `zen32_led_sequencer_manual_test` event with data:
+# {
+#   "use_bulk": true,
+#   "bulk": { "entity_id": "switch.scene_controller_relay", "parameter": 21, "value": 4735 }
+# }
+# Note: bulk usage requires correct parameter/value composition for the device and should
+# only be used when you understand the device's config parameter mapping.

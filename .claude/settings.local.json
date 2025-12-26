@@ -39,7 +39,12 @@
       "Skill(claude-mem:mem-search)",
       "Bash(git add:*)",
       "Bash(gh issue view:*)",
-      "Bash(gh issue close:*)"
+      "Bash(gh issue close:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(gh issue create:*)",
+      "Bash(cp:*)",
+      "Bash(ls:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

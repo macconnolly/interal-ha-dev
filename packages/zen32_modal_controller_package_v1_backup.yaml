@@ -1,17 +1,8 @@
 # =============================================================================
-# ZEN32 MODAL SCENE CONTROLLER PACKAGE - v1b (Simplified Gestures)
+# ZEN32 MODAL SCENE CONTROLLER PACKAGE
 # =============================================================================
-# Version: 1.1.0-v1b
+# Version: 1.0.0
 # Author: Claude Code Implementation
-# Issue: https://github.com/macconnolly/interal-ha-dev/issues/11
-#
-# DESIGN PHILOSOPHY (Apple-Level UX):
-#   "Simple things should be simple, complex things should be possible."
-#
-#   - Directional buttons (UP/DOWN) = single gesture only (1x tap)
-#   - Mode buttons (LIGHT/VOLUME/BIG) = can have gesture complexity
-#   - Most common actions = simplest gestures
-#   - Guest-friendly: no memorization required for basic control
 #
 # ARCHITECTURE:
 #   This package provides modal control for the Zooz ZEN32 scene controller,
@@ -26,38 +17,25 @@
 # BUTTON LAYOUT:
 #   ┌─────────────────────────────┐
 #   │   ┌─────────────────────┐   │
-#   │   │   [5] BIG BUTTON    │   │  Toggle lights / Movie / Sleep / Reset
+#   │   │   [5] BIG BUTTON    │   │  Toggle all lights / Soft Reset
 #   │   │       LIGHTS        │   │
 #   │   └─────────────────────┘   │
 #   │                             │
 #   │  ┌──────────┐ ┌──────────┐  │
-#   │  │ [1]LIGHT │ │ [2] UP   │  │  Presets+Color / UP (1x only)
+#   │  │ [1]LIGHT │ │ [2] UP   │  │  Mode select / Increase
 #   │  └──────────┘ └──────────┘  │
 #   │                             │
 #   │  ┌──────────┐ ┌──────────┐  │
-#   │  │[3]VOLUME │ │ [4] DOWN │  │  Play+Group / DOWN (1x only)
+#   │  │[3]VOLUME │ │ [4] DOWN │  │  Mode select+Play / Decrease
 #   │  └──────────┘ └──────────┘  │
 #   └─────────────────────────────┘
-#
-# GESTURE SUMMARY (v1b Simplified):
-#   Button 1 (LIGHT):  1x=preset cycle (instant), 2x=full, 3x=warm/cool, hold=warmer
-#   Button 2 (UP):     1x=up (brightness or volume) - NO OTHER GESTURES
-#   Button 3 (VOLUME): 1x=mode/play, 2x=next track, hold=toggle group
-#   Button 4 (DOWN):   1x=down (brightness or volume) - NO OTHER GESTURES
-#   Button 5 (BIG):    1x=toggle, 2x=movie, 3x=sleep, hold=reset
-#
-# GESTURE SYMMETRY (v1b Design):
-#   Button 1 (LIGHT) ↔ Button 3 (VOLUME)
-#   1x = cycle presets   ↔ 1x = play/pause
-#   2x = full brightness ↔ 2x = next track
-#   Hold = warmer        ↔ Hold = toggle group
 #
 # LED COLOR SCHEME:
 #   LIGHT MODE: Button 1/2/4 YELLOW ON, Button 3 (VOLUME) OFF
 #   VOLUME MODE: Button 2/3/4 BLUE ON, Button 1 (LIGHT) OFF
 #   BIG BUTTON: Red=Manual/Movie/Sleep, White=lights on, Off=lights off
 #
-# MODE PERSISTENCE (Option A):
+# MODE PERSISTENCE (Option A - v4.0):
 #   Mode persists until user explicitly switches via button press.
 #   No auto-timeout. Press LIGHT/VOLUME button to switch modes.
 #
@@ -1543,9 +1521,25 @@ automation:
                 data:
                   direction: 1
 
-          # v1b: REMOVED Hold and 2x gestures for Button 2
-          # Design philosophy: UP button = 1x only for simplicity
-          # Guest UX: Press UP to go up. No memorization required.
+          # [2] UP - Hold (LIGHT mode): Color temp cooler
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyHeldDown' and is_light_mode }}"
+            sequence:
+              - service: script.oal_global_manual_cooler
+
+          # [2] UP - Hold (MUSIC mode): Next track
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyHeldDown' and is_music_mode }}"
+            sequence:
+              - service: script.zen32_sonos_next_track
+
+          # [2] UP - 2x Tap (LIGHT mode): Full brightness
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed2x' and is_light_mode }}"
+            sequence:
+              - service: script.zen32_full_brightness
+
+          # [2] UP - 2x Tap (MUSIC mode): Set default volume
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed2x' and is_music_mode }}"
+            sequence:
+              - service: script.zen32_sonos_default_volume
 
           # =======================================================================
           # BUTTON 3 - VOLUME BUTTON (Mode Select + Play/Pause + Grouping)
@@ -1572,52 +1566,27 @@ automation:
             sequence:
               - service: script.zen32_sonos_start
 
-          # [3] VOLUME - Hold (LIGHT mode): Switch to VOLUME + Toggle Group/Ungroup
-          # v1b: Changed from group-only to toggle - single gesture for both actions
+          # [3] VOLUME - Hold (LIGHT mode): Switch to VOLUME + Group ALL
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_light_mode }}"
             sequence:
               - service: script.zen32_set_mode_music
-              # Toggle based on current grouping state
-              - choose:
-                  # If grouped (>1 member in living room group), ungroup
-                  - conditions:
-                      - condition: template
-                        value_template: >
-                          {{ (state_attr('media_player.living_room', 'group_members') | default([]) | length) > 1 }}
-                    sequence:
-                      - service: script.sonos_ungroup_all
-                # Else group all to playing
-                default:
-                  - service: script.sonos_group_all_to_playing
+              - service: script.sonos_group_all_to_playing
 
-          # [3] VOLUME - Hold (MUSIC mode): Toggle Group/Ungroup Sonos speakers
-          # v1b: Changed from group-only to toggle - intuitive single-gesture control
+          # [3] VOLUME - Hold (VOLUME mode): Group ALL Sonos speakers
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_music_mode }}"
             sequence:
-              - choose:
-                  # If grouped (>1 member in living room group), ungroup
-                  - conditions:
-                      - condition: template
-                        value_template: >
-                          {{ (state_attr('media_player.living_room', 'group_members') | default([]) | length) > 1 }}
-                    sequence:
-                      - service: script.sonos_ungroup_all
-                # Else group all to playing
-                default:
-                  - service: script.sonos_group_all_to_playing
+              - service: script.sonos_group_all_to_playing
 
-          # [3] VOLUME - 2x Tap (LIGHT mode): Switch to VOLUME + Next Track
-          # v1b: Mirrors Button 1 2x=full brightness → Button 3 2x=next track
+          # [3] VOLUME - 2x Tap (LIGHT mode): Switch to VOLUME + Ungroup
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed2x' and is_light_mode }}"
             sequence:
               - service: script.zen32_set_mode_music
-              - service: script.zen32_sonos_next_track
+              - service: script.sonos_ungroup_all
 
-          # [3] VOLUME - 2x Tap (VOLUME mode): Next Track
-          # v1b: Symmetry with Button 1 (2x = "boost" action)
+          # [3] VOLUME - 2x Tap (VOLUME mode): Ungroup all speakers
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed2x' and is_music_mode }}"
             sequence:
-              - service: script.zen32_sonos_next_track
+              - service: script.sonos_ungroup_all
 
           # [3] VOLUME - 3x Tap (any mode): Cycle Sonos favorites
           # Cycles through favorites configured in sensor.sonos_favorites
@@ -1663,10 +1632,25 @@ automation:
           - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_music_mode and not sonos_is_playing }}"
             sequence: []
 
-          # v1b: REMOVED Hold and 2x gestures for Button 4
-          # Design philosophy: DOWN button = 1x only for simplicity
-          # Guest UX: Press DOWN to go down. No memorization required.
-          # Removed: Hold (color temp warmer/prev track), 2x (min brightness/mute)
+          # [4] DOWN - Hold (LIGHT mode): Color temp warmer
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyHeldDown' and is_light_mode }}"
+            sequence:
+              - service: script.oal_global_manual_warmer
+
+          # [4] DOWN - Hold (MUSIC mode): Previous track
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyHeldDown' and is_music_mode }}"
+            sequence:
+              - service: script.zen32_sonos_prev_track
+
+          # [4] DOWN - 2x Tap (LIGHT mode): Minimum ambient brightness
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed2x' and is_light_mode }}"
+            sequence:
+              - service: script.zen32_minimum_brightness
+
+          # [4] DOWN - 2x Tap (MUSIC mode): Mute toggle
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed2x' and is_music_mode }}"
+            sequence:
+              - service: script.zen32_sonos_mute
 
           # =======================================================================
           # BUTTON 5 - BIG BUTTON (Mode-Independent Master Controls)

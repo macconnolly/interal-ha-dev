@@ -1682,25 +1682,10 @@ automation:
               - service: input_boolean.toggle
                 target:
                   entity_id: input_boolean.oal_disable_sleep_mode
-  - id: zen32_led_sequencer_smoke_test_startup
-    alias: "ZEN32 - LED Sequencer Smoke Test (startup)"
-    trigger:
-      - platform: homeassistant
-        event: start
-    action:
-      - service: script.zen32_led_sequencer
-        data:
-          updates:
-            - entity: select.scene_controller_led_indicator_color_button_1
-              option: "Yellow"
-            - entity: select.scene_controller_led_indicator_brightness_button_1
-              option: "Bright (100%)"
-            - entity: select.scene_controller_led_indicator_color_button_2
-              option: "Yellow"
-            - entity: select.scene_controller_led_indicator_brightness_button_2
-              option: "Medium (60%)"
-          delay_ms: 120
-          use_bulk: false
+  # REMOVED: zen32_led_sequencer_smoke_test_startup
+  # This was a development test that conflicted with zen32_startup_init.
+  # Both triggered on homeassistant start, and since zen32_led_sequencer is
+  # mode: single, the smoke test would block the real startup initialization.
 
   - id: zen32_led_sequencer_manual_test
     alias: "ZEN32 - LED Sequencer Manual Test (callable)"

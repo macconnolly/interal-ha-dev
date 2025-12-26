@@ -77,7 +77,7 @@
 #   MUSIC MODE (Blue LEDs):
 #   Button 1 (LIGHT): 1x=Switch to LIGHT, Hold=Switch, 2x=Switch+Full, 3x=Warm/cool toggle
 #   Button 2 (UP):    1x=Volume+,         Hold=-,      2x=Next track
-#   Button 3 (VOL):   1x=Play/Pause,      Hold=Group toggle, 2x=Play/Pause, 3x=Favorites
+#   Button 3 (VOL):   1x=Toggle play/pause, Hold=Group toggle, 2x=Play/Pause, 3x=Favorites
 #   Button 4 (DOWN):  1x=Volume-,         Hold=-,      2x=Prev track
 #   Button 5 (BIG):   1x=Toggle lights,   Hold=Soft reset, 2x=Movie, 3x=Sleep
 #
@@ -1166,11 +1166,17 @@ automation:
               - delay:
                   milliseconds: 300
               - service: script.oal_global_manual_brighter
+              - service: automation.trigger
+                target:
+                  entity_id: automation.oal_core_adjustment_engine_v13
 
           # 1x (LIGHT, ON): Brighter
           - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_light and lights_on }}"
             sequence:
               - service: script.oal_global_manual_brighter
+              - service: automation.trigger
+                target:
+                  entity_id: automation.oal_core_adjustment_engine_v13
 
           # 1x (MUSIC, not playing): Start + volume up
           - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_music and not sonos_playing }}"
@@ -1222,15 +1228,10 @@ automation:
               - service: script.zen32_set_mode_music
               - service: script.zen32_sonos_start
 
-          # 1x (MUSIC, playing): Pause
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music and sonos_playing }}"
+          # 1x (MUSIC): Toggle play/pause
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music }}"
             sequence:
               - service: script.zen32_sonos_play_pause
-
-          # 1x (MUSIC, not playing): Start
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music and not sonos_playing }}"
-            sequence:
-              - service: script.zen32_sonos_start
 
           # Hold (LIGHT): Switch + Smart group toggle - v1b IMPROVEMENT
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_light }}"
@@ -1277,22 +1278,24 @@ automation:
               - delay:
                   milliseconds: 300
               - service: script.oal_global_manual_dimmer
+              - service: automation.trigger
+                target:
+                  entity_id: automation.oal_core_adjustment_engine_v13
 
           # 1x (LIGHT, ON): Dimmer
           - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_light and lights_on }}"
             sequence:
               - service: script.oal_global_manual_dimmer
+              - service: automation.trigger
+                target:
+                  entity_id: automation.oal_core_adjustment_engine_v13
 
-          # 1x (MUSIC, playing): Volume down
-          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_music and sonos_playing }}"
+          # 1x (MUSIC): Volume down (works even when paused)
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_music }}"
             sequence:
               - service: script.zen32_sonos_volume_step
                 data:
                   direction: -1
-
-          # 1x (MUSIC, not playing): No action
-          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_music and not sonos_playing }}"
-            sequence: []
 
           # Hold (LIGHT): Warmer color temp
           - conditions: "{{ button_id == 'button_4' and event_type == 'KeyHeldDown' and is_light }}"

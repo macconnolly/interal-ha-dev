@@ -1445,6 +1445,10 @@ automation:
                         entity_id: input_select.oal_active_configuration
                       data:
                         cycle: true
+              # Immediately trigger OAL engine for responsive lighting change
+              - action: automation.trigger
+                target:
+                  entity_id: automation.oal_core_adjustment_engine_v13
 
           # [1] LIGHT - 1x Press (MUSIC mode): Switch to LIGHT mode
           - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed' and is_music_mode }}"

@@ -37,7 +37,8 @@
       "Bash(gh label:*)",
       "Bash(hass-mcp search_entities:*)",
       "Skill(claude-mem:mem-search)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(gh issue view:*)"
     ],
     "deny": [],
     "ask": []

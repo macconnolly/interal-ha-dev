@@ -751,53 +751,92 @@ script:
   # ---------------------------------------------------------------------------
   zen32_full_brightness:
     alias: "ZEN32 - Full Brightness All Zones"
-    description: "Sets all lighting zones to maximum brightness via OAL offset pipeline"
+    description: "Sets all zones to max brightness (skipped if OAL in Manual mode)"
     icon: mdi:brightness-7
     mode: single
     sequence:
-      # Set all per-zone manual brightness offsets to +50%
-      # This pushes all zones toward their max brightness
-      # DEPENDENCY: These input_numbers are from OAL_lighting_control_package.yaml
-      - service: input_number.set_value
-        target:
-          entity_id:
-            - input_number.oal_manual_offset_main_living_brightness
-            - input_number.oal_manual_offset_kitchen_island_brightness
-            - input_number.oal_manual_offset_bedroom_primary_brightness
-            - input_number.oal_manual_offset_accent_spots_brightness
-            - input_number.oal_manual_offset_recessed_ceiling_brightness
-            - input_number.oal_manual_offset_column_lights_brightness
-        data:
-          value: 50
+      # Only adjust OAL if NOT in Manual mode (per v4.0 design spec)
+      - if:
+          - condition: template
+            value_template: "{{ is_state('input_select.oal_active_configuration', 'Manual') }}"
+        then:
+          - service: system_log.write
+            data:
+              message: "ZEN32: Skipping full brightness - OAL in Manual mode"
+              level: info
+        else:
+          # Turn on lights if off first
+          - if:
+              - condition: state
+                entity_id: light.all_adaptive_lights
+                state: "off"
+            then:
+              - service: light.turn_on
+                target:
+                  entity_id: light.all_adaptive_lights
 
-      # Trigger the OAL global adjustment pipeline to apply immediately
-      # DEPENDENCY: script.oal_global_adjustment_start from OAL_lighting_control_package.yaml
-      - service: script.oal_global_adjustment_start
+          # Set all per-zone manual brightness offsets to +50%
+          # DEPENDENCY: These input_numbers are from OAL_lighting_control_package.yaml
+          - service: input_number.set_value
+            target:
+              entity_id:
+                - input_number.oal_manual_offset_main_living_brightness
+                - input_number.oal_manual_offset_kitchen_island_brightness
+                - input_number.oal_manual_offset_bedroom_primary_brightness
+                - input_number.oal_manual_offset_accent_spots_brightness
+                - input_number.oal_manual_offset_recessed_ceiling_brightness
+                - input_number.oal_manual_offset_column_lights_brightness
+            data:
+              value: 50
+
+          # Trigger the OAL global adjustment pipeline to apply immediately
+          # DEPENDENCY: script.oal_global_adjustment_start from OAL_lighting_control_package.yaml
+          - service: script.oal_global_adjustment_start
 
   # ---------------------------------------------------------------------------
   # Minimum Brightness - Set All Zones to Ambient Minimum
   # ---------------------------------------------------------------------------
   zen32_minimum_brightness:
     alias: "ZEN32 - Minimum Brightness All Zones"
-    description: "Sets all lighting zones to minimum ambient brightness"
+    description: "Sets all zones to minimum brightness (skipped if OAL in Manual mode)"
     icon: mdi:brightness-4
     mode: single
     sequence:
-      # Set all per-zone manual brightness offsets to -50%
-      - service: input_number.set_value
-        target:
-          entity_id:
-            - input_number.oal_manual_offset_main_living_brightness
-            - input_number.oal_manual_offset_kitchen_island_brightness
-            - input_number.oal_manual_offset_bedroom_primary_brightness
-            - input_number.oal_manual_offset_accent_spots_brightness
-            - input_number.oal_manual_offset_recessed_ceiling_brightness
-            - input_number.oal_manual_offset_column_lights_brightness
-        data:
-          value: -50
+      # Only adjust OAL if NOT in Manual mode (per v4.0 design spec)
+      - if:
+          - condition: template
+            value_template: "{{ is_state('input_select.oal_active_configuration', 'Manual') }}"
+        then:
+          - service: system_log.write
+            data:
+              message: "ZEN32: Skipping minimum brightness - OAL in Manual mode"
+              level: info
+        else:
+          # Turn on lights if off first
+          - if:
+              - condition: state
+                entity_id: light.all_adaptive_lights
+                state: "off"
+            then:
+              - service: light.turn_on
+                target:
+                  entity_id: light.all_adaptive_lights
 
-      # Trigger OAL pipeline
-      - service: script.oal_global_adjustment_start
+          # Set all per-zone manual brightness offsets to -50%
+          - service: input_number.set_value
+            target:
+              entity_id:
+                - input_number.oal_manual_offset_main_living_brightness
+                - input_number.oal_manual_offset_kitchen_island_brightness
+                - input_number.oal_manual_offset_bedroom_primary_brightness
+                - input_number.oal_manual_offset_accent_spots_brightness
+                - input_number.oal_manual_offset_recessed_ceiling_brightness
+                - input_number.oal_manual_offset_column_lights_brightness
+            data:
+              value: -50
+
+          # Trigger OAL pipeline
+          - service: script.oal_global_adjustment_start
 
   # ---------------------------------------------------------------------------
   # Update Big Button LED - Called by startup and state tracking

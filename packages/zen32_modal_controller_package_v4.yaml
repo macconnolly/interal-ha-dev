@@ -1220,25 +1220,23 @@ automation:
                 data:
                   direction: 1
 
-          # Hold (LIGHT): Cooler - RESTORED from v3
+          # Hold (LIGHT): Cooler color temp
           - conditions: "{{ button_id == 'button_2' and event_type == 'KeyHeldDown' and is_light }}"
             sequence:
               - service: script.oal_global_manual_cooler
 
-          # Hold (MUSIC): Next track - RESTORED from v3
-          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyHeldDown' and is_music }}"
-            sequence:
-              - service: script.zen32_sonos_next_track
+          # Hold (MUSIC): No action - simplified UX
+          # (removed - 2x does track navigation now)
 
-          # 2x (LIGHT): Full brightness - RESTORED from v3
+          # 2x (LIGHT): Full brightness
           - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed2x' and is_light }}"
             sequence:
               - service: script.zen32_full_brightness
 
-          # 2x (MUSIC): Default volume - RESTORED from v3
+          # 2x (MUSIC): Next track - logical increment
           - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed2x' and is_music }}"
             sequence:
-              - service: script.zen32_sonos_default_volume
+              - service: script.zen32_sonos_next_track
 
           # =================================================================
           # BUTTON 3 - VOLUME (Mode Select + Play/Pause + Grouping)
@@ -1327,25 +1325,23 @@ automation:
           - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_music and not sonos_playing }}"
             sequence: []
 
-          # Hold (LIGHT): Warmer - RESTORED from v3
+          # Hold (LIGHT): Warmer color temp
           - conditions: "{{ button_id == 'button_4' and event_type == 'KeyHeldDown' and is_light }}"
             sequence:
               - service: script.oal_global_manual_warmer
 
-          # Hold (MUSIC): Previous track - RESTORED from v3
-          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyHeldDown' and is_music }}"
-            sequence:
-              - service: script.zen32_sonos_prev_track
+          # Hold (MUSIC): No action - simplified UX
+          # (removed - 2x does track navigation now)
 
-          # 2x (LIGHT): Minimum brightness - RESTORED from v3
+          # 2x (LIGHT): Minimum brightness
           - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed2x' and is_light }}"
             sequence:
               - service: script.zen32_minimum_brightness
 
-          # 2x (MUSIC): Mute toggle - RESTORED from v3
+          # 2x (MUSIC): Previous track - logical decrement
           - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed2x' and is_music }}"
             sequence:
-              - service: script.zen32_sonos_mute
+              - service: script.zen32_sonos_prev_track
 
           # =================================================================
           # BUTTON 5 - BIG (Mode-Independent Master Controls)

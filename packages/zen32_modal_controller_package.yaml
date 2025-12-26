@@ -818,11 +818,23 @@ script:
   # ---------------------------------------------------------------------------
   zen32_update_big_button_led:
     alias: "ZEN32 - Update Big Button LED"
-    description: "Sets Button 5 LED based on current light/movie state"
+    description: "Sets Button 5 LED based on Manual/Movie/Sleep/Light state (priority order)"
     icon: mdi:gesture-tap-button
     mode: single
     sequence:
       - choose:
+          # Manual Mode Active: Red BRIGHT (HIGHEST priority - explicit user override)
+          - conditions:
+              - condition: state
+                entity_id: input_select.oal_active_configuration
+                state: "Manual"
+            sequence:
+              - service: script.zen32_set_led
+                data:
+                  button: 5
+                  color: "red"
+                  toggle: "always_on"
+                  brightness: "bright"
           # Movie Mode Active: Red MEDIUM
           - conditions:
               - condition: state
@@ -1311,66 +1323,32 @@ automation:
   # ---------------------------------------------------------------------------
   # Big Button State Tracking - Independent of Mode
   # ---------------------------------------------------------------------------
-  # LED STATE DESIGN:
-  #   Lights ON, Normal:      White MEDIUM
-  #   Lights OFF:             OFF (always_off)
-  #   Movie Mode Active:      Red MEDIUM (overrides normal state)
+  # LED STATE PRIORITY (handled by script.zen32_update_big_button_led):
+  #   1. Manual Mode:    Red BRIGHT (highest priority)
+  #   2. Movie Mode:     Red MEDIUM
+  #   3. Sleep Mode:     Red LOW
+  #   4. Lights ON:      White MEDIUM
+  #   5. Lights OFF:     OFF (always_off)
   # ---------------------------------------------------------------------------
   - id: zen32_big_button_state_sync
     alias: "ZEN32 - Big Button LED State Tracking"
-    description: "Updates Button 5 LED based on lights, movie mode, and sleep mode state"
+    description: "Updates Button 5 LED on state changes (delegates to script)"
     mode: restart
     trigger:
+      # Manual mode changes (highest priority)
+      - platform: state
+        entity_id: input_select.oal_active_configuration
+      # Light state changes
       - platform: state
         entity_id: light.all_adaptive_lights
+      # Movie/Sleep mode changes
       - platform: state
         entity_id: input_boolean.oal_movie_mode_active
       - platform: state
         entity_id: input_boolean.oal_disable_sleep_mode
     action:
-      - choose:
-          # Movie Mode Active: Red MEDIUM (highest priority)
-          - conditions:
-              - condition: state
-                entity_id: input_boolean.oal_movie_mode_active
-                state: "on"
-            sequence:
-              - service: script.zen32_set_led
-                data:
-                  button: 5
-                  color: "red"
-                  toggle: "always_on"
-                  brightness: "medium"
-          # Sleep Mode Active: Red LOW (distinguish from movie mode)
-          - conditions:
-              - condition: state
-                entity_id: input_boolean.oal_disable_sleep_mode
-                state: "on"
-            sequence:
-              - service: script.zen32_set_led
-                data:
-                  button: 5
-                  color: "red"
-                  toggle: "always_on"
-                  brightness: "low"
-          # Lights ON: White MEDIUM
-          - conditions:
-              - condition: state
-                entity_id: light.all_adaptive_lights
-                state: "on"
-            sequence:
-              - service: script.zen32_set_led
-                data:
-                  button: 5
-                  color: "white"
-                  toggle: "always_on"
-                  brightness: "medium"
-        # Lights OFF: LED off
-        default:
-          - service: script.zen32_set_led
-            data:
-              button: 5
-              toggle: "always_off"
+      # Delegate to script (single source of truth for priority logic)
+      - service: script.zen32_update_big_button_led
 
   # ---------------------------------------------------------------------------
   # Modal Controller Handler - Button Event Dispatch

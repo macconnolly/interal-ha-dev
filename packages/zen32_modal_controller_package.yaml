@@ -24,12 +24,12 @@
 #
 # KEY IMPROVEMENTS v4.0:
 #   - Uses binary_sensor.sonos_playing_status for playback detection
-#   - Uses sensor.oal_system_status attributes for mode checks
+#   - Uses sensor.oal_system_status.active_zonal_overrides for manual detection
 #   - Calls existing scripts (sonos_group_all_to_playing, oal_reset_soft)
-#   - Restores Button 2/4 Hold/2x for power users (v1b removed these)
+#   - Logical track navigation: UP 2x = Next, DOWN 2x = Prev
 #   - Keeps v1b smart group toggle on Button 3 Hold
-#   - Keeps v1b Play/Pause on Button 3 2x
-#   - Fixes v3.0 entity reference bugs (relay toggle, button brightness)
+#   - Simplified big button LED: Red=manual, White=on, Off=off
+#   - Fixes v3.0 entity reference bugs (relay toggle via Z-Wave param)
 #
 # DEPENDENCIES:
 #   - packages/OAL_lighting_control_package.yaml
@@ -60,19 +60,26 @@
 #   LIGHT MODE:  [1] Yellow ON, [2] Yellow ON, [3] OFF,      [4] Yellow ON
 #   VOLUME MODE: [1] OFF,       [2] Blue ON,   [3] Blue ON,  [4] Blue ON
 #
-# BIG BUTTON LED PRIORITY (with brightness differentiation):
-#   Priority 1: Manual Mode    -> Red, BRIGHT (100%)
-#   Priority 2: Movie Mode     -> Red, MEDIUM (60%)
-#   Priority 3: Sleep Disabled -> Red, LOW (30%)
-#   Priority 4: Lights ON      -> White, MEDIUM (60%)
-#   Priority 5: Lights OFF     -> OFF
+# BIG BUTTON LED (simplified):
+#   Red (bright)  = Any manual control (zonal overrides OR brightness offsets != 0)
+#   White (medium) = Lights ON (adaptive mode)
+#   Off           = Lights OFF
 #
 # GESTURE SPECIFICATION:
-#   Button 1 (LIGHT): 1x=Cycle presets, Hold=Warmer, 2x=Full brightness, 3x=Toggle warm/cool
-#   Button 2 (UP):    1x=Brighter/Vol+, Hold=Cooler/Next, 2x=Full/Default vol
-#   Button 3 (VOL):   1x=Mode/Play, Hold=Smart group toggle, 2x=Play/Pause, 3x=Favorites
-#   Button 4 (DOWN):  1x=Dimmer/Vol-, Hold=Warmer/Prev, 2x=Min/Mute
+#
+#   LIGHT MODE (Yellow LEDs):
+#   Button 1 (LIGHT): 1x=Cycle presets, Hold=Warmer, 2x=Full bright, 3x=Warm/cool toggle
+#   Button 2 (UP):    1x=Brightness+,   Hold=Cooler, 2x=Full bright
+#   Button 3 (VOL):   1x=Switch+Start,  Hold=Switch+Group toggle, 2x=Switch+Play/Pause, 3x=Favorites
+#   Button 4 (DOWN):  1x=Brightness-,   Hold=Warmer, 2x=Min bright
 #   Button 5 (BIG):   1x=Toggle lights, Hold=Soft reset, 2x=Movie, 3x=Sleep
+#
+#   MUSIC MODE (Blue LEDs):
+#   Button 1 (LIGHT): 1x=Switch to LIGHT, Hold=Switch, 2x=Switch+Full, 3x=Warm/cool toggle
+#   Button 2 (UP):    1x=Volume+,         Hold=-,      2x=Next track
+#   Button 3 (VOL):   1x=Play/Pause,      Hold=Group toggle, 2x=Play/Pause, 3x=Favorites
+#   Button 4 (DOWN):  1x=Volume-,         Hold=-,      2x=Prev track
+#   Button 5 (BIG):   1x=Toggle lights,   Hold=Soft reset, 2x=Movie, 3x=Sleep
 #
 # =============================================================================
 

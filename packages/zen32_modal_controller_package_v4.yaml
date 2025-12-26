@@ -545,19 +545,34 @@ script:
               option: "Always on"
 
   # ---------------------------------------------------------------------------
-  # Update Big Button LED - Priority-based with brightness differentiation
+  # Update Big Button LED - Simplified priority
+  # ---------------------------------------------------------------------------
+  # Red = Any manual control (zonal overrides OR non-zero brightness offsets)
+  # White = Lights on (adaptive mode)
+  # Off = Lights off
   # ---------------------------------------------------------------------------
   zen32_update_big_button_led:
     alias: "ZEN32 - Update Big Button LED"
-    description: "Set big button LED with priority-based brightness differentiation"
+    description: "Set big button LED: Red=manual/adjusted, White=on, Off=off"
     icon: mdi:gesture-tap-button
     mode: single
+    variables:
+      # Check if any lights are manually overridden
+      has_zonal_overrides: "{{ state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0) > 0 }}"
+      # Check if user has adjusted brightness offsets (any non-zero)
+      has_brightness_offsets: >
+        {{ states('input_number.oal_manual_offset_main_living_brightness') | float(0) != 0
+           or states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) != 0
+           or states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0) != 0
+           or states('input_number.oal_manual_offset_accent_spots_brightness') | float(0) != 0
+           or states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0) != 0
+           or states('input_number.oal_manual_offset_column_lights_brightness') | float(0) != 0 }}
+      # Combined: Any manual intervention
+      has_manual_control: "{{ has_zonal_overrides or has_brightness_offsets }}"
     sequence:
       - choose:
-          # Priority 1: Manual Mode - Red BRIGHT
-          - conditions:
-              - condition: template
-                value_template: "{{ state_attr('sensor.oal_system_status', 'current_preset') == 'Manual' }}"
+          # Red: Manual overrides OR user-adjusted brightness
+          - conditions: "{{ has_manual_control }}"
             sequence:
               - service: select.select_option
                 target:
@@ -576,52 +591,7 @@ script:
                 data:
                   option: "Bright (100%)"
 
-          # Priority 2: Movie Mode - Red MEDIUM
-          - conditions:
-              - condition: template
-                value_template: "{{ state_attr('sensor.oal_system_status', 'movie_mode_active') == true }}"
-            sequence:
-              - service: select.select_option
-                target:
-                  entity_id: select.scene_controller_led_indicator_color_relay
-                data:
-                  option: "Red"
-              - service: zwave_js.set_config_parameter
-                target:
-                  device_id: "{{ device_id('event.scene_controller_scene_001') }}"
-                data:
-                  parameter: 1
-                  value: 3
-              - service: select.select_option
-                target:
-                  entity_id: select.scene_controller_led_indicator_brightness_relay
-                data:
-                  option: "Medium (60%)"
-
-          # Priority 3: Sleep Disabled - Red LOW
-          - conditions:
-              - condition: state
-                entity_id: input_boolean.oal_disable_sleep_mode
-                state: "on"
-            sequence:
-              - service: select.select_option
-                target:
-                  entity_id: select.scene_controller_led_indicator_color_relay
-                data:
-                  option: "Red"
-              - service: zwave_js.set_config_parameter
-                target:
-                  device_id: "{{ device_id('event.scene_controller_scene_001') }}"
-                data:
-                  parameter: 1
-                  value: 3
-              - service: select.select_option
-                target:
-                  entity_id: select.scene_controller_led_indicator_brightness_relay
-                data:
-                  option: "Low (30%)"
-
-          # Priority 4: Lights ON - White MEDIUM
+          # White: Lights ON (adaptive mode, no manual adjustments)
           - conditions:
               - condition: state
                 entity_id: light.all_adaptive_lights
@@ -644,7 +614,7 @@ script:
                 data:
                   option: "Medium (60%)"
 
-        # Default: Lights OFF
+        # Off: Lights OFF
         default:
           - service: zwave_js.set_config_parameter
             target:
@@ -659,20 +629,21 @@ script:
   # ---------------------------------------------------------------------------
   zen32_full_brightness:
     alias: "ZEN32 - Full Brightness"
-    description: "Set all zones to max brightness (skipped in Manual mode)"
+    description: "Set all zones to max brightness (skipped in Manual preset)"
     icon: mdi:brightness-7
     mode: single
     sequence:
-      # Guard: Skip in Manual mode
+      # Guard: Skip in Manual preset (OAL engine not running)
       - if:
-          - condition: template
-            value_template: "{{ state_attr('sensor.oal_system_status', 'current_preset') == 'Manual' }}"
+          - condition: state
+            entity_id: input_select.oal_active_configuration
+            state: "Manual"
         then:
           - service: system_log.write
             data:
-              message: "ZEN32: Skipping full brightness - OAL in Manual mode"
+              message: "ZEN32: Skipping full brightness - OAL preset is Manual"
               level: info
-          - stop: "OAL in Manual mode"
+          - stop: "OAL in Manual preset"
 
       # Ensure lights are on
       - if:
@@ -705,20 +676,21 @@ script:
   # ---------------------------------------------------------------------------
   zen32_minimum_brightness:
     alias: "ZEN32 - Minimum Brightness"
-    description: "Set all zones to minimum brightness (skipped in Manual mode)"
+    description: "Set all zones to minimum brightness (skipped in Manual preset)"
     icon: mdi:brightness-4
     mode: single
     sequence:
-      # Guard: Skip in Manual mode
+      # Guard: Skip in Manual preset (OAL engine not running)
       - if:
-          - condition: template
-            value_template: "{{ state_attr('sensor.oal_system_status', 'current_preset') == 'Manual' }}"
+          - condition: state
+            entity_id: input_select.oal_active_configuration
+            state: "Manual"
         then:
           - service: system_log.write
             data:
-              message: "ZEN32: Skipping minimum brightness - OAL in Manual mode"
+              message: "ZEN32: Skipping minimum brightness - OAL preset is Manual"
               level: info
-          - stop: "OAL in Manual mode"
+          - stop: "OAL in Manual preset"
 
       # Ensure lights are on
       - if:
@@ -1040,19 +1012,25 @@ automation:
   # ---------------------------------------------------------------------------
   - id: zen32_big_button_state_sync_v4
     alias: "ZEN32 - Big Button LED State Sync"
-    description: "Sync big button LED on state changes (priority-based)"
+    description: "Sync big button LED: Red=manual, White=on, Off=off"
     mode: restart
     trigger:
-      - platform: state
-        entity_id: sensor.oal_system_status
-        attribute: current_preset
-      - platform: state
-        entity_id: sensor.oal_system_status
-        attribute: movie_mode_active
+      # Light state changes
       - platform: state
         entity_id: light.all_adaptive_lights
+      # Zonal override changes (manual control from touching lights)
       - platform: state
-        entity_id: input_boolean.oal_disable_sleep_mode
+        entity_id: sensor.oal_system_status
+        attribute: active_zonal_overrides
+      # User brightness offset changes (from ZEN32 buttons)
+      - platform: state
+        entity_id:
+          - input_number.oal_manual_offset_main_living_brightness
+          - input_number.oal_manual_offset_kitchen_island_brightness
+          - input_number.oal_manual_offset_bedroom_primary_brightness
+          - input_number.oal_manual_offset_accent_spots_brightness
+          - input_number.oal_manual_offset_recessed_ceiling_brightness
+          - input_number.oal_manual_offset_column_lights_brightness
     action:
       - service: script.zen32_update_big_button_led
 

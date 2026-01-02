@@ -522,7 +522,7 @@ adaptive_lighting:
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
     min_brightness: 1
-    max_brightness: 70                    # SYNC: OAL Engine comfort_max_b
+    max_brightness: 80                    # SYNC: OAL Engine comfort_max_b
     brightness_mode: tanh
     min_color_temp: 2700                  # Govee actual hardware min (not reported 2000)
     max_color_temp: 2750                  # SYNC: OAL Engine max_k - warm limit for column lights
@@ -680,7 +680,7 @@ automation:
         - entity_id: switch.adaptive_lighting_column_lights
           id: column_lights
           comfort_min_b: 1
-          comfort_max_b: 70               # SYNC: AL max_brightness
+          comfort_max_b: 80               # SYNC: AL max_brightness
           min_k: 2700                     # Govee actual hardware min (not reported 2000)
           max_k: 2750                     # SYNC: AL max_color_temp - warm limit for column lights
           env_sensitivity: 0.7
@@ -1587,6 +1587,25 @@ automation:
               - service: switch.turn_off
                 target:
                   entity_id: switch.adaptive_lighting_sleep_mode_column_lights
+              # FIX: Release manual control that was set during evening RGB transition
+              # Without this, lights stay at 1% until sun elevation > 12°
+              - service: adaptive_lighting.set_manual_control
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_column_lights
+                data:
+                  lights:
+                    - light.living_col_accent
+                    - light.dining_col_accent
+                  manual_control: false
+              # Apply normal daytime brightness immediately
+              - service: adaptive_lighting.apply
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_column_lights
+                data:
+                  turn_on_lights: false
+                  transition: 5
         default:
           - if:
               - condition: numeric_state

@@ -1496,7 +1496,7 @@ automation:
       - platform: numeric_state
         entity_id: sun.sun
         attribute: elevation
-        above: 12
+        above: 8
     condition:
       - condition: state
         entity_id: input_boolean.oal_system_paused
@@ -1584,28 +1584,11 @@ automation:
               - condition: trigger
                 id: "morning_trigger"
             sequence:
+              # Only toggle sleep mode here; Govee-safe RGB→color_temp transition
+              # happens at 8° via oal_column_lights_morning_exit_rgb_v13
               - service: switch.turn_off
                 target:
                   entity_id: switch.adaptive_lighting_sleep_mode_column_lights
-              # FIX: Release manual control that was set during evening RGB transition
-              # Without this, lights stay at 1% until sun elevation > 12°
-              - service: adaptive_lighting.set_manual_control
-                continue_on_error: true
-                target:
-                  entity_id: switch.adaptive_lighting_column_lights
-                data:
-                  lights:
-                    - light.living_column_strip_light_matter
-                    - light.dining_column_strip_light_matter
-                  manual_control: false
-              # Apply normal daytime brightness immediately
-              - service: adaptive_lighting.apply
-                continue_on_error: true
-                target:
-                  entity_id: switch.adaptive_lighting_column_lights
-                data:
-                  turn_on_lights: false
-                  transition: 5
         default:
           - if:
               - condition: numeric_state

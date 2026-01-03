@@ -1595,8 +1595,8 @@ automation:
                   entity_id: switch.adaptive_lighting_column_lights
                 data:
                   lights:
-                    - light.living_col_accent
-                    - light.dining_col_accent
+                    - light.living_column_strip_light_matter
+                    - light.dining_column_strip_light_matter
                   manual_control: false
               # Apply normal daytime brightness immediately
               - service: adaptive_lighting.apply

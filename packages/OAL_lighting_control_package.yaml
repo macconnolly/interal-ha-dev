@@ -228,6 +228,15 @@ input_number:
     unit_of_measurement: "K"
     icon: mdi:weather-sunset-down
 
+  oal_offset_column_rgb_green:
+    name: "OAL Offset: Column RGB Green"
+    min: 165
+    max: 200
+    step: 1
+    initial: 200
+    unit_of_measurement: ""
+    icon: mdi:palette
+
   # Night behavior offsets (post-twilight dimming)
   oal_offset_night_brightness:
     name: "OAL Offset: Night B"
@@ -525,7 +534,7 @@ adaptive_lighting:
     sleep_brightness: 1
     sleep_color_temp: 2700                # Govee actual hardware min
     sleep_rgb_or_color_temp: "rgb_color"
-    sleep_rgb_color: [255, 165, 0]        # SYNC: oal_reset_soft script
+    sleep_rgb_color: [245, 120, 0]
     sleep_transition: 0
     transition_until_sleep: true
     send_split_delay: 10000
@@ -1333,6 +1342,27 @@ automation:
         {% else %}
           0
         {% endif %}
+      column_rgb_green: >
+        {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+
+        {# EVENING: Fade green from 200 to 165 as sun drops from 0 to -5 #}
+        {% if not rising and elevation <= 0 and elevation >= -5 %}
+          {% set progress = (0 - elevation) / 5 %}
+          {{ (200 - (35 * progress)) | round(0) }}
+
+        {# MORNING: Fade green from 165 to 200 as sun rises from 5 to 12 #}
+        {% elif rising and elevation >= 5 and elevation <= 12 %}
+          {% set progress = (elevation - 5) / 7 %}
+          {{ (165 + (35 * progress)) | round(0) }}
+
+        {# NIGHT (between -5 and +5): Hold at 165 (warm orange) #}
+        {% elif elevation < 5 %}
+          165
+
+        {# DAY: Default to 200 (yellow-orange) #}
+        {% else %}
+          200
+        {% endif %}
     action:
       - service: input_number.set_value
         target:
@@ -1344,16 +1374,186 @@ automation:
           entity_id: input_number.oal_offset_sunset_warmth
         data:
           value: "{{ warmth_offset }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_column_rgb_green
+        data:
+          value: "{{ column_rgb_green }}"
 
   # ---------------------------------------------------------------------------
-  # 4.3 Column Lights Sleep Mode
+  # 4.3b Column Lights RGB Transition (Sun-Based)
   # ---------------------------------------------------------------------------
-  # Simplified: AL handles RGB transition via sleep_rgb_color and transition_until_sleep.
-  # No manual_control needed - AL's sleep mode provides warm orange [255, 165, 0].
+  # ---------------------------------------------------------------------------
+  # 4.3a Column Lights Prepare RGB Mode (Govee Pink Fix)
+  # ---------------------------------------------------------------------------
+  - id: oal_column_lights_prepare_rgb_mode_v13
+    alias: "OAL v13 - Column Lights Prepare RGB Mode"
+    description: "Switches column lights to RGB mode at safe brightness before color transition to prevent Govee purple bug"
+    trigger:
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        below: 3
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+      - condition: template
+        value_template: "{{ not state_attr('sun.sun', 'rising') | default(true) }}"
+      - condition: state
+        entity_id: switch.adaptive_lighting_sleep_mode_column_lights
+        state: "off"
+      - condition: template
+        value_template: >
+          {{ 'light.living_column_strip_light_matter' not in
+             (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) }}
+    action:
+      # Step 1: Raise brightness to safe level (above 33%)
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+        data:
+          brightness_pct: 35
+          transition: 0
+      - delay: "00:00:10"
+
+      # Step 2: Switch to RGB mode with safe orange (hue > 38)
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+        data:
+          rgb_color: [255, 200, 0]
+          transition: 0
+      - delay: "00:00:10"
+
+      # Step 3: Set manual control to prevent AL interference
+      - service: adaptive_lighting.set_manual_control
+        continue_on_error: true
+        target:
+          entity_id: switch.adaptive_lighting_column_lights
+        data:
+          lights:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+          manual_control: true
+
+      # Step 4: Reduce brightness for evening
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+        data:
+          brightness_pct: 20
+          transition: 0
+
+  # ---------------------------------------------------------------------------
+  # 4.3b Column Lights RGB Transition
+  # ---------------------------------------------------------------------------
+  - id: oal_column_lights_rgb_transition_v13
+    alias: "OAL v13 - Column Lights RGB Transition"
+    description: "Applies smooth RGB color transition to column lights during evening"
+    trigger:
+      - platform: state
+        entity_id: input_number.oal_offset_column_rgb_green
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+      - condition: state
+        entity_id: switch.adaptive_lighting_sleep_mode_column_lights
+        state: "off"
+      # Ensure prepare automation has run (manual_control set)
+      - condition: template
+        value_template: >
+          {{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length > 0 }}
+    variables:
+      green_value: "{{ states('input_number.oal_offset_column_rgb_green') | int(200) }}"
+    action:
+      - service: light.turn_on
+        target:
+          entity_id:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+        data:
+          rgb_color: [255, "{{ green_value }}", 0]
+          transition: 0
+
+  # ---------------------------------------------------------------------------
+  # 4.3c Column Lights Morning Exit RGB Mode
+  # ---------------------------------------------------------------------------
+  - id: oal_column_lights_morning_exit_rgb_v13
+    alias: "OAL v13 - Column Lights Morning Exit RGB Mode"
+    description: "Transitions column lights from RGB back to color_temp mode in the morning"
+    trigger:
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        above: 12
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+      - condition: template
+        value_template: "{{ state_attr('sun.sun', 'rising') | default(false) }}"
+    action:
+      # Step 1: Raise to safe brightness
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+        data:
+          brightness_pct: 40
+          transition: 0
+      - delay: "00:00:06"
+
+      # Step 2: Switch to color_temp mode
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+        data:
+          color_temp_kelvin: 2750
+          transition: 0
+      - delay: "00:00:11"
+
+      # Step 3: Release manual control
+      - service: adaptive_lighting.set_manual_control
+        continue_on_error: true
+        target:
+          entity_id: switch.adaptive_lighting_column_lights
+        data:
+          lights:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+          manual_control: false
+
+      # Step 4: Let AL take over
+      - service: adaptive_lighting.apply
+        continue_on_error: true
+        target:
+          entity_id: switch.adaptive_lighting_column_lights
+        data:
+          turn_on_lights: false
+          transition: 0
+
+  # ---------------------------------------------------------------------------
+  # 4.3d Column Lights Sleep Mode (Final Safety)
   # ---------------------------------------------------------------------------
   - id: oal_column_lights_sleep_trigger_v13
-    alias: "OAL v13 - Column Lights Sleep Mode"
-    description: "Toggle sleep mode for column lights based on sun elevation"
+    alias: "OAL v13 - Column Lights Sleep Mode (Final Safety)"
+    description: "Enables sleep mode after RGB transition completes"
     trigger:
       - platform: homeassistant
         event: start
@@ -1361,12 +1561,12 @@ automation:
         entity_id: sun.sun
         attribute: elevation
         below: -5
-        id: "evening"
+        id: "evening_final"
       - platform: numeric_state
         entity_id: sun.sun
         attribute: elevation
-        above: 5
-        id: "morning"
+        above: 5   # Exit sleep mode earlier for morning RGB fade (was: 12)
+        id: "morning_trigger"
     condition:
       - condition: state
         entity_id: input_boolean.oal_system_paused
@@ -1375,23 +1575,51 @@ automation:
       - choose:
           - conditions:
               - condition: trigger
-                id: "evening"
+                id: "evening_final"
             sequence:
               - service: switch.turn_on
                 target:
                   entity_id: switch.adaptive_lighting_sleep_mode_column_lights
           - conditions:
               - condition: trigger
-                id: "morning"
+                id: "morning_trigger"
             sequence:
               - service: switch.turn_off
                 target:
                   entity_id: switch.adaptive_lighting_sleep_mode_column_lights
+              # FIX: Release manual control that was set during evening RGB transition
+              # Without this, lights stay at 1% until sun elevation > 12°
+              - service: adaptive_lighting.set_manual_control
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_column_lights
+                data:
+                  lights:
+                    - light.living_col_accent
+                    - light.dining_col_accent
+                  manual_control: false
+              # Apply normal daytime brightness immediately
+              - service: adaptive_lighting.apply
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_column_lights
+                data:
+                  turn_on_lights: false
+                  transition: 5
         default:
-          # HA restart: Set correct state based on current sun elevation
-          - service: "switch.turn_{{ 'on' if state_attr('sun.sun', 'elevation') | float(0) < -5 else 'off' }}"
-            target:
-              entity_id: switch.adaptive_lighting_sleep_mode_column_lights
+          - if:
+              - condition: numeric_state
+                entity_id: sun.sun
+                attribute: elevation
+                below: -5
+            then:
+              - service: switch.turn_on
+                target:
+                  entity_id: switch.adaptive_lighting_sleep_mode_column_lights
+            else:
+              - service: switch.turn_off
+                target:
+                  entity_id: switch.adaptive_lighting_sleep_mode_column_lights
 
   # ---------------------------------------------------------------------------
   # 4.4 Environmental adaptation (lux + weather + season)

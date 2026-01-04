@@ -505,6 +505,8 @@ script:
               option: "Yellow"
             - entity: select.scene_controller_led_indicator_button_2
               option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_2
+              option: "Bright (100%)"
             # Button 3 (VOLUME): OFF - inactive mode
             - entity: select.scene_controller_led_indicator_button_3
               option: "Always off"
@@ -513,6 +515,8 @@ script:
               option: "Yellow"
             - entity: select.scene_controller_led_indicator_button_4
               option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_4
+              option: "Bright (100%)"
 
   # ---------------------------------------------------------------------------
   # Set Mode: VOLUME
@@ -553,6 +557,8 @@ script:
               option: "Blue"
             - entity: select.scene_controller_led_indicator_button_2
               option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_2
+              option: "Bright (100%)"
             # Button 3 (VOLUME): Blue ON - active mode selector
             - entity: select.scene_controller_led_indicator_color_button_3
               option: "Blue"
@@ -563,6 +569,8 @@ script:
               option: "Blue"
             - entity: select.scene_controller_led_indicator_button_4
               option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_4
+              option: "Bright (100%)"
 
   # ---------------------------------------------------------------------------
   # Update Big Button LED - Simplified priority
@@ -1104,11 +1112,11 @@ automation:
       # Only process valid event types
       - condition: template
         value_template: "{{ event_type in ['KeyPressed', 'KeyHeldDown', 'KeyPressed2x', 'KeyPressed3x'] }}"
-      # Debounce: ignore events within 150ms of last press
+      # Debounce: ignore events within 50ms of last press
       - condition: template
         value_template: >
           {{ (now().timestamp() - (states('input_datetime.zen32_last_button_press')
-             | as_timestamp(0))) > 0.15 }}
+             | as_timestamp(0))) > 0.05 }}
 
     action:
       # Update activity timestamps
@@ -1272,10 +1280,15 @@ automation:
               - service: script.zen32_set_mode_music
               - service: script.zen32_sonos_start
 
-          # 1x (MUSIC): Toggle play/pause
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music }}"
+          # 1x (MUSIC, playing): Toggle to pause
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music and sonos_playing }}"
             sequence:
               - service: script.zen32_sonos_play_pause
+
+          # 1x (MUSIC, NOT playing): Start playback
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music and not sonos_playing }}"
+            sequence:
+              - service: script.zen32_sonos_start
 
           # Hold (LIGHT): Switch + Smart group toggle - v1b IMPROVEMENT
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_light }}"

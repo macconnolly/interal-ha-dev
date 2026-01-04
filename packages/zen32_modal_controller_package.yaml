@@ -485,6 +485,12 @@ script:
         data:
           datetime: "{{ now() }}"
 
+      # Visual confirmation of mode change
+      - service: script.zen32_blink_confirm
+        data:
+          button: 1
+          blink_count: 1
+
       - service: script.zen32_led_sequencer
         data:
           delay_ms: 100
@@ -528,6 +534,12 @@ script:
           entity_id: input_datetime.zen32_mode_last_change
         data:
           datetime: "{{ now() }}"
+
+      # Visual confirmation of mode change
+      - service: script.zen32_blink_confirm
+        data:
+          button: 3
+          blink_count: 1
 
       - service: script.zen32_led_sequencer
         data:
@@ -577,8 +589,30 @@ script:
            or states('input_number.oal_manual_offset_column_lights_brightness') | float(0) != 0 }}
       # Combined: Any manual intervention
       has_manual_control: "{{ has_zonal_overrides or has_brightness_offsets }}"
+      # Sleep mode active
+      is_sleep_mode: "{{ is_state('input_boolean.oal_force_sleep', 'on') }}"
     sequence:
       - choose:
+          # Priority 0: Sleep mode = DIM BLUE
+          - conditions: "{{ is_sleep_mode }}"
+            sequence:
+              - service: select.select_option
+                target:
+                  entity_id: select.scene_controller_led_indicator_color_relay
+                data:
+                  option: "Blue"
+              - service: zwave_js.set_config_parameter
+                target:
+                  device_id: "{{ device_id('event.scene_controller_scene_001') }}"
+                data:
+                  parameter: 1
+                  value: 3
+              - service: select.select_option
+                target:
+                  entity_id: select.scene_controller_led_indicator_brightness_relay
+                data:
+                  option: "Low (30%)"
+
           # Red: Manual overrides OR user-adjusted brightness
           - conditions: "{{ has_manual_control }}"
             sequence:
@@ -1001,6 +1035,9 @@ automation:
           - input_number.oal_manual_offset_accent_spots_brightness
           - input_number.oal_manual_offset_recessed_ceiling_brightness
           - input_number.oal_manual_offset_column_lights_brightness
+      # Sleep mode changes
+      - platform: state
+        entity_id: input_boolean.oal_force_sleep
     action:
       - service: script.zen32_update_big_button_led
 
@@ -1064,8 +1101,14 @@ automation:
       is_grouped: "{{ (state_attr('sensor.sonos_current_playing_group_coordinator', 'group_members') | default([]) | length) > 1 }}"
 
     condition:
+      # Only process valid event types
       - condition: template
         value_template: "{{ event_type in ['KeyPressed', 'KeyHeldDown', 'KeyPressed2x', 'KeyPressed3x'] }}"
+      # Debounce: ignore events within 150ms of last press
+      - condition: template
+        value_template: >
+          {{ (now().timestamp() - (states('input_datetime.zen32_last_button_press')
+             | as_timestamp(0))) > 0.15 }}
 
     action:
       # Update activity timestamps

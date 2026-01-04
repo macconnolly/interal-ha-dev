@@ -277,10 +277,10 @@ input_number:
 
   oal_control_transition_speed:
     name: "OAL Transition Speed (Sec)"
-    min: 1
+    min: 0.1
     max: 10
-    step: 1
-    initial: 2
+    step: 0.1
+    initial: 0.3
     icon: mdi:speedometer
 
   # Per-zone manual offsets (single source of truth for manual brightness)
@@ -634,7 +634,7 @@ automation:
       base_warmth_offset: >
         {{ comp_manual_k + comp_config_k + comp_sunset_k + comp_env_k }}
 
-      transition_speed: "{{ states('input_number.oal_control_transition_speed') | int(2) }}"
+      transition_speed: "{{ states('input_number.oal_control_transition_speed') | float(0.3) }}"
 
       zone_configs:
         - entity_id: switch.adaptive_lighting_main_living
@@ -933,7 +933,7 @@ automation:
     
     variables:
       config: "{{ states('input_select.oal_active_configuration') }}"
-      transition_speed: "{{ states('input_number.oal_control_transition_speed') | int(2) }}"
+      transition_speed: "{{ states('input_number.oal_control_transition_speed') | float(0.3) }}"
       
       config_profiles:
         # Adaptive: True baseline - AL works normally, no interference
@@ -1862,7 +1862,7 @@ automation:
         entity_id: input_select.oal_isolated_override_mode
     variables:
       mode: "{{ states('input_select.oal_isolated_override_mode') }}"
-      transition_speed: "{{ states('input_number.oal_control_transition_speed') | int(2) }}"
+      transition_speed: "{{ states('input_number.oal_control_transition_speed') | float(0.3) }}"
     action:
       - condition: template
         value_template: >
@@ -2806,6 +2806,8 @@ script:
     alias: "OAL Global Adjustment Start (Helper)"
     description: "Applies offset changes immediately, then sets manual control for autoreset/UI."
     icon: mdi:cog-transfer
+    variables:
+      last_engine_run: "{{ states('input_datetime.oal_last_engine_run') }}"
     sequence:
       # Step 1: Force Core Engine to apply offset changes IMMEDIATELY
       # This bypasses the 1s trigger delay and ensures lights respond instantly
@@ -2813,9 +2815,12 @@ script:
         event_data:
           message: "Manual adjustment - forcing immediate apply"
 
-      # Step 2: Brief pause to let Core Engine complete before setting manual_control
+      # Step 2: Wait for Core Engine to complete before setting manual_control
       # Otherwise manual_control would cause Core Engine to skip apply
-      - delay: "00:00:02"
+      - wait_template: >
+          {{ states('input_datetime.oal_last_engine_run') != last_engine_run }}
+        timeout: "00:00:03"
+        continue_on_timeout: true
 
       # Step 3: Set manual control on each AL switch for its lights that are ON
       # Must iterate per-switch because set_manual_control doesn't support

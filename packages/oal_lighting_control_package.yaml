@@ -738,32 +738,6 @@ automation:
           - stop: "Force sleep mode active"
 
       # =========================================================================
-      # MANUAL CONTROL SANDWICH PATTERN - Pre-Protection Phase
-      # =========================================================================
-      # SYNC: This MUST run BEFORE change_switch_settings to prevent race condition
-      # where AL integration applies new bounds to manual lights before our apply filter.
-      # Pattern: Pre-protect → Change bounds → Apply filtered (see lines ~849, ~859)
-      - repeat:
-          for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
-          sequence:
-            - variables:
-                switch_id: "{{ repeat.item }}"
-                manual_lights: "{{ state_attr(switch_id, 'manual_control') | default([]) }}"
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: "{{ manual_lights | length > 0 }}"
-                  sequence:
-                    # Re-assert manual control to ensure protection during bounds change
-                    - service: adaptive_lighting.set_manual_control
-                      continue_on_error: true
-                      target:
-                        entity_id: "{{ switch_id }}"
-                      data:
-                        lights: "{{ manual_lights }}"
-                        manual_control: true
-
-      # =========================================================================
       # Zone Configuration Loop - Calculate and apply per-zone brightness/warmth
       # =========================================================================
       - repeat:
@@ -877,28 +851,28 @@ automation:
                 transition: "{{ transition_speed }}"
 
       # =========================================================================
-      # MANUAL CONTROL SANDWICH PATTERN - Apply Phase
+      # Apply Phase - Apply to ALL on lights
       # =========================================================================
-      # SYNC: Apply to each switch, excluding lights in manual_control
-      # Manual lights were pre-protected above (~line 732) and filtered here
+      # NOTE: adaptive_lighting.apply uses force=True internally, which bypasses
+      # manual_control checks. No need to filter by manual_control - just apply
+      # to all lights that are currently on.
       - repeat:
           for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
           sequence:
             - variables:
                 switch_id: "{{ repeat.item }}"
-                manual_lights: "{{ state_attr(switch_id, 'manual_control') | default([]) }}"
                 all_lights: "{{ (state_attr(switch_id, 'configuration') or {}).get('lights', []) }}"
-                adaptive_lights: "{{ all_lights | reject('in', manual_lights) | list }}"
+                on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
             - choose:
                 - conditions:
                     - condition: template
-                      value_template: "{{ adaptive_lights | length > 0 }}"
+                      value_template: "{{ on_lights | length > 0 }}"
                   sequence:
                     - service: adaptive_lighting.apply
                       target:
                         entity_id: "{{ switch_id }}"
                       data:
-                        lights: "{{ adaptive_lights }}"
+                        lights: "{{ on_lights }}"
                         turn_on_lights: false
                         transition: "{{ transition_speed }}"
 
@@ -2792,34 +2766,22 @@ script:
     variables:
       last_engine_run: "{{ states('input_datetime.oal_last_engine_run') }}"
     sequence:
-      # Step 0: Clear manual_control so Core Engine applies to ALL lights
-      # Without this, subsequent brightness adjustments are ignored because
-      # lights are already in manual_control from the previous adjustment
-      - repeat:
-          for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
-          sequence:
-            - service: adaptive_lighting.set_manual_control
-              target:
-                entity_id: "{{ repeat.item }}"
-              data:
-                manual_control: false
-
       # Step 1: Force Core Engine to apply offset changes IMMEDIATELY
       # This bypasses the 1s trigger delay and ensures lights respond instantly
+      # NOTE: No need to clear manual_control first - adaptive_lighting.apply
+      # uses force=True internally and ignores manual_control status
       - event: oal_watchdog_trigger
         event_data:
           message: "Manual adjustment - forcing immediate apply"
 
       # Step 2: Wait for Core Engine to complete before setting manual_control
-      # Otherwise manual_control would cause Core Engine to skip apply
       - wait_template: >
           {{ states('input_datetime.oal_last_engine_run') != last_engine_run }}
         timeout: "00:00:03"
         continue_on_timeout: true
 
       # Step 3: Set manual control on each AL switch for its lights that are ON
-      # Must iterate per-switch because set_manual_control doesn't support
-      # multiple switches with lights argument
+      # This enables autoreset tracking so lights return to adaptive after timeout
       - repeat:
           for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
           sequence:

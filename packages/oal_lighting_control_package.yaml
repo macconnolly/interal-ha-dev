@@ -583,12 +583,10 @@ automation:
           - input_number.oal_offset_night_brightness
           - input_number.oal_offset_night_warmth
           - input_number.oal_night_dimming_strength
-          - input_number.oal_manual_offset_main_living_brightness
-          - input_number.oal_manual_offset_kitchen_island_brightness
-          - input_number.oal_manual_offset_bedroom_primary_brightness
-          - input_number.oal_manual_offset_accent_spots_brightness
-          - input_number.oal_manual_offset_recessed_ceiling_brightness
-          - input_number.oal_manual_offset_column_lights_brightness
+          # NOTE: Manual offset input_numbers are NOT included here!
+          # The Zen32/manual scripts fire oal_watchdog_trigger explicitly,
+          # so state triggers would be redundant and cause queue flooding
+          # (6 extra triggers per button press = 14+ second delays)
         for: "00:00:01"
       - platform: time_pattern
         minutes: "/15"

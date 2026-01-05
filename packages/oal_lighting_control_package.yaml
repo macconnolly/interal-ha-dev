@@ -646,13 +646,16 @@ automation:
 
       transition_speed: "{{ states('input_number.oal_control_transition_speed') | float(0.3) }}"
 
-      # Determine if this is a force-apply trigger (user-initiated adjustment)
-      # vs periodic/environmental update (should respect manual_control)
-      # Force-apply triggers include: Zen32 brightness, manual slider, startup, sleep mode
-      # Periodic triggers include: time_pattern, watchdog stale check, config override
-      is_force_apply: >
-        {{ trigger.platform == 'event' and
-           (trigger.event.data.force | default(false)) == true }}
+      # Determine if this trigger should respect manual_control filtering
+      # ONLY time_pattern (periodic 15-min) should filter - it's a background refresh
+      # All other triggers are intentional changes that should apply to all lights:
+      # - Event triggers (Zen32 watchdog with force=true)
+      # - State triggers from manual offset changes (user adjustments)
+      # - State triggers from config/environmental changes (system adjustments)
+      is_periodic_only: "{{ trigger.platform == 'time_pattern' }}"
+
+      # Legacy variable for backwards compatibility (used in apply phase)
+      is_force_apply: "{{ not is_periodic_only }}"
 
       zone_configs:
         - entity_id: switch.adaptive_lighting_main_living

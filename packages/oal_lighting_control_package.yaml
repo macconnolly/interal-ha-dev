@@ -599,9 +599,19 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_system_paused
         state: "off"
-      - condition: state
-        entity_id: input_boolean.oal_config_transition_active
-        state: "off"
+      # Force-apply triggers bypass transition lock; normal triggers respect it
+      # This prevents Zen32 button presses from being dropped when Config Manager is running
+      - condition: or
+        conditions:
+          # Force-apply triggers (Zen32, manual adjustment, startup) bypass lock
+          - condition: template
+            value_template: >
+              {{ trigger.platform == 'event' and
+                 (trigger.event.data.force | default(false)) == true }}
+          # Normal periodic triggers respect transition lock
+          - condition: state
+            entity_id: input_boolean.oal_config_transition_active
+            state: "off"
 
     variables:
       # Global offsets
@@ -2780,6 +2790,7 @@ script:
     alias: "OAL Global Adjustment Start (Helper)"
     description: "Applies offset changes immediately, then sets manual control for autoreset/UI."
     icon: mdi:cog-transfer
+    mode: restart  # Allow rapid presses - new press cancels wait and starts fresh
     variables:
       last_engine_run: "{{ states('input_datetime.oal_last_engine_run') }}"
     sequence:

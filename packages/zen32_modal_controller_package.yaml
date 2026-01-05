@@ -227,64 +227,87 @@ script:
   # ---------------------------------------------------------------------------
   zen32_led_sequencer:
     alias: "ZEN32 - LED Sequencer"
-    description: "Sequential LED updates with Z-Wave-safe delays; optional bulk mode"
+    description: "Sequential LED updates with Z-Wave-safe delays. Accepts button configs or raw entity/option pairs."
     icon: mdi:led-strip-variant
     mode: single
     fields:
+      buttons:
+        description: "List of button configs: {button, color, toggle, brightness}. Preferred API."
+        example: "[{button: 1, color: yellow, toggle: always_on, brightness: bright}]"
+        required: false
       updates:
-        description: "List of {entity, option} dicts for sequential mode"
+        description: "Legacy: List of {entity, option} dicts for raw entity control"
         required: false
       delay_ms:
         description: "Milliseconds between sequential calls (default 100, min 50)"
         default: 100
-      use_bulk:
-        description: "Use zwave_js.bulk_set_partial_config_parameters (faster)"
-        default: false
-      bulk_device_id:
-        description: "Device ID for bulk mode"
-        required: false
-      bulk_params:
-        description: "Dict of {parameter: value} for bulk mode"
-        required: false
+    variables:
+      _delay: "{{ [50, delay_ms | default(100) | int] | max }}"
+      _buttons: "{{ buttons | default([]) }}"
+      _raw_updates: "{{ updates | default([]) }}"
+
+      # Color normalization map
+      _color_map:
+        white: "White"
+        blue: "Blue"
+        green: "Green"
+        red: "Red"
+        magenta: "Magenta"
+        yellow: "Yellow"
+        cyan: "Cyan"
+
+      # Toggle normalization map
+      _toggle_map:
+        always_on: "Always on"
+        always_off: "Always off"
+        on_when_on: "On when load is on"
+        on_when_off: "On when load is off"
+
+      # Brightness normalization map
+      _brightness_map:
+        bright: "Bright (100%)"
+        medium: "Medium (60%)"
+        low: "Low (30%)"
+
+      # Expand button configs to entity/option pairs
+      _button_updates: >
+        {% set ns = namespace(items=[]) %}
+        {% for btn in _buttons %}
+          {% set suffix = 'relay' if btn.button in [5, '5', 'relay', 'big'] else 'button_' ~ btn.button %}
+          {% if btn.color is defined %}
+            {% set color_val = _color_map.get(btn.color | lower, btn.color) %}
+            {% set ns.items = ns.items + [{'entity': 'select.scene_controller_led_indicator_color_' ~ suffix, 'option': color_val}] %}
+          {% endif %}
+          {% if btn.toggle is defined %}
+            {% set toggle_val = _toggle_map.get(btn.toggle | lower | replace(' ', '_'), btn.toggle) %}
+            {% set ns.items = ns.items + [{'entity': 'select.scene_controller_led_indicator_' ~ suffix, 'option': toggle_val}] %}
+          {% endif %}
+          {% if btn.brightness is defined %}
+            {% set bright_val = _brightness_map.get(btn.brightness | lower, btn.brightness) %}
+            {% set ns.items = ns.items + [{'entity': 'select.scene_controller_led_indicator_brightness_' ~ suffix, 'option': bright_val}] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.items }}
+
+      # Combine button-derived updates with raw updates
+      _all_updates: "{{ _button_updates + _raw_updates }}"
+
     sequence:
-      - variables:
-          _updates: "{{ updates | default([]) }}"
-          _delay: "{{ [50, delay_ms | default(100) | int] | max }}"
-          _use_bulk: "{{ use_bulk | default(false) | bool }}"
-          _bulk_device: "{{ bulk_device_id | default('') }}"
-          _bulk_params: "{{ bulk_params | default({}) }}"
-
-      - choose:
-          # Bulk mode: single Z-Wave message for all parameters
-          - conditions: "{{ _use_bulk and _bulk_device and _bulk_params }}"
-            sequence:
-              - service: zwave_js.bulk_set_partial_config_parameters
-                target:
-                  device_id: "{{ _bulk_device }}"
-                data:
-                  value: "{{ _bulk_params }}"
-              - service: system_log.write
-                data:
-                  message: "zen32_led_sequencer: bulk mode applied {{ _bulk_params | length }} params"
-                  level: debug
-
-        # Default: Sequential mode with delays
-        default:
-          - repeat:
-              for_each: "{{ _updates }}"
-              sequence:
-                - service: select.select_option
-                  target:
-                    entity_id: "{{ repeat.item.entity }}"
-                  data:
-                    option: "{{ repeat.item.option }}"
-                  continue_on_error: true
-                - delay:
-                    milliseconds: "{{ _delay }}"
-          - service: system_log.write
-            data:
-              message: "zen32_led_sequencer: sequential mode applied {{ _updates | length }} updates (delay={{ _delay }}ms)"
-              level: debug
+      - repeat:
+          for_each: "{{ _all_updates }}"
+          sequence:
+            - service: select.select_option
+              target:
+                entity_id: "{{ repeat.item.entity }}"
+              data:
+                option: "{{ repeat.item.option }}"
+              continue_on_error: true
+            - delay:
+                milliseconds: "{{ _delay }}"
+      - service: system_log.write
+        data:
+          message: "zen32_led_sequencer: applied {{ _all_updates | length }} updates ({{ _buttons | length }} buttons, {{ _raw_updates | length }} raw) delay={{ _delay }}ms"
+          level: debug
 
   # ---------------------------------------------------------------------------
   # Set Single LED - Utility for individual button control
@@ -494,29 +517,25 @@ script:
       - service: script.zen32_led_sequencer
         data:
           delay_ms: 100
-          updates:
+          buttons:
             # Button 1 (LIGHT): Yellow ON - active mode selector
-            - entity: select.scene_controller_led_indicator_color_button_1
-              option: "Yellow"
-            - entity: select.scene_controller_led_indicator_button_1
-              option: "Always on"
+            - button: 1
+              color: yellow
+              toggle: always_on
+              brightness: bright
             # Button 2 (UP): Yellow ON - active mode action
-            - entity: select.scene_controller_led_indicator_color_button_2
-              option: "Yellow"
-            - entity: select.scene_controller_led_indicator_button_2
-              option: "Always on"
-            - entity: select.scene_controller_led_indicator_brightness_button_2
-              option: "Bright (100%)"
+            - button: 2
+              color: yellow
+              toggle: always_on
+              brightness: bright
             # Button 3 (VOLUME): OFF - inactive mode
-            - entity: select.scene_controller_led_indicator_button_3
-              option: "Always off"
+            - button: 3
+              toggle: always_off
             # Button 4 (DOWN): Yellow ON - active mode action
-            - entity: select.scene_controller_led_indicator_color_button_4
-              option: "Yellow"
-            - entity: select.scene_controller_led_indicator_button_4
-              option: "Always on"
-            - entity: select.scene_controller_led_indicator_brightness_button_4
-              option: "Bright (100%)"
+            - button: 4
+              color: yellow
+              toggle: always_on
+              brightness: bright
 
   # ---------------------------------------------------------------------------
   # Set Mode: VOLUME
@@ -548,29 +567,25 @@ script:
       - service: script.zen32_led_sequencer
         data:
           delay_ms: 100
-          updates:
+          buttons:
             # Button 1 (LIGHT): OFF - inactive mode
-            - entity: select.scene_controller_led_indicator_button_1
-              option: "Always off"
+            - button: 1
+              toggle: always_off
             # Button 2 (UP): Blue ON - active mode action
-            - entity: select.scene_controller_led_indicator_color_button_2
-              option: "Blue"
-            - entity: select.scene_controller_led_indicator_button_2
-              option: "Always on"
-            - entity: select.scene_controller_led_indicator_brightness_button_2
-              option: "Bright (100%)"
+            - button: 2
+              color: blue
+              toggle: always_on
+              brightness: bright
             # Button 3 (VOLUME): Blue ON - active mode selector
-            - entity: select.scene_controller_led_indicator_color_button_3
-              option: "Blue"
-            - entity: select.scene_controller_led_indicator_button_3
-              option: "Always on"
+            - button: 3
+              color: blue
+              toggle: always_on
+              brightness: bright
             # Button 4 (DOWN): Blue ON - active mode action
-            - entity: select.scene_controller_led_indicator_color_button_4
-              option: "Blue"
-            - entity: select.scene_controller_led_indicator_button_4
-              option: "Always on"
-            - entity: select.scene_controller_led_indicator_brightness_button_4
-              option: "Bright (100%)"
+            - button: 4
+              color: blue
+              toggle: always_on
+              brightness: bright
 
   # ---------------------------------------------------------------------------
   # Update Big Button LED - Simplified priority

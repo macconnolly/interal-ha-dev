@@ -429,7 +429,7 @@ adaptive_lighting:
     initial_transition: 3
     take_over_control: true
     detect_non_ha_changes: true
-    adapt_delay: 1
+    adapt_delay: 0
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
     min_brightness: 70                    # SYNC: comfort_min_b (was 60, +10 per user)
@@ -448,7 +448,7 @@ adaptive_lighting:
     initial_transition: 3
     take_over_control: true
     detect_non_ha_changes: true
-    adapt_delay: 1
+    adapt_delay: 0
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
     min_brightness: 20                    # SYNC: comfort_min_b (was 25, -5 per user)
@@ -467,7 +467,7 @@ adaptive_lighting:
     initial_transition: 3
     take_over_control: true
     detect_non_ha_changes: true
-    adapt_delay: 1
+    adapt_delay: 0
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
     min_brightness: 30                    # SYNC: comfort_min_b (was 20, +10 per user)
@@ -488,7 +488,7 @@ adaptive_lighting:
     initial_transition: 3
     take_over_control: true
     detect_non_ha_changes: true
-    adapt_delay: 1
+    adapt_delay: 0
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
     min_brightness: 25                    # SYNC: comfort_min_b (was 20, +5 per user)
@@ -507,7 +507,7 @@ adaptive_lighting:
     initial_transition: 3
     take_over_control: true
     detect_non_ha_changes: true
-    adapt_delay: 1
+    adapt_delay: 0
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
     brightness_mode: "tanh"               # S-curve for quick post-sunset dimming
@@ -553,7 +553,7 @@ adaptive_lighting:
     sleep_rgb_color: [245, 120, 0]
     sleep_transition: 0
     transition_until_sleep: true
-    send_split_delay: 10000
+    send_split_delay: 50               # Was 10000 (10s!) - now 50ms as recommended
     intercept: true
     multi_light_intercept: true
 
@@ -583,11 +583,30 @@ automation:
           - input_number.oal_offset_night_brightness
           - input_number.oal_offset_night_warmth
           - input_number.oal_night_dimming_strength
-          # NOTE: Manual offset input_numbers are NOT included here!
-          # The Zen32/manual scripts fire oal_watchdog_trigger explicitly,
-          # so state triggers would be redundant and cause queue flooding
-          # (6 extra triggers per button press = 14+ second delays)
-        for: "00:00:01"
+          # ═══════════════════════════════════════════════════════════════════
+          # IMPORTANT: Manual offset input_numbers are INTENTIONALLY EXCLUDED
+          # ═══════════════════════════════════════════════════════════════════
+          # The per-zone manual offsets (input_number.oal_manual_offset_*_brightness)
+          # are NOT triggered here because:
+          #
+          # 1. QUEUE FLOODING: Zen32 button press sets all 6 zones in parallel.
+          #    State triggers would cause 6 extra engine runs + 1 watchdog event
+          #    = 7 queued runs × ~2s each = 14+ second delay before lights respond.
+          #
+          # 2. EXPLICIT TRIGGERING: The manual adjustment flow uses:
+          #    oal_global_manual_brighter/dimmer → oal_manual_brightness_step
+          #    → oal_global_adjustment_start → fires oal_watchdog_trigger (force: true)
+          #    This single event trigger is sufficient and bypasses transition lock.
+          #
+          # 3. RESET SCRIPTS: oal_reset_soft/global call adaptive_lighting.apply
+          #    directly, so they don't need state triggers either.
+          #
+          # MAINTAINER NOTE: Any NEW automation that modifies manual offsets MUST:
+          #   a) Fire oal_watchdog_trigger event with force: true, OR
+          #   b) Call adaptive_lighting.apply directly, OR
+          #   c) Accept changes taking effect on next periodic (15-min) trigger
+          # ═══════════════════════════════════════════════════════════════════
+        # NOTE: Debounce removed for instant response (was: for: "00:00:01")
       - platform: time_pattern
         minutes: "/15"
       - platform: event
@@ -645,15 +664,18 @@ automation:
       transition_speed: "{{ states('input_number.oal_control_transition_speed') | float(0.3) }}"
 
       # Determine if this trigger should respect manual_control filtering
-      # ONLY time_pattern (periodic 15-min) should filter - it's a background refresh
-      # All other triggers are intentional changes that should apply to all lights:
-      # - Event triggers (Zen32 watchdog with force=true)
-      # - State triggers from manual offset changes (user adjustments)
-      # - State triggers from config/environmental changes (system adjustments)
-      is_periodic_only: "{{ trigger.platform == 'time_pattern' }}"
+      # ONLY explicit force-apply triggers should override manual control:
+      # - Event triggers with force=true (Zen32, startup, soft reset)
+      # All other triggers respect manual_control list:
+      # - time_pattern (periodic 15-min background refresh)
+      # - State triggers (environmental/config changes)
+      # - Event triggers without force flag
+      is_force_apply: >
+        {{ trigger.platform == 'event' and
+           (trigger.event.data.force | default(false)) == true }}
 
-      # Legacy variable for backwards compatibility (used in apply phase)
-      is_force_apply: "{{ not is_periodic_only }}"
+      # Legacy variable - kept for potential future use
+      is_periodic_only: "{{ trigger.platform == 'time_pattern' }}"
 
       zone_configs:
         - entity_id: switch.adaptive_lighting_main_living
@@ -757,152 +779,519 @@ automation:
           - stop: "Force sleep mode active"
 
       # =========================================================================
-      # Zone Configuration Loop - Calculate and apply per-zone brightness/warmth
+      # Zone Configuration Phase - PARALLELIZED for instant response
       # =========================================================================
-      - repeat:
-          for_each: "{{ zone_configs }}"
-          sequence:
-            - variables:
-                comfort_min_b: "{{ repeat.item.comfort_min_b | float }}"
-                comfort_max_b: "{{ repeat.item.comfort_max_b | float }}"
-                env_sensitivity: "{{ repeat.item.env_sensitivity | float }}"
-                night_sensitivity: "{{ repeat.item.night_sensitivity | float(0) }}"
-                hard_min_b: "{{ repeat.item.hard_min_b | float }}"
-                hard_max_b: "{{ repeat.item.hard_max_b | float }}"
+      # All 6 zones calculate and apply switch settings simultaneously.
+      # This reduces config phase from ~600ms (sequential) to ~100ms (parallel).
+      # Pattern mirrors Apply Phase (lines ~901+) for consistency.
+      - parallel:
+          # ========== MAIN LIVING (Standard warmth) ==========
+          - sequence:
+              - variables:
+                  # Zone constants
+                  comfort_min_b: 70
+                  comfort_max_b: 100
+                  env_sensitivity: 1.0
+                  night_sensitivity: 0.5
+                  hard_min_b: 1
+                  hard_max_b: 100
+                  min_k: 2000
+                  max_k: 3150
 
-                # Night dimming with SEPARATE sensitivity (independent from env boost)
-                night_with_sensitivity: >
-                  {{ comp_night_b_raw * night_strength * night_sensitivity }}
+                  # Night dimming with zone sensitivity
+                  night_with_sensitivity: >
+                    {{ comp_night_b_raw * night_strength * 0.5 }}
+                  night_warmth_with_sensitivity: >
+                    {{ comp_night_k_raw * night_strength * 0.5 }}
 
-                # Night warmth with SEPARATE sensitivity
-                night_warmth_with_sensitivity: >
-                  {{ comp_night_k_raw * night_strength * night_sensitivity }}
+                  # Auto brightness: config + (env*sunset_multiplier capped) + night_dim
+                  auto_offset_b: >
+                    {{ base_config_b + (env_with_sunset_capped * 1.0) + night_with_sensitivity }}
 
-                # Baseline brightness from AL (for diagnostics only)
-                base_brightness_zone: >
-                  {{ state_attr(repeat.item.entity_id, 'brightness_pct')
-                     | float((comfort_min_b + comfort_max_b) / 2) }}
+                  auto_min_raw: "{{ 70 + auto_offset_b }}"
+                  auto_max_raw: "{{ 100 + auto_offset_b }}"
 
-                # Auto brightness: config + (env*sunset_multiplier capped) + night_dim
-                auto_offset_b: >
-                  {{ base_config_b + (env_with_sunset_capped * env_sensitivity) + night_with_sensitivity }}
+                  auto_min_clamped: >
+                    {{ [70, [100, auto_min_raw] | min] | max }}
+                  auto_max_clamped: >
+                    {{ [70, [100, auto_max_raw] | min] | max }}
 
-                auto_min_raw: "{{ comfort_min_b + auto_offset_b }}"
-                auto_max_raw: "{{ comfort_max_b + auto_offset_b }}"
-
-                auto_min_clamped: >
-                  {{ [comfort_min_b, [comfort_max_b, auto_min_raw] | min] | max }}
-                auto_max_clamped: >
-                  {{ [comfort_min_b, [hard_max_b, auto_max_raw] | min] | max }}
-
-                # Per-zone manual helper (single manual brightness source)
-                per_zone_manual_helper: >
-                  {% if repeat.item.id == 'main_living' %}
+                  # Per-zone manual offset (direct lookup)
+                  manual_offset_b: >
                     {{ states('input_number.oal_manual_offset_main_living_brightness') | float(0) }}
-                  {% elif repeat.item.id == 'kitchen_island' %}
+
+                  min_with_manual: "{{ auto_min_clamped + manual_offset_b }}"
+                  max_with_manual: "{{ auto_max_clamped + manual_offset_b }}"
+
+                  global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
+                  global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
+
+                  clamped_min_b: "{{ [1, [100, global_min_b] | min] | max }}"
+                  clamped_max_b: "{{ [1, [100, global_max_b] | min] | max }}"
+
+                  final_min_b: "{{ clamped_min_b }}"
+                  final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
+
+                  # Standard warmth (clamp to zone bounds)
+                  final_min_k: >
+                    {% set proposed = 2000 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {{ [2000, [3150, proposed] | min] | max }}
+                  final_max_k: >
+                    {% set proposed = 3150 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {% set clamped = [2000, [3150, proposed] | min] | max %}
+                    {{ [final_min_k | float, clamped] | max }}
+
+              - service: adaptive_lighting.change_switch_settings
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_main_living
+                data:
+                  min_brightness: "{{ final_min_b | round(0) }}"
+                  max_brightness: "{{ final_max_b | round(0) }}"
+                  min_color_temp: "{{ final_min_k | round(0) }}"
+                  max_color_temp: "{{ final_max_k | round(0) }}"
+                  transition: "{{ transition_speed }}"
+
+          # ========== KITCHEN ISLAND (Standard warmth) ==========
+          - sequence:
+              - variables:
+                  comfort_min_b: 20
+                  comfort_max_b: 100
+                  env_sensitivity: 1.0
+                  night_sensitivity: 0.5
+                  hard_min_b: 1
+                  hard_max_b: 100
+                  min_k: 2000
+                  max_k: 4000
+
+                  night_with_sensitivity: >
+                    {{ comp_night_b_raw * night_strength * 0.5 }}
+                  night_warmth_with_sensitivity: >
+                    {{ comp_night_k_raw * night_strength * 0.5 }}
+
+                  auto_offset_b: >
+                    {{ base_config_b + (env_with_sunset_capped * 1.0) + night_with_sensitivity }}
+
+                  auto_min_raw: "{{ 20 + auto_offset_b }}"
+                  auto_max_raw: "{{ 100 + auto_offset_b }}"
+
+                  auto_min_clamped: >
+                    {{ [20, [100, auto_min_raw] | min] | max }}
+                  auto_max_clamped: >
+                    {{ [20, [100, auto_max_raw] | min] | max }}
+
+                  manual_offset_b: >
                     {{ states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) }}
-                  {% elif repeat.item.id == 'bedroom_primary' %}
+
+                  min_with_manual: "{{ auto_min_clamped + manual_offset_b }}"
+                  max_with_manual: "{{ auto_max_clamped + manual_offset_b }}"
+
+                  global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
+                  global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
+
+                  clamped_min_b: "{{ [1, [100, global_min_b] | min] | max }}"
+                  clamped_max_b: "{{ [1, [100, global_max_b] | min] | max }}"
+
+                  final_min_b: "{{ clamped_min_b }}"
+                  final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
+
+                  # Standard warmth (clamp to zone bounds)
+                  final_min_k: >
+                    {% set proposed = 2000 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {{ [2000, [4000, proposed] | min] | max }}
+                  final_max_k: >
+                    {% set proposed = 4000 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {% set clamped = [2000, [4000, proposed] | min] | max %}
+                    {{ [final_min_k | float, clamped] | max }}
+
+              - service: adaptive_lighting.change_switch_settings
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_kitchen_island
+                data:
+                  min_brightness: "{{ final_min_b | round(0) }}"
+                  max_brightness: "{{ final_max_b | round(0) }}"
+                  min_color_temp: "{{ final_min_k | round(0) }}"
+                  max_color_temp: "{{ final_max_k | round(0) }}"
+                  transition: "{{ transition_speed }}"
+
+          # ========== BEDROOM PRIMARY (Govee warmth - 2700-6500K hardware) ==========
+          - sequence:
+              - variables:
+                  comfort_min_b: 30
+                  comfort_max_b: 65
+                  env_sensitivity: 0.5
+                  night_sensitivity: 0.0
+                  hard_min_b: 1
+                  hard_max_b: 80
+                  min_k: 2000
+                  max_k: 2700
+
+                  # No night dimming for bedroom (uses sleep mode)
+                  night_with_sensitivity: 0
+                  night_warmth_with_sensitivity: 0
+
+                  auto_offset_b: >
+                    {{ base_config_b + (env_with_sunset_capped * 0.5) + night_with_sensitivity }}
+
+                  auto_min_raw: "{{ 30 + auto_offset_b }}"
+                  auto_max_raw: "{{ 65 + auto_offset_b }}"
+
+                  auto_min_clamped: >
+                    {{ [30, [65, auto_min_raw] | min] | max }}
+                  auto_max_clamped: >
+                    {{ [30, [80, auto_max_raw] | min] | max }}
+
+                  manual_offset_b: >
                     {{ states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0) }}
-                  {% elif repeat.item.id == 'accent_spots' %}
+
+                  min_with_manual: "{{ auto_min_clamped + manual_offset_b }}"
+                  max_with_manual: "{{ auto_max_clamped + manual_offset_b }}"
+
+                  global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
+                  global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
+
+                  clamped_min_b: "{{ [1, [80, global_min_b] | min] | max }}"
+                  clamped_max_b: "{{ [1, [80, global_max_b] | min] | max }}"
+
+                  final_min_b: "{{ clamped_min_b }}"
+                  final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
+
+                  # Govee warmth (clamp to 2700-6500K hardware limits)
+                  final_min_k: >
+                    {% set proposed = 2000 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {{ [2700, [6500, proposed] | min] | max }}
+                  final_max_k: >
+                    {% set proposed = 2700 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {% set clamped = [2700, [6500, proposed] | min] | max %}
+                    {{ [final_min_k | float, clamped] | max }}
+
+              - service: adaptive_lighting.change_switch_settings
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_bedroom_primary
+                data:
+                  min_brightness: "{{ final_min_b | round(0) }}"
+                  max_brightness: "{{ final_max_b | round(0) }}"
+                  min_color_temp: "{{ final_min_k | round(0) }}"
+                  max_color_temp: "{{ final_max_k | round(0) }}"
+                  transition: "{{ transition_speed }}"
+
+          # ========== ACCENT SPOTS (Standard warmth) ==========
+          - sequence:
+              - variables:
+                  comfort_min_b: 25
+                  comfort_max_b: 50
+                  env_sensitivity: 0.8
+                  night_sensitivity: 1.0
+                  hard_min_b: 1
+                  hard_max_b: 80
+                  min_k: 2000
+                  max_k: 6500
+
+                  # Full night dimming for accent spots
+                  night_with_sensitivity: >
+                    {{ comp_night_b_raw * night_strength * 1.0 }}
+                  night_warmth_with_sensitivity: >
+                    {{ comp_night_k_raw * night_strength * 1.0 }}
+
+                  auto_offset_b: >
+                    {{ base_config_b + (env_with_sunset_capped * 0.8) + night_with_sensitivity }}
+
+                  auto_min_raw: "{{ 25 + auto_offset_b }}"
+                  auto_max_raw: "{{ 50 + auto_offset_b }}"
+
+                  auto_min_clamped: >
+                    {{ [25, [50, auto_min_raw] | min] | max }}
+                  auto_max_clamped: >
+                    {{ [25, [80, auto_max_raw] | min] | max }}
+
+                  manual_offset_b: >
                     {{ states('input_number.oal_manual_offset_accent_spots_brightness') | float(0) }}
-                  {% elif repeat.item.id == 'recessed_ceiling' %}
+
+                  min_with_manual: "{{ auto_min_clamped + manual_offset_b }}"
+                  max_with_manual: "{{ auto_max_clamped + manual_offset_b }}"
+
+                  global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
+                  global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
+
+                  clamped_min_b: "{{ [1, [80, global_min_b] | min] | max }}"
+                  clamped_max_b: "{{ [1, [80, global_max_b] | min] | max }}"
+
+                  final_min_b: "{{ clamped_min_b }}"
+                  final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
+
+                  # Standard warmth (clamp to zone bounds)
+                  final_min_k: >
+                    {% set proposed = 2000 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {{ [2000, [6500, proposed] | min] | max }}
+                  final_max_k: >
+                    {% set proposed = 6500 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {% set clamped = [2000, [6500, proposed] | min] | max %}
+                    {{ [final_min_k | float, clamped] | max }}
+
+              - service: adaptive_lighting.change_switch_settings
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_accent_spots
+                data:
+                  min_brightness: "{{ final_min_b | round(0) }}"
+                  max_brightness: "{{ final_max_b | round(0) }}"
+                  min_color_temp: "{{ final_min_k | round(0) }}"
+                  max_color_temp: "{{ final_max_k | round(0) }}"
+                  transition: "{{ transition_speed }}"
+
+          # ========== RECESSED CEILING (Static warmth - 2700K) ==========
+          - sequence:
+              - variables:
+                  comfort_min_b: 1
+                  comfort_max_b: 23
+                  env_sensitivity: 0.6
+                  night_sensitivity: 0.3
+                  hard_min_b: 1
+                  hard_max_b: 30
+                  # Static warmth - no calculations needed
+                  min_k: 2700
+                  max_k: 2700
+
+                  # Minimal night dimming (already low bounds)
+                  night_with_sensitivity: >
+                    {{ comp_night_b_raw * night_strength * 0.3 }}
+
+                  auto_offset_b: >
+                    {{ base_config_b + (env_with_sunset_capped * 0.6) + night_with_sensitivity }}
+
+                  auto_min_raw: "{{ 1 + auto_offset_b }}"
+                  auto_max_raw: "{{ 23 + auto_offset_b }}"
+
+                  auto_min_clamped: >
+                    {{ [1, [23, auto_min_raw] | min] | max }}
+                  auto_max_clamped: >
+                    {{ [1, [30, auto_max_raw] | min] | max }}
+
+                  manual_offset_b: >
                     {{ states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0) }}
-                  {% elif repeat.item.id == 'column_lights' %}
+
+                  min_with_manual: "{{ auto_min_clamped + manual_offset_b }}"
+                  max_with_manual: "{{ auto_max_clamped + manual_offset_b }}"
+
+                  global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
+                  global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
+
+                  clamped_min_b: "{{ [1, [30, global_min_b] | min] | max }}"
+                  clamped_max_b: "{{ [1, [30, global_max_b] | min] | max }}"
+
+                  final_min_b: "{{ clamped_min_b }}"
+                  final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
+
+                  # Static warmth - bypasses all offsets
+                  final_min_k: 2700
+                  final_max_k: 2700
+
+              - service: adaptive_lighting.change_switch_settings
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_recessed_ceiling
+                data:
+                  min_brightness: "{{ final_min_b | round(0) }}"
+                  max_brightness: "{{ final_max_b | round(0) }}"
+                  min_color_temp: "{{ final_min_k | round(0) }}"
+                  max_color_temp: "{{ final_max_k | round(0) }}"
+                  transition: "{{ transition_speed }}"
+
+          # ========== COLUMN LIGHTS (Govee warmth - 2700-6500K hardware) ==========
+          - sequence:
+              - variables:
+                  comfort_min_b: 1
+                  comfort_max_b: 80
+                  env_sensitivity: 0.7
+                  night_sensitivity: 0.0
+                  hard_min_b: 1
+                  hard_max_b: 100
+                  min_k: 2700
+                  max_k: 2750
+
+                  # No night dimming for column lights (uses RGB sleep mode)
+                  night_with_sensitivity: 0
+                  night_warmth_with_sensitivity: 0
+
+                  auto_offset_b: >
+                    {{ base_config_b + (env_with_sunset_capped * 0.7) + night_with_sensitivity }}
+
+                  auto_min_raw: "{{ 1 + auto_offset_b }}"
+                  auto_max_raw: "{{ 80 + auto_offset_b }}"
+
+                  auto_min_clamped: >
+                    {{ [1, [80, auto_min_raw] | min] | max }}
+                  auto_max_clamped: >
+                    {{ [1, [100, auto_max_raw] | min] | max }}
+
+                  manual_offset_b: >
                     {{ states('input_number.oal_manual_offset_column_lights_brightness') | float(0) }}
-                  {% else %}
-                    0
-                  {% endif %}
 
-                manual_offset_b: "{{ per_zone_manual_helper }}"
+                  min_with_manual: "{{ auto_min_clamped + manual_offset_b }}"
+                  max_with_manual: "{{ auto_max_clamped + manual_offset_b }}"
 
-                min_with_manual: "{{ auto_min_clamped + manual_offset_b }}"
-                max_with_manual: "{{ auto_max_clamped + manual_offset_b }}"
+                  global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
+                  global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
 
-                global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
-                global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
+                  clamped_min_b: "{{ [1, [100, global_min_b] | min] | max }}"
+                  clamped_max_b: "{{ [1, [100, global_max_b] | min] | max }}"
 
-                clamped_min_b: "{{ [hard_min_b, [hard_max_b, global_min_b] | min] | max }}"
-                clamped_max_b: "{{ [hard_min_b, [hard_max_b, global_max_b] | min] | max }}"
+                  final_min_b: "{{ clamped_min_b }}"
+                  final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
 
-                final_min_b: "{{ clamped_min_b }}"
-                final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
+                  # Govee warmth (clamp to 2700-6500K hardware limits)
+                  final_min_k: >
+                    {% set proposed = 2700 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {{ [2700, [6500, proposed] | min] | max }}
+                  final_max_k: >
+                    {% set proposed = 2750 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {% set clamped = [2700, [6500, proposed] | min] | max %}
+                    {{ [final_min_k | float, clamped] | max }}
 
-                # Warmth behavior with per-zone hardware bounds
-                # Govee lights: 2700-6500K actual hardware (not reported 2000-9000K)
-                # Hue/other lights: Use zone-configured bounds (they report accurate ranges)
-                govee_zones: "{{ ['column_lights', 'bedroom_primary'] }}"
-
-                final_min_k: >
-                  {% if repeat.item.id == 'recessed_ceiling' %}
-                    {{ repeat.item.min_k }}
-                  {% else %}
-                    {% set proposed_min_k = repeat.item.min_k + base_warmth_offset + night_warmth_with_sensitivity %}
-                    {% if repeat.item.id in govee_zones %}
-                      {{ [2700, [6500, proposed_min_k] | min] | max }}
-                    {% else %}
-                      {{ [repeat.item.min_k, [repeat.item.max_k, proposed_min_k] | min] | max }}
-                    {% endif %}
-                  {% endif %}
-
-                final_max_k: >
-                  {% if repeat.item.id == 'recessed_ceiling' %}
-                    {{ repeat.item.max_k }}
-                  {% else %}
-                    {% set proposed_max_k = repeat.item.max_k + base_warmth_offset + night_warmth_with_sensitivity %}
-                    {% if repeat.item.id in govee_zones %}
-                      {% set clamped_k = [2700, [6500, proposed_max_k] | min] | max %}
-                    {% else %}
-                      {% set clamped_k = [repeat.item.min_k, [repeat.item.max_k, proposed_max_k] | min] | max %}
-                    {% endif %}
-                    {{ [final_min_k | float, clamped_k] | max }}
-                  {% endif %}
-
-            # SYNC: Manual Control Sandwich Pattern - Bounds Change Phase
-            # Manual lights protected by pre-protection phase above (~line 732)
-            - service: adaptive_lighting.change_switch_settings
-              target:
-                entity_id: "{{ repeat.item.entity_id }}"
-              data:
-                min_brightness: "{{ final_min_b | round(0) }}"
-                max_brightness: "{{ final_max_b | round(0) }}"
-                min_color_temp: "{{ final_min_k | round(0) }}"
-                max_color_temp: "{{ final_max_k | round(0) }}"
-                transition: "{{ transition_speed }}"
+              - service: adaptive_lighting.change_switch_settings
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_column_lights
+                data:
+                  min_brightness: "{{ final_min_b | round(0) }}"
+                  max_brightness: "{{ final_max_b | round(0) }}"
+                  min_color_temp: "{{ final_min_k | round(0) }}"
+                  max_color_temp: "{{ final_max_k | round(0) }}"
+                  transition: "{{ transition_speed }}"
 
       # =========================================================================
-      # Apply Phase - Conditional filtering based on trigger type
+      # Apply Phase - PARALLELIZED for instant response
       # =========================================================================
+      # All 6 zones apply simultaneously instead of sequentially.
+      # This reduces apply phase from ~6s (with adapt_delay) to ~1s.
+      #
       # For force-apply triggers (Zen32, manual adjustment, startup, sleep):
       #   Apply to ALL on lights - user explicitly requested change
       # For periodic triggers (time_pattern, watchdog stale, config override):
       #   Respect manual_control - don't overwrite wall switch adjustments
-      - repeat:
-          for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
-          sequence:
-            - variables:
-                switch_id: "{{ repeat.item }}"
-                all_lights: "{{ (state_attr(switch_id, 'configuration') or {}).get('lights', []) }}"
-                all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
-                manual_lights: "{{ state_attr(switch_id, 'manual_control') | default([]) }}"
-                # Force-apply: all on lights. Periodic: exclude manual_control lights
-                on_lights: >
-                  {% if is_force_apply %}
-                    {{ all_on_lights }}
-                  {% else %}
-                    {{ all_on_lights | reject('in', manual_lights) | list }}
-                  {% endif %}
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: "{{ on_lights | length > 0 }}"
-                  sequence:
-                    - service: adaptive_lighting.apply
-                      target:
-                        entity_id: "{{ switch_id }}"
-                      data:
-                        lights: "{{ on_lights }}"
-                        turn_on_lights: false
-                        transition: "{{ transition_speed }}"
+      - parallel:
+          # Each zone wrapped in sequence so variables are available to the if block
+          # Main Living
+          - sequence:
+              - variables:
+                  all_lights: "{{ (state_attr('switch.adaptive_lighting_main_living', 'configuration') or {}).get('lights', []) }}"
+                  all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
+                  manual_lights: "{{ state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) }}"
+                  on_lights: "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ on_lights | length > 0 }}"
+                then:
+                  - service: adaptive_lighting.apply
+                    target:
+                      entity_id: switch.adaptive_lighting_main_living
+                    data:
+                      lights: "{{ on_lights }}"
+                      turn_on_lights: false
+                      transition: "{{ 0 if is_force_apply else transition_speed }}"
+                    continue_on_error: true
+
+          # Kitchen Island
+          - sequence:
+              - variables:
+                  all_lights: "{{ (state_attr('switch.adaptive_lighting_kitchen_island', 'configuration') or {}).get('lights', []) }}"
+                  all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
+                  manual_lights: "{{ state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) }}"
+                  on_lights: "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ on_lights | length > 0 }}"
+                then:
+                  - service: adaptive_lighting.apply
+                    target:
+                      entity_id: switch.adaptive_lighting_kitchen_island
+                    data:
+                      lights: "{{ on_lights }}"
+                      turn_on_lights: false
+                      transition: "{{ 0 if is_force_apply else transition_speed }}"
+                    continue_on_error: true
+
+          # Bedroom Primary
+          - sequence:
+              - variables:
+                  all_lights: "{{ (state_attr('switch.adaptive_lighting_bedroom_primary', 'configuration') or {}).get('lights', []) }}"
+                  all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
+                  manual_lights: "{{ state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) }}"
+                  on_lights: "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ on_lights | length > 0 }}"
+                then:
+                  - service: adaptive_lighting.apply
+                    target:
+                      entity_id: switch.adaptive_lighting_bedroom_primary
+                    data:
+                      lights: "{{ on_lights }}"
+                      turn_on_lights: false
+                      transition: "{{ 0 if is_force_apply else transition_speed }}"
+                    continue_on_error: true
+
+          # Accent Spots
+          - sequence:
+              - variables:
+                  all_lights: "{{ (state_attr('switch.adaptive_lighting_accent_spots', 'configuration') or {}).get('lights', []) }}"
+                  all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
+                  manual_lights: "{{ state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) }}"
+                  on_lights: "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ on_lights | length > 0 }}"
+                then:
+                  - service: adaptive_lighting.apply
+                    target:
+                      entity_id: switch.adaptive_lighting_accent_spots
+                    data:
+                      lights: "{{ on_lights }}"
+                      turn_on_lights: false
+                      transition: "{{ 0 if is_force_apply else transition_speed }}"
+                    continue_on_error: true
+
+          # Recessed Ceiling
+          - sequence:
+              - variables:
+                  all_lights: "{{ (state_attr('switch.adaptive_lighting_recessed_ceiling', 'configuration') or {}).get('lights', []) }}"
+                  all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
+                  manual_lights: "{{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'manual_control') | default([]) }}"
+                  on_lights: "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ on_lights | length > 0 }}"
+                then:
+                  - service: adaptive_lighting.apply
+                    target:
+                      entity_id: switch.adaptive_lighting_recessed_ceiling
+                    data:
+                      lights: "{{ on_lights }}"
+                      turn_on_lights: false
+                      transition: "{{ 0 if is_force_apply else transition_speed }}"
+                    continue_on_error: true
+
+          # Column Lights
+          - sequence:
+              - variables:
+                  all_lights: "{{ (state_attr('switch.adaptive_lighting_column_lights', 'configuration') or {}).get('lights', []) }}"
+                  all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
+                  manual_lights: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) }}"
+                  on_lights: "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ on_lights | length > 0 }}"
+                then:
+                  - service: adaptive_lighting.apply
+                    target:
+                      entity_id: switch.adaptive_lighting_column_lights
+                    data:
+                      lights: "{{ on_lights }}"
+                      turn_on_lights: false
+                      transition: "{{ 0 if is_force_apply else transition_speed }}"
+                    continue_on_error: true
 
       - event: oal_engine_calculation_complete
         event_data:
@@ -1141,7 +1530,7 @@ automation:
                         entity_id: "{{ repeat.item }}"
                       data:
                         turn_on_lights: true
-                        transition: "{{ transition_speed }}"
+                        transition: "{{ 0 if is_force_apply else transition_speed }}"
               
               # 3. Clear handoff flag (no overrides in force-on)
               - service: input_boolean.turn_off
@@ -1216,7 +1605,7 @@ automation:
                               data:
                                 lights: "{{ lights_for_switch }}"
                                 turn_on_lights: false
-                                transition: "{{ transition_speed }}"
+                                transition: "{{ 0 if is_force_apply else transition_speed }}"
 
                   # Clear old handoff flag
                   - service: input_boolean.turn_off
@@ -1302,7 +1691,7 @@ automation:
                             entity_id: "{{ repeat.item[0] }}"
                           data:
                             brightness_pct: "{{ repeat.item[1] }}"
-                            transition: "{{ transition_speed }}"
+                            transition: "{{ 0 if is_force_apply else transition_speed }}"
                   
                   # 3C. Turn off specified lights
                   - if: "{{ target_profile.get('lights_off', []) | length > 0 }}"
@@ -1312,7 +1701,7 @@ automation:
                         target:
                           entity_id: "{{ target_profile.get('lights_off', []) }}"
                         data:
-                          transition: "{{ transition_speed }}"
+                          transition: "{{ 0 if is_force_apply else transition_speed }}"
                   
                   # 3D. Mark handoff as active
                   - service: input_boolean.turn_on
@@ -2787,33 +3176,51 @@ automation:
 # =============================================================================
 
 script:
+  # ---------------------------------------------------------------------------
+  # INSTANT APPLY - Fire watchdog and return immediately (no blocking)
+  # This is the "fast path" for button responsiveness
+  # ---------------------------------------------------------------------------
   oal_global_adjustment_start:
-    alias: "OAL Global Adjustment Start (Helper)"
-    description: "Applies offset changes immediately, then sets manual control for autoreset/UI."
+    alias: "OAL Global Adjustment Start (Instant)"
+    description: "Fires watchdog for immediate light update. Non-blocking for rapid button presses."
     icon: mdi:cog-transfer
-    mode: restart  # Allow rapid presses - new press cancels wait and starts fresh
-    variables:
-      last_engine_run: "{{ states('input_datetime.oal_last_engine_run') }}"
+    mode: queued  # Queue rapid presses - each fires its own watchdog event
+    max: 5
     sequence:
-      # Step 1: Force Core Engine to apply offset changes IMMEDIATELY
+      # Force Core Engine to apply offset changes IMMEDIATELY
       # This bypasses the 1s trigger delay and ensures lights respond instantly
-      # NOTE: No need to clear manual_control first - adaptive_lighting.apply
-      # uses force=True internally and ignores manual_control status
+      # NOTE: adaptive_lighting.apply uses force=True internally, ignores manual_control
       - event: oal_watchdog_trigger
         event_data:
           message: "Manual adjustment - forcing immediate apply"
           force: true
 
-      # Step 2: Wait for Core Engine to COMPLETE (not just start) before setting manual_control
-      # The oal_engine_calculation_complete event fires AFTER all zone applies complete (line 879)
+      # DEFERRED: Set manual control asynchronously after engine completes
+      # This runs in background and doesn't block button response
+      - service: script.turn_on
+        target:
+          entity_id: script.oal_deferred_manual_control_set
+
+  # ---------------------------------------------------------------------------
+  # DEFERRED MANUAL CONTROL - Runs asynchronously after engine completion
+  # Separated from instant path to avoid blocking button response
+  # ---------------------------------------------------------------------------
+  oal_deferred_manual_control_set:
+    alias: "OAL Deferred Manual Control Set"
+    description: "Sets manual control after engine completes. Runs async to avoid blocking."
+    icon: mdi:clock-check-outline
+    mode: restart  # Only latest apply matters - restart cancels stale waits
+    sequence:
+      # Wait for Core Engine to COMPLETE (not just start)
+      # The oal_engine_calculation_complete event fires AFTER all zone applies complete
       - wait_for_trigger:
           - platform: event
             event_type: oal_engine_calculation_complete
         timeout:
-          seconds: 5
+          seconds: 3  # Reduced from 5s - engine typically completes in <2s
         continue_on_timeout: true
 
-      # Step 3: Set manual control on each AL switch for its lights that are ON
+      # Set manual control on each AL switch for its lights that are ON
       # This enables autoreset tracking so lights return to adaptive after timeout
       - repeat:
           for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
@@ -2836,12 +3243,16 @@ script:
                     lights: "{{ on_lights }}"
                     manual_control: true
 
-      # Step 4: Switch config to Manual
-      - service: input_select.select_option
-        target:
-          entity_id: input_select.oal_active_configuration
-        data:
-          option: "Manual"
+      # Switch config to Manual (only if not already Manual)
+      - if:
+          - condition: template
+            value_template: "{{ states('input_select.oal_active_configuration') != 'Manual' }}"
+        then:
+          - service: input_select.select_option
+            target:
+              entity_id: input_select.oal_active_configuration
+            data:
+              option: "Manual"
 
   # Single shared manual brightness stepper (per-zone, B_base-aware)
   # Supports optional 'lights' param for per-room control
@@ -3219,20 +3630,15 @@ script:
       - service: input_boolean.turn_off
         target:
           entity_id: input_boolean.oal_movie_mode_active
-      # LAST: Wait for any Config Manager transition to complete, then apply AL directly
-      # This ensures lights are updated regardless of whether config actually changed
+      # LAST: Wait for any Config Manager transition to complete, then trigger Core Engine
+      # Core Engine recalculates proper brightness bounds and applies to all zones
       - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
         timeout: "00:00:10"
-      # Apply to each switch individually (AL apply doesn't support multiple targets)
-      - repeat:
-          for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
-          sequence:
-            - service: adaptive_lighting.apply
-              target:
-                entity_id: "{{ repeat.item }}"
-              data:
-                turn_on_lights: true
-                transition: 1
+      # Trigger Core Engine to recalculate and apply proper brightness bounds
+      - event: oal_watchdog_trigger
+        event_data:
+          force: true
+          source: "soft_reset"
 
   oal_reset_global:
     alias: "OAL v13 Reset Global (Nuclear)"

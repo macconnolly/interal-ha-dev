@@ -277,10 +277,10 @@ input_number:
 
   oal_control_transition_speed:
     name: "OAL Transition Speed (Sec)"
-    min: 1
+    min: 0.1
     max: 10
-    step: 1
-    initial: 2
+    step: 0.1
+    initial: 0.3
     icon: mdi:speedometer
 
   # Per-zone manual offsets (single source of truth for manual brightness)
@@ -417,7 +417,13 @@ input_datetime:
 adaptive_lighting:
   # SYNC: AL is SOURCE OF TRUTH - Core Engine zone_configs (~line 626) must match these values
   - name: "main_living"
-    lights: light.main_living_lights
+    lights:
+      - light.living_room_couch_lamp
+      - light.living_room_floor_lamp
+      - light.entryway_lamp
+      - light.living_room_credenza_light
+      - light.living_room_corner_accent
+      - light.office_desk_lamp
     interval: 15
     transition: 1
     initial_transition: 3
@@ -434,7 +440,9 @@ adaptive_lighting:
     sleep_color_temp: 1800
 
   - name: "kitchen_island"
-    lights: light.kitchen_island_lights
+    lights:
+      - light.kitchen_island_pendants
+      - light.kitchen_counter_cabinet_underlights
     interval: 15
     transition: 1
     initial_transition: 3
@@ -451,7 +459,9 @@ adaptive_lighting:
     sleep_color_temp: 2000
 
   - name: "bedroom_primary"
-    lights: light.bedroom_primary_lights
+    lights:
+      - light.master_bedroom_table_lamps
+      - light.master_bedroom_corner_accent_mqtt
     interval: 90
     transition: 1
     initial_transition: 3
@@ -470,7 +480,9 @@ adaptive_lighting:
     sleep_rgb_color: [255, 165, 0]
 
   - name: "accent_spots"
-    lights: light.accent_spots_lights
+    lights:
+      - light.dining_room_spot_lights
+      - light.living_room_spot_lights
     interval: 15
     transition: 1
     initial_transition: 3
@@ -487,7 +499,9 @@ adaptive_lighting:
     sleep_color_temp: 2000
 
   - name: "recessed_ceiling"
-    lights: light.recessed_ceiling_lights
+    lights:
+      - light.kitchen_main_lights
+      - light.living_room_hallway_lights
     interval: 15
     transition: 1
     initial_transition: 3
@@ -496,6 +510,8 @@ adaptive_lighting:
     adapt_delay: 1
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
+    brightness_mode: "tanh"               # S-curve for quick post-sunset dimming
+    brightness_mode_time_dark: 3600       # Reach near-minimum 60 min after sunset
     min_brightness: 1                     # SYNC: comfort_min_b
     max_brightness: 23                    # SYNC: comfort_max_b
     min_color_temp: 2700                  # SYNC: min_k
@@ -618,7 +634,7 @@ automation:
       base_warmth_offset: >
         {{ comp_manual_k + comp_config_k + comp_sunset_k + comp_env_k }}
 
-      transition_speed: "{{ states('input_number.oal_control_transition_speed') | int(2) }}"
+      transition_speed: "{{ states('input_number.oal_control_transition_speed') | float(0.3) }}"
 
       zone_configs:
         - entity_id: switch.adaptive_lighting_main_living
@@ -917,7 +933,7 @@ automation:
     
     variables:
       config: "{{ states('input_select.oal_active_configuration') }}"
-      transition_speed: "{{ states('input_number.oal_control_transition_speed') | int(2) }}"
+      transition_speed: "{{ states('input_number.oal_control_transition_speed') | float(0.3) }}"
       
       config_profiles:
         # Adaptive: True baseline - AL works normally, no interference
@@ -1829,7 +1845,7 @@ automation:
         entity_id: input_select.oal_isolated_override_mode
     variables:
       mode: "{{ states('input_select.oal_isolated_override_mode') }}"
-      transition_speed: "{{ states('input_number.oal_control_transition_speed') | int(2) }}"
+      transition_speed: "{{ states('input_number.oal_control_transition_speed') | float(0.3) }}"
     action:
       - condition: template
         value_template: >
@@ -2773,6 +2789,8 @@ script:
     alias: "OAL Global Adjustment Start (Helper)"
     description: "Applies offset changes immediately, then sets manual control for autoreset/UI."
     icon: mdi:cog-transfer
+    variables:
+      last_engine_run: "{{ states('input_datetime.oal_last_engine_run') }}"
     sequence:
       # Step 1: Force Core Engine to apply offset changes IMMEDIATELY
       # This bypasses the 1s trigger delay and ensures lights respond instantly
@@ -2780,9 +2798,12 @@ script:
         event_data:
           message: "Manual adjustment - forcing immediate apply"
 
-      # Step 2: Brief pause to let Core Engine complete before setting manual_control
+      # Step 2: Wait for Core Engine to complete before setting manual_control
       # Otherwise manual_control would cause Core Engine to skip apply
-      - delay: "00:00:02"
+      - wait_template: >
+          {{ states('input_datetime.oal_last_engine_run') != last_engine_run }}
+        timeout: "00:00:03"
+        continue_on_timeout: true
 
       # Step 3: Set manual control on each AL switch for its lights that are ON
       # Must iterate per-switch because set_manual_control doesn't support

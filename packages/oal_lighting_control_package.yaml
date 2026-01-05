@@ -636,6 +636,14 @@ automation:
 
       transition_speed: "{{ states('input_number.oal_control_transition_speed') | float(0.3) }}"
 
+      # Determine if this is a force-apply trigger (user-initiated adjustment)
+      # vs periodic/environmental update (should respect manual_control)
+      # Force-apply triggers include: Zen32 brightness, manual slider, startup, sleep mode
+      # Periodic triggers include: time_pattern, watchdog stale check, config override
+      is_force_apply: >
+        {{ trigger.platform == 'event' and
+           (trigger.event.data.force | default(false)) == true }}
+
       zone_configs:
         - entity_id: switch.adaptive_lighting_main_living
           id: main_living
@@ -851,18 +859,27 @@ automation:
                 transition: "{{ transition_speed }}"
 
       # =========================================================================
-      # Apply Phase - Apply to ALL on lights
+      # Apply Phase - Conditional filtering based on trigger type
       # =========================================================================
-      # NOTE: adaptive_lighting.apply uses force=True internally, which bypasses
-      # manual_control checks. No need to filter by manual_control - just apply
-      # to all lights that are currently on.
+      # For force-apply triggers (Zen32, manual adjustment, startup, sleep):
+      #   Apply to ALL on lights - user explicitly requested change
+      # For periodic triggers (time_pattern, watchdog stale, config override):
+      #   Respect manual_control - don't overwrite wall switch adjustments
       - repeat:
           for_each: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
           sequence:
             - variables:
                 switch_id: "{{ repeat.item }}"
                 all_lights: "{{ (state_attr(switch_id, 'configuration') or {}).get('lights', []) }}"
-                on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
+                all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
+                manual_lights: "{{ state_attr(switch_id, 'manual_control') | default([]) }}"
+                # Force-apply: all on lights. Periodic: exclude manual_control lights
+                on_lights: >
+                  {% if is_force_apply %}
+                    {{ all_on_lights }}
+                  {% else %}
+                    {{ all_on_lights | reject('in', manual_lights) | list }}
+                  {% endif %}
             - choose:
                 - conditions:
                     - condition: template
@@ -1195,7 +1212,8 @@ automation:
                     target:
                       entity_id: input_boolean.oal_config_power_handoff_active
 
-          # GLOBAL MANUAL SHORTCUT: Skip offset logic, just unlock and trigger
+          # GLOBAL MANUAL SHORTCUT: Just unlock transition - engine already ran via oal_global_adjustment_start
+          # Removed redundant watchdog trigger (was causing double engine runs)
           - choose:
               - conditions:
                   - condition: template
@@ -1204,9 +1222,6 @@ automation:
                   - service: input_boolean.turn_off
                     target:
                       entity_id: input_boolean.oal_config_transition_active
-                  - event: oal_watchdog_trigger
-                    event_data:
-                      message: "Global Manual mode - triggering immediate update (preserving manual_control)"
 
           # SLEEP MODE SHORTCUT: Unlock and trigger Core Engine (it handles sleep)
           - choose:
@@ -1220,6 +1235,7 @@ automation:
                   - event: oal_watchdog_trigger
                     event_data:
                       message: "Sleep Mode activated - Core Engine will apply sleep settings"
+                      force: true
 
           # PHASE 2: Apply new config offset settings (skip for Global Manual and Sleep Mode)
           - condition: template
@@ -2155,10 +2171,11 @@ automation:
           entity_id: input_boolean.oal_system_paused
       - service: script.oal_reset_global
       - delay: "00:00:02"
-      # Trigger initial calculations
+      # Trigger initial calculations with force=true to ensure all lights updated
       - event: oal_watchdog_trigger
         event_data:
           message: "System startup - forcing initial engine run"
+          force: true
 
   # ---------------------------------------------------------------------------
   # 4.13 Watchdog (ensure engine runs at least every 30 minutes)
@@ -2773,11 +2790,15 @@ script:
       - event: oal_watchdog_trigger
         event_data:
           message: "Manual adjustment - forcing immediate apply"
+          force: true
 
-      # Step 2: Wait for Core Engine to complete before setting manual_control
-      - wait_template: >
-          {{ states('input_datetime.oal_last_engine_run') != last_engine_run }}
-        timeout: "00:00:03"
+      # Step 2: Wait for Core Engine to COMPLETE (not just start) before setting manual_control
+      # The oal_engine_calculation_complete event fires AFTER all zone applies complete (line 879)
+      - wait_for_trigger:
+          - platform: event
+            event_type: oal_engine_calculation_complete
+        timeout:
+          seconds: 5
         continue_on_timeout: true
 
       # Step 3: Set manual control on each AL switch for its lights that are ON
@@ -3070,6 +3091,7 @@ script:
     alias: "OAL v13 Global Brighter (CARB, unified pipeline)"
     description: "Increases brightness across all zones using context-aware stepped adjustments."
     icon: mdi:brightness-7
+    mode: restart  # Allow rapid presses - new press cancels current apply wait
     sequence:
       - service: script.oal_manual_brightness_step
         data:
@@ -3080,6 +3102,7 @@ script:
     alias: "OAL v13 Global Dimmer (CARB, unified pipeline)"
     description: "Decreases brightness across all zones using context-aware stepped adjustments."
     icon: mdi:brightness-5
+    mode: restart  # Allow rapid presses - new press cancels current apply wait
     sequence:
       - service: script.oal_manual_brightness_step
         data:

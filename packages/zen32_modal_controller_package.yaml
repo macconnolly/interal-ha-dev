@@ -1233,17 +1233,13 @@ automation:
               - delay:
                   milliseconds: 300
               - service: script.oal_global_manual_brighter
-              - service: automation.trigger
-                target:
-                  entity_id: automation.oal_core_adjustment_engine_v13
+              # Removed redundant automation.trigger - script fires watchdog
 
           # 1x (LIGHT, ON): Brighter
           - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_light and lights_on }}"
             sequence:
               - service: script.oal_global_manual_brighter
-              - service: automation.trigger
-                target:
-                  entity_id: automation.oal_core_adjustment_engine_v13
+              # Removed redundant automation.trigger - script fires watchdog
 
           # 1x (MUSIC, not playing): Start + volume up
           - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_music and not sonos_playing }}"
@@ -1350,17 +1346,13 @@ automation:
               - delay:
                   milliseconds: 300
               - service: script.oal_global_manual_dimmer
-              - service: automation.trigger
-                target:
-                  entity_id: automation.oal_core_adjustment_engine_v13
+              # Removed redundant automation.trigger - script fires watchdog
 
           # 1x (LIGHT, ON): Dimmer
           - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_light and lights_on }}"
             sequence:
               - service: script.oal_global_manual_dimmer
-              - service: automation.trigger
-                target:
-                  entity_id: automation.oal_core_adjustment_engine_v13
+              # Removed redundant automation.trigger - script fires watchdog
 
           # 1x (MUSIC): Volume down (works even when paused)
           - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_music }}"

@@ -72,14 +72,14 @@
 #   Button 2 (UP):    1x=Brightness+,   Hold=Cooler, 2x=Full bright
 #   Button 3 (VOL):   1x=Switch+Start,  Hold=Switch+Group toggle, 2x=Switch+Play/Pause, 3x=Favorites
 #   Button 4 (DOWN):  1x=Brightness-,   Hold=Warmer, 2x=Min bright
-#   Button 5 (BIG):   1x=Toggle lights, Hold=Soft reset, 2x=Movie, 3x=Sleep
+#   Button 5 (BIG):   1x=Toggle lights, 2x=Config cycle, 3x=Force sleep, Hold=Reset
 #
 #   MUSIC MODE (Blue LEDs):
 #   Button 1 (LIGHT): 1x=Switch to LIGHT, Hold=Switch, 2x=Switch+Full, 3x=Warm/cool toggle
 #   Button 2 (UP):    1x=Volume+,         Hold=-,      2x=Next track
 #   Button 3 (VOL):   1x=Toggle play/pause, Hold=Group toggle, 2x=Play/Pause, 3x=Favorites
 #   Button 4 (DOWN):  1x=Volume-,         Hold=-,      2x=Prev track
-#   Button 5 (BIG):   1x=Toggle lights,   Hold=Soft reset, 2x=Movie, 3x=Sleep
+#   Button 5 (BIG):   1x=Toggle lights, 2x=Config cycle, 3x=Force sleep, Hold=Reset
 #
 # =============================================================================
 
@@ -692,6 +692,9 @@ script:
       has_manual_control: "{{ has_zonal_overrides or has_brightness_offsets }}"
       # Sleep mode active
       is_sleep_mode: "{{ is_state('input_boolean.oal_force_sleep', 'on') }}"
+      # Non-adaptive config active (Full Bright, Dim Ambient, Warm Ambient, TV Mode)
+      is_non_adaptive_config: >
+        {{ states('input_select.oal_active_configuration') not in ['Adaptive', 'Manual', 'Sleep'] }}
     sequence:
       - choose:
           # Priority 0: Sleep mode = DIM BLUE
@@ -733,6 +736,26 @@ script:
                   entity_id: select.scene_controller_led_indicator_brightness_relay
                 data:
                   option: "Bright (100%)"
+
+          # Green: Non-Adaptive Configuration (Full Bright, Dim Ambient, Warm Ambient, TV Mode)
+          - conditions: "{{ is_non_adaptive_config }}"
+            sequence:
+              - service: select.select_option
+                target:
+                  entity_id: select.scene_controller_led_indicator_color_relay
+                data:
+                  option: "Green"
+              - service: zwave_js.set_config_parameter
+                target:
+                  device_id: "{{ device_id('event.scene_controller_scene_001') }}"
+                data:
+                  parameter: 1
+                  value: 3
+              - service: select.select_option
+                target:
+                  entity_id: select.scene_controller_led_indicator_brightness_relay
+                data:
+                  option: "Medium (60%)"
 
           # White: Lights ON (adaptive mode, no manual adjustments)
           - conditions:
@@ -1539,19 +1562,32 @@ automation:
             sequence:
               - service: script.oal_reset_soft
 
-          # 2x: Toggle movie mode
+          # 2x: Cycle through OAL config presets (skip Manual and Sleep)
           - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed2x' }}"
             sequence:
-              - service: input_boolean.toggle
+              - variables:
+                  allowed_configs:
+                    - "Adaptive"
+                    - "Full Bright"
+                    - "Dim Ambient"
+                    - "Warm Ambient"
+                    - "TV Mode"
+                  current: "{{ states('input_select.oal_active_configuration') }}"
+                  current_idx: "{{ allowed_configs.index(current) if current in allowed_configs else -1 }}"
+                  next_idx: "{{ (current_idx + 1) % (allowed_configs | length) }}"
+                  next_config: "{{ allowed_configs[next_idx] }}"
+              - service: input_select.select_option
                 target:
-                  entity_id: input_boolean.oal_movie_mode_active
+                  entity_id: input_select.oal_active_configuration
+                data:
+                  option: "{{ next_config }}"
 
-          # 3x: Toggle sleep mode
+          # 3x: Toggle force sleep mode (immediately activates/deactivates sleep)
           - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed3x' }}"
             sequence:
               - service: input_boolean.toggle
                 target:
-                  entity_id: input_boolean.oal_disable_sleep_mode
+                  entity_id: input_boolean.oal_force_sleep
 
 
   # ---------------------------------------------------------------------------

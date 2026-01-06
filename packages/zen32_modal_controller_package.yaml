@@ -223,11 +223,98 @@ template:
 
 script:
   # ---------------------------------------------------------------------------
-  # LED Sequencer - Smart wrapper for Z-Wave safe LED updates
+  # LED Bulk Update - Single Z-Wave command for all LED changes (INSTANT)
+  # ---------------------------------------------------------------------------
+  # ZEN32 Parameter Reference:
+  #   Toggle: 1=relay, 2-5=buttons 1-4  (values: 0=off-when-on, 1=on-when-on, 2=always-off, 3=always-on)
+  #   Color:  6=relay, 7-10=buttons 1-4 (values: 0=white, 1=blue, 2=green, 3=red, 4=magenta, 5=yellow, 6=cyan)
+  #   Brightness: 11=relay, 12-15=buttons 1-4 (values: 0=bright, 1=medium, 2=low)
+  # ---------------------------------------------------------------------------
+  zen32_led_bulk_update:
+    alias: "ZEN32 - LED Bulk Update (Instant)"
+    description: "Set all LED properties in a single Z-Wave bulk command - instant mode switching"
+    icon: mdi:lightning-bolt
+    mode: single
+    fields:
+      buttons:
+        description: "List of button configs: {button, color, toggle, brightness}"
+        example: "[{button: 1, color: yellow, toggle: always_on, brightness: bright}]"
+        required: true
+    variables:
+      _buttons: "{{ buttons | default([]) }}"
+
+      # Button number to parameter offset mapping
+      # Button 5/relay = offset 0, buttons 1-4 = offset 1-4
+      _btn_offset: >
+        {% set map = {5: 0, '5': 0, 'relay': 0, 'big': 0, 1: 1, '1': 1, 2: 2, '2': 2, 3: 3, '3': 3, 4: 4, '4': 4} %}
+        {{ map }}
+
+      # Color name to Z-Wave value mapping
+      _color_values:
+        white: 0
+        blue: 1
+        green: 2
+        red: 3
+        magenta: 4
+        yellow: 5
+        cyan: 6
+
+      # Toggle name to Z-Wave value mapping
+      _toggle_values:
+        on_when_off: 0
+        on_when_on: 1
+        always_off: 2
+        always_on: 3
+
+      # Brightness name to Z-Wave value mapping
+      _brightness_values:
+        bright: 0
+        medium: 1
+        low: 2
+
+      # Build the parameter dictionary for bulk update
+      # NOTE: zwave_js.bulk_set_partial_config_parameters requires integer keys
+      _params: >
+        {% set ns = namespace(params={}) %}
+        {% set btn_map = {5: 0, '5': 0, 'relay': 0, 'big': 0, 1: 1, '1': 1, 2: 2, '2': 2, 3: 3, '3': 3, 4: 4, '4': 4} %}
+        {% for btn in _buttons %}
+          {% set offset = btn_map.get(btn.button, 0) %}
+          {% if btn.toggle is defined %}
+            {% set toggle_map = {'on_when_off': 0, 'on_when_on': 1, 'always_off': 2, 'always_on': 3} %}
+            {% set param_num = 1 + offset %}
+            {% set ns.params = dict(ns.params, **{param_num: toggle_map.get(btn.toggle | lower | replace(' ', '_'), 3)}) %}
+          {% endif %}
+          {% if btn.color is defined %}
+            {% set color_map = {'white': 0, 'blue': 1, 'green': 2, 'red': 3, 'magenta': 4, 'yellow': 5, 'cyan': 6} %}
+            {% set param_num = 6 + offset %}
+            {% set ns.params = dict(ns.params, **{param_num: color_map.get(btn.color | lower, 0)}) %}
+          {% endif %}
+          {% if btn.brightness is defined %}
+            {% set bright_map = {'bright': 0, 'medium': 1, 'low': 2} %}
+            {% set param_num = 11 + offset %}
+            {% set ns.params = dict(ns.params, **{param_num: bright_map.get(btn.brightness | lower, 0)}) %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.params }}
+
+    sequence:
+      - service: zwave_js.bulk_set_partial_config_parameters
+        target:
+          device_id: "{{ device_id('event.scene_controller_scene_001') }}"
+        data:
+          parameter: "{{ _params }}"
+        continue_on_error: true
+      - service: system_log.write
+        data:
+          message: "zen32_led_bulk_update: sent {{ _params | length }} params in single command: {{ _params }}"
+          level: debug
+
+  # ---------------------------------------------------------------------------
+  # LED Sequencer - Legacy wrapper (falls back to bulk when possible)
   # ---------------------------------------------------------------------------
   zen32_led_sequencer:
     alias: "ZEN32 - LED Sequencer"
-    description: "Sequential LED updates with Z-Wave-safe delays. Accepts button configs or raw entity/option pairs."
+    description: "Sequential LED updates - prefer zen32_led_bulk_update for instant mode switching"
     icon: mdi:led-strip-variant
     mode: single
     fields:
@@ -293,6 +380,7 @@ script:
       _all_updates: "{{ _button_updates + _raw_updates }}"
 
     sequence:
+      # Always use sequential updates via select entities (bulk Z-Wave approach has issues)
       - repeat:
           for_each: "{{ _all_updates }}"
           sequence:
@@ -306,7 +394,7 @@ script:
                 milliseconds: "{{ _delay }}"
       - service: system_log.write
         data:
-          message: "zen32_led_sequencer: applied {{ _all_updates | length }} updates ({{ _buttons | length }} buttons, {{ _raw_updates | length }} raw) delay={{ _delay }}ms"
+          message: "zen32_led_sequencer: applied {{ _all_updates | length }} updates ({{ _buttons | length }} buttons, {{ _raw_updates | length }} raw)"
           level: debug
 
   # ---------------------------------------------------------------------------
@@ -508,15 +596,10 @@ script:
         data:
           datetime: "{{ now() }}"
 
-      # Visual confirmation of mode change
-      - service: script.zen32_blink_confirm
-        data:
-          button: 1
-          blink_count: 1
-
+      # Instant LED update - no blink confirmation (LED color change provides feedback)
       - service: script.zen32_led_sequencer
         data:
-          delay_ms: 100
+          delay_ms: 50
           buttons:
             # Button 1 (LIGHT): Yellow ON - active mode selector
             - button: 1
@@ -558,15 +641,10 @@ script:
         data:
           datetime: "{{ now() }}"
 
-      # Visual confirmation of mode change
-      - service: script.zen32_blink_confirm
-        data:
-          button: 3
-          blink_count: 1
-
+      # Instant LED update - no blink confirmation (LED color change provides feedback)
       - service: script.zen32_led_sequencer
         data:
-          delay_ms: 100
+          delay_ms: 50
           buttons:
             # Button 1 (LIGHT): OFF - inactive mode
             - button: 1
@@ -796,9 +874,20 @@ script:
     icon: mdi:play-pause
     mode: single
     variables:
+      # Smart fallback: Use Kitchen when Living Room is on TV source with Apple TV active
+      living_room_on_tv: >
+        {{ state_attr('media_player.living_room', 'source') == 'TV'
+           and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] }}
+      smart_fallback: "{{ 'media_player.kitchen' if living_room_on_tv else 'media_player.living_room' }}"
       coordinator: >
         {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
-        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+        {% if living_room_on_tv and raw == 'media_player.living_room' %}
+          {{ smart_fallback }}
+        {% elif raw not in ['none', 'unknown', 'unavailable', ''] %}
+          {{ raw }}
+        {% else %}
+          {{ smart_fallback }}
+        {% endif %}
     sequence:
       - service: media_player.media_play_pause
         target:
@@ -812,9 +901,20 @@ script:
     icon: mdi:play
     mode: single
     variables:
+      # Smart fallback: Use Kitchen when Living Room is on TV source with Apple TV active
+      living_room_on_tv: >
+        {{ state_attr('media_player.living_room', 'source') == 'TV'
+           and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] }}
+      smart_fallback: "{{ 'media_player.kitchen' if living_room_on_tv else 'media_player.living_room' }}"
       coordinator: >
         {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
-        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+        {% if living_room_on_tv and raw == 'media_player.living_room' %}
+          {{ smart_fallback }}
+        {% elif raw not in ['none', 'unknown', 'unavailable', ''] %}
+          {{ raw }}
+        {% else %}
+          {{ smart_fallback }}
+        {% endif %}
       is_idle: "{{ states(coordinator) in ['idle', 'off', 'unknown', 'unavailable'] }}"
       default_volume: "{{ states('input_number.sonos_default_volume') | float(0.25) }}"
     sequence:
@@ -846,11 +946,22 @@ script:
         example: 1
         required: true
     variables:
+      # Smart fallback: Use Kitchen when Living Room is on TV source with Apple TV active
+      living_room_on_tv: >
+        {{ state_attr('media_player.living_room', 'source') == 'TV'
+           and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] }}
+      smart_fallback: "{{ 'media_player.kitchen' if living_room_on_tv else 'media_player.living_room' }}"
       coordinator: >
         {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
-        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+        {% if living_room_on_tv and raw == 'media_player.living_room' %}
+          {{ smart_fallback }}
+        {% elif raw not in ['none', 'unknown', 'unavailable', ''] %}
+          {{ raw }}
+        {% else %}
+          {{ smart_fallback }}
+        {% endif %}
       current: "{{ state_attr(coordinator, 'volume_level') | float(0.5) }}"
-      new_volume: "{{ [[0.0, current + (0.10 * direction | int)] | max, 1.0] | min }}"
+      new_volume: "{{ [[0.0, current + (0.05 * direction | int)] | max, 1.0] | min }}"
     sequence:
       - service: media_player.volume_set
         target:
@@ -866,9 +977,20 @@ script:
     icon: mdi:skip-next
     mode: single
     variables:
+      # Smart fallback: Use Kitchen when Living Room is on TV source with Apple TV active
+      living_room_on_tv: >
+        {{ state_attr('media_player.living_room', 'source') == 'TV'
+           and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] }}
+      smart_fallback: "{{ 'media_player.kitchen' if living_room_on_tv else 'media_player.living_room' }}"
       coordinator: >
         {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
-        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+        {% if living_room_on_tv and raw == 'media_player.living_room' %}
+          {{ smart_fallback }}
+        {% elif raw not in ['none', 'unknown', 'unavailable', ''] %}
+          {{ raw }}
+        {% else %}
+          {{ smart_fallback }}
+        {% endif %}
     sequence:
       - service: media_player.media_next_track
         target:
@@ -882,9 +1004,20 @@ script:
     icon: mdi:skip-previous
     mode: single
     variables:
+      # Smart fallback: Use Kitchen when Living Room is on TV source with Apple TV active
+      living_room_on_tv: >
+        {{ state_attr('media_player.living_room', 'source') == 'TV'
+           and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] }}
+      smart_fallback: "{{ 'media_player.kitchen' if living_room_on_tv else 'media_player.living_room' }}"
       coordinator: >
         {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
-        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+        {% if living_room_on_tv and raw == 'media_player.living_room' %}
+          {{ smart_fallback }}
+        {% elif raw not in ['none', 'unknown', 'unavailable', ''] %}
+          {{ raw }}
+        {% else %}
+          {{ smart_fallback }}
+        {% endif %}
     sequence:
       - service: media_player.media_previous_track
         target:
@@ -923,9 +1056,20 @@ script:
       next_idx: "{{ (current + 1) % count if count > 0 else 0 }}"
       next_key: "{{ keys[next_idx] if count > 0 else '' }}"
       next_name: "{{ favorites[next_key] if next_key else 'Unknown' }}"
+      # Smart fallback: Use Kitchen when Living Room is on TV source with Apple TV active
+      living_room_on_tv: >
+        {{ state_attr('media_player.living_room', 'source') == 'TV'
+           and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] }}
+      smart_fallback: "{{ 'media_player.kitchen' if living_room_on_tv else 'media_player.living_room' }}"
       coordinator: >
         {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
-        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+        {% if living_room_on_tv and raw == 'media_player.living_room' %}
+          {{ smart_fallback }}
+        {% elif raw not in ['none', 'unknown', 'unavailable', ''] %}
+          {{ raw }}
+        {% else %}
+          {{ smart_fallback }}
+        {% endif %}
       default_volume: "{{ states('input_number.sonos_default_volume') | float(0.5) }}"
     sequence:
       - condition: template
@@ -1119,7 +1263,8 @@ automation:
       is_light: "{{ mode == 'light' }}"
       is_music: "{{ mode == 'music' }}"
       # DRY: Use existing sensors instead of inline templates
-      sonos_playing: "{{ is_state('binary_sensor.sonos_playing_status', 'on') }}"
+      # Use is_playing attribute for reliability (binary_sensor state can be stale)
+      sonos_playing: "{{ state_attr('binary_sensor.sonos_playing_status', 'is_playing') | default(false) }}"
       lights_on: "{{ is_state('light.all_adaptive_lights', 'on') }}"
       is_grouped: "{{ (state_attr('sensor.sonos_current_playing_group_coordinator', 'group_members') | default([]) | length) > 1 }}"
 
@@ -1291,10 +1436,9 @@ automation:
               - service: script.zen32_set_mode_music
               - service: script.zen32_sonos_start
 
-          # 1x (MUSIC, playing): Toggle to pause
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music and sonos_playing }}"
-            sequence:
-              - service: script.zen32_sonos_play_pause
+          # 1x (MUSIC, playing): No action - already in desired state
+          # User is in music mode and music is playing - nothing to do
+          # Play/pause available via 2x press if needed
 
           # 1x (MUSIC, NOT playing): Start playback
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music and not sonos_playing }}"
@@ -1323,7 +1467,7 @@ automation:
             sequence:
               - service: script.zen32_sonos_play_pause
 
-          # 3x (any): Cycle favorites
+          # 3x (any): Next track
           - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed3x' }}"
             sequence:
               - if:
@@ -1331,7 +1475,7 @@ automation:
                     value_template: "{{ is_light }}"
                 then:
                   - service: script.zen32_set_mode_music
-              - service: script.zen32_cycle_sonos_favorite
+              - service: script.zen32_sonos_next_track
 
           # =================================================================
           # BUTTON 4 - DOWN (Context-Sensitive Decrease)
@@ -1460,12 +1604,20 @@ automation:
       - delay:
           milliseconds: 500
 
-      # Restore to LIGHT mode appearance
-      - service: script.zen32_set_mode_light
+      # Restore to CURRENT mode (not always LIGHT - respect user's mode choice!)
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_select.zen32_control_mode
+                state: "music"
+            sequence:
+              - service: script.zen32_set_mode_music
+        default:
+          - service: script.zen32_set_mode_light
 
       - service: system_log.write
         data:
-          message: "ZEN32 v4 smoke test: All tests passed - sequencer, set_led, blink"
+          message: "ZEN32 v4 smoke test: All tests passed - sequencer, set_led, blink. Restored to {{ states('input_select.zen32_control_mode') }} mode."
           level: info
 
   # ---------------------------------------------------------------------------

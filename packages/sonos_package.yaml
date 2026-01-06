@@ -855,6 +855,47 @@ template:
           {% set coord = this.state %}
           {{ state_attr(coord, 'group_members') | default([], true) if coord and coord != 'none' else [] }}
 
+    # ------------------------------------------------------------------
+    # Sonos Smart Coordinator (DRY - used by ZEN32 and other controllers)
+    # Wraps sonos_current_playing_group_coordinator with TV mode fallback:
+    # When Living Room is in TV mode (SPDIF input), it cannot accept music
+    # commands, so we route to Kitchen instead.
+    # ------------------------------------------------------------------
+    - name: "Sonos Smart Coordinator"
+      unique_id: sonos_smart_coordinator
+      icon: mdi:speaker-multiple
+      state: >
+        {% set living_room_on_tv = state_attr('media_player.living_room', 'source') == 'TV'
+           and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] %}
+        {% set smart_fallback = 'media_player.kitchen' if living_room_on_tv else 'media_player.living_room' %}
+        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+        {% if living_room_on_tv and raw == 'media_player.living_room' %}
+          {{ smart_fallback }}
+        {% elif raw not in ['none', 'unknown', 'unavailable', ''] %}
+          {{ raw }}
+        {% else %}
+          {{ smart_fallback }}
+        {% endif %}
+      attributes:
+        is_tv_mode: >
+          {{ state_attr('media_player.living_room', 'source') == 'TV'
+             and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] }}
+        raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
+        using_fallback: >
+          {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+          {{ raw in ['none', 'unknown', 'unavailable', ''] }}
+        fallback_reason: >
+          {% set living_room_on_tv = state_attr('media_player.living_room', 'source') == 'TV'
+             and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] %}
+          {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+          {% if living_room_on_tv and raw == 'media_player.living_room' %}
+            tv_mode_redirect
+          {% elif raw in ['none', 'unknown', 'unavailable', ''] %}
+            no_playing_group
+          {% else %}
+            none
+          {% endif %}
+
     - name: "Sonos Living Room Group Label"
       unique_id: sonos_living_room_group_label
       icon: mdi:account-multiple-outline

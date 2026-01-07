@@ -1410,6 +1410,9 @@ automation:
       is_force_on: "{{ target_profile.get('is_force_on', false) }}"
       is_sleep: "{{ target_profile.get('is_sleep', false) }}"
 
+      # Track transitions to/from Adaptive for snapshot/restore
+      was_adaptive: "{{ trigger.from_state.state == 'Adaptive' if trigger.from_state is not none else false }}"
+
       # FIX 2: Calculate expanded switches once for efficiency
       all_switches_expanded: >
         {{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}
@@ -1459,6 +1462,17 @@ automation:
               entity_id: input_boolean.oal_force_sleep
 
       # =========================================================================
+      # SNAPSHOT: Capture light state when leaving Adaptive mode
+      # =========================================================================
+      - if: "{{ was_adaptive and not is_baseline }}"
+        then:
+          - service: scene.create
+            data:
+              scene_id: oal_before_config_mode
+              snapshot_entities:
+                - light.all_adaptive_lights
+
+      # =========================================================================
       # ROUTE: Choose execution path based on target config
       # =========================================================================
       - choose:
@@ -1469,6 +1483,14 @@ automation:
               - condition: template
                 value_template: "{{ is_baseline }}"
             sequence:
+              # 0. Restore previous light state (snapshot from before config mode)
+              - service: scene.turn_on
+                target:
+                  entity_id: scene.oal_before_config_mode
+                data:
+                  transition: 0
+                continue_on_error: true  # Scene may not exist if starting fresh
+
               # 1. Release ALL manual controls system-wide
               - repeat:
                   for_each: "{{ all_switches_expanded }}"

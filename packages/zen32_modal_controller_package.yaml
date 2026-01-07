@@ -794,22 +794,13 @@ script:
   # ---------------------------------------------------------------------------
   zen32_update_big_button_led:
     alias: "ZEN32 - Update Big Button LED"
-    description: "Set big button LED: Red=manual/adjusted, White=on, Off=off"
+    description: "Set big button LED: Red=wall switch override, White=on, Off=off"
     icon: mdi:gesture-tap-button
     mode: single
     variables:
-      # Check if any lights are manually overridden
-      has_zonal_overrides: "{{ state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0) > 0 }}"
-      # Check if user has adjusted brightness offsets (any non-zero)
-      has_brightness_offsets: >
-        {{ states('input_number.oal_manual_offset_main_living_brightness') | float(0) != 0
-           or states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) != 0
-           or states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0) != 0
-           or states('input_number.oal_manual_offset_accent_spots_brightness') | float(0) != 0
-           or states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0) != 0
-           or states('input_number.oal_manual_offset_column_lights_brightness') | float(0) != 0 }}
-      # Combined: Any manual intervention
-      has_manual_control: "{{ has_zonal_overrides or has_brightness_offsets }}"
+      # Manual control = physical light touches only (wall switches, app adjustments)
+      # ZEN32 brightness adjustments are "assisted adaptive" - not manual override
+      has_manual_control: "{{ state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0) > 0 }}"
       # Sleep mode active
       is_sleep_mode: "{{ is_state('input_boolean.oal_force_sleep', 'on') }}"
       # Non-adaptive config active (Full Bright, Dim Ambient, Warm Ambient, TV Mode)
@@ -1263,25 +1254,16 @@ automation:
   # ---------------------------------------------------------------------------
   - id: zen32_big_button_state_sync_v4
     alias: "ZEN32 - Big Button LED State Sync"
-    description: "Sync big button LED: Red=manual, White=on, Off=off"
+    description: "Sync big button LED: Red=wall switch override, White=on, Off=off"
     mode: restart
     trigger:
       # Light state changes
       - platform: state
         entity_id: light.all_adaptive_lights
-      # Zonal override changes (manual control from touching lights)
+      # Zonal override changes (physical light touches - wall switch, app)
       - platform: state
         entity_id: sensor.oal_system_status
         attribute: active_zonal_overrides
-      # User brightness offset changes (from ZEN32 buttons)
-      - platform: state
-        entity_id:
-          - input_number.oal_manual_offset_main_living_brightness
-          - input_number.oal_manual_offset_kitchen_island_brightness
-          - input_number.oal_manual_offset_bedroom_primary_brightness
-          - input_number.oal_manual_offset_accent_spots_brightness
-          - input_number.oal_manual_offset_recessed_ceiling_brightness
-          - input_number.oal_manual_offset_column_lights_brightness
       # Sleep mode changes
       - platform: state
         entity_id: input_boolean.oal_force_sleep

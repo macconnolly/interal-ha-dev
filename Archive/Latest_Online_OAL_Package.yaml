@@ -494,8 +494,7 @@
     # ---------------------------------------------------------------------------
     - id: oal_core_adjustment_engine_v13
       alias: "OAL v13 - Core Adjustment Engine (Master)"
-      mode: queued
-      max: 3
+      mode: parallel
       trigger:
         - platform: state
           entity_id:

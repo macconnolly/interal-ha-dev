@@ -1,0 +1,138 @@
+type: vertical-stack
+cards:
+  - type: custom:bubble-card
+    card_type: pop-up
+    hash: "#edit-alarm"
+    name: Edit Alarm
+    icon: mdi:alarm-check
+    show_header: true
+    bg_color: rgba(255, 255, 255, 0.95)
+    bg_opacity: 95
+    bg_blur: 20
+    close_on_click: false
+    back_open: true
+
+  # Time Display with inline recurrence
+  - type: custom:mushroom-entity-card
+    entity: input_datetime.sonos_alarm_edit_time
+    name: Alarm Time
+    tap_action:
+      action: more-info
+    card_mod:
+      style: |
+        ha-card {
+          background: linear-gradient(145deg, rgba(255, 224, 178, 0.25) 0%, rgba(255, 183, 77, 0.18) 100%) !important;
+          border: 1px solid rgba(255, 152, 0, 0.35) !important;
+          border-radius: 14px !important;
+          box-shadow: 0 4px 12px rgba(255, 152, 0, 0.12) !important;
+          --primary-text-color: rgba(0,0,0,0.9);
+          --secondary-text-color: rgba(255, 152, 0, 0.9);
+        }
+        mushroom-shape-icon {
+          --shape-color: rgba(255, 152, 0, 0.18) !important;
+          --icon-color: rgba(255, 152, 0, 0.95) !important;
+        }
+        .secondary::after {
+          content: ' · {{ states("sensor.sonos_edit_recurrence_display") }}';
+        }
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Volume
+    icon: mdi:volume-high
+    styles: |
+      .bubble-separator { margin: 8px 0 4px 0 !important; }
+      .bubble-name {
+        color: rgba(0,0,0,0.6) !important;
+        font-weight: 600;
+        font-size: 0.9em;
+      }
+      .bubble-icon { color: rgba(0,0,0,0.5) !important; }
+      .bubble-line { background: rgba(0,0,0,0.08) !important; }
+
+  - type: custom:mushroom-number-card
+    entity: input_number.sonos_alarm_edit_volume
+    name: Alarm Volume
+    display_mode: slider
+    card_mod:
+      style: |
+        ha-card {
+          background: linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04)) !important;
+          border: 1px solid rgba(0,0,0,0.06) !important;
+          border-radius: 14px !important;
+          --primary-text-color: rgba(0,0,0,0.8);
+          --secondary-text-color: rgba(0,0,0,0.5);
+        }
+        mushroom-shape-icon {
+          --shape-color: rgba(255, 152, 0, 0.15) !important;
+          --icon-color: rgba(255, 152, 0, 0.9) !important;
+        }
+        mushroom-slider {
+          --slider-color: rgb(255, 152, 0) !important;
+          --slider-bg-color: rgba(0,0,0,0.08) !important;
+        }
+
+  - type: custom:bubble-card
+    card_type: separator
+    name: Options
+    icon: mdi:cog
+    styles: |
+      .bubble-separator { margin: 8px 0 4px 0 !important; }
+      .bubble-name {
+        color: rgba(0,0,0,0.6) !important;
+        font-weight: 600;
+        font-size: 0.9em;
+      }
+      .bubble-icon { color: rgba(0,0,0,0.5) !important; }
+      .bubble-line { background: rgba(0,0,0,0.08) !important; }
+
+  - type: custom:mushroom-entity-card
+    entity: input_boolean.sonos_alarm_edit_linked_zones
+    name: Include Linked Zones
+    icon: mdi:speaker-multiple
+    tap_action:
+      action: toggle
+    card_mod:
+      style: |
+        ha-card {
+          background: linear-gradient(145deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04)) !important;
+          border: 1px solid rgba(0,0,0,0.06) !important;
+          border-radius: 14px !important;
+          --primary-text-color: rgba(0,0,0,0.8);
+          --secondary-text-color: rgba(0,0,0,0.5);
+        }
+        mushroom-shape-icon {
+          --shape-color: {{ 'rgba(48, 209, 88, 0.18)' if is_state('input_boolean.sonos_alarm_edit_linked_zones', 'on') else 'rgba(0,0,0,0.06)' }} !important;
+          --icon-color: {{ 'rgba(48, 209, 88, 0.95)' if is_state('input_boolean.sonos_alarm_edit_linked_zones', 'on') else 'rgba(0,0,0,0.4)' }} !important;
+        }
+        mushroom-state-info .primary {
+          color: {{ 'rgba(0,0,0,0.9)' if is_state('input_boolean.sonos_alarm_edit_linked_zones', 'on') else 'rgba(0,0,0,0.5)' }} !important;
+        }
+
+  - type: custom:bubble-card
+    card_type: separator
+    styles: |
+      .bubble-separator { margin: 12px 0 8px 0 !important; }
+      .bubble-line { background: rgba(0,0,0,0.08) !important; }
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: button
+        button_type: name
+        name: Cancel
+        icon: mdi:cancel
+        tap_action:
+          action: navigate
+          navigation_path: "#sonos-alarms"
+        styles: ""
+      - type: custom:bubble-card
+        card_type: button
+        button_type: name
+        name: Save
+        icon: mdi:check
+        tap_action:
+          action: perform-action
+          perform_action: script.sonos_save_alarm_changes
+          data: {}
+        styles: ""

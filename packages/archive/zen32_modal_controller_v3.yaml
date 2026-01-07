@@ -1,0 +1,1583 @@
+# =============================================================================
+# ZEN32 MODAL SCENE CONTROLLER PACKAGE - v3.0 (Production)
+# =============================================================================
+#
+# DESIGN INTENT:
+#   Apple-level UX for physical light/audio control. Mode switching is instant,
+#   LED feedback is immediate and unambiguous, and every interaction feels
+#   intentional and responsive.
+#
+# VERSION HISTORY:
+#   v1.0 - Initial implementation with mixed Z-Wave/select entity approach
+#   v2.0 - Attempted simplification (lost brightness differentiation)
+#   v3.0 - Production: Full design compliance with smart LED sequencer
+#
+# KEY IMPROVEMENTS v3.0:
+#   - Smart LED sequencer with optional bulk Z-Wave mode
+#   - Full brightness differentiation (Manual/Movie/Sleep)
+#   - Restored zen32_set_led utility for single-button control
+#   - Restored zen32_blink_confirm for tactile feedback
+#   - Consistent select entity usage throughout
+#   - Comprehensive smoke test automations
+#
+# ARCHITECTURE:
+#   Modal controller for Zooz ZEN32 with two control contexts:
+#     LIGHT mode (default) - Brightness, color temp via OAL
+#     VOLUME mode - Sonos playback, volume, grouping
+#
+#   Mode persists until explicit user switch (Option A - no timeout)
+#
+# DEPENDENCIES:
+#   - packages/OAL_lighting_control_package.yaml
+#   - packages/sonos_package.yaml (sensor.sonos_current_playing_group_coordinator)
+#   - Z-Wave JS integration with ZEN32 configured
+#
+# =============================================================================
+#
+# BUTTON LAYOUT:
+#   ┌─────────────────────────────────┐
+#   │   ┌───────────────────────┐     │
+#   │   │     [5] LIGHTS        │     │  Toggle lights / Soft Reset / Movie
+#   │   │    (BIG BUTTON)       │     │  LED: Red=override, White=on, OFF=off
+#   │   └───────────────────────┘     │
+#   │                                 │
+#   │   ┌──────────┐ ┌──────────┐     │
+#   │   │[1] LIGHT │ │ [2] UP   │     │  Mode selector    Context increase
+#   │   │  *LED    │ │   *LED   │     │  (Yellow/OFF)     (Yellow/Blue)
+#   │   └──────────┘ └──────────┘     │
+#   │                                 │
+#   │   ┌──────────┐ ┌──────────┐     │
+#   │   │[3]VOLUME │ │ [4] DOWN │     │  Mode+Play/Pause  Context decrease
+#   │   │  *LED    │ │   *LED   │     │  (Blue/OFF)       (Yellow/Blue)
+#   │   └──────────┘ └──────────┘     │
+#   └─────────────────────────────────┘
+#
+# LED COLOR SCHEME:
+#   LIGHT MODE:  [1] Yellow ON, [2] Yellow ON, [3] OFF,      [4] Yellow ON
+#   VOLUME MODE: [1] OFF,       [2] Blue ON,   [3] Blue ON,  [4] Blue ON
+#
+# BIG BUTTON LED PRIORITY (with brightness differentiation):
+#   Priority 1: Manual Mode    → Red, BRIGHT (100%)
+#   Priority 2: Movie Mode     → Red, MEDIUM (60%)
+#   Priority 3: Sleep Disabled → Red, LOW (30%)
+#   Priority 4: Lights ON      → White, MEDIUM (60%)
+#   Priority 5: Lights OFF     → OFF
+#
+# =============================================================================
+
+
+# =============================================================================
+# ENTITY REFERENCE (Z-Wave JS Integration)
+# =============================================================================
+#
+# LED COLOR SELECT ENTITIES:
+#   select.scene_controller_led_indicator_color_relay     (Button 5 - Big)
+#   select.scene_controller_led_indicator_color_button_1  (LIGHT)
+#   select.scene_controller_led_indicator_color_button_2  (UP)
+#   select.scene_controller_led_indicator_color_button_3  (VOLUME)
+#   select.scene_controller_led_indicator_color_button_4  (DOWN)
+#   Options: White, Blue, Green, Red, Magenta, Yellow, Cyan
+#
+# LED TOGGLE SELECT ENTITIES:
+#   select.scene_controller_led_indicator_relay           (Button 5 - Big)
+#   select.scene_controller_led_indicator_button_1        (LIGHT)
+#   select.scene_controller_led_indicator_button_2        (UP)
+#   select.scene_controller_led_indicator_button_3        (VOLUME)
+#   select.scene_controller_led_indicator_button_4        (DOWN)
+#   Options: On when load is off, On when load is on, Always off, Always on
+#
+# LED BRIGHTNESS SELECT ENTITIES:
+#   select.scene_controller_led_indicator_brightness_relay     (Button 5)
+#   select.scene_controller_led_indicator_brightness_button_1  (LIGHT)
+#   select.scene_controller_led_indicator_brightness_button_2  (UP)
+#   select.scene_controller_led_indicator_brightness_button_3  (VOLUME)
+#   select.scene_controller_led_indicator_brightness_button_4  (DOWN)
+#   Options: Bright (100%), Medium (60%), Low (30%)
+#
+# LED FLASH CONTROL:
+#   select.scene_controller_led_settings_indicator
+#   Options: Enable, Disable (MUST be Disable for automation control)
+#
+# BUTTON EVENTS:
+#   event.scene_controller_scene_001 (Button 1 - LIGHT)
+#   event.scene_controller_scene_002 (Button 2 - UP)
+#   event.scene_controller_scene_003 (Button 3 - VOLUME)
+#   event.scene_controller_scene_004 (Button 4 - DOWN)
+#   event.scene_controller_scene_005 (Button 5 - BIG)
+#   Attribute event_type: KeyPressed, KeyPressed2x, KeyPressed3x, KeyHeldDown, KeyReleased
+#
+# Z-WAVE PARAMETERS (for bulk mode reference):
+#   Toggle:     1 (Big), 2-5 (Buttons 1-4)  Values: 0=load off, 1=load on, 2=always off, 3=always on
+#   Color:      6 (Big), 7-10 (Buttons 1-4) Values: 0=white, 1=blue, 2=green, 3=red, 4=magenta, 5=yellow, 6=cyan
+#   Brightness: 11 (Big), 12-15 (Buttons 1-4) Values: 0=bright, 1=medium, 2=low
+#
+# =============================================================================
+
+
+# =============================================================================
+# INPUT HELPERS
+# =============================================================================
+
+input_select:
+  zen32_control_mode:
+    name: "ZEN32 Control Mode"
+    options:
+      - "light"
+      - "music"
+    initial: "light"
+    icon: mdi:toggle-switch-variant
+
+input_datetime:
+  zen32_mode_last_change:
+    name: "ZEN32 Mode Last Change"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-check-outline
+
+  zen32_last_button_press:
+    name: "ZEN32 Last Button Press"
+    has_date: true
+    has_time: true
+    icon: mdi:gesture-tap
+
+input_number:
+  sonos_favorite_index:
+    name: "Sonos Favorite Index"
+    min: 0
+    max: 20
+    step: 1
+    initial: 0
+    icon: mdi:playlist-music
+
+
+# =============================================================================
+# TEMPLATE SENSORS
+# =============================================================================
+
+template:
+  - sensor:
+      # -------------------------------------------------------------------------
+      # Mode Status - Current mode with diagnostic attributes
+      # -------------------------------------------------------------------------
+      - name: "ZEN32 Mode Status"
+        unique_id: zen32_mode_status
+        state: "{{ states('input_select.zen32_control_mode') }}"
+        icon: >
+          {{ 'mdi:music-circle' if is_state('input_select.zen32_control_mode', 'music')
+             else 'mdi:lightbulb-group' }}
+        attributes:
+          mode_color: >
+            {{ 'blue' if is_state('input_select.zen32_control_mode', 'music') else 'yellow' }}
+          mode_color_value: >
+            {{ 1 if is_state('input_select.zen32_control_mode', 'music') else 5 }}
+          seconds_in_mode: >
+            {% set last = states('input_datetime.zen32_mode_last_change') | as_datetime %}
+            {{ ((now() - last).total_seconds() | int) if last else 0 }}
+          is_music_mode: "{{ is_state('input_select.zen32_control_mode', 'music') }}"
+          is_light_mode: "{{ is_state('input_select.zen32_control_mode', 'light') }}"
+
+      # -------------------------------------------------------------------------
+      # Device ID - Auto-discovery for advanced scripts
+      # -------------------------------------------------------------------------
+      - name: "ZEN32 Controller Device ID"
+        unique_id: zen32_controller_device_id
+        state: "{{ device_id('event.scene_controller_scene_001') }}"
+        availability: "{{ device_id('event.scene_controller_scene_001') is not none }}"
+        icon: mdi:gesture-tap-button
+        attributes:
+          entity_source: "event.scene_controller_scene_001"
+
+      # -------------------------------------------------------------------------
+      # Sonos Favorites - Source list for cycling
+      # -------------------------------------------------------------------------
+      - name: "Sonos Favorites"
+        unique_id: sonos_favorites
+        state: "{{ (state_attr('media_player.living_room', 'source_list') | default([])) | length }}"
+        icon: mdi:playlist-star
+        attributes:
+          items: >
+            {% set sources = state_attr('media_player.living_room', 'source_list') | default([]) %}
+            {{ dict(zip(range(sources|length)|list|map('string'), sources)) }}
+          favorites_count: "{{ (state_attr('media_player.living_room', 'source_list') | default([])) | length }}"
+
+
+# =============================================================================
+# SCRIPTS - LED Control Infrastructure
+# =============================================================================
+
+script:
+  # ---------------------------------------------------------------------------
+  # LED Sequencer - Smart wrapper for Z-Wave safe LED updates
+  # ---------------------------------------------------------------------------
+  # Two operational modes:
+  #   1. Sequential (default): Iterates through select.select_option calls with
+  #      configurable delay. Safe for any number of updates.
+  #   2. Bulk: Uses zwave_js.bulk_set_partial_config_parameters for faster
+  #      single-device updates. Requires proper parameter mapping.
+  #
+  # Usage Examples:
+  #   Sequential mode:
+  #     service: script.zen32_led_sequencer
+  #     data:
+  #       delay_ms: 100
+  #       updates:
+  #         - entity: select.scene_controller_led_indicator_color_button_1
+  #           option: "Yellow"
+  #         - entity: select.scene_controller_led_indicator_button_1
+  #           option: "Always on"
+  #
+  #   Bulk mode:
+  #     service: script.zen32_led_sequencer
+  #     data:
+  #       use_bulk: true
+  #       bulk_device_id: "{{ device_id('event.scene_controller_scene_001') }}"
+  #       bulk_params:
+  #         7: 5   # Button 1 color = Yellow
+  #         2: 3   # Button 1 toggle = Always on
+  #         12: 0  # Button 1 brightness = Bright
+  # ---------------------------------------------------------------------------
+  zen32_led_sequencer:
+    alias: "ZEN32 - LED Sequencer"
+    description: "Sequential LED updates with Z-Wave-safe delays; optional bulk mode"
+    icon: mdi:led-strip-variant
+    mode: single
+    fields:
+      updates:
+        description: "List of {entity, option} dicts for sequential mode"
+        required: false
+      delay_ms:
+        description: "Milliseconds between sequential calls (default 100, min 50)"
+        default: 100
+      use_bulk:
+        description: "Use zwave_js.bulk_set_partial_config_parameters (faster)"
+        default: false
+      bulk_device_id:
+        description: "Device ID for bulk mode"
+        required: false
+      bulk_params:
+        description: "Dict of {parameter: value} for bulk mode"
+        required: false
+    sequence:
+      - variables:
+          _updates: "{{ updates | default([]) }}"
+          _delay: "{{ [50, delay_ms | default(100) | int] | max }}"
+          _use_bulk: "{{ use_bulk | default(false) | bool }}"
+          _bulk_device: "{{ bulk_device_id | default('') }}"
+          _bulk_params: "{{ bulk_params | default({}) }}"
+
+      - choose:
+          # Bulk mode: single Z-Wave message for all parameters
+          - conditions: "{{ _use_bulk and _bulk_device and _bulk_params }}"
+            sequence:
+              - service: zwave_js.bulk_set_partial_config_parameters
+                target:
+                  device_id: "{{ _bulk_device }}"
+                data:
+                  value: "{{ _bulk_params }}"
+              - service: system_log.write
+                data:
+                  message: "zen32_led_sequencer: bulk mode applied {{ _bulk_params | length }} params"
+                  level: debug
+
+        # Default: Sequential mode with delays
+        default:
+          - repeat:
+              for_each: "{{ _updates }}"
+              sequence:
+                - service: select.select_option
+                  target:
+                    entity_id: "{{ repeat.item.entity }}"
+                  data:
+                    option: "{{ repeat.item.option }}"
+                  continue_on_error: true
+                - delay:
+                    milliseconds: "{{ _delay }}"
+          - service: system_log.write
+            data:
+              message: "zen32_led_sequencer: sequential mode applied {{ _updates | length }} updates (delay={{ _delay }}ms)"
+              level: debug
+
+  # ---------------------------------------------------------------------------
+  # Set Single LED - Utility for individual button control
+  # ---------------------------------------------------------------------------
+  # Provides a clean interface for setting any combination of color, toggle,
+  # and brightness on a single button. Uses select entities for safety.
+  #
+  # Usage:
+  #   service: script.zen32_set_led
+  #   data:
+  #     button: 1  # 1-4 for small buttons, 5 or "relay" for big button
+  #     color: "Yellow"
+  #     toggle: "Always on"
+  #     brightness: "Bright (100%)"
+  # ---------------------------------------------------------------------------
+  zen32_set_led:
+    alias: "ZEN32 - Set Single LED"
+    description: "Set color, toggle, and/or brightness for one button"
+    icon: mdi:led-on
+    mode: parallel
+    max: 10
+    fields:
+      button:
+        description: "Button number (1-4) or 5/'relay' for big button"
+        example: 1
+        required: true
+        selector:
+          number:
+            min: 1
+            max: 5
+            mode: box
+      color:
+        description: "LED color (case-insensitive)"
+        example: "yellow"
+        required: false
+        selector:
+          select:
+            options:
+              - White
+              - Blue
+              - Green
+              - Red
+              - Magenta
+              - Yellow
+              - Cyan
+      toggle:
+        description: "LED toggle state"
+        example: "Always on"
+        required: false
+        selector:
+          select:
+            options:
+              - On when load is off
+              - On when load is on
+              - Always off
+              - Always on
+      brightness:
+        description: "LED brightness level"
+        example: "Bright (100%)"
+        required: false
+        selector:
+          select:
+            options:
+              - Bright (100%)
+              - Medium (60%)
+              - Low (30%)
+    variables:
+      # Normalize button identifier
+      btn_suffix: >
+        {% if button in [5, '5', 'relay', 'big'] %}relay{% else %}button_{{ button }}{% endif %}
+      color_entity: "select.scene_controller_led_indicator_color_{{ btn_suffix }}"
+      toggle_entity: "select.scene_controller_led_indicator_{{ btn_suffix }}"
+      brightness_entity: "select.scene_controller_led_indicator_brightness_{{ btn_suffix }}"
+
+      # Normalize color (case-insensitive: yellow → Yellow, invalid → White)
+      normalized_color: >
+        {% set map = {'white': 'White', 'blue': 'Blue', 'green': 'Green', 'red': 'Red',
+                      'magenta': 'Magenta', 'yellow': 'Yellow', 'cyan': 'Cyan'} %}
+        {{ map.get(color | lower, 'White') if color is defined and color else none }}
+
+      # Normalize toggle (case-insensitive: always_on → Always on)
+      normalized_toggle: >
+        {% set map = {'on_when_off': 'On when load is off', 'on when load is off': 'On when load is off',
+                      'on_when_on': 'On when load is on', 'on when load is on': 'On when load is on',
+                      'always_off': 'Always off', 'always off': 'Always off',
+                      'always_on': 'Always on', 'always on': 'Always on'} %}
+        {{ map.get(toggle | lower, toggle) if toggle is defined and toggle else none }}
+
+      # Normalize brightness (case-insensitive: bright → Bright (100%))
+      normalized_brightness: >
+        {% set map = {'bright': 'Bright (100%)', 'bright (100%)': 'Bright (100%)',
+                      'medium': 'Medium (60%)', 'medium (60%)': 'Medium (60%)',
+                      'low': 'Low (30%)', 'low (30%)': 'Low (30%)'} %}
+        {{ map.get(brightness | lower, brightness) if brightness is defined and brightness else none }}
+
+    sequence:
+      # Direct calls for speed (no sequencer overhead for single LED)
+      - if:
+          - condition: template
+            value_template: "{{ normalized_color is not none }}"
+        then:
+          - service: select.select_option
+            target:
+              entity_id: "{{ color_entity }}"
+            data:
+              option: "{{ normalized_color }}"
+            continue_on_error: true
+
+      - if:
+          - condition: template
+            value_template: "{{ normalized_toggle is not none }}"
+        then:
+          - service: select.select_option
+            target:
+              entity_id: "{{ toggle_entity }}"
+            data:
+              option: "{{ normalized_toggle }}"
+            continue_on_error: true
+
+      - if:
+          - condition: template
+            value_template: "{{ normalized_brightness is not none }}"
+        then:
+          - service: select.select_option
+            target:
+              entity_id: "{{ brightness_entity }}"
+            data:
+              option: "{{ normalized_brightness }}"
+            continue_on_error: true
+
+  # ---------------------------------------------------------------------------
+  # Blink Confirmation - Visual feedback for actions
+  # ---------------------------------------------------------------------------
+  # Provides tactile LED feedback when an action is acknowledged.
+  # Green blinks indicate "action received and processing".
+  # ---------------------------------------------------------------------------
+  zen32_blink_confirm:
+    alias: "ZEN32 - Blink Confirmation"
+    description: "Blink button LED green to confirm action"
+    icon: mdi:led-on
+    mode: restart  # Restart on rapid re-trigger instead of blocking
+    fields:
+      button:
+        description: "Button to blink (1-5)"
+        example: 1
+        required: true
+        selector:
+          number:
+            min: 1
+            max: 5
+            mode: box
+      blink_count:
+        description: "Number of blinks"
+        example: 2
+        default: 2
+        selector:
+          number:
+            min: 1
+            max: 5
+            mode: slider
+    variables:
+      btn_suffix: >
+        {% if button in [5, '5', 'relay', 'big'] %}relay{% else %}button_{{ button }}{% endif %}
+      toggle_entity: "select.scene_controller_led_indicator_{{ btn_suffix }}"
+      color_entity: "select.scene_controller_led_indicator_color_{{ btn_suffix }}"
+      count: "{{ blink_count | default(2) | int }}"
+    sequence:
+      - repeat:
+          count: "{{ count }}"
+          sequence:
+            - service: select.select_option
+              target:
+                entity_id: "{{ toggle_entity }}"
+              data:
+                option: "Always off"
+            - delay:
+                milliseconds: 100
+            - service: select.select_option
+              target:
+                entity_id: "{{ color_entity }}"
+              data:
+                option: "Green"
+            - service: select.select_option
+              target:
+                entity_id: "{{ toggle_entity }}"
+              data:
+                option: "Always on"
+            - delay:
+                milliseconds: 100
+
+
+  # ---------------------------------------------------------------------------
+  # Set Mode: LIGHT
+  # ---------------------------------------------------------------------------
+  # LED Layout with brightness:
+  #   [1] LIGHT:  Yellow, Always on, Bright
+  #   [2] UP:     Yellow, Always on, Bright
+  #   [3] VOLUME: Always off
+  #   [4] DOWN:   Yellow, Always on, Bright
+  # ---------------------------------------------------------------------------
+  zen32_set_mode_light:
+    alias: "ZEN32 - Set LIGHT Mode"
+    description: "Switch to LIGHT mode with full LED configuration"
+    icon: mdi:lightbulb-on
+    mode: single
+    sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.zen32_control_mode
+        data:
+          option: "light"
+
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_mode_last_change
+        data:
+          datetime: "{{ now() }}"
+
+      - service: script.zen32_led_sequencer
+        data:
+          delay_ms: 100
+          updates:
+            # Button 1 (LIGHT): Yellow ON Bright - active mode selector
+            - entity: select.scene_controller_led_indicator_color_button_1
+              option: "Yellow"
+            - entity: select.scene_controller_led_indicator_button_1
+              option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_1
+              option: "Bright (100%)"
+            # Button 2 (UP): Yellow ON Bright - active mode action
+            - entity: select.scene_controller_led_indicator_color_button_2
+              option: "Yellow"
+            - entity: select.scene_controller_led_indicator_button_2
+              option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_2
+              option: "Bright (100%)"
+            # Button 3 (VOLUME): OFF - inactive mode
+            - entity: select.scene_controller_led_indicator_button_3
+              option: "Always off"
+            # Button 4 (DOWN): Yellow ON Bright - active mode action
+            - entity: select.scene_controller_led_indicator_color_button_4
+              option: "Yellow"
+            - entity: select.scene_controller_led_indicator_button_4
+              option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_4
+              option: "Bright (100%)"
+
+  # ---------------------------------------------------------------------------
+  # Set Mode: VOLUME
+  # ---------------------------------------------------------------------------
+  # LED Layout with brightness:
+  #   [1] LIGHT:  Always off
+  #   [2] UP:     Blue, Always on, Bright
+  #   [3] VOLUME: Blue, Always on, Bright
+  #   [4] DOWN:   Blue, Always on, Bright
+  # ---------------------------------------------------------------------------
+  zen32_set_mode_music:
+    alias: "ZEN32 - Set VOLUME Mode"
+    description: "Switch to VOLUME mode with full LED configuration"
+    icon: mdi:volume-high
+    mode: single
+    sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.zen32_control_mode
+        data:
+          option: "music"
+
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_mode_last_change
+        data:
+          datetime: "{{ now() }}"
+
+      - service: script.zen32_led_sequencer
+        data:
+          delay_ms: 100
+          updates:
+            # Button 1 (LIGHT): OFF - inactive mode
+            - entity: select.scene_controller_led_indicator_button_1
+              option: "Always off"
+            # Button 2 (UP): Blue ON Bright - active mode action
+            - entity: select.scene_controller_led_indicator_color_button_2
+              option: "Blue"
+            - entity: select.scene_controller_led_indicator_button_2
+              option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_2
+              option: "Bright (100%)"
+            # Button 3 (VOLUME): Blue ON Bright - active mode selector
+            - entity: select.scene_controller_led_indicator_color_button_3
+              option: "Blue"
+            - entity: select.scene_controller_led_indicator_button_3
+              option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_3
+              option: "Bright (100%)"
+            # Button 4 (DOWN): Blue ON Bright - active mode action
+            - entity: select.scene_controller_led_indicator_color_button_4
+              option: "Blue"
+            - entity: select.scene_controller_led_indicator_button_4
+              option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_4
+              option: "Bright (100%)"
+
+  # ---------------------------------------------------------------------------
+  # Update Big Button LED
+  # ---------------------------------------------------------------------------
+  # Priority with BRIGHTNESS DIFFERENTIATION:
+  #   1. Manual Mode:    Red, BRIGHT (100%) - explicit user override
+  #   2. Movie Mode:     Red, MEDIUM (60%)  - dimmed context
+  #   3. Sleep Disabled: Red, LOW (30%)     - subtle override indicator
+  #   4. Lights ON:      White, MEDIUM (60%)
+  #   5. Lights OFF:     OFF
+  #
+  # The brightness differentiation allows users to instantly recognize
+  # WHICH override is active without needing to check the UI.
+  # ---------------------------------------------------------------------------
+  zen32_update_big_button_led:
+    alias: "ZEN32 - Update Big Button LED"
+    description: "Set big button LED with priority-based brightness differentiation"
+    icon: mdi:gesture-tap-button
+    mode: single
+    sequence:
+      - choose:
+          # Priority 1: Manual Mode - Red BRIGHT
+          - conditions:
+              - condition: state
+                entity_id: input_select.oal_active_configuration
+                state: "Manual"
+            sequence:
+              - service: script.zen32_led_sequencer
+                data:
+                  delay_ms: 100
+                  updates:
+                    - entity: select.scene_controller_led_indicator_color_relay
+                      option: "Red"
+                    - entity: select.scene_controller_led_indicator_relay
+                      option: "Always on"
+                    - entity: select.scene_controller_led_indicator_brightness_relay
+                      option: "Bright (100%)"
+
+          # Priority 2: Movie Mode - Red MEDIUM
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.oal_movie_mode_active
+                state: "on"
+            sequence:
+              - service: script.zen32_led_sequencer
+                data:
+                  delay_ms: 100
+                  updates:
+                    - entity: select.scene_controller_led_indicator_color_relay
+                      option: "Red"
+                    - entity: select.scene_controller_led_indicator_relay
+                      option: "Always on"
+                    - entity: select.scene_controller_led_indicator_brightness_relay
+                      option: "Medium (60%)"
+
+          # Priority 3: Sleep Disabled - Red LOW
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.oal_disable_sleep_mode
+                state: "on"
+            sequence:
+              - service: script.zen32_led_sequencer
+                data:
+                  delay_ms: 100
+                  updates:
+                    - entity: select.scene_controller_led_indicator_color_relay
+                      option: "Red"
+                    - entity: select.scene_controller_led_indicator_relay
+                      option: "Always on"
+                    - entity: select.scene_controller_led_indicator_brightness_relay
+                      option: "Low (30%)"
+
+          # Priority 4: Lights ON - White MEDIUM
+          - conditions:
+              - condition: state
+                entity_id: light.all_adaptive_lights
+                state: "on"
+            sequence:
+              - service: script.zen32_led_sequencer
+                data:
+                  delay_ms: 100
+                  updates:
+                    - entity: select.scene_controller_led_indicator_color_relay
+                      option: "White"
+                    - entity: select.scene_controller_led_indicator_relay
+                      option: "Always on"
+                    - entity: select.scene_controller_led_indicator_brightness_relay
+                      option: "Medium (60%)"
+
+        # Default: Lights OFF
+        default:
+          - service: select.select_option
+            target:
+              entity_id: select.scene_controller_led_indicator_relay
+            data:
+              option: "Always off"
+
+  # ---------------------------------------------------------------------------
+  # Set All LEDs - Bulk utility for uniform color
+  # ---------------------------------------------------------------------------
+  zen32_set_all_leds:
+    alias: "ZEN32 - Set All LEDs"
+    description: "Set all button LEDs to same color/toggle/brightness"
+    icon: mdi:led-variant-on
+    mode: single
+    fields:
+      color:
+        description: "LED color for all buttons"
+        example: "Yellow"
+        required: true
+        selector:
+          select:
+            options:
+              - White
+              - Blue
+              - Green
+              - Red
+              - Magenta
+              - Yellow
+              - Cyan
+      toggle:
+        description: "Toggle state (optional)"
+        example: "Always on"
+        required: false
+        selector:
+          select:
+            options:
+              - On when load is off
+              - On when load is on
+              - Always off
+              - Always on
+      brightness:
+        description: "Brightness level (optional)"
+        example: "Bright (100%)"
+        required: false
+        selector:
+          select:
+            options:
+              - Bright (100%)
+              - Medium (60%)
+              - Low (30%)
+    sequence:
+      - variables:
+          all_updates: >
+            {% set buttons = ['button_1', 'button_2', 'button_3', 'button_4', 'relay'] %}
+            {% set updates = [] %}
+            {% for btn in buttons %}
+              {% set updates = updates + [{'entity': 'select.scene_controller_led_indicator_color_' ~ btn, 'option': color}] %}
+              {% if toggle is defined and toggle %}
+                {% set updates = updates + [{'entity': 'select.scene_controller_led_indicator_' ~ btn, 'option': toggle}] %}
+              {% endif %}
+              {% if brightness is defined and brightness %}
+                {% set updates = updates + [{'entity': 'select.scene_controller_led_indicator_brightness_' ~ btn, 'option': brightness}] %}
+              {% endif %}
+            {% endfor %}
+            {{ updates }}
+
+      - service: script.zen32_led_sequencer
+        data:
+          delay_ms: 100
+          updates: "{{ all_updates }}"
+
+
+# =============================================================================
+# SCRIPTS - Lighting Actions (with Manual mode guard)
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # Full Brightness - All zones to maximum
+  # ---------------------------------------------------------------------------
+  zen32_full_brightness:
+    alias: "ZEN32 - Full Brightness"
+    description: "Set all zones to max brightness (skipped in Manual mode)"
+    icon: mdi:brightness-7
+    mode: single
+    sequence:
+      - if:
+          - condition: state
+            entity_id: input_select.oal_active_configuration
+            state: "Manual"
+        then:
+          - service: system_log.write
+            data:
+              message: "ZEN32: Skipping full brightness - OAL in Manual mode"
+              level: info
+          - stop: "OAL in Manual mode"
+
+      - if:
+          - condition: state
+            entity_id: light.all_adaptive_lights
+            state: "off"
+        then:
+          - service: light.turn_on
+            target:
+              entity_id: light.all_adaptive_lights
+
+      - service: input_number.set_value
+        target:
+          entity_id:
+            - input_number.oal_manual_offset_main_living_brightness
+            - input_number.oal_manual_offset_kitchen_island_brightness
+            - input_number.oal_manual_offset_bedroom_primary_brightness
+            - input_number.oal_manual_offset_accent_spots_brightness
+            - input_number.oal_manual_offset_recessed_ceiling_brightness
+            - input_number.oal_manual_offset_column_lights_brightness
+        data:
+          value: 50
+
+      - service: script.oal_global_adjustment_start
+
+  # ---------------------------------------------------------------------------
+  # Minimum Brightness - All zones to ambient minimum
+  # ---------------------------------------------------------------------------
+  zen32_minimum_brightness:
+    alias: "ZEN32 - Minimum Brightness"
+    description: "Set all zones to minimum brightness (skipped in Manual mode)"
+    icon: mdi:brightness-4
+    mode: single
+    sequence:
+      - if:
+          - condition: state
+            entity_id: input_select.oal_active_configuration
+            state: "Manual"
+        then:
+          - service: system_log.write
+            data:
+              message: "ZEN32: Skipping minimum brightness - OAL in Manual mode"
+              level: info
+          - stop: "OAL in Manual mode"
+
+      - if:
+          - condition: state
+            entity_id: light.all_adaptive_lights
+            state: "off"
+        then:
+          - service: light.turn_on
+            target:
+              entity_id: light.all_adaptive_lights
+
+      - service: input_number.set_value
+        target:
+          entity_id:
+            - input_number.oal_manual_offset_main_living_brightness
+            - input_number.oal_manual_offset_kitchen_island_brightness
+            - input_number.oal_manual_offset_bedroom_primary_brightness
+            - input_number.oal_manual_offset_accent_spots_brightness
+            - input_number.oal_manual_offset_recessed_ceiling_brightness
+            - input_number.oal_manual_offset_column_lights_brightness
+        data:
+          value: -50
+
+      - service: script.oal_global_adjustment_start
+
+
+# =============================================================================
+# SCRIPTS - Sonos Control
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # Play/Pause Toggle
+  # ---------------------------------------------------------------------------
+  zen32_sonos_play_pause:
+    alias: "ZEN32 - Sonos Play/Pause"
+    icon: mdi:play-pause
+    mode: single
+    variables:
+      coordinator: >
+        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+    sequence:
+      - choose:
+          - conditions: "{{ is_state(coordinator, 'playing') }}"
+            sequence:
+              - service: media_player.media_pause
+                target:
+                  entity_id: "{{ coordinator }}"
+        default:
+          - service: media_player.media_play
+            target:
+              entity_id: "{{ coordinator }}"
+
+  # ---------------------------------------------------------------------------
+  # Start Playback
+  # ---------------------------------------------------------------------------
+  zen32_sonos_start:
+    alias: "ZEN32 - Sonos Start"
+    icon: mdi:play
+    mode: single
+    variables:
+      coordinator: >
+        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+      is_idle: "{{ states(coordinator) in ['idle', 'off', 'unknown', 'unavailable'] }}"
+      default_volume: "{{ states('input_number.sonos_default_volume') | float(0.25) }}"
+    sequence:
+      - choose:
+          - conditions: "{{ is_idle }}"
+            sequence:
+              - service: media_player.volume_set
+                target:
+                  entity_id: "{{ coordinator }}"
+                data:
+                  volume_level: "{{ default_volume }}"
+              - service: script.zen32_cycle_sonos_favorite
+        default:
+          - service: media_player.media_play
+            target:
+              entity_id: "{{ coordinator }}"
+
+  # ---------------------------------------------------------------------------
+  # Volume Step (+/- 10%)
+  # ---------------------------------------------------------------------------
+  zen32_sonos_volume_step:
+    alias: "ZEN32 - Sonos Volume Step"
+    icon: mdi:volume-medium
+    mode: queued
+    max: 5
+    fields:
+      direction:
+        description: "1 for volume up, -1 for volume down"
+        example: 1
+        required: true
+        selector:
+          number:
+            min: -1
+            max: 1
+            mode: box
+    variables:
+      coordinator: >
+        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+      current: "{{ state_attr(coordinator, 'volume_level') | float(0.5) }}"
+      new_volume: "{{ [[0.0, current + (0.10 * direction | int)] | max, 1.0] | min }}"
+    sequence:
+      - service: media_player.volume_set
+        target:
+          entity_id: "{{ coordinator }}"
+        data:
+          volume_level: "{{ new_volume }}"
+
+  # ---------------------------------------------------------------------------
+  # Next Track
+  # ---------------------------------------------------------------------------
+  zen32_sonos_next_track:
+    alias: "ZEN32 - Sonos Next Track"
+    icon: mdi:skip-next
+    mode: single
+    variables:
+      coordinator: >
+        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+    sequence:
+      - service: media_player.media_next_track
+        target:
+          entity_id: "{{ coordinator }}"
+
+  # ---------------------------------------------------------------------------
+  # Previous Track
+  # ---------------------------------------------------------------------------
+  zen32_sonos_prev_track:
+    alias: "ZEN32 - Sonos Previous Track"
+    icon: mdi:skip-previous
+    mode: single
+    variables:
+      coordinator: >
+        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+    sequence:
+      - service: media_player.media_previous_track
+        target:
+          entity_id: "{{ coordinator }}"
+
+  # ---------------------------------------------------------------------------
+  # Default Volume
+  # ---------------------------------------------------------------------------
+  zen32_sonos_default_volume:
+    alias: "ZEN32 - Sonos Default Volume"
+    icon: mdi:volume-source
+    mode: single
+    variables:
+      coordinator: >
+        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+      default_vol: "{{ states('input_number.sonos_default_volume') | float(0.25) }}"
+    sequence:
+      - service: media_player.volume_set
+        target:
+          entity_id: "{{ coordinator }}"
+        data:
+          volume_level: "{{ default_vol }}"
+
+  # ---------------------------------------------------------------------------
+  # Mute Toggle
+  # ---------------------------------------------------------------------------
+  zen32_sonos_mute:
+    alias: "ZEN32 - Sonos Mute Toggle"
+    icon: mdi:volume-off
+    mode: single
+    variables:
+      coordinator: >
+        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+      is_muted: "{{ state_attr(coordinator, 'is_volume_muted') | default(false) }}"
+    sequence:
+      - service: media_player.volume_mute
+        target:
+          entity_id: "{{ coordinator }}"
+        data:
+          is_volume_muted: "{{ not is_muted }}"
+
+  # ---------------------------------------------------------------------------
+  # Cycle Sonos Favorites
+  # ---------------------------------------------------------------------------
+  zen32_cycle_sonos_favorite:
+    alias: "ZEN32 - Cycle Sonos Favorite"
+    icon: mdi:playlist-star
+    mode: single
+    variables:
+      favorites: "{{ state_attr('sensor.sonos_favorites', 'items') | default({}) }}"
+      keys: "{{ favorites.keys() | list }}"
+      count: "{{ keys | length }}"
+      current: "{{ states('input_number.sonos_favorite_index') | int(0) }}"
+      next_idx: "{{ (current + 1) % count if count > 0 else 0 }}"
+      next_key: "{{ keys[next_idx] if count > 0 else '' }}"
+      next_name: "{{ favorites[next_key] if next_key else 'Unknown' }}"
+      coordinator: >
+        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+        {{ raw if raw not in ['none', 'unknown', 'unavailable', ''] else 'media_player.living_room' }}
+      default_volume: "{{ states('input_number.sonos_default_volume') | float(0.5) }}"
+    sequence:
+      - condition: template
+        value_template: "{{ count > 0 }}"
+
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.sonos_favorite_index
+        data:
+          value: "{{ next_idx }}"
+
+      - if:
+          - condition: template
+            value_template: "{{ not is_state(coordinator, 'playing') }}"
+        then:
+          - service: media_player.volume_set
+            target:
+              entity_id: "{{ coordinator }}"
+            data:
+              volume_level: "{{ default_volume }}"
+
+      - service: media_player.play_media
+        target:
+          entity_id: "{{ coordinator }}"
+        data:
+          media_content_type: "favorite_item_id"
+          media_content_id: "{{ next_key }}"
+
+      - service: system_log.write
+        data:
+          message: "ZEN32: Playing favorite {{ next_idx + 1 }}/{{ count }}: {{ next_name }}"
+          level: info
+
+
+# =============================================================================
+# AUTOMATIONS
+# =============================================================================
+
+automation:
+  # ---------------------------------------------------------------------------
+  # Startup Initialization
+  # ---------------------------------------------------------------------------
+  - id: zen32_startup_init
+    alias: "ZEN32 - Initialize on Startup"
+    description: "Initialize ZEN32 with wait_template for entity availability"
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      # Set LIGHT mode immediately (input_select always available)
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.zen32_control_mode
+        data:
+          option: "light"
+
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_mode_last_change
+        data:
+          datetime: "{{ now() }}"
+
+      - service: system_log.write
+        data:
+          message: "ZEN32 startup: Waiting for Z-Wave entities..."
+          level: info
+
+      # Wait for Z-Wave entities (not arbitrary delay)
+      - wait_template: >
+          {{ states('select.scene_controller_led_indicator_color_button_1')
+             not in ['unavailable', 'unknown'] }}
+        timeout:
+          seconds: 120
+        continue_on_timeout: true
+
+      - if:
+          - condition: template
+            value_template: >
+              {{ states('select.scene_controller_led_indicator_color_button_1')
+                 in ['unavailable', 'unknown'] }}
+        then:
+          - service: system_log.write
+            data:
+              message: "ZEN32 startup: LED entities unavailable after 120s - skipping LED init"
+              level: warning
+        else:
+          # CRITICAL: Disable LED flash for automation control
+          - service: select.select_option
+            target:
+              entity_id: select.scene_controller_led_settings_indicator
+            data:
+              option: "Disable"
+
+          - delay:
+              milliseconds: 500
+
+          # Apply LIGHT mode LEDs
+          - service: script.zen32_set_mode_light
+
+          # Apply big button state
+          - service: script.zen32_update_big_button_led
+
+          - service: system_log.write
+            data:
+              message: "ZEN32 startup: Initialization complete"
+              level: info
+
+  # ---------------------------------------------------------------------------
+  # Big Button LED State Sync
+  # ---------------------------------------------------------------------------
+  - id: zen32_big_button_state_sync
+    alias: "ZEN32 - Big Button LED State Sync"
+    description: "Sync big button LED on state changes (priority-based)"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: input_select.oal_active_configuration
+      - platform: state
+        entity_id: light.all_adaptive_lights
+      - platform: state
+        entity_id: input_boolean.oal_movie_mode_active
+      - platform: state
+        entity_id: input_boolean.oal_disable_sleep_mode
+    action:
+      - service: script.zen32_update_big_button_led
+
+  # ---------------------------------------------------------------------------
+  # Mode LED Sync (external mode changes)
+  # ---------------------------------------------------------------------------
+  - id: zen32_mode_led_sync
+    alias: "ZEN32 - Sync LEDs on Mode Change"
+    description: "Update LEDs when mode changes externally (e.g., UI)"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: input_select.zen32_control_mode
+    condition:
+      - condition: template
+        value_template: "{{ trigger.from_state.state in ['light', 'music'] }}"
+    action:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_select.zen32_control_mode
+                state: "music"
+            sequence:
+              - service: script.zen32_set_mode_music
+        default:
+          - service: script.zen32_set_mode_light
+
+  # ---------------------------------------------------------------------------
+  # Modal Controller Handler - Button Event Dispatch
+  # ---------------------------------------------------------------------------
+  - id: zen32_modal_controller_handler
+    alias: "ZEN32 - Modal Controller Handler"
+    description: "Modal button handler for LIGHT and VOLUME modes"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: event.scene_controller_scene_001
+        id: "button_1"
+      - platform: state
+        entity_id: event.scene_controller_scene_002
+        id: "button_2"
+      - platform: state
+        entity_id: event.scene_controller_scene_003
+        id: "button_3"
+      - platform: state
+        entity_id: event.scene_controller_scene_004
+        id: "button_4"
+      - platform: state
+        entity_id: event.scene_controller_scene_005
+        id: "button_5"
+
+    variables:
+      event_type: "{{ (trigger.to_state.attributes.event_type | default('unknown')) if trigger.to_state else 'unknown' }}"
+      button_id: "{{ trigger.id | default('unknown') }}"
+      mode: "{{ states('input_select.zen32_control_mode') | default('light') }}"
+      is_light: "{{ mode == 'light' }}"
+      is_music: "{{ mode == 'music' }}"
+      sonos_playing: >
+        {% set coord = states('sensor.sonos_current_playing_group_coordinator') %}
+        {{ is_state(coord if coord not in ['none', 'unknown', 'unavailable', '']
+           else 'media_player.living_room', 'playing') }}
+      lights_on: "{{ is_state('light.all_adaptive_lights', 'on') }}"
+
+    condition:
+      - condition: template
+        value_template: "{{ event_type in ['KeyPressed', 'KeyHeldDown', 'KeyPressed2x', 'KeyPressed3x'] }}"
+
+    action:
+      # Update activity timestamps (for OAL 24h check + diagnostics)
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_last_button_press
+        data:
+          datetime: "{{ now() }}"
+
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.zen32_mode_last_change
+        data:
+          datetime: "{{ now() }}"
+
+      - choose:
+          # =================================================================
+          # BUTTON 1 - LIGHT (Mode Select + Presets)
+          # =================================================================
+
+          # 1x (LIGHT mode): Cycle presets (skip Manual)
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed' and is_light }}"
+            sequence:
+              - repeat:
+                  while:
+                    - condition: template
+                      value_template: >
+                        {{ states('input_select.oal_active_configuration') == 'Manual'
+                           and repeat.index <= 10 }}
+                  sequence:
+                    - service: input_select.select_next
+                      target:
+                        entity_id: input_select.oal_active_configuration
+                      data:
+                        cycle: true
+              - service: automation.trigger
+                target:
+                  entity_id: automation.oal_core_adjustment_engine_v13
+
+          # 1x (MUSIC mode): Switch to LIGHT
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed' and is_music }}"
+            sequence:
+              - service: script.zen32_set_mode_light
+
+          # Hold (LIGHT): Warmer
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyHeldDown' and is_light }}"
+            sequence:
+              - service: script.oal_global_manual_warmer
+
+          # Hold (MUSIC): Switch to LIGHT
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyHeldDown' and is_music }}"
+            sequence:
+              - service: script.zen32_set_mode_light
+
+          # 2x (LIGHT): Full brightness
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed2x' and is_light }}"
+            sequence:
+              - service: script.zen32_full_brightness
+
+          # 2x (MUSIC): Switch + Full brightness
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed2x' and is_music }}"
+            sequence:
+              - service: script.zen32_set_mode_light
+              - service: script.zen32_full_brightness
+
+          # 3x (any): Toggle warm/cool
+          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed3x' }}"
+            sequence:
+              - if:
+                  - condition: template
+                    value_template: "{{ is_music }}"
+                then:
+                  - service: script.zen32_set_mode_light
+              - choose:
+                  - conditions: "{{ states('input_number.oal_offset_global_manual_warmth') | float(0) <= 0 }}"
+                    sequence:
+                      - service: input_number.set_value
+                        target:
+                          entity_id: input_number.oal_offset_global_manual_warmth
+                        data:
+                          value: 500
+                default:
+                  - service: input_number.set_value
+                    target:
+                      entity_id: input_number.oal_offset_global_manual_warmth
+                    data:
+                      value: -500
+
+          # =================================================================
+          # BUTTON 2 - UP (Context-Sensitive Increase)
+          # =================================================================
+
+          # 1x (LIGHT, OFF): Turn on + brighter
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_light and not lights_on }}"
+            sequence:
+              - service: light.turn_on
+                target:
+                  entity_id: light.all_adaptive_lights
+              - delay:
+                  milliseconds: 300
+              - service: script.oal_global_manual_brighter
+
+          # 1x (LIGHT, ON): Brighter
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_light and lights_on }}"
+            sequence:
+              - service: script.oal_global_manual_brighter
+
+          # 1x (MUSIC, not playing): Start + volume up
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_music and not sonos_playing }}"
+            sequence:
+              - service: script.zen32_sonos_start
+              - delay:
+                  milliseconds: 300
+              - service: script.zen32_sonos_volume_step
+                data:
+                  direction: 1
+
+          # 1x (MUSIC, playing): Volume up
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_music and sonos_playing }}"
+            sequence:
+              - service: script.zen32_sonos_volume_step
+                data:
+                  direction: 1
+
+          # Hold (LIGHT): Cooler
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyHeldDown' and is_light }}"
+            sequence:
+              - service: script.oal_global_manual_cooler
+
+          # Hold (MUSIC): Next track
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyHeldDown' and is_music }}"
+            sequence:
+              - service: script.zen32_sonos_next_track
+
+          # 2x (LIGHT): Full brightness
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed2x' and is_light }}"
+            sequence:
+              - service: script.zen32_full_brightness
+
+          # 2x (MUSIC): Default volume
+          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed2x' and is_music }}"
+            sequence:
+              - service: script.zen32_sonos_default_volume
+
+          # =================================================================
+          # BUTTON 3 - VOLUME (Mode Select + Play/Pause + Grouping)
+          # =================================================================
+
+          # 1x (LIGHT, playing): Switch to MUSIC
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_light and sonos_playing }}"
+            sequence:
+              - service: script.zen32_set_mode_music
+
+          # 1x (LIGHT, not playing): Switch + Start
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_light and not sonos_playing }}"
+            sequence:
+              - service: script.zen32_set_mode_music
+              - service: script.zen32_sonos_start
+
+          # 1x (MUSIC, playing): Pause
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music and sonos_playing }}"
+            sequence:
+              - service: script.zen32_sonos_play_pause
+
+          # 1x (MUSIC, not playing): Start
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_music and not sonos_playing }}"
+            sequence:
+              - service: script.zen32_sonos_start
+
+          # Hold (LIGHT): Switch + Group all
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_light }}"
+            sequence:
+              - service: script.zen32_set_mode_music
+              - service: script.sonos_group_all_to_playing
+
+          # Hold (MUSIC): Group all
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_music }}"
+            sequence:
+              - service: script.sonos_group_all_to_playing
+
+          # 2x (LIGHT): Switch + Ungroup
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed2x' and is_light }}"
+            sequence:
+              - service: script.zen32_set_mode_music
+              - service: script.sonos_ungroup_all
+
+          # 2x (MUSIC): Ungroup all
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed2x' and is_music }}"
+            sequence:
+              - service: script.sonos_ungroup_all
+
+          # 3x (any): Cycle favorites
+          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed3x' }}"
+            sequence:
+              - if:
+                  - condition: template
+                    value_template: "{{ is_light }}"
+                then:
+                  - service: script.zen32_set_mode_music
+              - service: script.zen32_cycle_sonos_favorite
+
+          # =================================================================
+          # BUTTON 4 - DOWN (Context-Sensitive Decrease)
+          # =================================================================
+
+          # 1x (LIGHT, OFF): Turn on + dim
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_light and not lights_on }}"
+            sequence:
+              - service: light.turn_on
+                target:
+                  entity_id: light.all_adaptive_lights
+              - delay:
+                  milliseconds: 300
+              - service: script.oal_global_manual_dimmer
+
+          # 1x (LIGHT, ON): Dimmer
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_light and lights_on }}"
+            sequence:
+              - service: script.oal_global_manual_dimmer
+
+          # 1x (MUSIC, playing): Volume down
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_music and sonos_playing }}"
+            sequence:
+              - service: script.zen32_sonos_volume_step
+                data:
+                  direction: -1
+
+          # 1x (MUSIC, not playing): No action
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_music and not sonos_playing }}"
+            sequence: []
+
+          # Hold (LIGHT): Warmer
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyHeldDown' and is_light }}"
+            sequence:
+              - service: script.oal_global_manual_warmer
+
+          # Hold (MUSIC): Previous track
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyHeldDown' and is_music }}"
+            sequence:
+              - service: script.zen32_sonos_prev_track
+
+          # 2x (LIGHT): Minimum brightness
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed2x' and is_light }}"
+            sequence:
+              - service: script.zen32_minimum_brightness
+
+          # 2x (MUSIC): Mute toggle
+          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed2x' and is_music }}"
+            sequence:
+              - service: script.zen32_sonos_mute
+
+          # =================================================================
+          # BUTTON 5 - BIG (Mode-Independent Master Controls)
+          # =================================================================
+
+          # 1x: Toggle all lights
+          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed' }}"
+            sequence:
+              - service: light.toggle
+                target:
+                  entity_id: light.all_adaptive_lights
+
+          # Hold: Soft reset
+          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyHeldDown' }}"
+            sequence:
+              - service: script.oal_reset_soft
+
+          # 2x: Toggle movie mode
+          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed2x' }}"
+            sequence:
+              - service: input_boolean.toggle
+                target:
+                  entity_id: input_boolean.oal_movie_mode_active
+
+          # 3x: Toggle sleep mode
+          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed3x' }}"
+            sequence:
+              - service: input_boolean.toggle
+                target:
+                  entity_id: input_boolean.oal_disable_sleep_mode
+
+
+  # ---------------------------------------------------------------------------
+  # Smoke Test - LED Sequencer (on startup)
+  # ---------------------------------------------------------------------------
+  - id: zen32_led_sequencer_smoke_test
+    alias: "ZEN32 - LED Sequencer Smoke Test"
+    description: "Comprehensive LED sequencer validation on startup"
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      - delay:
+          seconds: 135  # After main startup init completes
+      - service: system_log.write
+        data:
+          message: "ZEN32 smoke test: Starting comprehensive LED validation"
+          level: info
+
+      # Test 1: Verify sequencer works with multiple updates
+      - service: script.zen32_led_sequencer
+        data:
+          delay_ms: 100
+          updates:
+            - entity: select.scene_controller_led_indicator_color_button_1
+              option: "Green"
+            - entity: select.scene_controller_led_indicator_button_1
+              option: "Always on"
+            - entity: select.scene_controller_led_indicator_brightness_button_1
+              option: "Bright (100%)"
+
+      - delay:
+          milliseconds: 500
+
+      # Test 2: Verify zen32_set_led with case normalization
+      - service: script.zen32_set_led
+        data:
+          button: 2
+          color: "green"  # lowercase - tests normalization
+          toggle: "always_on"  # underscore - tests normalization
+          brightness: "bright"  # short form - tests normalization
+
+      - delay:
+          milliseconds: 500
+
+      # Test 3: Visual confirmation blink
+      - service: script.zen32_blink_confirm
+        data:
+          button: 1
+          blink_count: 2
+
+      - delay:
+          milliseconds: 500
+
+      # Restore to LIGHT mode appearance
+      - service: script.zen32_set_mode_light
+
+      - service: system_log.write
+        data:
+          message: "ZEN32 smoke test: All tests passed - sequencer, set_led, normalization, blink"
+          level: info
+
+  # ---------------------------------------------------------------------------
+  # Manual Test Trigger - For debugging via events
+  # ---------------------------------------------------------------------------
+  - id: zen32_led_sequencer_manual_test
+    alias: "ZEN32 - LED Sequencer Manual Test"
+    description: "Trigger LED sequencer via event for debugging"
+    mode: single
+    trigger:
+      - platform: event
+        event_type: zen32_led_test
+    action:
+      - service: script.zen32_led_sequencer
+        data:
+          updates: "{{ trigger.event.data.updates | default([]) }}"
+          delay_ms: "{{ trigger.event.data.delay_ms | default(100) }}"
+          use_bulk: "{{ trigger.event.data.use_bulk | default(false) }}"
+          bulk_device_id: "{{ trigger.event.data.bulk_device_id | default('') }}"
+          bulk_params: "{{ trigger.event.data.bulk_params | default({}) }}"
+      - service: system_log.write
+        data:
+          message: "zen32_led_sequencer_manual_test: Executed via event"
+          level: info

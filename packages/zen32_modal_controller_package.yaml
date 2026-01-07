@@ -130,59 +130,7 @@
 # =============================================================================
 
 
-# =============================================================================
-# LED MODE DEFINITIONS (YAML ANCHORS - SINGLE SOURCE OF TRUTH)
-# =============================================================================
-# Button 3 is intentionally excluded from brightness/warmth (inactive mode indicator)
-# =============================================================================
 
-.led_brightness: &led_brightness
-  - button: 1
-    color: yellow
-    toggle: always_on
-    brightness: bright
-  - button: 2
-    color: yellow
-    toggle: always_on
-    brightness: bright
-  - button: 3
-    toggle: always_off
-  - button: 4
-    color: yellow
-    toggle: always_on
-    brightness: bright
-
-.led_volume: &led_volume
-  - button: 1
-    toggle: always_off
-  - button: 2
-    color: blue
-    toggle: always_on
-    brightness: bright
-  - button: 3
-    color: blue
-    toggle: always_on
-    brightness: bright
-  - button: 4
-    color: blue
-    toggle: always_on
-    brightness: bright
-
-.led_warmth: &led_warmth
-  - button: 1
-    color: cyan
-    toggle: always_on
-    brightness: bright
-  - button: 2
-    color: cyan
-    toggle: always_on
-    brightness: bright
-  - button: 3
-    toggle: always_off
-  - button: 4
-    color: cyan
-    toggle: always_on
-    brightness: bright
 
 
 # =============================================================================
@@ -300,7 +248,7 @@ script:
     alias: "ZEN32 - LED Sequencer"
     description: "Rapid LED updates - fires all commands without delays"
     icon: mdi:led-strip-variant
-    mode: single
+    mode: restart
     max_exceeded: silent
     fields:
       buttons:
@@ -442,30 +390,17 @@ script:
               option: "{{ normalized_color }}"
             continue_on_error: true
 
-      # Set toggle - use Z-Wave param for relay, select for others
+      # Set toggle - works for all buttons including relay
       - if:
           - condition: template
             value_template: "{{ normalized_toggle is not none }}"
         then:
-          - choose:
-              # Big button (relay): Use Z-Wave parameter 1
-              - conditions: "{{ is_relay }}"
-                sequence:
-                  - service: zwave_js.set_config_parameter
-                    target:
-                      device_id: "{{ device_id('event.scene_controller_scene_001') }}"
-                    data:
-                      parameter: 1
-                      value: "{{ {'Always off': 2, 'Always on': 3, 'On when load is off': 0, 'On when load is on': 1}.get(normalized_toggle, 3) }}"
-                    continue_on_error: true
-            # Small buttons: Use select entity
-            default:
-              - service: select.select_option
-                target:
-                  entity_id: "{{ toggle_entity }}"
-                data:
-                  option: "{{ normalized_toggle }}"
-                continue_on_error: true
+          - service: select.select_option
+            target:
+              entity_id: "{{ toggle_entity }}"
+            data:
+              option: "{{ normalized_toggle }}"
+            continue_on_error: true
 
       # Set brightness (works for all buttons)
       - if:
@@ -508,21 +443,11 @@ script:
           count: "{{ count }}"
           sequence:
             # Turn off
-            - choose:
-                - conditions: "{{ is_relay }}"
-                  sequence:
-                    - service: zwave_js.set_config_parameter
-                      target:
-                        device_id: "{{ device_id('event.scene_controller_scene_001') }}"
-                      data:
-                        parameter: 1
-                        value: 2
-              default:
-                - service: select.select_option
-                  target:
-                    entity_id: "{{ toggle_entity }}"
-                  data:
-                    option: "Always off"
+            - service: select.select_option
+              target:
+                entity_id: "{{ toggle_entity }}"
+              data:
+                option: "Always off"
             - delay:
                 milliseconds: 100
             # Set green
@@ -532,31 +457,24 @@ script:
               data:
                 option: "Green"
             # Turn on
-            - choose:
-                - conditions: "{{ is_relay }}"
-                  sequence:
-                    - service: zwave_js.set_config_parameter
-                      target:
-                        device_id: "{{ device_id('event.scene_controller_scene_001') }}"
-                      data:
-                        parameter: 1
-                        value: 3
-              default:
-                - service: select.select_option
-                  target:
-                    entity_id: "{{ toggle_entity }}"
-                  data:
-                    option: "Always on"
+            - service: select.select_option
+              target:
+                entity_id: "{{ toggle_entity }}"
+              data:
+                option: "Always on"
             - delay:
-                milliseconds: 100
+                milliseconds: 50
 
 
   # ---------------------------------------------------------------------------
   # Set Mode: BRIGHTNESS
   # ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Set Mode: BRIGHTNESS
+  # ---------------------------------------------------------------------------
   zen32_set_mode_brightness:
     alias: "ZEN32 - Set BRIGHTNESS Mode"
-    description: "Switch to BRIGHTNESS mode with full LED configuration"
+    description: "Switch to BRIGHTNESS mode (state only)"
     icon: mdi:brightness-6
     mode: single
     sequence:
@@ -572,17 +490,12 @@ script:
         data:
           datetime: "{{ now() }}"
 
-      # Instant LED update - uses YAML anchor for DRY config
-      - service: script.zen32_led_sequencer
-        data:
-          buttons: *led_brightness
-
   # ---------------------------------------------------------------------------
   # Set Mode: VOLUME
   # ---------------------------------------------------------------------------
   zen32_set_mode_volume:
     alias: "ZEN32 - Set VOLUME Mode"
-    description: "Switch to VOLUME mode with full LED configuration"
+    description: "Switch to VOLUME mode (state only)"
     icon: mdi:volume-high
     mode: single
     sequence:
@@ -598,17 +511,12 @@ script:
         data:
           datetime: "{{ now() }}"
 
-      # Instant LED update - uses YAML anchor for DRY config
-      - service: script.zen32_led_sequencer
-        data:
-          buttons: *led_volume
-
   # ---------------------------------------------------------------------------
   # Set Mode: WARMTH
   # ---------------------------------------------------------------------------
   zen32_set_mode_warmth:
     alias: "ZEN32 - Set WARMTH Mode"
-    description: "Switch to WARMTH mode with cyan LEDs for color temp control"
+    description: "Switch to WARMTH mode (state only)"
     icon: mdi:thermometer
     mode: single
     sequence:
@@ -623,11 +531,6 @@ script:
           entity_id: input_datetime.zen32_mode_last_change
         data:
           datetime: "{{ now() }}"
-
-      # Instant LED update - uses YAML anchor for DRY config
-      - service: script.zen32_led_sequencer
-        data:
-          buttons: *led_warmth
 
   # ---------------------------------------------------------------------------
   # Update Big Button LED - Simplified priority
@@ -669,12 +572,11 @@ script:
                   entity_id: select.scene_controller_led_indicator_color_relay
                 data:
                   option: "Blue"
-              - service: zwave_js.set_config_parameter
+              - service: select.select_option
                 target:
-                  device_id: "{{ device_id('event.scene_controller_scene_001') }}"
+                  entity_id: select.scene_controller_led_indicator_relay
                 data:
-                  parameter: 1
-                  value: 3
+                  option: "Always on"
               - service: select.select_option
                 target:
                   entity_id: select.scene_controller_led_indicator_brightness_relay
@@ -689,12 +591,11 @@ script:
                   entity_id: select.scene_controller_led_indicator_color_relay
                 data:
                   option: "Red"
-              - service: zwave_js.set_config_parameter
+              - service: select.select_option
                 target:
-                  device_id: "{{ device_id('event.scene_controller_scene_001') }}"
+                  entity_id: select.scene_controller_led_indicator_relay
                 data:
-                  parameter: 1
-                  value: 3
+                  option: "Always on"
               - service: select.select_option
                 target:
                   entity_id: select.scene_controller_led_indicator_brightness_relay
@@ -709,12 +610,11 @@ script:
                   entity_id: select.scene_controller_led_indicator_color_relay
                 data:
                   option: "Green"
-              - service: zwave_js.set_config_parameter
+              - service: select.select_option
                 target:
-                  device_id: "{{ device_id('event.scene_controller_scene_001') }}"
+                  entity_id: select.scene_controller_led_indicator_relay
                 data:
-                  parameter: 1
-                  value: 3
+                  option: "Always on"
               - service: select.select_option
                 target:
                   entity_id: select.scene_controller_led_indicator_brightness_relay
@@ -732,12 +632,11 @@ script:
                   entity_id: select.scene_controller_led_indicator_color_relay
                 data:
                   option: "White"
-              - service: zwave_js.set_config_parameter
+              - service: select.select_option
                 target:
-                  device_id: "{{ device_id('event.scene_controller_scene_001') }}"
+                  entity_id: select.scene_controller_led_indicator_relay
                 data:
-                  parameter: 1
-                  value: 3
+                  option: "Always on"
               - service: select.select_option
                 target:
                   entity_id: select.scene_controller_led_indicator_brightness_relay
@@ -746,12 +645,11 @@ script:
 
         # Off: Lights OFF
         default:
-          - service: zwave_js.set_config_parameter
+          - service: select.select_option
             target:
-              device_id: "{{ device_id('event.scene_controller_scene_001') }}"
+              entity_id: select.scene_controller_led_indicator_relay
             data:
-              parameter: 1
-              value: 2
+              option: "Always off"
 
 
   # ---------------------------------------------------------------------------
@@ -1087,6 +985,11 @@ automation:
               message: "ZEN32 v4 startup: Initialization complete"
               level: info
 
+          # Force LED Sync
+          - service: event.fire
+            data:
+              event_type: zen32_force_led_sync
+
   # ---------------------------------------------------------------------------
   # Big Button LED State Sync
   # ---------------------------------------------------------------------------
@@ -1120,32 +1023,44 @@ automation:
   # ---------------------------------------------------------------------------
   # Mode LED Sync (external mode changes)
   # ---------------------------------------------------------------------------
-  - id: zen32_mode_led_sync_v4
-    alias: "ZEN32 - Sync LEDs on Mode Change"
-    description: "Update LEDs when mode changes externally (e.g., UI)"
+  # ---------------------------------------------------------------------------
+  # LED State Machine - CENTRALIZED LED CONTROL
+  # ---------------------------------------------------------------------------
+  - id: zen32_led_state_machine
+    alias: "ZEN32 - LED State Machine"
+    description: "Centralized State Machine: Updates LEDs whenever Control Mode changes"
     mode: restart
     trigger:
       - platform: state
         entity_id: input_select.zen32_control_mode
-    condition:
-      - condition: template
-        value_template: "{{ trigger.from_state.state in ['brightness', 'volume', 'warmth'] }}"
+        to: null # Trigger on ANY state change
+      - platform: event
+        event_type: zen32_force_led_sync # Hook for startup/manual sync
+    variables:
+      # CENTRALIZED CONFIGURATION MAP
+      mode_configs:
+        brightness:
+          - {button: 1, color: yellow, toggle: always_on, brightness: bright}
+          - {button: 2, color: yellow, toggle: always_on, brightness: bright}
+          - {button: 3, toggle: always_off}
+          - {button: 4, color: yellow, toggle: always_on, brightness: bright}
+        volume:
+          - {button: 1, toggle: always_off}
+          - {button: 2, color: blue, toggle: always_on, brightness: bright}
+          - {button: 3, color: blue, toggle: always_on, brightness: bright}
+          - {button: 4, color: blue, toggle: always_on, brightness: bright}
+        warmth:
+          - {button: 1, color: cyan, toggle: always_on, brightness: bright}
+          - {button: 2, color: cyan, toggle: always_on, brightness: bright}
+          - {button: 3, toggle: always_off}
+          - {button: 4, color: cyan, toggle: always_on, brightness: bright}
+      
+      current_mode: "{{ states('input_select.zen32_control_mode') }}"
+      selected_config: "{{ mode_configs.get(current_mode, []) }}"
     action:
-      - choose:
-          - conditions:
-              - condition: state
-                entity_id: input_select.zen32_control_mode
-                state: "volume"
-            sequence:
-              - service: script.zen32_set_mode_volume
-          - conditions:
-              - condition: state
-                entity_id: input_select.zen32_control_mode
-                state: "warmth"
-            sequence:
-              - service: script.zen32_set_mode_warmth
-        default:
-          - service: script.zen32_set_mode_brightness
+      - service: script.zen32_led_sequencer
+        data:
+          buttons: "{{ selected_config }}"
 
   # ---------------------------------------------------------------------------
   # Modal Controller Handler - Button Event Dispatch (DRY REFACTOR)
@@ -1575,18 +1490,4 @@ automation:
   # ---------------------------------------------------------------------------
   # Warmth Mode Auto-Exit - Return to brightness after 30s timeout
   # ---------------------------------------------------------------------------
-  - id: zen32_warmth_mode_timeout
-    alias: "ZEN32 - Warmth Mode Auto-Exit"
-    description: "Return to brightness mode after 30s in warmth mode"
-    mode: single
-    trigger:
-      - platform: state
-        entity_id: input_select.zen32_control_mode
-        to: "warmth"
-        for: "00:00:30"
-    action:
-      - service: script.zen32_set_mode_brightness
-      - service: system_log.write
-        data:
-          message: "ZEN32 Warmth mode auto-exit: 30s timeout reached, returning to brightness mode"
-          level: info
+

@@ -1112,8 +1112,13 @@ script:
             max: 1
             step: 0.01
     sequence:
+      # Validate coordinator before proceeding
+      - variables:
+          _coordinator: "{{ coordinator | default('media_player.living_room') }}"
+      - condition: template
+        value_template: "{{ _coordinator not in ['none', 'unknown', 'unavailable', ''] }}"
       - repeat:
-          for_each: "{{ state_attr(coordinator, 'group_members') | default([coordinator]) }}"
+          for_each: "{{ state_attr(_coordinator, 'group_members') | default([_coordinator]) }}"
           sequence:
             - action: media_player.volume_set
               target:

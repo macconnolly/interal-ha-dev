@@ -67,19 +67,28 @@
 #
 # GESTURE SPECIFICATION:
 #
-#   LIGHT MODE (Yellow LEDs):
-#   Button 1 (LIGHT): 1x=Cycle presets, Hold=Warmer, 2x=Full bright, 3x=Warm/cool toggle
-#   Button 2 (UP):    1x=Brightness+,   Hold=Cooler, 2x=Full bright
-#   Button 3 (VOL):   1x=Switch+Start,  Hold=Switch+Group toggle, 2x=Switch+Play/Pause, 3x=Favorites
-#   Button 4 (DOWN):  1x=Brightness-,   Hold=Warmer, 2x=Min bright
-#   Button 5 (BIG):   1x=Toggle lights, 2x=Config cycle, 3x=Force sleep, Hold=Reset
+#   BRIGHTNESS MODE (Yellow LEDs):
+#   Button 1 (LIGHT): 1x=No-op, Hold=-, 2x=WARMTH mode, 3x=Warm/cool toggle
+#   Button 2 (UP):    1x=Brightness+, Hold=-, 2x=Full bright
+#   Button 3 (VOL):   1x=VOLUME+Start, Hold=VOLUME+Favorites, 2x=VOLUME+Play/Pause, 3x=VOLUME+Group
+#   Button 4 (DOWN):  1x=Brightness-, Hold=-, 2x=Min bright
+#   Button 5 (BIG):   1x=Toggle lights, Hold=Reset, 2x=Config cycle, 3x=Force sleep
 #
-#   MUSIC MODE (Blue LEDs):
-#   Button 1 (LIGHT): 1x=Switch to LIGHT, Hold=Switch, 2x=Switch+Full, 3x=Warm/cool toggle
-#   Button 2 (UP):    1x=Volume+,         Hold=-,      2x=Next track
-#   Button 3 (VOL):   1x=Toggle play/pause, Hold=Group toggle, 2x=Play/Pause, 3x=Favorites
-#   Button 4 (DOWN):  1x=Volume-,         Hold=-,      2x=Prev track
-#   Button 5 (BIG):   1x=Toggle lights, 2x=Config cycle, 3x=Force sleep, Hold=Reset
+#   WARMTH MODE (Cyan LEDs):
+#   Button 1 (LIGHT): 1x=BRIGHTNESS, Hold=BRIGHTNESS, 2x=No-op, 3x=Warm/cool toggle
+#   Button 2 (UP):    1x=Warmer, Hold=-, 2x=Max warm (+1000K)
+#   Button 3 (VOL):   1x=VOLUME+Start, Hold=VOLUME+Favorites, 2x=VOLUME+Play/Pause, 3x=VOLUME+Group
+#   Button 4 (DOWN):  1x=Cooler, Hold=-, 2x=Max cool (-1000K)
+#   Button 5 (BIG):   1x=Toggle lights, Hold=Reset, 2x=Config cycle, 3x=Force sleep
+#
+#   VOLUME MODE (Blue LEDs):
+#   Button 1 (LIGHT): 1x=BRIGHTNESS, Hold=BRIGHTNESS, 2x=WARMTH, 3x=Warm/cool toggle
+#   Button 2 (UP):    1x=Volume+, Hold=-, 2x=Next track
+#   Button 3 (VOL):   1x=Start if idle, Hold=Cycle favorites, 2x=Play/Pause, 3x=Group toggle
+#   Button 4 (DOWN):  1x=Volume-, Hold=-, 2x=Prev track
+#   Button 5 (BIG):   1x=Toggle lights, Hold=Reset, 2x=Config cycle, 3x=Force sleep
+#
+#   CURATED FAVORITES (B3 Hold cycles): Songs → Daily Mix 1 → Daily Mix 2 (shuffle on)
 #
 # =============================================================================
 
@@ -164,7 +173,7 @@ input_number:
   sonos_favorite_index:
     name: "Sonos Favorite Index"
     min: 0
-    max: 20
+    max: 2  # 3 curated favorites: Songs, Daily Mix 1, Daily Mix 2
     step: 1
     initial: 0
     icon: mdi:playlist-music
@@ -532,6 +541,246 @@ script:
         data:
           datetime: "{{ now() }}"
 
+  # ===========================================================================
+  # COMPOSITE ACTION SCRIPTS (for centralized dispatcher)
+  # ===========================================================================
+  # These thin wrappers combine mode switch + action for clean dispatch.
+  # The action_map references these by name for multi-step actions.
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # Enter Volume Mode + Start If Idle
+  # ---------------------------------------------------------------------------
+  zen32_enter_volume_start:
+    alias: "ZEN32 - Enter Volume + Start"
+    icon: mdi:play-circle
+    mode: single
+    sequence:
+      - service: script.zen32_set_mode_volume
+      - if:
+          - condition: template
+            value_template: "{{ not state_attr('binary_sensor.sonos_playing_status', 'is_playing') | default(false) }}"
+        then:
+          - service: script.zen32_sonos_start
+
+  # ---------------------------------------------------------------------------
+  # Enter Volume Mode + Cycle Favorites
+  # ---------------------------------------------------------------------------
+  zen32_enter_volume_favorites:
+    alias: "ZEN32 - Enter Volume + Favorites"
+    icon: mdi:playlist-star
+    mode: single
+    sequence:
+      - service: script.zen32_set_mode_volume
+      - service: script.zen32_cycle_sonos_favorite
+
+  # ---------------------------------------------------------------------------
+  # Enter Volume Mode + Play/Pause
+  # ---------------------------------------------------------------------------
+  zen32_enter_volume_play_pause:
+    alias: "ZEN32 - Enter Volume + Play/Pause"
+    icon: mdi:play-pause
+    mode: single
+    sequence:
+      - service: script.zen32_set_mode_volume
+      - service: script.zen32_sonos_play_pause
+
+  # ---------------------------------------------------------------------------
+  # Enter Volume Mode (if not already) + Group Toggle
+  # ---------------------------------------------------------------------------
+  zen32_enter_volume_group_toggle:
+    alias: "ZEN32 - Enter Volume + Group Toggle"
+    icon: mdi:speaker-multiple
+    mode: single
+    sequence:
+      - if:
+          - condition: template
+            value_template: "{{ not is_state('input_select.zen32_control_mode', 'volume') }}"
+        then:
+          - service: script.zen32_set_mode_volume
+      - service: script.zen32_sonos_smart_group_toggle
+
+  # ---------------------------------------------------------------------------
+  # Start Playback If Idle (no mode change)
+  # ---------------------------------------------------------------------------
+  zen32_start_if_idle:
+    alias: "ZEN32 - Start If Idle"
+    icon: mdi:play
+    mode: single
+    sequence:
+      - if:
+          - condition: template
+            value_template: "{{ not state_attr('binary_sensor.sonos_playing_status', 'is_playing') | default(false) }}"
+        then:
+          - service: script.zen32_sonos_start
+
+  # ---------------------------------------------------------------------------
+  # Brightness Up (with lights-off handling)
+  # ---------------------------------------------------------------------------
+  zen32_brightness_up:
+    alias: "ZEN32 - Brightness Up"
+    icon: mdi:brightness-5
+    mode: single
+    sequence:
+      - if:
+          - condition: state
+            entity_id: light.all_adaptive_lights
+            state: "off"
+        then:
+          - service: light.turn_on
+            target:
+              entity_id: light.all_adaptive_lights
+      - service: script.oal_global_manual_brighter
+
+  # ---------------------------------------------------------------------------
+  # Brightness Down (with lights-off handling)
+  # ---------------------------------------------------------------------------
+  zen32_brightness_down:
+    alias: "ZEN32 - Brightness Down"
+    icon: mdi:brightness-4
+    mode: single
+    sequence:
+      - if:
+          - condition: state
+            entity_id: light.all_adaptive_lights
+            state: "off"
+        then:
+          - service: light.turn_on
+            target:
+              entity_id: light.all_adaptive_lights
+      - service: script.oal_global_manual_dimmer
+
+  # ---------------------------------------------------------------------------
+  # Sonos Volume Up
+  # ---------------------------------------------------------------------------
+  zen32_sonos_volume_up:
+    alias: "ZEN32 - Volume Up"
+    icon: mdi:volume-plus
+    mode: single
+    sequence:
+      - service: script.zen32_sonos_volume_step
+        data:
+          direction: 1
+
+  # ---------------------------------------------------------------------------
+  # Sonos Volume Down
+  # ---------------------------------------------------------------------------
+  zen32_sonos_volume_down:
+    alias: "ZEN32 - Volume Down"
+    icon: mdi:volume-minus
+    mode: single
+    sequence:
+      - service: script.zen32_sonos_volume_step
+        data:
+          direction: -1
+
+  # ---------------------------------------------------------------------------
+  # Toggle All Lights
+  # ---------------------------------------------------------------------------
+  zen32_toggle_lights:
+    alias: "ZEN32 - Toggle Lights"
+    icon: mdi:lightbulb-group
+    mode: single
+    sequence:
+      - service: light.toggle
+        target:
+          entity_id: light.all_adaptive_lights
+
+  # ---------------------------------------------------------------------------
+  # Cycle OAL Configuration Presets
+  # ---------------------------------------------------------------------------
+  zen32_cycle_oal_config:
+    alias: "ZEN32 - Cycle OAL Config"
+    icon: mdi:cog-refresh
+    mode: single
+    variables:
+      allowed_configs: ["Adaptive", "Full Bright", "Dim Ambient", "Warm Ambient", "TV Mode"]
+      current: "{{ states('input_select.oal_active_configuration') }}"
+      current_idx: "{{ allowed_configs.index(current) if current in allowed_configs else -1 }}"
+      next_idx: "{{ (current_idx + 1) % (allowed_configs | length) }}"
+    sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.oal_active_configuration
+        data:
+          option: "{{ allowed_configs[next_idx] }}"
+
+  # ---------------------------------------------------------------------------
+  # Toggle Force Sleep Mode
+  # ---------------------------------------------------------------------------
+  zen32_toggle_force_sleep:
+    alias: "ZEN32 - Toggle Force Sleep"
+    icon: mdi:sleep
+    mode: single
+    sequence:
+      - service: input_boolean.toggle
+        target:
+          entity_id: input_boolean.oal_force_sleep
+
+  # ---------------------------------------------------------------------------
+  # Warm/Cool Toggle (B1 3x)
+  # ---------------------------------------------------------------------------
+  # Toggles between warm (+500K) and cool (-500K) color offset
+  # If in volume mode, switches to brightness first
+  # ---------------------------------------------------------------------------
+  zen32_warm_cool_toggle:
+    alias: "ZEN32 - Warm/Cool Toggle"
+    icon: mdi:thermometer
+    mode: single
+    sequence:
+      # Switch to brightness if in volume mode
+      - if:
+          - condition: state
+            entity_id: input_select.zen32_control_mode
+            state: "volume"
+        then:
+          - service: script.zen32_set_mode_brightness
+      # Toggle warm/cool offset
+      - choose:
+          - conditions: "{{ states('input_number.oal_offset_global_manual_warmth') | float(0) <= 0 }}"
+            sequence:
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.oal_offset_global_manual_warmth
+                data:
+                  value: 500
+        default:
+          - service: input_number.set_value
+            target:
+              entity_id: input_number.oal_offset_global_manual_warmth
+            data:
+              value: -500
+
+  # ---------------------------------------------------------------------------
+  # Warmth Preset - Max Warm (+1000K offset)
+  # ---------------------------------------------------------------------------
+  zen32_warmth_max:
+    alias: "ZEN32 - Max Warm Preset"
+    description: "Set warmth to maximum (+1000K offset)"
+    icon: mdi:thermometer-high
+    mode: single
+    sequence:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_global_manual_warmth
+        data:
+          value: 1000
+
+  # ---------------------------------------------------------------------------
+  # Warmth Preset - Max Cool (-1000K offset)
+  # ---------------------------------------------------------------------------
+  zen32_warmth_min:
+    alias: "ZEN32 - Max Cool Preset"
+    description: "Set warmth to minimum (-1000K offset)"
+    icon: mdi:thermometer-low
+    mode: single
+    sequence:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.oal_offset_global_manual_warmth
+        data:
+          value: -1000
+
   # ---------------------------------------------------------------------------
   # Update Big Button LED - Simplified priority
   # ---------------------------------------------------------------------------
@@ -862,32 +1111,39 @@ script:
           - service: script.sonos_group_all_to_playing
 
   # ---------------------------------------------------------------------------
-  # Cycle Sonos Favorites
+  # Cycle Sonos Favorites - Curated rotation with shuffle
+  # ---------------------------------------------------------------------------
+  # Cycles through: Songs → Daily Mix 1 → Daily Mix 2 → Songs...
+  # Enables shuffle mode for playlist variety
   # ---------------------------------------------------------------------------
   zen32_cycle_sonos_favorite:
     alias: "ZEN32 - Cycle Sonos Favorite"
     icon: mdi:playlist-star
     mode: single
     variables:
-      favorites: "{{ state_attr('sensor.sonos_favorites', 'items') | default({}) }}"
-      keys: "{{ favorites.keys() | list }}"
-      count: "{{ keys | length }}"
+      # CURATED FAVORITES LIST - order matters!
+      curated_favorites:
+        - {id: "FV:2/10", name: "Songs"}
+        - {id: "FV:2/0", name: "Daily Mix 1"}
+        - {id: "FV:2/4", name: "Daily Mix 2"}
+      count: "{{ curated_favorites | length }}"
       current: "{{ states('input_number.sonos_favorite_index') | int(0) }}"
-      next_idx: "{{ (current + 1) % count if count > 0 else 0 }}"
-      next_key: "{{ keys[next_idx] if count > 0 else '' }}"
-      next_name: "{{ favorites[next_key] if next_key else 'Unknown' }}"
+      next_idx: "{{ (current + 1) % count }}"
+      next_favorite: "{{ curated_favorites[next_idx] }}"
       coordinator: "{{ states('sensor.sonos_smart_coordinator') }}"
       default_volume: "{{ states('input_number.sonos_default_volume') | float(0.5) }}"
     sequence:
       - condition: template
         value_template: "{{ count > 0 }}"
 
+      # Update index tracker
       - service: input_number.set_value
         target:
           entity_id: input_number.sonos_favorite_index
         data:
           value: "{{ next_idx }}"
 
+      # Set volume if not already playing
       - if:
           - condition: template
             value_template: "{{ not is_state(coordinator, 'playing') }}"
@@ -898,16 +1154,26 @@ script:
             data:
               volume_level: "{{ default_volume }}"
 
+      # Start the favorite playlist
       - service: media_player.play_media
         target:
           entity_id: "{{ coordinator }}"
         data:
           media_content_type: "favorite_item_id"
-          media_content_id: "{{ next_key }}"
+          media_content_id: "{{ next_favorite.id }}"
+
+      # Enable shuffle for variety
+      - delay:
+          milliseconds: 500
+      - service: media_player.shuffle_set
+        target:
+          entity_id: "{{ coordinator }}"
+        data:
+          shuffle: true
 
       - service: system_log.write
         data:
-          message: "ZEN32: Playing favorite {{ next_idx + 1 }}/{{ count }}: {{ next_name }}"
+          message: "ZEN32: Playing favorite {{ next_idx + 1 }}/{{ count }}: {{ next_favorite.name }} (shuffle on)"
           level: info
 
 
@@ -986,9 +1252,7 @@ automation:
               level: info
 
           # Force LED Sync
-          - service: event.fire
-            data:
-              event_type: zen32_force_led_sync
+          - event: zen32_force_led_sync
 
   # ---------------------------------------------------------------------------
   # Big Button LED State Sync
@@ -1087,17 +1351,106 @@ automation:
         id: "button_5"
 
     variables:
+      # =======================================================================
+      # TRIGGER METADATA
+      # =======================================================================
       event_type: "{{ (trigger.to_state.attributes.event_type | default('unknown')) if trigger.to_state else 'unknown' }}"
       button_id: "{{ trigger.id | default('unknown') }}"
       mode: "{{ states('input_select.zen32_control_mode') | default('brightness') }}"
+
+      # Pre-computed flags (for backward compatibility and readability)
       is_brightness: "{{ mode == 'brightness' }}"
       is_volume: "{{ mode == 'volume' }}"
       is_warmth: "{{ mode == 'warmth' }}"
-      # DRY: Use existing sensors instead of inline templates
-      # Use is_playing attribute for reliability (binary_sensor state can be stale)
       sonos_playing: "{{ state_attr('binary_sensor.sonos_playing_status', 'is_playing') | default(false) }}"
       lights_on: "{{ is_state('light.all_adaptive_lights', 'on') }}"
-      is_grouped: "{{ (state_attr('sensor.sonos_current_playing_group_coordinator', 'group_members') | default([]) | length) > 1 }}"
+
+      # =======================================================================
+      # MODE-CENTRIC ACTION MAP - Each mode defines its complete behavior
+      # =======================================================================
+      # Format: mode_actions[mode][button_gesture] = [script_names]
+      #
+      # ADDING A NEW MODE:
+      # 1. Add new block under mode_actions (copy existing, customize)
+      # 2. Add to input_select.zen32_control_mode options
+      # 3. Add LED config to zen32_led_state_machine.mode_configs
+      # =======================================================================
+      gesture_key: "{{ 'b' ~ button_id[-1] ~ '_' ~ {'KeyPressed':'1x','KeyHeldDown':'hold','KeyPressed2x':'2x','KeyPressed3x':'3x'}[event_type] }}"
+
+      mode_actions:
+        # --------------------------------------------------------------------
+        # BRIGHTNESS MODE - Light intensity control
+        # --------------------------------------------------------------------
+        brightness:
+          b1_1x: []                              # no-op (already in brightness)
+          b1_hold: []                            # removed: warmth handled in warmth mode
+          b1_2x: [zen32_set_mode_warmth]
+          b1_3x: [zen32_warm_cool_toggle]
+          b2_1x: [zen32_brightness_up]
+          b2_hold: []                            # removed: cooler orphan
+          b2_2x: [zen32_full_brightness]
+          b3_1x: [zen32_enter_volume_start]
+          b3_hold: [zen32_enter_volume_favorites]
+          b3_2x: [zen32_enter_volume_play_pause]
+          b3_3x: [zen32_enter_volume_group_toggle]
+          b4_1x: [zen32_brightness_down]
+          b4_hold: []                            # removed: warmer orphan
+          b4_2x: [zen32_minimum_brightness]
+          b5_1x: [zen32_toggle_lights]
+          b5_hold: [oal_reset_soft]
+          b5_2x: [zen32_cycle_oal_config]
+          b5_3x: [zen32_toggle_force_sleep]
+
+        # --------------------------------------------------------------------
+        # WARMTH MODE - Color temperature control
+        # --------------------------------------------------------------------
+        warmth:
+          b1_1x: [zen32_set_mode_brightness]
+          b1_hold: [zen32_set_mode_brightness]
+          b1_2x: [zen32_set_mode_warmth]         # no-op (already in warmth)
+          b1_3x: [zen32_warm_cool_toggle]
+          b2_1x: [oal_global_manual_warmer]
+          b2_hold: []
+          b2_2x: [zen32_warmth_max]              # +1000K preset
+          b3_1x: [zen32_enter_volume_start]
+          b3_hold: [zen32_enter_volume_favorites]
+          b3_2x: [zen32_enter_volume_play_pause]
+          b3_3x: [zen32_enter_volume_group_toggle]
+          b4_1x: [oal_global_manual_cooler]
+          b4_hold: []
+          b4_2x: [zen32_warmth_min]              # -1000K preset
+          b5_1x: [zen32_toggle_lights]
+          b5_hold: [oal_reset_soft]
+          b5_2x: [zen32_cycle_oal_config]
+          b5_3x: [zen32_toggle_force_sleep]
+
+        # --------------------------------------------------------------------
+        # VOLUME MODE - Sonos music control
+        # --------------------------------------------------------------------
+        volume:
+          b1_1x: [zen32_set_mode_brightness]
+          b1_hold: [zen32_set_mode_brightness]
+          b1_2x: [zen32_set_mode_warmth]
+          b1_3x: [zen32_warm_cool_toggle]
+          b2_1x: [zen32_sonos_volume_up]
+          b2_hold: []
+          b2_2x: [zen32_sonos_next_track]
+          b3_1x: [zen32_start_if_idle]
+          b3_hold: [zen32_cycle_sonos_favorite]
+          b3_2x: [zen32_sonos_play_pause]
+          b3_3x: [zen32_enter_volume_group_toggle]
+          b4_1x: [zen32_sonos_volume_down]
+          b4_hold: []
+          b4_2x: [zen32_sonos_prev_track]
+          b5_1x: [zen32_toggle_lights]
+          b5_hold: [oal_reset_soft]
+          b5_2x: [zen32_cycle_oal_config]
+          b5_3x: [zen32_toggle_force_sleep]
+
+      # =======================================================================
+      # DISPATCHER LOOKUP - Simple and direct
+      # =======================================================================
+      actions: "{{ mode_actions.get(mode, {}).get(gesture_key, []) }}"
 
     condition:
       # Only process valid event types
@@ -1123,280 +1476,20 @@ automation:
         data:
           datetime: "{{ now() }}"
 
-      - choose:
-          # =================================================================
-          # BUTTON 1 - MODE SELECT (Brightness/Volume/Warmth)
-          # =================================================================
+      # =======================================================================
+      # CENTRALIZED DISPATCHER - Execute actions from action_map
+      # =======================================================================
+      # Guard: Has actions defined for this (button, gesture, mode) combination
+      - condition: template
+        value_template: "{{ actions | length > 0 }}"
 
-          # 1x (BRIGHTNESS mode): No-op - already in brightness mode
-          # Intentionally empty - pressing B1 in brightness does nothing
-          # This saves Z-Wave traffic and state changes
-
-          # 1x (VOLUME mode): Switch to BRIGHTNESS
-          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed' and is_volume }}"
-            sequence:
-              - service: script.zen32_set_mode_brightness
-
-          # 1x (WARMTH mode): Switch to BRIGHTNESS
-          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed' and is_warmth }}"
-            sequence:
-              - service: script.zen32_set_mode_brightness
-
-          # Hold (BRIGHTNESS): Warmer
-          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyHeldDown' and is_brightness }}"
-            sequence:
-              - service: script.oal_global_manual_warmer
-
-          # Hold (VOLUME): Switch to BRIGHTNESS
-          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyHeldDown' and is_volume }}"
-            sequence:
-              - service: script.zen32_set_mode_brightness
-
-          # Hold (WARMTH): Switch to BRIGHTNESS
-          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyHeldDown' and is_warmth }}"
-            sequence:
-              - service: script.zen32_set_mode_brightness
-
-          # 2x (any mode): Enter WARMTH mode
-          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed2x' }}"
-            sequence:
-              - service: script.zen32_set_mode_warmth
-
-          # 3x (any): Toggle warm/cool
-          - conditions: "{{ button_id == 'button_1' and event_type == 'KeyPressed3x' }}"
-            sequence:
-              - if:
-                  - condition: template
-                    value_template: "{{ is_volume }}"
-                then:
-                  - service: script.zen32_set_mode_brightness
-              - choose:
-                  - conditions: "{{ states('input_number.oal_offset_global_manual_warmth') | float(0) <= 0 }}"
-                    sequence:
-                      - service: input_number.set_value
-                        target:
-                          entity_id: input_number.oal_offset_global_manual_warmth
-                        data:
-                          value: 500
-                default:
-                  - service: input_number.set_value
-                    target:
-                      entity_id: input_number.oal_offset_global_manual_warmth
-                    data:
-                      value: -500
-
-          # =================================================================
-          # BUTTON 2 - UP (Context-Sensitive Increase)
-          # =================================================================
-
-          # 1x (WARMTH): Warmer color temp (-K)
-          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_warmth }}"
-            sequence:
-              - service: script.oal_global_manual_warmer
-
-          # 1x (BRIGHTNESS, OFF): Turn on + brighter
-          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_brightness and not lights_on }}"
-            sequence:
-              - service: light.turn_on
-                target:
-                  entity_id: light.all_adaptive_lights
-              - delay:
-                  milliseconds: 300
-              - service: script.oal_global_manual_brighter
-              # Removed redundant automation.trigger - script fires watchdog
-
-          # 1x (LIGHT, ON): Brighter
-          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_brightness and lights_on }}"
-            sequence:
-              - service: script.oal_global_manual_brighter
-              # Removed redundant automation.trigger - script fires watchdog
-
-          # 1x (MUSIC, not playing): Start + volume up
-          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_volume and not sonos_playing }}"
-            sequence:
-              - service: script.zen32_sonos_start
-              - delay:
-                  milliseconds: 300
-              - service: script.zen32_sonos_volume_step
-                data:
-                  direction: 1
-
-          # 1x (MUSIC, playing): Volume up
-          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed' and is_volume and sonos_playing }}"
-            sequence:
-              - service: script.zen32_sonos_volume_step
-                data:
-                  direction: 1
-
-          # Hold (LIGHT): Cooler color temp
-          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyHeldDown' and is_brightness }}"
-            sequence:
-              - service: script.oal_global_manual_cooler
-
-          # Hold (MUSIC): No action - simplified UX
-          # (removed - 2x does track navigation now)
-
-          # 2x (LIGHT): Full brightness
-          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed2x' and is_brightness }}"
-            sequence:
-              - service: script.zen32_full_brightness
-
-          # 2x (MUSIC): Next track - logical increment
-          - conditions: "{{ button_id == 'button_2' and event_type == 'KeyPressed2x' and is_volume }}"
-            sequence:
-              - service: script.zen32_sonos_next_track
-
-          # =================================================================
-          # BUTTON 3 - VOLUME (Mode Select + Play/Pause + Grouping)
-          # =================================================================
-
-          # 1x (LIGHT, playing): Switch to MUSIC
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_brightness and sonos_playing }}"
-            sequence:
-              - service: script.zen32_set_mode_volume
-
-          # 1x (LIGHT, not playing): Switch + Start
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_brightness and not sonos_playing }}"
-            sequence:
-              - service: script.zen32_set_mode_volume
-              - service: script.zen32_sonos_start
-
-          # 1x (MUSIC, playing): No action - already in desired state
-          # User is in music mode and music is playing - nothing to do
-          # Play/pause available via 2x press if needed
-
-          # 1x (MUSIC, NOT playing): Start playback
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed' and is_volume and not sonos_playing }}"
-            sequence:
-              - service: script.zen32_sonos_start
-
-          # Hold (LIGHT): Switch + Smart group toggle - v1b IMPROVEMENT
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_brightness }}"
-            sequence:
-              - service: script.zen32_set_mode_volume
-              - service: script.zen32_sonos_smart_group_toggle
-
-          # Hold (MUSIC): Smart group toggle - v1b IMPROVEMENT
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyHeldDown' and is_volume }}"
-            sequence:
-              - service: script.zen32_sonos_smart_group_toggle
-
-          # 2x (LIGHT): Switch + Play/Pause - v1b IMPROVEMENT
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed2x' and is_brightness }}"
-            sequence:
-              - service: script.zen32_set_mode_volume
-              - service: script.zen32_sonos_play_pause
-
-          # 2x (MUSIC): Play/Pause - v1b IMPROVEMENT
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed2x' and is_volume }}"
-            sequence:
-              - service: script.zen32_sonos_play_pause
-
-          # 3x (any): Next track
-          - conditions: "{{ button_id == 'button_3' and event_type == 'KeyPressed3x' }}"
-            sequence:
-              - if:
-                  - condition: template
-                    value_template: "{{ is_brightness }}"
-                then:
-                  - service: script.zen32_set_mode_volume
-              - service: script.zen32_sonos_next_track
-
-          # =================================================================
-          # BUTTON 4 - DOWN (Context-Sensitive Decrease)
-          # =================================================================
-
-          # 1x (WARMTH): Cooler color temp (+K)
-          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_warmth }}"
-            sequence:
-              - service: script.oal_global_manual_cooler
-
-          # 1x (BRIGHTNESS, OFF): Turn on + dimmer
-          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_brightness and not lights_on }}"
-            sequence:
-              - service: light.turn_on
-                target:
-                  entity_id: light.all_adaptive_lights
-              - delay:
-                  milliseconds: 300
-              - service: script.oal_global_manual_dimmer
-              # Removed redundant automation.trigger - script fires watchdog
-
-          # 1x (LIGHT, ON): Dimmer
-          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_brightness and lights_on }}"
-            sequence:
-              - service: script.oal_global_manual_dimmer
-              # Removed redundant automation.trigger - script fires watchdog
-
-          # 1x (MUSIC): Volume down (works even when paused)
-          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed' and is_volume }}"
-            sequence:
-              - service: script.zen32_sonos_volume_step
-                data:
-                  direction: -1
-
-          # Hold (LIGHT): Warmer color temp
-          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyHeldDown' and is_brightness }}"
-            sequence:
-              - service: script.oal_global_manual_warmer
-
-          # Hold (MUSIC): No action - simplified UX
-          # (removed - 2x does track navigation now)
-
-          # 2x (LIGHT): Minimum brightness
-          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed2x' and is_brightness }}"
-            sequence:
-              - service: script.zen32_minimum_brightness
-
-          # 2x (MUSIC): Previous track - logical decrement
-          - conditions: "{{ button_id == 'button_4' and event_type == 'KeyPressed2x' and is_volume }}"
-            sequence:
-              - service: script.zen32_sonos_prev_track
-
-          # =================================================================
-          # BUTTON 5 - BIG (Mode-Independent Master Controls)
-          # =================================================================
-
-          # 1x: Toggle all lights
-          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed' }}"
-            sequence:
-              - service: light.toggle
-                target:
-                  entity_id: light.all_adaptive_lights
-
-          # Hold: Soft reset (uses EXISTING script)
-          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyHeldDown' }}"
-            sequence:
-              - service: script.oal_reset_soft
-
-          # 2x: Cycle through OAL config presets (skip Manual and Sleep)
-          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed2x' }}"
-            sequence:
-              - variables:
-                  allowed_configs:
-                    - "Adaptive"
-                    - "Full Bright"
-                    - "Dim Ambient"
-                    - "Warm Ambient"
-                    - "TV Mode"
-                  current: "{{ states('input_select.oal_active_configuration') }}"
-              - variables:
-                  next_config: >
-                    {% set idx = allowed_configs.index(current) if current in allowed_configs else -1 %}
-                    {% set next_idx = (idx + 1) % (allowed_configs | length) %}
-                    {{ allowed_configs[next_idx] }}
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.oal_active_configuration
-                data:
-                  option: "{{ next_config }}"
-
-          # 3x: Toggle force sleep mode (immediately activates/deactivates sleep)
-          - conditions: "{{ button_id == 'button_5' and event_type == 'KeyPressed3x' }}"
-            sequence:
-              - service: input_boolean.toggle
-                target:
-                  entity_id: input_boolean.oal_force_sleep
+      # Execute each action in sequence
+      - repeat:
+          for_each: "{{ actions }}"
+          sequence:
+            - action: script.turn_on
+              target:
+                entity_id: "script.{{ repeat.item }}"
 
 
   # ---------------------------------------------------------------------------

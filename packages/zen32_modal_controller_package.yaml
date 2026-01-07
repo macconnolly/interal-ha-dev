@@ -653,26 +653,30 @@ script:
   # ---------------------------------------------------------------------------
   # Sonos Volume Up
   # ---------------------------------------------------------------------------
+  # Sonos Volume Up - Group-aware
+  # ---------------------------------------------------------------------------
   zen32_sonos_volume_up:
     alias: "ZEN32 - Volume Up"
     icon: mdi:volume-plus
     mode: single
     sequence:
-      - service: script.zen32_sonos_volume_step
+      - action: script.sonos_group_volume_adjust
         data:
-          direction: 1
+          coordinator: "{{ states('sensor.sonos_smart_coordinator') }}"
+          adjustment: 0.05
 
   # ---------------------------------------------------------------------------
-  # Sonos Volume Down
+  # Sonos Volume Down - Group-aware
   # ---------------------------------------------------------------------------
   zen32_sonos_volume_down:
     alias: "ZEN32 - Volume Down"
     icon: mdi:volume-minus
     mode: single
     sequence:
-      - service: script.zen32_sonos_volume_step
+      - action: script.sonos_group_volume_adjust
         data:
-          direction: -1
+          coordinator: "{{ states('sensor.sonos_smart_coordinator') }}"
+          adjustment: -0.05
 
   # ---------------------------------------------------------------------------
   # Toggle All Lights

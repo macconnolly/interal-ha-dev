@@ -30,7 +30,7 @@ light:
     unique_id: "oal_bedroom_primary_lights_group_v13"
     entities:
       - light.master_bedroom_table_lamps
-      - light.master_bedroom_corner_accent_mqtt
+      - light.master_bedroom_corner_accent_govee
   - platform: group
     name: "accent_spots_lights"
     unique_id: "oal_accent_spots_lights_group_v13"
@@ -55,7 +55,7 @@ light:
       - light.living_room_credenza_light
       - light.kitchen_island_pendants
       - light.master_bedroom_table_lamps
-      - light.master_bedroom_corner_accent_mqtt
+      - light.master_bedroom_corner_accent_govee
       - light.dining_room_spot_lights
       - light.living_room_spot_lights
       - light.kitchen_main_lights
@@ -461,7 +461,7 @@ adaptive_lighting:
   - name: "bedroom_primary"
     lights:
       - light.master_bedroom_table_lamps
-      - light.master_bedroom_corner_accent_mqtt
+      - light.master_bedroom_corner_accent_govee
     interval: 90
     transition: 1
     initial_transition: 3
@@ -569,7 +569,7 @@ automation:
   - id: oal_core_adjustment_engine_v13
     alias: "OAL v13 - Core Adjustment Engine (Master)"
     mode: queued
-    max: 10
+    max: 20
     trigger:
       - platform: state
         entity_id:
@@ -3022,7 +3022,7 @@ automation:
       - platform: state
         entity_id:
           - light.master_bedroom_table_lamps
-          - light.master_bedroom_corner_accent_mqtt
+          - light.master_bedroom_corner_accent_govee
         attribute: brightness
         id: bedroom_primary
       - platform: state
@@ -5507,7 +5507,7 @@ template:
         unique_id: room_bedroom_state_v13
         icon: mdi:bed
         state: >
-          {% set lights = ['light.master_bedroom_table_lamps', 'light.master_bedroom_corner_accent_mqtt'] %}
+          {% set lights = ['light.master_bedroom_table_lamps', 'light.master_bedroom_corner_accent_govee'] %}
           {% set lights_on = lights | select('is_state', 'on') | list | length %}
           {% set is_playing = is_state('media_player.bedroom', 'playing') %}
           {% set has_override = (state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') or []) | length > 0 %}
@@ -5527,7 +5527,7 @@ template:
           {% else %}idle{% endif %}
         attributes:
           lights_on: >
-            {% set lights = ['light.master_bedroom_table_lamps', 'light.master_bedroom_corner_accent_mqtt'] %}
+            {% set lights = ['light.master_bedroom_table_lamps', 'light.master_bedroom_corner_accent_govee'] %}
             {{ lights | select('is_state', 'on') | list | length }}
           total_lights: 2
           audio_state: "{{ states('media_player.bedroom') }}"
@@ -5538,7 +5538,7 @@ template:
             {% set bedroom = state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) %}
             {% set bedroom_lights = [
               'light.master_bedroom_table_lamps',
-              'light.master_bedroom_corner_accent_mqtt'
+              'light.master_bedroom_corner_accent_govee'
             ] %}
             {{ bedroom | select('in', bedroom_lights) | list }}
           has_override: >

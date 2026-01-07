@@ -1380,9 +1380,11 @@ automation:
                     - "Warm Ambient"
                     - "TV Mode"
                   current: "{{ states('input_select.oal_active_configuration') }}"
-                  current_idx: "{{ allowed_configs.index(current) if current in allowed_configs else -1 }}"
-                  next_idx: "{{ (current_idx + 1) % (allowed_configs | length) }}"
-                  next_config: "{{ allowed_configs[next_idx] }}"
+              - variables:
+                  next_config: >
+                    {% set idx = allowed_configs.index(current) if current in allowed_configs else -1 %}
+                    {% set next_idx = (idx + 1) % (allowed_configs | length) %}
+                    {{ allowed_configs[next_idx] }}
               - service: input_select.select_option
                 target:
                   entity_id: input_select.oal_active_configuration
@@ -1486,8 +1488,3 @@ automation:
         data:
           message: "zen32_led_sequencer_manual_test: Executed via event"
           level: info
-
-  # ---------------------------------------------------------------------------
-  # Warmth Mode Auto-Exit - Return to brightness after 30s timeout
-  # ---------------------------------------------------------------------------
-

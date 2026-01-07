@@ -1497,10 +1497,17 @@ automation:
                 data:
                   value: 0
               
-              # 4. Unlock engine - Core Engine will manage lights naturally
+              
+              # 5. Unlock engine - Core Engine will manage lights naturally
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_transition_active
+
+              # 6. Trigger immediate engine update
+              - event: oal_watchdog_trigger
+                event_data:
+                  message: "Transition to Adaptive complete - forcing update"
+                  force: true
               
               # EXIT: Baseline path complete - AL now works normally
           

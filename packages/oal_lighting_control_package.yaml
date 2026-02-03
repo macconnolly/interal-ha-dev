@@ -63,7 +63,6 @@ light:
       - light.living_room_hallway_lights
       - light.living_column_strip_light_matter
       - light.dining_column_strip_light_matter
-      - light.kitchen_counter_cabinet_underlights
   - platform: group
     name: Living Room Lights
     unique_id: living_room_lights_group
@@ -1487,7 +1486,7 @@ automation:
                   # Re-evaluate column lights' independent sun-elevation sleep schedule
                   - service: automation.trigger
                     target:
-                      entity_id: automation.oal_column_lights_sleep_trigger_v13
+                      entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
 
               # 0b. Restore previous light state (snapshot from before config mode)
               - service: scene.turn_on
@@ -1948,6 +1947,10 @@ automation:
         state: "off"
       - condition: template
         value_template: "{{ state_attr('sun.sun', 'rising') | default(false) }}"
+      - condition: template
+        value_template: >
+          {{ is_state('light.living_column_strip_light_matter', 'on')
+             or is_state('light.dining_column_strip_light_matter', 'on') }}
     action:
       # Step 1: Raise to safe brightness
       - service: light.turn_on
@@ -2325,7 +2328,7 @@ automation:
         entity_id: input_boolean.oal_disable_next_sonos_wakeup
         state: "off"
     variables:
-      al_switches: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+      al_switches: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | reject('eq', 'switch.adaptive_lighting_column_lights') | list }}"
       alarm_timestamp: "{{ state_attr('sensor.sonos_upcoming_alarms', 'earliest_alarm_timestamp') | int(0) }}"
     action:
       # Only proceed if there's a valid alarm
@@ -2858,6 +2861,11 @@ automation:
         value_template: "{{ states('input_select.oal_active_configuration') == 'Adaptive' }}"
       - condition: state
         entity_id: input_boolean.oal_system_paused
+        state: "off"
+      # Don't react to transient manual_control flags during config transitions
+      # (e.g., sleep switch toggle causes AL to briefly flag lights as manual)
+      - condition: state
+        entity_id: input_boolean.oal_config_transition_active
         state: "off"
     action:
       - service: input_select.select_option

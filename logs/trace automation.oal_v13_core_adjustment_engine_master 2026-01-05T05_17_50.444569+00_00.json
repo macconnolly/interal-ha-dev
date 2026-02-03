@@ -1,0 +1,2855 @@
+{
+  "trace": {
+    "last_step": "action/4",
+    "run_id": "1157f54af1e727e36e57cbfb1fa13484",
+    "state": "stopped",
+    "script_execution": "finished",
+    "timestamp": {
+      "start": "2026-01-05T05:17:50.444569+00:00",
+      "finish": "2026-01-05T05:18:22.276051+00:00"
+    },
+    "domain": "automation",
+    "item_id": "oal_core_adjustment_engine_v13",
+    "trigger": "event 'oal_watchdog_trigger'",
+    "trace": {
+      "trigger/2": [
+        {
+          "path": "trigger/2",
+          "timestamp": "2026-01-05T05:17:50.449034+00:00",
+          "changed_variables": {
+            "this": {
+              "entity_id": "automation.oal_v13_core_adjustment_engine_master",
+              "state": "on",
+              "attributes": {
+                "id": "oal_core_adjustment_engine_v13",
+                "last_triggered": "2026-01-05T05:15:57.394965+00:00",
+                "mode": "queued",
+                "current": 0,
+                "max": 10,
+                "friendly_name": "OAL v13 - Core Adjustment Engine (Master)"
+              },
+              "last_changed": "2026-01-05T05:11:44.268042+00:00",
+              "last_reported": "2026-01-05T05:16:29.355933+00:00",
+              "last_updated": "2026-01-05T05:16:29.355933+00:00",
+              "context": {
+                "id": "01KE69BP9BKQH8T3A68H18TYYR",
+                "parent_id": null,
+                "user_id": null
+              }
+            },
+            "trigger": {
+              "id": "2",
+              "idx": "2",
+              "alias": null,
+              "platform": "event",
+              "event": {
+                "event_type": "oal_watchdog_trigger",
+                "data": {
+                  "message": "Manual adjustment - forcing immediate apply",
+                  "force": true
+                },
+                "origin": "LOCAL",
+                "time_fired": "2026-01-05T05:17:50.442005+00:00",
+                "context": {
+                  "id": "01KE69E57G6N67DFZWBW47QH2B",
+                  "parent_id": "01KE69E57F61BAXQAD8EA3ZYF3",
+                  "user_id": null
+                }
+              },
+              "description": "event 'oal_watchdog_trigger'"
+            },
+            "comp_manual_k": 0,
+            "comp_config_b": 0,
+            "comp_config_k": 0,
+            "comp_env_b_raw": 0,
+            "comp_env_k": 0,
+            "comp_sunset_b": 0,
+            "comp_sunset_k": 0,
+            "comp_night_b_raw": -30,
+            "comp_night_k_raw": -500,
+            "night_strength": 1,
+            "sunset_amplifier": 1,
+            "env_with_sunset_capped": 0,
+            "base_config_b": 0,
+            "base_warmth_offset": 0,
+            "transition_speed": 0.3,
+            "is_periodic_only": false,
+            "is_force_apply": true,
+            "zone_configs": [
+              {
+                "entity_id": "switch.adaptive_lighting_main_living",
+                "id": "main_living",
+                "comfort_min_b": 70,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 3150,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_kitchen_island",
+                "id": "kitchen_island",
+                "comfort_min_b": 20,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 4000,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_bedroom_primary",
+                "id": "bedroom_primary",
+                "comfort_min_b": 30,
+                "comfort_max_b": 65,
+                "min_k": 2000,
+                "max_k": 2700,
+                "env_sensitivity": 0.5,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_accent_spots",
+                "id": "accent_spots",
+                "comfort_min_b": 25,
+                "comfort_max_b": 50,
+                "min_k": 2000,
+                "max_k": 6500,
+                "env_sensitivity": 0.8,
+                "night_sensitivity": 1,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_recessed_ceiling",
+                "id": "recessed_ceiling",
+                "comfort_min_b": 1,
+                "comfort_max_b": 23,
+                "min_k": 2700,
+                "max_k": 2700,
+                "env_sensitivity": 0.6,
+                "night_sensitivity": 0.3,
+                "hard_min_b": 1,
+                "hard_max_b": 30
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_column_lights",
+                "id": "column_lights",
+                "comfort_min_b": 1,
+                "comfort_max_b": 80,
+                "min_k": 2700,
+                "max_k": 2750,
+                "env_sensitivity": 0.7,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              }
+            ]
+          }
+        }
+      ],
+      "condition/0": [
+        {
+          "path": "condition/0",
+          "timestamp": "2026-01-05T05:17:50.449156+00:00",
+          "result": {
+            "result": true
+          }
+        }
+      ],
+      "condition/0/entity_id/0": [
+        {
+          "path": "condition/0/entity_id/0",
+          "timestamp": "2026-01-05T05:17:50.449330+00:00",
+          "result": {
+            "result": true,
+            "state": "off",
+            "wanted_state": "off"
+          }
+        }
+      ],
+      "condition/1": [
+        {
+          "path": "condition/1",
+          "timestamp": "2026-01-05T05:17:50.449540+00:00",
+          "result": {
+            "result": true
+          }
+        }
+      ],
+      "condition/1/conditions/0": [
+        {
+          "path": "condition/1/conditions/0",
+          "timestamp": "2026-01-05T05:17:50.449626+00:00",
+          "result": {
+            "result": true,
+            "entities": []
+          }
+        }
+      ],
+      "action/0": [
+        {
+          "path": "action/0",
+          "timestamp": "2026-01-05T05:17:50.450994+00:00",
+          "changed_variables": {
+            "context": {
+              "id": "01KE69E5FCMWGAKZ0N995KDX67",
+              "parent_id": "01KE69E57G6N67DFZWBW47QH2B",
+              "user_id": null
+            }
+          },
+          "result": {
+            "params": {
+              "domain": "input_datetime",
+              "service": "set_datetime",
+              "service_data": {
+                "datetime": "2026-01-04 22:17:50.452054-07:00",
+                "entity_id": [
+                  "input_datetime.oal_last_engine_run"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "input_datetime.oal_last_engine_run"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        }
+      ],
+      "action/1": [
+        {
+          "path": "action/1",
+          "timestamp": "2026-01-05T05:17:50.454218+00:00"
+        }
+      ],
+      "action/1/if": [
+        {
+          "path": "action/1/if",
+          "timestamp": "2026-01-05T05:17:50.454557+00:00",
+          "result": {
+            "result": false
+          }
+        }
+      ],
+      "action/1/if/condition/0": [
+        {
+          "path": "action/1/if/condition/0",
+          "timestamp": "2026-01-05T05:17:50.458386+00:00",
+          "result": {
+            "result": false,
+            "entities": [
+              "input_boolean.oal_force_sleep"
+            ]
+          }
+        }
+      ],
+      "action/2": [
+        {
+          "path": "action/2",
+          "timestamp": "2026-01-05T05:17:50.459913+00:00",
+          "changed_variables": {
+            "comfort_min_b": 1,
+            "comfort_max_b": 80,
+            "env_sensitivity": 0.7,
+            "night_sensitivity": 0,
+            "hard_min_b": 1,
+            "hard_max_b": 100,
+            "night_with_sensitivity": 0,
+            "night_warmth_with_sensitivity": 0,
+            "base_brightness_zone": 1,
+            "auto_offset_b": 0,
+            "auto_min_raw": 1,
+            "auto_max_raw": 80,
+            "auto_min_clamped": 1,
+            "auto_max_clamped": 80,
+            "per_zone_manual_helper": 24,
+            "manual_offset_b": 24,
+            "min_with_manual": 25,
+            "max_with_manual": 104,
+            "global_min_b": 25,
+            "global_max_b": 100,
+            "clamped_min_b": 25,
+            "clamped_max_b": 100,
+            "final_min_b": 25,
+            "final_max_b": 100,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2700,
+            "final_max_k": 2750
+          }
+        }
+      ],
+      "action/2/repeat/sequence/0": [
+        {
+          "path": "action/2/repeat/sequence/0",
+          "timestamp": "2026-01-05T05:17:50.461484+00:00",
+          "changed_variables": {
+            "comfort_min_b": 70,
+            "comfort_max_b": 100,
+            "env_sensitivity": 1,
+            "night_sensitivity": 0.5,
+            "hard_min_b": 1,
+            "hard_max_b": 100,
+            "night_with_sensitivity": -15,
+            "night_warmth_with_sensitivity": -250,
+            "base_brightness_zone": 100,
+            "auto_offset_b": -15,
+            "auto_min_raw": 55,
+            "auto_max_raw": 85,
+            "auto_min_clamped": 70,
+            "auto_max_clamped": 85,
+            "per_zone_manual_helper": 60,
+            "manual_offset_b": 60,
+            "min_with_manual": 130,
+            "max_with_manual": 145,
+            "global_min_b": 100,
+            "global_max_b": 100,
+            "clamped_min_b": 100,
+            "clamped_max_b": 100,
+            "final_min_b": 100,
+            "final_max_b": 100,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2000,
+            "final_max_k": 2900,
+            "repeat": {
+              "first": true,
+              "index": 1,
+              "last": false,
+              "item": {
+                "entity_id": "switch.adaptive_lighting_main_living",
+                "id": "main_living",
+                "comfort_min_b": 70,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 3150,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              }
+            }
+          }
+        },
+        {
+          "path": "action/2/repeat/sequence/0",
+          "timestamp": "2026-01-05T05:17:50.495064+00:00",
+          "changed_variables": {
+            "comfort_min_b": 20,
+            "comfort_max_b": 100,
+            "env_sensitivity": 1,
+            "night_sensitivity": 0.5,
+            "hard_min_b": 1,
+            "hard_max_b": 100,
+            "night_with_sensitivity": -15,
+            "night_warmth_with_sensitivity": -250,
+            "base_brightness_zone": 45.52994897611528,
+            "auto_offset_b": -15,
+            "auto_min_raw": 5,
+            "auto_max_raw": 85,
+            "auto_min_clamped": 20,
+            "auto_max_clamped": 85,
+            "per_zone_manual_helper": 36,
+            "manual_offset_b": 36,
+            "min_with_manual": 56,
+            "max_with_manual": 121,
+            "global_min_b": 56,
+            "global_max_b": 100,
+            "clamped_min_b": 56,
+            "clamped_max_b": 100,
+            "final_min_b": 56,
+            "final_max_b": 100,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2000,
+            "final_max_k": 3750,
+            "repeat": {
+              "first": false,
+              "index": 2,
+              "last": false,
+              "item": {
+                "entity_id": "switch.adaptive_lighting_kitchen_island",
+                "id": "kitchen_island",
+                "comfort_min_b": 20,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 4000,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              }
+            }
+          }
+        },
+        {
+          "path": "action/2/repeat/sequence/0",
+          "timestamp": "2026-01-05T05:17:50.543378+00:00",
+          "changed_variables": {
+            "comfort_min_b": 30,
+            "comfort_max_b": 65,
+            "env_sensitivity": 0.5,
+            "night_sensitivity": 0,
+            "hard_min_b": 1,
+            "hard_max_b": 80,
+            "night_with_sensitivity": 0,
+            "night_warmth_with_sensitivity": 0,
+            "base_brightness_zone": 52.77484079228648,
+            "auto_offset_b": 0,
+            "auto_min_raw": 30,
+            "auto_max_raw": 65,
+            "auto_min_clamped": 30,
+            "auto_max_clamped": 65,
+            "per_zone_manual_helper": 31.5,
+            "manual_offset_b": 31.5,
+            "min_with_manual": 61.5,
+            "max_with_manual": 96.5,
+            "global_min_b": 61.5,
+            "global_max_b": 96.5,
+            "clamped_min_b": 61.5,
+            "clamped_max_b": 80,
+            "final_min_b": 61.5,
+            "final_max_b": 80,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2700,
+            "final_max_k": 2700,
+            "repeat": {
+              "first": false,
+              "index": 3,
+              "last": false,
+              "item": {
+                "entity_id": "switch.adaptive_lighting_bedroom_primary",
+                "id": "bedroom_primary",
+                "comfort_min_b": 30,
+                "comfort_max_b": 65,
+                "min_k": 2000,
+                "max_k": 2700,
+                "env_sensitivity": 0.5,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              }
+            }
+          }
+        },
+        {
+          "path": "action/2/repeat/sequence/0",
+          "timestamp": "2026-01-05T05:17:50.577560+00:00",
+          "changed_variables": {
+            "comfort_min_b": 25,
+            "comfort_max_b": 50,
+            "env_sensitivity": 0.8,
+            "night_sensitivity": 1,
+            "hard_min_b": 1,
+            "hard_max_b": 80,
+            "night_with_sensitivity": -30,
+            "night_warmth_with_sensitivity": -500,
+            "base_brightness_zone": 40,
+            "auto_offset_b": -30,
+            "auto_min_raw": -5,
+            "auto_max_raw": 20,
+            "auto_min_clamped": 25,
+            "auto_max_clamped": 25,
+            "per_zone_manual_helper": 24,
+            "manual_offset_b": 24,
+            "min_with_manual": 49,
+            "max_with_manual": 49,
+            "global_min_b": 49,
+            "global_max_b": 49,
+            "clamped_min_b": 49,
+            "clamped_max_b": 49,
+            "final_min_b": 49,
+            "final_max_b": 49,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2000,
+            "final_max_k": 6000,
+            "repeat": {
+              "first": false,
+              "index": 4,
+              "last": false,
+              "item": {
+                "entity_id": "switch.adaptive_lighting_accent_spots",
+                "id": "accent_spots",
+                "comfort_min_b": 25,
+                "comfort_max_b": 50,
+                "min_k": 2000,
+                "max_k": 6500,
+                "env_sensitivity": 0.8,
+                "night_sensitivity": 1,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              }
+            }
+          }
+        },
+        {
+          "path": "action/2/repeat/sequence/0",
+          "timestamp": "2026-01-05T05:17:50.612231+00:00",
+          "changed_variables": {
+            "comfort_min_b": 1,
+            "comfort_max_b": 23,
+            "env_sensitivity": 0.6,
+            "night_sensitivity": 0.3,
+            "hard_min_b": 1,
+            "hard_max_b": 30,
+            "night_with_sensitivity": -9,
+            "night_warmth_with_sensitivity": -150,
+            "base_brightness_zone": 7.000001262031439,
+            "auto_offset_b": -9,
+            "auto_min_raw": -8,
+            "auto_max_raw": 14,
+            "auto_min_clamped": 1,
+            "auto_max_clamped": 14,
+            "per_zone_manual_helper": 9,
+            "manual_offset_b": 9,
+            "min_with_manual": 10,
+            "max_with_manual": 23,
+            "global_min_b": 10,
+            "global_max_b": 23,
+            "clamped_min_b": 10,
+            "clamped_max_b": 23,
+            "final_min_b": 10,
+            "final_max_b": 23,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2700,
+            "final_max_k": 2700,
+            "repeat": {
+              "first": false,
+              "index": 5,
+              "last": false,
+              "item": {
+                "entity_id": "switch.adaptive_lighting_recessed_ceiling",
+                "id": "recessed_ceiling",
+                "comfort_min_b": 1,
+                "comfort_max_b": 23,
+                "min_k": 2700,
+                "max_k": 2700,
+                "env_sensitivity": 0.6,
+                "night_sensitivity": 0.3,
+                "hard_min_b": 1,
+                "hard_max_b": 30
+              }
+            }
+          }
+        },
+        {
+          "path": "action/2/repeat/sequence/0",
+          "timestamp": "2026-01-05T05:17:50.644806+00:00",
+          "changed_variables": {
+            "comfort_min_b": 1,
+            "comfort_max_b": 80,
+            "env_sensitivity": 0.7,
+            "night_sensitivity": 0,
+            "hard_min_b": 1,
+            "hard_max_b": 100,
+            "night_with_sensitivity": 0,
+            "night_warmth_with_sensitivity": 0,
+            "base_brightness_zone": 1,
+            "auto_offset_b": 0,
+            "auto_min_raw": 1,
+            "auto_max_raw": 80,
+            "auto_min_clamped": 1,
+            "auto_max_clamped": 80,
+            "per_zone_manual_helper": 24,
+            "manual_offset_b": 24,
+            "min_with_manual": 25,
+            "max_with_manual": 104,
+            "global_min_b": 25,
+            "global_max_b": 100,
+            "clamped_min_b": 25,
+            "clamped_max_b": 100,
+            "final_min_b": 25,
+            "final_max_b": 100,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2700,
+            "final_max_k": 2750,
+            "repeat": {
+              "first": false,
+              "index": 6,
+              "last": true,
+              "item": {
+                "entity_id": "switch.adaptive_lighting_column_lights",
+                "id": "column_lights",
+                "comfort_min_b": 1,
+                "comfort_max_b": 80,
+                "min_k": 2700,
+                "max_k": 2750,
+                "env_sensitivity": 0.7,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              }
+            }
+          }
+        }
+      ],
+      "action/2/repeat/sequence/1": [
+        {
+          "path": "action/2/repeat/sequence/1",
+          "timestamp": "2026-01-05T05:17:50.469948+00:00",
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "change_switch_settings",
+              "service_data": {
+                "min_brightness": 100,
+                "max_brightness": 100,
+                "min_color_temp": 2000,
+                "max_color_temp": 2900,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_main_living"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_main_living"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        },
+        {
+          "path": "action/2/repeat/sequence/1",
+          "timestamp": "2026-01-05T05:17:50.507552+00:00",
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "change_switch_settings",
+              "service_data": {
+                "min_brightness": 56,
+                "max_brightness": 100,
+                "min_color_temp": 2000,
+                "max_color_temp": 3750,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_kitchen_island"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_kitchen_island"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        },
+        {
+          "path": "action/2/repeat/sequence/1",
+          "timestamp": "2026-01-05T05:17:50.554617+00:00",
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "change_switch_settings",
+              "service_data": {
+                "min_brightness": 62,
+                "max_brightness": 80,
+                "min_color_temp": 2700,
+                "max_color_temp": 2700,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_bedroom_primary"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_bedroom_primary"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        },
+        {
+          "path": "action/2/repeat/sequence/1",
+          "timestamp": "2026-01-05T05:17:50.590111+00:00",
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "change_switch_settings",
+              "service_data": {
+                "min_brightness": 49,
+                "max_brightness": 49,
+                "min_color_temp": 2000,
+                "max_color_temp": 6000,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_accent_spots"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_accent_spots"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        },
+        {
+          "path": "action/2/repeat/sequence/1",
+          "timestamp": "2026-01-05T05:17:50.624683+00:00",
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "change_switch_settings",
+              "service_data": {
+                "min_brightness": 10,
+                "max_brightness": 23,
+                "min_color_temp": 2700,
+                "max_color_temp": 2700,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_recessed_ceiling"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_recessed_ceiling"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        },
+        {
+          "path": "action/2/repeat/sequence/1",
+          "timestamp": "2026-01-05T05:17:50.656773+00:00",
+          "child_id": {
+            "domain": "automation",
+            "item_id": "oal_autoreset_from_switch_v13",
+            "run_id": "99776557c0bbe7fbc15652c7e2f5a82d"
+          },
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "change_switch_settings",
+              "service_data": {
+                "min_brightness": 25,
+                "max_brightness": 100,
+                "min_color_temp": 2700,
+                "max_color_temp": 2750,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_column_lights"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_column_lights"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        }
+      ],
+      "action/3": [
+        {
+          "path": "action/3",
+          "timestamp": "2026-01-05T05:18:01.716758+00:00",
+          "changed_variables": {
+            "all_lights": [
+              "light.living_column_strip_light_matter",
+              "light.dining_column_strip_light_matter"
+            ],
+            "all_on_lights": [
+              "light.dining_column_strip_light_matter",
+              "light.living_column_strip_light_matter"
+            ],
+            "manual_lights": [
+              "light.dining_column_strip_light_matter",
+              "light.living_column_strip_light_matter"
+            ],
+            "on_lights": [
+              "light.dining_column_strip_light_matter",
+              "light.living_column_strip_light_matter"
+            ]
+          }
+        }
+      ],
+      "action/3/parallel/0/sequence/0": [
+        {
+          "path": "action/3/parallel/0/sequence/0",
+          "timestamp": "2026-01-05T05:18:01.751835+00:00",
+          "changed_variables": {
+            "all_lights": [
+              "light.living_room_couch_lamp",
+              "light.living_room_floor_lamp",
+              "light.entryway_lamp",
+              "light.living_room_credenza_light",
+              "light.living_room_corner_accent",
+              "light.office_desk_lamp"
+            ],
+            "all_on_lights": [
+              "light.office_desk_lamp",
+              "light.living_room_corner_accent",
+              "light.living_room_credenza_light",
+              "light.entryway_lamp",
+              "light.living_room_floor_lamp",
+              "light.living_room_couch_lamp"
+            ],
+            "manual_lights": [
+              "light.entryway_lamp",
+              "light.living_room_corner_accent",
+              "light.living_room_couch_lamp",
+              "light.living_room_credenza_light",
+              "light.living_room_floor_lamp",
+              "light.office_desk_lamp"
+            ],
+            "on_lights": [
+              "light.office_desk_lamp",
+              "light.living_room_corner_accent",
+              "light.living_room_credenza_light",
+              "light.entryway_lamp",
+              "light.living_room_floor_lamp",
+              "light.living_room_couch_lamp"
+            ]
+          }
+        }
+      ],
+      "action/3/parallel/0/sequence/1": [
+        {
+          "path": "action/3/parallel/0/sequence/1",
+          "timestamp": "2026-01-05T05:18:01.755267+00:00",
+          "result": {
+            "choice": "then"
+          }
+        }
+      ],
+      "action/3/parallel/0/sequence/1/if": [
+        {
+          "path": "action/3/parallel/0/sequence/1/if",
+          "timestamp": "2026-01-05T05:18:01.755580+00:00",
+          "changed_variables": {
+            "this": {
+              "entity_id": "automation.oal_v13_core_adjustment_engine_master",
+              "state": "on",
+              "attributes": {
+                "id": "oal_core_adjustment_engine_v13",
+                "last_triggered": "2026-01-05T05:15:57.394965+00:00",
+                "mode": "queued",
+                "current": 0,
+                "max": 10,
+                "friendly_name": "OAL v13 - Core Adjustment Engine (Master)"
+              },
+              "last_changed": "2026-01-05T05:11:44.268042+00:00",
+              "last_reported": "2026-01-05T05:16:29.355933+00:00",
+              "last_updated": "2026-01-05T05:16:29.355933+00:00",
+              "context": {
+                "id": "01KE69BP9BKQH8T3A68H18TYYR",
+                "parent_id": null,
+                "user_id": null
+              }
+            },
+            "trigger": {
+              "id": "2",
+              "idx": "2",
+              "alias": null,
+              "platform": "event",
+              "event": {
+                "event_type": "oal_watchdog_trigger",
+                "data": {
+                  "message": "Manual adjustment - forcing immediate apply",
+                  "force": true
+                },
+                "origin": "LOCAL",
+                "time_fired": "2026-01-05T05:17:50.442005+00:00",
+                "context": {
+                  "id": "01KE69E57G6N67DFZWBW47QH2B",
+                  "parent_id": "01KE69E57F61BAXQAD8EA3ZYF3",
+                  "user_id": null
+                }
+              },
+              "description": "event 'oal_watchdog_trigger'"
+            },
+            "comp_manual_k": 0,
+            "comp_config_b": 0,
+            "comp_config_k": 0,
+            "comp_env_b_raw": 0,
+            "comp_env_k": 0,
+            "comp_sunset_b": 0,
+            "comp_sunset_k": 0,
+            "comp_night_b_raw": -30,
+            "comp_night_k_raw": -500,
+            "night_strength": 1,
+            "sunset_amplifier": 1,
+            "env_with_sunset_capped": 0,
+            "base_config_b": 0,
+            "base_warmth_offset": 0,
+            "transition_speed": 0.3,
+            "is_periodic_only": false,
+            "is_force_apply": true,
+            "zone_configs": [
+              {
+                "entity_id": "switch.adaptive_lighting_main_living",
+                "id": "main_living",
+                "comfort_min_b": 70,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 3150,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_kitchen_island",
+                "id": "kitchen_island",
+                "comfort_min_b": 20,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 4000,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_bedroom_primary",
+                "id": "bedroom_primary",
+                "comfort_min_b": 30,
+                "comfort_max_b": 65,
+                "min_k": 2000,
+                "max_k": 2700,
+                "env_sensitivity": 0.5,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_accent_spots",
+                "id": "accent_spots",
+                "comfort_min_b": 25,
+                "comfort_max_b": 50,
+                "min_k": 2000,
+                "max_k": 6500,
+                "env_sensitivity": 0.8,
+                "night_sensitivity": 1,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_recessed_ceiling",
+                "id": "recessed_ceiling",
+                "comfort_min_b": 1,
+                "comfort_max_b": 23,
+                "min_k": 2700,
+                "max_k": 2700,
+                "env_sensitivity": 0.6,
+                "night_sensitivity": 0.3,
+                "hard_min_b": 1,
+                "hard_max_b": 30
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_column_lights",
+                "id": "column_lights",
+                "comfort_min_b": 1,
+                "comfort_max_b": 80,
+                "min_k": 2700,
+                "max_k": 2750,
+                "env_sensitivity": 0.7,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              }
+            ],
+            "context": {
+              "id": "01KE69E5FCMWGAKZ0N995KDX67",
+              "parent_id": "01KE69E57G6N67DFZWBW47QH2B",
+              "user_id": null
+            },
+            "comfort_min_b": 1,
+            "comfort_max_b": 80,
+            "env_sensitivity": 0.7,
+            "night_sensitivity": 0,
+            "hard_min_b": 1,
+            "hard_max_b": 100,
+            "night_with_sensitivity": 0,
+            "night_warmth_with_sensitivity": 0,
+            "base_brightness_zone": 1,
+            "auto_offset_b": 0,
+            "auto_min_raw": 1,
+            "auto_max_raw": 80,
+            "auto_min_clamped": 1,
+            "auto_max_clamped": 80,
+            "per_zone_manual_helper": 24,
+            "manual_offset_b": 24,
+            "min_with_manual": 25,
+            "max_with_manual": 104,
+            "global_min_b": 25,
+            "global_max_b": 100,
+            "clamped_min_b": 25,
+            "clamped_max_b": 100,
+            "final_min_b": 25,
+            "final_max_b": 100,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2700,
+            "final_max_k": 2750
+          },
+          "result": {
+            "result": true
+          }
+        }
+      ],
+      "action/3/parallel/0/sequence/1/if/condition/0": [
+        {
+          "path": "action/3/parallel/0/sequence/1/if/condition/0",
+          "timestamp": "2026-01-05T05:18:01.759430+00:00",
+          "result": {
+            "result": true,
+            "entities": []
+          }
+        }
+      ],
+      "action/3/parallel/0/sequence/1/then/0": [
+        {
+          "path": "action/3/parallel/0/sequence/1/then/0",
+          "timestamp": "2026-01-05T05:18:01.763045+00:00",
+          "child_id": {
+            "domain": "automation",
+            "item_id": "oal_autoreset_from_switch_v13",
+            "run_id": "c6875f2e16021f351549b3e6f7ae0fcd"
+          },
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "apply",
+              "service_data": {
+                "lights": [
+                  "light.office_desk_lamp",
+                  "light.living_room_corner_accent",
+                  "light.living_room_credenza_light",
+                  "light.entryway_lamp",
+                  "light.living_room_floor_lamp",
+                  "light.living_room_couch_lamp"
+                ],
+                "turn_on_lights": false,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_main_living"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_main_living"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        }
+      ],
+      "action/3/parallel/1/sequence/0": [
+        {
+          "path": "action/3/parallel/1/sequence/0",
+          "timestamp": "2026-01-05T05:18:01.774500+00:00",
+          "changed_variables": {
+            "all_lights": [
+              "light.kitchen_island_pendants",
+              "light.kitchen_counter_cabinet_underlights"
+            ],
+            "all_on_lights": [
+              "light.kitchen_counter_cabinet_underlights",
+              "light.kitchen_island_pendants"
+            ],
+            "manual_lights": [
+              "light.kitchen_counter_cabinet_underlights",
+              "light.kitchen_island_pendants"
+            ],
+            "on_lights": [
+              "light.kitchen_counter_cabinet_underlights",
+              "light.kitchen_island_pendants"
+            ]
+          }
+        }
+      ],
+      "action/3/parallel/1/sequence/1": [
+        {
+          "path": "action/3/parallel/1/sequence/1",
+          "timestamp": "2026-01-05T05:18:01.777849+00:00",
+          "result": {
+            "choice": "then"
+          }
+        }
+      ],
+      "action/3/parallel/1/sequence/1/if": [
+        {
+          "path": "action/3/parallel/1/sequence/1/if",
+          "timestamp": "2026-01-05T05:18:01.778164+00:00",
+          "changed_variables": {
+            "this": {
+              "entity_id": "automation.oal_v13_core_adjustment_engine_master",
+              "state": "on",
+              "attributes": {
+                "id": "oal_core_adjustment_engine_v13",
+                "last_triggered": "2026-01-05T05:15:57.394965+00:00",
+                "mode": "queued",
+                "current": 0,
+                "max": 10,
+                "friendly_name": "OAL v13 - Core Adjustment Engine (Master)"
+              },
+              "last_changed": "2026-01-05T05:11:44.268042+00:00",
+              "last_reported": "2026-01-05T05:16:29.355933+00:00",
+              "last_updated": "2026-01-05T05:16:29.355933+00:00",
+              "context": {
+                "id": "01KE69BP9BKQH8T3A68H18TYYR",
+                "parent_id": null,
+                "user_id": null
+              }
+            },
+            "trigger": {
+              "id": "2",
+              "idx": "2",
+              "alias": null,
+              "platform": "event",
+              "event": {
+                "event_type": "oal_watchdog_trigger",
+                "data": {
+                  "message": "Manual adjustment - forcing immediate apply",
+                  "force": true
+                },
+                "origin": "LOCAL",
+                "time_fired": "2026-01-05T05:17:50.442005+00:00",
+                "context": {
+                  "id": "01KE69E57G6N67DFZWBW47QH2B",
+                  "parent_id": "01KE69E57F61BAXQAD8EA3ZYF3",
+                  "user_id": null
+                }
+              },
+              "description": "event 'oal_watchdog_trigger'"
+            },
+            "comp_manual_k": 0,
+            "comp_config_b": 0,
+            "comp_config_k": 0,
+            "comp_env_b_raw": 0,
+            "comp_env_k": 0,
+            "comp_sunset_b": 0,
+            "comp_sunset_k": 0,
+            "comp_night_b_raw": -30,
+            "comp_night_k_raw": -500,
+            "night_strength": 1,
+            "sunset_amplifier": 1,
+            "env_with_sunset_capped": 0,
+            "base_config_b": 0,
+            "base_warmth_offset": 0,
+            "transition_speed": 0.3,
+            "is_periodic_only": false,
+            "is_force_apply": true,
+            "zone_configs": [
+              {
+                "entity_id": "switch.adaptive_lighting_main_living",
+                "id": "main_living",
+                "comfort_min_b": 70,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 3150,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_kitchen_island",
+                "id": "kitchen_island",
+                "comfort_min_b": 20,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 4000,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_bedroom_primary",
+                "id": "bedroom_primary",
+                "comfort_min_b": 30,
+                "comfort_max_b": 65,
+                "min_k": 2000,
+                "max_k": 2700,
+                "env_sensitivity": 0.5,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_accent_spots",
+                "id": "accent_spots",
+                "comfort_min_b": 25,
+                "comfort_max_b": 50,
+                "min_k": 2000,
+                "max_k": 6500,
+                "env_sensitivity": 0.8,
+                "night_sensitivity": 1,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_recessed_ceiling",
+                "id": "recessed_ceiling",
+                "comfort_min_b": 1,
+                "comfort_max_b": 23,
+                "min_k": 2700,
+                "max_k": 2700,
+                "env_sensitivity": 0.6,
+                "night_sensitivity": 0.3,
+                "hard_min_b": 1,
+                "hard_max_b": 30
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_column_lights",
+                "id": "column_lights",
+                "comfort_min_b": 1,
+                "comfort_max_b": 80,
+                "min_k": 2700,
+                "max_k": 2750,
+                "env_sensitivity": 0.7,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              }
+            ],
+            "context": {
+              "id": "01KE69E5FCMWGAKZ0N995KDX67",
+              "parent_id": "01KE69E57G6N67DFZWBW47QH2B",
+              "user_id": null
+            },
+            "comfort_min_b": 1,
+            "comfort_max_b": 80,
+            "env_sensitivity": 0.7,
+            "night_sensitivity": 0,
+            "hard_min_b": 1,
+            "hard_max_b": 100,
+            "night_with_sensitivity": 0,
+            "night_warmth_with_sensitivity": 0,
+            "base_brightness_zone": 1,
+            "auto_offset_b": 0,
+            "auto_min_raw": 1,
+            "auto_max_raw": 80,
+            "auto_min_clamped": 1,
+            "auto_max_clamped": 80,
+            "per_zone_manual_helper": 24,
+            "manual_offset_b": 24,
+            "min_with_manual": 25,
+            "max_with_manual": 104,
+            "global_min_b": 25,
+            "global_max_b": 100,
+            "clamped_min_b": 25,
+            "clamped_max_b": 100,
+            "final_min_b": 25,
+            "final_max_b": 100,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2700,
+            "final_max_k": 2750
+          },
+          "result": {
+            "result": true
+          }
+        }
+      ],
+      "action/3/parallel/1/sequence/1/if/condition/0": [
+        {
+          "path": "action/3/parallel/1/sequence/1/if/condition/0",
+          "timestamp": "2026-01-05T05:18:01.779595+00:00",
+          "result": {
+            "result": true,
+            "entities": []
+          }
+        }
+      ],
+      "action/3/parallel/1/sequence/1/then/0": [
+        {
+          "path": "action/3/parallel/1/sequence/1/then/0",
+          "timestamp": "2026-01-05T05:18:01.782592+00:00",
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "apply",
+              "service_data": {
+                "lights": [
+                  "light.kitchen_counter_cabinet_underlights",
+                  "light.kitchen_island_pendants"
+                ],
+                "turn_on_lights": false,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_kitchen_island"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_kitchen_island"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        }
+      ],
+      "action/3/parallel/2/sequence/0": [
+        {
+          "path": "action/3/parallel/2/sequence/0",
+          "timestamp": "2026-01-05T05:18:01.791146+00:00",
+          "changed_variables": {
+            "all_lights": [
+              "light.master_bedroom_table_lamps",
+              "light.master_bedroom_corner_accent_mqtt"
+            ],
+            "all_on_lights": [
+              "light.master_bedroom_table_lamps"
+            ],
+            "manual_lights": [
+              "light.master_bedroom_table_lamps"
+            ],
+            "on_lights": [
+              "light.master_bedroom_table_lamps"
+            ]
+          }
+        }
+      ],
+      "action/3/parallel/2/sequence/1": [
+        {
+          "path": "action/3/parallel/2/sequence/1",
+          "timestamp": "2026-01-05T05:18:01.795240+00:00",
+          "result": {
+            "choice": "then"
+          }
+        }
+      ],
+      "action/3/parallel/2/sequence/1/if": [
+        {
+          "path": "action/3/parallel/2/sequence/1/if",
+          "timestamp": "2026-01-05T05:18:01.795669+00:00",
+          "changed_variables": {
+            "this": {
+              "entity_id": "automation.oal_v13_core_adjustment_engine_master",
+              "state": "on",
+              "attributes": {
+                "id": "oal_core_adjustment_engine_v13",
+                "last_triggered": "2026-01-05T05:15:57.394965+00:00",
+                "mode": "queued",
+                "current": 0,
+                "max": 10,
+                "friendly_name": "OAL v13 - Core Adjustment Engine (Master)"
+              },
+              "last_changed": "2026-01-05T05:11:44.268042+00:00",
+              "last_reported": "2026-01-05T05:16:29.355933+00:00",
+              "last_updated": "2026-01-05T05:16:29.355933+00:00",
+              "context": {
+                "id": "01KE69BP9BKQH8T3A68H18TYYR",
+                "parent_id": null,
+                "user_id": null
+              }
+            },
+            "trigger": {
+              "id": "2",
+              "idx": "2",
+              "alias": null,
+              "platform": "event",
+              "event": {
+                "event_type": "oal_watchdog_trigger",
+                "data": {
+                  "message": "Manual adjustment - forcing immediate apply",
+                  "force": true
+                },
+                "origin": "LOCAL",
+                "time_fired": "2026-01-05T05:17:50.442005+00:00",
+                "context": {
+                  "id": "01KE69E57G6N67DFZWBW47QH2B",
+                  "parent_id": "01KE69E57F61BAXQAD8EA3ZYF3",
+                  "user_id": null
+                }
+              },
+              "description": "event 'oal_watchdog_trigger'"
+            },
+            "comp_manual_k": 0,
+            "comp_config_b": 0,
+            "comp_config_k": 0,
+            "comp_env_b_raw": 0,
+            "comp_env_k": 0,
+            "comp_sunset_b": 0,
+            "comp_sunset_k": 0,
+            "comp_night_b_raw": -30,
+            "comp_night_k_raw": -500,
+            "night_strength": 1,
+            "sunset_amplifier": 1,
+            "env_with_sunset_capped": 0,
+            "base_config_b": 0,
+            "base_warmth_offset": 0,
+            "transition_speed": 0.3,
+            "is_periodic_only": false,
+            "is_force_apply": true,
+            "zone_configs": [
+              {
+                "entity_id": "switch.adaptive_lighting_main_living",
+                "id": "main_living",
+                "comfort_min_b": 70,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 3150,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_kitchen_island",
+                "id": "kitchen_island",
+                "comfort_min_b": 20,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 4000,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_bedroom_primary",
+                "id": "bedroom_primary",
+                "comfort_min_b": 30,
+                "comfort_max_b": 65,
+                "min_k": 2000,
+                "max_k": 2700,
+                "env_sensitivity": 0.5,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_accent_spots",
+                "id": "accent_spots",
+                "comfort_min_b": 25,
+                "comfort_max_b": 50,
+                "min_k": 2000,
+                "max_k": 6500,
+                "env_sensitivity": 0.8,
+                "night_sensitivity": 1,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_recessed_ceiling",
+                "id": "recessed_ceiling",
+                "comfort_min_b": 1,
+                "comfort_max_b": 23,
+                "min_k": 2700,
+                "max_k": 2700,
+                "env_sensitivity": 0.6,
+                "night_sensitivity": 0.3,
+                "hard_min_b": 1,
+                "hard_max_b": 30
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_column_lights",
+                "id": "column_lights",
+                "comfort_min_b": 1,
+                "comfort_max_b": 80,
+                "min_k": 2700,
+                "max_k": 2750,
+                "env_sensitivity": 0.7,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              }
+            ],
+            "context": {
+              "id": "01KE69E5FCMWGAKZ0N995KDX67",
+              "parent_id": "01KE69E57G6N67DFZWBW47QH2B",
+              "user_id": null
+            },
+            "comfort_min_b": 1,
+            "comfort_max_b": 80,
+            "env_sensitivity": 0.7,
+            "night_sensitivity": 0,
+            "hard_min_b": 1,
+            "hard_max_b": 100,
+            "night_with_sensitivity": 0,
+            "night_warmth_with_sensitivity": 0,
+            "base_brightness_zone": 1,
+            "auto_offset_b": 0,
+            "auto_min_raw": 1,
+            "auto_max_raw": 80,
+            "auto_min_clamped": 1,
+            "auto_max_clamped": 80,
+            "per_zone_manual_helper": 24,
+            "manual_offset_b": 24,
+            "min_with_manual": 25,
+            "max_with_manual": 104,
+            "global_min_b": 25,
+            "global_max_b": 100,
+            "clamped_min_b": 25,
+            "clamped_max_b": 100,
+            "final_min_b": 25,
+            "final_max_b": 100,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2700,
+            "final_max_k": 2750
+          },
+          "result": {
+            "result": true
+          }
+        }
+      ],
+      "action/3/parallel/2/sequence/1/if/condition/0": [
+        {
+          "path": "action/3/parallel/2/sequence/1/if/condition/0",
+          "timestamp": "2026-01-05T05:18:01.797009+00:00",
+          "result": {
+            "result": true,
+            "entities": []
+          }
+        }
+      ],
+      "action/3/parallel/2/sequence/1/then/0": [
+        {
+          "path": "action/3/parallel/2/sequence/1/then/0",
+          "timestamp": "2026-01-05T05:18:01.800131+00:00",
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "apply",
+              "service_data": {
+                "lights": [
+                  "light.master_bedroom_table_lamps"
+                ],
+                "turn_on_lights": false,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_bedroom_primary"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_bedroom_primary"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        }
+      ],
+      "action/3/parallel/3/sequence/0": [
+        {
+          "path": "action/3/parallel/3/sequence/0",
+          "timestamp": "2026-01-05T05:18:01.808844+00:00",
+          "changed_variables": {
+            "all_lights": [
+              "light.dining_room_spot_lights",
+              "light.living_room_spot_lights"
+            ],
+            "all_on_lights": [
+              "light.living_room_spot_lights",
+              "light.dining_room_spot_lights"
+            ],
+            "manual_lights": [
+              "light.dining_room_spot_lights",
+              "light.living_room_spot_lights"
+            ],
+            "on_lights": [
+              "light.living_room_spot_lights",
+              "light.dining_room_spot_lights"
+            ]
+          }
+        }
+      ],
+      "action/3/parallel/3/sequence/1": [
+        {
+          "path": "action/3/parallel/3/sequence/1",
+          "timestamp": "2026-01-05T05:18:01.812986+00:00",
+          "result": {
+            "choice": "then"
+          }
+        }
+      ],
+      "action/3/parallel/3/sequence/1/if": [
+        {
+          "path": "action/3/parallel/3/sequence/1/if",
+          "timestamp": "2026-01-05T05:18:01.813375+00:00",
+          "changed_variables": {
+            "this": {
+              "entity_id": "automation.oal_v13_core_adjustment_engine_master",
+              "state": "on",
+              "attributes": {
+                "id": "oal_core_adjustment_engine_v13",
+                "last_triggered": "2026-01-05T05:15:57.394965+00:00",
+                "mode": "queued",
+                "current": 0,
+                "max": 10,
+                "friendly_name": "OAL v13 - Core Adjustment Engine (Master)"
+              },
+              "last_changed": "2026-01-05T05:11:44.268042+00:00",
+              "last_reported": "2026-01-05T05:16:29.355933+00:00",
+              "last_updated": "2026-01-05T05:16:29.355933+00:00",
+              "context": {
+                "id": "01KE69BP9BKQH8T3A68H18TYYR",
+                "parent_id": null,
+                "user_id": null
+              }
+            },
+            "trigger": {
+              "id": "2",
+              "idx": "2",
+              "alias": null,
+              "platform": "event",
+              "event": {
+                "event_type": "oal_watchdog_trigger",
+                "data": {
+                  "message": "Manual adjustment - forcing immediate apply",
+                  "force": true
+                },
+                "origin": "LOCAL",
+                "time_fired": "2026-01-05T05:17:50.442005+00:00",
+                "context": {
+                  "id": "01KE69E57G6N67DFZWBW47QH2B",
+                  "parent_id": "01KE69E57F61BAXQAD8EA3ZYF3",
+                  "user_id": null
+                }
+              },
+              "description": "event 'oal_watchdog_trigger'"
+            },
+            "comp_manual_k": 0,
+            "comp_config_b": 0,
+            "comp_config_k": 0,
+            "comp_env_b_raw": 0,
+            "comp_env_k": 0,
+            "comp_sunset_b": 0,
+            "comp_sunset_k": 0,
+            "comp_night_b_raw": -30,
+            "comp_night_k_raw": -500,
+            "night_strength": 1,
+            "sunset_amplifier": 1,
+            "env_with_sunset_capped": 0,
+            "base_config_b": 0,
+            "base_warmth_offset": 0,
+            "transition_speed": 0.3,
+            "is_periodic_only": false,
+            "is_force_apply": true,
+            "zone_configs": [
+              {
+                "entity_id": "switch.adaptive_lighting_main_living",
+                "id": "main_living",
+                "comfort_min_b": 70,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 3150,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_kitchen_island",
+                "id": "kitchen_island",
+                "comfort_min_b": 20,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 4000,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_bedroom_primary",
+                "id": "bedroom_primary",
+                "comfort_min_b": 30,
+                "comfort_max_b": 65,
+                "min_k": 2000,
+                "max_k": 2700,
+                "env_sensitivity": 0.5,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_accent_spots",
+                "id": "accent_spots",
+                "comfort_min_b": 25,
+                "comfort_max_b": 50,
+                "min_k": 2000,
+                "max_k": 6500,
+                "env_sensitivity": 0.8,
+                "night_sensitivity": 1,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_recessed_ceiling",
+                "id": "recessed_ceiling",
+                "comfort_min_b": 1,
+                "comfort_max_b": 23,
+                "min_k": 2700,
+                "max_k": 2700,
+                "env_sensitivity": 0.6,
+                "night_sensitivity": 0.3,
+                "hard_min_b": 1,
+                "hard_max_b": 30
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_column_lights",
+                "id": "column_lights",
+                "comfort_min_b": 1,
+                "comfort_max_b": 80,
+                "min_k": 2700,
+                "max_k": 2750,
+                "env_sensitivity": 0.7,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              }
+            ],
+            "context": {
+              "id": "01KE69E5FCMWGAKZ0N995KDX67",
+              "parent_id": "01KE69E57G6N67DFZWBW47QH2B",
+              "user_id": null
+            },
+            "comfort_min_b": 1,
+            "comfort_max_b": 80,
+            "env_sensitivity": 0.7,
+            "night_sensitivity": 0,
+            "hard_min_b": 1,
+            "hard_max_b": 100,
+            "night_with_sensitivity": 0,
+            "night_warmth_with_sensitivity": 0,
+            "base_brightness_zone": 1,
+            "auto_offset_b": 0,
+            "auto_min_raw": 1,
+            "auto_max_raw": 80,
+            "auto_min_clamped": 1,
+            "auto_max_clamped": 80,
+            "per_zone_manual_helper": 24,
+            "manual_offset_b": 24,
+            "min_with_manual": 25,
+            "max_with_manual": 104,
+            "global_min_b": 25,
+            "global_max_b": 100,
+            "clamped_min_b": 25,
+            "clamped_max_b": 100,
+            "final_min_b": 25,
+            "final_max_b": 100,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2700,
+            "final_max_k": 2750
+          },
+          "result": {
+            "result": true
+          }
+        }
+      ],
+      "action/3/parallel/3/sequence/1/if/condition/0": [
+        {
+          "path": "action/3/parallel/3/sequence/1/if/condition/0",
+          "timestamp": "2026-01-05T05:18:01.814753+00:00",
+          "result": {
+            "result": true,
+            "entities": []
+          }
+        }
+      ],
+      "action/3/parallel/3/sequence/1/then/0": [
+        {
+          "path": "action/3/parallel/3/sequence/1/then/0",
+          "timestamp": "2026-01-05T05:18:01.817796+00:00",
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "apply",
+              "service_data": {
+                "lights": [
+                  "light.living_room_spot_lights",
+                  "light.dining_room_spot_lights"
+                ],
+                "turn_on_lights": false,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_accent_spots"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_accent_spots"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        }
+      ],
+      "action/3/parallel/4/sequence/0": [
+        {
+          "path": "action/3/parallel/4/sequence/0",
+          "timestamp": "2026-01-05T05:18:01.826110+00:00",
+          "changed_variables": {
+            "all_lights": [
+              "light.kitchen_main_lights",
+              "light.living_room_hallway_lights"
+            ],
+            "all_on_lights": [
+              "light.living_room_hallway_lights",
+              "light.kitchen_main_lights"
+            ],
+            "manual_lights": [
+              "light.kitchen_main_lights",
+              "light.living_room_hallway_lights"
+            ],
+            "on_lights": [
+              "light.living_room_hallway_lights",
+              "light.kitchen_main_lights"
+            ]
+          }
+        }
+      ],
+      "action/3/parallel/4/sequence/1": [
+        {
+          "path": "action/3/parallel/4/sequence/1",
+          "timestamp": "2026-01-05T05:18:01.830493+00:00",
+          "result": {
+            "choice": "then"
+          }
+        }
+      ],
+      "action/3/parallel/4/sequence/1/if": [
+        {
+          "path": "action/3/parallel/4/sequence/1/if",
+          "timestamp": "2026-01-05T05:18:01.830802+00:00",
+          "changed_variables": {
+            "this": {
+              "entity_id": "automation.oal_v13_core_adjustment_engine_master",
+              "state": "on",
+              "attributes": {
+                "id": "oal_core_adjustment_engine_v13",
+                "last_triggered": "2026-01-05T05:15:57.394965+00:00",
+                "mode": "queued",
+                "current": 0,
+                "max": 10,
+                "friendly_name": "OAL v13 - Core Adjustment Engine (Master)"
+              },
+              "last_changed": "2026-01-05T05:11:44.268042+00:00",
+              "last_reported": "2026-01-05T05:16:29.355933+00:00",
+              "last_updated": "2026-01-05T05:16:29.355933+00:00",
+              "context": {
+                "id": "01KE69BP9BKQH8T3A68H18TYYR",
+                "parent_id": null,
+                "user_id": null
+              }
+            },
+            "trigger": {
+              "id": "2",
+              "idx": "2",
+              "alias": null,
+              "platform": "event",
+              "event": {
+                "event_type": "oal_watchdog_trigger",
+                "data": {
+                  "message": "Manual adjustment - forcing immediate apply",
+                  "force": true
+                },
+                "origin": "LOCAL",
+                "time_fired": "2026-01-05T05:17:50.442005+00:00",
+                "context": {
+                  "id": "01KE69E57G6N67DFZWBW47QH2B",
+                  "parent_id": "01KE69E57F61BAXQAD8EA3ZYF3",
+                  "user_id": null
+                }
+              },
+              "description": "event 'oal_watchdog_trigger'"
+            },
+            "comp_manual_k": 0,
+            "comp_config_b": 0,
+            "comp_config_k": 0,
+            "comp_env_b_raw": 0,
+            "comp_env_k": 0,
+            "comp_sunset_b": 0,
+            "comp_sunset_k": 0,
+            "comp_night_b_raw": -30,
+            "comp_night_k_raw": -500,
+            "night_strength": 1,
+            "sunset_amplifier": 1,
+            "env_with_sunset_capped": 0,
+            "base_config_b": 0,
+            "base_warmth_offset": 0,
+            "transition_speed": 0.3,
+            "is_periodic_only": false,
+            "is_force_apply": true,
+            "zone_configs": [
+              {
+                "entity_id": "switch.adaptive_lighting_main_living",
+                "id": "main_living",
+                "comfort_min_b": 70,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 3150,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_kitchen_island",
+                "id": "kitchen_island",
+                "comfort_min_b": 20,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 4000,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_bedroom_primary",
+                "id": "bedroom_primary",
+                "comfort_min_b": 30,
+                "comfort_max_b": 65,
+                "min_k": 2000,
+                "max_k": 2700,
+                "env_sensitivity": 0.5,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_accent_spots",
+                "id": "accent_spots",
+                "comfort_min_b": 25,
+                "comfort_max_b": 50,
+                "min_k": 2000,
+                "max_k": 6500,
+                "env_sensitivity": 0.8,
+                "night_sensitivity": 1,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_recessed_ceiling",
+                "id": "recessed_ceiling",
+                "comfort_min_b": 1,
+                "comfort_max_b": 23,
+                "min_k": 2700,
+                "max_k": 2700,
+                "env_sensitivity": 0.6,
+                "night_sensitivity": 0.3,
+                "hard_min_b": 1,
+                "hard_max_b": 30
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_column_lights",
+                "id": "column_lights",
+                "comfort_min_b": 1,
+                "comfort_max_b": 80,
+                "min_k": 2700,
+                "max_k": 2750,
+                "env_sensitivity": 0.7,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              }
+            ],
+            "context": {
+              "id": "01KE69E5FCMWGAKZ0N995KDX67",
+              "parent_id": "01KE69E57G6N67DFZWBW47QH2B",
+              "user_id": null
+            },
+            "comfort_min_b": 1,
+            "comfort_max_b": 80,
+            "env_sensitivity": 0.7,
+            "night_sensitivity": 0,
+            "hard_min_b": 1,
+            "hard_max_b": 100,
+            "night_with_sensitivity": 0,
+            "night_warmth_with_sensitivity": 0,
+            "base_brightness_zone": 1,
+            "auto_offset_b": 0,
+            "auto_min_raw": 1,
+            "auto_max_raw": 80,
+            "auto_min_clamped": 1,
+            "auto_max_clamped": 80,
+            "per_zone_manual_helper": 24,
+            "manual_offset_b": 24,
+            "min_with_manual": 25,
+            "max_with_manual": 104,
+            "global_min_b": 25,
+            "global_max_b": 100,
+            "clamped_min_b": 25,
+            "clamped_max_b": 100,
+            "final_min_b": 25,
+            "final_max_b": 100,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2700,
+            "final_max_k": 2750
+          },
+          "result": {
+            "result": true
+          }
+        }
+      ],
+      "action/3/parallel/4/sequence/1/if/condition/0": [
+        {
+          "path": "action/3/parallel/4/sequence/1/if/condition/0",
+          "timestamp": "2026-01-05T05:18:01.832096+00:00",
+          "result": {
+            "result": true,
+            "entities": []
+          }
+        }
+      ],
+      "action/3/parallel/4/sequence/1/then/0": [
+        {
+          "path": "action/3/parallel/4/sequence/1/then/0",
+          "timestamp": "2026-01-05T05:18:01.835193+00:00",
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "apply",
+              "service_data": {
+                "lights": [
+                  "light.living_room_hallway_lights",
+                  "light.kitchen_main_lights"
+                ],
+                "turn_on_lights": false,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_recessed_ceiling"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_recessed_ceiling"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        }
+      ],
+      "action/3/parallel/5/sequence/0": [
+        {
+          "path": "action/3/parallel/5/sequence/0",
+          "timestamp": "2026-01-05T05:18:01.843462+00:00",
+          "changed_variables": {
+            "all_lights": [
+              "light.living_column_strip_light_matter",
+              "light.dining_column_strip_light_matter"
+            ],
+            "all_on_lights": [
+              "light.dining_column_strip_light_matter",
+              "light.living_column_strip_light_matter"
+            ],
+            "manual_lights": [
+              "light.dining_column_strip_light_matter",
+              "light.living_column_strip_light_matter"
+            ],
+            "on_lights": [
+              "light.dining_column_strip_light_matter",
+              "light.living_column_strip_light_matter"
+            ]
+          }
+        }
+      ],
+      "action/3/parallel/5/sequence/1": [
+        {
+          "path": "action/3/parallel/5/sequence/1",
+          "timestamp": "2026-01-05T05:18:01.848402+00:00",
+          "result": {
+            "choice": "then"
+          }
+        }
+      ],
+      "action/3/parallel/5/sequence/1/if": [
+        {
+          "path": "action/3/parallel/5/sequence/1/if",
+          "timestamp": "2026-01-05T05:18:01.848703+00:00",
+          "changed_variables": {
+            "this": {
+              "entity_id": "automation.oal_v13_core_adjustment_engine_master",
+              "state": "on",
+              "attributes": {
+                "id": "oal_core_adjustment_engine_v13",
+                "last_triggered": "2026-01-05T05:15:57.394965+00:00",
+                "mode": "queued",
+                "current": 0,
+                "max": 10,
+                "friendly_name": "OAL v13 - Core Adjustment Engine (Master)"
+              },
+              "last_changed": "2026-01-05T05:11:44.268042+00:00",
+              "last_reported": "2026-01-05T05:16:29.355933+00:00",
+              "last_updated": "2026-01-05T05:16:29.355933+00:00",
+              "context": {
+                "id": "01KE69BP9BKQH8T3A68H18TYYR",
+                "parent_id": null,
+                "user_id": null
+              }
+            },
+            "trigger": {
+              "id": "2",
+              "idx": "2",
+              "alias": null,
+              "platform": "event",
+              "event": {
+                "event_type": "oal_watchdog_trigger",
+                "data": {
+                  "message": "Manual adjustment - forcing immediate apply",
+                  "force": true
+                },
+                "origin": "LOCAL",
+                "time_fired": "2026-01-05T05:17:50.442005+00:00",
+                "context": {
+                  "id": "01KE69E57G6N67DFZWBW47QH2B",
+                  "parent_id": "01KE69E57F61BAXQAD8EA3ZYF3",
+                  "user_id": null
+                }
+              },
+              "description": "event 'oal_watchdog_trigger'"
+            },
+            "comp_manual_k": 0,
+            "comp_config_b": 0,
+            "comp_config_k": 0,
+            "comp_env_b_raw": 0,
+            "comp_env_k": 0,
+            "comp_sunset_b": 0,
+            "comp_sunset_k": 0,
+            "comp_night_b_raw": -30,
+            "comp_night_k_raw": -500,
+            "night_strength": 1,
+            "sunset_amplifier": 1,
+            "env_with_sunset_capped": 0,
+            "base_config_b": 0,
+            "base_warmth_offset": 0,
+            "transition_speed": 0.3,
+            "is_periodic_only": false,
+            "is_force_apply": true,
+            "zone_configs": [
+              {
+                "entity_id": "switch.adaptive_lighting_main_living",
+                "id": "main_living",
+                "comfort_min_b": 70,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 3150,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_kitchen_island",
+                "id": "kitchen_island",
+                "comfort_min_b": 20,
+                "comfort_max_b": 100,
+                "min_k": 2000,
+                "max_k": 4000,
+                "env_sensitivity": 1,
+                "night_sensitivity": 0.5,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_bedroom_primary",
+                "id": "bedroom_primary",
+                "comfort_min_b": 30,
+                "comfort_max_b": 65,
+                "min_k": 2000,
+                "max_k": 2700,
+                "env_sensitivity": 0.5,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_accent_spots",
+                "id": "accent_spots",
+                "comfort_min_b": 25,
+                "comfort_max_b": 50,
+                "min_k": 2000,
+                "max_k": 6500,
+                "env_sensitivity": 0.8,
+                "night_sensitivity": 1,
+                "hard_min_b": 1,
+                "hard_max_b": 80
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_recessed_ceiling",
+                "id": "recessed_ceiling",
+                "comfort_min_b": 1,
+                "comfort_max_b": 23,
+                "min_k": 2700,
+                "max_k": 2700,
+                "env_sensitivity": 0.6,
+                "night_sensitivity": 0.3,
+                "hard_min_b": 1,
+                "hard_max_b": 30
+              },
+              {
+                "entity_id": "switch.adaptive_lighting_column_lights",
+                "id": "column_lights",
+                "comfort_min_b": 1,
+                "comfort_max_b": 80,
+                "min_k": 2700,
+                "max_k": 2750,
+                "env_sensitivity": 0.7,
+                "night_sensitivity": 0,
+                "hard_min_b": 1,
+                "hard_max_b": 100
+              }
+            ],
+            "context": {
+              "id": "01KE69E5FCMWGAKZ0N995KDX67",
+              "parent_id": "01KE69E57G6N67DFZWBW47QH2B",
+              "user_id": null
+            },
+            "comfort_min_b": 1,
+            "comfort_max_b": 80,
+            "env_sensitivity": 0.7,
+            "night_sensitivity": 0,
+            "hard_min_b": 1,
+            "hard_max_b": 100,
+            "night_with_sensitivity": 0,
+            "night_warmth_with_sensitivity": 0,
+            "base_brightness_zone": 1,
+            "auto_offset_b": 0,
+            "auto_min_raw": 1,
+            "auto_max_raw": 80,
+            "auto_min_clamped": 1,
+            "auto_max_clamped": 80,
+            "per_zone_manual_helper": 24,
+            "manual_offset_b": 24,
+            "min_with_manual": 25,
+            "max_with_manual": 104,
+            "global_min_b": 25,
+            "global_max_b": 100,
+            "clamped_min_b": 25,
+            "clamped_max_b": 100,
+            "final_min_b": 25,
+            "final_max_b": 100,
+            "govee_zones": [
+              "column_lights",
+              "bedroom_primary"
+            ],
+            "final_min_k": 2700,
+            "final_max_k": 2750
+          },
+          "result": {
+            "result": true
+          }
+        }
+      ],
+      "action/3/parallel/5/sequence/1/if/condition/0": [
+        {
+          "path": "action/3/parallel/5/sequence/1/if/condition/0",
+          "timestamp": "2026-01-05T05:18:01.850453+00:00",
+          "result": {
+            "result": true,
+            "entities": []
+          }
+        }
+      ],
+      "action/3/parallel/5/sequence/1/then/0": [
+        {
+          "path": "action/3/parallel/5/sequence/1/then/0",
+          "timestamp": "2026-01-05T05:18:01.854035+00:00",
+          "result": {
+            "params": {
+              "domain": "adaptive_lighting",
+              "service": "apply",
+              "service_data": {
+                "lights": [
+                  "light.dining_column_strip_light_matter",
+                  "light.living_column_strip_light_matter"
+                ],
+                "turn_on_lights": false,
+                "transition": 0.3,
+                "entity_id": [
+                  "switch.adaptive_lighting_column_lights"
+                ]
+              },
+              "target": {
+                "entity_id": [
+                  "switch.adaptive_lighting_column_lights"
+                ]
+              }
+            },
+            "running_script": false
+          }
+        }
+      ],
+      "action/4": [
+        {
+          "path": "action/4",
+          "timestamp": "2026-01-05T05:18:22.255860+00:00",
+          "result": {
+            "event": "oal_engine_calculation_complete",
+            "event_data": {
+              "timestamp": "2026-01-04T22:18:22.257276-07:00",
+              "trigger_source": "event:n/a",
+              "final_brightness_offset_total": 0,
+              "final_warmth_offset_total": 0,
+              "comp_b_manual_slider": 0,
+              "comp_b_config": 0,
+              "comp_b_env_raw": 0,
+              "comp_b_env_with_sunset": 0,
+              "comp_b_sunset": 0,
+              "sunset_amplifier": 1,
+              "comp_k_manual": 0,
+              "comp_k_config": 0,
+              "comp_k_env": 0,
+              "comp_k_sunset": 0
+            }
+          }
+        }
+      ]
+    },
+    "config": {
+      "id": "oal_core_adjustment_engine_v13",
+      "alias": "OAL v13 - Core Adjustment Engine (Master)",
+      "mode": "queued",
+      "max": 10,
+      "trigger": [
+        {
+          "platform": "state",
+          "entity_id": [
+            "input_number.oal_offset_global_manual_warmth",
+            "input_number.oal_offset_config_brightness",
+            "input_number.oal_offset_config_warmth",
+            "input_number.oal_offset_environmental_brightness",
+            "input_number.oal_offset_environmental_warmth",
+            "input_number.oal_offset_sunset_brightness",
+            "input_number.oal_offset_sunset_warmth",
+            "input_number.oal_offset_night_brightness",
+            "input_number.oal_offset_night_warmth",
+            "input_number.oal_night_dimming_strength"
+          ],
+          "for": "00:00:01"
+        },
+        {
+          "platform": "time_pattern",
+          "minutes": "/15"
+        },
+        {
+          "platform": "event",
+          "event_type": "oal_watchdog_trigger"
+        }
+      ],
+      "condition": [
+        {
+          "condition": "state",
+          "entity_id": "input_boolean.oal_system_paused",
+          "state": "off"
+        },
+        {
+          "condition": "or",
+          "conditions": [
+            {
+              "condition": "template",
+              "value_template": "{{ trigger.platform == 'event' and\n   (trigger.event.data.force | default(false)) == true }}\n"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.oal_config_transition_active",
+              "state": "off"
+            }
+          ]
+        }
+      ],
+      "variables": {
+        "comp_manual_k": "{{ states('input_number.oal_offset_global_manual_warmth') | float(0) }}",
+        "comp_config_b": "{{ states('input_number.oal_offset_config_brightness') | float(0) }}",
+        "comp_config_k": "{{ states('input_number.oal_offset_config_warmth') | float(0) }}",
+        "comp_env_b_raw": "{{ states('input_number.oal_offset_environmental_brightness') | float(0) }}",
+        "comp_env_k": "{{ states('input_number.oal_offset_environmental_warmth') | float(0) }}",
+        "comp_sunset_b": "{{ states('input_number.oal_offset_sunset_brightness') | float(0) }}",
+        "comp_sunset_k": "{{ states('input_number.oal_offset_sunset_warmth') | float(0) }}",
+        "comp_night_b_raw": "{{ states('input_number.oal_offset_night_brightness') | float(0) }}",
+        "comp_night_k_raw": "{{ states('input_number.oal_offset_night_warmth') | float(0) }}",
+        "night_strength": "{{ states('input_number.oal_night_dimming_strength') | float(100) / 100 }}",
+        "sunset_amplifier": "{{ 1 + (comp_sunset_b / 8) * 0.5 if comp_sunset_b > 0 else 1.0 }}\n",
+        "env_with_sunset_capped": "{{ [30, (comp_env_b_raw * sunset_amplifier)] | min }}\n",
+        "base_config_b": "{{ comp_config_b }}\n",
+        "base_warmth_offset": "{{ comp_manual_k + comp_config_k + comp_sunset_k + comp_env_k }}\n",
+        "transition_speed": "{{ states('input_number.oal_control_transition_speed') | float(0.3) }}",
+        "is_periodic_only": "{{ trigger.platform == 'time_pattern' }}",
+        "is_force_apply": "{{ not is_periodic_only }}",
+        "zone_configs": [
+          {
+            "entity_id": "switch.adaptive_lighting_main_living",
+            "id": "main_living",
+            "comfort_min_b": 70,
+            "comfort_max_b": 100,
+            "min_k": 2000,
+            "max_k": 3150,
+            "env_sensitivity": 1,
+            "night_sensitivity": 0.5,
+            "hard_min_b": 1,
+            "hard_max_b": 100
+          },
+          {
+            "entity_id": "switch.adaptive_lighting_kitchen_island",
+            "id": "kitchen_island",
+            "comfort_min_b": 20,
+            "comfort_max_b": 100,
+            "min_k": 2000,
+            "max_k": 4000,
+            "env_sensitivity": 1,
+            "night_sensitivity": 0.5,
+            "hard_min_b": 1,
+            "hard_max_b": 100
+          },
+          {
+            "entity_id": "switch.adaptive_lighting_bedroom_primary",
+            "id": "bedroom_primary",
+            "comfort_min_b": 30,
+            "comfort_max_b": 65,
+            "min_k": 2000,
+            "max_k": 2700,
+            "env_sensitivity": 0.5,
+            "night_sensitivity": 0,
+            "hard_min_b": 1,
+            "hard_max_b": 80
+          },
+          {
+            "entity_id": "switch.adaptive_lighting_accent_spots",
+            "id": "accent_spots",
+            "comfort_min_b": 25,
+            "comfort_max_b": 50,
+            "min_k": 2000,
+            "max_k": 6500,
+            "env_sensitivity": 0.8,
+            "night_sensitivity": 1,
+            "hard_min_b": 1,
+            "hard_max_b": 80
+          },
+          {
+            "entity_id": "switch.adaptive_lighting_recessed_ceiling",
+            "id": "recessed_ceiling",
+            "comfort_min_b": 1,
+            "comfort_max_b": 23,
+            "min_k": 2700,
+            "max_k": 2700,
+            "env_sensitivity": 0.6,
+            "night_sensitivity": 0.3,
+            "hard_min_b": 1,
+            "hard_max_b": 30
+          },
+          {
+            "entity_id": "switch.adaptive_lighting_column_lights",
+            "id": "column_lights",
+            "comfort_min_b": 1,
+            "comfort_max_b": 80,
+            "min_k": 2700,
+            "max_k": 2750,
+            "env_sensitivity": 0.7,
+            "night_sensitivity": 0,
+            "hard_min_b": 1,
+            "hard_max_b": 100
+          }
+        ]
+      },
+      "action": [
+        {
+          "action": "input_datetime.set_datetime",
+          "target": {
+            "entity_id": "input_datetime.oal_last_engine_run"
+          },
+          "data": {
+            "datetime": "{{ now() }}"
+          }
+        },
+        {
+          "if": "{{ is_state('input_boolean.oal_force_sleep', 'on') }}",
+          "then": [
+            {
+              "repeat": {
+                "for_each": "{{ zone_configs }}",
+                "sequence": [
+                  {
+                    "continue_on_error": true,
+                    "target": {
+                      "entity_id": "{{ repeat.item.entity_id }}"
+                    },
+                    "data": {
+                      "min_brightness": 1,
+                      "max_brightness": 5,
+                      "min_color_temp": 1800,
+                      "max_color_temp": 1800,
+                      "transition": 1
+                    },
+                    "action": "adaptive_lighting.change_switch_settings"
+                  }
+                ]
+              }
+            },
+            {
+              "continue_on_error": true,
+              "target": {
+                "entity_id": "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+              },
+              "data": {
+                "turn_on_lights": false,
+                "transition": 5
+              },
+              "action": "adaptive_lighting.apply"
+            },
+            {
+              "stop": "Force sleep mode active"
+            }
+          ]
+        },
+        {
+          "repeat": {
+            "for_each": "{{ zone_configs }}",
+            "sequence": [
+              {
+                "variables": {
+                  "comfort_min_b": "{{ repeat.item.comfort_min_b | float }}",
+                  "comfort_max_b": "{{ repeat.item.comfort_max_b | float }}",
+                  "env_sensitivity": "{{ repeat.item.env_sensitivity | float }}",
+                  "night_sensitivity": "{{ repeat.item.night_sensitivity | float(0) }}",
+                  "hard_min_b": "{{ repeat.item.hard_min_b | float }}",
+                  "hard_max_b": "{{ repeat.item.hard_max_b | float }}",
+                  "night_with_sensitivity": "{{ comp_night_b_raw * night_strength * night_sensitivity }}\n",
+                  "night_warmth_with_sensitivity": "{{ comp_night_k_raw * night_strength * night_sensitivity }}\n",
+                  "base_brightness_zone": "{{ state_attr(repeat.item.entity_id, 'brightness_pct')\n   | float((comfort_min_b + comfort_max_b) / 2) }}\n",
+                  "auto_offset_b": "{{ base_config_b + (env_with_sunset_capped * env_sensitivity) + night_with_sensitivity }}\n",
+                  "auto_min_raw": "{{ comfort_min_b + auto_offset_b }}",
+                  "auto_max_raw": "{{ comfort_max_b + auto_offset_b }}",
+                  "auto_min_clamped": "{{ [comfort_min_b, [comfort_max_b, auto_min_raw] | min] | max }}\n",
+                  "auto_max_clamped": "{{ [comfort_min_b, [hard_max_b, auto_max_raw] | min] | max }}\n",
+                  "per_zone_manual_helper": "{% if repeat.item.id == 'main_living' %}\n  {{ states('input_number.oal_manual_offset_main_living_brightness') | float(0) }}\n{% elif repeat.item.id == 'kitchen_island' %}\n  {{ states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) }}\n{% elif repeat.item.id == 'bedroom_primary' %}\n  {{ states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0) }}\n{% elif repeat.item.id == 'accent_spots' %}\n  {{ states('input_number.oal_manual_offset_accent_spots_brightness') | float(0) }}\n{% elif repeat.item.id == 'recessed_ceiling' %}\n  {{ states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0) }}\n{% elif repeat.item.id == 'column_lights' %}\n  {{ states('input_number.oal_manual_offset_column_lights_brightness') | float(0) }}\n{% else %}\n  0\n{% endif %}\n",
+                  "manual_offset_b": "{{ per_zone_manual_helper }}",
+                  "min_with_manual": "{{ auto_min_clamped + manual_offset_b }}",
+                  "max_with_manual": "{{ auto_max_clamped + manual_offset_b }}",
+                  "global_min_b": "{{ [1, [100, min_with_manual] | min] | max }}",
+                  "global_max_b": "{{ [1, [100, max_with_manual] | min] | max }}",
+                  "clamped_min_b": "{{ [hard_min_b, [hard_max_b, global_min_b] | min] | max }}",
+                  "clamped_max_b": "{{ [hard_min_b, [hard_max_b, global_max_b] | min] | max }}",
+                  "final_min_b": "{{ clamped_min_b }}",
+                  "final_max_b": "{{ [clamped_min_b, clamped_max_b] | max }}",
+                  "govee_zones": "{{ ['column_lights', 'bedroom_primary'] }}",
+                  "final_min_k": "{% if repeat.item.id == 'recessed_ceiling' %}\n  {{ repeat.item.min_k }}\n{% else %}\n  {% set proposed_min_k = repeat.item.min_k + base_warmth_offset + night_warmth_with_sensitivity %}\n  {% if repeat.item.id in govee_zones %}\n    {{ [2700, [6500, proposed_min_k] | min] | max }}\n  {% else %}\n    {{ [repeat.item.min_k, [repeat.item.max_k, proposed_min_k] | min] | max }}\n  {% endif %}\n{% endif %}\n",
+                  "final_max_k": "{% if repeat.item.id == 'recessed_ceiling' %}\n  {{ repeat.item.max_k }}\n{% else %}\n  {% set proposed_max_k = repeat.item.max_k + base_warmth_offset + night_warmth_with_sensitivity %}\n  {% if repeat.item.id in govee_zones %}\n    {% set clamped_k = [2700, [6500, proposed_max_k] | min] | max %}\n  {% else %}\n    {% set clamped_k = [repeat.item.min_k, [repeat.item.max_k, proposed_max_k] | min] | max %}\n  {% endif %}\n  {{ [final_min_k | float, clamped_k] | max }}\n{% endif %}\n"
+                }
+              },
+              {
+                "target": {
+                  "entity_id": "{{ repeat.item.entity_id }}"
+                },
+                "data": {
+                  "min_brightness": "{{ final_min_b | round(0) }}",
+                  "max_brightness": "{{ final_max_b | round(0) }}",
+                  "min_color_temp": "{{ final_min_k | round(0) }}",
+                  "max_color_temp": "{{ final_max_k | round(0) }}",
+                  "transition": "{{ transition_speed }}"
+                },
+                "action": "adaptive_lighting.change_switch_settings"
+              }
+            ]
+          }
+        },
+        {
+          "parallel": [
+            {
+              "sequence": [
+                {
+                  "variables": {
+                    "all_lights": "{{ (state_attr('switch.adaptive_lighting_main_living', 'configuration') or {}).get('lights', []) }}",
+                    "all_on_lights": "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}",
+                    "manual_lights": "{{ state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) }}",
+                    "on_lights": "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ on_lights | length > 0 }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "target": {
+                        "entity_id": "switch.adaptive_lighting_main_living"
+                      },
+                      "data": {
+                        "lights": "{{ on_lights }}",
+                        "turn_on_lights": false,
+                        "transition": "{{ transition_speed }}"
+                      },
+                      "action": "adaptive_lighting.apply"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "sequence": [
+                {
+                  "variables": {
+                    "all_lights": "{{ (state_attr('switch.adaptive_lighting_kitchen_island', 'configuration') or {}).get('lights', []) }}",
+                    "all_on_lights": "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}",
+                    "manual_lights": "{{ state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) }}",
+                    "on_lights": "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ on_lights | length > 0 }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "target": {
+                        "entity_id": "switch.adaptive_lighting_kitchen_island"
+                      },
+                      "data": {
+                        "lights": "{{ on_lights }}",
+                        "turn_on_lights": false,
+                        "transition": "{{ transition_speed }}"
+                      },
+                      "action": "adaptive_lighting.apply"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "sequence": [
+                {
+                  "variables": {
+                    "all_lights": "{{ (state_attr('switch.adaptive_lighting_bedroom_primary', 'configuration') or {}).get('lights', []) }}",
+                    "all_on_lights": "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}",
+                    "manual_lights": "{{ state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) }}",
+                    "on_lights": "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ on_lights | length > 0 }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "target": {
+                        "entity_id": "switch.adaptive_lighting_bedroom_primary"
+                      },
+                      "data": {
+                        "lights": "{{ on_lights }}",
+                        "turn_on_lights": false,
+                        "transition": "{{ transition_speed }}"
+                      },
+                      "action": "adaptive_lighting.apply"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "sequence": [
+                {
+                  "variables": {
+                    "all_lights": "{{ (state_attr('switch.adaptive_lighting_accent_spots', 'configuration') or {}).get('lights', []) }}",
+                    "all_on_lights": "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}",
+                    "manual_lights": "{{ state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) }}",
+                    "on_lights": "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ on_lights | length > 0 }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "target": {
+                        "entity_id": "switch.adaptive_lighting_accent_spots"
+                      },
+                      "data": {
+                        "lights": "{{ on_lights }}",
+                        "turn_on_lights": false,
+                        "transition": "{{ transition_speed }}"
+                      },
+                      "action": "adaptive_lighting.apply"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "sequence": [
+                {
+                  "variables": {
+                    "all_lights": "{{ (state_attr('switch.adaptive_lighting_recessed_ceiling', 'configuration') or {}).get('lights', []) }}",
+                    "all_on_lights": "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}",
+                    "manual_lights": "{{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'manual_control') | default([]) }}",
+                    "on_lights": "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ on_lights | length > 0 }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "target": {
+                        "entity_id": "switch.adaptive_lighting_recessed_ceiling"
+                      },
+                      "data": {
+                        "lights": "{{ on_lights }}",
+                        "turn_on_lights": false,
+                        "transition": "{{ transition_speed }}"
+                      },
+                      "action": "adaptive_lighting.apply"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "sequence": [
+                {
+                  "variables": {
+                    "all_lights": "{{ (state_attr('switch.adaptive_lighting_column_lights', 'configuration') or {}).get('lights', []) }}",
+                    "all_on_lights": "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}",
+                    "manual_lights": "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) }}",
+                    "on_lights": "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ on_lights | length > 0 }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "target": {
+                        "entity_id": "switch.adaptive_lighting_column_lights"
+                      },
+                      "data": {
+                        "lights": "{{ on_lights }}",
+                        "turn_on_lights": false,
+                        "transition": "{{ transition_speed }}"
+                      },
+                      "action": "adaptive_lighting.apply"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event": "oal_engine_calculation_complete",
+          "event_data": {
+            "timestamp": "{{ now().isoformat() }}",
+            "trigger_source": "{{ trigger.platform ~ ':' ~ (trigger.entity_id | default('n/a')) }}\n",
+            "final_brightness_offset_total": "{{ base_config_b + env_with_sunset_capped }}\n",
+            "final_warmth_offset_total": "{{ base_warmth_offset }}",
+            "comp_b_manual_slider": 0,
+            "comp_b_config": "{{ comp_config_b }}",
+            "comp_b_env_raw": "{{ comp_env_b_raw }}",
+            "comp_b_env_with_sunset": "{{ env_with_sunset_capped }}",
+            "comp_b_sunset": "{{ comp_sunset_b }}",
+            "sunset_amplifier": "{{ sunset_amplifier }}",
+            "comp_k_manual": "{{ comp_manual_k }}",
+            "comp_k_config": "{{ comp_config_k }}",
+            "comp_k_env": "{{ comp_env_k }}",
+            "comp_k_sunset": "{{ comp_sunset_k }}"
+          }
+        }
+      ]
+    },
+    "blueprint_inputs": null,
+    "context": {
+      "id": "01KE69E5FCMWGAKZ0N995KDX67",
+      "parent_id": "01KE69E57G6N67DFZWBW47QH2B",
+      "user_id": null
+    }
+  },
+  "logbookEntries": [
+    {
+      "name": "OAL v13 - Core Adjustment Engine (Master)",
+      "message": "triggered by event 'oal_watchdog_trigger'",
+      "source": "event 'oal_watchdog_trigger'",
+      "entity_id": "automation.oal_v13_core_adjustment_engine_master",
+      "context_id": "01KE69E5FCMWGAKZ0N995KDX67",
+      "domain": "automation",
+      "when": 1767590270.4503431
+    },
+    {
+      "state": "2026-01-04 22:17:50",
+      "entity_id": "input_datetime.oal_last_engine_run",
+      "icon": "mdi:engine",
+      "when": 1767590270.4534016,
+      "context_event_type": "automation_triggered",
+      "context_domain": "automation",
+      "context_name": "OAL v13 - Core Adjustment Engine (Master)",
+      "context_message": "triggered by event 'oal_watchdog_trigger'",
+      "context_source": "event 'oal_watchdog_trigger'",
+      "context_entity_id": "automation.oal_v13_core_adjustment_engine_master"
+    },
+    {
+      "state": "M 3h 59m",
+      "entity_id": "sensor.oal_recessed_ceiling_status",
+      "icon": "mdi:lightbulb-group",
+      "when": 1767590275.526036,
+      "context_event_type": "automation_triggered",
+      "context_domain": "automation",
+      "context_name": "OAL v13 - Core Adjustment Engine (Master)",
+      "context_message": "triggered by event 'oal_watchdog_trigger'",
+      "context_source": "event 'oal_watchdog_trigger'",
+      "context_entity_id": "automation.oal_v13_core_adjustment_engine_master"
+    }
+  ]
+}

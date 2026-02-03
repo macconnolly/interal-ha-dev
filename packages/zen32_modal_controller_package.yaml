@@ -687,13 +687,13 @@ script:
     mode: single
     variables:
       all_lights: "{{ expand('light.all_adaptive_lights') | map(attribute='entity_id') | list }}"
-      any_on: "{{ expand('light.all_adaptive_lights') | selectattr('state', 'eq', 'on') | list | length > 0 }}"
+      on_lights: "{{ expand('light.all_adaptive_lights') | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
     sequence:
-      - if: "{{ any_on }}"
+      - if: "{{ on_lights | length > 0 }}"
         then:
           - service: light.turn_off
             target:
-              entity_id: "{{ all_lights }}"
+              entity_id: "{{ on_lights }}"
         else:
           - service: light.turn_on
             target:

@@ -685,10 +685,19 @@ script:
     alias: "ZEN32 - Toggle Lights"
     icon: mdi:lightbulb-group
     mode: single
+    variables:
+      all_lights: "{{ expand('light.all_adaptive_lights') | map(attribute='entity_id') | list }}"
+      any_on: "{{ expand('light.all_adaptive_lights') | selectattr('state', 'eq', 'on') | list | length > 0 }}"
     sequence:
-      - service: light.toggle
-        target:
-          entity_id: light.all_adaptive_lights
+      - if: "{{ any_on }}"
+        then:
+          - service: light.turn_off
+            target:
+              entity_id: "{{ all_lights }}"
+        else:
+          - service: light.turn_on
+            target:
+              entity_id: "{{ all_lights }}"
 
   # ---------------------------------------------------------------------------
   # Cycle OAL Configuration Presets

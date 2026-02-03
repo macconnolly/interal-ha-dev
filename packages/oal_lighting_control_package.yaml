@@ -431,7 +431,7 @@ adaptive_lighting:
       - light.office_desk_lamp
     interval: 15
     transition: 1
-    initial_transition: 3
+    initial_transition: 0
     take_over_control: true
     detect_non_ha_changes: true
     adapt_delay: 0
@@ -450,7 +450,7 @@ adaptive_lighting:
       - light.kitchen_counter_cabinet_underlights
     interval: 15
     transition: 1
-    initial_transition: 3
+    initial_transition: 0
     take_over_control: true
     detect_non_ha_changes: true
     adapt_delay: 0
@@ -469,7 +469,7 @@ adaptive_lighting:
       - light.master_bedroom_corner_accent_govee
     interval: 90
     transition: 1
-    initial_transition: 3
+    initial_transition: 0
     take_over_control: true
     detect_non_ha_changes: true
     adapt_delay: 0
@@ -490,7 +490,7 @@ adaptive_lighting:
       - light.living_room_spot_lights
     interval: 15
     transition: 1
-    initial_transition: 3
+    initial_transition: 0
     take_over_control: true
     detect_non_ha_changes: true
     adapt_delay: 0
@@ -509,7 +509,7 @@ adaptive_lighting:
       - light.living_room_hallway_lights
     interval: 15
     transition: 1
-    initial_transition: 3
+    initial_transition: 0
     take_over_control: true
     detect_non_ha_changes: true
     adapt_delay: 0
@@ -536,7 +536,7 @@ adaptive_lighting:
       - light.dining_column_strip_light_matter
     interval: 90
     transition: 0
-    initial_transition: 1
+    initial_transition: 0
     take_over_control: false
     detect_non_ha_changes: false
     adapt_delay: 0

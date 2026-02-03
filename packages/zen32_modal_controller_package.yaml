@@ -72,21 +72,21 @@
 #   Button 2 (UP):    1x=Brightness+, Hold=-, 2x=Full bright
 #   Button 3 (VOL):   1x=VOLUME+Start, Hold=VOLUME+Favorites, 2x=VOLUME+Play/Pause, 3x=VOLUME+Group
 #   Button 4 (DOWN):  1x=Brightness-, Hold=-, 2x=Min bright
-#   Button 5 (BIG):   1x=Toggle lights, Hold=Reset, 2x=Config cycle, 3x=Force sleep
+#   Button 5 (BIG):   1x=Toggle lights, Hold=Reset, 2x=Config cycle, 3x=Sleep toggle
 #
 #   WARMTH MODE (Cyan LEDs):
 #   Button 1 (LIGHT): 1x=BRIGHTNESS, Hold=BRIGHTNESS, 2x=No-op, 3x=Warm/cool toggle
 #   Button 2 (UP):    1x=Warmer, Hold=-, 2x=Max warm (+1000K)
 #   Button 3 (VOL):   1x=VOLUME+Start, Hold=VOLUME+Favorites, 2x=VOLUME+Play/Pause, 3x=VOLUME+Group
 #   Button 4 (DOWN):  1x=Cooler, Hold=-, 2x=Max cool (-1000K)
-#   Button 5 (BIG):   1x=Toggle lights, Hold=Reset, 2x=Config cycle, 3x=Force sleep
+#   Button 5 (BIG):   1x=Toggle lights, Hold=Reset, 2x=Config cycle, 3x=Sleep toggle
 #
 #   VOLUME MODE (Blue LEDs):
 #   Button 1 (LIGHT): 1x=BRIGHTNESS, Hold=BRIGHTNESS, 2x=WARMTH, 3x=Warm/cool toggle
 #   Button 2 (UP):    1x=Volume+, Hold=-, 2x=Next track
 #   Button 3 (VOL):   1x=Start if idle, Hold=Cycle favorites, 2x=Play/Pause, 3x=Group toggle
 #   Button 4 (DOWN):  1x=Volume-, Hold=-, 2x=Prev track
-#   Button 5 (BIG):   1x=Toggle lights, Hold=Reset, 2x=Config cycle, 3x=Force sleep
+#   Button 5 (BIG):   1x=Toggle lights, Hold=Reset, 2x=Config cycle, 3x=Sleep toggle
 #
 #   CURATED FAVORITES (B3 Hold cycles): Songs → Daily Mix 1 → Daily Mix 2 (shuffle on)
 #
@@ -710,16 +710,19 @@ script:
           option: "{{ allowed_configs[next_idx] }}"
 
   # ---------------------------------------------------------------------------
-  # Toggle Force Sleep Mode
+  # Toggle Sleep Mode (via config dropdown)
   # ---------------------------------------------------------------------------
-  zen32_toggle_force_sleep:
-    alias: "ZEN32 - Toggle Force Sleep"
+  zen32_toggle_sleep_mode:
+    alias: "ZEN32 - Toggle Sleep Mode"
     icon: mdi:sleep
     mode: single
     sequence:
-      - service: input_boolean.toggle
+      - service: input_select.select_option
         target:
-          entity_id: input_boolean.oal_force_sleep
+          entity_id: input_select.oal_active_configuration
+        data:
+          option: >
+            {{ 'Adaptive' if states('input_select.oal_active_configuration') == 'Sleep' else 'Sleep' }}
 
   # ---------------------------------------------------------------------------
   # Warm/Cool Toggle (B1 3x)
@@ -802,7 +805,7 @@ script:
       # ZEN32 brightness adjustments are "assisted adaptive" - not manual override
       has_manual_control: "{{ state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0) > 0 }}"
       # Sleep mode active
-      is_sleep_mode: "{{ is_state('input_boolean.oal_force_sleep', 'on') }}"
+      is_sleep_mode: "{{ states('input_select.oal_active_configuration') == 'Sleep' }}"
       # Non-adaptive config active (Full Bright, Dim Ambient, Warm Ambient, TV Mode)
       is_non_adaptive_config: >
         {{ states('input_select.oal_active_configuration') not in ['Adaptive', 'Manual', 'Sleep'] }}
@@ -1264,10 +1267,7 @@ automation:
       - platform: state
         entity_id: sensor.oal_system_status
         attribute: active_zonal_overrides
-      # Sleep mode changes
-      - platform: state
-        entity_id: input_boolean.oal_force_sleep
-      # OAL configuration changes (e.g., cycling via B5 2x)
+      # OAL configuration changes (covers sleep mode, config cycling, etc.)
       - platform: state
         entity_id: input_select.oal_active_configuration
     action:
@@ -1388,7 +1388,7 @@ automation:
           b5_1x: [zen32_toggle_lights]
           b5_hold: [oal_reset_soft]
           b5_2x: [zen32_cycle_oal_config]
-          b5_3x: [zen32_toggle_force_sleep]
+          b5_3x: [zen32_toggle_sleep_mode]
 
         # --------------------------------------------------------------------
         # WARMTH MODE - Color temperature control
@@ -1411,7 +1411,7 @@ automation:
           b5_1x: [zen32_toggle_lights]
           b5_hold: [oal_reset_soft]
           b5_2x: [zen32_cycle_oal_config]
-          b5_3x: [zen32_toggle_force_sleep]
+          b5_3x: [zen32_toggle_sleep_mode]
 
         # --------------------------------------------------------------------
         # VOLUME MODE - Sonos music control
@@ -1434,7 +1434,7 @@ automation:
           b5_1x: [zen32_toggle_lights]
           b5_hold: [oal_reset_soft]
           b5_2x: [zen32_cycle_oal_config]
-          b5_3x: [zen32_toggle_force_sleep]
+          b5_3x: [zen32_toggle_sleep_mode]
 
       # =======================================================================
       # DISPATCHER LOOKUP - Simple and direct

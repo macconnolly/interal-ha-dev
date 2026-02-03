@@ -82,7 +82,7 @@ OAL-SPECIFIC CONTEXT
 └─ Live state checked:
    • input_select.oal_current_config: [value]
    • input_boolean.oal_system_paused: [value]
-   • input_boolean.oal_force_sleep: [value]
+   • input_select.oal_active_configuration: [value] (Sleep = sleep mode active)
 ```
 
 ### OAL DEPENDENCIES / UPSTREAM (inject into ANALYSIS DELIVERABLE)
@@ -251,7 +251,8 @@ adaptive_lighting.change_switch_settings (6 zones parallel)
 | `input_number.oal_manual_brightness_offset` | core_engine | grep "manual_brightness" |
 | `input_number.oal_brightness_environmental_offset` | core_engine | grep "environmental_offset" |
 | `input_number.oal_sunset_brightness_offset` | core_engine | grep "sunset.*offset" |
-| `input_boolean.oal_force_sleep` | core_engine, zen32_led | grep "force_sleep" |
+| `input_select.oal_active_configuration` | core_engine, config_manager, zen32 | grep "oal_active_configuration" |
+| `group.oal_sleep_mode_switches` | core_engine, config_manager | grep "oal_sleep_mode_switches" |
 | `input_boolean.oal_movie_mode_active` | movie_handler | grep "movie_mode" |
 | `input_boolean.oal_system_paused` | all automations | grep "system_paused" |
 
@@ -265,10 +266,10 @@ adaptive_lighting.change_switch_settings (6 zones parallel)
 | B4 (down) | 1x | `oal_manual_brightness_offset` (-10) | grep "manual_brightness_down" |
 | B5 (relay) | 1x | `oal_current_config` (cycle) | grep "config.*cycle" |
 | B5 | 2x | `oal_manual_brightness_offset` (reset) | grep "brightness.*reset" |
-| B5 | 3x | `oal_force_sleep` (toggle) | grep "force_sleep.*toggle" |
+| B5 | 3x | `oal_active_configuration` (Sleep/Adaptive toggle) | grep "zen32_toggle_sleep_mode" |
 
 **LED Dependencies:**
-- B5 LED ← `oal_force_sleep` (blue) OR `oal_current_config` (color)
+- B5 LED ← `oal_active_configuration` == Sleep (blue) OR config (color)
 - B1-B4 LEDs ← `zen32_current_mode`
 
 ---

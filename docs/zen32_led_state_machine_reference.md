@@ -53,7 +53,7 @@ mode_configs:
 
 | Priority | Condition | LED Color | Brightness |
 |----------|-----------|-----------|------------|
-| 0 (Highest) | Sleep Mode (`input_boolean.oal_force_sleep == 'on'`) | BLUE | Low (30%) |
+| 0 (Highest) | Sleep Mode (`input_select.oal_active_configuration == 'Sleep'`) | BLUE | Low (30%) |
 | 1 | Manual Control Active | RED | Bright (100%) |
 | 2 | Non-Adaptive Config | GREEN | Medium (60%) |
 | 3 | Lights ON (Adaptive, No Manual) | WHITE | Medium (60%) |
@@ -193,8 +193,7 @@ The big button LED updates on ANY change to:
 - `light.all_adaptive_lights` state
 - `sensor.oal_system_status.active_zonal_overrides`
 - All 6 `input_number.oal_manual_offset_*_brightness` entities
-- `input_boolean.oal_force_sleep`
-- `input_select.oal_active_configuration` (implicit)
+- `input_select.oal_active_configuration` (sleep mode, config cycling, etc.)
 
 ---
 

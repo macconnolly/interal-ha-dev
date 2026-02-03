@@ -137,6 +137,16 @@ group:
       - switch.adaptive_lighting_recessed_ceiling
       - switch.adaptive_lighting_column_lights
 
+  oal_sleep_mode_switches:
+    name: "OAL Sleep Mode Switches"
+    entities:
+      - switch.adaptive_lighting_sleep_mode_main_living
+      - switch.adaptive_lighting_sleep_mode_kitchen_island
+      - switch.adaptive_lighting_sleep_mode_bedroom_primary
+      - switch.adaptive_lighting_sleep_mode_accent_spots
+      - switch.adaptive_lighting_sleep_mode_recessed_ceiling
+      - switch.adaptive_lighting_sleep_mode_column_lights
+
 # =============================================================================
 # LAYER 2: INPUTS & STATE TRACKING
 # =============================================================================
@@ -379,11 +389,6 @@ input_boolean:
     name: "OAL Autoreset Sync Lock"
     initial: false
     icon: mdi:lock-clock
-
-  oal_force_sleep:
-    name: "OAL Force Sleep Mode"
-    initial: false
-    icon: mdi:power-sleep
 
   # Room Card Show/Hide Toggles
   living_room_expanded:
@@ -753,23 +758,12 @@ automation:
         data:
           datetime: "{{ now() }}"
 
-      # NEW: Check force sleep mode - override everything if enabled
-      - if: "{{ is_state('input_boolean.oal_force_sleep', 'on') }}"
+      # Sleep mode: use AL's native sleep mode switches (per-zone sleep_* params)
+      - if: "{{ states('input_select.oal_active_configuration') == 'Sleep' }}"
         then:
-          # Force all zones to sleep mode immediately
-          - repeat:
-              for_each: "{{ zone_configs }}"
-              sequence:
-                - service: adaptive_lighting.change_switch_settings
-                  continue_on_error: true
-                  target:
-                    entity_id: "{{ repeat.item.entity_id }}"
-                  data:
-                    min_brightness: 1
-                    max_brightness: 5
-                    min_color_temp: 1800
-                    max_color_temp: 1800
-                    transition: 1
+          - service: switch.turn_on
+            target:
+              entity_id: "{{ expand('group.oal_sleep_mode_switches') | map(attribute='entity_id') | list }}"
           - service: adaptive_lighting.apply
             continue_on_error: true
             target:
@@ -777,7 +771,7 @@ automation:
             data:
               turn_on_lights: false
               transition: 5
-          - stop: "Force sleep mode active"
+          - stop: "Sleep mode active — AL sleep switches handle per-zone settings"
 
       # =========================================================================
       # Zone Configuration Phase - PARALLELIZED for instant response
@@ -1450,17 +1444,17 @@ automation:
           entity_id: input_boolean.oal_config_transition_active
 
       # =========================================================================
-      # SLEEP MODE: Toggle force_sleep based on Sleep Mode selection
+      # SLEEP MODE: Toggle AL sleep mode switches based on Sleep config
       # =========================================================================
       - if: "{{ is_sleep }}"
         then:
-          - service: input_boolean.turn_on
+          - service: switch.turn_on
             target:
-              entity_id: input_boolean.oal_force_sleep
+              entity_id: "{{ expand('group.oal_sleep_mode_switches') | map(attribute='entity_id') | list }}"
         else:
-          - service: input_boolean.turn_off
+          - service: switch.turn_off
             target:
-              entity_id: input_boolean.oal_force_sleep
+              entity_id: "{{ expand('group.oal_sleep_mode_switches') | map(attribute='entity_id') | list }}"
 
       # =========================================================================
       # SNAPSHOT: Capture light state when leaving Adaptive mode
@@ -1484,7 +1478,18 @@ automation:
               - condition: template
                 value_template: "{{ is_baseline }}"
             sequence:
-              # 0. Restore previous light state (snapshot from before config mode)
+              # 0. Turn off AL sleep switches if exiting Sleep mode
+              - if: "{{ trigger.from_state.state == 'Sleep' }}"
+                then:
+                  - service: switch.turn_off
+                    target:
+                      entity_id: "{{ expand('group.oal_sleep_mode_switches') | map(attribute='entity_id') | list }}"
+                  # Re-evaluate column lights' independent sun-elevation sleep schedule
+                  - service: automation.trigger
+                    target:
+                      entity_id: automation.oal_column_lights_sleep_trigger_v13
+
+              # 0b. Restore previous light state (snapshot from before config mode)
               - service: scene.turn_on
                 target:
                   entity_id: scene.oal_before_config_mode
@@ -1836,6 +1841,10 @@ automation:
         state: "off"
       - condition: template
         value_template: "{{ not state_attr('sun.sun', 'rising') | default(true) }}"
+      - condition: template
+        value_template: >
+          {{ is_state('light.living_column_strip_light_matter', 'on')
+             or is_state('light.dining_column_strip_light_matter', 'on') }}
       - condition: state
         entity_id: switch.adaptive_lighting_sleep_mode_column_lights
         state: "off"
@@ -2543,42 +2552,6 @@ automation:
           option: "{{ 'Sleep' if trigger.id == 'start_sleep' else 'Adaptive' }}"
 
   # ---------------------------------------------------------------------------
-  # 4.11b Force Sleep Mode Sync (bidirectional sync between toggle and config)
-  # ---------------------------------------------------------------------------
-  - id: oal_force_sleep_sync_v13
-    alias: "OAL v13 - Force Sleep Sync"
-    description: "Syncs force_sleep toggle with config selection - Config Manager handles the rest"
-    trigger:
-      - platform: state
-        entity_id: input_boolean.oal_force_sleep
-        from: "off"
-        to: "on"
-        id: "sleep_enabled"
-      - platform: state
-        entity_id: input_boolean.oal_force_sleep
-        from: "on"
-        to: "off"
-        id: "sleep_disabled"
-    condition:
-      - condition: state
-        entity_id: input_boolean.oal_system_paused
-        state: "off"
-    action:
-      # Just set the config - Config Manager handles all AL switch settings
-      - service: input_select.select_option
-        target:
-          entity_id: input_select.oal_active_configuration
-        data:
-          option: >
-            {% if trigger.id == 'sleep_enabled' and states('input_select.oal_active_configuration') != 'Sleep' %}
-              Sleep
-            {% elif trigger.id == 'sleep_disabled' and states('input_select.oal_active_configuration') == 'Sleep' %}
-              Adaptive
-            {% else %}
-              {{ states('input_select.oal_active_configuration') }}
-            {% endif %}
-
-  # ---------------------------------------------------------------------------
   # 4.12 System startup
   # ---------------------------------------------------------------------------
   - id: oal_system_startup_v13
@@ -2593,6 +2566,16 @@ automation:
             event_data:
               component: adaptive_lighting
       - delay: "00:00:10"
+      # Clear any persisted AL sleep mode switches from prior session
+      - service: switch.turn_off
+        target:
+          entity_id:
+            - switch.adaptive_lighting_sleep_mode_main_living
+            - switch.adaptive_lighting_sleep_mode_kitchen_island
+            - switch.adaptive_lighting_sleep_mode_bedroom_primary
+            - switch.adaptive_lighting_sleep_mode_accent_spots
+            - switch.adaptive_lighting_sleep_mode_recessed_ceiling
+            - switch.adaptive_lighting_sleep_mode_column_lights
       - action: switch.turn_off
         target:
           entity_id: switch.adaptive_lighting_recessed_ceiling_adapt_color
@@ -3826,7 +3809,7 @@ template:
         availability: >
           {{ states('input_boolean.oal_system_paused') not in ['unknown', 'unavailable'] }}
         state: >
-          {% set force_sleep = is_state('input_boolean.oal_force_sleep', 'on') %}
+          {% set force_sleep = states('input_select.oal_active_configuration') == 'Sleep' %}
           {% set b_cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
           {% set b_env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
           {% set b_sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
@@ -3972,7 +3955,7 @@ template:
         state: >
           {% if is_state('input_boolean.oal_system_paused', 'on') %}
             Paused
-          {% elif is_state('input_boolean.oal_force_sleep', 'on') %}
+          {% elif states('input_select.oal_active_configuration') == 'Sleep' %}
             Sleep Mode
           {% elif is_state('input_boolean.oal_movie_mode_active', 'on') %}
             Movie Mode

@@ -102,7 +102,7 @@ For genuinely quick lookups, you can bypass:
 
 ```
 You: quick - what's the entity ID for sleep mode?
-Claude: input_boolean.oal_force_sleep
+Claude: input_select.oal_active_configuration set to "Sleep"
 ```
 
 The word "quick" signals no Context Loaded needed.

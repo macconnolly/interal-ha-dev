@@ -15,7 +15,6 @@ This guide documents every configuration, state, and monitoring entity in the OA
 - `input_boolean.oal_disable_next_sonos_wakeup`
 - `input_boolean.oal_disable_sleep_mode`
 - `input_boolean.oal_environmental_boost_enabled`
-- `input_boolean.oal_force_sleep`
 - `input_boolean.oal_movie_mode_active`
 - `input_boolean.oal_night_dimming_enabled`
 - `input_boolean.oal_system_paused`
@@ -87,21 +86,9 @@ Global: 1 | Configuration: 2 | Environmental: 2 | Sunset: 2 | Night: 3 | Control
 - **Design Intent**: For users who don't want automatic bedtime dimming
 - **Used By**: Manage Sleep Mode Schedule automation (checks this condition)
 - **Controls**: When ON, sleep mode scheduling is completely disabled
-- **Related**: Input_boolean.oal_force_sleep (manual sleep override, independent)
+- **Related**: Sleep mode is activated by setting `input_select.oal_active_configuration` to "Sleep"
 - **Behavior**: Blocks automatic sleep mode at configured bedtime
 - **Recovery**: Turn OFF to re-enable sleep mode scheduling
-
-#### `input_boolean.oal_force_sleep`
-- **Friendly Name**: OAL Force Sleep Mode
-- **Initial State**: OFF
-- **Icon**: mdi:sleep-off
-- **Purpose**: Immediately force sleep mode, bypassing all calculations
-- **Design Intent**: User can force sleep immediately regardless of time/conditions
-- **Used By**: Core Engine, Configuration Manager, Column Lights Sleep Trigger
-- **Controls**: When ON, all lights dim to sleep settings immediately (no transition)
-- **Related**: Input_boolean.oal_disable_sleep_mode (controls auto schedule, this controls manual override)
-- **Behavior**: Takes priority over everything - force_sleep = sleep immediately
-- **Typical Use**: User presses "Sleep Now" button before scheduled bedtime
 
 #### `input_boolean.oal_movie_mode_active`
 - **Friendly Name**: OAL Movie Mode Active
@@ -202,7 +189,7 @@ Global: 1 | Configuration: 2 | Environmental: 2 | Sunset: 2 | Night: 3 | Control
 - **Design Intent**: User can switch between pre-configured lighting scenes
 - **Used By**: Configuration Manager (triggers on change), all offset automations (read for context)
 - **Controls**: Changes offset_config_brightness and offset_config_warmth based on selected profile
-- **Related**: Input_boolean.oal_force_sleep (Sleep option triggers force_sleep)
+- **Related**: Sleep option toggles AL sleep mode switches via Config Manager
 - **Behavior**: User selects from dropdown → Configuration Manager applies settings → Core Engine recalculates
 - **Typical Sequence**:
   1. User selects "TV Mode"
@@ -299,8 +286,7 @@ Global: 1 | Configuration: 2 | Environmental: 2 | Sunset: 2 | Night: 3 | Control
 ### Which Entities Users Can Safely Change
 
 **Safe to modify**:
-- `input_select.oal_active_configuration` ✓ (toggle between profiles)
-- `input_boolean.oal_force_sleep` ✓ (manual sleep override)
+- `input_select.oal_active_configuration` ✓ (toggle between profiles; "Sleep" activates sleep mode)
 - `input_boolean.oal_system_paused` ✓ (emergency pause)
 - `input_number.oal_control_zonal_timeout_hours` ✓ (adjust autoreset duration)
 - `input_datetime.oal_late_night_start` ✓ (set bedtime)

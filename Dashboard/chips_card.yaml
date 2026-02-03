@@ -152,7 +152,7 @@ sub_button:
         # ═══════════════════════════════════════════════════════════════════════
         # CHIP 7: Sleep Mode - Conditional when active
         # ═══════════════════════════════════════════════════════════════════════
-        - entity: input_boolean.oal_force_sleep
+        - entity: input_select.oal_active_configuration
           name: Sleep
           icon: mdi:power-sleep
           show_name: true
@@ -165,10 +165,14 @@ sub_button:
           fill_width: false
           visibility:
             - condition: state
-              entity: input_boolean.oal_force_sleep
-              state: "on"
+              entity: input_select.oal_active_configuration
+              state: "Sleep"
           tap_action:
-            action: toggle
+            action: call-service
+            service: input_select.select_option
+            service_data:
+              entity_id: input_select.oal_active_configuration
+              option: "Adaptive"
           hold_action:
             action: more-info
         # ═══════════════════════════════════════════════════════════════════════
@@ -436,7 +440,7 @@ styles: >
      CHIP 7: Sleep Mode - Purple when active
      ═══════════════════════════════════════════════════════════════════════════ */
   ${(() => {
-    const isSleep = hass.states['input_boolean.oal_force_sleep']?.state === 'on';
+    const isSleep = hass.states['input_select.oal_active_configuration']?.state === 'Sleep';
     return `
       .bubble-sub-button-7 {
         background: ${isSleep ? 'rgba(138, 100, 200, 0.15)' : 'rgba(60, 60, 60, 0.08)'} !important;

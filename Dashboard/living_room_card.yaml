@@ -50,29 +50,29 @@ cards:
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
-            padding: 10px 14px 2px 14px !important;
+            padding: 8px 14px 0px 14px !important;
             margin: 0 !important;
           }
 
           .bubble-icon-container {
             background: ${iconBg} !important;
             border-radius: 50% !important;
-            min-width: 40px !important;
-            min-height: 40px !important;
+            min-width: 44px !important;
+            min-height: 44px !important;
             border: 1.5px solid ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.25)')} !important;
           }
 
           .bubble-icon {
             color: ${iconColor} !important;
-            --mdc-icon-size: 24px !important;
+            --mdc-icon-size: 26px !important;
             ${roomState !== 'idle' ? `filter: drop-shadow(0 0 4px ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.4)')}) !important;` : ''}
           }
 
           .bubble-name {
-            font-size: 17px !important;
+            font-size: 20px !important;
             font-weight: 700 !important;
             color: rgba(25, 25, 25, 0.95) !important;
-            letter-spacing: -0.2px !important;
+            letter-spacing: -0.3px !important;
           }
 
           .bubble-sub-button-container {
@@ -172,7 +172,7 @@ cards:
                   tracker: input_text.sonos_manually_toggled_alarm_living_room
               hold_action:
                 action: more-info
-            # Brighter (room-specific via oal_manual_brightness_step)
+            # Brighter (room-specific via global brighter with lights filter)
             - entity: input_number.oal_manual_offset_main_living_brightness
               name: Brighter
               icon: mdi:brightness-7
@@ -184,14 +184,13 @@ cards:
               fill_width: false
               tap_action:
                 action: perform-action
-                perform_action: script.oal_manual_brightness_step
+                perform_action: script.oal_global_manual_brighter
                 data:
-                  direction: 1
                   lights: light.living_room_lights
               hold_action:
                 action: more-info
                 entity: input_number.oal_manual_offset_main_living_brightness
-            # Dimmer (room-specific via oal_manual_brightness_step)
+            # Dimmer (room-specific via global dimmer with lights filter)
             - entity: input_number.oal_manual_offset_main_living_brightness
               name: Dimmer
               icon: mdi:brightness-5
@@ -203,9 +202,8 @@ cards:
               fill_width: false
               tap_action:
                 action: perform-action
-                perform_action: script.oal_manual_brightness_step
+                perform_action: script.oal_global_manual_dimmer
                 data:
-                  direction: -1
                   lights: light.living_room_lights
               hold_action:
                 action: more-info
@@ -242,7 +240,7 @@ cards:
         border: none !important;
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 2px 14px 4px 14px !important;
+        padding: 0px 14px 0px 14px !important;
       }
 
       .bubble-button-card-container {
@@ -393,7 +391,7 @@ cards:
     layout:
       grid-template-columns: repeat(3, 1fr)
       gap: 8px
-      padding: 4px 12px 8px 12px
+      padding: 2px 12px 4px 12px
       mediaquery:
         "(max-width: 400px)":
           grid-template-columns: repeat(2, 1fr)
@@ -437,7 +435,7 @@ cards:
             justify-items: center !important;
             align-items: center !important;
             text-align: center !important;
-            min-height: 95px !important;
+            min-height: 100px !important;
             padding: 10px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
@@ -486,8 +484,8 @@ cards:
             z-index: 25 !important;
           }
           .bubble-icon-container {
-            min-width: 38px !important;
-            min-height: 38px !important;
+            min-width: 42px !important;
+            min-height: 42px !important;
             grid-row: 1 !important;
             margin: 2px 0 4px 0 !important;
             border-radius: 50% !important;
@@ -505,7 +503,7 @@ cards:
             transition: background 0.3s ease, border-color 0.3s ease !important;
           }
           .bubble-icon {
-            --mdc-icon-size: 22px !important;
+            --mdc-icon-size: 24px !important;
             color: ${state === 'on'
               ? 'rgb(255, 149, 0)'
               : 'rgba(80, 80, 80, 0.45)'} !important;
@@ -521,7 +519,7 @@ cards:
           }
           .bubble-name {
             font-weight: 650 !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
             line-height: 1.2 !important;
             justify-content: center !important;
             margin: 0 2px !important;
@@ -530,7 +528,7 @@ cards:
               : 'rgba(70, 70, 70, 0.65)'} !important;
           }
           .bubble-state {
-            font-size: 12px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
             margin-top: 1px !important;
             justify-content: center !important;
@@ -539,7 +537,7 @@ cards:
               : 'rgba(100, 100, 100, 0.5)'} !important;
           }
           .bubble-attribute {
-            font-size: 12px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
             margin-top: 1px !important;
             justify-content: center !important;
@@ -635,7 +633,7 @@ cards:
             justify-items: center !important;
             align-items: center !important;
             text-align: center !important;
-            min-height: 95px !important;
+            min-height: 100px !important;
             padding: 10px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
@@ -660,12 +658,12 @@ cards:
           .bubble-button-card-container:active { transform: scale(0.95) !important; }
           .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
           .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_couch_lamp') ? '7px' : '0px'} !important; height: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_couch_lamp') ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_couch_lamp') ? 'rgb(255, 110, 90)' : 'transparent'} !important; border: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_couch_lamp') ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_couch_lamp') ? '0 0 4px rgba(255, 110, 90, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
-          .bubble-icon-container { min-width: 38px !important; min-height: 38px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
-          .bubble-icon { --mdc-icon-size: 22px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
+          .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+          .bubble-icon { --mdc-icon-size: 24px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
           .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
-          .bubble-name { font-weight: 650 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
-          .bubble-state { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; }
-          .bubble-attribute { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
+          .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
+          .bubble-state { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; }
+          .bubble-attribute { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
           .bubble-range-slider { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 4px !important; border-radius: 0 0 14px 14px !important; z-index: 10 !important; background: rgba(0, 0, 0, 0.06) !important; overflow: visible !important; opacity: 1 !important; }
           .bubble-range-fill { height: 4px !important; border-radius: 0 0 14px 0 !important; background: rgb(255, 149, 0) !important; }
           .bubble-range-value { position: absolute !important; top: unset !important; right: unset !important; bottom: 50px !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 14px !important; font-weight: 700 !important; color: rgb(255, 149, 0) !important; background: rgba(255, 255, 255, 0.92) !important; padding: 2px 8px !important; border-radius: 8px !important; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.10) !important; opacity: 0 !important; pointer-events: none !important; transition: opacity 0.15s ease !important; z-index: 30 !important; white-space: nowrap !important; }
@@ -712,7 +710,7 @@ cards:
             justify-items: center !important;
             align-items: center !important;
             text-align: center !important;
-            min-height: 95px !important;
+            min-height: 100px !important;
             padding: 10px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
@@ -737,12 +735,12 @@ cards:
           .bubble-button-card-container:active { transform: scale(0.95) !important; }
           .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
           .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.entryway_lamp') ? '7px' : '0px'} !important; height: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.entryway_lamp') ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.entryway_lamp') ? 'rgb(255, 110, 90)' : 'transparent'} !important; border: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.entryway_lamp') ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.entryway_lamp') ? '0 0 4px rgba(255, 110, 90, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
-          .bubble-icon-container { min-width: 38px !important; min-height: 38px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
-          .bubble-icon { --mdc-icon-size: 22px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
+          .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+          .bubble-icon { --mdc-icon-size: 24px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
           .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
-          .bubble-name { font-weight: 650 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
-          .bubble-state { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; }
-          .bubble-attribute { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
+          .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
+          .bubble-state { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; }
+          .bubble-attribute { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
           .bubble-range-slider { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 4px !important; border-radius: 0 0 14px 14px !important; z-index: 10 !important; background: rgba(0, 0, 0, 0.06) !important; overflow: visible !important; opacity: 1 !important; }
           .bubble-range-fill { height: 4px !important; border-radius: 0 0 14px 0 !important; background: rgb(255, 149, 0) !important; }
           .bubble-range-value { position: absolute !important; top: unset !important; right: unset !important; bottom: 50px !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 14px !important; font-weight: 700 !important; color: rgb(255, 149, 0) !important; background: rgba(255, 255, 255, 0.92) !important; padding: 2px 8px !important; border-radius: 8px !important; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.10) !important; opacity: 0 !important; pointer-events: none !important; transition: opacity 0.15s ease !important; z-index: 30 !important; white-space: nowrap !important; }
@@ -792,7 +790,7 @@ cards:
             justify-items: center !important;
             align-items: center !important;
             text-align: center !important;
-            min-height: 95px !important;
+            min-height: 100px !important;
             padding: 10px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
@@ -817,12 +815,12 @@ cards:
           .bubble-button-card-container:active { transform: scale(0.95) !important; }
           .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
           .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${(hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).includes('light.living_room_spot_lights') ? '7px' : '0px'} !important; height: ${(hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).includes('light.living_room_spot_lights') ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${(hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).includes('light.living_room_spot_lights') ? 'rgb(255, 110, 90)' : 'transparent'} !important; border: ${(hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).includes('light.living_room_spot_lights') ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${(hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).includes('light.living_room_spot_lights') ? '0 0 4px rgba(255, 110, 90, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
-          .bubble-icon-container { min-width: 38px !important; min-height: 38px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
-          .bubble-icon { --mdc-icon-size: 22px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
+          .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+          .bubble-icon { --mdc-icon-size: 24px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
           .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
-          .bubble-name { font-weight: 650 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
-          .bubble-state { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; }
-          .bubble-attribute { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
+          .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
+          .bubble-state { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; }
+          .bubble-attribute { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
           .bubble-range-slider { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 4px !important; border-radius: 0 0 14px 14px !important; z-index: 10 !important; background: rgba(0, 0, 0, 0.06) !important; overflow: visible !important; opacity: 1 !important; }
           .bubble-range-fill { height: 4px !important; border-radius: 0 0 14px 0 !important; background: rgb(255, 149, 0) !important; }
           .bubble-range-value { position: absolute !important; top: unset !important; right: unset !important; bottom: 50px !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 14px !important; font-weight: 700 !important; color: rgb(255, 149, 0) !important; background: rgba(255, 255, 255, 0.92) !important; padding: 2px 8px !important; border-radius: 8px !important; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.10) !important; opacity: 0 !important; pointer-events: none !important; transition: opacity 0.15s ease !important; z-index: 30 !important; white-space: nowrap !important; }
@@ -872,7 +870,7 @@ cards:
             justify-items: center !important;
             align-items: center !important;
             text-align: center !important;
-            min-height: 95px !important;
+            min-height: 100px !important;
             padding: 10px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
@@ -897,12 +895,12 @@ cards:
           .bubble-button-card-container:active { transform: scale(0.95) !important; }
           .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
           .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${(hass.states['switch.adaptive_lighting_column_lights']?.attributes?.manual_control || []).length > 0 ? '7px' : '0px'} !important; height: ${(hass.states['switch.adaptive_lighting_column_lights']?.attributes?.manual_control || []).length > 0 ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${(hass.states['switch.adaptive_lighting_column_lights']?.attributes?.manual_control || []).length > 0 ? 'rgb(255, 110, 90)' : 'transparent'} !important; border: ${(hass.states['switch.adaptive_lighting_column_lights']?.attributes?.manual_control || []).length > 0 ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${(hass.states['switch.adaptive_lighting_column_lights']?.attributes?.manual_control || []).length > 0 ? '0 0 4px rgba(255, 110, 90, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
-          .bubble-icon-container { min-width: 38px !important; min-height: 38px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
-          .bubble-icon { --mdc-icon-size: 22px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
+          .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+          .bubble-icon { --mdc-icon-size: 24px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
           .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
-          .bubble-name { font-weight: 650 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
-          .bubble-state { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; }
-          .bubble-attribute { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
+          .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
+          .bubble-state { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; }
+          .bubble-attribute { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
           .bubble-range-slider { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 4px !important; border-radius: 0 0 14px 14px !important; z-index: 10 !important; background: rgba(0, 0, 0, 0.06) !important; overflow: visible !important; opacity: 1 !important; }
           .bubble-range-fill { height: 4px !important; border-radius: 0 0 14px 0 !important; background: rgb(255, 149, 0) !important; }
           .bubble-range-value { position: absolute !important; top: unset !important; right: unset !important; bottom: 50px !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 14px !important; font-weight: 700 !important; color: rgb(255, 149, 0) !important; background: rgba(255, 255, 255, 0.92) !important; padding: 2px 8px !important; border-radius: 8px !important; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.10) !important; opacity: 0 !important; pointer-events: none !important; transition: opacity 0.15s ease !important; z-index: 30 !important; white-space: nowrap !important; }
@@ -952,7 +950,7 @@ cards:
             justify-items: center !important;
             align-items: center !important;
             text-align: center !important;
-            min-height: 95px !important;
+            min-height: 100px !important;
             padding: 10px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
@@ -977,12 +975,12 @@ cards:
           .bubble-button-card-container:active { transform: scale(0.95) !important; }
           .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
           .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${(hass.states['switch.adaptive_lighting_recessed_ceiling']?.attributes?.manual_control || []).includes('light.living_room_hallway_lights') ? '7px' : '0px'} !important; height: ${(hass.states['switch.adaptive_lighting_recessed_ceiling']?.attributes?.manual_control || []).includes('light.living_room_hallway_lights') ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${(hass.states['switch.adaptive_lighting_recessed_ceiling']?.attributes?.manual_control || []).includes('light.living_room_hallway_lights') ? 'rgb(255, 110, 90)' : 'transparent'} !important; border: ${(hass.states['switch.adaptive_lighting_recessed_ceiling']?.attributes?.manual_control || []).includes('light.living_room_hallway_lights') ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${(hass.states['switch.adaptive_lighting_recessed_ceiling']?.attributes?.manual_control || []).includes('light.living_room_hallway_lights') ? '0 0 4px rgba(255, 110, 90, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
-          .bubble-icon-container { min-width: 38px !important; min-height: 38px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
-          .bubble-icon { --mdc-icon-size: 22px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
+          .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+          .bubble-icon { --mdc-icon-size: 24px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
           .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
-          .bubble-name { font-weight: 650 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
-          .bubble-state { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; }
-          .bubble-attribute { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
+          .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
+          .bubble-state { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; }
+          .bubble-attribute { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
           .bubble-range-slider { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 4px !important; border-radius: 0 0 14px 14px !important; z-index: 10 !important; background: rgba(0, 0, 0, 0.06) !important; overflow: visible !important; opacity: 1 !important; }
           .bubble-range-fill { height: 4px !important; border-radius: 0 0 14px 0 !important; background: rgb(255, 149, 0) !important; }
           .bubble-range-value { position: absolute !important; top: unset !important; right: unset !important; bottom: 50px !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 14px !important; font-weight: 700 !important; color: rgb(255, 149, 0) !important; background: rgba(255, 255, 255, 0.92) !important; padding: 2px 8px !important; border-radius: 8px !important; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.10) !important; opacity: 0 !important; pointer-events: none !important; transition: opacity 0.15s ease !important; z-index: 30 !important; white-space: nowrap !important; }
@@ -1001,7 +999,7 @@ cards:
     layout:
       grid-template-columns: repeat(3, 1fr)
       gap: 8px
-      padding: 4px 12px 8px 12px
+      padding: 2px 12px 4px 12px
       mediaquery:
         "(max-width: 400px)":
           grid-template-columns: repeat(2, 1fr)
@@ -1049,7 +1047,7 @@ cards:
                 justify-items: center !important;
                 align-items: center !important;
                 text-align: center !important;
-                min-height: 95px !important;
+                min-height: 100px !important;
                 padding: 10px 4px 8px 4px !important;
                 border-radius: 14px !important;
                 overflow: hidden !important;
@@ -1074,12 +1072,12 @@ cards:
               .bubble-button-card-container:active { transform: scale(0.95) !important; }
               .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${inGroup ? '7px' : '0px'} !important; height: ${inGroup ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${inGroup ? 'rgb(66, 133, 244)' : 'transparent'} !important; border: ${inGroup ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${inGroup ? '0 0 4px rgba(66, 133, 244, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
               .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
-              .bubble-icon-container { min-width: 38px !important; min-height: 38px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${inGroup ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${inGroup ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
-              .bubble-icon { --mdc-icon-size: 22px !important; color: ${inGroup ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${inGroup ? 'drop-shadow(0 0 6px rgba(66, 133, 244, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
+              .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${inGroup ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${inGroup ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+              .bubble-icon { --mdc-icon-size: 24px !important; color: ${inGroup ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${inGroup ? 'drop-shadow(0 0 6px rgba(66, 133, 244, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
-              .bubble-name { font-weight: 650 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; color: ${inGroup ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
-              .bubble-state { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${inGroup ? 'rgb(66, 133, 244)' : 'rgba(100, 100, 100, 0.5)'} !important; }
-              .bubble-attribute { font-size: 12px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${inGroup ? 'rgb(66, 133, 244)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
+              .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; color: ${inGroup ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
+              .bubble-state { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${inGroup ? 'rgb(66, 133, 244)' : 'rgba(100, 100, 100, 0.5)'} !important; }
+              .bubble-attribute { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${inGroup ? 'rgb(66, 133, 244)' : 'rgba(100, 100, 100, 0.5)'} !important; transition: opacity 0.15s ease !important; }
               .bubble-range-slider { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 4px !important; border-radius: 0 0 14px 14px !important; z-index: 10 !important; background: rgba(0, 0, 0, 0.06) !important; overflow: visible !important; opacity: 1 !important; }
               .bubble-range-fill { height: 4px !important; border-radius: 0 0 14px 0 !important; background: rgb(66, 133, 244) !important; }
               .bubble-range-value { position: absolute !important; top: unset !important; right: unset !important; bottom: 50px !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 14px !important; font-weight: 700 !important; color: rgb(66, 133, 244) !important; background: rgba(255, 255, 255, 0.92) !important; padding: 2px 8px !important; border-radius: 8px !important; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.10) !important; opacity: 0 !important; pointer-events: none !important; transition: opacity 0.15s ease !important; z-index: 30 !important; white-space: nowrap !important; }
@@ -1127,7 +1125,7 @@ cards:
                 justify-items: center !important;
                 align-items: center !important;
                 text-align: center !important;
-                min-height: 95px !important;
+                min-height: 100px !important;
                 padding: 10px 4px 8px 4px !important;
                 border-radius: 14px !important;
                 overflow: hidden !important;
@@ -1151,10 +1149,10 @@ cards:
               }
               .bubble-button-card-container:active { transform: scale(0.95) !important; }
               .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
-              .bubble-icon-container { min-width: 38px !important; min-height: 38px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isPlaying ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${isPlaying ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
-              .bubble-icon { --mdc-icon-size: 22px !important; color: ${isPlaying ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${isPlaying ? 'drop-shadow(0 0 6px rgba(66, 133, 244, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
+              .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isPlaying ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${isPlaying ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+              .bubble-icon { --mdc-icon-size: 24px !important; color: ${isPlaying ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${isPlaying ? 'drop-shadow(0 0 6px rgba(66, 133, 244, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
-              .bubble-name { font-weight: 650 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; color: ${isPlaying ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
+              .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; color: ${isPlaying ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
             `;
           })()}
 
@@ -1190,7 +1188,7 @@ cards:
                 justify-items: center !important;
                 align-items: center !important;
                 text-align: center !important;
-                min-height: 95px !important;
+                min-height: 100px !important;
                 padding: 10px 4px 8px 4px !important;
                 border-radius: 14px !important;
                 overflow: hidden !important;
@@ -1214,10 +1212,10 @@ cards:
               }
               .bubble-button-card-container:active { transform: scale(0.95) !important; }
               .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
-              .bubble-icon-container { min-width: 38px !important; min-height: 38px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isOn ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${isOn ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
-              .bubble-icon { --mdc-icon-size: 22px !important; color: ${isOn ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${isOn ? 'drop-shadow(0 0 6px rgba(66, 133, 244, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
+              .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isOn ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${isOn ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+              .bubble-icon { --mdc-icon-size: 24px !important; color: ${isOn ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${isOn ? 'drop-shadow(0 0 6px rgba(66, 133, 244, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
-              .bubble-name { font-weight: 650 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; color: ${isOn ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
+              .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; color: ${isOn ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
             `;
           })()}
 
@@ -1230,9 +1228,13 @@ card_mod:
       display: block !important;
       background: rgba(248, 248, 250, 0.98) !important;
       border-radius: 22px !important;
-      padding: 4px 0 8px 0 !important;
+      padding: 4px 0 6px 0 !important;
       margin-bottom: 12px !important;
       box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06) !important;
       border: 1px solid rgba(0, 0, 0, 0.04) !important;
       overflow: hidden !important;
+    }
+    :host > * > * {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
     }

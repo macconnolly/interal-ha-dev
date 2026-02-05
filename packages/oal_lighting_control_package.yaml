@@ -3533,24 +3533,42 @@ script:
 
   oal_global_manual_brighter:
     alias: "OAL v13 Global Brighter (CARB, unified pipeline)"
-    description: "Increases brightness across all zones using context-aware stepped adjustments."
+    description: "Increases brightness using context-aware stepped adjustments. Optionally filter to specific lights/zones."
     icon: mdi:brightness-7
     mode: restart  # Allow rapid presses - new press cancels current apply wait
+    fields:
+      lights:
+        description: "Optional: Light entities or group to adjust. If omitted, adjusts all zones."
+        required: false
+        selector:
+          entity:
+            domain: light
+            multiple: true
     sequence:
       - service: script.oal_manual_brightness_step
         data:
           direction: 1
+          lights: "{{ lights | default([]) }}"
       - service: script.oal_global_adjustment_start
 
   oal_global_manual_dimmer:
     alias: "OAL v13 Global Dimmer (CARB, unified pipeline)"
-    description: "Decreases brightness across all zones using context-aware stepped adjustments."
+    description: "Decreases brightness using context-aware stepped adjustments. Optionally filter to specific lights/zones."
     icon: mdi:brightness-5
     mode: restart  # Allow rapid presses - new press cancels current apply wait
+    fields:
+      lights:
+        description: "Optional: Light entities or group to adjust. If omitted, adjusts all zones."
+        required: false
+        selector:
+          entity:
+            domain: light
+            multiple: true
     sequence:
       - service: script.oal_manual_brightness_step
         data:
           direction: -1
+          lights: "{{ lights | default([]) }}"
       - service: script.oal_global_adjustment_start
 
   oal_global_manual_cooler:

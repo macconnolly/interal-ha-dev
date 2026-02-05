@@ -11,57 +11,52 @@
 automation:
   - alias: "Master Presence: Dynamic mmWave Tuning"
     id: master_presence_dynamic_mmwave_tuning
-    description: "Adjusts Stay Life and Hold Time for sleep vs daytime use."
+    description: "Adjusts Stay Life and Hold Time for sleep vs daytime use. Runs at scheduled times and on HA startup."
     trigger:
       - platform: time
         at: "23:00:00"
-        id: "night"
       - platform: time
         at: "10:00:00"
-        id: "day"
+      - platform: homeassistant
+        event: start
     action:
-      - choose:
+      - variables:
+          is_night: "{{ now().hour >= 23 or now().hour < 10 }}"
+      - if: "{{ is_night }}"
+        then:
           # NIGHT MODE: High sensitivity, long stay life
-          - conditions:
-              - condition: trigger
-                id: "night"
-            sequence:
-              - action: number.set_value
-                target:
-                  entity_id: number.master_presence_mmwavestaylife
-                data:
-                  value: 36000
-              - action: number.set_value
-                target:
-                  entity_id: number.master_presence_mmwaveholdtime
-                data:
-                  value: 300
-              - action: select.select_option
-                target:
-                  entity_id: select.master_presence_mmwavedetectsensitivity
-                data:
-                  option: "High (default)"
-
+          - action: number.set_value
+            target:
+              entity_id: number.master_presence_mmwavestaylife
+            data:
+              value: 36000
+          - action: number.set_value
+            target:
+              entity_id: number.master_presence_mmwaveholdtime
+            data:
+              value: 300
+          - action: select.select_option
+            target:
+              entity_id: select.master_presence_mmwavedetectsensitivity
+            data:
+              option: "High (default)"
+        else:
           # DAY MODE: Standard sensitivity, fast turn-off
-          - conditions:
-              - condition: trigger
-                id: "day"
-            sequence:
-              - action: number.set_value
-                target:
-                  entity_id: number.master_presence_mmwavestaylife
-                data:
-                  value: 600
-              - action: number.set_value
-                target:
-                  entity_id: number.master_presence_mmwaveholdtime
-                data:
-                  value: 30
-              - action: select.select_option
-                target:
-                  entity_id: select.master_presence_mmwavedetectsensitivity
-                data:
-                  option: "Medium"
+          - action: number.set_value
+            target:
+              entity_id: number.master_presence_mmwavestaylife
+            data:
+              value: 600
+          - action: number.set_value
+            target:
+              entity_id: number.master_presence_mmwaveholdtime
+            data:
+              value: 30
+          - action: select.select_option
+            target:
+              entity_id: select.master_presence_mmwavedetectsensitivity
+            data:
+              option: "Medium"
     mode: restart
 
   # ---------------------------------------------------------------------------

@@ -19,7 +19,9 @@ cards:
     entity: light.living_room_lights
     name: Living Room
     icon: mdi:sofa
+    rows: 1.5
     sub_button:
+      bottom_layout: inline
       main:
         - entity: light.living_room_lights
           sub_button_type: slider
@@ -30,6 +32,7 @@ cards:
       bottom:
         - name: Quick Controls
           buttons_layout: inline
+          justify_content: center
           group:
             - entity: light.living_room_lights
               name: All
@@ -217,60 +220,61 @@ cards:
             --mdc-icon-size: 18px !important;
           }
 
-          /* Bottom quick actions - override base sub-button styles */
-          .bubble-sub-button-container--bottom,
-          .bubble-sub-button-container:last-child {
+          /* Bottom quick actions container */
+          .bubble-sub-button-bottom-container {
             background: rgba(60, 60, 60, 0.05) !important;
             backdrop-filter: blur(4px) !important;
             -webkit-backdrop-filter: blur(4px) !important;
             border-radius: 10px !important;
             border: 1px solid rgba(60, 60, 60, 0.10) !important;
             padding: 3px 5px !important;
-            margin: 0 auto !important;
+            margin: 4px auto 0 auto !important;
             box-shadow: none !important;
             width: fit-content !important;
             justify-content: center !important;
             gap: 4px !important;
           }
-          .bubble-sub-button-container--bottom .bubble-sub-button,
-          .bubble-sub-button-container:last-child .bubble-sub-button {
+          .bubble-sub-button-bottom-container .bubble-sub-button {
             background: rgba(60, 60, 60, 0.07) !important;
             border: 1px solid rgba(60, 60, 60, 0.12) !important;
             border-radius: 8px !important;
             min-width: auto !important;
             min-height: auto !important;
+            transition: transform 0.1s ease, background 0.15s ease !important;
           }
-          .bubble-sub-button-container--bottom .bubble-sub-button ha-icon,
-          .bubble-sub-button-container:last-child .bubble-sub-button ha-icon {
+          .bubble-sub-button-bottom-container .bubble-sub-button:active {
+            transform: scale(0.90) !important;
+          }
+          .bubble-sub-button-bottom-container .bubble-sub-button ha-icon {
             --mdc-icon-size: 16px !important;
           }
 
-          /* All Lights */
-          .bubble-sub-button-container:last-child .bubble-sub-button-1 {
+          /* All Lights (global index 2: main has slider=1) */
+          .bubble-sub-button-2 {
             background: ${lightsAllOn ? 'rgba(255, 149, 0, 0.16)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${lightsAllOn ? '1px solid rgba(255, 149, 0, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
           }
-          .bubble-sub-button-container:last-child .bubble-sub-button-1 .bubble-sub-button-icon {
+          .bubble-sub-button-2 .bubble-sub-button-icon {
             color: ${lightsAllOn ? 'rgb(255, 149, 0)' : 'rgba(60, 60, 60, 0.55)'} !important;
           }
-          /* Reset */
-          .bubble-sub-button-container:last-child .bubble-sub-button-2 {
+          /* Reset (3) */
+          .bubble-sub-button-3 {
             background: ${hasOverride ? 'rgba(255, 110, 90, 0.14)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${hasOverride ? '1px solid rgba(255, 110, 90, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
           }
-          .bubble-sub-button-container:last-child .bubble-sub-button-2 .bubble-sub-button-icon {
+          .bubble-sub-button-3 .bubble-sub-button-icon {
             color: ${hasOverride ? 'rgb(255, 110, 90)' : 'rgba(60, 60, 60, 0.55)'} !important;
           }
-          /* Alarm */
-          .bubble-sub-button-container:last-child .bubble-sub-button-3 {
+          /* Alarm (4) */
+          .bubble-sub-button-4 {
             background: ${isAlarmEnabled ? 'rgba(66, 133, 244, 0.14)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${isAlarmEnabled ? '1px solid rgba(66, 133, 244, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
             position: relative !important;
           }
-          .bubble-sub-button-container:last-child .bubble-sub-button-3 .bubble-sub-button-icon {
+          .bubble-sub-button-4 .bubble-sub-button-icon {
             color: ${isAlarmEnabled ? 'rgb(66, 133, 244)' : 'rgba(60, 60, 60, 0.55)'} !important;
           }
-          .bubble-sub-button-container:last-child .bubble-sub-button-3::after {
+          .bubble-sub-button-4::after {
             content: '${isAlarmEnabled ? alarmTime : (alarmTime !== 'OFF' ? alarmTime + ' OFF' : '')}' !important;
             position: absolute !important;
             bottom: 1px !important;
@@ -279,28 +283,28 @@ cards:
             font-weight: 600 !important;
             color: ${isAlarmEnabled ? 'rgba(66, 133, 244, 0.9)' : 'rgba(60, 60, 60, 0.5)'} !important;
           }
-          /* Brighter */
-          .bubble-sub-button-container:last-child .bubble-sub-button-4 {
+          /* Brighter (5) */
+          .bubble-sub-button-5 {
             background: ${isBrighter ? 'rgba(138, 100, 200, 0.12)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${isBrighter ? '1px solid rgba(138, 100, 200, 0.30)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
           }
-          .bubble-sub-button-container:last-child .bubble-sub-button-4 .bubble-sub-button-icon {
+          .bubble-sub-button-5 .bubble-sub-button-icon {
             color: ${isBrighter ? 'rgba(120, 80, 180, 0.85)' : 'rgba(60, 60, 60, 0.55)'} !important;
           }
-          /* Dimmer */
-          .bubble-sub-button-container:last-child .bubble-sub-button-5 {
+          /* Dimmer (6) */
+          .bubble-sub-button-6 {
             background: ${isDimmer ? 'rgba(138, 100, 200, 0.12)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${isDimmer ? '1px solid rgba(138, 100, 200, 0.30)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
           }
-          .bubble-sub-button-container:last-child .bubble-sub-button-5 .bubble-sub-button-icon {
+          .bubble-sub-button-6 .bubble-sub-button-icon {
             color: ${isDimmer ? 'rgba(120, 80, 180, 0.85)' : 'rgba(60, 60, 60, 0.55)'} !important;
           }
-          /* Play/Pause */
-          .bubble-sub-button-container:last-child .bubble-sub-button-6 {
+          /* Play/Pause (7) */
+          .bubble-sub-button-7 {
             background: ${isMediaPlaying ? 'rgba(66, 133, 244, 0.14)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${isMediaPlaying ? '1px solid rgba(66, 133, 244, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
           }
-          .bubble-sub-button-container:last-child .bubble-sub-button-6 .bubble-sub-button-icon {
+          .bubble-sub-button-7 .bubble-sub-button-icon {
             color: ${isMediaPlaying ? 'rgb(66, 133, 244)' : 'rgba(60, 60, 60, 0.55)'} !important;
           }
         `;

@@ -50,26 +50,26 @@ cards:
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
-            padding: 8px 14px 0px 14px !important;
+            padding: 10px 14px 4px 14px !important;
             margin: 0 !important;
           }
 
           .bubble-icon-container {
             background: ${iconBg} !important;
             border-radius: 50% !important;
-            min-width: 44px !important;
-            min-height: 44px !important;
+            min-width: 52px !important;
+            min-height: 52px !important;
             border: 1.5px solid ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.25)')} !important;
           }
 
           .bubble-icon {
             color: ${iconColor} !important;
-            --mdc-icon-size: 26px !important;
+            --mdc-icon-size: 30px !important;
             ${roomState !== 'idle' ? `filter: drop-shadow(0 0 4px ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.4)')}) !important;` : ''}
           }
 
           .bubble-name {
-            font-size: 20px !important;
+            font-size: 22px !important;
             font-weight: 700 !important;
             color: rgba(25, 25, 25, 0.95) !important;
             letter-spacing: -0.3px !important;
@@ -1234,7 +1234,11 @@ card_mod:
       border: 1px solid rgba(0, 0, 0, 0.04) !important;
       overflow: hidden !important;
     }
-    :host > * > * {
+    /* Collapse vertical-stack gaps between child cards */
+    #root {
+      gap: 0 !important;
+    }
+    #root > * {
       margin-top: 0 !important;
       margin-bottom: 0 !important;
     }

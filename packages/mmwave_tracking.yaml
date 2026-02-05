@@ -41,11 +41,6 @@ automation:
                   entity_id: select.master_presence_mmwavedetectsensitivity
                 data:
                   option: "High (default)"
-              - action: select.select_option
-                target:
-                  entity_id: select.master_presence_mmwavecontrolwireddevice
-                data:
-                  option: "Disabled"
 
           # DAY MODE: Standard sensitivity, fast turn-off
           - conditions:
@@ -67,9 +62,33 @@ automation:
                   entity_id: select.master_presence_mmwavedetectsensitivity
                 data:
                   option: "Medium"
-              - action: select.select_option
-                target:
-                  entity_id: select.master_presence_mmwavecontrolwireddevice
-                data:
-                  option: "Occupancy (default)"
     mode: restart
+
+  # ---------------------------------------------------------------------------
+  # Config Button: Toggle All Adaptive Lights
+  # ---------------------------------------------------------------------------
+  - alias: "Master Presence: Config Button Toggle All Lights"
+    id: master_presence_config_toggle_lights
+    description: "Toggle all adaptive lights on/off via config button"
+    trigger:
+      - platform: device
+        domain: mqtt
+        device_id: 73df96f7362fcc1c190293c15970b548
+        type: action
+        subtype: config_single
+    action:
+      - variables:
+          on_lights: >
+            {{ expand('light.all_adaptive_lights')
+               | selectattr('state', 'eq', 'on')
+               | map(attribute='entity_id') | list }}
+      - if: "{{ on_lights | length > 0 }}"
+        then:
+          - action: light.turn_off
+            target:
+              entity_id: "{{ on_lights }}"
+        else:
+          - action: light.turn_on
+            target:
+              entity_id: light.all_adaptive_lights
+    mode: single

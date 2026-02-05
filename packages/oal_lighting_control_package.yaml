@@ -3597,47 +3597,156 @@ script:
 
   oal_reset_soft:
     alias: "OAL v13 Reset Soft (Manual, Configs, Zonal)"
-    description: "Resets manual offsets, config selection, and isolated overrides to defaults."
+    description: "Resets only manual-controlled zones. Gaussian-curve aware for column lights."
     icon: mdi:restore
+    variables:
+      # =========================================================================
+      # Gaussian Curve Detection (for column lights RGB mode)
+      # =========================================================================
+      sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(90) }}"
+      sun_rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
+      in_gaussian_rgb_window: >
+        {{ (not sun_rising and sun_elevation <= 8 and sun_elevation >= -5) or
+           (sun_rising and sun_elevation >= -5 and sun_elevation < 8) }}
+      column_rgb_green: "{{ states('input_number.oal_offset_column_rgb_green') | int(200) }}"
+
+      # =========================================================================
+      # Targeted Reset - Use Existing Sensor
+      # =========================================================================
+      # Map friendly zone names (from sensor) to switch entity IDs
+      zone_name_to_switch:
+        Main Living: switch.adaptive_lighting_main_living
+        Kitchen: switch.adaptive_lighting_kitchen_island
+        Bedroom: switch.adaptive_lighting_bedroom_primary
+        Spots: switch.adaptive_lighting_accent_spots
+        Ceiling: switch.adaptive_lighting_recessed_ceiling
+        Columns: switch.adaptive_lighting_column_lights
+
+      # Map friendly zone names to brightness offset input_numbers
+      zone_name_to_offset:
+        Main Living: input_number.oal_manual_offset_main_living_brightness
+        Kitchen: input_number.oal_manual_offset_kitchen_island_brightness
+        Bedroom: input_number.oal_manual_offset_bedroom_primary_brightness
+        Spots: input_number.oal_manual_offset_accent_spots_brightness
+        Ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
+        Columns: input_number.oal_manual_offset_column_lights_brightness
+
+      # Get overridden zones from existing sensor
+      overridden_zone_names: "{{ state_attr('sensor.oal_system_status', 'overridden_zones') | default([]) }}"
+
+      # Convert to switch entities (excluding columns, handled separately)
+      manual_non_column_switches: >
+        {% set ns = namespace(switches=[]) %}
+        {% for name in overridden_zone_names %}
+          {% if name != 'Columns' %}
+            {% set ns.switches = ns.switches + [zone_name_to_switch[name]] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.switches }}
+
+      # Check if columns are under manual control
+      columns_manual: "{{ 'Columns' in overridden_zone_names }}"
+
+      # Offset entities to reset (global warmth always included when any zone is manual)
+      offset_entities_to_reset: >
+        {% set ns = namespace(offsets=[]) %}
+        {% if overridden_zone_names | length > 0 %}
+          {% set ns.offsets = ['input_number.oal_offset_global_manual_warmth'] %}
+        {% endif %}
+        {% for name in overridden_zone_names %}
+          {% set ns.offsets = ns.offsets + [zone_name_to_offset[name]] %}
+        {% endfor %}
+        {{ ns.offsets }}
+
     sequence:
       # FIRST: Turn on all AL switches (apply requires switches to be ON)
       - service: switch.turn_on
         target:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
-      # Reset column lights switch settings to match YAML config
-      # Govee RGBICW COB strips need separate commands for proper color rendering
-      # SYNC: Keep in sync with AL column_lights config (~line 477)
-      - service: adaptive_lighting.change_switch_settings
-        data:
-          entity_id: switch.adaptive_lighting_column_lights
-          use_defaults: configuration
-          include_config_in_attributes: true
-          initial_transition: 1
-          sleep_transition: 1
-          transition: 1
-          separate_turn_on_commands: true
-          send_split_delay: 1
-          prefer_rgb_color: false         # SYNC: AL prefer_rgb_color
-          sleep_rgb_or_color_temp: "rgb_color"
-          sleep_rgb_color: [255, 165, 0]  # SYNC: AL sleep_rgb_color
-      # THEN: Clear manual_control so Core Engine will apply changes
-      - service: adaptive_lighting.set_manual_control
-        target:
-          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
-        data:
-          manual_control: false
-      - service: input_number.set_value
-        target:
-          entity_id:
-            - input_number.oal_offset_global_manual_warmth
-            - input_number.oal_manual_offset_main_living_brightness
-            - input_number.oal_manual_offset_kitchen_island_brightness
-            - input_number.oal_manual_offset_bedroom_primary_brightness
-            - input_number.oal_manual_offset_accent_spots_brightness
-            - input_number.oal_manual_offset_recessed_ceiling_brightness
-            - input_number.oal_manual_offset_column_lights_brightness
-        data:
-          value: 0
+
+      # =========================================================================
+      # Column Lights Reset - Gaussian Curve Aware (only if columns are manual)
+      # =========================================================================
+      - if:
+          - condition: template
+            value_template: "{{ columns_manual }}"
+        then:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ in_gaussian_rgb_window }}"
+                sequence:
+                  # During Gaussian window: Apply correct RGB color directly
+                  - service: light.turn_on
+                    continue_on_error: true
+                    target:
+                      entity_id:
+                        - light.living_column_strip_light_matter
+                        - light.dining_column_strip_light_matter
+                    data:
+                      rgb_color: [255, "{{ column_rgb_green }}", 0]
+                      transition: 0
+                  # Keep manual control set so AL doesn't interfere with RGB mode
+                  - service: adaptive_lighting.set_manual_control
+                    continue_on_error: true
+                    target:
+                      entity_id: switch.adaptive_lighting_column_lights
+                    data:
+                      lights:
+                        - light.living_column_strip_light_matter
+                        - light.dining_column_strip_light_matter
+                      manual_control: true
+            default:
+              # Outside Gaussian window: Reset column lights to color_temp mode
+              - service: adaptive_lighting.change_switch_settings
+                data:
+                  entity_id: switch.adaptive_lighting_column_lights
+                  use_defaults: configuration
+                  include_config_in_attributes: true
+                  initial_transition: 1
+                  sleep_transition: 1
+                  transition: 1
+                  separate_turn_on_commands: true
+                  send_split_delay: 1
+                  prefer_rgb_color: false
+                  sleep_rgb_or_color_temp: "rgb_color"
+                  sleep_rgb_color: [255, 165, 0]
+              # Clear column lights manual control
+              - service: adaptive_lighting.set_manual_control
+                target:
+                  entity_id: switch.adaptive_lighting_column_lights
+                data:
+                  manual_control: false
+
+      # =========================================================================
+      # Non-Column Zones Reset - Only Target Manual-Controlled
+      # =========================================================================
+      - if:
+          - condition: template
+            value_template: "{{ manual_non_column_switches | length > 0 }}"
+        then:
+          - service: adaptive_lighting.set_manual_control
+            target:
+              entity_id: "{{ manual_non_column_switches }}"
+            data:
+              manual_control: false
+
+      # =========================================================================
+      # Brightness Offset Reset - Only For Affected Zones
+      # =========================================================================
+      - if:
+          - condition: template
+            value_template: "{{ offset_entities_to_reset | length > 0 }}"
+        then:
+          - service: input_number.set_value
+            target:
+              entity_id: "{{ offset_entities_to_reset }}"
+            data:
+              value: 0
+
+      # =========================================================================
+      # Config/Mode Reset (always)
+      # =========================================================================
       - service: input_select.select_option
         target:
           entity_id: input_select.oal_active_configuration
@@ -3651,11 +3760,10 @@ script:
       - service: input_boolean.turn_off
         target:
           entity_id: input_boolean.oal_movie_mode_active
-      # LAST: Wait for any Config Manager transition to complete, then trigger Core Engine
-      # Core Engine recalculates proper brightness bounds and applies to all zones
+
+      # LAST: Trigger Core Engine
       - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
         timeout: "00:00:10"
-      # Trigger Core Engine to recalculate and apply proper brightness bounds
       - event: oal_watchdog_trigger
         event_data:
           force: true

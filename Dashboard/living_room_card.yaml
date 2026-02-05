@@ -27,94 +27,10 @@ cards:
           icon: mdi:brightness-7
           hold_action:
             action: toggle
-      bottom: []
-    styles: |-
-      ${(() => {
-        const roomState = hass.states['sensor.room_living_state']?.state || 'idle';
-        const lightsOn = parseInt(hass.states['sensor.room_living_state']?.attributes?.lights_on || '0');
-
-        let iconColor, iconBg;
-        if (roomState === 'playing') {
-          iconColor = 'rgb(66, 133, 244)';
-          iconBg = 'rgba(66, 133, 244, 0.18)';
-        } else if (roomState === 'active' || lightsOn > 0) {
-          iconColor = 'rgb(255, 149, 0)';
-          iconBg = 'rgba(255, 149, 0, 0.18)';
-        } else {
-          iconColor = 'rgba(50, 50, 50, 0.55)';
-          iconBg = 'rgba(80, 80, 80, 0.10)';
-        }
-
-        return `
-          ha-card {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            padding: 10px 14px 4px 14px !important;
-            margin: 0 !important;
-          }
-
-          .bubble-icon-container {
-            background: ${iconBg} !important;
-            border-radius: 50% !important;
-            min-width: 52px !important;
-            min-height: 52px !important;
-            border: 1.5px solid ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.25)')} !important;
-          }
-
-          .bubble-icon {
-            color: ${iconColor} !important;
-            --mdc-icon-size: 30px !important;
-            ${roomState !== 'idle' ? `filter: drop-shadow(0 0 4px ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.4)')}) !important;` : ''}
-          }
-
-          .bubble-name {
-            font-size: 22px !important;
-            font-weight: 700 !important;
-            color: rgba(25, 25, 25, 0.95) !important;
-            letter-spacing: -0.3px !important;
-          }
-
-          .bubble-sub-button-container {
-            gap: 8px !important;
-          }
-
-          .bubble-sub-button {
-            background: ${iconBg} !important;
-            border: 1px solid ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.25)')} !important;
-            border-radius: 50% !important;
-            min-width: 36px !important;
-            min-height: 36px !important;
-            transition: transform 0.1s ease, background 0.2s ease !important;
-          }
-
-          .bubble-sub-button:active {
-            transform: scale(0.90) !important;
-          }
-
-          .bubble-sub-button ha-icon {
-            color: ${iconColor} !important;
-            --mdc-icon-size: 18px !important;
-          }
-        `;
-      })()}
-
-  # ═══════════════════════════════════════════════════════════════════════
-  # QUICK ACTIONS ROW - Conditional room-level controls
-  # ═══════════════════════════════════════════════════════════════════════
-  - type: custom:bubble-card
-    card_type: button
-    button_type: name
-    card_layout: large
-    show_icon: false
-    show_name: false
-    show_state: false
-    sub_button:
-      main:
+      bottom:
         - name: Quick Controls
           buttons_layout: inline
           group:
-            # All Lights On/Off
             - entity: light.living_room_lights
               name: All
               icon: mdi:lightbulb-group
@@ -128,7 +44,6 @@ cards:
                 action: toggle
               hold_action:
                 action: more-info
-            # Reset Room Override (conditional - only when lights manually controlled)
             - entity: switch.adaptive_lighting_main_living
               name: Reset
               icon: mdi:refresh
@@ -151,7 +66,6 @@ cards:
                     - switch.adaptive_lighting_column_lights
                     - switch.adaptive_lighting_recessed_ceiling
                   manual_control: false
-            # Alarm (conditional - when upcoming alarm exists)
             - entity: sensor.sonos_next_alarm_chip
               name: Alarm
               icon: mdi:alarm
@@ -172,7 +86,6 @@ cards:
                   tracker: input_text.sonos_manually_toggled_alarm_living_room
               hold_action:
                 action: more-info
-            # Brighter (room-specific via global brighter with lights filter)
             - entity: input_number.oal_manual_offset_main_living_brightness
               name: Brighter
               icon: mdi:brightness-7
@@ -190,7 +103,6 @@ cards:
               hold_action:
                 action: more-info
                 entity: input_number.oal_manual_offset_main_living_brightness
-            # Dimmer (room-specific via global dimmer with lights filter)
             - entity: input_number.oal_manual_offset_main_living_brightness
               name: Dimmer
               icon: mdi:brightness-5
@@ -208,7 +120,6 @@ cards:
               hold_action:
                 action: more-info
                 entity: input_number.oal_manual_offset_main_living_brightness
-            # Play/Pause (conditional - when media playing/paused)
             - entity: media_player.living_room
               name: Media
               icon: mdi:play-pause
@@ -235,153 +146,166 @@ cards:
                 data:
                   target_speaker: media_player.living_room
     styles: |-
-      ha-card {
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-        padding: 0px 14px 0px 14px !important;
-      }
-
-      .bubble-button-card-container {
-        background: transparent !important;
-      }
-
-      .bubble-sub-button-container {
-        background: rgba(60, 60, 60, 0.05) !important;
-        backdrop-filter: blur(4px) !important;
-        -webkit-backdrop-filter: blur(4px) !important;
-        border-radius: 10px !important;
-        border: 1px solid rgba(60, 60, 60, 0.10) !important;
-        padding: 4px 6px !important;
-        margin: 0 auto !important;
-        box-shadow: none !important;
-        width: fit-content !important;
-        justify-content: center !important;
-      }
-
-      .bubble-sub-button-1,
-      .bubble-sub-button-2,
-      .bubble-sub-button-3,
-      .bubble-sub-button-4,
-      .bubble-sub-button-5,
-      .bubble-sub-button-6 {
-        background: rgba(60, 60, 60, 0.07) !important;
-        border: 1px solid rgba(60, 60, 60, 0.12) !important;
-        border-radius: 8px !important;
-        margin-left: 4px !important;
-        transition: transform 0.1s ease, background 0.15s ease !important;
-      }
-      .bubble-sub-button-1 {
-        margin-left: 0 !important;
-      }
-      .bubble-sub-button-1:active,
-      .bubble-sub-button-2:active,
-      .bubble-sub-button-3:active,
-      .bubble-sub-button-4:active,
-      .bubble-sub-button-5:active,
-      .bubble-sub-button-6:active {
-        transform: scale(0.90) !important;
-      }
-
-      /* All Lights - dynamic on/off */
-      .bubble-sub-button-1 {
-        background: ${hass.states['light.living_room_lights']?.state === 'on'
-          ? 'rgba(255, 149, 0, 0.16)'
-          : 'rgba(60, 60, 60, 0.07)'} !important;
-        border: ${hass.states['light.living_room_lights']?.state === 'on'
-          ? '1px solid rgba(255, 149, 0, 0.35)'
-          : '1px solid rgba(60, 60, 60, 0.12)'} !important;
-      }
-      .bubble-sub-button-1 .bubble-sub-button-icon {
-        color: ${hass.states['light.living_room_lights']?.state === 'on'
-          ? 'rgb(255, 149, 0)'
-          : 'rgba(60, 60, 60, 0.55)'} !important;
-        --mdc-icon-size: 16px !important;
-      }
-
-      /* Reset - active when overrides exist */
       ${(() => {
+        const roomState = hass.states['sensor.room_living_state']?.state || 'idle';
+        const lightsOn = parseInt(hass.states['sensor.room_living_state']?.attributes?.lights_on || '0');
+        let iconColor, iconBg;
+        if (roomState === 'playing') {
+          iconColor = 'rgb(66, 133, 244)';
+          iconBg = 'rgba(66, 133, 244, 0.18)';
+        } else if (roomState === 'active' || lightsOn > 0) {
+          iconColor = 'rgb(255, 149, 0)';
+          iconBg = 'rgba(255, 149, 0, 0.18)';
+        } else {
+          iconColor = 'rgba(50, 50, 50, 0.55)';
+          iconBg = 'rgba(80, 80, 80, 0.10)';
+        }
+
         const manualLights = hass.states['sensor.room_living_state']?.attributes?.manually_controlled_lights || [];
         const hasOverride = Array.isArray(manualLights) && manualLights.length > 0;
+        const alarmSensor = hass.states['sensor.hero_button_alarm_state'];
+        const isAlarmEnabled = alarmSensor?.attributes?.is_enabled === true || alarmSensor?.attributes?.is_enabled === 'True';
+        const alarmTime = alarmSensor?.attributes?.formatted_time || 'OFF';
+        const brOffset = parseFloat(hass.states['input_number.oal_manual_offset_main_living_brightness']?.state || '0');
+        const isBrighter = brOffset > 0;
+        const isDimmer = brOffset < 0;
+        const isMediaPlaying = hass.states['media_player.living_room']?.state === 'playing';
+        const lightsAllOn = hass.states['light.living_room_lights']?.state === 'on';
+
         return `
-          .bubble-sub-button-2 {
+          ha-card {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 10px 14px 4px 14px !important;
+            margin: 0 !important;
+          }
+          .bubble-icon-container {
+            background: ${iconBg} !important;
+            border-radius: 50% !important;
+            min-width: 52px !important;
+            min-height: 52px !important;
+            border: 1.5px solid ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.25)')} !important;
+          }
+          .bubble-icon {
+            color: ${iconColor} !important;
+            --mdc-icon-size: 30px !important;
+            ${roomState !== 'idle' ? `filter: drop-shadow(0 0 4px ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.4)')}) !important;` : ''}
+          }
+          .bubble-name {
+            font-size: 22px !important;
+            font-weight: 700 !important;
+            color: rgba(25, 25, 25, 0.95) !important;
+            letter-spacing: -0.3px !important;
+          }
+          .bubble-sub-button-container {
+            gap: 8px !important;
+          }
+          .bubble-sub-button {
+            background: ${iconBg} !important;
+            border: 1px solid ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.25)')} !important;
+            border-radius: 50% !important;
+            min-width: 36px !important;
+            min-height: 36px !important;
+            transition: transform 0.1s ease, background 0.2s ease !important;
+          }
+          .bubble-sub-button:active {
+            transform: scale(0.90) !important;
+          }
+          .bubble-sub-button ha-icon {
+            color: ${iconColor} !important;
+            --mdc-icon-size: 18px !important;
+          }
+
+          /* Bottom quick actions - override base sub-button styles */
+          .bubble-sub-button-container--bottom,
+          .bubble-sub-button-container:last-child {
+            background: rgba(60, 60, 60, 0.05) !important;
+            backdrop-filter: blur(4px) !important;
+            -webkit-backdrop-filter: blur(4px) !important;
+            border-radius: 10px !important;
+            border: 1px solid rgba(60, 60, 60, 0.10) !important;
+            padding: 3px 5px !important;
+            margin: 0 auto !important;
+            box-shadow: none !important;
+            width: fit-content !important;
+            justify-content: center !important;
+            gap: 4px !important;
+          }
+          .bubble-sub-button-container--bottom .bubble-sub-button,
+          .bubble-sub-button-container:last-child .bubble-sub-button {
+            background: rgba(60, 60, 60, 0.07) !important;
+            border: 1px solid rgba(60, 60, 60, 0.12) !important;
+            border-radius: 8px !important;
+            min-width: auto !important;
+            min-height: auto !important;
+          }
+          .bubble-sub-button-container--bottom .bubble-sub-button ha-icon,
+          .bubble-sub-button-container:last-child .bubble-sub-button ha-icon {
+            --mdc-icon-size: 16px !important;
+          }
+
+          /* All Lights */
+          .bubble-sub-button-container:last-child .bubble-sub-button-1 {
+            background: ${lightsAllOn ? 'rgba(255, 149, 0, 0.16)' : 'rgba(60, 60, 60, 0.07)'} !important;
+            border: ${lightsAllOn ? '1px solid rgba(255, 149, 0, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
+          }
+          .bubble-sub-button-container:last-child .bubble-sub-button-1 .bubble-sub-button-icon {
+            color: ${lightsAllOn ? 'rgb(255, 149, 0)' : 'rgba(60, 60, 60, 0.55)'} !important;
+          }
+          /* Reset */
+          .bubble-sub-button-container:last-child .bubble-sub-button-2 {
             background: ${hasOverride ? 'rgba(255, 110, 90, 0.14)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${hasOverride ? '1px solid rgba(255, 110, 90, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
           }
-          .bubble-sub-button-2 .bubble-sub-button-icon {
+          .bubble-sub-button-container:last-child .bubble-sub-button-2 .bubble-sub-button-icon {
             color: ${hasOverride ? 'rgb(255, 110, 90)' : 'rgba(60, 60, 60, 0.55)'} !important;
-            --mdc-icon-size: 16px !important;
           }
-        `;
-      })()}
-
-      /* Alarm - active when enabled */
-      ${(() => {
-        const s = hass.states['sensor.hero_button_alarm_state'];
-        const isEnabled = s?.attributes?.is_enabled === true || s?.attributes?.is_enabled === 'True';
-        const formattedTime = s?.attributes?.formatted_time || 'OFF';
-        return `
-          .bubble-sub-button-3 {
-            background: ${isEnabled ? 'rgba(66, 133, 244, 0.14)' : 'rgba(60, 60, 60, 0.07)'} !important;
-            border: ${isEnabled ? '1px solid rgba(66, 133, 244, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
+          /* Alarm */
+          .bubble-sub-button-container:last-child .bubble-sub-button-3 {
+            background: ${isAlarmEnabled ? 'rgba(66, 133, 244, 0.14)' : 'rgba(60, 60, 60, 0.07)'} !important;
+            border: ${isAlarmEnabled ? '1px solid rgba(66, 133, 244, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
             position: relative !important;
           }
-          .bubble-sub-button-3 .bubble-sub-button-icon {
-            color: ${isEnabled ? 'rgb(66, 133, 244)' : 'rgba(60, 60, 60, 0.55)'} !important;
-            --mdc-icon-size: 16px !important;
+          .bubble-sub-button-container:last-child .bubble-sub-button-3 .bubble-sub-button-icon {
+            color: ${isAlarmEnabled ? 'rgb(66, 133, 244)' : 'rgba(60, 60, 60, 0.55)'} !important;
           }
-          .bubble-sub-button-3::after {
-            content: '${isEnabled ? formattedTime : (formattedTime !== 'OFF' ? formattedTime + ' OFF' : '')}' !important;
+          .bubble-sub-button-container:last-child .bubble-sub-button-3::after {
+            content: '${isAlarmEnabled ? alarmTime : (alarmTime !== 'OFF' ? alarmTime + ' OFF' : '')}' !important;
             position: absolute !important;
             bottom: 1px !important;
             right: 3px !important;
             font-size: 7px !important;
             font-weight: 600 !important;
-            color: ${isEnabled ? 'rgba(66, 133, 244, 0.9)' : 'rgba(60, 60, 60, 0.5)'} !important;
+            color: ${isAlarmEnabled ? 'rgba(66, 133, 244, 0.9)' : 'rgba(60, 60, 60, 0.5)'} !important;
           }
-        `;
-      })()}
-
-      /* Brighter/Dimmer - active when LIVING ROOM offset modified */
-      ${(() => {
-        const offset = parseFloat(hass.states['input_number.oal_manual_offset_main_living_brightness']?.state || '0');
-        const isBrighter = offset > 0;
-        const isDimmer = offset < 0;
-        return `
-          .bubble-sub-button-4 {
+          /* Brighter */
+          .bubble-sub-button-container:last-child .bubble-sub-button-4 {
             background: ${isBrighter ? 'rgba(138, 100, 200, 0.12)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${isBrighter ? '1px solid rgba(138, 100, 200, 0.30)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
           }
-          .bubble-sub-button-4 .bubble-sub-button-icon {
+          .bubble-sub-button-container:last-child .bubble-sub-button-4 .bubble-sub-button-icon {
             color: ${isBrighter ? 'rgba(120, 80, 180, 0.85)' : 'rgba(60, 60, 60, 0.55)'} !important;
-            --mdc-icon-size: 16px !important;
           }
-          .bubble-sub-button-5 {
+          /* Dimmer */
+          .bubble-sub-button-container:last-child .bubble-sub-button-5 {
             background: ${isDimmer ? 'rgba(138, 100, 200, 0.12)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${isDimmer ? '1px solid rgba(138, 100, 200, 0.30)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
           }
-          .bubble-sub-button-5 .bubble-sub-button-icon {
+          .bubble-sub-button-container:last-child .bubble-sub-button-5 .bubble-sub-button-icon {
             color: ${isDimmer ? 'rgba(120, 80, 180, 0.85)' : 'rgba(60, 60, 60, 0.55)'} !important;
-            --mdc-icon-size: 16px !important;
+          }
+          /* Play/Pause */
+          .bubble-sub-button-container:last-child .bubble-sub-button-6 {
+            background: ${isMediaPlaying ? 'rgba(66, 133, 244, 0.14)' : 'rgba(60, 60, 60, 0.07)'} !important;
+            border: ${isMediaPlaying ? '1px solid rgba(66, 133, 244, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
+          }
+          .bubble-sub-button-container:last-child .bubble-sub-button-6 .bubble-sub-button-icon {
+            color: ${isMediaPlaying ? 'rgb(66, 133, 244)' : 'rgba(60, 60, 60, 0.55)'} !important;
           }
         `;
       })()}
 
-      /* Play/Pause - active when playing */
-      ${(() => {
-        const isPlaying = hass.states['media_player.living_room']?.state === 'playing';
-        return `
-          .bubble-sub-button-6 {
-            background: ${isPlaying ? 'rgba(66, 133, 244, 0.14)' : 'rgba(60, 60, 60, 0.07)'} !important;
-            border: ${isPlaying ? '1px solid rgba(66, 133, 244, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
-          }
-          .bubble-sub-button-6 .bubble-sub-button-icon {
-            color: ${isPlaying ? 'rgb(66, 133, 244)' : 'rgba(60, 60, 60, 0.55)'} !important;
-            --mdc-icon-size: 16px !important;
-          }
-        `;
-      })()}
 
   # ═══════════════════════════════════════════════════════════════════════
   # LIGHTS GRID - 6 lights in 3 columns (compact)
@@ -436,7 +360,7 @@ cards:
             align-items: center !important;
             text-align: center !important;
             min-height: 100px !important;
-            padding: 10px 4px 8px 4px !important;
+            padding: 8px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
             clip-path: inset(0 round 14px) !important;
@@ -467,7 +391,7 @@ cards:
             width: 100% !important;
             position: relative !important;
             z-index: 5 !important;
-            padding-bottom: 10px !important;
+            padding-bottom: 8px !important;
           }
           .bubble-button-card-container::after {
             content: '' !important;
@@ -484,10 +408,10 @@ cards:
             z-index: 25 !important;
           }
           .bubble-icon-container {
-            min-width: 42px !important;
-            min-height: 42px !important;
+            min-width: 36px !important;
+            min-height: 36px !important;
             grid-row: 1 !important;
-            margin: 2px 0 4px 0 !important;
+            margin: 1px 0 2px 0 !important;
             border-radius: 50% !important;
             display: flex !important;
             align-items: center !important;
@@ -634,7 +558,7 @@ cards:
             align-items: center !important;
             text-align: center !important;
             min-height: 100px !important;
-            padding: 10px 4px 8px 4px !important;
+            padding: 8px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
             clip-path: inset(0 round 14px) !important;
@@ -656,9 +580,9 @@ cards:
               : '0 1px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15)'} !important;
           }
           .bubble-button-card-container:active { transform: scale(0.95) !important; }
-          .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
+          .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 8px !important; }
           .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_couch_lamp') ? '7px' : '0px'} !important; height: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_couch_lamp') ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_couch_lamp') ? 'rgb(255, 110, 90)' : 'transparent'} !important; border: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_couch_lamp') ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_couch_lamp') ? '0 0 4px rgba(255, 110, 90, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
-          .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+          .bubble-icon-container { min-width: 36px !important; min-height: 36px !important; grid-row: 1 !important; margin: 1px 0 2px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
           .bubble-icon { --mdc-icon-size: 24px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
           .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
           .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
@@ -711,7 +635,7 @@ cards:
             align-items: center !important;
             text-align: center !important;
             min-height: 100px !important;
-            padding: 10px 4px 8px 4px !important;
+            padding: 8px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
             clip-path: inset(0 round 14px) !important;
@@ -733,9 +657,9 @@ cards:
               : '0 1px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15)'} !important;
           }
           .bubble-button-card-container:active { transform: scale(0.95) !important; }
-          .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
+          .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 8px !important; }
           .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.entryway_lamp') ? '7px' : '0px'} !important; height: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.entryway_lamp') ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.entryway_lamp') ? 'rgb(255, 110, 90)' : 'transparent'} !important; border: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.entryway_lamp') ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.entryway_lamp') ? '0 0 4px rgba(255, 110, 90, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
-          .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+          .bubble-icon-container { min-width: 36px !important; min-height: 36px !important; grid-row: 1 !important; margin: 1px 0 2px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
           .bubble-icon { --mdc-icon-size: 24px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
           .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
           .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
@@ -791,7 +715,7 @@ cards:
             align-items: center !important;
             text-align: center !important;
             min-height: 100px !important;
-            padding: 10px 4px 8px 4px !important;
+            padding: 8px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
             clip-path: inset(0 round 14px) !important;
@@ -813,9 +737,9 @@ cards:
               : '0 1px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15)'} !important;
           }
           .bubble-button-card-container:active { transform: scale(0.95) !important; }
-          .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
+          .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 8px !important; }
           .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${(hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).includes('light.living_room_spot_lights') ? '7px' : '0px'} !important; height: ${(hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).includes('light.living_room_spot_lights') ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${(hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).includes('light.living_room_spot_lights') ? 'rgb(255, 110, 90)' : 'transparent'} !important; border: ${(hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).includes('light.living_room_spot_lights') ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${(hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || []).includes('light.living_room_spot_lights') ? '0 0 4px rgba(255, 110, 90, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
-          .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+          .bubble-icon-container { min-width: 36px !important; min-height: 36px !important; grid-row: 1 !important; margin: 1px 0 2px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
           .bubble-icon { --mdc-icon-size: 24px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
           .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
           .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
@@ -871,7 +795,7 @@ cards:
             align-items: center !important;
             text-align: center !important;
             min-height: 100px !important;
-            padding: 10px 4px 8px 4px !important;
+            padding: 8px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
             clip-path: inset(0 round 14px) !important;
@@ -893,9 +817,9 @@ cards:
               : '0 1px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15)'} !important;
           }
           .bubble-button-card-container:active { transform: scale(0.95) !important; }
-          .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
+          .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 8px !important; }
           .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${(hass.states['switch.adaptive_lighting_column_lights']?.attributes?.manual_control || []).length > 0 ? '7px' : '0px'} !important; height: ${(hass.states['switch.adaptive_lighting_column_lights']?.attributes?.manual_control || []).length > 0 ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${(hass.states['switch.adaptive_lighting_column_lights']?.attributes?.manual_control || []).length > 0 ? 'rgb(255, 110, 90)' : 'transparent'} !important; border: ${(hass.states['switch.adaptive_lighting_column_lights']?.attributes?.manual_control || []).length > 0 ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${(hass.states['switch.adaptive_lighting_column_lights']?.attributes?.manual_control || []).length > 0 ? '0 0 4px rgba(255, 110, 90, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
-          .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+          .bubble-icon-container { min-width: 36px !important; min-height: 36px !important; grid-row: 1 !important; margin: 1px 0 2px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
           .bubble-icon { --mdc-icon-size: 24px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
           .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
           .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
@@ -951,7 +875,7 @@ cards:
             align-items: center !important;
             text-align: center !important;
             min-height: 100px !important;
-            padding: 10px 4px 8px 4px !important;
+            padding: 8px 4px 8px 4px !important;
             border-radius: 14px !important;
             overflow: hidden !important;
             clip-path: inset(0 round 14px) !important;
@@ -973,9 +897,9 @@ cards:
               : '0 1px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15)'} !important;
           }
           .bubble-button-card-container:active { transform: scale(0.95) !important; }
-          .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
+          .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 8px !important; }
           .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${(hass.states['switch.adaptive_lighting_recessed_ceiling']?.attributes?.manual_control || []).includes('light.living_room_hallway_lights') ? '7px' : '0px'} !important; height: ${(hass.states['switch.adaptive_lighting_recessed_ceiling']?.attributes?.manual_control || []).includes('light.living_room_hallway_lights') ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${(hass.states['switch.adaptive_lighting_recessed_ceiling']?.attributes?.manual_control || []).includes('light.living_room_hallway_lights') ? 'rgb(255, 110, 90)' : 'transparent'} !important; border: ${(hass.states['switch.adaptive_lighting_recessed_ceiling']?.attributes?.manual_control || []).includes('light.living_room_hallway_lights') ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${(hass.states['switch.adaptive_lighting_recessed_ceiling']?.attributes?.manual_control || []).includes('light.living_room_hallway_lights') ? '0 0 4px rgba(255, 110, 90, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
-          .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+          .bubble-icon-container { min-width: 36px !important; min-height: 36px !important; grid-row: 1 !important; margin: 1px 0 2px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
           .bubble-icon { --mdc-icon-size: 24px !important; color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
           .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
           .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
@@ -1048,7 +972,7 @@ cards:
                 align-items: center !important;
                 text-align: center !important;
                 min-height: 100px !important;
-                padding: 10px 4px 8px 4px !important;
+                padding: 8px 4px 8px 4px !important;
                 border-radius: 14px !important;
                 overflow: hidden !important;
                 clip-path: inset(0 round 14px) !important;
@@ -1071,8 +995,8 @@ cards:
               }
               .bubble-button-card-container:active { transform: scale(0.95) !important; }
               .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${inGroup ? '7px' : '0px'} !important; height: ${inGroup ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${inGroup ? 'rgb(66, 133, 244)' : 'transparent'} !important; border: ${inGroup ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${inGroup ? '0 0 4px rgba(66, 133, 244, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; }
-              .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
-              .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${inGroup ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${inGroup ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+              .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 8px !important; }
+              .bubble-icon-container { min-width: 36px !important; min-height: 36px !important; grid-row: 1 !important; margin: 1px 0 2px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${inGroup ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${inGroup ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
               .bubble-icon { --mdc-icon-size: 24px !important; color: ${inGroup ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${inGroup ? 'drop-shadow(0 0 6px rgba(66, 133, 244, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
               .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; color: ${inGroup ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
@@ -1126,7 +1050,7 @@ cards:
                 align-items: center !important;
                 text-align: center !important;
                 min-height: 100px !important;
-                padding: 10px 4px 8px 4px !important;
+                padding: 8px 4px 8px 4px !important;
                 border-radius: 14px !important;
                 overflow: hidden !important;
                 clip-path: inset(0 round 14px) !important;
@@ -1148,8 +1072,8 @@ cards:
                   : '0 1px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15)'} !important;
               }
               .bubble-button-card-container:active { transform: scale(0.95) !important; }
-              .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
-              .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isPlaying ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${isPlaying ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+              .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 8px !important; }
+              .bubble-icon-container { min-width: 36px !important; min-height: 36px !important; grid-row: 1 !important; margin: 1px 0 2px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isPlaying ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${isPlaying ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
               .bubble-icon { --mdc-icon-size: 24px !important; color: ${isPlaying ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${isPlaying ? 'drop-shadow(0 0 6px rgba(66, 133, 244, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
               .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; color: ${isPlaying ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }
@@ -1189,7 +1113,7 @@ cards:
                 align-items: center !important;
                 text-align: center !important;
                 min-height: 100px !important;
-                padding: 10px 4px 8px 4px !important;
+                padding: 8px 4px 8px 4px !important;
                 border-radius: 14px !important;
                 overflow: hidden !important;
                 clip-path: inset(0 round 14px) !important;
@@ -1211,8 +1135,8 @@ cards:
                   : '0 1px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15)'} !important;
               }
               .bubble-button-card-container:active { transform: scale(0.95) !important; }
-              .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
-              .bubble-icon-container { min-width: 42px !important; min-height: 42px !important; grid-row: 1 !important; margin: 2px 0 4px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isOn ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${isOn ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
+              .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 8px !important; }
+              .bubble-icon-container { min-width: 36px !important; min-height: 36px !important; grid-row: 1 !important; margin: 1px 0 2px 0 !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isOn ? 'rgba(66, 133, 244, 0.12)' : 'rgba(150, 150, 155, 0.10)'} !important; border: ${isOn ? '1.5px solid rgba(66, 133, 244, 0.25)' : '1.5px solid rgba(150, 150, 155, 0.18)'} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; }
               .bubble-icon { --mdc-icon-size: 24px !important; color: ${isOn ? 'rgb(66, 133, 244)' : 'rgba(80, 80, 80, 0.45)'} !important; filter: ${isOn ? 'drop-shadow(0 0 6px rgba(66, 133, 244, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
               .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; color: ${isOn ? 'rgba(25, 25, 25, 0.95)' : 'rgba(70, 70, 70, 0.65)'} !important; }

@@ -203,6 +203,27 @@ cards:
                 data:
                   entity_id: switch.adaptive_lighting_main_living
                   manual_control: false
+            # Alarm (conditional - when upcoming alarm exists)
+            - entity: sensor.sonos_next_alarm_chip
+              name: Alarm
+              icon: mdi:alarm
+              show_name: false
+              show_icon: true
+              show_background: true
+              state_background: false
+              custom_height: 36
+              fill_width: false
+              visibility:
+                - condition: template
+                  value_template: "{{ state_attr('sensor.room_living_state', 'has_upcoming_alarm') | default(false) }}"
+              tap_action:
+                action: perform-action
+                perform_action: script.sonos_toggle_next_alarm
+                data:
+                  alarm_entity: "{{ state_attr('sensor.room_living_state', 'next_alarm_entity') }}"
+                  tracker: input_text.sonos_manually_toggled_alarm_living_room
+              hold_action:
+                action: more-info
             # Brighter
             - entity: script.oal_global_manual_brighter
               name: Brighter
@@ -293,7 +314,8 @@ cards:
       .bubble-sub-button-2,
       .bubble-sub-button-3,
       .bubble-sub-button-4,
-      .bubble-sub-button-5 {
+      .bubble-sub-button-5,
+      .bubble-sub-button-6 {
         background: rgba(60, 60, 60, 0.07) !important;
         border: 1px solid rgba(60, 60, 60, 0.12) !important;
         border-radius: 8px !important;
@@ -307,7 +329,8 @@ cards:
       .bubble-sub-button-2:active,
       .bubble-sub-button-3:active,
       .bubble-sub-button-4:active,
-      .bubble-sub-button-5:active {
+      .bubble-sub-button-5:active,
+      .bubble-sub-button-6:active {
         transform: scale(0.90) !important;
       }
 
@@ -343,25 +366,52 @@ cards:
         `;
       })()}
 
+      /* Alarm - active when enabled */
+      ${(() => {
+        const s = hass.states['sensor.hero_button_alarm_state'];
+        const isEnabled = s?.attributes?.is_enabled === true || s?.attributes?.is_enabled === 'True';
+        const formattedTime = s?.attributes?.formatted_time || 'OFF';
+        return `
+          .bubble-sub-button-3 {
+            background: ${isEnabled ? 'rgba(66, 133, 244, 0.14)' : 'rgba(60, 60, 60, 0.07)'} !important;
+            border: ${isEnabled ? '1px solid rgba(66, 133, 244, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
+            position: relative !important;
+          }
+          .bubble-sub-button-3 .bubble-sub-button-icon {
+            color: ${isEnabled ? 'rgb(66, 133, 244)' : 'rgba(60, 60, 60, 0.55)'} !important;
+            --mdc-icon-size: 18px !important;
+          }
+          .bubble-sub-button-3::after {
+            content: '${isEnabled ? formattedTime : (formattedTime !== 'OFF' ? formattedTime + ' OFF' : '')}' !important;
+            position: absolute !important;
+            bottom: 1px !important;
+            right: 3px !important;
+            font-size: 7px !important;
+            font-weight: 600 !important;
+            color: ${isEnabled ? 'rgba(66, 133, 244, 0.9)' : 'rgba(60, 60, 60, 0.5)'} !important;
+          }
+        `;
+      })()}
+
       /* Brighter/Dimmer - active when offset modified */
       ${(() => {
         const offset = parseFloat(hass.states['input_number.oal_manual_offset_main_living_brightness']?.state || '0');
         const isBrighter = offset > 0;
         const isDimmer = offset < 0;
         return `
-          .bubble-sub-button-3 {
+          .bubble-sub-button-4 {
             background: ${isBrighter ? 'rgba(138, 100, 200, 0.12)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${isBrighter ? '1px solid rgba(138, 100, 200, 0.30)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
           }
-          .bubble-sub-button-3 .bubble-sub-button-icon {
+          .bubble-sub-button-4 .bubble-sub-button-icon {
             color: ${isBrighter ? 'rgba(120, 80, 180, 0.85)' : 'rgba(60, 60, 60, 0.55)'} !important;
             --mdc-icon-size: 18px !important;
           }
-          .bubble-sub-button-4 {
+          .bubble-sub-button-5 {
             background: ${isDimmer ? 'rgba(138, 100, 200, 0.12)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${isDimmer ? '1px solid rgba(138, 100, 200, 0.30)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
           }
-          .bubble-sub-button-4 .bubble-sub-button-icon {
+          .bubble-sub-button-5 .bubble-sub-button-icon {
             color: ${isDimmer ? 'rgba(120, 80, 180, 0.85)' : 'rgba(60, 60, 60, 0.55)'} !important;
             --mdc-icon-size: 18px !important;
           }
@@ -372,11 +422,11 @@ cards:
       ${(() => {
         const isPlaying = hass.states['media_player.living_room']?.state === 'playing';
         return `
-          .bubble-sub-button-5 {
+          .bubble-sub-button-6 {
             background: ${isPlaying ? 'rgba(66, 133, 244, 0.14)' : 'rgba(60, 60, 60, 0.07)'} !important;
             border: ${isPlaying ? '1px solid rgba(66, 133, 244, 0.35)' : '1px solid rgba(60, 60, 60, 0.12)'} !important;
           }
-          .bubble-sub-button-5 .bubble-sub-button-icon {
+          .bubble-sub-button-6 .bubble-sub-button-icon {
             color: ${isPlaying ? 'rgb(66, 133, 244)' : 'rgba(60, 60, 60, 0.55)'} !important;
             --mdc-icon-size: 18px !important;
           }
@@ -511,7 +561,7 @@ cards:
           }
           .bubble-name {
             font-weight: 650 !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
             line-height: 1.2 !important;
             justify-content: center !important;
             margin: 0 4px !important;
@@ -520,7 +570,7 @@ cards:
               : 'rgba(70, 70, 70, 0.65)'} !important;
           }
           .bubble-state {
-            font-size: 12px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
             margin-top: 2px !important;
             justify-content: center !important;
@@ -529,7 +579,7 @@ cards:
               : 'rgba(100, 100, 100, 0.5)'} !important;
           }
           .bubble-attribute {
-            font-size: 12px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
             margin-top: 2px !important;
             justify-content: center !important;
@@ -699,7 +749,7 @@ cards:
           }
           .bubble-name {
             font-weight: 650 !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
             line-height: 1.2 !important;
             justify-content: center !important;
             margin: 0 4px !important;
@@ -708,7 +758,7 @@ cards:
               : 'rgba(70, 70, 70, 0.65)'} !important;
           }
           .bubble-state {
-            font-size: 12px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
             margin-top: 2px !important;
             justify-content: center !important;
@@ -717,7 +767,7 @@ cards:
               : 'rgba(100, 100, 100, 0.5)'} !important;
           }
           .bubble-attribute {
-            font-size: 12px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
             margin-top: 2px !important;
             justify-content: center !important;
@@ -887,7 +937,7 @@ cards:
           }
           .bubble-name {
             font-weight: 650 !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
             line-height: 1.2 !important;
             justify-content: center !important;
             margin: 0 4px !important;
@@ -896,7 +946,7 @@ cards:
               : 'rgba(70, 70, 70, 0.65)'} !important;
           }
           .bubble-state {
-            font-size: 12px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
             margin-top: 2px !important;
             justify-content: center !important;
@@ -905,7 +955,7 @@ cards:
               : 'rgba(100, 100, 100, 0.5)'} !important;
           }
           .bubble-attribute {
-            font-size: 12px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
             margin-top: 2px !important;
             justify-content: center !important;
@@ -1078,7 +1128,7 @@ cards:
           }
           .bubble-name {
             font-weight: 650 !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
             line-height: 1.2 !important;
             justify-content: center !important;
             margin: 0 4px !important;
@@ -1087,7 +1137,7 @@ cards:
               : 'rgba(70, 70, 70, 0.65)'} !important;
           }
           .bubble-state {
-            font-size: 12px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
             margin-top: 2px !important;
             justify-content: center !important;
@@ -1096,7 +1146,7 @@ cards:
               : 'rgba(100, 100, 100, 0.5)'} !important;
           }
           .bubble-attribute {
-            font-size: 12px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
             margin-top: 2px !important;
             justify-content: center !important;
@@ -1286,7 +1336,7 @@ cards:
               }
               .bubble-name {
                 font-weight: 650 !important;
-                font-size: 13px !important;
+                font-size: 14px !important;
                 line-height: 1.2 !important;
                 justify-content: center !important;
                 color: ${inGroup
@@ -1294,7 +1344,7 @@ cards:
                   : 'rgba(70, 70, 70, 0.65)'} !important;
               }
               .bubble-state {
-                font-size: 12px !important;
+                font-size: 13px !important;
                 font-weight: 600 !important;
                 margin-top: 2px !important;
                 justify-content: center !important;
@@ -1303,7 +1353,7 @@ cards:
                   : 'rgba(100, 100, 100, 0.5)'} !important;
               }
               .bubble-attribute {
-                font-size: 12px !important;
+                font-size: 13px !important;
                 font-weight: 600 !important;
                 margin-top: 2px !important;
                 justify-content: center !important;
@@ -1460,7 +1510,7 @@ cards:
               }
               .bubble-name {
                 font-weight: 650 !important;
-                font-size: 13px !important;
+                font-size: 14px !important;
                 line-height: 1.2 !important;
                 justify-content: center !important;
                 color: ${isPlaying
@@ -1564,7 +1614,7 @@ cards:
               }
               .bubble-name {
                 font-weight: 650 !important;
-                font-size: 13px !important;
+                font-size: 14px !important;
                 line-height: 1.2 !important;
                 justify-content: center !important;
                 color: ${isOn

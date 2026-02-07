@@ -1,93 +1,90 @@
 # Living Room Card — Spec Implementation (Testable Draft)
 # ═══════════════════════════════════════════════════════════════════════
 # Based on living-room-spec.md + popup-guide.md
-# Uses stack-in-card, bubble-card, mushroom-chips, layout-card
+# Uses vertical-stack, bubble-card, mushroom-chips, layout-card
 # Entities sourced from current living_room_card.yaml
 # ═══════════════════════════════════════════════════════════════════════
 
-type: custom:stack-in-card
-card_mod:
-  style: |
-    ha-card {
-      background: rgba(28, 28, 30, 0.98) !important;
-      border-radius: 26px !important;
-      border: 1px solid rgba(255, 255, 255, 0.04) !important;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.02) !important;
-      overflow: hidden !important;
-    }
+type: vertical-stack
 cards:
   # ═══════════════════════════════════════════════════════════════════
   # SECTION 1: SEPARATOR HEADER
-  # Room icon + title + subtitle + gear sub-button
+  # Room icon + brightness slider + gear sub-button
+  # Proven pattern from original living_room_card.yaml
   # ═══════════════════════════════════════════════════════════════════
   - type: custom:bubble-card
     card_type: separator
+    entity: light.living_room_lights
     name: Living Room
     icon: mdi:sofa
-    sub: >-
-      {% set on_count = expand('light.living_room_lights') | selectattr('state', 'eq', 'on') | list | count %}
-      {% set total = expand('light.living_room_lights') | list | count %}
-      {% set manual = state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) | count %}
-      {% set playing = is_state('media_player.living_room', 'playing') or is_state('media_player.living_room', 'paused') %}
-      {{ on_count }} of {{ total }} on
-      {% if manual > 0 %} · {{ manual }} manual{% endif %}
-      {% if playing %} · ♪{% endif %}
+    rows: 1.5
     sub_button:
-      - icon: mdi:cog
-        show_background: true
-        tap_action:
-          action: navigate
-          navigation_path: '#living-room-settings'
+      main:
+        - entity: light.living_room_lights
+          sub_button_type: slider
+          name: Brightness
+          icon: mdi:brightness-7
+          hold_action:
+            action: toggle
+      bottom: []
     styles: |-
       ${(() => {
-        const lightsOn = parseInt(hass.states['light.living_room_lights']?.attributes?.num_lights_on || '0') > 0
-          || hass.states['light.living_room_lights']?.state === 'on';
-        const iconColor = lightsOn ? '#ff9500' : 'rgba(255,255,255,0.25)';
-        const iconBg = lightsOn ? 'rgba(255,149,0,0.13)' : 'rgba(128,128,128,0.08)';
+        const roomState = hass.states['sensor.room_living_state']?.state || 'idle';
+        const lightsOn = parseInt(hass.states['sensor.room_living_state']?.attributes?.lights_on || '0');
+        let iconColor, iconBg;
+        if (roomState === 'playing') {
+          iconColor = 'rgb(66, 133, 244)';
+          iconBg = 'rgba(66, 133, 244, 0.18)';
+        } else if (roomState === 'active' || lightsOn > 0) {
+          iconColor = 'rgb(255, 149, 0)';
+          iconBg = 'rgba(255, 149, 0, 0.18)';
+        } else {
+          iconColor = 'rgba(50, 50, 50, 0.55)';
+          iconBg = 'rgba(80, 80, 80, 0.10)';
+        }
         return `
           ha-card {
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
-            padding: 18px 16px 10px !important;
+            padding: 10px 14px 4px 14px !important;
+            margin: 0 !important;
           }
           .bubble-icon-container {
-            width: 46px !important;
-            height: 46px !important;
-            min-width: 46px !important;
-            min-height: 46px !important;
-            border-radius: 14px !important;
             background: ${iconBg} !important;
-            transition: all 0.3s ease !important;
+            border-radius: 50% !important;
+            min-width: 52px !important;
+            min-height: 52px !important;
+            border: 1.5px solid ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.25)')} !important;
           }
           .bubble-icon {
-            --mdc-icon-size: 22px !important;
             color: ${iconColor} !important;
-            transition: color 0.3s ease !important;
+            --mdc-icon-size: 30px !important;
+            ${roomState !== 'idle' ? `filter: drop-shadow(0 0 4px ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.4)')}) !important;` : ''}
           }
           .bubble-name {
-            font-size: 20px !important;
+            font-size: 22px !important;
             font-weight: 700 !important;
-            letter-spacing: -0.03em !important;
-          }
-          .bubble-sub {
-            font-size: 12px !important;
-            opacity: 0.5 !important;
+            color: rgba(25, 25, 25, 0.95) !important;
+            letter-spacing: -0.3px !important;
           }
           .bubble-sub-button-container {
-            width: 42px !important;
-            height: 42px !important;
+            gap: 8px !important;
           }
           .bubble-sub-button {
-            width: 42px !important;
-            height: 42px !important;
-            border-radius: 13px !important;
-            background: rgba(255,255,255,0.05) !important;
-            border: 1.5px solid rgba(255,255,255,0.06) !important;
+            background: ${iconBg} !important;
+            border: 1px solid ${iconColor.replace('rgb', 'rgba').replace(')', ', 0.25)')} !important;
+            border-radius: 50% !important;
+            min-width: 36px !important;
+            min-height: 36px !important;
+            transition: transform 0.1s ease, background 0.2s ease !important;
+          }
+          .bubble-sub-button:active {
+            transform: scale(0.90) !important;
           }
           .bubble-sub-button ha-icon {
-            --mdc-icon-size: 17px !important;
-            color: rgba(255,255,255,0.45) !important;
+            color: ${iconColor} !important;
+            --mdc-icon-size: 18px !important;
           }
         `;
       })()}
@@ -969,3 +966,26 @@ cards:
             color: rgba(255,255,255,0.50) !important;
           }
           .bubble-icon { display: none !important; }
+
+# ═══════════════════════════════════════════════════════════════════════
+# OUTER CARD CONTAINER - matches original living_room_card.yaml
+# ═══════════════════════════════════════════════════════════════════════
+card_mod:
+  style: |
+    :host {
+      display: block !important;
+      background: rgba(248, 248, 250, 0.98) !important;
+      border-radius: 22px !important;
+      padding: 4px 0 6px 0 !important;
+      margin-bottom: 12px !important;
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06) !important;
+      border: 1px solid rgba(0, 0, 0, 0.04) !important;
+      overflow: hidden !important;
+    }
+    #root {
+      gap: 0 !important;
+    }
+    #root > * {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }

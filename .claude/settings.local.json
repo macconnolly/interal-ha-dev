@@ -53,7 +53,11 @@
       "mcp__core-memory__initialize_conversation_session",
       "mcp__core-memory__memory_search",
       "Bash(env)",
-      "mcp__core-memory__get_integrations"
+      "mcp__core-memory__get_integrations",
+      "Bash(git push)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:community.home-assistant.io)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

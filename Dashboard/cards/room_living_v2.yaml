@@ -17,7 +17,6 @@ cards:
     entity: light.living_room_lights
     name: Living Room
     icon: mdi:sofa
-    rows: 1.5
     sub_button:
       main:
         - entity: light.living_room_lights

@@ -55,6 +55,10 @@ card:
       entity: light.living_room_lights
       name: Living Room
       icon: mdi:sofa
+      tap_action:
+        action: toggle
+      hold_action:
+        action: more-info
       styles: |-
         ${(() => {
           const isDark = hass.themes?.darkMode;

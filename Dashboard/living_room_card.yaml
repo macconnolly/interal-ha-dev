@@ -112,7 +112,7 @@ card:
     - type: custom:layout-card
       layout_type: custom:grid-layout
       layout:
-        grid-template-columns: 1fr 40px 40px
+        grid-template-columns: 1fr 40px 40px 40px
         gap: 6px
         padding: 2px 14px 6px 14px
         align-items: center
@@ -224,7 +224,68 @@ card:
               `;
             })()}
 
-        # Column 3: Settings gear icon
+        # Column 3: Alarm chip (conditional)
+        - type: conditional
+          conditions:
+            - entity: sensor.room_living_state
+              attribute: has_upcoming_alarm
+              state: "true"
+          card:
+            type: custom:bubble-card
+            card_type: button
+            button_type: state
+            entity: sensor.sonos_next_alarm_chip
+            name: ""
+            icon: mdi:alarm
+            show_name: false
+            show_state: false
+            tap_action:
+              action: call-service
+              service: script.sonos_toggle_next_alarm
+              data:
+                alarm_entity: "{{ state_attr('sensor.room_living_state', 'next_alarm_entity') }}"
+            hold_action:
+              action: more-info
+            card_mod:
+              style: |
+                ha-card {
+                  background: transparent !important;
+                  border: none !important;
+                  box-shadow: none !important;
+                }
+            styles: |-
+              ${(() => {
+                const isDark = hass.themes?.darkMode;
+                const alarmState = entity?.state;
+                const hasAlarm = alarmState && alarmState !== 'unavailable' && alarmState !== 'unknown';
+                return `
+                  .bubble-button-card-container {
+                    min-height: 38px !important;
+                    max-height: 38px !important;
+                    border-radius: 10px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    background: ${hasAlarm
+                      ? 'rgba(66, 133, 244, 0.14)'
+                      : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(60, 60, 60, 0.07)')} !important;
+                    border: ${hasAlarm
+                      ? '1px solid rgba(66, 133, 244, 0.30)'
+                      : (isDark ? '1px solid rgba(255, 255, 255, 0.04)' : '1px solid rgba(60, 60, 60, 0.10)')} !important;
+                    transition: transform 0.1s ease, background 0.15s ease !important;
+                  }
+                  .bubble-button-card-container:active {
+                    transform: scale(0.90) !important;
+                  }
+                  .bubble-icon {
+                    --mdc-icon-size: 20px !important;
+                    color: ${hasAlarm ? 'rgb(66, 133, 244)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.45)')} !important;
+                  }
+                  .bubble-name-container { display: none !important; }
+                `;
+              })()}
+
+        # Column 4: Settings gear icon
         - type: custom:bubble-card
           card_type: button
           button_type: state
@@ -241,6 +302,36 @@ card:
                 content:
                   type: vertical-stack
                   cards:
+                    # Handle bar (visual close affordance)
+                    - type: custom:mod-card
+                      card_mod:
+                        style: |
+                          ha-card {
+                            background: transparent !important;
+                            border: none !important;
+                            box-shadow: none !important;
+                            display: flex !important;
+                            justify-content: center !important;
+                            padding: 10px 0 4px 0 !important;
+                          }
+                      card:
+                        type: markdown
+                        content: ""
+                        card_mod:
+                          style: |
+                            ha-card {
+                              background: transparent !important;
+                              border: none !important;
+                              box-shadow: none !important;
+                              width: 36px !important;
+                              height: 5px !important;
+                              min-height: 5px !important;
+                              border-radius: 2.5px !important;
+                              background: rgba(128, 128, 128, 0.30) !important;
+                              padding: 0 !important;
+                              margin: 0 auto !important;
+                            }
+                            ha-markdown { display: none !important; }
                     # Room brightness slider
                     - type: custom:bubble-card
                       card_type: button

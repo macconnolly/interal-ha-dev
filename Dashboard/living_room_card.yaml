@@ -59,14 +59,15 @@ card:
       hold_action:
         action: more-info
       sub_button:
-        - entity: sensor.room_living_state
+        - entity: sensor.sonos_next_alarm_chip
           icon: mdi:alarm
           show_background: false
           tap_action:
-            action: call-service
-            service: script.sonos_toggle_next_alarm
+            action: perform-action
+            perform_action: script.sonos_toggle_next_alarm
             data:
               alarm_entity: "{{ state_attr('sensor.room_living_state', 'next_alarm_entity') }}"
+              tracker: input_text.sonos_manually_toggled_alarm_living_room
           hold_action:
             action: more-info
         - icon: mdi:cog
@@ -79,7 +80,7 @@ card:
                 content:
                   type: vertical-stack
                   cards:
-                    # Handle bar (visual close affordance)
+                    # Popup header with title + close button
                     - type: custom:mod-card
                       card_mod:
                         style: |
@@ -87,28 +88,60 @@ card:
                             background: transparent !important;
                             border: none !important;
                             box-shadow: none !important;
-                            display: flex !important;
-                            justify-content: center !important;
-                            padding: 10px 0 4px 0 !important;
+                            padding: 16px 8px 0 16px !important;
                           }
                       card:
-                        type: markdown
-                        content: ""
-                        card_mod:
-                          style: |
-                            ha-card {
-                              background: transparent !important;
-                              border: none !important;
-                              box-shadow: none !important;
-                              width: 36px !important;
-                              height: 5px !important;
-                              min-height: 5px !important;
-                              border-radius: 2.5px !important;
-                              background: rgba(128, 128, 128, 0.30) !important;
-                              padding: 0 !important;
-                              margin: 0 auto !important;
-                            }
-                            ha-markdown { display: none !important; }
+                        type: horizontal-stack
+                        cards:
+                          - type: markdown
+                            content: "## Living Room Settings"
+                            card_mod:
+                              style: |
+                                ha-card {
+                                  background: transparent !important;
+                                  border: none !important;
+                                  box-shadow: none !important;
+                                  padding: 0 !important;
+                                }
+                                ha-markdown {
+                                  padding: 0 !important;
+                                }
+                                h2 {
+                                  margin: 0 !important;
+                                  font-size: 20px !important;
+                                  font-weight: 700 !important;
+                                  letter-spacing: -0.3px !important;
+                                }
+                          - type: custom:bubble-card
+                            card_type: button
+                            button_type: state
+                            entity: light.living_room_lights
+                            name: ""
+                            icon: mdi:close
+                            show_name: false
+                            show_state: false
+                            tap_action:
+                              action: fire-dom-event
+                              browser_mod:
+                                service: browser_mod.close_popup
+                            styles: |
+                              .bubble-button-card-container {
+                                width: 36px !important;
+                                height: 36px !important;
+                                min-width: 36px !important;
+                                border-radius: 50% !important;
+                                background: rgba(128, 128, 128, 0.12) !important;
+                                display: flex !important;
+                                align-items: center !important;
+                                justify-content: center !important;
+                                padding: 0 !important;
+                                margin-left: auto !important;
+                              }
+                              .bubble-icon {
+                                --mdc-icon-size: 20px !important;
+                                color: rgba(128, 128, 128, 0.7) !important;
+                              }
+                              .bubble-name-container { display: none !important; }
                     # Room brightness slider
                     - type: custom:bubble-card
                       card_type: button
@@ -276,35 +309,65 @@ card:
                             }
                             .bubble-icon { --mdc-icon-size: 18px !important; color: rgba(120, 80, 180, 0.85) !important; }
                             .bubble-name { font-size: 13px !important; font-weight: 500 !important; }
-                    # Movie Mode
+                    # ─── Room Info ───
+                    - type: custom:bubble-card
+                      card_type: separator
+                      name: Room Info
+                      icon: mdi:information-outline
+                      styles: |
+                        ha-card {
+                          background: transparent !important;
+                          border: none !important;
+                          box-shadow: none !important;
+                          margin: 0 !important;
+                          padding: 12px 14px 4px 14px !important;
+                        }
+                        .bubble-name {
+                          font-size: 13px !important;
+                          font-weight: 600 !important;
+                          text-transform: uppercase !important;
+                          letter-spacing: 0.5px !important;
+                          opacity: 0.5 !important;
+                        }
+                        .bubble-icon-container { display: none !important; }
+                        .bubble-line { display: none !important; }
+                    # OAL Configuration
                     - type: custom:bubble-card
                       card_type: button
                       button_type: state
-                      entity: input_boolean.oal_movie_mode_active
-                      name: "Movie Mode"
-                      icon: mdi:movie-open
+                      entity: input_select.oal_active_configuration
+                      name: "Lighting Mode"
+                      icon: mdi:lightbulb-auto
                       show_name: true
                       show_state: false
                       tap_action:
-                        action: toggle
+                        action: more-info
                       styles: |-
                         ${(() => {
-                          const isActive = state === 'on';
                           const isDark = hass.themes?.darkMode;
+                          const config = hass.states['input_select.oal_active_configuration']?.state || 'Adaptive';
+                          const colorMap = {
+                            'Adaptive': '#34c759',
+                            'Full Bright': '#ff9500',
+                            'Dim Ambient': '#8e8e93',
+                            'Warm Ambient': '#ff6b35',
+                            'TV Mode': '#af52de',
+                            'Sleep': '#5e5ce6',
+                            'Manual': '#ff3b30'
+                          };
+                          const modeColor = colorMap[config] || '#34c759';
                           return `
                             .bubble-button-card-container {
                               height: 48px !important;
                               border-radius: 14px !important;
-                              background: ${isActive
-                                ? (isDark ? 'rgba(175, 82, 222, 0.12)' : 'rgba(175, 82, 222, 0.06)')
-                                : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)')} !important;
+                              background: ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)'} !important;
                               display: flex !important;
                               align-items: center !important;
                               padding: 0 16px !important;
                             }
                             .bubble-icon {
                               --mdc-icon-size: 18px !important;
-                              color: ${isActive ? '#af52de' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.45)')} !important;
+                              color: ${modeColor} !important;
                             }
                             .bubble-name {
                               font-size: 14px !important;
@@ -312,12 +375,229 @@ card:
                               color: var(--primary-text-color) !important;
                             }
                             .bubble-button-card-container::after {
-                              content: '${isActive ? 'On' : 'Off'}' !important;
+                              content: '${config}' !important;
                               position: absolute !important;
                               right: 16px !important;
                               font-size: 13px !important;
                               font-weight: 600 !important;
-                              color: ${isActive ? '#af52de' : (isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(60, 60, 60, 0.35)')} !important;
+                              color: ${modeColor} !important;
+                            }
+                          `;
+                        })()}
+                    # Temperature
+                    - type: custom:bubble-card
+                      card_type: button
+                      button_type: state
+                      entity: sensor.living_room_temperature
+                      name: "Temperature"
+                      icon: mdi:thermometer
+                      show_name: true
+                      show_state: false
+                      tap_action:
+                        action: more-info
+                      styles: |-
+                        ${(() => {
+                          const isDark = hass.themes?.darkMode;
+                          const temp = hass.states['sensor.living_room_temperature']?.state || '--';
+                          const unit = hass.states['sensor.living_room_temperature']?.attributes?.unit_of_measurement || '°F';
+                          return `
+                            .bubble-button-card-container {
+                              height: 48px !important;
+                              border-radius: 14px !important;
+                              background: ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)'} !important;
+                              display: flex !important;
+                              align-items: center !important;
+                              padding: 0 16px !important;
+                            }
+                            .bubble-icon {
+                              --mdc-icon-size: 18px !important;
+                              color: ${isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(60, 60, 60, 0.55)'} !important;
+                            }
+                            .bubble-name {
+                              font-size: 14px !important;
+                              font-weight: 500 !important;
+                              color: var(--primary-text-color) !important;
+                            }
+                            .bubble-button-card-container::after {
+                              content: '${temp}${unit}' !important;
+                              position: absolute !important;
+                              right: 16px !important;
+                              font-size: 13px !important;
+                              font-weight: 600 !important;
+                              color: var(--primary-text-color) !important;
+                            }
+                          `;
+                        })()}
+                    # Lights Status
+                    - type: custom:bubble-card
+                      card_type: button
+                      button_type: state
+                      entity: sensor.room_living_state
+                      name: "Lights On"
+                      icon: mdi:lightbulb-group-outline
+                      show_name: true
+                      show_state: false
+                      tap_action:
+                        action: more-info
+                      styles: |-
+                        ${(() => {
+                          const isDark = hass.themes?.darkMode;
+                          const lightsOn = hass.states['sensor.room_living_state']?.attributes?.lights_on || 0;
+                          const hasOverride = (hass.states['sensor.room_living_state']?.attributes?.manually_controlled_lights || []).length > 0;
+                          const statusColor = hasOverride ? '#ff3b30' : (lightsOn > 0 ? '#ff9500' : (isDark ? 'rgba(255, 255, 255, 0.35)' : 'rgba(60, 60, 60, 0.45)'));
+                          return `
+                            .bubble-button-card-container {
+                              height: 48px !important;
+                              border-radius: 14px !important;
+                              background: ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)'} !important;
+                              display: flex !important;
+                              align-items: center !important;
+                              padding: 0 16px !important;
+                            }
+                            .bubble-icon {
+                              --mdc-icon-size: 18px !important;
+                              color: ${statusColor} !important;
+                            }
+                            .bubble-name {
+                              font-size: 14px !important;
+                              font-weight: 500 !important;
+                              color: var(--primary-text-color) !important;
+                            }
+                            .bubble-button-card-container::after {
+                              content: '${lightsOn} / 6${hasOverride ? ' (manual)' : ''}' !important;
+                              position: absolute !important;
+                              right: 16px !important;
+                              font-size: 13px !important;
+                              font-weight: 600 !important;
+                              color: ${statusColor} !important;
+                            }
+                          `;
+                        })()}
+                    # ─── Alarms ───
+                    - type: custom:bubble-card
+                      card_type: separator
+                      name: Alarms
+                      icon: mdi:alarm
+                      styles: |
+                        ha-card {
+                          background: transparent !important;
+                          border: none !important;
+                          box-shadow: none !important;
+                          margin: 0 !important;
+                          padding: 12px 14px 4px 14px !important;
+                        }
+                        .bubble-name {
+                          font-size: 13px !important;
+                          font-weight: 600 !important;
+                          text-transform: uppercase !important;
+                          letter-spacing: 0.5px !important;
+                          opacity: 0.5 !important;
+                        }
+                        .bubble-icon-container { display: none !important; }
+                        .bubble-line { display: none !important; }
+                    # Alarm 520
+                    - type: custom:bubble-card
+                      card_type: button
+                      button_type: switch
+                      entity: switch.sonos_alarm_520
+                      show_name: true
+                      show_attribute: true
+                      attribute: recurrence
+                      icon: mdi:alarm
+                      tap_action:
+                        action: toggle
+                      hold_action:
+                        action: call-service
+                        service: script.sonos_load_alarm_for_edit
+                        data:
+                          alarm_entity: switch.sonos_alarm_520
+                      card_mod:
+                        style: |
+                          .bubble-name::after {
+                            font-size: 18px;
+                            font-weight: 700;
+                            content: '{{ state_attr("switch.sonos_alarm_520", "time")[:5] }}';
+                          }
+                          .bubble-attribute::after {
+                            content: '{% set r = state_attr("switch.sonos_alarm_520", "recurrence") %}{% if r == "DAILY" %}Every day{% elif r == "WEEKDAYS" %}Weekdays{% elif r == "WEEKENDS" %}Weekends{% elif r == "ONCE" %}Once{% elif r and r.startswith("ON_") %}Custom{% else %}{{ r }}{% endif %}';
+                          }
+                      styles: |-
+                        ${(() => {
+                          const isDark = hass.themes?.darkMode;
+                          const isOn = state === 'on';
+                          return `
+                            .bubble-button-card-container {
+                              height: 56px !important;
+                              border-radius: 14px !important;
+                              background: ${isOn
+                                ? (isDark ? 'rgba(66, 133, 244, 0.10)' : 'rgba(66, 133, 244, 0.06)')
+                                : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)')} !important;
+                              display: flex !important;
+                              align-items: center !important;
+                              padding: 0 16px !important;
+                            }
+                            .bubble-icon {
+                              --mdc-icon-size: 18px !important;
+                              color: ${isOn ? 'rgb(66, 133, 244)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.45)')} !important;
+                            }
+                            .bubble-name {
+                              font-size: 0px !important;
+                            }
+                            .bubble-attribute {
+                              font-size: 0px !important;
+                            }
+                          `;
+                        })()}
+                    # Alarm 521
+                    - type: custom:bubble-card
+                      card_type: button
+                      button_type: switch
+                      entity: switch.sonos_alarm_521
+                      show_name: true
+                      show_attribute: true
+                      attribute: recurrence
+                      icon: mdi:alarm
+                      tap_action:
+                        action: toggle
+                      hold_action:
+                        action: call-service
+                        service: script.sonos_load_alarm_for_edit
+                        data:
+                          alarm_entity: switch.sonos_alarm_521
+                      card_mod:
+                        style: |
+                          .bubble-name::after {
+                            font-size: 18px;
+                            font-weight: 700;
+                            content: '{{ state_attr("switch.sonos_alarm_521", "time")[:5] }}';
+                          }
+                          .bubble-attribute::after {
+                            content: '{% set r = state_attr("switch.sonos_alarm_521", "recurrence") %}{% if r == "DAILY" %}Every day{% elif r == "WEEKDAYS" %}Weekdays{% elif r == "WEEKENDS" %}Weekends{% elif r == "ONCE" %}Once{% elif r and r.startswith("ON_") %}Custom{% else %}{{ r }}{% endif %}';
+                          }
+                      styles: |-
+                        ${(() => {
+                          const isDark = hass.themes?.darkMode;
+                          const isOn = state === 'on';
+                          return `
+                            .bubble-button-card-container {
+                              height: 56px !important;
+                              border-radius: 14px !important;
+                              background: ${isOn
+                                ? (isDark ? 'rgba(66, 133, 244, 0.10)' : 'rgba(66, 133, 244, 0.06)')
+                                : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)')} !important;
+                              display: flex !important;
+                              align-items: center !important;
+                              padding: 0 16px !important;
+                            }
+                            .bubble-icon {
+                              --mdc-icon-size: 18px !important;
+                              color: ${isOn ? 'rgb(66, 133, 244)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.45)')} !important;
+                            }
+                            .bubble-name {
+                              font-size: 0px !important;
+                            }
+                            .bubble-attribute {
+                              font-size: 0px !important;
                             }
                           `;
                         })()}
@@ -333,6 +613,9 @@ card:
           const roomState = hass.states['sensor.room_living_state']?.state || 'idle';
           const lightsOn = parseInt(hass.states['sensor.room_living_state']?.attributes?.lights_on || '0');
           const hasAlarm = hass.states['sensor.room_living_state']?.attributes?.has_upcoming_alarm === true;
+          const alarmState = hass.states['sensor.hero_button_alarm_state'];
+          const alarmEnabled = alarmState?.attributes?.is_enabled === true || alarmState?.attributes?.is_enabled === 'True';
+          const alarmTime = alarmState?.attributes?.formatted_time || '';
           let iconColor, iconBg;
           if (roomState === 'playing') {
             iconColor = 'rgb(0, 122, 255)';
@@ -374,12 +657,27 @@ card:
             }
             .bubble-sub-button-1 {
               ${!hasAlarm ? 'display: none !important;' : `
-                background: rgba(66, 133, 244, 0.10) !important;
-                border: 1px solid rgba(66, 133, 244, 0.25) !important;
+                position: relative !important;
+                background: ${alarmEnabled ? 'rgba(66, 133, 244, 0.10)' : 'rgba(60, 60, 60, 0.08)'} !important;
+                border: 1px solid ${alarmEnabled ? 'rgba(66, 133, 244, 0.25)' : 'rgba(60, 60, 60, 0.15)'} !important;
+                min-width: 46px !important;
+                overflow: visible !important;
               `}
             }
             .bubble-sub-button-1 .bubble-sub-button-icon {
-              color: rgb(66, 133, 244) !important;
+              color: ${alarmEnabled ? 'rgb(66, 133, 244)' : 'rgba(60, 60, 60, 0.6)'} !important;
+            }
+            .bubble-sub-button-1::after {
+              ${hasAlarm && alarmTime ? `
+                content: '${alarmEnabled ? alarmTime : alarmTime + " OFF"}' !important;
+                position: absolute !important;
+                bottom: 1px !important;
+                right: 3px !important;
+                font-size: 7px !important;
+                font-weight: 600 !important;
+                color: ${alarmEnabled ? 'rgba(66, 133, 244, 0.9)' : 'rgba(60, 60, 60, 0.5)'} !important;
+                white-space: nowrap !important;
+              ` : ''}
             }
             .bubble-sub-button-2 .bubble-sub-button-icon {
               color: ${isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(60, 60, 60, 0.55)'} !important;

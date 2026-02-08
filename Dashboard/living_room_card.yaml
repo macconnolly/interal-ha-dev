@@ -2,8 +2,7 @@
 # ═══════════════════════════════════════════════════════════════════════
 # Merges best elements from spec V2 and reference card (a798513):
 # - custom:mod-card glassmorphism outer (ref)
-# - Two-row header: separator + control strip (spec V2)
-# - Context chips: alarm, temp, presence, manual timer (ref)
+# - Single-row header: separator with alarm + settings sub-buttons
 # - Square light tiles with rounded-square 50px icons (ref)
 # - Per-device media colors: Sonos=green, Apple TV=blue, Samsung=purple (ref)
 # - Asymmetric media grid 1.4fr 0.8fr 0.8fr (ref)
@@ -48,7 +47,7 @@ card:
   type: vertical-stack
   cards:
     # ═══════════════════════════════════════════════════════════════════════
-    # HEADER ROW 1 - Title separator (no sub-buttons, never truncates)
+    # HEADER - Title separator with alarm + settings sub-buttons
     # ═══════════════════════════════════════════════════════════════════════
     - type: custom:bubble-card
       card_type: separator
@@ -59,241 +58,19 @@ card:
         action: toggle
       hold_action:
         action: more-info
-      styles: |-
-        ${(() => {
-          const isDark = hass.themes?.darkMode;
-          const roomState = hass.states['sensor.room_living_state']?.state || 'idle';
-          const lightsOn = parseInt(hass.states['sensor.room_living_state']?.attributes?.lights_on || '0');
-          let iconColor, iconBg;
-          if (roomState === 'playing') {
-            iconColor = 'rgb(0, 122, 255)';
-            iconBg = 'rgba(0, 122, 255, 0.18)';
-          } else if (roomState === 'active' || lightsOn > 0) {
-            iconColor = 'rgb(255, 149, 0)';
-            iconBg = 'rgba(255, 149, 0, 0.18)';
-          } else {
-            iconColor = isDark ? 'rgba(255, 255, 255, 0.35)' : 'rgba(60, 60, 60, 0.55)';
-            iconBg = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-          }
-          return `
-            ha-card {
-              background: transparent !important;
-              border: none !important;
-              box-shadow: none !important;
-              margin: 0 !important;
-              padding: 8px 14px 0 14px !important;
-            }
-            .bubble-icon-container {
-              min-width: 52px !important;
-              min-height: 52px !important;
-              border-radius: 14px !important;
-              background: ${iconBg} !important;
-              border: 1.5px solid ${iconColor}40 !important;
-            }
-            .bubble-icon {
-              --mdc-icon-size: 30px !important;
-              color: ${iconColor} !important;
-              ${roomState !== 'idle' ? `filter: drop-shadow(0 0 4px ${iconColor}66) !important;` : ''}
-            }
-            .bubble-name {
-              font-size: 22px !important;
-              font-weight: 700 !important;
-              letter-spacing: -0.3px !important;
-              white-space: normal !important;
-              overflow: visible !important;
-              color: ${isDark ? 'rgba(255, 255, 255, 0.95)' : 'rgba(25, 25, 25, 0.95)'} !important;
-            }
-          `;
-        })()}
-
-    # ═══════════════════════════════════════════════════════════════════════
-    # HEADER ROW 2 - Control strip (slider + action buttons)
-    # ═══════════════════════════════════════════════════════════════════════
-    - type: custom:layout-card
-      layout_type: custom:grid-layout
-      layout:
-        grid-template-columns: 1fr 40px 40px 40px
-        gap: 6px
-        padding: 2px 14px 6px 14px
-        align-items: center
-      card_mod:
-        style: |
-          ha-card {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            margin: 0 !important;
-          }
-      cards:
-        # Column 1: Room brightness slider
-        - type: custom:bubble-card
-          card_type: button
-          button_type: slider
-          entity: light.living_room_lights
-          name: ""
-          icon: mdi:brightness-7
-          show_name: false
-          show_state: true
-          scrolling_effect: false
+      sub_button:
+        - entity: sensor.room_living_state
+          icon: mdi:alarm
+          show_background: false
           tap_action:
-            action: toggle
+            action: call-service
+            service: script.sonos_toggle_next_alarm
+            data:
+              alarm_entity: "{{ state_attr('sensor.room_living_state', 'next_alarm_entity') }}"
           hold_action:
             action: more-info
-          card_mod:
-            style: |
-              ha-card {
-                background: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-              }
-          styles: |-
-            ${(() => {
-              const isOn = state === 'on';
-              const isDark = hass.themes?.darkMode;
-              return `
-                .bubble-button-card-container {
-                  min-height: 38px !important;
-                  max-height: 38px !important;
-                  border-radius: 12px !important;
-                  background: ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)'} !important;
-                  border: ${isDark ? '1px solid rgba(255, 255, 255, 0.04)' : '1px solid rgba(0, 0, 0, 0.06)'} !important;
-                }
-                .bubble-icon {
-                  --mdc-icon-size: 18px !important;
-                  color: ${isOn ? 'rgb(255, 149, 0)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(80, 80, 80, 0.40)')} !important;
-                }
-                .bubble-state {
-                  font-size: 13px !important;
-                  font-weight: 600 !important;
-                  font-variant-numeric: tabular-nums !important;
-                }
-                .bubble-range-fill {
-                  background: ${isDark ? 'rgba(255, 149, 0, 0.30)' : 'rgba(255, 149, 0, 0.25)'} !important;
-                }
-              `;
-            })()}
-
-        # Column 2: All lights toggle
-        - type: custom:bubble-card
-          card_type: button
-          button_type: state
-          entity: light.living_room_lights
-          name: ""
-          icon: mdi:lightbulb-group
-          show_name: false
-          show_state: false
-          tap_action:
-            action: toggle
-          hold_action:
-            action: more-info
-          card_mod:
-            style: |
-              ha-card {
-                background: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-              }
-          styles: |-
-            ${(() => {
-              const isOn = state === 'on';
-              const isDark = hass.themes?.darkMode;
-              return `
-                .bubble-button-card-container {
-                  min-height: 38px !important;
-                  max-height: 38px !important;
-                  border-radius: 10px !important;
-                  display: flex !important;
-                  align-items: center !important;
-                  justify-content: center !important;
-                  background: ${isOn
-                    ? 'rgba(255, 149, 0, 0.14)'
-                    : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(60, 60, 60, 0.07)')} !important;
-                  border: ${isOn
-                    ? '1px solid rgba(255, 149, 0, 0.30)'
-                    : (isDark ? '1px solid rgba(255, 255, 255, 0.04)' : '1px solid rgba(60, 60, 60, 0.10)')} !important;
-                  transition: transform 0.1s ease, background 0.15s ease !important;
-                }
-                .bubble-button-card-container:active {
-                  transform: scale(0.90) !important;
-                }
-                .bubble-icon {
-                  --mdc-icon-size: 20px !important;
-                  color: ${isOn ? 'rgb(255, 149, 0)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.45)')} !important;
-                }
-                .bubble-name-container { display: none !important; }
-              `;
-            })()}
-
-        # Column 3: Alarm chip (conditional)
-        - type: conditional
-          conditions:
-            - entity: sensor.room_living_state
-              attribute: has_upcoming_alarm
-              state: "true"
-          card:
-            type: custom:bubble-card
-            card_type: button
-            button_type: state
-            entity: sensor.sonos_next_alarm_chip
-            name: ""
-            icon: mdi:alarm
-            show_name: false
-            show_state: false
-            tap_action:
-              action: call-service
-              service: script.sonos_toggle_next_alarm
-              data:
-                alarm_entity: "{{ state_attr('sensor.room_living_state', 'next_alarm_entity') }}"
-            hold_action:
-              action: more-info
-            card_mod:
-              style: |
-                ha-card {
-                  background: transparent !important;
-                  border: none !important;
-                  box-shadow: none !important;
-                }
-            styles: |-
-              ${(() => {
-                const isDark = hass.themes?.darkMode;
-                const alarmState = entity?.state;
-                const hasAlarm = alarmState && alarmState !== 'unavailable' && alarmState !== 'unknown';
-                return `
-                  .bubble-button-card-container {
-                    min-height: 38px !important;
-                    max-height: 38px !important;
-                    border-radius: 10px !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    background: ${hasAlarm
-                      ? 'rgba(66, 133, 244, 0.14)'
-                      : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(60, 60, 60, 0.07)')} !important;
-                    border: ${hasAlarm
-                      ? '1px solid rgba(66, 133, 244, 0.30)'
-                      : (isDark ? '1px solid rgba(255, 255, 255, 0.04)' : '1px solid rgba(60, 60, 60, 0.10)')} !important;
-                    transition: transform 0.1s ease, background 0.15s ease !important;
-                  }
-                  .bubble-button-card-container:active {
-                    transform: scale(0.90) !important;
-                  }
-                  .bubble-icon {
-                    --mdc-icon-size: 20px !important;
-                    color: ${hasAlarm ? 'rgb(66, 133, 244)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.45)')} !important;
-                  }
-                  .bubble-name-container { display: none !important; }
-                `;
-              })()}
-
-        # Column 4: Settings gear icon
-        - type: custom:bubble-card
-          card_type: button
-          button_type: state
-          entity: light.living_room_lights
-          name: ""
-          icon: mdi:cog
-          show_name: false
-          show_state: false
+        - icon: mdi:cog
+          show_background: false
           tap_action:
             action: fire-dom-event
             browser_mod:
@@ -549,38 +326,66 @@ card:
                   --popup-padding: 0
                 right_button: Close
                 dismissable: true
-          card_mod:
-            style: |
-              ha-card {
-                background: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-              }
-          styles: |-
-            ${(() => {
-              const isDark = hass.themes?.darkMode;
-              return `
-                .bubble-button-card-container {
-                  min-height: 38px !important;
-                  max-height: 38px !important;
-                  border-radius: 10px !important;
-                  display: flex !important;
-                  align-items: center !important;
-                  justify-content: center !important;
-                  background: ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(60, 60, 60, 0.07)'} !important;
-                  border: ${isDark ? '1px solid rgba(255, 255, 255, 0.04)' : '1px solid rgba(60, 60, 60, 0.10)'} !important;
-                  transition: transform 0.1s ease, background 0.15s ease !important;
-                }
-                .bubble-button-card-container:active {
-                  transform: scale(0.90) !important;
-                }
-                .bubble-icon {
-                  --mdc-icon-size: 20px !important;
-                  color: ${isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(60, 60, 60, 0.55)'} !important;
-                }
-                .bubble-name-container { display: none !important; }
-              `;
-            })()}
+
+      styles: |-
+        ${(() => {
+          const isDark = hass.themes?.darkMode;
+          const roomState = hass.states['sensor.room_living_state']?.state || 'idle';
+          const lightsOn = parseInt(hass.states['sensor.room_living_state']?.attributes?.lights_on || '0');
+          const hasAlarm = hass.states['sensor.room_living_state']?.attributes?.has_upcoming_alarm === true;
+          let iconColor, iconBg;
+          if (roomState === 'playing') {
+            iconColor = 'rgb(0, 122, 255)';
+            iconBg = 'rgba(0, 122, 255, 0.18)';
+          } else if (roomState === 'active' || lightsOn > 0) {
+            iconColor = 'rgb(255, 149, 0)';
+            iconBg = 'rgba(255, 149, 0, 0.18)';
+          } else {
+            iconColor = isDark ? 'rgba(255, 255, 255, 0.35)' : 'rgba(60, 60, 60, 0.55)';
+            iconBg = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+          }
+          return `
+            ha-card {
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+              margin: 0 !important;
+              padding: 8px 14px 0 14px !important;
+            }
+            .bubble-icon-container {
+              min-width: 52px !important;
+              min-height: 52px !important;
+              border-radius: 14px !important;
+              background: ${iconBg} !important;
+              border: 1.5px solid ${iconColor}40 !important;
+            }
+            .bubble-icon {
+              --mdc-icon-size: 30px !important;
+              color: ${iconColor} !important;
+              ${roomState !== 'idle' ? `filter: drop-shadow(0 0 4px ${iconColor}66) !important;` : ''}
+            }
+            .bubble-name {
+              font-size: 22px !important;
+              font-weight: 700 !important;
+              letter-spacing: -0.3px !important;
+              white-space: normal !important;
+              overflow: visible !important;
+              color: ${isDark ? 'rgba(255, 255, 255, 0.95)' : 'rgba(25, 25, 25, 0.95)'} !important;
+            }
+            .bubble-sub-button-1 {
+              ${!hasAlarm ? 'display: none !important;' : `
+                background: rgba(66, 133, 244, 0.10) !important;
+                border: 1px solid rgba(66, 133, 244, 0.25) !important;
+              `}
+            }
+            .bubble-sub-button-1 .bubble-sub-button-icon {
+              color: rgb(66, 133, 244) !important;
+            }
+            .bubble-sub-button-2 .bubble-sub-button-icon {
+              color: ${isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(60, 60, 60, 0.55)'} !important;
+            }
+          `;
+        })()}
 
     # ═══════════════════════════════════════════════════════════════════════
     # LIGHTS GRID - 6 lights in 3 columns (square tiles, rounded-square icons)

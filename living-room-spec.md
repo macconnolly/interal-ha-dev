@@ -158,7 +158,7 @@ When implementing dark mode support, the `:host` background and border should ch
 | Box shadow | `0 2px 16px rgba(0, 0, 0, 0.06)` | `0 4px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.02)` |
 | Border radius | 22px | 22px |
 
-The `#root` gap reset ensures child cards stack seamlessly without visible spacing between the separator, light grid, and media grid.
+The `#root` gap reset ensures child cards stack seamlessly without visible spacing between the separator, light grid, and media grid. **However**, each `layout-card` and `bubble-card` generates its own shadow DOM `ha-card` wrapper which may carry default margin from the HA theme. Every layout-card in the stack needs `card_mod` with `ha-card { margin: 0 !important; }` to fully eliminate inter-row gaps.
 
 ---
 
@@ -245,7 +245,8 @@ styles: |-
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        padding: 10px 14px 0 14px !important;
+        margin: 0 !important;
+        padding: 8px 14px 0 14px !important;
       }
       .bubble-icon-container {
         min-width: 44px !important;
@@ -289,13 +290,21 @@ A `layout-card` grid with a brightness slider taking flexible space and action b
   layout:
     grid-template-columns: 1fr 40px 40px 40px
     gap: 6px
-    padding: 4px 14px 6px 14px
+    padding: 2px 14px 6px 14px
     align-items: center
   cards:
     # col 1: brightness slider
     # col 2: all lights toggle
     # col 3: alarm chip (conditional)
     # col 4: gear icon
+  card_mod:
+    style: |
+      ha-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+      }
 ```
 
 | Property | Value |
@@ -303,8 +312,10 @@ A `layout-card` grid with a brightness slider taking flexible space and action b
 | Layout type | `custom:grid-layout` |
 | Columns | `1fr 40px 40px 40px` (slider flex, 3 fixed buttons) |
 | Gap | 6px |
-| Padding | `4px 14px 6px 14px` |
+| Padding | `2px 14px 6px 14px` |
 | Align | `center` (vertical centering of slider and buttons) |
+
+**Important:** The `card_mod` on the layout-card zeroes out any default `ha-card` margin/padding that HA applies to card wrappers. Without this, the browser may insert ~8px of margin between Row 1 and Row 2 even when the outer container's `#root > * { margin: 0 }` is set, because layout-card generates its own shadow DOM `ha-card`.
 
 #### 1.2.1 Room Brightness Slider (Column 1)
 
@@ -531,6 +542,14 @@ The core interaction surface. Six Bubble Card button cards arranged in a 3×2 gr
     mediaquery:
       "(max-width: 400px)":
         grid-template-columns: repeat(2, 1fr)
+  card_mod:
+    style: |
+      ha-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+      }
   cards:
     # ... 6 light tiles ...
 ```
@@ -765,27 +784,75 @@ Each tile uses Bubble Card's JavaScript `styles` property for dynamic state-driv
 ```yaml
 styles: |
   .bubble-button-card-container {
-    ...
+    position: relative !important;
+    display: grid !important;
+    grid-template-rows: auto auto 1fr auto !important;
+    justify-items: center !important;
+    min-height: 100px !important;
+    padding: 8px 4px 8px 4px !important;
+    border-radius: 14px !important;
+    clip-path: inset(0 round 14px) !important;
     background: ${state === 'on'
       ? 'linear-gradient(180deg, rgba(255, 149, 0, 0.13) 0%, rgba(255, 255, 255, 0.06) 100%)'
       : 'rgba(255, 255, 255, 0.08)'} !important;
+    backdrop-filter: ${state === 'on' ? 'blur(12px) saturate(140%)' : 'blur(8px) saturate(110%)'} !important;
     border: ${state === 'on'
       ? '1px solid rgba(255, 149, 0, 0.40)'
       : '1px solid rgba(160, 160, 165, 0.30)'} !important;
-    ...
+    box-shadow: ${state === 'on'
+      ? '0 4px 20px rgba(255, 149, 0, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+      : '0 1px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15)'} !important;
+    transition: transform 0.15s ease-out, border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease !important;
+  }
+  .bubble-button-card-container:active {
+    transform: scale(0.95) !important;
+  }
+  .bubble-icon-container {
+    min-width: 36px !important;
+    min-height: 36px !important;
+    border-radius: 50% !important;
+    background: ${state === 'on' ? 'rgba(255, 149, 0, 0.12)' : 'rgba(120, 120, 125, 0.12)'} !important;
+    border: ${state === 'on' ? '1.5px solid rgba(255, 149, 0, 0.25)' : '1.5px solid rgba(120, 120, 125, 0.22)'} !important;
+    backdrop-filter: blur(4px) !important;
   }
   .bubble-icon {
+    --mdc-icon-size: 24px !important;
     color: ${state === 'on'
       ? 'rgb(255, 149, 0)'
       : 'rgba(60, 60, 60, 0.55)'} !important;
-    ...
+    filter: ${state === 'on' ? 'drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))' : 'none'} !important;
+  }
+  .bubble-name {
+    font-size: 14px !important;
+    font-weight: 650 !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+    color: ${state === 'on' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(40, 40, 40, 0.85)'} !important;
+  }
+  .bubble-attribute {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: ${state === 'on' ? 'rgb(255, 149, 0)' : 'rgba(60, 60, 60, 0.45)'} !important;
   }
   .bubble-button-card-container::after {
-    /* Manual control dot */
+    /* Manual control red dot — visible when this light is in manual_control */
+    content: '' !important;
+    position: absolute !important;
+    top: 5px !important;
+    right: 5px !important;
     width: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_floor_lamp') ? '7px' : '0px'} !important;
-    ...
+    height: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_floor_lamp') ? '7px' : '0px'} !important;
+    border-radius: 50% !important;
+    background: rgb(255, 110, 90) !important;
+    border: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_floor_lamp') ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important;
+    box-shadow: ${(hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || []).includes('light.living_room_floor_lamp') ? '0 0 4px rgba(255, 110, 90, 0.5)' : 'none'} !important;
+    z-index: 25 !important;
+    transition: all 0.2s ease !important;
+    pointer-events: none !important;
   }
 ```
+
+**IMPORTANT — Per-tile customization:** The code above is for the Floor Lamp (`light.living_room_floor_lamp` checking `switch.adaptive_lighting_main_living`). Every light tile MUST include the full `::after` block with the correct AL switch entity and light entity for that tile. Refer to the mapping table in Section 2.2.7 for the correct pairings. Do not omit the `::after` block — every tile needs the manual control dot.
 
 ---
 
@@ -805,6 +872,14 @@ Three media device tiles in a horizontal row below the light grid. All three sha
     mediaquery:
       "(max-width: 400px)":
         grid-template-columns: repeat(2, 1fr)
+  card_mod:
+    style: |
+      ha-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+      }
   cards:
     # ... 3 media tiles ...
 ```
@@ -1009,9 +1084,57 @@ A full-width slider for controlling all on-state lights simultaneously. Uses `sl
 
 ### 4.5 Quick Action Buttons
 
-All quick actions are full-width rows, stacked vertically with 4px gap. Each is a tappable button with icon, label, and optional right-side status.
+All quick actions are full-width rows, stacked vertically with 4px gap. Each is a tappable button with **icon AND text label** displayed side by side (icon left, label right). The `name` property provides the text label; `show_name: true` ensures it renders. Optional right-side status text is shown via the `state` or a template.
+
+**Common button styling:**
+
+| Property | Value |
+|----------|-------|
+| Height | 48px |
+| Border radius | 14px |
+| Icon size | 18px |
+| Label font | 14px, weight 500 |
+| Layout | Flex row: icon (18px) + 10px gap + label (flex 1) + optional right status |
+| Padding | `0 16px` |
+| Press feedback | `transform: scale(0.97)` on `:active`, 0.1s ease |
 
 #### 4.5.1 All On / All Off Toggle
+
+```yaml
+- type: custom:bubble-card
+  card_type: button
+  button_type: state
+  entity: light.living_room_lights
+  name: "Turn All Off"
+  icon: mdi:lightbulb-group
+  show_name: true
+  show_state: false
+  tap_action:
+    action: toggle
+  styles: |-
+    ${(() => {
+      const isOn = state === 'on';
+      return `
+        .bubble-button-card-container {
+          height: 48px !important;
+          border-radius: 14px !important;
+          background: ${isOn ? 'rgba(255, 149, 0, 0.06)' : 'rgba(0, 0, 0, 0.04)'} !important;
+          display: flex !important;
+          align-items: center !important;
+          padding: 0 16px !important;
+        }
+        .bubble-icon {
+          --mdc-icon-size: 18px !important;
+          color: ${isOn ? 'rgb(255, 149, 0)' : 'rgba(60, 60, 60, 0.45)'} !important;
+        }
+        .bubble-name {
+          font-size: 14px !important;
+          font-weight: 500 !important;
+          color: var(--primary-text-color) !important;
+        }
+      `;
+    })()}
+```
 
 | Property | Value |
 |----------|-------|
@@ -1022,26 +1145,87 @@ All quick actions are full-width rows, stacked vertically with 4px gap. Each is 
 | Background (lights on, light) | `rgba(255, 149, 0, 0.06)` |
 | Background (all off, dark) | `rgba(255, 255, 255, 0.06)` |
 | Background (all off, light) | `rgba(0, 0, 0, 0.04)` |
-| Height | 48px |
-| Border radius | 14px |
-| Icon size | 18px |
-| Label font | 14px, weight 500 |
 | Tap action | Call `light.toggle` on `light.living_room_lights` |
 
 #### 4.5.2 Reset Manual Overrides
 
 **Conditional:** Only visible when `manually_controlled_lights` list length > 0.
 
+```yaml
+- type: conditional
+  conditions:
+    - entity: sensor.room_living_state
+      attribute: manually_controlled_lights
+      state_not: "[]"
+  card:
+    type: custom:bubble-card
+    card_type: button
+    button_type: state
+    entity: sensor.room_living_state
+    name: "Reset Manual Overrides"
+    icon: mdi:restore
+    show_name: true
+    show_state: false
+    tap_action:
+      action: call-service
+      service: adaptive_lighting.set_manual_control
+      data:
+        manual_control: false
+      target:
+        entity_id:
+          - switch.adaptive_lighting_main_living
+          - switch.adaptive_lighting_accent_spots
+          - switch.adaptive_lighting_column_lights
+          - switch.adaptive_lighting_recessed_ceiling
+    styles: |-
+      ${(() => {
+        const n = (hass.states['sensor.room_living_state']?.attributes?.manually_controlled_lights || []).length;
+        return `
+          .bubble-button-card-container {
+            height: 48px !important;
+            border-radius: 14px !important;
+            background: rgba(255, 59, 48, 0.05) !important;
+            display: flex !important;
+            align-items: center !important;
+            padding: 0 16px !important;
+          }
+          .bubble-icon {
+            --mdc-icon-size: 18px !important;
+            color: #ff3b30 !important;
+          }
+          .bubble-name {
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            color: var(--primary-text-color) !important;
+          }
+          .bubble-button-card-container::after {
+            content: '${n}' !important;
+            position: absolute !important;
+            right: 16px !important;
+            min-width: 20px !important;
+            height: 20px !important;
+            border-radius: 10px !important;
+            background: #ff3b30 !important;
+            color: white !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 0 6px !important;
+          }
+        `;
+      })()}
+```
+
 | Property | Value |
 |----------|-------|
 | Icon | `mdi:restore` |
-| Label | "Reset {n} Manual Override(s)" |
-| Right badge | Red count badge showing `{n}` |
+| Label | "Reset Manual Overrides" (always shows text, count badge on right) |
+| Right badge | Red count badge showing `{n}` via `::after` |
 | Background (dark) | `rgba(255, 59, 48, 0.08)` |
 | Background (light) | `rgba(255, 59, 48, 0.05)` |
 | Badge color | `#ff3b30` |
-| Height | 48px |
-| Border radius | 14px |
 | Tap action | `adaptive_lighting.set_manual_control` with `manual_control: false` on all 4 AL zones |
 
 Reset targets all four living room AL switches:
@@ -1052,7 +1236,64 @@ Reset targets all four living room AL switches:
 
 #### 4.5.3 Brighten / Dim (Side by Side)
 
-Two buttons sharing a row, each taking 50% width.
+Two buttons sharing a row via `horizontal-stack`, each taking 50% width. Both show icon + text label.
+
+```yaml
+- type: horizontal-stack
+  cards:
+    - type: custom:bubble-card
+      card_type: button
+      button_type: state
+      entity: light.living_room_lights
+      name: "Brighten"
+      icon: mdi:weather-sunny
+      show_name: true
+      show_state: false
+      tap_action:
+        action: call-service
+        service: script.oal_global_manual_brighter
+        data:
+          lights: light.living_room_lights
+      styles: |
+        .bubble-button-card-container {
+          height: 48px !important;
+          border-radius: 14px !important;
+          background: rgba(0, 0, 0, 0.04) !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 0 12px !important;
+          gap: 8px !important;
+        }
+        .bubble-icon { --mdc-icon-size: 18px !important; color: rgba(120, 80, 180, 0.85) !important; }
+        .bubble-name { font-size: 13px !important; font-weight: 500 !important; }
+    - type: custom:bubble-card
+      card_type: button
+      button_type: state
+      entity: light.living_room_lights
+      name: "Dim"
+      icon: mdi:weather-night
+      show_name: true
+      show_state: false
+      tap_action:
+        action: call-service
+        service: script.oal_global_manual_dimmer
+        data:
+          lights: light.living_room_lights
+      styles: |
+        .bubble-button-card-container {
+          height: 48px !important;
+          border-radius: 14px !important;
+          background: rgba(0, 0, 0, 0.04) !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 0 12px !important;
+          gap: 8px !important;
+        }
+        .bubble-icon { --mdc-icon-size: 18px !important; color: rgba(120, 80, 180, 0.85) !important; }
+        .bubble-name { font-size: 13px !important; font-weight: 500 !important; }
+```
 
 | Property | Brighten | Dim |
 |----------|----------|-----|
@@ -1062,26 +1303,66 @@ Two buttons sharing a row, each taking 50% width.
 | Background (light) | `rgba(0, 0, 0, 0.04)` | `rgba(0, 0, 0, 0.04)` |
 | Active (dark) | `rgba(138, 100, 200, 0.12)` | `rgba(138, 100, 200, 0.12)` |
 | Active border | `1px solid rgba(138, 100, 200, 0.30)` | `1px solid rgba(138, 100, 200, 0.30)` |
-| Height | 48px |
-| Border radius | 14px |
 | Font | 13px, weight 500 |
 | Tap action | `script.oal_global_manual_brighter` with `lights: light.living_room_lights` | `script.oal_global_manual_dimmer` with `lights: light.living_room_lights` |
 
 #### 4.5.4 Movie Mode
 
+```yaml
+- type: custom:bubble-card
+  card_type: button
+  button_type: state
+  entity: input_boolean.oal_movie_mode_active
+  name: "Movie Mode"
+  icon: mdi:movie-open
+  show_name: true
+  show_state: false
+  tap_action:
+    action: toggle
+  styles: |-
+    ${(() => {
+      const isActive = state === 'on';
+      return `
+        .bubble-button-card-container {
+          height: 48px !important;
+          border-radius: 14px !important;
+          background: ${isActive ? 'rgba(175, 82, 222, 0.06)' : 'rgba(0, 0, 0, 0.04)'} !important;
+          display: flex !important;
+          align-items: center !important;
+          padding: 0 16px !important;
+        }
+        .bubble-icon {
+          --mdc-icon-size: 18px !important;
+          color: ${isActive ? '#af52de' : 'rgba(60, 60, 60, 0.45)'} !important;
+        }
+        .bubble-name {
+          font-size: 14px !important;
+          font-weight: 500 !important;
+          color: var(--primary-text-color) !important;
+        }
+        .bubble-button-card-container::after {
+          content: '${isActive ? 'On' : 'Off'}' !important;
+          position: absolute !important;
+          right: 16px !important;
+          font-size: 13px !important;
+          font-weight: 600 !important;
+          color: ${isActive ? '#af52de' : 'rgba(60, 60, 60, 0.35)'} !important;
+        }
+      `;
+    })()}
+```
+
 | Property | Value |
 |----------|-------|
 | Icon | `mdi:movie-open` |
 | Label | "Movie Mode" |
-| Right status | "On" (purple) / "Off" (muted) |
+| Right status | "On" (purple, `#af52de`) / "Off" (muted) via `::after` |
 | Background (active, dark) | `rgba(175, 82, 222, 0.12)` |
 | Background (active, light) | `rgba(175, 82, 222, 0.06)` |
 | Background (inactive, dark) | `rgba(255, 255, 255, 0.06)` |
 | Background (inactive, light) | `rgba(0, 0, 0, 0.04)` |
 | Active color | `#af52de` |
-| Height | 48px |
-| Border radius | 14px |
-| Tap action | Activate `scene.living_room_movie_mode` or trigger movie mode automation |
+| Tap action | Toggle `input_boolean.oal_movie_mode_active` |
 
 ---
 
@@ -1240,7 +1521,8 @@ Each additional speaker (Soundbar, Kitchen, Bathroom) renders as a **Bubble Card
 | Tile padding | `8px 4px 8px 4px` |
 | Grid gap | 8px |
 | Grid padding | `2px 12px 4px 12px` |
-| Header padding | `10px 14px 4px 14px` |
+| Header Row 1 padding | `8px 14px 0 14px` |
+| Header Row 2 padding | `2px 14px 6px 14px` |
 | Icon container size | 36px (tiles), 52px (header) |
 | Quick controls container radius | 10px |
 | Quick controls padding | `3px 5px` |

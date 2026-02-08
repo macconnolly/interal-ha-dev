@@ -643,11 +643,11 @@ Centered at the top of the tile grid.
 |----------|-----|-----|
 | Size | 36×36px | 36×36px |
 | Border radius | 50% (circular) | 50% |
-| Background | `rgba(255, 149, 0, 0.12)` | `rgba(150, 150, 155, 0.10)` |
-| Border | `1.5px solid rgba(255, 149, 0, 0.25)` | `1.5px solid rgba(150, 150, 155, 0.18)` |
+| Background | `rgba(255, 149, 0, 0.12)` | `rgba(120, 120, 125, 0.12)` |
+| Border | `1.5px solid rgba(255, 149, 0, 0.25)` | `1.5px solid rgba(120, 120, 125, 0.22)` |
 | Backdrop filter | `blur(4px)` | `blur(4px)` |
 | Icon size | 24px | 24px |
-| Icon color | `rgb(255, 149, 0)` | `rgba(80, 80, 80, 0.45)` |
+| Icon color | `rgb(255, 149, 0)` | `rgba(60, 60, 60, 0.55)` |
 | Icon glow (on) | `drop-shadow(0 0 6px rgba(255, 149, 0, 0.45))` | none |
 | Transition | `background 0.3s ease, border-color 0.3s ease` | — |
 
@@ -658,9 +658,11 @@ Centered at the top of the tile grid.
 | Font size | 14px | 14px |
 | Font weight | 650 | 650 |
 | Line height | 1.2 | 1.2 |
-| Color (light mode) | `rgba(25, 25, 25, 0.95)` | `rgba(70, 70, 70, 0.65)` |
-| Color (dark mode) | `var(--primary-text-color)` | `rgba(255, 255, 255, 0.22)` |
+| Color (light mode) | `rgba(25, 25, 25, 0.95)` | `rgba(40, 40, 40, 0.85)` |
+| Color (dark mode) | `var(--primary-text-color)` | `rgba(255, 255, 255, 0.45)` |
 | Alignment | Center | Center |
+
+**Note:** Off-state names must remain clearly readable on the frosted tile background. The previous value (`rgba(70, 70, 70, 0.65)`) was too faint on the near-white container. The updated value provides ~4.5:1 contrast ratio on `rgba(248, 248, 250)` backgrounds.
 
 #### 2.2.4 Brightness Attribute (`.bubble-attribute`)
 
@@ -670,8 +672,8 @@ Shows the raw brightness value (0–255) from the `brightness` attribute. Displa
 |----------|-----|-----|
 | Font size | 13px | 13px |
 | Font weight | 600 | 600 |
-| Color (light mode) | `rgb(255, 149, 0)` | `rgba(100, 100, 100, 0.5)` |
-| Color (dark mode) | `rgba(255, 149, 0, 0.85)` | `rgba(255, 255, 255, 0.12)` |
+| Color (light mode) | `rgb(255, 149, 0)` | `rgba(60, 60, 60, 0.45)` |
+| Color (dark mode) | `rgba(255, 149, 0, 0.85)` | `rgba(255, 255, 255, 0.30)` |
 | Drag behavior | `opacity: 0` when `.is-dragging` | — |
 
 #### 2.2.5 Bottom Fill Bar (`.bubble-range-slider` + `.bubble-range-fill`)
@@ -775,7 +777,7 @@ styles: |
   .bubble-icon {
     color: ${state === 'on'
       ? 'rgb(255, 149, 0)'
-      : 'rgba(80, 80, 80, 0.45)'} !important;
+      : 'rgba(60, 60, 60, 0.55)'} !important;
     ...
   }
   .bubble-button-card-container::after {
@@ -836,7 +838,7 @@ The Sonos tile uses `button_type: slider` with the `volume_level` attribute for 
 
 | Property | Active (in playing group) | Inactive |
 |----------|--------------------------|----------|
-| Accent color | `rgb(66, 133, 244)` (blue) | `rgba(80, 80, 80, 0.45)` |
+| Accent color | `rgb(66, 133, 244)` (blue) | `rgba(60, 60, 60, 0.55)` |
 | Background | `linear-gradient(180deg, rgba(66, 133, 244, 0.13) 0%, rgba(255, 255, 255, 0.06) 100%)` | `rgba(255, 255, 255, 0.08)` |
 | Border | `1px solid rgba(66, 133, 244, 0.40)` | `1px solid rgba(160, 160, 165, 0.30)` |
 | Group indicator dot | 7×7px blue circle, `top: 5px, right: 5px` | Hidden (0px) |
@@ -850,7 +852,7 @@ const inGroup = hass.states['binary_sensor.sonos_living_room_in_playing_group']?
 
 ### 3.3 Apple TV Tile (State Button)
 
-Simple play/pause toggle. Uses `button_type: state` (no slider).
+Toggle on/off. Uses `button_type: state` (no slider). Tap toggles power; hold opens more-info.
 
 ```yaml
 - type: custom:bubble-card
@@ -861,23 +863,42 @@ Simple play/pause toggle. Uses `button_type: state` (no slider).
   icon: mdi:apple
   show_state: false
   tap_action:
-    action: perform-action
-    perform_action: media_player.media_play_pause
-    target:
-      entity_id: media_player.living_room_apple_tv
+    action: toggle
   hold_action:
     action: more-info
+  card_mod:
+    style: |
+      ha-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
 ```
 
-| Property | Playing | Not Playing |
-|----------|---------|-------------|
-| Accent color | `rgb(66, 133, 244)` (blue) | gray |
-| Background | Same gradient pattern as Sonos active | `rgba(255, 255, 255, 0.08)` |
-| Active condition | `hass.states['media_player.living_room_apple_tv']?.state === 'playing'` | — |
+**Active condition:** `hass.states['media_player.living_room_apple_tv']?.state` is `playing` OR `on` (Apple TV reports `playing` when active, `standby`/`off` when idle).
+
+| Property | On / Playing | Off / Standby |
+|----------|-------------|---------------|
+| Background | `linear-gradient(180deg, rgba(66, 133, 244, 0.13) 0%, rgba(255, 255, 255, 0.06) 100%)` | `rgba(255, 255, 255, 0.08)` |
+| Backdrop filter | `blur(12px) saturate(140%)` | `blur(8px) saturate(110%)` |
+| Border | `1px solid rgba(66, 133, 244, 0.40)` | `1px solid rgba(160, 160, 165, 0.30)` |
+| Box shadow | `0 4px 20px rgba(66, 133, 244, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.25)` | `0 1px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15)` |
+| Icon background | `rgba(66, 133, 244, 0.12)` | `rgba(120, 120, 125, 0.12)` |
+| Icon border | `1.5px solid rgba(66, 133, 244, 0.25)` | `1.5px solid rgba(120, 120, 125, 0.22)` |
+| Icon color | `rgb(66, 133, 244)` | `rgba(60, 60, 60, 0.55)` |
+| Icon glow | `drop-shadow(0 0 6px rgba(66, 133, 244, 0.45))` | none |
+| Name color | `rgba(25, 25, 25, 0.95)` | `rgba(40, 40, 40, 0.85)` |
+
+The styles IIFE checks for `playing` or `on`:
+```javascript
+const isActive = ['playing', 'on', 'paused'].includes(
+  hass.states['media_player.living_room_apple_tv']?.state
+);
+```
 
 ### 3.4 Samsung TV Tile (State Button)
 
-Toggle on/off. Same visual pattern as Apple TV.
+Toggle on/off. Same tile structure and visual pattern as Apple TV but checks for `on` state.
 
 ```yaml
 - type: custom:bubble-card
@@ -891,12 +912,28 @@ Toggle on/off. Same visual pattern as Apple TV.
     action: toggle
   hold_action:
     action: more-info
+  card_mod:
+    style: |
+      ha-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
 ```
+
+**Active condition:** `hass.states['media_player.living_room_samsung_q60']?.state === 'on'`
 
 | Property | On | Off |
 |----------|-----|-----|
-| Accent color | `rgb(66, 133, 244)` (blue) | gray |
-| Active condition | `hass.states['media_player.living_room_samsung_q60']?.state === 'on'` | — |
+| Background | `linear-gradient(180deg, rgba(66, 133, 244, 0.13) 0%, rgba(255, 255, 255, 0.06) 100%)` | `rgba(255, 255, 255, 0.08)` |
+| Backdrop filter | `blur(12px) saturate(140%)` | `blur(8px) saturate(110%)` |
+| Border | `1px solid rgba(66, 133, 244, 0.40)` | `1px solid rgba(160, 160, 165, 0.30)` |
+| Box shadow | `0 4px 20px rgba(66, 133, 244, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.25)` | `0 1px 6px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15)` |
+| Icon background | `rgba(66, 133, 244, 0.12)` | `rgba(120, 120, 125, 0.12)` |
+| Icon border | `1.5px solid rgba(66, 133, 244, 0.25)` | `1.5px solid rgba(120, 120, 125, 0.22)` |
+| Icon color | `rgb(66, 133, 244)` | `rgba(60, 60, 60, 0.55)` |
+| Icon glow | `drop-shadow(0 0 6px rgba(66, 133, 244, 0.45))` | none |
+| Name color | `rgba(25, 25, 25, 0.95)` | `rgba(40, 40, 40, 0.85)` |
 
 ### 3.5 Media Tile Interaction Summary
 
@@ -905,7 +942,7 @@ Toggle on/off. Same visual pattern as Apple TV.
 | Sonos | Drag | Adjust volume (`button_type: slider`) |
 | Sonos | Tap | `media_player.media_play_pause` on `media_player.living_room` |
 | Sonos | Hold | `script.sonos_toggle_group_membership` with `target_speaker: media_player.living_room` — adds/removes from current playing group using the Sonos package's smart coordinator discovery |
-| Apple TV | Tap | `media_player.media_play_pause` on `media_player.living_room_apple_tv` |
+| Apple TV | Tap | `toggle` on `media_player.living_room_apple_tv` |
 | Apple TV | Hold | `more-info` dialog |
 | Samsung TV | Tap | `toggle` on `media_player.living_room_samsung_q60` |
 | Samsung TV | Hold | `more-info` dialog |
@@ -1172,8 +1209,8 @@ Each additional speaker (Soundbar, Kitchen, Bathroom) renders as a **Bubble Card
 | Blue tint | `rgba(66, 133, 244, 0.12)` | `rgba(66, 133, 244, 0.18)` | Media icon backgrounds |
 | Red accent | `rgb(255, 110, 90)` | `rgb(255, 110, 90)` | Manual override dot, reset button |
 | Purple accent | `rgba(120, 80, 180, 0.85)` | `rgba(120, 80, 180, 0.85)` | Brighter/dimmer buttons |
-| Inactive icon | `rgba(80, 80, 80, 0.45)` | `rgba(255, 255, 255, 0.25)` | Off-state icons |
-| Inactive text | `rgba(70, 70, 70, 0.65)` | `rgba(255, 255, 255, 0.22)` | Off-state names |
+| Inactive icon | `rgba(60, 60, 60, 0.55)` | `rgba(255, 255, 255, 0.40)` | Off-state icons |
+| Inactive text | `rgba(40, 40, 40, 0.85)` | `rgba(255, 255, 255, 0.45)` | Off-state names |
 | Subtle bg | `rgba(255, 255, 255, 0.08)` | `rgba(32, 32, 34, 0.7)` | Off-state tile backgrounds |
 | Button inactive bg | `rgba(60, 60, 60, 0.07)` | `rgba(255, 255, 255, 0.06)` | Inactive sub-buttons |
 | Button inactive border | `rgba(60, 60, 60, 0.12)` | `rgba(255, 255, 255, 0.04)` | Inactive sub-button borders |

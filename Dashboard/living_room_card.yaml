@@ -66,8 +66,8 @@ card:
           const lightsOn = parseInt(hass.states['sensor.room_living_state']?.attributes?.lights_on || '0');
           let iconColor, iconBg;
           if (roomState === 'playing') {
-            iconColor = 'rgb(52, 199, 89)';
-            iconBg = 'rgba(52, 199, 89, 0.18)';
+            iconColor = 'rgb(0, 122, 255)';
+            iconBg = 'rgba(0, 122, 255, 0.18)';
           } else if (roomState === 'active' || lightsOn > 0) {
             iconColor = 'rgb(255, 149, 0)';
             iconBg = 'rgba(255, 149, 0, 0.18)';
@@ -458,7 +458,6 @@ card:
                   --popup-padding: 0
                 right_button: Close
                 dismissable: true
-                autoclose: true
           card_mod:
             style: |
               ha-card {
@@ -491,53 +490,6 @@ card:
                 .bubble-name-container { display: none !important; }
               `;
             })()}
-
-    # ═══════════════════════════════════════════════════════════════════════
-    # CONTEXT CHIPS - Alarm, Temp, Presence, Manual Timer
-    # ═══════════════════════════════════════════════════════════════════════
-    - type: custom:mushroom-chips-card
-      alignment: center
-      chips:
-        - type: conditional
-          conditions:
-            - entity: sensor.next_alarm
-              state_not: unavailable
-            - entity: sensor.next_alarm
-              state_not: unknown
-          chip:
-            type: template
-            icon: mdi:alarm
-            content: >-
-              {{ as_timestamp(states('sensor.next_alarm')) | timestamp_custom('%I:%M %p') }}
-            tap_action:
-              action: more-info
-              entity: sensor.next_alarm
-        - type: conditional
-          conditions:
-            - entity: sensor.living_room_temperature
-              state_not: unavailable
-            - entity: sensor.living_room_temperature
-              state_not: unknown
-          chip:
-            type: template
-            icon: mdi:thermometer
-            content: >-
-              {{ states('sensor.living_room_temperature') | round(0) }}°
-        - type: template
-          icon: mdi:account
-          icon_color: >-
-            {{ 'green' if is_state('binary_sensor.living_room_presence', 'on') else 'grey' }}
-          content: >-
-            {{ 'Occupied' if is_state('binary_sensor.living_room_presence', 'on') else 'Empty' }}
-        - type: conditional
-          conditions:
-            - entity: timer.adaptive_lighting_main_living
-              state: active
-          chip:
-            type: template
-            icon: mdi:timer-outline
-            content: >-
-              {{ state_attr('timer.adaptive_lighting_main_living', 'remaining') }}
 
     # ═══════════════════════════════════════════════════════════════════════
     # LIGHTS GRID - 6 lights in 3 columns (square tiles, rounded-square icons)
@@ -1074,7 +1026,7 @@ card:
             grid-template-columns: repeat(2, 1fr)
       cards:
         # ─────────────────────────────────────────────────────────────────
-        # Sonos Speaker - GREEN accent, volume slider
+        # Sonos Speaker - BLUE accent, volume slider
         # tap=play/pause, hold=more-info, double_tap=group toggle
         # ─────────────────────────────────────────────────────────────────
         - type: custom:bubble-card
@@ -1110,19 +1062,17 @@ card:
             ${(() => {
               const inGroup = hass.states['binary_sensor.sonos_living_room_in_playing_group']?.state === 'on';
               const isDark = hass.themes?.darkMode;
-              const accentColor = 'rgb(52, 199, 89)';
-              const surfaceOn = isDark
-                ? 'linear-gradient(180deg, rgba(52, 199, 89, 0.14) 0%, rgba(255, 255, 255, 0.03) 100%)'
-                : 'linear-gradient(180deg, rgba(52, 199, 89, 0.14) 0%, rgba(255, 255, 255, 0.75) 100%)';
+              const accentColor = 'rgb(0, 122, 255)';
+              const surfaceOn = isDark ? 'rgba(0, 122, 255, 0.14)' : 'rgba(0, 122, 255, 0.10)';
               const surfaceOff = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.9)';
-              const borderOn = isDark ? '1px solid rgba(52, 199, 89, 0.30)' : '1px solid rgba(52, 199, 89, 0.35)';
+              const borderOn = isDark ? '1px solid rgba(0, 122, 255, 0.30)' : '1px solid rgba(0, 122, 255, 0.35)';
               const borderOff = isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.08)';
               const nameOn = isDark ? 'rgba(255, 255, 255, 0.95)' : 'rgba(20, 20, 20, 0.95)';
               const nameOff = isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(40, 40, 40, 0.55)';
               const textOff = isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(60, 60, 60, 0.45)';
               const sliderTrack = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)';
               const tooltipBg = isDark ? 'rgba(30, 30, 32, 0.92)' : 'rgba(255, 255, 255, 0.92)';
-              return `.bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto 1fr auto !important; justify-items: center !important; align-items: center !important; text-align: center !important; min-height: 100px !important; padding: 8px 4px 8px 4px !important; border-radius: 14px !important; overflow: hidden !important; clip-path: inset(0 round 14px) !important; transition: transform 0.15s ease-out, border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease !important; background: ${inGroup ? surfaceOn : surfaceOff} !important; backdrop-filter: ${inGroup ? 'blur(12px) saturate(140%)' : 'blur(8px) saturate(110%)'} !important; -webkit-backdrop-filter: ${inGroup ? 'blur(12px) saturate(140%)' : 'blur(8px) saturate(110%)'} !important; border: ${inGroup ? borderOn : borderOff} !important; box-shadow: ${inGroup ? '0 2px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04)' : '0 1px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.03)'} !important; } .bubble-button-card-container:active { transform: scale(0.95) !important; } .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${inGroup ? '7px' : '0px'} !important; height: ${inGroup ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${inGroup ? accentColor : 'transparent'} !important; border: ${inGroup ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${inGroup ? '0 0 4px rgba(52, 199, 89, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; } .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 8px !important; } .bubble-icon-container { min-width: 36px !important; min-height: 36px !important; grid-row: 1 !important; margin: 1px 0 2px 0 !important; border-radius: 11px !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${inGroup ? 'rgba(52, 199, 89, 0.14)' : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)')} !important; border: ${inGroup ? '1.5px solid rgba(52, 199, 89, 0.25)' : (isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid rgba(0, 0, 0, 0.08)')} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; } .bubble-icon { --mdc-icon-size: 24px !important; color: ${inGroup ? accentColor : (isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(60, 60, 60, 0.45)')} !important; filter: ${inGroup ? 'drop-shadow(0 0 6px rgba(52, 199, 89, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; } .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; } .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; color: ${inGroup ? nameOn : nameOff} !important; } .bubble-state { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${inGroup ? accentColor : textOff} !important; } .bubble-attribute { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${inGroup ? accentColor : textOff} !important; transition: opacity 0.15s ease !important; } .bubble-range-slider { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 4px !important; border-radius: 0 0 14px 14px !important; z-index: 10 !important; background: ${sliderTrack} !important; overflow: visible !important; opacity: 1 !important; } .bubble-range-fill { height: 4px !important; border-radius: 0 0 14px 0 !important; background: ${accentColor} !important; } .bubble-range-value { position: absolute !important; top: unset !important; right: unset !important; bottom: 50px !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 14px !important; font-weight: 700 !important; color: ${accentColor} !important; background: ${tooltipBg} !important; padding: 2px 8px !important; border-radius: 8px !important; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35) !important; opacity: 0 !important; pointer-events: none !important; transition: opacity 0.15s ease !important; z-index: 30 !important; white-space: nowrap !important; } .is-dragging .bubble-range-value { opacity: 1 !important; } .is-dragging .bubble-attribute { opacity: 0 !important; } .is-dragging .bubble-state { opacity: 0 !important; }`;
+              return `.bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto 1fr auto !important; justify-items: center !important; align-items: center !important; text-align: center !important; min-height: 100px !important; padding: 8px 4px 8px 4px !important; border-radius: 14px !important; overflow: hidden !important; clip-path: inset(0 round 14px) !important; transition: transform 0.15s ease-out, border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease !important; background: ${inGroup ? surfaceOn : surfaceOff} !important; backdrop-filter: ${inGroup ? 'blur(12px) saturate(140%)' : 'blur(8px) saturate(110%)'} !important; -webkit-backdrop-filter: ${inGroup ? 'blur(12px) saturate(140%)' : 'blur(8px) saturate(110%)'} !important; border: ${inGroup ? borderOn : borderOff} !important; box-shadow: ${inGroup ? '0 2px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04)' : '0 1px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.03)'} !important; } .bubble-button-card-container:active { transform: scale(0.95) !important; } .bubble-button-card-container::after { content: '' !important; position: absolute !important; top: 5px !important; right: 5px !important; width: ${inGroup ? '7px' : '0px'} !important; height: ${inGroup ? '7px' : '0px'} !important; border-radius: 50% !important; background: ${inGroup ? accentColor : 'transparent'} !important; border: ${inGroup ? '1.5px solid rgba(255, 255, 255, 0.9)' : 'none'} !important; box-shadow: ${inGroup ? '0 0 4px rgba(0, 122, 255, 0.5)' : 'none'} !important; transition: all 0.2s ease !important; z-index: 25 !important; } .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 8px !important; } .bubble-icon-container { min-width: 36px !important; min-height: 36px !important; grid-row: 1 !important; margin: 1px 0 2px 0 !important; border-radius: 11px !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${inGroup ? 'rgba(0, 122, 255, 0.14)' : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)')} !important; border: ${inGroup ? '1.5px solid rgba(0, 122, 255, 0.25)' : (isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid rgba(0, 0, 0, 0.08)')} !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; transition: background 0.3s ease, border-color 0.3s ease !important; } .bubble-icon { --mdc-icon-size: 24px !important; color: ${inGroup ? accentColor : (isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(60, 60, 60, 0.45)')} !important; filter: ${inGroup ? 'drop-shadow(0 0 6px rgba(0, 122, 255, 0.45))' : 'none'} !important; transition: color 0.3s ease, filter 0.3s ease !important; } .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; } .bubble-name { font-weight: 650 !important; font-size: 14px !important; line-height: 1.2 !important; justify-content: center !important; color: ${inGroup ? nameOn : nameOff} !important; } .bubble-state { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${inGroup ? accentColor : textOff} !important; } .bubble-attribute { font-size: 13px !important; font-weight: 600 !important; margin-top: 1px !important; justify-content: center !important; color: ${inGroup ? accentColor : textOff} !important; transition: opacity 0.15s ease !important; } .bubble-range-slider { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 4px !important; border-radius: 0 0 14px 14px !important; z-index: 10 !important; background: ${sliderTrack} !important; overflow: visible !important; opacity: 1 !important; } .bubble-range-fill { height: 4px !important; border-radius: 0 0 14px 0 !important; background: ${accentColor} !important; } .bubble-range-value { position: absolute !important; top: unset !important; right: unset !important; bottom: 50px !important; left: 50% !important; transform: translateX(-50%) !important; font-size: 14px !important; font-weight: 700 !important; color: ${accentColor} !important; background: ${tooltipBg} !important; padding: 2px 8px !important; border-radius: 8px !important; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35) !important; opacity: 0 !important; pointer-events: none !important; transition: opacity 0.15s ease !important; z-index: 30 !important; white-space: nowrap !important; } .is-dragging .bubble-range-value { opacity: 1 !important; } .is-dragging .bubble-attribute { opacity: 0 !important; } .is-dragging .bubble-state { opacity: 0 !important; }`;
             })()}
 
         # ─────────────────────────────────────────────────────────────────
@@ -1155,9 +1105,7 @@ card:
               const isPlaying = hass.states['media_player.living_room_apple_tv']?.state === 'playing';
               const isDark = hass.themes?.darkMode;
               const accentColor = 'rgb(0, 122, 255)';
-              const surfaceOn = isDark
-                ? 'linear-gradient(180deg, rgba(0, 122, 255, 0.14) 0%, rgba(255, 255, 255, 0.03) 100%)'
-                : 'linear-gradient(180deg, rgba(0, 122, 255, 0.14) 0%, rgba(255, 255, 255, 0.75) 100%)';
+              const surfaceOn = isDark ? 'rgba(0, 122, 255, 0.14)' : 'rgba(0, 122, 255, 0.10)';
               const surfaceOff = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.9)';
               const borderOn = isDark ? '1px solid rgba(0, 122, 255, 0.30)' : '1px solid rgba(0, 122, 255, 0.35)';
               const borderOff = isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.08)';
@@ -1193,9 +1141,7 @@ card:
               const isOn = hass.states['media_player.living_room_samsung_q60']?.state === 'on';
               const isDark = hass.themes?.darkMode;
               const accentColor = 'rgb(168, 85, 247)';
-              const surfaceOn = isDark
-                ? 'linear-gradient(180deg, rgba(168, 85, 247, 0.14) 0%, rgba(255, 255, 255, 0.03) 100%)'
-                : 'linear-gradient(180deg, rgba(168, 85, 247, 0.14) 0%, rgba(255, 255, 255, 0.75) 100%)';
+              const surfaceOn = isDark ? 'rgba(168, 85, 247, 0.14)' : 'rgba(168, 85, 247, 0.10)';
               const surfaceOff = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.9)';
               const borderOn = isDark ? '1px solid rgba(168, 85, 247, 0.30)' : '1px solid rgba(168, 85, 247, 0.35)';
               const borderOff = isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.08)';

@@ -21,13 +21,13 @@ The card follows a "progressive disclosure" model: the most-used interaction (in
 
 ```
 vertical-stack (outer container, card_mod on :host for card appearance)
-├── bubble-card type: separator (header)
-│   └── sub_button:
-│       ├── main[0]: slider (room brightness) + hold to toggle
-│       └── bottom[0]: Quick Controls group (inline buttons)
-│           ├── All (toggle light.living_room_lights)
-│           ├── Alarm (Sonos alarm toggle — conditional)
-│           └── Gear (settings icon → fires settings popup)
+├── HEADER ROW 1: bubble-card type: separator (icon + title only, no sub-buttons)
+│   └── No sub_button — full width for title, never truncates on mobile
+├── HEADER ROW 2: layout-card type: custom:grid-layout (control strip)
+│   ├── col 1 (flex): bubble-card button/slider (room brightness)
+│   ├── col 2 (40px): All lights toggle
+│   ├── col 3 (40px): Alarm chip (conditional)
+│   └── col 4 (40px): Gear icon (settings popup)
 ├── layout-card type: custom:grid-layout (3-column light grid)
 │   ├── bubble-card type: button, button_type: slider (Floor lamp)
 │   ├── bubble-card type: button, button_type: slider (Couch lamp)
@@ -162,11 +162,15 @@ The `#root` gap reset ensures child cards stack seamlessly without visible spaci
 
 ---
 
-## Section 1: Separator Header
+## Section 1: Header (Two-Row Design)
 
-The separator is the top element of the card. It contains the room icon, room name, a room brightness slider, and a row of quick control sub-buttons. The bottom row has the all-lights toggle, a conditional alarm indicator, and a gear icon that opens the settings popup for less-used controls. Media play/pause is not on the header — it's handled directly on each media tile.
+The header is split into two distinct rows to prevent title truncation on mobile. Row 1 is a clean separator with icon and title only (no sub-buttons). Row 2 is a grid-based control strip with a brightness slider and action buttons. This costs ~40px of vertical space but guarantees the title is always fully visible regardless of screen width.
 
-### Bubble Card Configuration
+**Why not a single-row separator?** Bubble Card's separator uses `display: flex; flex-direction: row` for icon, name, and sub-buttons. When sub-buttons (slider + action icons) compete for horizontal space, the `.bubble-name` gets `text-overflow: ellipsis` truncation. On mobile widths (< 400px), "Living Room" can become "Livi..." — unacceptable.
+
+### 1.1 Row 1: Title Separator
+
+A clean Bubble Card separator with **no sub-buttons**. The title gets the full width.
 
 ```yaml
 - type: custom:bubble-card
@@ -174,27 +178,11 @@ The separator is the top element of the card. It contains the room icon, room na
   entity: light.living_room_lights
   name: Living Room
   icon: mdi:sofa
-  rows: 1.5
-  sub_button:
-    bottom_layout: inline
-    main:
-      - entity: light.living_room_lights
-        sub_button_type: slider
-        name: Brightness
-        icon: mdi:brightness-7
-        hold_action:
-          action: toggle
-    bottom:
-      - name: Quick Controls
-        buttons_layout: inline
-        justify_content: center
-        group:
-          # ... sub-buttons defined below ...
 ```
 
-### 1.1 Room Icon (Left)
+#### 1.1.1 Room Icon (Left)
 
-**Element:** Bubble Card separator's built-in icon position. Color is driven by `sensor.room_living_state`.
+Color is driven by `sensor.room_living_state`.
 
 | Room State | Icon Color | Icon Background | Rationale |
 |------------|------------|-----------------|-----------|
@@ -205,134 +193,36 @@ The separator is the top element of the card. It contains the room icon, room na
 | Property | Value |
 |----------|-------|
 | Shape | Circular (`border-radius: 50%`) |
-| Size | 52×52px |
-| Icon size | 30px (`--mdc-icon-size`) |
+| Size | 44×44px |
+| Icon size | 26px (`--mdc-icon-size`) |
 | Border | `1.5px solid` at 0.25 opacity of the active color |
 | Glow (active) | `drop-shadow(0 0 4px)` at 0.4 opacity of active color |
 | Transition | Color/background via `0.3s ease` |
 
-### 1.2 Room Title
+#### 1.1.2 Room Title
 
 | Property | Value |
 |----------|-------|
 | Text | "Living Room" |
-| Font size | 22px |
+| Font size | 20px |
 | Font weight | 700 |
 | Letter spacing | -0.3px |
 | Color (light mode) | `rgba(25, 25, 25, 0.95)` |
 | Color (dark mode) | `var(--primary-text-color)` |
+| Overflow | `visible` — never truncated |
 
-### 1.3 Room Brightness Slider (Main Sub-Button)
+#### 1.1.3 Subtitle (Optional)
 
-The first element in `sub_button.main` is a slider controlling `light.living_room_lights`. This provides room-level brightness control directly in the header, without needing a popup.
-
-| Property | Value |
-|----------|-------|
-| Entity | `light.living_room_lights` |
-| Type | `sub_button_type: slider` |
-| Icon | `mdi:brightness-7` |
-| Name | "Brightness" |
-| Hold action | Toggle all lights on/off |
-
-The slider uses Bubble Card's native sub-button slider rendering. No custom CSS is needed for slider behavior.
-
-### 1.4 Quick Control Sub-Buttons (Bottom Row)
-
-The bottom sub-button row contains a centered group of icon-only action buttons. Each button is 32px tall, circular, with dynamic coloring based on state.
-
-**Container styling:**
+Below the title, the separator can display a subtitle driven by `sensor.room_living_state` attributes.
 
 | Property | Value |
 |----------|-------|
-| Layout | Inline, centered (`justify_content: center`) |
-| Background | `rgba(60, 60, 60, 0.05)` with `backdrop-filter: blur(4px)` |
-| Border | `1px solid rgba(60, 60, 60, 0.10)` |
-| Border radius | 10px |
-| Padding | `3px 5px` |
-| Gap | 4px |
-| Width | `fit-content` (shrinks to content) |
-| Margin | `4px auto 0 auto` (centered) |
+| Text | `"{n} lights on"` or `"Idle"` or `"Playing — {source}"` |
+| Font size | 12px |
+| Font weight | 500 |
+| Color | `var(--secondary-text-color)` at 0.6 opacity |
 
-**Per-button defaults:**
-
-| Property | Value |
-|----------|-------|
-| `show_name` | false |
-| `show_icon` | true |
-| `show_background` | true |
-| `state_background` | false |
-| `custom_height` | 32 |
-| `fill_width` | false |
-| Background (inactive) | `rgba(60, 60, 60, 0.07)` |
-| Border (inactive) | `1px solid rgba(60, 60, 60, 0.12)` |
-| Icon color (inactive) | `rgba(60, 60, 60, 0.55)` |
-| Border radius | 8px |
-| Press animation | `transform: scale(0.90)` on `:active` |
-
-#### 1.4.1 All Lights Toggle
-
-| Property | Value |
-|----------|-------|
-| Entity | `light.living_room_lights` |
-| Icon | `mdi:lightbulb-group` |
-| Active condition | `light.living_room_lights` state = `on` |
-| Active background | `rgba(255, 149, 0, 0.16)` |
-| Active border | `1px solid rgba(255, 149, 0, 0.35)` |
-| Active icon color | `rgb(255, 149, 0)` |
-| Tap action | `toggle` on `light.living_room_lights` |
-| Hold action | `more-info` |
-
-#### 1.4.2 Alarm Chip
-
-| Property | Value |
-|----------|-------|
-| Entity | `sensor.sonos_next_alarm_chip` |
-| Icon | `mdi:alarm` |
-| Visibility | Only when `sensor.room_living_state` attribute `has_upcoming_alarm` = true |
-| Active condition | Alarm is enabled (`sensor.hero_button_alarm_state` attribute `is_enabled` = true) |
-| Active background | `rgba(66, 133, 244, 0.14)` |
-| Active border | `1px solid rgba(66, 133, 244, 0.35)` |
-| Active icon color | `rgb(66, 133, 244)` |
-| Tap action | `script.sonos_toggle_next_alarm` with alarm entity and tracker |
-| Hold action | `more-info` |
-| Time badge | `::after` pseudo-element shows formatted time (7px font, absolute bottom-right) |
-
-#### 1.4.3 Settings Gear Icon
-
-| Property | Value |
-|----------|-------|
-| Icon | `mdi:cog` |
-| Background (inactive) | `rgba(60, 60, 60, 0.07)` |
-| Border (inactive) | `1px solid rgba(60, 60, 60, 0.12)` |
-| Icon color | `rgba(60, 60, 60, 0.55)` (light mode) / `rgba(255, 255, 255, 0.45)` (dark mode) |
-| Tap action | `fire-dom-event` → triggers settings popup (see Section 4) |
-
-```yaml
-- entity: ""
-  icon: mdi:cog
-  show_name: false
-  show_icon: true
-  show_background: true
-  state_background: false
-  custom_height: 32
-  fill_width: false
-  tap_action:
-    action: fire-dom-event
-    browser_mod:
-      service: browser_mod.popup
-      data:
-        content: !include popups/living_room_settings.yaml
-        style:
-          --popup-border-radius: 24px 24px 0 0
-          --popup-padding: 0
-        right_button: Close
-        dismissable: true
-        autoclose: true
-```
-
-### 1.5 Header Styling (JavaScript `styles` Block)
-
-The header uses Bubble Card's JavaScript `styles` property (not card-mod Jinja2) for dynamic state-based styling. All color decisions are computed in a single IIFE that reads room state from `sensor.room_living_state` and related entities.
+#### 1.1.4 Row 1 Styling (JavaScript `styles` Block)
 
 ```yaml
 styles: |-
@@ -350,33 +240,278 @@ styles: |-
       iconColor = 'rgba(50, 50, 50, 0.55)';
       iconBg = 'rgba(80, 80, 80, 0.10)';
     }
-    // ... derive per-button state from hass.states ...
     return `
-      ha-card { ... }
-      .bubble-icon-container { background: ${iconBg} !important; ... }
-      .bubble-icon { color: ${iconColor} !important; ... }
-      ...
+      ha-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 10px 14px 0 14px !important;
+      }
+      .bubble-icon-container {
+        min-width: 44px !important;
+        min-height: 44px !important;
+        border-radius: 50% !important;
+        background: ${iconBg} !important;
+        border: 1.5px solid ${iconColor}40 !important;
+      }
+      .bubble-icon {
+        --mdc-icon-size: 26px !important;
+        color: ${iconColor} !important;
+        filter: ${roomState !== 'idle' ? 'drop-shadow(0 0 4px ' + iconColor + '66)' : 'none'} !important;
+      }
+      .bubble-name {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.3px !important;
+        white-space: normal !important;
+        overflow: visible !important;
+      }
     `;
   })()}
 ```
 
-**Key CSS targets within the styles block:**
+**Key CSS targets:**
 
 | Selector | Purpose |
 |----------|---------|
 | `ha-card` | Transparent background, no border/shadow (outer card_mod handles container) |
 | `.bubble-icon-container` | Circular icon area, state-driven background/border |
-| `.bubble-icon` | Icon color, size (30px), optional glow filter |
-| `.bubble-name` | Room title typography |
-| `.bubble-sub-button-container` | Main sub-button row gap |
-| `.bubble-sub-button` | Default sub-button shape (circular, 36px) |
-| `.bubble-sub-button-bottom-container` | Quick controls pill container |
-| `.bubble-sub-button-N` | Per-button state coloring (N = global index) |
+| `.bubble-icon` | Icon color, size, optional glow filter |
+| `.bubble-name` | Room title typography — `overflow: visible` prevents truncation |
 
-**Important:** Sub-button global indices account for the main slider occupying index 0/1. Bottom group buttons start at index 2:
-- Index 2 = All Lights
-- Index 3 = Alarm (conditional)
-- Index 4 = Gear (settings popup)
+### 1.2 Row 2: Control Strip
+
+A `layout-card` grid with a brightness slider taking flexible space and action buttons at fixed widths. Sits directly below the title row with no gap (the outer container's `#root { gap: 0 }` handles this).
+
+```yaml
+- type: custom:layout-card
+  layout_type: custom:grid-layout
+  layout:
+    grid-template-columns: 1fr 40px 40px 40px
+    gap: 6px
+    padding: 4px 14px 6px 14px
+    align-items: center
+  cards:
+    # col 1: brightness slider
+    # col 2: all lights toggle
+    # col 3: alarm chip (conditional)
+    # col 4: gear icon
+```
+
+| Property | Value |
+|----------|-------|
+| Layout type | `custom:grid-layout` |
+| Columns | `1fr 40px 40px 40px` (slider flex, 3 fixed buttons) |
+| Gap | 6px |
+| Padding | `4px 14px 6px 14px` |
+| Align | `center` (vertical centering of slider and buttons) |
+
+#### 1.2.1 Room Brightness Slider (Column 1)
+
+A Bubble Card button with `button_type: slider` controlling `light.living_room_lights`. Takes all available horizontal space via the `1fr` column.
+
+```yaml
+- type: custom:bubble-card
+  card_type: button
+  button_type: slider
+  entity: light.living_room_lights
+  name: ""
+  icon: mdi:brightness-7
+  show_name: false
+  show_state: true
+  scrolling_effect: false
+  tap_action:
+    action: toggle
+  hold_action:
+    action: more-info
+  card_mod:
+    style: |
+      ha-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+```
+
+| Property | Value |
+|----------|-------|
+| Entity | `light.living_room_lights` |
+| Type | `button_type: slider` |
+| Name | Empty (no label — the title row above provides context) |
+| Icon | `mdi:brightness-7` |
+| Show state | true (displays brightness percentage) |
+| Tap | Toggle all lights |
+| Hold | `more-info` dialog |
+| Height | 38px |
+
+**Slider styling (via `styles` block):**
+
+| Element | Value |
+|---------|-------|
+| Container height | 38px |
+| Container border radius | 12px |
+| Container background (light) | `rgba(0, 0, 0, 0.04)` |
+| Container background (dark) | `rgba(255, 255, 255, 0.06)` |
+| Container border (light) | `1px solid rgba(0, 0, 0, 0.06)` |
+| Container border (dark) | `1px solid rgba(255, 255, 255, 0.04)` |
+| Fill color | `rgba(255, 149, 0, 0.25)` (light) / `rgba(255, 149, 0, 0.30)` (dark) |
+| Icon color (on) | `rgb(255, 149, 0)` |
+| Icon color (off) | `rgba(80, 80, 80, 0.40)` |
+| State text | `13px`, weight 600, `tabular-nums` |
+
+#### 1.2.2 All Lights Toggle (Column 2)
+
+A compact icon-only Bubble Card button.
+
+```yaml
+- type: custom:bubble-card
+  card_type: button
+  button_type: state
+  entity: light.living_room_lights
+  name: ""
+  icon: mdi:lightbulb-group
+  show_name: false
+  show_state: false
+  tap_action:
+    action: toggle
+  hold_action:
+    action: more-info
+  card_mod:
+    style: |
+      ha-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+```
+
+| Property | ON | OFF |
+|----------|-----|-----|
+| Size | 40×38px | 40×38px |
+| Border radius | 10px | 10px |
+| Background | `rgba(255, 149, 0, 0.14)` | `rgba(60, 60, 60, 0.07)` |
+| Border | `1px solid rgba(255, 149, 0, 0.30)` | `1px solid rgba(60, 60, 60, 0.10)` |
+| Icon color | `rgb(255, 149, 0)` | `rgba(60, 60, 60, 0.45)` |
+| Icon size | 20px | 20px |
+| Press | `transform: scale(0.90)` | — |
+
+#### 1.2.3 Alarm Chip (Column 3)
+
+**Conditional:** Only rendered when `sensor.room_living_state` attribute `has_upcoming_alarm` = true. When not shown, the grid column collapses (use `conditional` card wrapper or set `visibility: hidden` to preserve layout).
+
+```yaml
+- type: conditional
+  conditions:
+    - entity: sensor.room_living_state
+      attribute: has_upcoming_alarm
+      state: "true"
+  card:
+    type: custom:bubble-card
+    card_type: button
+    button_type: state
+    entity: sensor.sonos_next_alarm_chip
+    name: ""
+    icon: mdi:alarm
+    show_name: false
+    show_state: false
+    tap_action:
+      action: call-service
+      service: script.sonos_toggle_next_alarm
+      data:
+        alarm_entity: "{{ state_attr('sensor.room_living_state', 'next_alarm_entity') }}"
+    hold_action:
+      action: more-info
+```
+
+| Property | Enabled | Disabled |
+|----------|---------|----------|
+| Size | 40×38px | 40×38px |
+| Border radius | 10px | 10px |
+| Background | `rgba(66, 133, 244, 0.14)` | `rgba(60, 60, 60, 0.07)` |
+| Border | `1px solid rgba(66, 133, 244, 0.30)` | `1px solid rgba(60, 60, 60, 0.10)` |
+| Icon color | `rgb(66, 133, 244)` | `rgba(60, 60, 60, 0.45)` |
+| Time badge | `::after` pseudo-element — 7px font, absolute bottom-right corner of button |
+
+#### 1.2.4 Settings Gear Icon (Column 4)
+
+Always visible. Opens the settings popup (Section 4).
+
+```yaml
+- type: custom:bubble-card
+  card_type: button
+  button_type: state
+  entity: light.living_room_lights
+  name: ""
+  icon: mdi:cog
+  show_name: false
+  show_state: false
+  tap_action:
+    action: fire-dom-event
+    browser_mod:
+      service: browser_mod.popup
+      data:
+        content: !include popups/living_room_settings.yaml
+        style:
+          --popup-border-radius: 24px 24px 0 0
+          --popup-padding: 0
+        right_button: Close
+        dismissable: true
+        autoclose: true
+  card_mod:
+    style: |
+      ha-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+```
+
+| Property | Value |
+|----------|-------|
+| Size | 40×38px |
+| Border radius | 10px |
+| Background (light) | `rgba(60, 60, 60, 0.07)` |
+| Background (dark) | `rgba(255, 255, 255, 0.06)` |
+| Border (light) | `1px solid rgba(60, 60, 60, 0.10)` |
+| Border (dark) | `1px solid rgba(255, 255, 255, 0.04)` |
+| Icon color (light) | `rgba(60, 60, 60, 0.55)` |
+| Icon color (dark) | `rgba(255, 255, 255, 0.45)` |
+| Icon size | 20px |
+| Press | `transform: scale(0.90)` |
+
+#### 1.2.5 Control Strip Styling
+
+Each button in the control strip uses its own `styles` block. The `card_mod` on each card sets `ha-card` to transparent so the outer container styling shows through. The `styles` block on each Bubble Card handles the state-driven visuals on `.bubble-button-card-container`.
+
+```yaml
+# Example: All Lights Toggle styling
+styles: |
+  .bubble-button-card-container {
+    min-height: 38px !important;
+    max-height: 38px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: ${state === 'on'
+      ? 'rgba(255, 149, 0, 0.14)'
+      : 'rgba(60, 60, 60, 0.07)'} !important;
+    border: ${state === 'on'
+      ? '1px solid rgba(255, 149, 0, 0.30)'
+      : '1px solid rgba(60, 60, 60, 0.10)'} !important;
+    transition: background 0.2s ease, border-color 0.2s ease !important;
+  }
+  .bubble-button-card-container:active {
+    transform: scale(0.90) !important;
+  }
+  .bubble-icon {
+    --mdc-icon-size: 20px !important;
+    color: ${state === 'on'
+      ? 'rgb(255, 149, 0)'
+      : 'rgba(60, 60, 60, 0.45)'} !important;
+  }
+  .bubble-name-container { display: none !important; }
+```
 
 ---
 

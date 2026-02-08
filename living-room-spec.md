@@ -6,7 +6,7 @@ This specification describes a single room card for a Home Assistant dashboard, 
 
 ### Design Philosophy
 
-The card follows a "progressive disclosure" model: the most-used interaction (individual light brightness) is always one drag away on the main view. The header provides room brightness via slider and a few contextual indicators (alarm, media). Less-used controls (all on/off, reset manual overrides, OAL brightness stepping, movie mode) are tucked into a settings popup behind a gear icon. Media controls surface contextually — Sonos gets a rich popup, other media devices are simple toggles.
+The card follows a "progressive disclosure" model: the most-used interaction (individual light brightness) is always one drag away on the main view. The header provides room brightness via slider and a contextual alarm indicator. Less-used controls (all on/off, reset manual overrides, OAL brightness stepping, movie mode) are tucked into a settings popup behind a gear icon. Media play/pause is handled directly on the media tiles (tap), and Sonos group management is accessed via hold on the Sonos tile.
 
 ### Required Packages
 
@@ -27,7 +27,6 @@ vertical-stack (outer container, card_mod on :host for card appearance)
 │       └── bottom[0]: Quick Controls group (inline buttons)
 │           ├── All (toggle light.living_room_lights)
 │           ├── Alarm (Sonos alarm toggle — conditional)
-│           ├── Media (play/pause — conditional on playing/paused)
 │           └── Gear (settings icon → fires settings popup)
 ├── layout-card type: custom:grid-layout (3-column light grid)
 │   ├── bubble-card type: button, button_type: slider (Floor lamp)
@@ -37,9 +36,9 @@ vertical-stack (outer container, card_mod on :host for card appearance)
 │   ├── bubble-card type: button, button_type: slider (Columns)
 │   └── bubble-card type: button, button_type: slider (Recessed)
 ├── layout-card type: custom:grid-layout (3-column media grid)
-│   ├── bubble-card type: button, button_type: slider (Sonos — volume)
-│   ├── bubble-card type: button, button_type: state (Apple TV)
-│   └── bubble-card type: button, button_type: state (Samsung TV)
+│   ├── bubble-card type: button, button_type: slider (Sonos — tap: play/pause, hold: group toggle)
+│   ├── bubble-card type: button, button_type: state (Apple TV — tap: play/pause)
+│   └── bubble-card type: button, button_type: state (Samsung TV — tap: toggle)
 ├── bubble-card type: pop-up (Settings sheet)
 │   ├── Room Brightness slider (light.living_room_lights)
 │   ├── All On/Off toggle
@@ -165,7 +164,7 @@ The `#root` gap reset ensures child cards stack seamlessly without visible spaci
 
 ## Section 1: Separator Header
 
-The separator is the top element of the card. It contains the room icon, room name, a room brightness slider, and a row of quick control sub-buttons. The bottom row has a few contextual indicators (all toggle, alarm, media) plus a gear icon that opens the settings popup for less-used controls.
+The separator is the top element of the card. It contains the room icon, room name, a room brightness slider, and a row of quick control sub-buttons. The bottom row has the all-lights toggle, a conditional alarm indicator, and a gear icon that opens the settings popup for less-used controls. Media play/pause is not on the header — it's handled directly on each media tile.
 
 ### Bubble Card Configuration
 
@@ -298,22 +297,7 @@ The bottom sub-button row contains a centered group of icon-only action buttons.
 | Hold action | `more-info` |
 | Time badge | `::after` pseudo-element shows formatted time (7px font, absolute bottom-right) |
 
-#### 1.4.3 Media Play/Pause
-
-| Property | Value |
-|----------|-------|
-| Entity | `media_player.living_room` |
-| Icon | `mdi:play-pause` |
-| Visibility | Only when `media_player.living_room` state is `playing` or `paused` |
-| Active condition | State = `playing` |
-| Active background | `rgba(66, 133, 244, 0.14)` |
-| Active border | `1px solid rgba(66, 133, 244, 0.35)` |
-| Active icon color | `rgb(66, 133, 244)` |
-| Tap action | `media_player.media_play_pause` |
-| Hold action | `more-info` |
-| Double-tap action | `script.sonos_toggle_group_membership` with `target_speaker: media_player.living_room` |
-
-#### 1.4.4 Settings Gear Icon
+#### 1.4.3 Settings Gear Icon
 
 | Property | Value |
 |----------|-------|
@@ -321,7 +305,7 @@ The bottom sub-button row contains a centered group of icon-only action buttons.
 | Background (inactive) | `rgba(60, 60, 60, 0.07)` |
 | Border (inactive) | `1px solid rgba(60, 60, 60, 0.12)` |
 | Icon color | `rgba(60, 60, 60, 0.55)` (light mode) / `rgba(255, 255, 255, 0.45)` (dark mode) |
-| Tap action | `fire-dom-event` → triggers settings popup (see Section 5) |
+| Tap action | `fire-dom-event` → triggers settings popup (see Section 4) |
 
 ```yaml
 - entity: ""
@@ -392,8 +376,7 @@ styles: |-
 **Important:** Sub-button global indices account for the main slider occupying index 0/1. Bottom group buttons start at index 2:
 - Index 2 = All Lights
 - Index 3 = Alarm (conditional)
-- Index 4 = Media (conditional)
-- Index 5 = Gear (settings popup)
+- Index 4 = Gear (settings popup)
 
 ---
 
@@ -710,8 +693,6 @@ The Sonos tile uses `button_type: slider` with the `volume_level` attribute for 
     target:
       entity_id: media_player.living_room
   hold_action:
-    action: more-info
-  double_tap_action:
     action: call-service
     service: script.sonos_toggle_group_membership
     data:
@@ -781,6 +762,18 @@ Toggle on/off. Same visual pattern as Apple TV.
 |----------|-----|-----|
 | Accent color | `rgb(66, 133, 244)` (blue) | gray |
 | Active condition | `hass.states['media_player.living_room_samsung_q60']?.state === 'on'` | — |
+
+### 3.5 Media Tile Interaction Summary
+
+| Tile | Gesture | Action |
+|------|---------|--------|
+| Sonos | Drag | Adjust volume (`button_type: slider`) |
+| Sonos | Tap | `media_player.media_play_pause` on `media_player.living_room` |
+| Sonos | Hold | `script.sonos_toggle_group_membership` with `target_speaker: media_player.living_room` — adds/removes from current playing group using the Sonos package's smart coordinator discovery |
+| Apple TV | Tap | `media_player.media_play_pause` on `media_player.living_room_apple_tv` |
+| Apple TV | Hold | `more-info` dialog |
+| Samsung TV | Tap | `toggle` on `media_player.living_room_samsung_q60` |
+| Samsung TV | Hold | `more-info` dialog |
 
 ---
 
@@ -1116,7 +1109,6 @@ Each additional speaker (Soundbar, Kitchen, Bathroom) renders as a **Bubble Card
 | Element | Condition | When Hidden |
 |---------|-----------|-------------|
 | Alarm sub-button | `has_upcoming_alarm` = true | Not rendered |
-| Media sub-button | `media_player.living_room` = playing/paused | Not rendered |
 | Manual red dot | Entity in zone's AL `manual_control` list | Dot shrinks to 0×0px |
 | Sonos group dot | `binary_sensor.sonos_living_room_in_playing_group` = on | Dot shrinks to 0×0px |
 | Light tiles | NEVER hidden | All 6 always visible regardless of on/off |

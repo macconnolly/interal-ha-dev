@@ -57,7 +57,11 @@
       "WebFetch(domain:inovelli.com)",
       "WebFetch(domain:help.inovelli.com)",
       "WebFetch(domain:www.zigbee2mqtt.io)",
-      "WebFetch(domain:community.inovelli.com)"
+      "WebFetch(domain:community.inovelli.com)",
+      "Bash(git push)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:community.home-assistant.io)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

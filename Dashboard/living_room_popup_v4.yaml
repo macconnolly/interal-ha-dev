@@ -37,8 +37,8 @@ cards:
     bg_blur: 0
     shadow_opacity: 0
     width_desktop: 540px
-    margin_top_mobile: 12vh
-    margin_top_desktop: 12vh
+    margin_top_mobile: 6vh
+    margin_top_desktop: 6vh
     styles: |-
       ${(() => {
         const isDark = hass.themes?.darkMode;
@@ -60,7 +60,7 @@ cards:
             border-radius: 24px 24px 0 0 !important;
           }
           .bubble-pop-up-container {
-            padding: 0 !important;
+            padding: 0 24px !important;
             grid-gap: 4px !important;
             gap: 4px !important;
           }
@@ -111,21 +111,11 @@ cards:
   # Replaces the hidden default Bubble header with precise typography.
   # Flex layout: title takes remaining space, close button auto-width.
   # ═══════════════════════════════════════════════════════════════════════
-  - type: horizontal-stack
-    card_mod:
-      style: |
-        #root {
-          display: flex !important;
-        }
-        #root > * {
-          flex: unset !important;
-        }
-        #root > *:first-child {
-          flex: 1 1 auto !important;
-        }
-        #root > *:last-child {
-          flex: 0 0 auto !important;
-        }
+  - type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: 1fr auto
+      padding: 12px 0 0 0
     cards:
       - type: custom:mushroom-template-card
         primary: Living Room
@@ -157,7 +147,7 @@ cards:
                 background: transparent !important;
                 box-shadow: none !important;
                 border: none !important;
-                padding: 12px 0 0 24px !important;
+                padding: 0 !important;
                 margin: 0 !important;
                 min-height: 0 !important;
               }
@@ -182,7 +172,7 @@ cards:
                 background: transparent !important;
                 box-shadow: none !important;
                 border: none !important;
-                padding: 12px 16px 0 0 !important;
+                padding: 0 !important;
                 margin: 0 !important;
                 min-height: 0 !important;
                 display: flex !important;
@@ -212,7 +202,7 @@ cards:
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 6px 24px 2px 24px !important;
+            padding: 6px 0 2px 0 !important;
             margin: 0 !important;
             min-height: 0 !important;
           }
@@ -244,7 +234,7 @@ cards:
           background: transparent !important;
           border: none !important;
           box-shadow: none !important;
-          margin: 0 24px !important;
+          margin: 0 !important;
         }
 
   # ─── QUICK ACTIONS GRID (2-col: Brighten + Dim) ───
@@ -254,7 +244,7 @@ cards:
     layout:
       grid-template-columns: repeat(2, 1fr)
       gap: 8px
-      padding: 4px 24px
+      padding: 4px 0
     cards:
       # ── Brighten (offset-aware) ──
       - type: custom:bubble-card
@@ -410,7 +400,7 @@ cards:
             border-radius: 14px !important;
             height: 56px !important;
             padding: 0 12px !important;
-            margin: 0 24px !important;
+            margin: 0 !important;
             box-shadow: none !important;
             transition: background 0.2s ease, transform 0.1s ease !important;
             {% endif %}
@@ -443,7 +433,7 @@ cards:
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 6px 24px 2px 24px !important;
+            padding: 6px 0 2px 0 !important;
             margin: 0 !important;
             min-height: 0 !important;
           }
@@ -522,7 +512,7 @@ cards:
           background: transparent !important;
           border: none !important;
           box-shadow: none !important;
-          margin: 0 24px !important;
+          margin: 0 !important;
         }
 
   # ─── SECTION LABEL: Room Info ───
@@ -545,7 +535,7 @@ cards:
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 6px 24px 2px 24px !important;
+            padding: 6px 0 2px 0 !important;
             margin: 0 !important;
             min-height: 0 !important;
           }
@@ -559,7 +549,7 @@ cards:
     layout:
       grid-template-columns: repeat(2, 1fr)
       gap: 8px
-      padding: 0 24px
+      padding: 0
     cards:
       - type: custom:mushroom-template-card
         entity: input_select.oal_active_configuration
@@ -715,7 +705,7 @@ cards:
             border-radius: 14px !important;
             height: 56px !important;
             padding: 0 12px !important;
-            margin: 0 24px !important;
+            margin: 0 !important;
             box-shadow: none !important;
             {% endif %}
           }
@@ -743,7 +733,7 @@ cards:
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 6px 24px 2px 24px !important;
+            padding: 6px 0 2px 0 !important;
             margin: 0 !important;
             min-height: 0 !important;
           }
@@ -757,7 +747,7 @@ cards:
     layout:
       grid-template-columns: repeat(2, 1fr)
       gap: 8px
-      padding: 4px 24px
+      padding: 4px 0
     cards:
       - type: custom:bubble-card
         card_type: button
@@ -794,9 +784,9 @@ cards:
             return `
               :host { --bubble-accent-color: ${accentColor} !important; --bubble-button-background-color: transparent !important; }
               .bubble-button-background, .bubble-button-background-color, .bubble-background { background: transparent !important; border-radius: 18px !important; }
-              .bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; align-items: center !important; text-align: center !important; min-height: 100px !important; aspect-ratio: 1 / 1 !important; padding: 10px 6px 8px 6px !important; border-radius: 18px !important; overflow: hidden !important; clip-path: inset(0 round 18px) !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isOn ? surfaceOn : surfaceOff} !important; border: ${isOn ? borderOn : borderOff} !important; box-shadow: ${isOn ? boxShadowOn : boxShadowOff} !important; }
+              .bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto auto !important; justify-items: center !important; align-items: start !important; text-align: center !important; min-height: 100px !important; aspect-ratio: 1 / 1 !important; padding: 10px 6px 8px 6px !important; border-radius: 18px !important; overflow: hidden !important; clip-path: inset(0 round 18px) !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isOn ? surfaceOn : surfaceOff} !important; border: ${isOn ? borderOn : borderOff} !important; box-shadow: ${isOn ? boxShadowOn : boxShadowOff} !important; }
               .bubble-button-card-container:active { transform: scale(0.96) !important; }
-              .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
+              .bubble-content-container { display: grid !important; grid-template-rows: auto auto auto !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
               .bubble-icon-container { min-width: 50px !important; min-height: 50px !important; grid-row: 1 !important; margin: 0 0 4px 0 !important; border-radius: 15px !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isOn ? 'rgba(10, 132, 255, 0.14)' : iconBgOff} !important; border: ${isOn ? '1px solid rgba(10, 132, 255, 0.18)' : '1px solid rgba(10, 132, 255, 0.10)'} !important; }
               .bubble-icon { --mdc-icon-size: 24px !important; color: ${accentColor} !important; opacity: ${isOn ? '1' : '0.65'} !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
@@ -840,9 +830,9 @@ cards:
             return `
               :host { --bubble-accent-color: ${accentColor} !important; --bubble-button-background-color: transparent !important; }
               .bubble-button-background, .bubble-button-background-color, .bubble-background { background: transparent !important; border-radius: 18px !important; }
-              .bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; align-items: center !important; text-align: center !important; min-height: 100px !important; aspect-ratio: 1 / 1 !important; padding: 10px 6px 8px 6px !important; border-radius: 18px !important; overflow: hidden !important; clip-path: inset(0 round 18px) !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isOn ? surfaceOn : surfaceOff} !important; border: ${isOn ? borderOn : borderOff} !important; box-shadow: ${isOn ? boxShadowOn : boxShadowOff} !important; }
+              .bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto auto !important; justify-items: center !important; align-items: start !important; text-align: center !important; min-height: 100px !important; aspect-ratio: 1 / 1 !important; padding: 10px 6px 8px 6px !important; border-radius: 18px !important; overflow: hidden !important; clip-path: inset(0 round 18px) !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isOn ? surfaceOn : surfaceOff} !important; border: ${isOn ? borderOn : borderOff} !important; box-shadow: ${isOn ? boxShadowOn : boxShadowOff} !important; }
               .bubble-button-card-container:active { transform: scale(0.96) !important; }
-              .bubble-content-container { display: grid !important; grid-template-rows: auto auto 1fr !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
+              .bubble-content-container { display: grid !important; grid-template-rows: auto auto auto !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; padding-bottom: 10px !important; }
               .bubble-icon-container { min-width: 50px !important; min-height: 50px !important; grid-row: 1 !important; margin: 0 0 4px 0 !important; border-radius: 15px !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isOn ? 'rgba(10, 132, 255, 0.14)' : iconBgOff} !important; border: ${isOn ? '1px solid rgba(10, 132, 255, 0.18)' : '1px solid rgba(10, 132, 255, 0.10)'} !important; }
               .bubble-icon { --mdc-icon-size: 24px !important; color: ${accentColor} !important; opacity: ${isOn ? '1' : '0.65'} !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }

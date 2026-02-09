@@ -377,7 +377,7 @@ Each light tile is a `bubble-card` of `card_type: button` with `button_type: sli
 | Property | OFF (light) | OFF (dark) |
 |----------|-----------|-----------|
 | Background | `rgba(246, 246, 248, 0.95)` | `rgba(32, 32, 34, 0.7)` |
-| Border | `1.5px solid rgba(0, 0, 0, 0.04)` | `1.5px solid rgba(255, 255, 255, 0.04)` |
+| Border | `1.5px solid rgba(0, 0, 0, 0.04)` | `1.5px solid rgba(255, 255, 255, 0.08)` |
 | Box shadow | `0 1px 4px rgba(0, 0, 0, 0.08)` | `0 1px 4px rgba(0, 0, 0, 0.15)` |
 
 **Drag state:** `.bubble-button-card-container.is-dragging` gets `border: 1.5px solid rgba(255, 149, 0, 0.45)`
@@ -390,12 +390,12 @@ Each light tile is a `bubble-card` of `card_type: button` with `button_type: sli
 |----------|-----|------------|------------|
 | Size | `50×50px` | `50×50px` | `50×50px` |
 | Border radius | `15px` (rounded square) | `15px` | `15px` |
-| Background | `rgba(255, 149, 0, 0.14)` | `rgba(0, 0, 0, 0.04)` | `rgba(128, 128, 128, 0.06)` |
+| Background | `rgba(255, 149, 0, 0.14)` | `rgba(0, 0, 0, 0.04)` | `rgba(128, 128, 128, 0.12)` |
 | Border | `1px solid rgba(255, 149, 0, 0.18)` | none | none |
 | Grid row | `1` | `1` | `1` |
 | Margin | `0 0 4px 0` | `0 0 4px 0` | `0 0 4px 0` |
 | Icon size | `24px` | `24px` | `24px` |
-| Icon color | `#ff9500` | `rgba(60, 60, 60, 0.35)` | `rgba(255, 255, 255, 0.25)` |
+| Icon color | `#ff9500` | `rgba(60, 60, 60, 0.35)` | `rgba(255, 255, 255, 0.45)` |
 | Icon opacity | `1` | `0.35` | `0.35` |
 | Icon filter | none | `grayscale(1) opacity(0.7)` | `grayscale(1) opacity(0.7)` |
 
@@ -406,7 +406,7 @@ Each light tile is a `bubble-card` of `card_type: button` with `button_type: sli
 | Font size | `15px` | `15px` | `15px` | `15px` |
 | Font weight | `600` | `600` | `600` | `600` |
 | Line height | `1.2` | `1.2` | `1.2` | `1.2` |
-| Color | `rgba(30, 30, 30, 0.9)` | `rgba(255, 255, 255, 0.92)` | `rgba(0, 0, 0, 0.18)` | `rgba(255, 255, 255, 0.22)` |
+| Color | `rgba(30, 30, 30, 0.9)` | `rgba(255, 255, 255, 0.92)` | `rgba(0, 0, 0, 0.18)` | `rgba(255, 255, 255, 0.50)` |
 | Alignment | Center | Center | Center | Center |
 
 #### 2.2.4 Brightness Display (`.bubble-attribute` + `::after`)
@@ -424,7 +424,7 @@ const brightnessLabel = isOn ? `${brightnessPct}%` : 'Off';
 | Font size | `13px` | `13px` | `13px` | `13px` |
 | Font weight | `500` | `500` | `500` | `500` |
 | Font variant | `tabular-nums` | `tabular-nums` | `tabular-nums` | `tabular-nums` |
-| Color | `#d97b00` | `rgba(255, 149, 0, 0.85)` | `rgba(0, 0, 0, 0.12)` | `rgba(255, 255, 255, 0.12)` |
+| Color | `#d97b00` | `rgba(255, 149, 0, 0.85)` | `rgba(0, 0, 0, 0.12)` | `rgba(255, 255, 255, 0.30)` |
 | Content | `'{brightnessPct}%'` | — | `'Off'` | — |
 | Drag behavior | `opacity: 0` when `.is-dragging` | — | — | — |
 
@@ -552,12 +552,12 @@ Uses `button_type: slider` with `volume_level` attribute. Active state driven by
 | Property | In Group (active) | Not in Group |
 |----------|------------------|--------------|
 | Accent | `rgb(0, 122, 255)` | — |
-| Background (dark) | `rgba(0, 122, 255, 0.14)` | `rgba(255, 255, 255, 0.05)` |
+| Background (dark) | `rgba(0, 122, 255, 0.14)` | `rgba(255, 255, 255, 0.08)` |
 | Background (light) | `rgba(0, 122, 255, 0.10)` | `rgba(255, 255, 255, 0.9)` |
-| Border (dark) | `1px solid rgba(0, 122, 255, 0.30)` | `1px solid rgba(255, 255, 255, 0.08)` |
+| Border (dark) | `1px solid rgba(0, 122, 255, 0.30)` | `1px solid rgba(255, 255, 255, 0.12)` |
 | Border (light) | `1px solid rgba(0, 122, 255, 0.35)` | `1px solid rgba(0, 0, 0, 0.08)` |
 | Icon bg | `rgba(0, 122, 255, 0.14)` | `rgba(255, 255, 255, 0.06)` / `rgba(0, 0, 0, 0.04)` |
-| Icon border | `1.5px solid rgba(0, 122, 255, 0.25)` | `1.5px solid rgba(255, 255, 255, 0.08)` / `rgba(0, 0, 0, 0.08)` |
+| Icon border | `1.5px solid rgba(0, 122, 255, 0.25)` | `1.5px solid rgba(255, 255, 255, 0.12)` / `rgba(0, 0, 0, 0.08)` |
 | Icon glow | `drop-shadow(0 0 6px rgba(0, 122, 255, 0.45))` | none |
 | Group dot | `7×7px` blue at `top: 5px, right: 5px` | `0×0px` |
 | Slider fill | `rgb(0, 122, 255)` | — |
@@ -579,7 +579,7 @@ tap_action:
 | Property | Playing | Inactive |
 |----------|---------|----------|
 | Accent | `rgb(0, 122, 255)` | — |
-| Background (dark) | `rgba(0, 122, 255, 0.14)` | `rgba(255, 255, 255, 0.05)` |
+| Background (dark) | `rgba(0, 122, 255, 0.14)` | `rgba(255, 255, 255, 0.08)` |
 | Icon bg | `rgba(0, 122, 255, 0.14)` | `rgba(255, 255, 255, 0.06)` / `rgba(0, 0, 0, 0.04)` |
 | Icon glow | `drop-shadow(0 0 6px rgba(0, 122, 255, 0.45))` | none |
 
@@ -592,9 +592,9 @@ tap_action:
 | Property | On | Off |
 |----------|-----|-----|
 | Accent | `rgb(168, 85, 247)` | — |
-| Background (dark) | `rgba(168, 85, 247, 0.14)` | `rgba(255, 255, 255, 0.05)` |
+| Background (dark) | `rgba(168, 85, 247, 0.14)` | `rgba(255, 255, 255, 0.08)` |
 | Background (light) | `rgba(168, 85, 247, 0.10)` | `rgba(255, 255, 255, 0.9)` |
-| Border (dark) | `1px solid rgba(168, 85, 247, 0.30)` | `1px solid rgba(255, 255, 255, 0.08)` |
+| Border (dark) | `1px solid rgba(168, 85, 247, 0.30)` | `1px solid rgba(255, 255, 255, 0.12)` |
 | Icon bg | `rgba(168, 85, 247, 0.14)` | — |
 | Icon glow | `drop-shadow(0 0 6px rgba(168, 85, 247, 0.45))` | none |
 
@@ -613,7 +613,7 @@ All three media tiles share:
 | Icon backdrop filter | `blur(4px)` |
 | Name font | `14px`, weight `650`, line-height `1.2` |
 | Name ON (dark) | `rgba(255, 255, 255, 0.95)` |
-| Name OFF (dark) | `rgba(255, 255, 255, 0.30)` |
+| Name OFF (dark) | `rgba(255, 255, 255, 0.50)` |
 | Name ON (light) | `rgba(20, 20, 20, 0.95)` |
 | Name OFF (light) | `rgba(40, 40, 40, 0.55)` |
 | Press | `scale(0.95)` |
@@ -988,9 +988,9 @@ Two identical alarm cards for `switch.sonos_alarm_520` and `switch.sonos_alarm_5
 | Red accent | `rgb(255, 59, 48)` / `#ff3b30` | `rgb(255, 59, 48)` / `#ff3b30` | Manual override dot, reset button |
 | Green accent (OAL) | `#34c759` | `#34c759` | OAL Adaptive mode |
 | Inactive icon (light) | `rgba(60, 60, 60, 0.35)` | — | Off-state light tile icons |
-| Inactive icon (dark) | — | `rgba(255, 255, 255, 0.25)` | Off-state light tile icons |
+| Inactive icon (dark) | — | `rgba(255, 255, 255, 0.45)` | Off-state light tile icons |
 | Inactive name (light) | `rgba(0, 0, 0, 0.18)` | — | Off-state light names |
-| Inactive name (dark) | — | `rgba(255, 255, 255, 0.22)` | Off-state light names |
+| Inactive name (dark) | — | `rgba(255, 255, 255, 0.50)` | Off-state light names |
 | Surface ON (light) | `linear-gradient(180deg, rgba(255, 250, 240, 0.97)..rgba(255, 248, 235, 0.95))` | — | Active tile bg |
 | Surface ON (dark) | — | `linear-gradient(180deg, rgba(48, 40, 28, 0.95)..rgba(36, 33, 28, 0.93))` | Active tile bg |
 | Surface OFF (light) | `rgba(246, 246, 248, 0.95)` | — | Inactive tile bg |

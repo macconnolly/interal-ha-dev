@@ -9,11 +9,11 @@
 #
 # Architecture:
 # - Custom header (mushroom-template-card) — default Bubble header hidden
-# - Mushroom section labels (uppercase, 11px, tight spacing)
+# - Mushroom section labels (uppercase, 12px, tight spacing)
 # - Mushroom info rows replace custom:button-card
 # - 2-col quick actions (Brighten + Dim only — All Off removed as duplicate)
 # - Sonos media player with prev/next/group/ungroup sub-buttons
-# - Consistent 16px horizontal gutter throughout
+# - Consistent 24px horizontal gutter throughout
 # ═══════════════════════════════════════════════════════════════════════
 
 type: vertical-stack
@@ -37,8 +37,8 @@ cards:
     bg_blur: 0
     shadow_opacity: 0
     width_desktop: 540px
-    margin_top_mobile: 18vh
-    margin_top_desktop: 18vh
+    margin_top_mobile: 12vh
+    margin_top_desktop: 12vh
     styles: |-
       ${(() => {
         const isDark = hass.themes?.darkMode;
@@ -46,11 +46,12 @@ cards:
           .bubble-pop-up {
             background: ${isDark ? 'rgba(28, 28, 30, 0.98)' : 'rgba(248, 248, 250, 0.98)'} !important;
             border-radius: 24px 24px 0 0 !important;
+            max-height: 88vh !important;
             box-shadow: ${isDark
               ? '0 -4px 16px rgba(0, 0, 0, 0.15), 0 -8px 40px rgba(0, 0, 0, 0.35)'
               : '0 -4px 16px rgba(0, 0, 0, 0.06), 0 -8px 40px rgba(0, 0, 0, 0.12)'} !important;
             border-top: 1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)'} !important;
-            padding-bottom: env(safe-area-inset-bottom, 24px) !important;
+            padding-bottom: max(env(safe-area-inset-bottom, 24px), 40px) !important;
             overflow-y: auto !important;
             -webkit-overflow-scrolling: touch !important;
             overscroll-behavior: contain !important;
@@ -60,8 +61,8 @@ cards:
           }
           .bubble-pop-up-container {
             padding: 0 !important;
-            grid-gap: 6px !important;
-            gap: 6px !important;
+            grid-gap: 4px !important;
+            gap: 4px !important;
           }
           .bubble-pop-up-backdrop {
             background: ${isDark ? 'rgba(0, 0, 0, 0.45)' : 'rgba(0, 0, 0, 0.25)'} !important;
@@ -75,11 +76,56 @@ cards:
         `;
       })()}
 
+  # ─── HANDLE BAR (drag indicator) ───
+  - type: custom:mushroom-template-card
+    primary: ""
+    icon: ""
+    card_mod:
+      style: |
+        ha-card {
+          background: transparent !important;
+          box-shadow: none !important;
+          border: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          min-height: 0 !important;
+          height: 22px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        mushroom-state-info, mushroom-shape-icon {
+          display: none !important;
+        }
+        ha-card::after {
+          content: '';
+          display: block;
+          width: 36px;
+          height: 4px;
+          border-radius: 2px;
+          background: rgba(128, 128, 128, 0.3);
+        }
+
   # ═══════════════════════════════════════════════════════════════════════
   # CUSTOM HEADER — "Living Room" + contextual subtitle + close button
   # Replaces the hidden default Bubble header with precise typography.
+  # Flex layout: title takes remaining space, close button auto-width.
   # ═══════════════════════════════════════════════════════════════════════
   - type: horizontal-stack
+    card_mod:
+      style: |
+        #root {
+          display: flex !important;
+        }
+        #root > * {
+          flex: unset !important;
+        }
+        #root > *:first-child {
+          flex: 1 1 auto !important;
+        }
+        #root > *:last-child {
+          flex: 0 0 auto !important;
+        }
     cards:
       - type: custom:mushroom-template-card
         primary: Living Room
@@ -87,8 +133,8 @@ cards:
           {% set on = expand('light.living_room_lights')
              | selectattr('state', 'eq', 'on') | list | count %}
           {% set total = expand('light.living_room_lights') | list | count %}
-          {% set bri = state_attr('light.living_room_lights', 'brightness')
-             | default(0) | int(0) * 100 / 255 | round(0) %}
+          {% set bri = ((state_attr('light.living_room_lights', 'brightness')
+             | default(0) | float) * 100 / 255) | round(0) | int %}
           {% if on > 0 %}{{ on }} of {{ total }} on · {{ bri }}% avg
           {% else %}All lights off{% endif %}
         icon: ""
@@ -104,13 +150,14 @@ cards:
                 font-size: 13px !important;
                 font-weight: 400 !important;
                 color: var(--secondary-text-color) !important;
+                font-variant-numeric: tabular-nums !important;
               }
             .: |
               ha-card {
                 background: transparent !important;
                 box-shadow: none !important;
                 border: none !important;
-                padding: 20px 0 0 24px !important;
+                padding: 12px 0 0 24px !important;
                 margin: 0 !important;
                 min-height: 0 !important;
               }
@@ -123,7 +170,7 @@ cards:
         icon_color: disabled
         tap_action:
           action: navigate
-          navigation_path: /lovelace/0
+          navigation_path: "#"
         card_mod:
           style:
             mushroom-shape-icon$: |
@@ -135,7 +182,7 @@ cards:
                 background: transparent !important;
                 box-shadow: none !important;
                 border: none !important;
-                padding: 20px 16px 0 0 !important;
+                padding: 12px 16px 0 0 !important;
                 margin: 0 !important;
                 min-height: 0 !important;
                 display: flex !important;
@@ -153,10 +200,10 @@ cards:
       style:
         ha-tile-info$: |
           .primary {
-            font-size: 11px !important;
+            font-size: 12px !important;
             font-weight: 600 !important;
             color: var(--secondary-text-color) !important;
-            opacity: 0.5 !important;
+            opacity: 0.6 !important;
             letter-spacing: 0.06em !important;
             text-transform: uppercase !important;
           }
@@ -165,7 +212,7 @@ cards:
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 10px 24px 4px 24px !important;
+            padding: 6px 24px 2px 24px !important;
             margin: 0 !important;
             min-height: 0 !important;
           }
@@ -358,10 +405,10 @@ cards:
             {% if n == 0 %}
             display: none !important;
             {% else %}
-            background: rgba(255, 59, 48, 0.08) !important;
-            border: 1px solid rgba(255, 59, 48, 0.14) !important;
+            background: rgba(255, 59, 48, 0.10) !important;
+            border: 1px solid rgba(255, 59, 48, 0.15) !important;
             border-radius: 14px !important;
-            height: 48px !important;
+            height: 56px !important;
             padding: 0 12px !important;
             margin: 0 24px !important;
             box-shadow: none !important;
@@ -384,10 +431,10 @@ cards:
       style:
         ha-tile-info$: |
           .primary {
-            font-size: 11px !important;
+            font-size: 12px !important;
             font-weight: 600 !important;
             color: var(--secondary-text-color) !important;
-            opacity: 0.5 !important;
+            opacity: 0.6 !important;
             letter-spacing: 0.06em !important;
             text-transform: uppercase !important;
           }
@@ -396,7 +443,7 @@ cards:
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 10px 24px 4px 24px !important;
+            padding: 6px 24px 2px 24px !important;
             margin: 0 !important;
             min-height: 0 !important;
           }
@@ -405,7 +452,7 @@ cards:
           }
 
   # ─── SONOS MEDIA PLAYER ───
-  # prev/next track unhidden + added as sub-buttons alongside group/ungroup
+  # Built-in prev/next hidden; sub-buttons provide styled prev/next + group/ungroup
   - type: custom:bubble-card
     card_type: media-player
     entity: media_player.living_room
@@ -420,8 +467,8 @@ cards:
     cover_background: true
     hide:
       power_button: true
-      previous_button: false
-      next_button: false
+      previous_button: true
+      next_button: true
       volume_button: false
       play_pause_button: false
     sub_button:
@@ -486,10 +533,10 @@ cards:
       style:
         ha-tile-info$: |
           .primary {
-            font-size: 11px !important;
+            font-size: 12px !important;
             font-weight: 600 !important;
             color: var(--secondary-text-color) !important;
-            opacity: 0.5 !important;
+            opacity: 0.6 !important;
             letter-spacing: 0.06em !important;
             text-transform: uppercase !important;
           }
@@ -498,7 +545,7 @@ cards:
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 10px 24px 4px 24px !important;
+            padding: 6px 24px 2px 24px !important;
             margin: 0 !important;
             min-height: 0 !important;
           }
@@ -506,8 +553,13 @@ cards:
             display: none !important;
           }
 
-  # ─── LIGHTING MODE + LIGHTS STATUS (side-by-side) ───
-  - type: horizontal-stack
+  # ─── LIGHTING MODE + LIGHTS STATUS (layout-card grid, consistent with other grids) ───
+  - type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(2, 1fr)
+      gap: 8px
+      padding: 0 24px
     cards:
       - type: custom:mushroom-template-card
         entity: input_select.oal_active_configuration
@@ -542,15 +594,18 @@ cards:
               .secondary {
                 font-size: 12px !important;
                 font-weight: 600 !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
               }
             .: |
               ha-card {
                 background: var(--card-background-color, rgba(0, 0, 0, 0.035)) !important;
                 border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.04)) !important;
                 border-radius: 14px !important;
-                height: 48px !important;
+                height: 56px !important;
                 padding: 0 8px !important;
-                margin: 0 4px 0 24px !important;
+                margin: 0 !important;
                 box-shadow: none !important;
               }
               ha-tile-icon {
@@ -595,15 +650,19 @@ cards:
               .secondary {
                 font-size: 12px !important;
                 font-weight: 600 !important;
+                font-variant-numeric: tabular-nums !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
               }
             .: |
               ha-card {
                 background: var(--card-background-color, rgba(0, 0, 0, 0.035)) !important;
                 border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.04)) !important;
                 border-radius: 14px !important;
-                height: 48px !important;
+                height: 56px !important;
                 padding: 0 8px !important;
-                margin: 0 24px 0 4px !important;
+                margin: 0 !important;
                 box-shadow: none !important;
               }
               ha-tile-icon {
@@ -654,7 +713,7 @@ cards:
             background: var(--card-background-color, rgba(0, 0, 0, 0.035)) !important;
             border: 1px solid rgba(255, 59, 48, 0.15) !important;
             border-radius: 14px !important;
-            height: 48px !important;
+            height: 56px !important;
             padding: 0 12px !important;
             margin: 0 24px !important;
             box-shadow: none !important;
@@ -672,10 +731,10 @@ cards:
       style:
         ha-tile-info$: |
           .primary {
-            font-size: 11px !important;
+            font-size: 12px !important;
             font-weight: 600 !important;
             color: var(--secondary-text-color) !important;
-            opacity: 0.5 !important;
+            opacity: 0.6 !important;
             letter-spacing: 0.06em !important;
             text-transform: uppercase !important;
           }
@@ -684,7 +743,7 @@ cards:
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 10px 24px 4px 24px !important;
+            padding: 6px 24px 2px 24px !important;
             margin: 0 !important;
             min-height: 0 !important;
           }
@@ -692,8 +751,13 @@ cards:
             display: none !important;
           }
 
-  # ─── ALARM CARDS ───
-  - type: horizontal-stack
+  # ─── ALARM CARDS (layout-card grid, matches Brighten/Dim grid) ───
+  - type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(2, 1fr)
+      gap: 8px
+      padding: 4px 24px
     cards:
       - type: custom:bubble-card
         card_type: button
@@ -703,7 +767,7 @@ cards:
         icon: mdi:alarm
         show_state: false
         show_attribute: true
-        attribute: recurrence
+        attribute: time
         scrolling_effect: false
         tap_action:
           action: toggle
@@ -714,14 +778,14 @@ cards:
             alarm_entity: switch.sonos_alarm_520
         card_mod:
           style: |
-            ha-card { background: transparent !important; border: none !important; box-shadow: none !important; margin: 0 8px 0 24px !important; }
+            ha-card { background: transparent !important; border: none !important; box-shadow: none !important; }
         styles: |-
           ${(() => {
             const isOn = state === 'on';
             const isDark = hass.themes?.darkMode;
             const accentColor = 'rgb(10, 132, 255)';
             const surfaceOn = isDark ? 'linear-gradient(180deg, rgba(10, 60, 120, 0.25) 0%, rgba(10, 50, 100, 0.20) 100%)' : 'linear-gradient(180deg, rgba(220, 238, 255, 0.97) 0%, rgba(210, 232, 255, 0.95) 100%)';
-            const surfaceOff = isDark ? 'rgba(32, 32, 34, 0.7)' : 'rgba(246, 246, 248, 0.95)';
+            const surfaceOff = isDark ? 'rgba(32, 32, 34, 0.85)' : 'rgba(244, 244, 246, 1.0)';
             const borderOn = isDark ? '1.5px solid rgba(10, 132, 255, 0.14)' : '1.5px solid rgba(10, 132, 255, 0.20)';
             const borderOff = isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid rgba(0, 0, 0, 0.04)';
             const boxShadowOn = isDark ? '0 2px 10px rgba(0, 0, 0, 0.3)' : '0 2px 10px rgba(0, 0, 0, 0.12)';
@@ -737,7 +801,7 @@ cards:
               .bubble-icon { --mdc-icon-size: 24px !important; color: ${accentColor} !important; opacity: ${isOn ? '1' : '0.65'} !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
               .bubble-name { font-weight: 600 !important; font-size: 15px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${isOn ? (isDark ? 'rgba(255, 255, 255, 0.92)' : 'rgba(30, 30, 30, 0.9)') : (isDark ? 'rgba(255, 255, 255, 0.70)' : 'rgba(0, 0, 0, 0.55)')} !important; }
-              .bubble-attribute { font-size: 11px !important; font-weight: 500 !important; justify-content: center !important; margin-top: 2px !important; color: ${isOn ? 'rgba(10, 132, 255, 0.80)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.35)')} !important; }
+              .bubble-attribute { font-size: 12px !important; font-weight: 500 !important; font-variant-numeric: tabular-nums !important; justify-content: center !important; margin-top: 2px !important; color: ${isOn ? 'rgba(10, 132, 255, 0.80)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.35)')} !important; }
             `;
           })()}
 
@@ -749,7 +813,7 @@ cards:
         icon: mdi:alarm
         show_state: false
         show_attribute: true
-        attribute: recurrence
+        attribute: time
         scrolling_effect: false
         tap_action:
           action: toggle
@@ -760,14 +824,14 @@ cards:
             alarm_entity: switch.sonos_alarm_521
         card_mod:
           style: |
-            ha-card { background: transparent !important; border: none !important; box-shadow: none !important; margin: 0 24px 0 8px !important; }
+            ha-card { background: transparent !important; border: none !important; box-shadow: none !important; }
         styles: |-
           ${(() => {
             const isOn = state === 'on';
             const isDark = hass.themes?.darkMode;
             const accentColor = 'rgb(10, 132, 255)';
             const surfaceOn = isDark ? 'linear-gradient(180deg, rgba(10, 60, 120, 0.25) 0%, rgba(10, 50, 100, 0.20) 100%)' : 'linear-gradient(180deg, rgba(220, 238, 255, 0.97) 0%, rgba(210, 232, 255, 0.95) 100%)';
-            const surfaceOff = isDark ? 'rgba(32, 32, 34, 0.7)' : 'rgba(246, 246, 248, 0.95)';
+            const surfaceOff = isDark ? 'rgba(32, 32, 34, 0.85)' : 'rgba(244, 244, 246, 1.0)';
             const borderOn = isDark ? '1.5px solid rgba(10, 132, 255, 0.14)' : '1.5px solid rgba(10, 132, 255, 0.20)';
             const borderOff = isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid rgba(0, 0, 0, 0.04)';
             const boxShadowOn = isDark ? '0 2px 10px rgba(0, 0, 0, 0.3)' : '0 2px 10px rgba(0, 0, 0, 0.12)';
@@ -783,6 +847,6 @@ cards:
               .bubble-icon { --mdc-icon-size: 24px !important; color: ${accentColor} !important; opacity: ${isOn ? '1' : '0.65'} !important; }
               .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
               .bubble-name { font-weight: 600 !important; font-size: 15px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${isOn ? (isDark ? 'rgba(255, 255, 255, 0.92)' : 'rgba(30, 30, 30, 0.9)') : (isDark ? 'rgba(255, 255, 255, 0.70)' : 'rgba(0, 0, 0, 0.55)')} !important; }
-              .bubble-attribute { font-size: 11px !important; font-weight: 500 !important; justify-content: center !important; margin-top: 2px !important; color: ${isOn ? 'rgba(10, 132, 255, 0.80)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.35)')} !important; }
+              .bubble-attribute { font-size: 12px !important; font-weight: 500 !important; font-variant-numeric: tabular-nums !important; justify-content: center !important; margin-top: 2px !important; color: ${isOn ? 'rgba(10, 132, 255, 0.80)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.35)')} !important; }
             `;
           })()}

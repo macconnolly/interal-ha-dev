@@ -477,7 +477,7 @@ adaptive_lighting:
     autoreset_control_seconds: 14400
     min_brightness: 30                    # SYNC: comfort_min_b (was 20, +10 per user)
     max_brightness: 65                    # SYNC: comfort_max_b (restored)
-    min_color_temp: 2000                  # SYNC: min_k
+    min_color_temp: 2700                  # SYNC: min_k - Govee hardware min (was 2000, caused purple)
     max_color_temp: 2700                  # SYNC: max_k - Keep very warm
     sleep_brightness: 5
     sleep_color_temp: 2700                # Keep warm for sleep
@@ -537,8 +537,8 @@ adaptive_lighting:
     interval: 90
     transition: 0
     initial_transition: 1
-    take_over_control: false
-    detect_non_ha_changes: false
+    take_over_control: true                # Was false - manual changes were never detected
+    detect_non_ha_changes: true             # Was false - non-HA changes were ignored
     adapt_delay: 0
     include_config_in_attributes: true
     autoreset_control_seconds: 14400

@@ -5431,7 +5431,11 @@ template:
           ] %}
           {% set lights_on = lights | select('is_state', 'on') | list | length %}
           {% set is_playing = is_state('media_player.living_room', 'playing') %}
-          {% set has_override = (this.attributes.manually_controlled_lights | default([])) | length > 0 %}
+          {% set main = state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) %}
+          {% set spots = state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) %}
+          {% set columns = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+          {% set all_manual = (main + spots + columns) | unique | select('in', lights) | list %}
+          {% set has_override = all_manual | length > 0 %}
           
           {% if has_override %}override
           {% elif is_playing %}playing

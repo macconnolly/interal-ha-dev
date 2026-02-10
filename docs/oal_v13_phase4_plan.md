@@ -100,7 +100,7 @@ Additionally:
 
 **Why this is the right abstraction**: Rather than adding "am I the last zone?" checks to every exit path (autoreset, room reset, isolated override exit, column RGB morning exit, nightly maintenance), this watcher handles ALL exit paths centrally. Any mechanism that clears `manual_control` — current or future — automatically triggers a return to Adaptive when all zones are clear. This eliminates an entire class of sync bugs.
 
-**Coverage**: Autoreset timer expiry, `oal_reset_room` (last-zone case), isolated override exit, column RGB morning exit, nightly maintenance, `oal_manual_control_sync_offset` watcher, and any future mechanism that clears `manual_control`.
+**Coverage**: Autoreset timer expiry, `oal_reset_room` (last-zone case), isolated override exit, column RGB morning exit, nightly maintenance, `oal_manual_control_sync_offset` watcher, movie mode end (L2525), and any future mechanism that clears `manual_control`.
 
 ---
 
@@ -236,7 +236,7 @@ With early capture, `was_non_adaptive` is `true` regardless of what happens mid-
 
 ### Design Decisions
 
-**Why add explicit `oal_offset_global_manual_warmth` reset**: Previously, the global warmth reset was bundled into `offset_entities_to_reset` (L3670-3679) only when zones were overridden. With the reverse watcher (Change 1), it's possible the config is already "Adaptive" when soft reset runs (watcher fired first), but global warmth wasn't reset. The explicit reset here ensures a clean slate regardless of race timing.
+**Why add explicit `oal_offset_global_manual_warmth` reset**: Previously, the global warmth reset was bundled into `offset_entities_to_reset` (L3670-3679) only when zones were overridden. With the reverse watcher (Change 1), it's possible the config is already "Adaptive" when soft reset runs (watcher fired first), but global warmth wasn't reset. The explicit reset here ensures a clean slate regardless of race timing. Note: this is intentionally redundant with the offset block (L3757-3765) when zones ARE overridden — `offset_entities_to_reset` includes warmth in that case. The double reset is idempotent and provides defense-in-depth for the reverse-watcher race.
 
 **Why the if/else branch is correct**: Two mutually exclusive cases:
 1. `was_non_adaptive == false` (was already "Adaptive"): Setting "Adaptive" is a no-op for Config Manager (no state change). We fire the watchdog ourselves. One engine run.
@@ -285,9 +285,15 @@ In every case: exactly one engine run.
         data:
           value: 0
       # Trigger engine to push corrected settings (offset=0) to AL immediately
-      - event: oal_watchdog_trigger
-        event_data:
-          source: "autoreset_offset_clear"
+      # Guard: skip during soft reset to prevent 6 redundant queued engine runs
+      # (soft reset bulk-clears all zones simultaneously, then fires its own watchdog)
+      - if:
+          - condition: template
+            value_template: "{{ is_state('script.oal_reset_soft', 'off') }}"
+        then:
+          - event: oal_watchdog_trigger
+            event_data:
+              source: "autoreset_offset_clear"
 ```
 
 ### Design Decisions
@@ -295,6 +301,8 @@ In every case: exactly one engine run.
 **Why non-force (no `force: true`)**: Non-force triggers respect the `oal_config_transition_active` lock (engine condition at L628-638). If a Config Manager transition is in progress, this trigger is safely dropped by the engine's condition block — the transition will push correct settings anyway when it completes.
 
 **Why this doesn't cause double engine runs**: The `input_number.set_value` to 0 does NOT trigger the engine via state change, because manual offsets are intentionally excluded from the engine's state triggers (see comment block L590-615). The only engine trigger from this automation is the explicit `oal_watchdog_trigger` event. One event = one queued engine run.
+
+**Why guard against `script.oal_reset_soft` running**: When `oal_reset_soft` bulk-clears `manual_control` on all 6 zones simultaneously, this automation fires 6 times (once per zone, `mode: queued`, `max: 10`). Without the guard, 6 non-force watchdog events queue up in the engine (which uses `mode: queued`, `max: 20`), producing 6 redundant runs before soft reset's own Config Manager watchdog fires a 7th. All 7 runs are idempotent but waste ~1.4s of Zigbee/Z-Wave bus time. The guard suppresses the 6 per-zone triggers when soft reset is handling the recalculation itself.
 
 **Why NOT reset global warmth here**: This automation fires per-zone when that zone's `manual_control` clears. If other zones are still manually controlled, global warmth should persist. Only when ALL zones clear should warmth reset — that's handled by the reverse watcher (Change 1).
 
@@ -345,7 +353,8 @@ Insert after `target_offsets` (after L3895), before the first action step:
           # Check if any target zones include columns
           targets_include_columns: "{{ 'column_lights' in target_zones }}"
 
-          # Gaussian window detection (mirrors oal_reset_soft logic at L3628-3630)
+          # Gaussian window detection
+          # SYNC: bounds must match oal_reset_soft L3628-3630 and prepare_rgb L1838
           sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(90) }}"
           sun_rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
           in_gaussian_rgb_window: >
@@ -450,12 +459,16 @@ Insert after `target_offsets` (after L3895), before the first action step:
       # =========================================================================
       # Apply for immediate visual feedback + turn_on_lights: true behavior
       # (engine uses turn_on_lights: false — without this, off lights stay off)
-      - service: adaptive_lighting.apply
-        target:
-          entity_id: "{{ non_column_switches }}"
-        data:
-          turn_on_lights: true
-          transition: 1
+      - if:
+          - condition: template
+            value_template: "{{ non_column_switches | length > 0 }}"
+        then:
+          - service: adaptive_lighting.apply
+            target:
+              entity_id: "{{ non_column_switches }}"
+            data:
+              turn_on_lights: true
+              transition: 1
 
       # Trigger engine to push corrected settings (offset=0) to AL
       - event: oal_watchdog_trigger
@@ -550,6 +563,7 @@ Changes are safe in any order — each is independently correct. The listed orde
 ### Test 4: Room Reset — Columns During Gaussian Window (validates Change 4 Govee safety)
 
 **Setup**: Evening, sun elevation between -5° and 8° (Gaussian RGB window active).
+*Simulation alternative*: Use Developer Tools → States to set `sun.sun` attributes `elevation: 2.0`, `rising: false`. Set `input_number.oal_offset_column_rgb_green` to `185`. Restore after testing.
 
 1. Adjust column lights manually
 2. Call `script.oal_reset_room` targeting column lights
@@ -611,6 +625,31 @@ Changes are safe in any order — each is independently correct. The listed orde
 
 **What this proves**: The early variable capture (`was_non_adaptive`) and debounce timing prevent deadlocks or missed triggers when both paths race.
 
+### Test 10: Movie Mode End Recovery (validates Change 1 coverage of movie path)
+
+**Setup**: System in Adaptive mode, no manual overrides.
+
+1. Start movie playback on `media_player.living_room_apple_tv`
+2. **Verify**: `oal_movie_mode_active` is on, `oal_active_configuration` is "Manual"
+3. Stop/pause playback, wait for 90s `end_movie` trigger
+4. **Verify within 5s**: `oal_active_configuration` returns to "Adaptive"
+5. **Verify**: `oal_movie_mode_active` is off
+6. **Verify**: `oal_offset_global_manual_warmth` is 0
+7. **Verify**: engine trace shows a run from Config Manager (Baseline path)
+
+**What this proves**: The reverse watcher catches the movie mode end clearing of `manual_control` on all switches, returns the system to Adaptive, and triggers an engine recalculation with current time-of-day settings. This fixes the pre-existing bug where config stayed stuck on "Manual" after a movie ended.
+
+### Test 11: Soft Reset Does NOT Produce 6+ Engine Runs (validates Change 3 guard)
+
+**Setup**: Multiple zones under manual control, config is "Manual".
+
+1. Call `script.oal_reset_soft`
+2. Immediately monitor `oal_core_adjustment_engine_v13` traces
+3. **Verify**: total engine runs <= 2 (1 from Config Manager, potentially 1 from a non-force watchdog that squeezed through before the guard evaluated)
+4. **Verify**: NOT 6-7 engine runs (which would indicate the `script.oal_reset_soft` running guard in Change 3 failed)
+
+**What this proves**: The `is_state('script.oal_reset_soft', 'off')` guard in Change 3 prevents the per-zone `oal_manual_control_sync_offset` automations from each firing their own watchdog during soft reset's bulk-clear.
+
 ---
 
 ## Acceptance Criteria
@@ -626,3 +665,5 @@ Changes are safe in any order — each is independently correct. The listed orde
 | Global warmth offset resets to 0 when all zones return to Adaptive | Entity state check |
 | No "Manual" intermediate state during managed config transitions | State history |
 | Column `manual_control` is maintained during Gaussian RGB window after room reset | Entity attribute check |
+| Movie mode end returns config to "Adaptive" within 5s | State monitoring |
+| Soft reset does NOT produce 6+ engine runs from per-zone sync_offset watchers | Trace count |

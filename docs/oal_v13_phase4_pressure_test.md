@@ -541,8 +541,8 @@ This is the bug Plan 2 identified and proposed fixing. The plan under review cor
 | 10 | Soft reset from "Sleep" state | Correctly exits sleep mode |
 | 11 | Column offset reset during Gaussian window | Engine skips manual zones |
 
-### Out of Scope (1)
+### Addressed by Change 5 (1)
 
-| # | Finding | Reason |
-|---|---------|--------|
-| 19 | Sunset logic green snap at 5° | Pre-existing, separate follow-up |
+| # | Finding | Resolution |
+|---|---------|------------|
+| 19 | Sunset logic green snap at 5° | Change 5 fixes the NIGHT branch condition to `elevation < 5 and (rising or elevation < -5)`, excluding evening 0°–5° from the 165 snap. Exhaustive branch table verifies all 12 evaluation paths. |

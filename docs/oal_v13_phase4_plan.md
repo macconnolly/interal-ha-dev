@@ -499,12 +499,151 @@ Result: 2 engine runs. The force trigger from room reset executes first (immedia
 
 ---
 
+## Change 5: Fix Sunset Logic Column Green Snap at 5°
+
+**Location**: `oal_sunset_logic_unified_v13` `column_rgb_green` variable (L1787-1807)
+
+**Goal**: Eliminate the 35-unit green channel snap that occurs during evening descent when elevation crosses from 5.0° to 4.9°. The NIGHT branch (`elevation < 5`) incorrectly catches the evening 0°–5° range, snapping the green value from 200 (Day) to 165 (Night) instead of holding at 200 until the EVENING fade begins at 0°.
+
+### Current code (L1787-1807)
+
+```yaml
+      column_rgb_green: >
+        {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+
+        {# EVENING: Fade green from 200 to 165 as sun drops from 0 to -5 #}
+        {% if not rising and elevation <= 0 and elevation >= -5 %}
+          {% set progress = (0 - elevation) / 5 %}
+          {{ (200 - (35 * progress)) | round(0) }}
+
+        {# MORNING: Fade green from 165 to 200 as sun rises from 5 to 12 #}
+        {% elif rising and elevation >= 5 and elevation <= 12 %}
+          {% set progress = (elevation - 5) / 7 %}
+          {{ (165 + (35 * progress)) | round(0) }}
+
+        {# NIGHT (between -5 and +5): Hold at 165 (warm orange) #}
+        {% elif elevation < 5 %}
+          165
+
+        {# DAY: Default to 200 (yellow-orange) #}
+        {% else %}
+          200
+        {% endif %}
+```
+
+### Bug trace
+
+The branches are evaluated top-to-bottom. During **evening descent** (not rising):
+
+| Elevation | Branch 1 (EVENING) | Branch 2 (MORNING) | Branch 3 (NIGHT) | Branch 4 (DAY) | Result |
+|---|---|---|---|---|---|
+| 8.0° | `not rising AND 8 <= 0` → SKIP | `rising` → SKIP | `8 < 5` → SKIP | **HIT** | 200 |
+| 5.0° | SKIP | SKIP | `5 < 5` → SKIP | **HIT** | 200 |
+| **4.9°** | SKIP (4.9 > 0) | SKIP (not rising) | **`4.9 < 5` → HIT** | — | **165 ← SNAP** |
+| 0.0° | **`0 <= 0 AND 0 >= -5` → HIT** | — | — | — | 200 |
+| -2.5° | **HIT** | — | — | — | 183 |
+| -5.0° | **HIT** (boundary) | — | — | — | 165 |
+| -5.1° | `not rising AND -5.1 >= -5` → SKIP | SKIP | **`-5.1 < 5` → HIT** | — | 165 |
+
+Between 4.9° and 0.1° in the evening, the green snaps from 200 to 165 — a 35-unit discontinuity visible as a sudden color shift on the Govee column lights.
+
+During **morning** (rising), no snap occurs — the MORNING branch catches 5°–12°, the NIGHT branch catches everything below 5° (holding at 165 until the fade starts), and the transition is smooth.
+
+### Root cause
+
+The NIGHT branch `{% elif elevation < 5 %}` is a catch-all for "everything below 5° that wasn't already caught." During morning, everything below 5° correctly belongs to NIGHT (holding at 165 before the fade-up starts at 5°). During evening, the 0°–5° range should stay at 200 (Day) until the EVENING fade begins at 0°. The branch doesn't distinguish direction.
+
+### Replace with
+
+```yaml
+      column_rgb_green: >
+        {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+
+        {# EVENING: Fade green from 200 to 165 as sun drops from 0 to -5 #}
+        {% if not rising and elevation <= 0 and elevation >= -5 %}
+          {% set progress = (0 - elevation) / 5 %}
+          {{ (200 - (35 * progress)) | round(0) }}
+
+        {# MORNING: Fade green from 165 to 200 as sun rises from 5 to 12 #}
+        {% elif rising and elevation >= 5 and elevation <= 12 %}
+          {% set progress = (elevation - 5) / 7 %}
+          {{ (165 + (35 * progress)) | round(0) }}
+
+        {# NIGHT: Hold at 165 (warm orange)                                    #}
+        {# Matches: morning below 5° (before fade-up), deep night below -5°,   #}
+        {# and evening below -5° (after fade-down). Excludes evening 0-5° which #}
+        {# should hold at 200 (DAY) until the EVENING fade begins at 0°.       #}
+        {% elif elevation < 5 and (rising or elevation < -5) %}
+          165
+
+        {# DAY: Default to 200 (yellow-orange) #}
+        {# Also catches evening 0-5° to prevent green snap #}
+        {% else %}
+          200
+        {% endif %}
+```
+
+### Verification of every evaluation path after the fix
+
+**Evening descent** (not rising):
+
+| Elevation | Branch 1 (EVENING) | Branch 3 (NIGHT) | Branch 4 (DAY) | Result | Correct? |
+|---|---|---|---|---|---|
+| 8.0° | SKIP | `8 < 5` → SKIP | **HIT** | 200 | ✓ Day |
+| 5.0° | SKIP | `5 < 5` → SKIP | **HIT** | 200 | ✓ Day |
+| 4.9° | SKIP (4.9 > 0) | `4.9 < 5 AND (rising=F OR 4.9 < -5=F)` → **SKIP** | **HIT** | **200** | ✓ **Fixed** |
+| 2.0° | SKIP | SKIP (same) | **HIT** | 200 | ✓ Holds Day |
+| 0.1° | SKIP (0.1 > 0) | SKIP | **HIT** | 200 | ✓ Holds Day |
+| 0.0° | **HIT** (fade start) | — | — | 200 | ✓ Fade entry |
+| -2.5° | **HIT** | — | — | 183 | ✓ Mid-fade |
+| -5.0° | **HIT** (fade end) | — | — | 165 | ✓ Fade complete |
+| -5.1° | SKIP (-5.1 < -5) | `< 5 AND (F OR -5.1 < -5=T)` → **HIT** | — | 165 | ✓ Night hold |
+| -10.0° | SKIP | **HIT** | — | 165 | ✓ Deep night |
+
+**Morning ascent** (rising):
+
+| Elevation | Branch 1 | Branch 2 (MORNING) | Branch 3 (NIGHT) | Branch 4 (DAY) | Result | Correct? |
+|---|---|---|---|---|---|---|
+| -10.0° | not rising → SKIP | rising → check: SKIP | `< 5 AND (rising=T OR ...)` → **HIT** | — | 165 | ✓ Night |
+| -5.0° | SKIP | SKIP | **HIT** (rising=T) | — | 165 | ✓ Night |
+| 0.0° | SKIP | SKIP | **HIT** (rising=T) | — | 165 | ✓ Pre-fade |
+| 4.9° | SKIP | SKIP (< 5) | **HIT** (rising=T) | — | 165 | ✓ Pre-fade |
+| 5.0° | SKIP | **HIT** (fade start) | — | — | 165 | ✓ Fade entry |
+| 8.5° | SKIP | **HIT** | — | — | 183 | ✓ Mid-fade |
+| 12.0° | SKIP | **HIT** (fade end) | — | — | 200 | ✓ Fade complete |
+| 12.1° | SKIP | SKIP (> 12) | `< 5` → SKIP | **HIT** | 200 | ✓ Day |
+
+All paths produce correct values. Morning behavior is unchanged. Evening snap is eliminated.
+
+### Design Decisions
+
+**Why `(rising or elevation < -5)` instead of just `rising`**: The condition must still catch deep night on the evening side (below -5°, not rising). Without `elevation < -5`, the evening path at -5.1° would fall through to DAY (200) instead of NIGHT (165). The compound condition ensures:
+- Morning any elevation below 5° → NIGHT (165) ← `rising` is true
+- Evening below -5° → NIGHT (165) ← `elevation < -5` is true
+- Evening 0° to 5° → falls through to DAY (200) ← neither condition met
+
+**Why not extend the EVENING fade to cover 5°→0° instead**: The EVENING fade applies a linear gradient from 200→165 over 5 degrees of elevation (0° to -5°). Extending it to start at 5° would stretch the same 35-unit change over 10 degrees, making the transition twice as slow. This would be barely perceptible per-minute and waste the dynamic range during the most visible sunset period (0° to -5°). Holding at 200 until 0° and then fading is the correct design — the user sees yellow-orange during the early evening and watches it warm smoothly as darkness falls.
+
+**Interaction with `oal_column_lights_prepare_rgb_mode_v13` (L1831)**: The prepare automation triggers at elevation < 3° (evening). After the fix, at 2.9° the green value is 200 (Day, via the DAY branch). The prepare automation transitions columns to RGB mode at safe brightness, then sets `manual_control: true`. The RGB transition automation (L1906) then applies `[255, 200, 0]`. At 0°, the EVENING fade begins, transitioning green from 200→165 as the sun descends to -5°. This is a smooth, seamless sequence.
+
+**Previously**: At 2.9° the green snapped to 165 before the prepare automation even ran. The user would see columns snap to warm orange, then the prepare automation would apply 165 green. The prepare→transition handoff was correct but the *input* was wrong.
+
+**Downstream consumers**: `oal_offset_column_rgb_green` is consumed by:
+- `oal_column_lights_rgb_transition_v13` (L1906) — reads value, applies to lights
+- `oal_reset_soft` (L3631) — reads value for Gaussian-window column reset
+- `oal_reset_room` (Change 4) — reads value for Gaussian-window column reset
+
+All three read the stored value. Correcting the calculation at the source automatically fixes all consumers. No changes needed downstream.
+
+---
+
 ## Execution Order
 
 1. Change 1 (reverse watcher) — new automation, no dependencies on existing code changes
 2. Change 2 (soft reset fix) — modifies existing script, depends on Change 1 being present to reason about race conditions correctly
 3. Change 3 (autoreset watcher) — modifies existing automation, independent
 4. Change 4 (room reset) — modifies existing script, independent
+5. Change 5 (sunset logic) — modifies existing automation, independent of Changes 1-4
 
 Changes are safe in any order — each is independently correct. The listed order matches dependency of reasoning (Change 2's race analysis references Change 1's behavior).
 
@@ -515,7 +654,7 @@ Changes are safe in any order — each is independently correct. The listed orde
 | # | Invariant | Risk | Rationale |
 |---|-----------|------|-----------|
 | 1 | Brightness bounds: `zone_min <= actual <= zone_max` | **None** | No changes to brightness calculation. Offsets are reset to 0 (tighter bounds). |
-| 2 | Govee color temp: `2700K <= actual <= 6500K` | **Low** | Change 4 adds Govee-safe column handling to room reset (previously unprotected). Risk is "low" not "none" because the Gaussian window detection is duplicated from `oal_reset_soft` — if the window logic is ever updated in one place but not the other, they could diverge. |
+| 2 | Govee color temp: `2700K <= actual <= 6500K` | **Low** | Change 4 adds Govee-safe column handling to room reset (previously unprotected). Change 5 fixes the green channel calculation that fed incorrect values during evening 0°–5°. Risk is "low" not "none" because: (a) the Gaussian window detection is duplicated across reset scripts — if bounds change in one place but not others, they could diverge; (b) Change 5 modifies the sunset logic branch structure, which could theoretically produce out-of-range green values if the conditions interact unexpectedly (verified exhaustively in the branch table above). |
 | 3 | Manual auto-reset: Returns to adaptive after timeout | **None** | Changes enhance this — reverse watcher ensures config returns to Adaptive. |
 | 4 | Force modes override ALL: Sleep/movie bypass calculations | **None** | Reverse watcher condition `state: "Manual"` doesn't match Sleep. Soft reset always sets "Adaptive" (overrides Sleep correctly). |
 | 5 | Environmental is ADDITIVE: Offset added to baseline | **None** | No changes to environmental calculation pipeline. |
@@ -639,6 +778,33 @@ Changes are safe in any order — each is independently correct. The listed orde
 
 **What this proves**: The reverse watcher catches the movie mode end clearing of `manual_control` on all switches, returns the system to Adaptive, and triggers an engine recalculation with current time-of-day settings. This fixes the pre-existing bug where config stayed stuck on "Manual" after a movie ended.
 
+### Test 12: Sunset Logic — No Green Snap During Evening Descent (validates Change 5)
+
+**Setup**: Use Developer Tools → States to control sun elevation. Set `sun.sun` attribute `rising: false`.
+
+1. Set elevation to `6.0` → verify `oal_offset_column_rgb_green` is 200
+2. Set elevation to `4.9` → **verify `oal_offset_column_rgb_green` is still 200** (was 165 before fix)
+3. Set elevation to `2.0` → verify still 200
+4. Set elevation to `0.0` → verify 200 (EVENING fade entry point)
+5. Set elevation to `-2.5` → verify ~183 (mid-fade)
+6. Set elevation to `-5.0` → verify 165 (fade complete)
+7. Set elevation to `-5.1` → verify 165 (NIGHT hold)
+
+**What this proves**: The evening 0°–5° range correctly holds at 200 (Day) instead of snapping to 165 (Night). The EVENING fade from 200→165 occurs smoothly between 0° and -5°.
+
+### Test 13: Sunset Logic — Morning Path Unchanged (validates Change 5 no regression)
+
+**Setup**: Use Developer Tools → States. Set `sun.sun` attribute `rising: true`.
+
+1. Set elevation to `-5.0` → verify `oal_offset_column_rgb_green` is 165
+2. Set elevation to `0.0` → verify 165 (pre-fade hold)
+3. Set elevation to `4.9` → verify 165 (still pre-fade)
+4. Set elevation to `5.0` → verify 165 (MORNING fade entry)
+5. Set elevation to `8.5` → verify ~183 (mid-fade)
+6. Set elevation to `12.0` → verify 200 (fade complete)
+
+**What this proves**: The morning path is completely unchanged by the fix. The NIGHT branch still correctly catches `rising AND elevation < 5`, holding at 165 until the MORNING fade begins at 5°.
+
 ### Test 11: Soft Reset Does NOT Produce 6+ Engine Runs (validates Change 3 guard)
 
 **Setup**: Multiple zones under manual control, config is "Manual".
@@ -667,3 +833,5 @@ Changes are safe in any order — each is independently correct. The listed orde
 | Column `manual_control` is maintained during Gaussian RGB window after room reset | Entity attribute check |
 | Movie mode end returns config to "Adaptive" within 5s | State monitoring |
 | Soft reset does NOT produce 6+ engine runs from per-zone sync_offset watchers | Trace count |
+| Evening descent: `oal_offset_column_rgb_green` stays 200 between 5° and 0° | Dev Tools state check |
+| Morning ascent: `oal_offset_column_rgb_green` stays 165 between -5° and 5° (unchanged) | Dev Tools state check |

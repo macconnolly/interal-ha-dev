@@ -389,6 +389,17 @@ input_boolean:
     initial: false
     icon: mdi:lock-clock
 
+  # Column RGB session and guard helpers (Phase A)
+  oal_column_rgb_session_active:
+    name: "OAL Column RGB Session Active"
+    initial: false
+    icon: mdi:palette-outline
+
+  oal_column_rgb_guard_kill_switch:
+    name: "OAL Column RGB Guard Kill Switch"
+    initial: false
+    icon: mdi:shield-off-outline
+
   # Room Card Show/Hide Toggles
   living_room_expanded:
     name: "Living Room Card Expanded"
@@ -680,6 +691,12 @@ automation:
       is_force_apply: >
         {{ trigger.platform == 'event' and
            (trigger.event.data.force | default(false)) == true }}
+
+      # Force intent for column-safe vs override behavior (ISSUE-15)
+      # SYNC: All oal_watchdog_trigger emitters must include force_intent
+      force_intent: >
+        {{ trigger.event.data.force_intent | default('column_safe')
+           if trigger.platform == 'event' else 'column_safe' }}
 
       # Legacy variable - kept for potential future use
       is_periodic_only: "{{ trigger.platform == 'time_pattern' }}"
@@ -1269,13 +1286,29 @@ automation:
                       transition: "{{ 0 if is_force_apply else transition_speed }}"
                     continue_on_error: true
 
-          # Column Lights
+          # Column Lights (BUG-01 fix: respect column RGB protection even under force)
           - sequence:
               - variables:
                   all_lights: "{{ (state_attr('switch.adaptive_lighting_column_lights', 'configuration') or {}).get('lights', []) }}"
                   all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
                   manual_lights: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) }}"
-                  on_lights: "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+                  # SYNC: canonical column_rgb_protect_now guard (ISSUE-22)
+                  # Bounds: prepare_rgb (-5 <= elev < 3, descending), sleep at -5
+                  column_rgb_protect_now: >
+                    {% set session_on = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
+                    {% set manual_non_empty = manual_lights | length > 0 %}
+                    {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+                    {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+                    {% set in_window = (not rising) and elev >= -5 and elev < 3 %}
+                    {% set sleep_off = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') %}
+                    {% set kill_off = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off') %}
+                    {{ session_on and manual_non_empty and in_window and sleep_off and kill_off }}
+                  on_lights: >
+                    {% if is_force_apply and (not column_rgb_protect_now or force_intent == 'override_all') %}
+                      {{ all_on_lights }}
+                    {% else %}
+                      {{ all_on_lights | reject('in', manual_lights) | list }}
+                    {% endif %}
               - if:
                   - condition: template
                     value_template: "{{ on_lights | length > 0 }}"
@@ -1498,35 +1531,53 @@ automation:
                   transition: 0
                 continue_on_error: true  # Scene may not exist if starting fresh
 
-              # 1. Release ALL manual controls system-wide
+              # 1. Release manual controls system-wide (BUG-03 fix: skip protected columns)
+              - variables:
+                  # SYNC: canonical column_rgb_protect_now guard (ISSUE-22)
+                  column_rgb_protect_now: >
+                    {% set session_on = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
+                    {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+                    {% set manual_non_empty = manual_list | length > 0 %}
+                    {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+                    {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+                    {% set in_window = (not rising) and elev >= -5 and elev < 3 %}
+                    {% set sleep_off = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') %}
+                    {% set kill_off = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off') %}
+                    {{ session_on and manual_non_empty and in_window and sleep_off and kill_off }}
+                  switches_to_clear: >
+                    {% if column_rgb_protect_now %}
+                      {{ all_switches_expanded | reject('eq', 'switch.adaptive_lighting_column_lights') | list }}
+                    {% else %}
+                      {{ all_switches_expanded }}
+                    {% endif %}
               - repeat:
-                  for_each: "{{ all_switches_expanded }}"
+                  for_each: "{{ switches_to_clear }}"
                   sequence:
                     - service: adaptive_lighting.set_manual_control
                       target:
                         entity_id: "{{ repeat.item }}"
                       data:
                         manual_control: false
-              
+
               # 2. Clear handoff flag (no overrides in adaptive baseline)
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_power_handoff_active
-              
+
               # 3. Set baseline offsets (0, 0)
               - service: input_number.set_value
                 target:
                   entity_id: input_number.oal_offset_config_brightness
                 data:
                   value: 0
-              
+
               - service: input_number.set_value
                 target:
                   entity_id: input_number.oal_offset_config_warmth
                 data:
                   value: 0
-              
-              
+
+
               # 5. Unlock engine - Core Engine will manage lights naturally
               - service: input_boolean.turn_off
                 target:
@@ -1537,29 +1588,55 @@ automation:
                 event_data:
                   message: "Transition to Adaptive complete - forcing update"
                   force: true
+                  force_intent: "column_safe"
               
               # EXIT: Baseline path complete - AL now works normally
           
           # =====================================================================
           # FORCE ON PATH: Full Brightness - turn on ALL lights with AL values
+          # (BUG-05 fix: skip column clear+apply when protected)
           # =====================================================================
           - conditions:
               - condition: template
                 value_template: "{{ is_force_on }}"
             sequence:
-              # 1. Release ALL manual controls system-wide
+              # 1. Release manual controls (skip protected columns)
+              - variables:
+                  # SYNC: canonical column_rgb_protect_now guard (ISSUE-22)
+                  column_rgb_protect_now: >
+                    {% set session_on = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
+                    {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+                    {% set manual_non_empty = manual_list | length > 0 %}
+                    {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+                    {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+                    {% set in_window = (not rising) and elev >= -5 and elev < 3 %}
+                    {% set sleep_off = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') %}
+                    {% set kill_off = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off') %}
+                    {{ session_on and manual_non_empty and in_window and sleep_off and kill_off }}
+                  switches_to_clear: >
+                    {% if column_rgb_protect_now %}
+                      {{ all_switches_expanded | reject('eq', 'switch.adaptive_lighting_column_lights') | list }}
+                    {% else %}
+                      {{ all_switches_expanded }}
+                    {% endif %}
+                  switches_to_apply: >
+                    {% if column_rgb_protect_now %}
+                      {{ all_switches_expanded | reject('eq', 'switch.adaptive_lighting_column_lights') | list }}
+                    {% else %}
+                      {{ all_switches_expanded }}
+                    {% endif %}
               - repeat:
-                  for_each: "{{ all_switches_expanded }}"
+                  for_each: "{{ switches_to_clear }}"
                   sequence:
                     - service: adaptive_lighting.set_manual_control
                       target:
                         entity_id: "{{ repeat.item }}"
                       data:
                         manual_control: false
-              
-              # 2. Turn on ALL lights with AL's calculated settings
+
+              # 2. Turn on lights with AL's calculated settings (skip protected columns)
               - repeat:
-                  for_each: "{{ all_switches_expanded }}"
+                  for_each: "{{ switches_to_apply }}"
                   sequence:
                     - service: adaptive_lighting.apply
                       target:
@@ -1567,30 +1644,30 @@ automation:
                       data:
                         turn_on_lights: true
                         transition: "{{ 0 if is_force_apply else transition_speed }}"
-              
+
               # 3. Clear handoff flag (no overrides in force-on)
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_power_handoff_active
-              
+
               # 4. Set baseline offsets (0, 0)
               - service: input_number.set_value
                 target:
                   entity_id: input_number.oal_offset_config_brightness
                 data:
                   value: 0
-              
+
               - service: input_number.set_value
                 target:
                   entity_id: input_number.oal_offset_config_warmth
                 data:
                   value: 0
-              
+
               # 5. Unlock engine
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_transition_active
-              
+
               # EXIT: Force-on path complete
 
         # =======================================================================
@@ -1600,11 +1677,35 @@ automation:
         # =======================================================================
         default:
           # PHASE 1: Cleanup previous config's power handoff (if any)
+          # BUG-06 fix: exclude protected column lights from cleanup lists
           - choose:
               - conditions:
                   - condition: template
                     value_template: "{{ prev_controlled_lights | length > 0 }}"
                 sequence:
+                  - variables:
+                      # SYNC: canonical column_rgb_protect_now guard (ISSUE-22)
+                      column_rgb_protect_now: >
+                        {% set session_on = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
+                        {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+                        {% set manual_non_empty = manual_list | length > 0 %}
+                        {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+                        {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+                        {% set in_window = (not rising) and elev >= -5 and elev < 3 %}
+                        {% set sleep_off = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') %}
+                        {% set kill_off = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off') %}
+                        {{ session_on and manual_non_empty and in_window and sleep_off and kill_off }}
+                      # Column light entity IDs to exclude when protected
+                      column_light_entities:
+                        - light.living_column_strip_light_matter
+                        - light.dining_column_strip_light_matter
+                      # Filter protected column lights out of cleanup target list
+                      safe_prev_controlled_lights: >
+                        {% if column_rgb_protect_now %}
+                          {{ prev_controlled_lights | reject('in', column_light_entities) | list }}
+                        {% else %}
+                          {{ prev_controlled_lights }}
+                        {% endif %}
                   # Release manual control on previously controlled lights
                   # Match lights to their respective switches instead of passing all to all
                   - repeat:
@@ -1614,8 +1715,8 @@ automation:
                             # Get lights managed by this switch and expand groups to individuals
                             switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
                             switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
-                            # Find which prev_controlled_lights belong to this switch
-                            lights_for_switch: "{{ prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                            # Find which safe_prev_controlled_lights belong to this switch
+                            lights_for_switch: "{{ safe_prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
                         - if: "{{ lights_for_switch | length > 0 }}"
                           then:
                             - service: adaptive_lighting.set_manual_control
@@ -1632,7 +1733,7 @@ automation:
                         - variables:
                             switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
                             switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
-                            lights_for_switch: "{{ prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                            lights_for_switch: "{{ safe_prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
                         - if: "{{ lights_for_switch | length > 0 }}"
                           then:
                             - service: adaptive_lighting.apply
@@ -1672,6 +1773,7 @@ automation:
                     event_data:
                       message: "Sleep Mode activated - Core Engine will apply sleep settings"
                       force: true
+                      force_intent: "column_safe"
 
           # PHASE 2: Apply new config offset settings (skip for Global Manual and Sleep Mode)
           - condition: template
@@ -1753,6 +1855,7 @@ automation:
           - event: oal_watchdog_trigger
             event_data:
               message: "Override config applied - recalculating zones"
+              force_intent: "column_safe"
   # ---------------------------------------------------------------------------
   # 4.3 Sunset Gaussian offsets (brightness + warmth)
   # ---------------------------------------------------------------------------
@@ -2520,11 +2623,17 @@ automation:
                   transition: 3
               
               # CRITICAL: Clear manual control to restore AL adaptive control
-              # This allows AL to resume managing these lights automatically
+              # BUG-02 fix: only clear movie-touched switches, not all zones
+              # Movie mode sets manual on: main_living, kitchen_island, recessed_ceiling, accent_spots
+              # Column lights are never touched by movie mode - must not clear them here
               - service: adaptive_lighting.set_manual_control
                 continue_on_error: true
                 target:
-                  entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+                  entity_id:
+                    - switch.adaptive_lighting_main_living
+                    - switch.adaptive_lighting_kitchen_island
+                    - switch.adaptive_lighting_recessed_ceiling
+                    - switch.adaptive_lighting_accent_spots
                 data:
                   manual_control: false
               
@@ -2598,6 +2707,7 @@ automation:
         event_data:
           message: "System startup - forcing initial engine run"
           force: true
+          force_intent: "column_safe"
 
   # ---------------------------------------------------------------------------
   # 4.13 Watchdog (ensure engine runs at least every 30 minutes)
@@ -3273,11 +3383,12 @@ script:
     sequence:
       # Force Core Engine to apply offset changes IMMEDIATELY
       # This bypasses the 1s trigger delay and ensures lights respond instantly
-      # NOTE: adaptive_lighting.apply uses force=True internally, ignores manual_control
+      # BUG-07 fix: emit column_safe intent so protected columns are not overwritten
       - event: oal_watchdog_trigger
         event_data:
           message: "Manual adjustment - forcing immediate apply"
           force: true
+          force_intent: "column_safe"
 
       # DEFERRED: Set manual control asynchronously after engine completes
       # This runs in background and doesn't block button response
@@ -3787,6 +3898,8 @@ script:
                       manual_control: true
             default:
               # Outside Gaussian window: Reset column lights to color_temp mode
+              # BUG-04/ISSUE-13 fix: removed hardcoded sleep_rgb_color override
+              # AL canonical config is source of truth for sleep color [245, 120, 0]
               - service: adaptive_lighting.change_switch_settings
                 data:
                   entity_id: switch.adaptive_lighting_column_lights
@@ -3799,7 +3912,6 @@ script:
                   send_split_delay: 1
                   prefer_rgb_color: false
                   sleep_rgb_or_color_temp: "rgb_color"
-                  sleep_rgb_color: [255, 165, 0]
               # Clear column lights manual control
               - service: adaptive_lighting.set_manual_control
                 target:
@@ -3868,6 +3980,7 @@ script:
           - event: oal_watchdog_trigger
             event_data:
               force: true
+              force_intent: "column_safe"
               source: "soft_reset"
         else:
           # Was non-Adaptive → Config Manager will handle transition + watchdog
@@ -4039,6 +4152,7 @@ script:
       - event: oal_watchdog_trigger
         event_data:
           force: true
+          force_intent: "column_safe"
           source: "room_reset"
       - wait_for_trigger:
           - platform: event

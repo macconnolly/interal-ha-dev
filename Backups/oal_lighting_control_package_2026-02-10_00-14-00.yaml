@@ -3686,12 +3686,9 @@ script:
       # =========================================================================
       sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(90) }}"
       sun_rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
-      # Column RGB mode spans the FULL night: from prepare_rgb (3° evening)
-      # to morning_exit (8° morning). NOT just the Gaussian transition window.
-      # SYNC: bounds must match prepare_rgb trigger (L1838: below 3°)
-      #        and morning_exit trigger (L1945: above 8°)
-      in_column_rgb_mode: >
-        {{ sun_elevation < 3 or (sun_rising and sun_elevation < 8) }}
+      in_gaussian_rgb_window: >
+        {{ (not sun_rising and sun_elevation <= 8 and sun_elevation >= -5) or
+           (sun_rising and sun_elevation >= -5 and sun_elevation < 8) }}
       column_rgb_green: "{{ states('input_number.oal_offset_column_rgb_green') | int(200) }}"
 
       # Capture config state BEFORE any manual_control clearing.
@@ -3763,7 +3760,7 @@ script:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ in_column_rgb_mode }}"
+                    value_template: "{{ in_gaussian_rgb_window }}"
                 sequence:
                   # During Gaussian window: Apply correct RGB color directly
                   - service: light.turn_on
@@ -3988,20 +3985,13 @@ script:
           # Check if any target zones include columns
           targets_include_columns: "{{ 'column_lights' in target_zones }}"
 
-          # Check if columns currently have manual_control (set by prepare_rgb)
-          # After the 4-hour autoreset, manual_control clears and AL sleep mode takes over.
-          # We only protect columns in RGB mode when they ACTUALLY have manual_control.
-          columns_currently_manual: >
-            {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) | length > 0 }}
-
-          # Column RGB mode detection — covers FULL night period
-          # SYNC: bounds must match prepare_rgb trigger (L1838: below 3°)
-          #        and morning_exit trigger (L1945: above 8°)
+          # Gaussian window detection
+          # SYNC: bounds must match oal_reset_soft L3628-3630 and prepare_rgb L1838
           sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(90) }}"
           sun_rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
-          in_column_rgb_mode: >
-            {{ columns_currently_manual and
-               (sun_elevation < 3 or (sun_rising and sun_elevation < 8)) }}
+          in_gaussian_rgb_window: >
+            {{ (not sun_rising and sun_elevation <= 8 and sun_elevation >= -5) or
+               (sun_rising and sun_elevation >= -5 and sun_elevation < 8) }}
           column_rgb_green: "{{ states('input_number.oal_offset_column_rgb_green') | int(200) }}"
 
           # Non-column switches for standard AL handling
@@ -4009,10 +3999,10 @@ script:
             {{ target_switches | reject('eq', 'switch.adaptive_lighting_column_lights') | list }}
 
           # Switches to receive adaptive_lighting.apply (turn_on_lights: true)
-          # During column RGB mode: exclude columns (they get direct RGB above)
-          # Outside RGB mode: include all targets (preserves turn-on behavior for columns)
+          # During Gaussian window: exclude columns (they get direct RGB above)
+          # Outside window: include all targets (preserves turn-on behavior for columns)
           apply_switches: >
-            {% if targets_include_columns and in_column_rgb_mode %}
+            {% if targets_include_columns and in_gaussian_rgb_window %}
               {{ non_column_switches }}
             {% else %}
               {{ target_switches }}
@@ -4069,7 +4059,7 @@ script:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ in_column_rgb_mode }}"
+                    value_template: "{{ in_gaussian_rgb_window }}"
                 sequence:
                   # During Gaussian window: apply correct RGB color directly
                   - service: light.turn_on

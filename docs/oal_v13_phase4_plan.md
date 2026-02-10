@@ -100,7 +100,7 @@ Additionally:
 
 **Why this is the right abstraction**: Rather than adding "am I the last zone?" checks to every exit path (autoreset, room reset, isolated override exit, column RGB morning exit, nightly maintenance), this watcher handles ALL exit paths centrally. Any mechanism that clears `manual_control` — current or future — automatically triggers a return to Adaptive when all zones are clear. This eliminates an entire class of sync bugs.
 
-**Coverage**: Autoreset timer expiry, `oal_reset_room` (last-zone case), isolated override exit, column RGB morning exit, nightly maintenance, `oal_manual_control_sync_offset` watcher, and any future mechanism that clears `manual_control`.
+**Coverage**: Autoreset timer expiry, `oal_reset_room` (last-zone case), isolated override exit, column RGB morning exit, nightly maintenance, `oal_manual_control_sync_offset` watcher, movie mode end (L2525), and any future mechanism that clears `manual_control`.
 
 ---
 
@@ -236,7 +236,7 @@ With early capture, `was_non_adaptive` is `true` regardless of what happens mid-
 
 ### Design Decisions
 
-**Why add explicit `oal_offset_global_manual_warmth` reset**: Previously, the global warmth reset was bundled into `offset_entities_to_reset` (L3670-3679) only when zones were overridden. With the reverse watcher (Change 1), it's possible the config is already "Adaptive" when soft reset runs (watcher fired first), but global warmth wasn't reset. The explicit reset here ensures a clean slate regardless of race timing.
+**Why add explicit `oal_offset_global_manual_warmth` reset**: Previously, the global warmth reset was bundled into `offset_entities_to_reset` (L3670-3679) only when zones were overridden. With the reverse watcher (Change 1), it's possible the config is already "Adaptive" when soft reset runs (watcher fired first), but global warmth wasn't reset. The explicit reset here ensures a clean slate regardless of race timing. Note: this is intentionally redundant with the offset block (L3757-3765) when zones ARE overridden — `offset_entities_to_reset` includes warmth in that case. The double reset is idempotent and provides defense-in-depth for the reverse-watcher race.
 
 **Why the if/else branch is correct**: Two mutually exclusive cases:
 1. `was_non_adaptive == false` (was already "Adaptive"): Setting "Adaptive" is a no-op for Config Manager (no state change). We fire the watchdog ourselves. One engine run.
@@ -285,9 +285,15 @@ In every case: exactly one engine run.
         data:
           value: 0
       # Trigger engine to push corrected settings (offset=0) to AL immediately
-      - event: oal_watchdog_trigger
-        event_data:
-          source: "autoreset_offset_clear"
+      # Guard: skip during soft reset to prevent 6 redundant queued engine runs
+      # (soft reset bulk-clears all zones simultaneously, then fires its own watchdog)
+      - if:
+          - condition: template
+            value_template: "{{ is_state('script.oal_reset_soft', 'off') }}"
+        then:
+          - event: oal_watchdog_trigger
+            event_data:
+              source: "autoreset_offset_clear"
 ```
 
 ### Design Decisions
@@ -295,6 +301,8 @@ In every case: exactly one engine run.
 **Why non-force (no `force: true`)**: Non-force triggers respect the `oal_config_transition_active` lock (engine condition at L628-638). If a Config Manager transition is in progress, this trigger is safely dropped by the engine's condition block — the transition will push correct settings anyway when it completes.
 
 **Why this doesn't cause double engine runs**: The `input_number.set_value` to 0 does NOT trigger the engine via state change, because manual offsets are intentionally excluded from the engine's state triggers (see comment block L590-615). The only engine trigger from this automation is the explicit `oal_watchdog_trigger` event. One event = one queued engine run.
+
+**Why guard against `script.oal_reset_soft` running**: When `oal_reset_soft` bulk-clears `manual_control` on all 6 zones simultaneously, this automation fires 6 times (once per zone, `mode: queued`, `max: 10`). Without the guard, 6 non-force watchdog events queue up in the engine (which uses `mode: queued`, `max: 20`), producing 6 redundant runs before soft reset's own Config Manager watchdog fires a 7th. All 7 runs are idempotent but waste ~1.4s of Zigbee/Z-Wave bus time. The guard suppresses the 6 per-zone triggers when soft reset is handling the recalculation itself.
 
 **Why NOT reset global warmth here**: This automation fires per-zone when that zone's `manual_control` clears. If other zones are still manually controlled, global warmth should persist. Only when ALL zones clear should warmth reset — that's handled by the reverse watcher (Change 1).
 
@@ -345,7 +353,8 @@ Insert after `target_offsets` (after L3895), before the first action step:
           # Check if any target zones include columns
           targets_include_columns: "{{ 'column_lights' in target_zones }}"
 
-          # Gaussian window detection (mirrors oal_reset_soft logic at L3628-3630)
+          # Gaussian window detection
+          # SYNC: bounds must match oal_reset_soft L3628-3630 and prepare_rgb L1838
           sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(90) }}"
           sun_rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
           in_gaussian_rgb_window: >
@@ -356,6 +365,16 @@ Insert after `target_offsets` (after L3895), before the first action step:
           # Non-column switches for standard AL handling
           non_column_switches: >
             {{ target_switches | reject('eq', 'switch.adaptive_lighting_column_lights') | list }}
+
+          # Switches to receive adaptive_lighting.apply (turn_on_lights: true)
+          # During Gaussian window: exclude columns (they get direct RGB above)
+          # Outside window: include all targets (preserves turn-on behavior for columns)
+          apply_switches: >
+            {% if targets_include_columns and in_gaussian_rgb_window %}
+              {{ non_column_switches }}
+            {% else %}
+              {{ target_switches }}
+            {% endif %}
 ```
 
 ### Part B — Replace final block (L3897-3917)
@@ -450,12 +469,18 @@ Insert after `target_offsets` (after L3895), before the first action step:
       # =========================================================================
       # Apply for immediate visual feedback + turn_on_lights: true behavior
       # (engine uses turn_on_lights: false — without this, off lights stay off)
-      - service: adaptive_lighting.apply
-        target:
-          entity_id: "{{ non_column_switches }}"
-        data:
-          turn_on_lights: true
-          transition: 1
+      # Uses apply_switches: includes columns outside Gaussian window (safe for
+      # color_temp), excludes them inside window (they got direct RGB above)
+      - if:
+          - condition: template
+            value_template: "{{ apply_switches | length > 0 }}"
+        then:
+          - service: adaptive_lighting.apply
+            target:
+              entity_id: "{{ apply_switches }}"
+            data:
+              turn_on_lights: true
+              transition: 1
 
       # Trigger engine to push corrected settings (offset=0) to AL
       - event: oal_watchdog_trigger
@@ -470,7 +495,7 @@ Insert after `target_offsets` (after L3895), before the first action step:
 
 **Why mirror `oal_reset_soft` logic rather than extract a shared script**: The column reset logic in `oal_reset_soft` (L3688-3739) includes additional concerns specific to soft reset (e.g., `change_switch_settings` with full config restoration for the outside-window case). Room reset is simpler — it just needs to release or maintain `manual_control` appropriately. Extracting a shared script would either (a) require parameterizing all the differences, adding complexity for two callsites, or (b) force both paths into the simpler model, losing soft reset's config restoration. The inline approach is clearer and avoids coupling the two reset scripts.
 
-**Why keep `adaptive_lighting.apply` on non-column switches**: Room reset intentionally turns on lights that are off — that's the user's expectation when they "reset a room." The engine uses `turn_on_lights: false` (it doesn't turn lights on/off, only adjusts settings for already-on lights). Without the apply, off lights wouldn't turn on. The apply provides immediate visual feedback while the engine (triggered ~200ms later) corrects any stale offset values via `change_switch_settings`.
+**Why `apply_switches` instead of `non_column_switches` for the apply target**: Room reset intentionally turns on lights that are off — that's the user's expectation when they "reset a room." The engine uses `turn_on_lights: false` (it doesn't turn lights on/off, only adjusts settings for already-on lights). Without the apply, off lights wouldn't turn on. Using `non_column_switches` would permanently exclude columns from `turn_on_lights: true`, even outside the Gaussian window when color_temp mode is safe. The `apply_switches` variable includes columns when safe (outside Gaussian) and excludes them when dangerous (inside Gaussian, where they've already received direct RGB). This preserves the current behavior where room reset turns on all targeted lights.
 
 **Why `force: true`**: Room reset is an explicit user action. It should bypass the `oal_config_transition_active` lock for immediate response. If a config transition happens to be running, the user's room reset should still take effect.
 
@@ -486,12 +511,151 @@ Result: 2 engine runs. The force trigger from room reset executes first (immedia
 
 ---
 
+## Change 5: Fix Sunset Logic Column Green Snap at 5°
+
+**Location**: `oal_sunset_logic_unified_v13` `column_rgb_green` variable (L1787-1807)
+
+**Goal**: Eliminate the 35-unit green channel snap that occurs during evening descent when elevation crosses from 5.0° to 4.9°. The NIGHT branch (`elevation < 5`) incorrectly catches the evening 0°–5° range, snapping the green value from 200 (Day) to 165 (Night) instead of holding at 200 until the EVENING fade begins at 0°.
+
+### Current code (L1787-1807)
+
+```yaml
+      column_rgb_green: >
+        {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+
+        {# EVENING: Fade green from 200 to 165 as sun drops from 0 to -5 #}
+        {% if not rising and elevation <= 0 and elevation >= -5 %}
+          {% set progress = (0 - elevation) / 5 %}
+          {{ (200 - (35 * progress)) | round(0) }}
+
+        {# MORNING: Fade green from 165 to 200 as sun rises from 5 to 12 #}
+        {% elif rising and elevation >= 5 and elevation <= 12 %}
+          {% set progress = (elevation - 5) / 7 %}
+          {{ (165 + (35 * progress)) | round(0) }}
+
+        {# NIGHT (between -5 and +5): Hold at 165 (warm orange) #}
+        {% elif elevation < 5 %}
+          165
+
+        {# DAY: Default to 200 (yellow-orange) #}
+        {% else %}
+          200
+        {% endif %}
+```
+
+### Bug trace
+
+The branches are evaluated top-to-bottom. During **evening descent** (not rising):
+
+| Elevation | Branch 1 (EVENING) | Branch 2 (MORNING) | Branch 3 (NIGHT) | Branch 4 (DAY) | Result |
+|---|---|---|---|---|---|
+| 8.0° | `not rising AND 8 <= 0` → SKIP | `rising` → SKIP | `8 < 5` → SKIP | **HIT** | 200 |
+| 5.0° | SKIP | SKIP | `5 < 5` → SKIP | **HIT** | 200 |
+| **4.9°** | SKIP (4.9 > 0) | SKIP (not rising) | **`4.9 < 5` → HIT** | — | **165 ← SNAP** |
+| 0.0° | **`0 <= 0 AND 0 >= -5` → HIT** | — | — | — | 200 |
+| -2.5° | **HIT** | — | — | — | 183 |
+| -5.0° | **HIT** (boundary) | — | — | — | 165 |
+| -5.1° | `not rising AND -5.1 >= -5` → SKIP | SKIP | **`-5.1 < 5` → HIT** | — | 165 |
+
+Between 4.9° and 0.1° in the evening, the green snaps from 200 to 165 — a 35-unit discontinuity visible as a sudden color shift on the Govee column lights.
+
+During **morning** (rising), no snap occurs — the MORNING branch catches 5°–12°, the NIGHT branch catches everything below 5° (holding at 165 until the fade starts), and the transition is smooth.
+
+### Root cause
+
+The NIGHT branch `{% elif elevation < 5 %}` is a catch-all for "everything below 5° that wasn't already caught." During morning, everything below 5° correctly belongs to NIGHT (holding at 165 before the fade-up starts at 5°). During evening, the 0°–5° range should stay at 200 (Day) until the EVENING fade begins at 0°. The branch doesn't distinguish direction.
+
+### Replace with
+
+```yaml
+      column_rgb_green: >
+        {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+
+        {# EVENING: Fade green from 200 to 165 as sun drops from 0 to -5 #}
+        {% if not rising and elevation <= 0 and elevation >= -5 %}
+          {% set progress = (0 - elevation) / 5 %}
+          {{ (200 - (35 * progress)) | round(0) }}
+
+        {# MORNING: Fade green from 165 to 200 as sun rises from 5 to 12 #}
+        {% elif rising and elevation >= 5 and elevation <= 12 %}
+          {% set progress = (elevation - 5) / 7 %}
+          {{ (165 + (35 * progress)) | round(0) }}
+
+        {# NIGHT: Hold at 165 (warm orange)                                    #}
+        {# Matches: morning below 5° (before fade-up), deep night below -5°,   #}
+        {# and evening below -5° (after fade-down). Excludes evening 0-5° which #}
+        {# should hold at 200 (DAY) until the EVENING fade begins at 0°.       #}
+        {% elif elevation < 5 and (rising or elevation < -5) %}
+          165
+
+        {# DAY: Default to 200 (yellow-orange) #}
+        {# Also catches evening 0-5° to prevent green snap #}
+        {% else %}
+          200
+        {% endif %}
+```
+
+### Verification of every evaluation path after the fix
+
+**Evening descent** (not rising):
+
+| Elevation | Branch 1 (EVENING) | Branch 3 (NIGHT) | Branch 4 (DAY) | Result | Correct? |
+|---|---|---|---|---|---|
+| 8.0° | SKIP | `8 < 5` → SKIP | **HIT** | 200 | ✓ Day |
+| 5.0° | SKIP | `5 < 5` → SKIP | **HIT** | 200 | ✓ Day |
+| 4.9° | SKIP (4.9 > 0) | `4.9 < 5 AND (rising=F OR 4.9 < -5=F)` → **SKIP** | **HIT** | **200** | ✓ **Fixed** |
+| 2.0° | SKIP | SKIP (same) | **HIT** | 200 | ✓ Holds Day |
+| 0.1° | SKIP (0.1 > 0) | SKIP | **HIT** | 200 | ✓ Holds Day |
+| 0.0° | **HIT** (fade start) | — | — | 200 | ✓ Fade entry |
+| -2.5° | **HIT** | — | — | 183 | ✓ Mid-fade |
+| -5.0° | **HIT** (fade end) | — | — | 165 | ✓ Fade complete |
+| -5.1° | SKIP (-5.1 < -5) | `< 5 AND (F OR -5.1 < -5=T)` → **HIT** | — | 165 | ✓ Night hold |
+| -10.0° | SKIP | **HIT** | — | 165 | ✓ Deep night |
+
+**Morning ascent** (rising):
+
+| Elevation | Branch 1 | Branch 2 (MORNING) | Branch 3 (NIGHT) | Branch 4 (DAY) | Result | Correct? |
+|---|---|---|---|---|---|---|
+| -10.0° | not rising → SKIP | rising → check: SKIP | `< 5 AND (rising=T OR ...)` → **HIT** | — | 165 | ✓ Night |
+| -5.0° | SKIP | SKIP | **HIT** (rising=T) | — | 165 | ✓ Night |
+| 0.0° | SKIP | SKIP | **HIT** (rising=T) | — | 165 | ✓ Pre-fade |
+| 4.9° | SKIP | SKIP (< 5) | **HIT** (rising=T) | — | 165 | ✓ Pre-fade |
+| 5.0° | SKIP | **HIT** (fade start) | — | — | 165 | ✓ Fade entry |
+| 8.5° | SKIP | **HIT** | — | — | 183 | ✓ Mid-fade |
+| 12.0° | SKIP | **HIT** (fade end) | — | — | 200 | ✓ Fade complete |
+| 12.1° | SKIP | SKIP (> 12) | `< 5` → SKIP | **HIT** | 200 | ✓ Day |
+
+All paths produce correct values. Morning behavior is unchanged. Evening snap is eliminated.
+
+### Design Decisions
+
+**Why `(rising or elevation < -5)` instead of just `rising`**: The condition must still catch deep night on the evening side (below -5°, not rising). Without `elevation < -5`, the evening path at -5.1° would fall through to DAY (200) instead of NIGHT (165). The compound condition ensures:
+- Morning any elevation below 5° → NIGHT (165) ← `rising` is true
+- Evening below -5° → NIGHT (165) ← `elevation < -5` is true
+- Evening 0° to 5° → falls through to DAY (200) ← neither condition met
+
+**Why not extend the EVENING fade to cover 5°→0° instead**: The EVENING fade applies a linear gradient from 200→165 over 5 degrees of elevation (0° to -5°). Extending it to start at 5° would stretch the same 35-unit change over 10 degrees, making the transition twice as slow. This would be barely perceptible per-minute and waste the dynamic range during the most visible sunset period (0° to -5°). Holding at 200 until 0° and then fading is the correct design — the user sees yellow-orange during the early evening and watches it warm smoothly as darkness falls.
+
+**Interaction with `oal_column_lights_prepare_rgb_mode_v13` (L1831)**: The prepare automation triggers at elevation < 3° (evening). After the fix, at 2.9° the green value is 200 (Day, via the DAY branch). The prepare automation transitions columns to RGB mode at safe brightness, then sets `manual_control: true`. The RGB transition automation (L1906) then applies `[255, 200, 0]`. At 0°, the EVENING fade begins, transitioning green from 200→165 as the sun descends to -5°. This is a smooth, seamless sequence.
+
+**Previously**: At 2.9° the green snapped to 165 before the prepare automation even ran. The user would see columns snap to warm orange, then the prepare automation would apply 165 green. The prepare→transition handoff was correct but the *input* was wrong.
+
+**Downstream consumers**: `oal_offset_column_rgb_green` is consumed by:
+- `oal_column_lights_rgb_transition_v13` (L1906) — reads value, applies to lights
+- `oal_reset_soft` (L3631) — reads value for Gaussian-window column reset
+- `oal_reset_room` (Change 4) — reads value for Gaussian-window column reset
+
+All three read the stored value. Correcting the calculation at the source automatically fixes all consumers. No changes needed downstream.
+
+---
+
 ## Execution Order
 
 1. Change 1 (reverse watcher) — new automation, no dependencies on existing code changes
 2. Change 2 (soft reset fix) — modifies existing script, depends on Change 1 being present to reason about race conditions correctly
 3. Change 3 (autoreset watcher) — modifies existing automation, independent
 4. Change 4 (room reset) — modifies existing script, independent
+5. Change 5 (sunset logic) — modifies existing automation, independent of Changes 1-4
 
 Changes are safe in any order — each is independently correct. The listed order matches dependency of reasoning (Change 2's race analysis references Change 1's behavior).
 
@@ -502,7 +666,7 @@ Changes are safe in any order — each is independently correct. The listed orde
 | # | Invariant | Risk | Rationale |
 |---|-----------|------|-----------|
 | 1 | Brightness bounds: `zone_min <= actual <= zone_max` | **None** | No changes to brightness calculation. Offsets are reset to 0 (tighter bounds). |
-| 2 | Govee color temp: `2700K <= actual <= 6500K` | **Low** | Change 4 adds Govee-safe column handling to room reset (previously unprotected). Risk is "low" not "none" because the Gaussian window detection is duplicated from `oal_reset_soft` — if the window logic is ever updated in one place but not the other, they could diverge. |
+| 2 | Govee color temp: `2700K <= actual <= 6500K` | **Low** | Change 4 adds Govee-safe column handling to room reset (previously unprotected). Change 5 fixes the green channel calculation that fed incorrect values during evening 0°–5°. Risk is "low" not "none" because: (a) the Gaussian window detection is duplicated across reset scripts — if bounds change in one place but not others, they could diverge; (b) Change 5 modifies the sunset logic branch structure, which could theoretically produce out-of-range green values if the conditions interact unexpectedly (verified exhaustively in the branch table above). |
 | 3 | Manual auto-reset: Returns to adaptive after timeout | **None** | Changes enhance this — reverse watcher ensures config returns to Adaptive. |
 | 4 | Force modes override ALL: Sleep/movie bypass calculations | **None** | Reverse watcher condition `state: "Manual"` doesn't match Sleep. Soft reset always sets "Adaptive" (overrides Sleep correctly). |
 | 5 | Environmental is ADDITIVE: Offset added to baseline | **None** | No changes to environmental calculation pipeline. |
@@ -550,6 +714,7 @@ Changes are safe in any order — each is independently correct. The listed orde
 ### Test 4: Room Reset — Columns During Gaussian Window (validates Change 4 Govee safety)
 
 **Setup**: Evening, sun elevation between -5° and 8° (Gaussian RGB window active).
+*Simulation alternative*: Use Developer Tools → States to set `sun.sun` attributes `elevation: 2.0`, `rising: false`. Set `input_number.oal_offset_column_rgb_green` to `185`. Restore after testing.
 
 1. Adjust column lights manually
 2. Call `script.oal_reset_room` targeting column lights
@@ -611,6 +776,58 @@ Changes are safe in any order — each is independently correct. The listed orde
 
 **What this proves**: The early variable capture (`was_non_adaptive`) and debounce timing prevent deadlocks or missed triggers when both paths race.
 
+### Test 10: Movie Mode End Recovery (validates Change 1 coverage of movie path)
+
+**Setup**: System in Adaptive mode, no manual overrides.
+
+1. Start movie playback on `media_player.living_room_apple_tv`
+2. **Verify**: `oal_movie_mode_active` is on, `oal_active_configuration` is "Manual"
+3. Stop/pause playback, wait for 90s `end_movie` trigger
+4. **Verify within 5s**: `oal_active_configuration` returns to "Adaptive"
+5. **Verify**: `oal_movie_mode_active` is off
+6. **Verify**: `oal_offset_global_manual_warmth` is 0
+7. **Verify**: engine trace shows a run from Config Manager (Baseline path)
+
+**What this proves**: The reverse watcher catches the movie mode end clearing of `manual_control` on all switches, returns the system to Adaptive, and triggers an engine recalculation with current time-of-day settings. This fixes the pre-existing bug where config stayed stuck on "Manual" after a movie ended.
+
+### Test 12: Sunset Logic — No Green Snap During Evening Descent (validates Change 5)
+
+**Setup**: Use Developer Tools → States to control sun elevation. Set `sun.sun` attribute `rising: false`.
+
+1. Set elevation to `6.0` → verify `oal_offset_column_rgb_green` is 200
+2. Set elevation to `4.9` → **verify `oal_offset_column_rgb_green` is still 200** (was 165 before fix)
+3. Set elevation to `2.0` → verify still 200
+4. Set elevation to `0.0` → verify 200 (EVENING fade entry point)
+5. Set elevation to `-2.5` → verify ~183 (mid-fade)
+6. Set elevation to `-5.0` → verify 165 (fade complete)
+7. Set elevation to `-5.1` → verify 165 (NIGHT hold)
+
+**What this proves**: The evening 0°–5° range correctly holds at 200 (Day) instead of snapping to 165 (Night). The EVENING fade from 200→165 occurs smoothly between 0° and -5°.
+
+### Test 13: Sunset Logic — Morning Path Unchanged (validates Change 5 no regression)
+
+**Setup**: Use Developer Tools → States. Set `sun.sun` attribute `rising: true`.
+
+1. Set elevation to `-5.0` → verify `oal_offset_column_rgb_green` is 165
+2. Set elevation to `0.0` → verify 165 (pre-fade hold)
+3. Set elevation to `4.9` → verify 165 (still pre-fade)
+4. Set elevation to `5.0` → verify 165 (MORNING fade entry)
+5. Set elevation to `8.5` → verify ~183 (mid-fade)
+6. Set elevation to `12.0` → verify 200 (fade complete)
+
+**What this proves**: The morning path is completely unchanged by the fix. The NIGHT branch still correctly catches `rising AND elevation < 5`, holding at 165 until the MORNING fade begins at 5°.
+
+### Test 11: Soft Reset Does NOT Produce 6+ Engine Runs (validates Change 3 guard)
+
+**Setup**: Multiple zones under manual control, config is "Manual".
+
+1. Call `script.oal_reset_soft`
+2. Immediately monitor `oal_core_adjustment_engine_v13` traces
+3. **Verify**: total engine runs <= 2 (1 from Config Manager, potentially 1 from a non-force watchdog that squeezed through before the guard evaluated)
+4. **Verify**: NOT 6-7 engine runs (which would indicate the `script.oal_reset_soft` running guard in Change 3 failed)
+
+**What this proves**: The `is_state('script.oal_reset_soft', 'off')` guard in Change 3 prevents the per-zone `oal_manual_control_sync_offset` automations from each firing their own watchdog during soft reset's bulk-clear.
+
 ---
 
 ## Acceptance Criteria
@@ -626,3 +843,7 @@ Changes are safe in any order — each is independently correct. The listed orde
 | Global warmth offset resets to 0 when all zones return to Adaptive | Entity state check |
 | No "Manual" intermediate state during managed config transitions | State history |
 | Column `manual_control` is maintained during Gaussian RGB window after room reset | Entity attribute check |
+| Movie mode end returns config to "Adaptive" within 5s | State monitoring |
+| Soft reset does NOT produce 6+ engine runs from per-zone sync_offset watchers | Trace count |
+| Evening descent: `oal_offset_column_rgb_green` stays 200 between 5° and 0° | Dev Tools state check |
+| Morning ascent: `oal_offset_column_rgb_green` stays 165 between -5° and 5° (unchanged) | Dev Tools state check |

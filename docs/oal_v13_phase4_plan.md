@@ -336,8 +336,11 @@ In the 2-run case: the first run pushes offset=0 for that zone immediately (good
 2. Resets offsets to 0 (L3905-3909)
 3. adaptive_lighting.apply pushes AL's current settings (L3912-3917)
    └─ Problem 1: "Current settings" still have old offset baked in (stale)
+      → lights jump to stale brightness, never corrected (no engine trigger)
+      → stale values persist until next 15-min periodic engine run
    └─ Problem 2: For columns in Gaussian window, apply pushes color_temp mode
       to Govee devices → purple/pink flash (Invariant #2 violation)
+   └─ Problem 3: No engine trigger at all — recalculation never happens
 ```
 
 ### Part A — Add column detection variables
@@ -407,6 +410,34 @@ Insert after `target_offsets` (after L3895), before the first action step:
 **Replace with:**
 ```yaml
       # =========================================================================
+      # Reset Brightness Offsets (all target zones) — FIRST
+      # =========================================================================
+      # Must happen before engine trigger so engine reads offset=0.
+      - service: input_number.set_value
+        target:
+          entity_id: "{{ target_offsets }}"
+        data:
+          value: 0
+
+      # =========================================================================
+      # Engine First — update AL parameters BEFORE applying
+      # =========================================================================
+      # The engine reads offset=0, calls change_switch_settings (correct params),
+      # then its own apply phase pushes correct values to ON lights (turn_on_lights: false).
+      # We wait for completion so the subsequent apply sees correct AL parameters.
+      # This eliminates the stale-apply fluctuation bug (apply pushing old offset,
+      # then engine correcting 200ms later → visible brightness jump).
+      - event: oal_watchdog_trigger
+        event_data:
+          force: true
+          source: "room_reset"
+      - wait_for_trigger:
+          - platform: event
+            event_type: oal_engine_calculation_complete
+        timeout: "00:00:05"
+        continue_on_timeout: true
+
+      # =========================================================================
       # Non-Column Zones: Standard AL Reset
       # =========================================================================
       - if:
@@ -456,19 +487,12 @@ Insert after `target_offsets` (after L3895), before the first action step:
                   manual_control: false
 
       # =========================================================================
-      # Reset Brightness Offsets (all target zones)
+      # Apply — turn on OFF lights with correct AL parameters
       # =========================================================================
-      - service: input_number.set_value
-        target:
-          entity_id: "{{ target_offsets }}"
-        data:
-          value: 0
-
-      # =========================================================================
-      # Apply + Engine Trigger
-      # =========================================================================
-      # Apply for immediate visual feedback + turn_on_lights: true behavior
-      # (engine uses turn_on_lights: false — without this, off lights stay off)
+      # Engine already updated AL params (change_switch_settings) and applied
+      # to ON lights (turn_on_lights: false). This apply only matters for OFF
+      # lights that need turning on. AL parameters are correct (offset=0) so
+      # no stale brightness is pushed — single clean transition.
       # Uses apply_switches: includes columns outside Gaussian window (safe for
       # color_temp), excludes them inside window (they got direct RGB above)
       - if:
@@ -481,12 +505,6 @@ Insert after `target_offsets` (after L3895), before the first action step:
             data:
               turn_on_lights: true
               transition: 1
-
-      # Trigger engine to push corrected settings (offset=0) to AL
-      - event: oal_watchdog_trigger
-        event_data:
-          force: true
-          source: "room_reset"
 ```
 
 ### Design Decisions
@@ -499,13 +517,22 @@ Insert after `target_offsets` (after L3895), before the first action step:
 
 **Why `force: true`**: Room reset is an explicit user action. It should bypass the `oal_config_transition_active` lock for immediate response. If a config transition happens to be running, the user's room reset should still take effect.
 
-**Stale-window analysis**: The apply pushes AL's current settings (which may include the old offset). The engine fires ~200ms later with `force: true` and corrects the settings. For typical offsets (+/-5-10%), the brief stale window is imperceptible. For large offsets (+/-20%), there's a sub-second flash that is acceptable because: (a) the apply is needed for `turn_on_lights`, (b) the engine correction is near-instantaneous, (c) room reset is an infrequent manual action.
+**Why engine-before-apply (eliminating stale-apply fluctuation)**: The previous design called `adaptive_lighting.apply` BEFORE triggering the engine. This caused a visible brightness fluctuation: the apply pushed AL's current parameters (with old offset baked in), then the engine corrected to offset=0 ~200ms later. For a +30 offset on a 50% baseline, lights would start transitioning to 80%, then snap to 50% — a visible double-shift.
+
+The fix reorders the sequence: reset offsets → fire engine → wait for `oal_engine_calculation_complete` → clear manual_control → apply. By the time `apply` runs, the engine has already called `change_switch_settings` with correct (offset=0) parameters and applied them to all ON lights. The `apply` only activates for OFF lights (`turn_on_lights: true`) and pushes the correct settings — single clean transition, no fluctuation.
+
+**Why `wait_for_trigger` on `oal_engine_calculation_complete`**: The engine emits this event at L1292 after completing both its Configuration Phase (`change_switch_settings` on all 6 zones) and Apply Phase (`apply` on all ON lights). Waiting for this event ensures AL parameters are fully updated before our `apply` runs. `timeout: "00:00:05"` provides generous margin (engine typically completes in ~200ms). `continue_on_timeout: true` ensures the script never hangs — if the engine is delayed or drops the trigger, room reset still proceeds (worst case: brief stale window, same as old behavior, self-correcting on next engine cycle).
+
+**Race condition with queued engine runs**: If another engine run is executing when our force trigger arrives, it queues behind. The currently-executing run's `oal_engine_calculation_complete` satisfies our `wait_for_trigger`. If that run captured variables before our offset reset, it may have stale params — our `apply` would push stale values. However: (a) this race is extremely narrow (requires active engine execution at exact moment of room reset), (b) our queued force run executes next and corrects within ~200ms, (c) the `force: true` trigger bypasses `oal_config_transition_active` so it's never blocked. This is strictly better than the pre-existing behavior (current code pushes stale values and never corrects until the 15-minute periodic).
+
+**Why clear `manual_control` AFTER the engine**: The engine's Apply Phase with `is_force_apply: true` pushes to ALL on lights regardless of `manual_control` status (L1178: `all_on_lights if is_force_apply`). So the engine applies correct settings even while `manual_control` is still set. Clearing `manual_control` after the engine means AL resumes adaptive control of these lights with correct parameters already in place — no stale push from AL's internal cycle.
 
 **Interaction with the reverse watcher (Change 1)**: When room reset clears the last manual zone:
-1. Room reset fires engine (force, queued)
-2. Reverse watcher fires after 3s debounce → sets Adaptive → Config Manager fires engine
+1. Room reset fires engine (force, queued) — engine runs with offset=0
+2. Room reset clears `manual_control` after engine completion
+3. Reverse watcher fires after 3s debounce → sets Adaptive → Config Manager fires engine
 
-Result: 2 engine runs. The force trigger from room reset executes first (immediate), providing instant visual feedback. The Config Manager run ~3s later is idempotent — it recalculates and applies the same Adaptive settings. This is acceptable because room reset is infrequent and the UX priority is immediate response.
+Result: 2 engine runs. The force trigger from room reset provides immediate correct settings. The Config Manager run ~3s later is idempotent — it recalculates and applies the same Adaptive settings. This is acceptable because room reset is infrequent and the UX priority is immediate response.
 
 **Note on column `manual_control` during Gaussian window**: When columns are reset during the Gaussian window, `manual_control` is explicitly set to `true` (locking AL out of those lights). This means the reverse watcher's `ns.count` will be > 0 due to column lights. The reverse watcher will NOT fire until the Gaussian window exits and the column RGB morning exit automation clears `manual_control`. This is correct behavior — during the Gaussian window, columns are intentionally under manual RGB control.
 
@@ -695,9 +722,9 @@ Changes are safe in any order — each is independently correct. The listed orde
 
 **Setup**: Single zone under manual control.
 
-1. Press ZEN32 brighter → config becomes "Manual"
+1. Press ZEN32 brighter 3x → offset = +30, config becomes "Manual"
 2. Call `script.oal_reset_room` targeting that zone's lights
-3. **Verify within 1s**: lights transition to correct adaptive brightness (engine trigger with `force: true`)
+3. **Verify**: lights transition in a SINGLE motion to correct adaptive brightness — no intermediate jump to the old (+30) brightness followed by a correction (this validates the engine-before-apply ordering)
 4. **Verify within 5s**: `oal_active_configuration` returns to "Adaptive" (reverse watcher fires)
 5. **Verify**: per-zone offset is 0
 
@@ -839,6 +866,7 @@ Changes are safe in any order — each is independently correct. The listed orde
 | `oal_reset_soft` produces exactly ONE engine run from "Adaptive" start state | Trace count |
 | `oal_reset_room` targeting columns during Gaussian window produces NO purple/pink flash | Visual observation |
 | `oal_reset_room` provides immediate visual response (< 1s) | Visual observation |
+| `oal_reset_room` produces a single clean brightness transition — no stale-then-correct fluctuation | Visual observation with large offset (+30) |
 | All autoreset paths eventually return config to "Adaptive" | State monitoring |
 | Global warmth offset resets to 0 when all zones return to Adaptive | Entity state check |
 | No "Manual" intermediate state during managed config transitions | State history |

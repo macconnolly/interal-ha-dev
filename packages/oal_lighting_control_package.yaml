@@ -5423,7 +5423,7 @@ template:
           {% set lights = [
             'light.living_room_floor_lamp',
             'light.living_room_couch_lamp',
-            'light.living_room_corner_accent',
+            'light.entryway_lamp',
             'light.living_room_credenza_light',
             'light.living_room_spot_lights',
             'light.living_room_hallway_lights',
@@ -5431,7 +5431,7 @@ template:
           ] %}
           {% set lights_on = lights | select('is_state', 'on') | list | length %}
           {% set is_playing = is_state('media_player.living_room', 'playing') %}
-          {% set has_override = (state_attr('switch.adaptive_lighting_main_living', 'manual_control') or []) | length > 0 %}
+          {% set has_override = (this.attributes.manually_controlled_lights | default([])) | length > 0 %}
           
           {% if has_override %}override
           {% elif is_playing %}playing
@@ -5443,7 +5443,7 @@ template:
             {% set lights = [
               'light.living_room_floor_lamp',
               'light.living_room_couch_lamp',
-              'light.living_room_corner_accent',
+              'light.entryway_lamp',
               'light.living_room_credenza_light',
               'light.living_room_spot_lights',
               'light.living_room_hallway_lights',
@@ -5455,7 +5455,7 @@ template:
             {% set lights = [
               'light.living_room_floor_lamp',
               'light.living_room_couch_lamp',
-              'light.living_room_corner_accent',
+              'light.entryway_lamp',
               'light.living_room_credenza_light',
               'light.living_room_spot_lights'
             ] %}
@@ -5480,13 +5480,12 @@ template:
             {% set columns = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
             {% set living_lights = [
               'light.living_room_floor_lamp',
-              'light.living_room_couch_lamp', 
-              'light.living_room_corner_accent',
+              'light.living_room_couch_lamp',
+              'light.entryway_lamp',
               'light.living_room_credenza_light',
               'light.living_room_spot_lights',
               'light.living_room_hallway_lights',
-              'light.living_column_strip_light_matter',
-              'light.entryway_lamp'
+              'light.living_column_strip_light_matter'
             ] %}
             {% set all_manual = (main + spots + columns) | unique | list %}
             {{ all_manual | select('in', living_lights) | list }}
@@ -5510,7 +5509,7 @@ template:
           subtitle: >
             {% set state = this.state %}
             {% set track = state_attr('media_player.living_room', 'media_title') | default('') %}
-            {% set override_count = (state_attr('switch.adaptive_lighting_main_living', 'manual_control') or []) | length %}
+            {% set override_count = (this.attributes.manually_controlled_lights | default([])) | length %}
             {% set lights_on = this.attributes.lights_on | default(0) %}
             {% set alarm_time = this.attributes.next_alarm_time | default('None') %}
             {% if state == 'override' %}
@@ -5559,6 +5558,37 @@ template:
             {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
             {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
             {{ alarms | selectattr('friendly_name', 'search', '(?i)^living') | list | length }}
+          # Per-alarm display attributes (pre-computed for dashboard)
+          alarm_520_display: >
+            {% set ent = states.switch.sonos_alarm_520 %}
+            {% if ent and ent.attributes.time is defined %}
+              {% set t = ent.attributes.time.split(':') %}
+              {% set h = t[0] | int %}{% set m = t[1] %}
+              {% set h12 = h % 12 %}{% if h12 == 0 %}{% set h12 = 12 %}{% endif %}
+              {{ h12 }}:{{ m }} {{ 'PM' if h >= 12 else 'AM' }}
+            {% else %}--{% endif %}
+          alarm_520_recurrence: >
+            {% set ent = states.switch.sonos_alarm_520 %}
+            {% set rec = ent.attributes.recurrence | default('') if ent else '' %}
+            {% set map = {'DAILY':'Daily','WEEKDAYS':'Weekdays','WEEKENDS':'Weekends',
+              'ON_0':'Sun','ON_1':'Mon','ON_2':'Tue','ON_3':'Wed',
+              'ON_4':'Thu','ON_5':'Fri','ON_6':'Sat'} %}
+            {{ map.get(rec, rec) }}
+          alarm_521_display: >
+            {% set ent = states.switch.sonos_alarm_521 %}
+            {% if ent and ent.attributes.time is defined %}
+              {% set t = ent.attributes.time.split(':') %}
+              {% set h = t[0] | int %}{% set m = t[1] %}
+              {% set h12 = h % 12 %}{% if h12 == 0 %}{% set h12 = 12 %}{% endif %}
+              {{ h12 }}:{{ m }} {{ 'PM' if h >= 12 else 'AM' }}
+            {% else %}--{% endif %}
+          alarm_521_recurrence: >
+            {% set ent = states.switch.sonos_alarm_521 %}
+            {% set rec = ent.attributes.recurrence | default('') if ent else '' %}
+            {% set map = {'DAILY':'Daily','WEEKDAYS':'Weekdays','WEEKENDS':'Weekends',
+              'ON_0':'Sun','ON_1':'Mon','ON_2':'Tue','ON_3':'Wed',
+              'ON_4':'Thu','ON_5':'Fri','ON_6':'Sat'} %}
+            {{ map.get(rec, rec) }}
 
       # ROOM: KITCHEN
       # -----------------------------------------------------------------------

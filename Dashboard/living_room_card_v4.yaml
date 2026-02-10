@@ -165,7 +165,7 @@ cards:
           ${(() => {
             const isOn = state === 'on';
             const isDark = hass.themes?.darkMode;
-            const manualLights = hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || [];
+            const manualLights = hass.states['sensor.room_living_state']?.attributes?.manually_controlled_lights || [];
             const isManual = Array.isArray(manualLights) && manualLights.includes('light.living_room_floor_lamp');
             const brightness = hass.states['light.living_room_floor_lamp']?.attributes?.brightness || 0;
             const brightnessPct = Math.round((brightness / 255) * 100);
@@ -355,7 +355,7 @@ cards:
           ${(() => {
             const isOn = state === 'on';
             const isDark = hass.themes?.darkMode;
-            const manualLights = hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || [];
+            const manualLights = hass.states['sensor.room_living_state']?.attributes?.manually_controlled_lights || [];
             const isManual = Array.isArray(manualLights) && manualLights.includes('light.living_room_couch_lamp');
             const brightness = hass.states['light.living_room_couch_lamp']?.attributes?.brightness || 0;
             const brightnessPct = Math.round((brightness / 255) * 100);
@@ -527,9 +527,9 @@ cards:
       - type: custom:bubble-card
         card_type: button
         button_type: slider
-        entity: light.living_room_corner_accent
-        name: Corner
-        icon: mdi:floor-lamp-torchiere
+        entity: light.entryway_lamp
+        name: Entryway
+        icon: mdi:lamp
         show_state: false
         show_attribute: true
         attribute: brightness
@@ -545,9 +545,9 @@ cards:
           ${(() => {
             const isOn = state === 'on';
             const isDark = hass.themes?.darkMode;
-            const manualLights = hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || [];
-            const isManual = Array.isArray(manualLights) && manualLights.includes('light.living_room_corner_accent');
-            const brightness = hass.states['light.living_room_corner_accent']?.attributes?.brightness || 0;
+            const manualLights = hass.states['sensor.room_living_state']?.attributes?.manually_controlled_lights || [];
+            const isManual = Array.isArray(manualLights) && manualLights.includes('light.entryway_lamp');
+            const brightness = hass.states['light.entryway_lamp']?.attributes?.brightness || 0;
             const brightnessPct = Math.round((brightness / 255) * 100);
             const brightnessLabel = isOn ? `${brightnessPct}%` : 'Off';
             const fillColor = isManual ? '#ff9500' : '#e8a000';
@@ -735,7 +735,7 @@ cards:
           ${(() => {
             const isOn = state === 'on';
             const isDark = hass.themes?.darkMode;
-            const manualLights = hass.states['switch.adaptive_lighting_main_living']?.attributes?.manual_control || [];
+            const manualLights = hass.states['sensor.room_living_state']?.attributes?.manually_controlled_lights || [];
             const isManual = Array.isArray(manualLights) && manualLights.includes('light.living_room_credenza_light');
             const brightness = hass.states['light.living_room_credenza_light']?.attributes?.brightness || 0;
             const brightnessPct = Math.round((brightness / 255) * 100);
@@ -925,7 +925,7 @@ cards:
           ${(() => {
             const isOn = state === 'on';
             const isDark = hass.themes?.darkMode;
-            const manualLights = hass.states['switch.adaptive_lighting_accent_spots']?.attributes?.manual_control || [];
+            const manualLights = hass.states['sensor.room_living_state']?.attributes?.manually_controlled_lights || [];
             const isManual = Array.isArray(manualLights) && manualLights.includes('light.living_room_spot_lights');
             const brightness = hass.states['light.living_room_spot_lights']?.attributes?.brightness || 0;
             const brightnessPct = Math.round((brightness / 255) * 100);
@@ -1115,8 +1115,8 @@ cards:
           ${(() => {
             const isOn = state === 'on';
             const isDark = hass.themes?.darkMode;
-            const manualLights = hass.states['switch.adaptive_lighting_column_lights']?.attributes?.manual_control || [];
-            const isManual = Array.isArray(manualLights) && manualLights.length > 0;
+            const manualLights = hass.states['sensor.room_living_state']?.attributes?.manually_controlled_lights || [];
+            const isManual = Array.isArray(manualLights) && manualLights.includes('light.living_column_strip_light_matter');
             const brightness = hass.states['light.living_column_strip_light_matter']?.attributes?.brightness || 0;
             const brightnessPct = Math.round((brightness / 255) * 100);
             const brightnessLabel = isOn ? `${brightnessPct}%` : 'Off';

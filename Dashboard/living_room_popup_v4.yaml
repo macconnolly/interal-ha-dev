@@ -112,12 +112,10 @@ cards:
       - type: custom:mushroom-template-card
         primary: Living Room
         secondary: >-
-          {% set on = expand('light.living_room_lights')
-             | selectattr('state', 'eq', 'on') | list | count %}
-          {% set total = expand('light.living_room_lights') | list | count %} {%
-          set bri = ((state_attr('light.living_room_lights', 'brightness')
-             | default(0) | float) * 100 / 255) | round(0) | int %}
-          {% if on > 0 %}{{ on }} of {{ total }} on - {{ bri }}% {% else %}All
+          {% set on = state_attr('sensor.room_living_state', 'lights_on') | int(0) %}
+          {% set total = state_attr('sensor.room_living_state', 'total_lights') | int(7) %}
+          {% set bri = state_attr('sensor.room_living_state', 'brightness_avg') | int(0) %}
+          {% if on > 0 %}{{ on }} of {{ total }} on - {{ bri }}%{% else %}All
           lights off{% endif %}
         icon: ""
         card_mod:
@@ -750,15 +748,11 @@ cards:
             const shOff = isDark ? '0 1px 4px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)';
             const iBgOn = isDark ? 'rgba(10,132,255,0.18)' : 'rgba(10,132,255,0.12)';
             const iBgOff = isDark ? 'rgba(10,132,255,0.10)' : 'rgba(10,132,255,0.08)';
-            const ent = hass.states['switch.sonos_alarm_520'];
-            const at = ent?.attributes?.time || '';
-            const rec = ent?.attributes?.recurrence || '';
-            let td = at;
-            if (at) { const p = at.split(':'); const h = parseInt(p[0]); td = (h===0?12:h>12?h-12:h)+':'+p[1]+' '+(h>=12?'PM':'AM'); }
-            const dm = {'DAILY':'Daily','WEEKDAYS':'Weekdays','WEEKENDS':'Weekends','ON_0':'Sun','ON_1':'Mon','ON_2':'Tue','ON_3':'Wed','ON_4':'Thu','ON_5':'Fri','ON_6':'Sat'};
-            const recLabel = dm[rec] || rec;
+            const rs = hass.states['sensor.room_living_state']?.attributes;
+            const td = rs?.alarm_520_display || '--';
+            const recLabel = rs?.alarm_520_recurrence || '';
             const ne = card.querySelector('.bubble-name');
-            if (ne && td) ne.innerText = td + ' - ' + recLabel;
+            if (ne) ne.innerText = td + (recLabel ? ' - ' + recLabel : '');
             return `
               .bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto !important; justify-items: center !important; align-items: center !important; text-align: center !important; min-height: 80px !important; padding: 12px 6px 6px 6px !important; border-radius: 18px !important; overflow: hidden !important; clip-path: inset(0 round 18px) !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isOn ? sOn : sOff} !important; border: ${isOn ? bOn : bOff} !important; box-shadow: ${isOn ? shOn : shOff} !important; }
               .bubble-button-card-container:active { transform: scale(0.96) !important; }
@@ -806,15 +800,11 @@ cards:
             const shOff = isDark ? '0 1px 4px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)';
             const iBgOn = isDark ? 'rgba(10,132,255,0.18)' : 'rgba(10,132,255,0.12)';
             const iBgOff = isDark ? 'rgba(10,132,255,0.10)' : 'rgba(10,132,255,0.08)';
-            const ent = hass.states['switch.sonos_alarm_521'];
-            const at = ent?.attributes?.time || '';
-            const rec = ent?.attributes?.recurrence || '';
-            let td = at;
-            if (at) { const p = at.split(':'); const h = parseInt(p[0]); td = (h===0?12:h>12?h-12:h)+':'+p[1]+' '+(h>=12?'PM':'AM'); }
-            const dm = {'DAILY':'Daily','WEEKDAYS':'Weekdays','WEEKENDS':'Weekends','ON_0':'Sun','ON_1':'Mon','ON_2':'Tue','ON_3':'Wed','ON_4':'Thu','ON_5':'Fri','ON_6':'Sat'};
-            const recLabel = dm[rec] || rec;
+            const rs = hass.states['sensor.room_living_state']?.attributes;
+            const td = rs?.alarm_521_display || '--';
+            const recLabel = rs?.alarm_521_recurrence || '';
             const ne = card.querySelector('.bubble-name');
-            if (ne && td) ne.innerText = td + ' - ' + recLabel;
+            if (ne) ne.innerText = td + (recLabel ? ' - ' + recLabel : '');
             return `
               .bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto !important; justify-items: center !important; align-items: center !important; text-align: center !important; min-height: 80px !important; padding: 12px 6px 6px 6px !important; border-radius: 18px !important; overflow: hidden !important; clip-path: inset(0 round 18px) !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isOn ? sOn : sOff} !important; border: ${isOn ? bOn : bOff} !important; box-shadow: ${isOn ? shOn : shOff} !important; }
               .bubble-button-card-container:active { transform: scale(0.96) !important; }

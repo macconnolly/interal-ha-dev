@@ -365,6 +365,16 @@ Insert after `target_offsets` (after L3895), before the first action step:
           # Non-column switches for standard AL handling
           non_column_switches: >
             {{ target_switches | reject('eq', 'switch.adaptive_lighting_column_lights') | list }}
+
+          # Switches to receive adaptive_lighting.apply (turn_on_lights: true)
+          # During Gaussian window: exclude columns (they get direct RGB above)
+          # Outside window: include all targets (preserves turn-on behavior for columns)
+          apply_switches: >
+            {% if targets_include_columns and in_gaussian_rgb_window %}
+              {{ non_column_switches }}
+            {% else %}
+              {{ target_switches }}
+            {% endif %}
 ```
 
 ### Part B — Replace final block (L3897-3917)
@@ -459,13 +469,15 @@ Insert after `target_offsets` (after L3895), before the first action step:
       # =========================================================================
       # Apply for immediate visual feedback + turn_on_lights: true behavior
       # (engine uses turn_on_lights: false — without this, off lights stay off)
+      # Uses apply_switches: includes columns outside Gaussian window (safe for
+      # color_temp), excludes them inside window (they got direct RGB above)
       - if:
           - condition: template
-            value_template: "{{ non_column_switches | length > 0 }}"
+            value_template: "{{ apply_switches | length > 0 }}"
         then:
           - service: adaptive_lighting.apply
             target:
-              entity_id: "{{ non_column_switches }}"
+              entity_id: "{{ apply_switches }}"
             data:
               turn_on_lights: true
               transition: 1
@@ -483,7 +495,7 @@ Insert after `target_offsets` (after L3895), before the first action step:
 
 **Why mirror `oal_reset_soft` logic rather than extract a shared script**: The column reset logic in `oal_reset_soft` (L3688-3739) includes additional concerns specific to soft reset (e.g., `change_switch_settings` with full config restoration for the outside-window case). Room reset is simpler — it just needs to release or maintain `manual_control` appropriately. Extracting a shared script would either (a) require parameterizing all the differences, adding complexity for two callsites, or (b) force both paths into the simpler model, losing soft reset's config restoration. The inline approach is clearer and avoids coupling the two reset scripts.
 
-**Why keep `adaptive_lighting.apply` on non-column switches**: Room reset intentionally turns on lights that are off — that's the user's expectation when they "reset a room." The engine uses `turn_on_lights: false` (it doesn't turn lights on/off, only adjusts settings for already-on lights). Without the apply, off lights wouldn't turn on. The apply provides immediate visual feedback while the engine (triggered ~200ms later) corrects any stale offset values via `change_switch_settings`.
+**Why `apply_switches` instead of `non_column_switches` for the apply target**: Room reset intentionally turns on lights that are off — that's the user's expectation when they "reset a room." The engine uses `turn_on_lights: false` (it doesn't turn lights on/off, only adjusts settings for already-on lights). Without the apply, off lights wouldn't turn on. Using `non_column_switches` would permanently exclude columns from `turn_on_lights: true`, even outside the Gaussian window when color_temp mode is safe. The `apply_switches` variable includes columns when safe (outside Gaussian) and excludes them when dangerous (inside Gaussian, where they've already received direct RGB). This preserves the current behavior where room reset turns on all targeted lights.
 
 **Why `force: true`**: Room reset is an explicit user action. It should bypass the `oal_config_transition_active` lock for immediate response. If a config transition happens to be running, the user's room reset should still take effect.
 

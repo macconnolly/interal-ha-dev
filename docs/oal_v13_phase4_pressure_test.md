@@ -89,21 +89,22 @@ The non-column `set_manual_control` call above IS properly guarded:
 
 But the apply call is NOT inside this guard — it's in the general "Apply + Engine Trigger" section.
 
-**Fix**: Wrap the apply in the same guard:
+**Fix**: Introduce `apply_switches` variable that dynamically selects the correct target:
 ```yaml
-      - if:
-          - condition: template
-            value_template: "{{ non_column_switches | length > 0 }}"
-        then:
-          - service: adaptive_lighting.apply
-            target:
-              entity_id: "{{ non_column_switches }}"
-            data:
-              turn_on_lights: true
-              transition: 1
+          apply_switches: >
+            {% if targets_include_columns and in_gaussian_rgb_window %}
+              {{ non_column_switches }}
+            {% else %}
+              {{ target_switches }}
+            {% endif %}
 ```
+Then guard the apply with `apply_switches | length > 0`.
 
-**Severity**: Minor bug. Column-only room resets are infrequent, and HA typically handles empty targets gracefully (silent no-op or warning log). But it should be fixed for correctness.
+This fixes two problems at once:
+1. **Empty target**: When targeting only columns during Gaussian window, `apply_switches` resolves to `non_column_switches` (empty) → guard prevents the call.
+2. **Missing column turn-on**: When targeting columns outside Gaussian window, `apply_switches` resolves to `target_switches` (includes columns) → columns get `turn_on_lights: true`. Without this, columns would be excluded from apply entirely, breaking the "room reset turns on all lights" behavior during daytime.
+
+**Severity**: The empty-target issue is minor (HA typically no-ops). The missing column turn-on is moderate — a daytime room reset targeting off columns would silently fail to turn them on, which is a user-visible behavioral regression from the current code (L3912, which applies to all `target_switches`).
 
 ---
 
@@ -510,7 +511,7 @@ This is the bug Plan 2 identified and proposed fixing. The plan under review cor
 
 | # | Finding | Change | Fix |
 |---|---------|--------|-----|
-| 2 | `adaptive_lighting.apply` on empty `non_column_switches` | Change 4 | Wrap apply in `non_column_switches | length > 0` guard |
+| 2 | `adaptive_lighting.apply` on empty target + missing column turn-on outside Gaussian | Change 4 | Replace `non_column_switches` with `apply_switches` variable that includes columns when safe (outside Gaussian), excludes them when dangerous (inside Gaussian). Guarded by `apply_switches | length > 0`. |
 | 9 | Soft reset bulk-clear triggers 6 redundant engine runs via Change 3 | Change 3 | Add `is_state('script.oal_reset_soft', 'off')` guard to watchdog trigger |
 
 ### Should Document (3)

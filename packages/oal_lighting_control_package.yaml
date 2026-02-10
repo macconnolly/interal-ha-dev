@@ -2121,6 +2121,88 @@ automation:
           transition: 0
 
   # ---------------------------------------------------------------------------
+  # 4.3c-heal Column Lights RGB Self-Heal (B3/B4, GAP-02)
+  # Restores manual+RGB if accidentally cleared during active protected window.
+  # Anti-thrash: mode:single + cooldown guard + evening-only window.
+  # ---------------------------------------------------------------------------
+  - id: oal_column_lights_rgb_self_heal_v13
+    alias: "OAL v13 - Column Lights RGB Self-Heal"
+    description: "Re-applies RGB and manual lock if cleared during active protected window"
+    mode: single
+    trigger:
+      - platform: template
+        value_template: >
+          {{ is_state('input_boolean.oal_column_rgb_session_active', 'on')
+             and (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length == 0) }}
+        for: "00:00:05"
+        id: "manual_cleared"
+      - platform: time_pattern
+        minutes: "/1"
+        id: "periodic_check"
+    condition:
+      # Session must be active
+      - condition: state
+        entity_id: input_boolean.oal_column_rgb_session_active
+        state: "on"
+      # Must be in evening protect window
+      - condition: template
+        value_template: >
+          {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+          {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+          {{ (not rising) and elev >= -5 and elev < 3 }}
+      # Sleep switch must be off
+      - condition: state
+        entity_id: switch.adaptive_lighting_sleep_mode_column_lights
+        state: "off"
+      # Kill switch must be off
+      - condition: state
+        entity_id: input_boolean.oal_column_rgb_guard_kill_switch
+        state: "off"
+      # Column manual list must currently be empty (needs healing)
+      - condition: template
+        value_template: >
+          {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) | length == 0 }}
+      # At least one column light must be on
+      - condition: template
+        value_template: >
+          {{ is_state('light.living_column_strip_light_matter', 'on')
+             or is_state('light.dining_column_strip_light_matter', 'on') }}
+      # System not paused
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+    action:
+      - variables:
+          green_value: "{{ states('input_number.oal_offset_column_rgb_green') | int(200) }}"
+      # Re-apply RGB color
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+        data:
+          rgb_color: [255, "{{ green_value }}", 0]
+          transition: 0
+      # Re-lock manual control
+      - service: adaptive_lighting.set_manual_control
+        continue_on_error: true
+        target:
+          entity_id: switch.adaptive_lighting_column_lights
+        data:
+          lights:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+          manual_control: true
+      # Debug trace event (F3)
+      - event: oal_column_rgb_debug
+        event_data:
+          action: "heal_executed"
+          trigger_id: "{{ trigger.id }}"
+          green_value: "{{ green_value }}"
+          timestamp: "{{ now().isoformat() }}"
+
+  # ---------------------------------------------------------------------------
   # 4.3d Column Lights Sleep Mode (Final Safety)
   # ---------------------------------------------------------------------------
   - id: oal_column_lights_sleep_trigger_v13
@@ -2546,6 +2628,7 @@ automation:
   - id: oal_movie_mode_handler_v13
     alias: "OAL v13 - Movie Mode Handler"
     description: "Manages movie mode with scene snapshot and proper AL manual control handling."
+    mode: restart
     trigger:
       - platform: state
         entity_id: media_player.living_room_apple_tv
@@ -2689,6 +2772,7 @@ automation:
   # ---------------------------------------------------------------------------
   - id: oal_system_startup_v13
     alias: "OAL v13 - System Startup Initialization"
+    mode: restart
     trigger:
       - platform: homeassistant
         event: start
@@ -2730,6 +2814,49 @@ automation:
       - service: automation.trigger
         target:
           entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
+
+      # E3: Startup session reconciliation
+      # Clear impossible session state; allow prepare recovery only under valid window
+      - variables:
+          elev: "{{ state_attr('sun.sun', 'elevation') | float(90) }}"
+          rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
+          in_window: "{{ (not rising) and elev >= -5 and elev < 3 }}"
+          sleep_off: "{{ is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') }}"
+          any_column_on: >
+            {{ is_state('light.living_column_strip_light_matter', 'on')
+               or is_state('light.dining_column_strip_light_matter', 'on') }}
+          manual_empty: >
+            {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) | length == 0 }}
+      - choose:
+          - conditions:
+              - condition: template
+                # Session impossible: outside window or sleep on
+                value_template: "{{ not in_window or not sleep_off }}"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.oal_column_rgb_session_active
+              - event: oal_column_rgb_debug
+                event_data:
+                  action: "startup_session_cleared"
+                  reason: "outside_window_or_sleep_on"
+                  timestamp: "{{ now().isoformat() }}"
+          - conditions:
+              - condition: template
+                # Valid recovery window: lights on, manual cleared by restart, session was active
+                value_template: >
+                  {{ in_window and sleep_off and any_column_on and manual_empty
+                     and is_state('input_boolean.oal_column_rgb_session_active', 'on') }}
+            sequence:
+              # Trigger prepare to recover RGB state (ISSUE-20)
+              - service: automation.trigger
+                target:
+                  entity_id: automation.oal_v13_column_lights_prepare_rgb_mode
+              - event: oal_column_rgb_debug
+                event_data:
+                  action: "startup_prepare_recovery"
+                  reason: "valid_window_session_active_manual_cleared"
+                  timestamp: "{{ now().isoformat() }}"
 
   # ---------------------------------------------------------------------------
   # 4.13 Watchdog (ensure engine runs at least every 30 minutes)
@@ -4321,6 +4448,7 @@ template:
   # Previous implementation used template lights to clamp blue channel, but:
   # - Matter entities with native RGB bypass the Matter hue conversion bug
   # - AL sleep mode with sleep_rgb_color provides simpler, more reliable control
+  # - Column RGB protection uses canonical column_rgb_protect_now guard (evening window only)
   # - RGB transition automations (4.3b, 4.3c) handle evening color nuance
   # ---------------------------------------------------------------------------
 

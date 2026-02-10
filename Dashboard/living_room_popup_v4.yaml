@@ -1,29 +1,5 @@
-# Living Room Settings Pop-up (v4) - Overhauled
-# ═══════════════════════════════════════════════════════════════════════
-# Native Bubble Card pop-up triggered by hash #living-room-settings
-# PLACEMENT: Must be added to the dashboard view AFTER all other cards.
-# The pop-up is hidden by default and slides up when hash matches.
-#
-# Triggered by: gear sub-button in living_room_card_v4.yaml
-#   tap_action: { action: navigate, navigation_path: "#living-room-settings" }
-#
-# Architecture:
-# - Custom header (mushroom-template-card) — default Bubble header hidden
-# - Mushroom section labels (uppercase, 12px, tight spacing)
-# - Mushroom info rows replace custom:button-card
-# - 2-col quick actions (Brighten + Dim only — All Off removed as duplicate)
-# - Sonos media player with prev/next/group/ungroup sub-buttons
-# - Consistent 24px horizontal gutter throughout
-# ═══════════════════════════════════════════════════════════════════════
-
 type: vertical-stack
 cards:
-  # ═══════════════════════════════════════════════════════════════════════
-  # POP-UP DEFINITION
-  # This MUST be the first card in the vertical-stack.
-  # All subsequent cards become the pop-up's content body.
-  # Default Bubble header is hidden — we build our own below.
-  # ═══════════════════════════════════════════════════════════════════════
   - type: custom:bubble-card
     card_type: pop-up
     hash: "#living-room-settings"
@@ -33,12 +9,13 @@ cards:
     show_header: false
     close_on_click: false
     close_by_clicking_outside: true
+    background_update: false
     bg_opacity: 0
     bg_blur: 0
     shadow_opacity: 0
     width_desktop: 540px
-    margin_top_mobile: 2vh
-    margin_top_desktop: 2vh
+    margin_top_mobile: 0vh
+    margin_top_desktop: 4vh
     styles: |-
       ${(() => {
         const isDark = hass.themes?.darkMode;
@@ -46,29 +23,28 @@ cards:
           .bubble-pop-up {
             background: ${isDark ? 'rgba(28, 28, 30, 0.98)' : 'rgba(248, 248, 250, 0.98)'} !important;
             border-radius: 24px 24px 0 0 !important;
-            max-height: 88vh !important;
-            box-shadow: ${isDark
-              ? '0 -4px 16px rgba(0, 0, 0, 0.15), 0 -8px 40px rgba(0, 0, 0, 0.35)'
-              : '0 -4px 16px rgba(0, 0, 0, 0.06), 0 -8px 40px rgba(0, 0, 0, 0.12)'} !important;
-            border-top: 1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)'} !important;
-            padding-bottom: max(env(safe-area-inset-bottom, 24px), 40px) !important;
+            box-shadow: ${isDark ? '0 -4px 16px rgba(0,0,0,0.15), 0 -8px 40px rgba(0,0,0,0.35)' : '0 -4px 16px rgba(0,0,0,0.06), 0 -8px 40px rgba(0,0,0,0.12)'} !important;
+            border-top: 1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'} !important;
+            padding-top: 40px !important;
+            padding-bottom: max(env(safe-area-inset-bottom, 16px), 20px) !important;
+            max-height: 125vh !important;
             overflow-y: auto !important;
             -webkit-overflow-scrolling: touch !important;
             overscroll-behavior: contain !important;
+
           }
           .bubble-pop-up-background {
             border-radius: 24px 24px 0 0 !important;
           }
           .bubble-pop-up-container {
-            padding: 0 24px !important;
+            padding: 0 16px 0 16px !important;
             grid-gap: 2px !important;
             gap: 2px !important;
-            --popup-surface-off: ${isDark ? 'rgba(32, 32, 34, 0.85)' : 'rgba(246, 246, 248, 0.95)'};
-            --popup-border-off: ${isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid rgba(0, 0, 0, 0.04)'};
-            --popup-shadow-off: ${isDark ? '0 1px 4px rgba(0, 0, 0, 0.15)' : '0 1px 4px rgba(0, 0, 0, 0.08)'};
+            mask-image: none !important;
+            -webkit-mask-image: none !important;
           }
           .bubble-pop-up-backdrop {
-            background: ${isDark ? 'rgba(0, 0, 0, 0.45)' : 'rgba(0, 0, 0, 0.25)'} !important;
+            background: ${isDark ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.25)'} !important;
             backdrop-filter: blur(16px) saturate(1.5) !important;
             -webkit-backdrop-filter: blur(16px) saturate(1.5) !important;
           }
@@ -76,10 +52,29 @@ cards:
           .bubble-pop-up-header {
             display: none !important;
           }
+          .bubble-pop-up-container > *:nth-child(2) { animation: popIn 0.22s cubic-bezier(0.2,0.9,0.3,1) both 0.02s; }
+          .bubble-pop-up-container > *:nth-child(3) { animation: popIn 0.22s cubic-bezier(0.2,0.9,0.3,1) both 0.04s; }
+          .bubble-pop-up-container > *:nth-child(4) { animation: popIn 0.22s cubic-bezier(0.2,0.9,0.3,1) both 0.05s; }
+          .bubble-pop-up-container > *:nth-child(5) { animation: popIn 0.22s cubic-bezier(0.2,0.9,0.3,1) both 0.06s; }
+          .bubble-pop-up-container > *:nth-child(6) { animation: popIn 0.22s cubic-bezier(0.2,0.9,0.3,1) both 0.08s; }
+          .bubble-pop-up-container > *:nth-child(7) { animation: popIn 0.22s cubic-bezier(0.2,0.9,0.3,1) both 0.09s; }
+          .bubble-pop-up-container > *:nth-child(8) { animation: popIn 0.22s cubic-bezier(0.2,0.9,0.3,1) both 0.10s; }
+          .bubble-pop-up-container > *:nth-child(9) { animation: popIn 0.22s cubic-bezier(0.2,0.9,0.3,1) both 0.12s; }
+          .bubble-pop-up-container > *:nth-child(10) { animation: popIn 0.22s cubic-bezier(0.2,0.9,0.3,1) both 0.13s; }
+          .bubble-pop-up-container > *:nth-child(11) { animation: popIn 0.22s cubic-bezier(0.2,0.9,0.3,1) both 0.14s; }
+          @keyframes popIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
         `;
       })()}
-
-  # ─── HANDLE BAR (drag indicator) ───
+    button_type: name
+    sub_button:
+      main: []
+      bottom: []
+    slider_fill_orientation: left
+    slider_value_position: right
+    slide_to_close_distance: "100"
   - type: custom:mushroom-template-card
     primary: ""
     icon: ""
@@ -89,58 +84,53 @@ cards:
           background: transparent !important;
           box-shadow: none !important;
           border: none !important;
+          height: 12px !important;
+          min-height: 0 !important;
           padding: 0 !important;
           margin: 0 !important;
-          min-height: 0 !important;
-          height: 22px !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
         }
-        mushroom-state-info, mushroom-shape-icon {
+        ha-card::after {
+          content: '' !important;
+          width: 36px !important;
+          height: 4px !important;
+          border-radius: 2px !important;
+          background: rgba(128, 128, 128, 0.3) !important;
+        }
+        ha-tile-icon, mushroom-state-info, ha-tile-info {
           display: none !important;
         }
-        ha-card::after {
-          content: '';
-          display: block;
-          width: 36px;
-          height: 4px;
-          border-radius: 2px;
-          background: rgba(128, 128, 128, 0.3);
-        }
-
-  # ═══════════════════════════════════════════════════════════════════════
-  # CUSTOM HEADER — "Living Room" + contextual subtitle + close button
-  # Replaces the hidden default Bubble header with precise typography.
-  # Flex layout: title takes remaining space, close button auto-width.
-  # ═══════════════════════════════════════════════════════════════════════
   - type: custom:layout-card
     layout_type: custom:grid-layout
     layout:
-      grid-template-columns: 1fr auto
-      padding: 2px 0 0 0
+      grid-template-columns: 1fr 48px
+      padding: 0
+      margin: 0
     cards:
       - type: custom:mushroom-template-card
         primary: Living Room
         secondary: >-
           {% set on = expand('light.living_room_lights')
              | selectattr('state', 'eq', 'on') | list | count %}
-          {% set total = expand('light.living_room_lights') | list | count %}
-          {% set bri = ((state_attr('light.living_room_lights', 'brightness')
+          {% set total = expand('light.living_room_lights') | list | count %} {%
+          set bri = ((state_attr('light.living_room_lights', 'brightness')
              | default(0) | float) * 100 / 255) | round(0) | int %}
-          {% if on > 0 %}{{ on }} of {{ total }} on · {{ bri }}% avg
-          {% else %}All lights off{% endif %}
+          {% if on > 0 %}{{ on }} of {{ total }} on - {{ bri }}% {% else %}All
+          lights off{% endif %}
         icon: ""
         card_mod:
           style:
             ha-tile-info$: |
               .primary {
-                font-size: 18px !important;
+                font-size: 22px !important;
                 font-weight: 700 !important;
                 color: var(--primary-text-color) !important;
+                letter-spacing: -0.02em !important;
               }
               .secondary {
-                font-size: 13px !important;
+                font-size: 15px !important;
                 font-weight: 400 !important;
                 color: var(--secondary-text-color) !important;
                 font-variant-numeric: tabular-nums !important;
@@ -168,7 +158,11 @@ cards:
           style:
             mushroom-shape-icon$: |
               .shape {
-                --shape-color: transparent !important;
+                --shape-color: rgba(128, 128, 128, 0.12) !important;
+                width: 34px !important;
+                height: 34px !important;
+                border-radius: 17px !important;
+                --icon-size: 20px !important;
               }
             .: |
               ha-card {
@@ -179,13 +173,12 @@ cards:
                 margin: 0 !important;
                 min-height: 0 !important;
                 display: flex !important;
-                justify-content: flex-end !important;
+                justify-content: center !important;
+                align-items: flex-start !important;
               }
               mushroom-state-info {
                 display: none !important;
               }
-
-  # ─── SECTION LABEL: Brightness ───
   - type: custom:mushroom-template-card
     primary: BRIGHTNESS
     icon: ""
@@ -196,7 +189,7 @@ cards:
             font-size: 16px !important;
             font-weight: 600 !important;
             color: var(--secondary-text-color) !important;
-            opacity: 0.6 !important;
+            opacity: 0.55 !important;
             letter-spacing: 0.06em !important;
             text-transform: uppercase !important;
           }
@@ -205,15 +198,13 @@ cards:
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 0 !important;
+            padding: 4px 0 0 0 !important;
             margin: 0 !important;
             min-height: 0 !important;
           }
           ha-tile-icon {
             display: none !important;
           }
-
-  # ─── ROOM BRIGHTNESS SLIDER ───
   - type: custom:bubble-card
     card_type: button
     button_type: slider
@@ -231,6 +222,13 @@ cards:
         entity_id: light.living_room_lights
     hold_action:
       action: more-info
+    sub_button:
+      main: []
+      bottom: []
+    slider_fill_orientation: left
+    slider_value_position: right
+    light_slider_type: brightness
+    card_layout: normal
     card_mod:
       style: |
         ha-card {
@@ -238,227 +236,244 @@ cards:
           border: none !important;
           box-shadow: none !important;
           margin: 0 !important;
+          padding: 0 !important;
         }
-
-  # ─── PILL GRID (2x2: Brighten + Dim + Mode + Lights) ───
   - type: custom:layout-card
     layout_type: custom:grid-layout
     layout:
       grid-template-columns: repeat(2, 1fr)
       gap: 8px
-      padding: 0
-    card_mod:
-      style: |
-        ha-card {
-          background: transparent !important;
-          box-shadow: none !important;
-          border: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-        .card-content {
-          padding: 0 !important;
-          margin: 0 !important;
-        }
+      padding: 2px 0
+      margin: 0
     cards:
-      # ── Brighten (pill) ──
-      - type: custom:bubble-card
-        card_type: button
-        button_type: state
-        entity: light.living_room_lights
-        name: Brighten
+      - type: custom:mushroom-template-card
+        entity: sensor.room_living_state
+        primary: >-
+          {% set dir = state_attr('sensor.room_living_state',
+          'offset_direction') | default('neutral') %} {% if dir == 'brighter'
+          %}Brightening{% else %}Brighten{% endif %}
+        secondary: >-
+          {% set offset = state_attr('sensor.room_living_state',
+          'brightness_offset') | default(0) | float %} {% set dir =
+          state_attr('sensor.room_living_state', 'offset_direction') |
+          default('neutral') %} {% if dir == 'brighter' %}+{{ offset | abs |
+          round(0) | int }}%{% endif %}
         icon: mdi:weather-sunny
-        show_name: true
-        show_state: false
-        show_attribute: false
-        scrolling_effect: false
+        icon_color: >-
+          {% set dir = state_attr('sensor.room_living_state',
+          'offset_direction') | default('neutral') %} {% if dir == 'brighter'
+          %}amber{% else %}grey{% endif %}
         tap_action:
           action: perform-action
           perform_action: script.oal_global_manual_brighter
           data:
             lights: light.living_room_lights
-        hold_action:
-          action: none
+        features_position: bottom
         card_mod:
-          style: >
-            ha-card { background: transparent !important; border: none !important; box-shadow: none !important; }
-        styles: |-
-          ${(() => {
-            const isDark = hass.themes?.darkMode;
-            const roomState = hass.states['sensor.room_living_state'];
-            const offset = parseFloat(roomState?.attributes?.brightness_offset || '0');
-            const direction = roomState?.attributes?.offset_direction || 'neutral';
-            const isActive = direction === 'brighter';
-            const badge = isActive ? '+' + Math.abs(Math.round(offset)) + '%' : '';
-            const accentColor = '#ff9500';
-            const surfaceOn = isDark
-              ? 'linear-gradient(180deg, rgba(48, 40, 28, 0.95) 0%, rgba(36, 33, 28, 0.93) 100%)'
-              : 'linear-gradient(180deg, rgba(255, 250, 240, 0.97) 0%, rgba(255, 248, 235, 0.95) 100%)';
-            const surfaceOff = isDark ? 'rgba(32, 32, 34, 0.85)' : 'rgba(246, 246, 248, 0.95)';
-            const borderOn = isDark ? '1.5px solid rgba(255, 149, 0, 0.14)' : '1.5px solid rgba(255, 149, 0, 0.20)';
-            const borderOff = isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid rgba(0, 0, 0, 0.04)';
-            const nameOn = isDark ? 'rgba(255, 255, 255, 0.92)' : 'rgba(30, 30, 30, 0.9)';
-            const nameOff = isDark ? 'rgba(255, 255, 255, 0.87)' : 'rgba(0, 0, 0, 0.87)';
-            const iconBgOff = isDark ? 'rgba(255, 149, 0, 0.08)' : 'rgba(255, 149, 0, 0.06)';
-            const boxShadowOn = isDark ? '0 2px 10px rgba(0, 0, 0, 0.3)' : '0 2px 10px rgba(0, 0, 0, 0.12)';
-            const boxShadowOff = isDark ? '0 1px 4px rgba(0, 0, 0, 0.15)' : '0 1px 4px rgba(0, 0, 0, 0.08)';
-            if (badge) { const nameEl = card.querySelector('.bubble-name'); if (nameEl) nameEl.innerText = badge; }
-            return `
-              .bubble-button-card-container { display: flex !important; flex-direction: row !important; align-items: center !important; padding: 0 12px !important; height: 56px !important; border-radius: 14px !important; overflow: hidden !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isActive ? surfaceOn : surfaceOff} !important; border: ${isActive ? borderOn : borderOff} !important; box-shadow: ${isActive ? boxShadowOn : boxShadowOff} !important; }
-              .bubble-button-card-container:active { transform: scale(0.98) !important; }
-              .bubble-content-container { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 10px !important; width: 100% !important; height: 100% !important; padding: 0 !important; }
-              .bubble-icon-container { width: 36px !important; min-width: 36px !important; height: 36px !important; min-height: 36px !important; border-radius: 10px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; margin: 0 !important; background: ${isActive ? 'rgba(255, 149, 0, 0.14)' : iconBgOff} !important; border: ${isActive ? '1px solid rgba(255, 149, 0, 0.18)' : '1px solid rgba(255, 149, 0, 0.10)'} !important; }
-              .bubble-icon { --mdc-icon-size: 20px !important; color: ${accentColor} !important; opacity: ${isActive ? '1' : '0.65'} !important; }
-              .bubble-name-container { flex: 1 !important; margin: 0 !important; min-width: 0 !important; }
-              .bubble-name { font-weight: 600 !important; font-size: 13px !important; line-height: 1.3 !important; color: ${isActive ? nameOn : nameOff} !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-            `;
-          })()}
-
-      # ── Dim (pill) ──
-      - type: custom:bubble-card
-        card_type: button
-        button_type: state
-        entity: light.living_room_lights
-        name: Dim
+          style:
+            ha-tile-icon$: |
+              .container {
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 12px !important;
+              }
+            ha-tile-info$: |
+              .primary {
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                color: var(--primary-text-color) !important;
+              }
+              .secondary {
+                font-size: 13px !important;
+                font-weight: 700 !important;
+                font-variant-numeric: tabular-nums !important;
+                color: #ff9500 !important;
+              }
+            .: |
+              ha-card {
+                background: rgba(244, 244, 246, 1.0) !important;
+                border: 1px solid rgba(0, 0, 0, 0.06) !important;
+                border-radius: 14px !important;
+                height: 56px !important;
+                padding: 0 10px !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                cursor: pointer !important;
+              }
+              ha-card:active {
+                transform: scale(0.96) !important;
+              }
+              @media (prefers-color-scheme: dark) {
+                ha-card {
+                  background: rgba(44, 44, 46, 0.8) !important;
+                  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                }
+              }
+              ha-tile-icon {
+                --mdc-icon-size: 22px !important;
+              }
+      - type: custom:mushroom-template-card
+        entity: sensor.room_living_state
+        primary: >-
+          {% set dir = state_attr('sensor.room_living_state',
+          'offset_direction') | default('neutral') %} {% if dir == 'dimmer'
+          %}Dimming{% else %}Dim{% endif %}
+        secondary: >-
+          {% set offset = state_attr('sensor.room_living_state',
+          'brightness_offset') | default(0) | float %} {% set dir =
+          state_attr('sensor.room_living_state', 'offset_direction') |
+          default('neutral') %} {% if dir == 'dimmer' %}{{ offset | round(0) |
+          int }}%{% endif %}
         icon: mdi:weather-night
-        show_name: true
-        show_state: false
-        show_attribute: false
-        scrolling_effect: false
+        icon_color: >-
+          {% set dir = state_attr('sensor.room_living_state',
+          'offset_direction') | default('neutral') %} {% if dir == 'dimmer'
+          %}indigo{% else %}grey{% endif %}
         tap_action:
           action: perform-action
           perform_action: script.oal_global_manual_dimmer
           data:
             lights: light.living_room_lights
-        hold_action:
-          action: none
+        features_position: bottom
         card_mod:
-          style: >
-            ha-card { background: transparent !important; border: none !important; box-shadow: none !important; }
-        styles: |-
-          ${(() => {
-            const isDark = hass.themes?.darkMode;
-            const roomState = hass.states['sensor.room_living_state'];
-            const offset = parseFloat(roomState?.attributes?.brightness_offset || '0');
-            const direction = roomState?.attributes?.offset_direction || 'neutral';
-            const isActive = direction === 'dimmer';
-            const badge = isActive ? Math.round(offset) + '%' : '';
-            const accentColor = '#5e5ce6';
-            const surfaceOn = isDark
-              ? 'linear-gradient(180deg, rgba(32, 30, 48, 0.95) 0%, rgba(28, 28, 40, 0.93) 100%)'
-              : 'linear-gradient(180deg, rgba(240, 240, 255, 0.97) 0%, rgba(235, 235, 250, 0.95) 100%)';
-            const surfaceOff = isDark ? 'rgba(32, 32, 34, 0.85)' : 'rgba(246, 246, 248, 0.95)';
-            const borderOn = isDark ? '1.5px solid rgba(94, 92, 230, 0.14)' : '1.5px solid rgba(94, 92, 230, 0.20)';
-            const borderOff = isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid rgba(0, 0, 0, 0.04)';
-            const nameOn = isDark ? 'rgba(255, 255, 255, 0.92)' : 'rgba(30, 30, 30, 0.9)';
-            const nameOff = isDark ? 'rgba(255, 255, 255, 0.87)' : 'rgba(0, 0, 0, 0.87)';
-            const iconBgOff = isDark ? 'rgba(94, 92, 230, 0.08)' : 'rgba(94, 92, 230, 0.06)';
-            const boxShadowOn = isDark ? '0 2px 10px rgba(0, 0, 0, 0.3)' : '0 2px 10px rgba(0, 0, 0, 0.12)';
-            const boxShadowOff = isDark ? '0 1px 4px rgba(0, 0, 0, 0.15)' : '0 1px 4px rgba(0, 0, 0, 0.08)';
-            if (badge) { const nameEl = card.querySelector('.bubble-name'); if (nameEl) nameEl.innerText = badge; }
-            return `
-              .bubble-button-card-container { display: flex !important; flex-direction: row !important; align-items: center !important; padding: 0 12px !important; height: 56px !important; border-radius: 14px !important; overflow: hidden !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isActive ? surfaceOn : surfaceOff} !important; border: ${isActive ? borderOn : borderOff} !important; box-shadow: ${isActive ? boxShadowOn : boxShadowOff} !important; }
-              .bubble-button-card-container:active { transform: scale(0.98) !important; }
-              .bubble-content-container { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 10px !important; width: 100% !important; height: 100% !important; padding: 0 !important; }
-              .bubble-icon-container { width: 36px !important; min-width: 36px !important; height: 36px !important; min-height: 36px !important; border-radius: 10px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; margin: 0 !important; background: ${isActive ? 'rgba(94, 92, 230, 0.14)' : iconBgOff} !important; border: ${isActive ? '1px solid rgba(94, 92, 230, 0.18)' : '1px solid rgba(94, 92, 230, 0.10)'} !important; }
-              .bubble-icon { --mdc-icon-size: 20px !important; color: ${accentColor} !important; opacity: ${isActive ? '1' : '0.65'} !important; }
-              .bubble-name-container { flex: 1 !important; margin: 0 !important; min-width: 0 !important; }
-              .bubble-name { font-weight: 600 !important; font-size: 13px !important; line-height: 1.3 !important; color: ${isActive ? nameOn : nameOff} !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-            `;
-          })()}
-
-      # ── Mode (pill) ──
+          style:
+            ha-tile-icon$: |
+              .container {
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 12px !important;
+              }
+            ha-tile-info$: |
+              .primary {
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                color: var(--primary-text-color) !important;
+              }
+              .secondary {
+                font-size: 13px !important;
+                font-weight: 700 !important;
+                font-variant-numeric: tabular-nums !important;
+                color: #5e5ce6 !important;
+              }
+            .: |
+              ha-card {
+                background: rgba(244, 244, 246, 1.0) !important;
+                border: 1px solid rgba(0, 0, 0, 0.06) !important;
+                border-radius: 14px !important;
+                height: 56px !important;
+                padding: 0 10px !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                cursor: pointer !important;
+              }
+              ha-card:active {
+                transform: scale(0.96) !important;
+              }
+              @media (prefers-color-scheme: dark) {
+                ha-card {
+                  background: rgba(44, 44, 46, 0.8) !important;
+                  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                }
+              }
+              ha-tile-icon {
+                --mdc-icon-size: 22px !important;
+              }
       - type: custom:mushroom-template-card
         entity: input_select.oal_active_configuration
         primary: Mode
         secondary: "{{ states('input_select.oal_active_configuration') or 'Adaptive' }}"
         icon: mdi:lightbulb-auto
-        icon_color: >-
-          {% set mode = states('input_select.oal_active_configuration') %}
-          {% if mode == 'Full Bright' %}amber
-          {% elif mode == 'Dim Ambient' %}grey
-          {% elif mode == 'Warm Ambient' %}deep-orange
-          {% elif mode == 'TV Mode' %}purple
-          {% elif mode == 'Sleep' %}indigo
-          {% elif mode == 'Manual' %}red
-          {% else %}green{% endif %}
         tap_action:
           action: more-info
+        color: >-
+          {% set mode = states('input_select.oal_active_configuration') %} {% if
+          mode == 'Full Bright' %}amber {% elif mode == 'Dim Ambient' %}grey {%
+          elif mode == 'Warm Ambient' %}deep-orange {% elif mode == 'TV Mode'
+          %}purple {% elif mode == 'Sleep' %}indigo {% elif mode == 'Manual'
+          %}red {% else %}green{% endif %}
+        features_position: bottom
         card_mod:
           style:
             ha-tile-icon$: |
               .container {
-                width: 36px !important;
-                height: 36px !important;
-                border-radius: 10px !important;
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 12px !important;
               }
             ha-tile-info$: |
               .primary {
-                font-size: 13px !important;
-                font-weight: 600 !important;
+                font-size: 14px !important;
+                font-weight: 550 !important;
                 color: var(--primary-text-color) !important;
               }
               .secondary {
-                font-size: 12px !important;
-                font-weight: 500 !important;
+                font-size: 13px !important;
+                font-weight: 600 !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
                 white-space: nowrap !important;
               }
             .: |
               ha-card {
-                background: var(--popup-surface-off, rgba(246, 246, 248, 0.95)) !important;
-                border: var(--popup-border-off, 1.5px solid rgba(0, 0, 0, 0.04)) !important;
+                background: rgba(244, 244, 246, 1.0) !important;
+                border: 1px solid rgba(0, 0, 0, 0.06) !important;
                 border-radius: 14px !important;
                 height: 56px !important;
-                padding: 0 12px !important;
+                padding: 0 10px !important;
                 margin: 0 !important;
-                box-shadow: var(--popup-shadow-off, none) !important;
+                box-shadow: none !important;
+              }
+              @media (prefers-color-scheme: dark) {
+                ha-card {
+                  background: rgba(44, 44, 46, 0.8) !important;
+                  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                }
               }
               ha-tile-icon {
-                --mdc-icon-size: 20px !important;
+                --mdc-icon-size: 22px !important;
               }
-
-      # ── Lights (pill) ──
       - type: custom:mushroom-template-card
         entity: sensor.room_living_state
         primary: Lights
         secondary: >-
-          {% set lights_on = state_attr('sensor.room_living_state', 'lights_on') | default(0) %}
-          {% set has_override = (state_attr('sensor.room_living_state', 'manually_controlled_lights') or []) | count > 0 %}
-          {% set offset = state_attr('sensor.room_living_state', 'brightness_offset') | default(0) | float %}
-          {% set dir = state_attr('sensor.room_living_state', 'offset_direction') | default('neutral') %}
-          {% set text = lights_on | string + ' / 7' %}
-          {% if has_override %}{{ text }} (manual)
-          {% elif dir == 'brighter' %}{{ text }} (+{{ offset | abs | round(0) | int }}%)
-          {% elif dir == 'dimmer' %}{{ text }} ({{ offset | round(0) | int }}%)
-          {% else %}{{ text }}{% endif %}
+          {% set lights_on = state_attr('sensor.room_living_state', 'lights_on')
+          | default(0) %} {% set has_override =
+          (state_attr('sensor.room_living_state', 'manually_controlled_lights')
+          or []) | count > 0 %} {% set offset =
+          state_attr('sensor.room_living_state', 'brightness_offset') |
+          default(0) | float %} {% set dir =
+          state_attr('sensor.room_living_state', 'offset_direction') |
+          default('neutral') %} {% set text = lights_on | string + ' / 7' %} {%
+          if has_override %}{{ text }} (manual) {% elif dir == 'brighter' %}{{
+          text }} (+{{ offset | abs | round(0) | int }}%) {% elif dir ==
+          'dimmer' %}{{ text }} ({{ offset | round(0) | int }}%) {% else %}{{
+          text }}{% endif %}
         icon: mdi:lightbulb-group-outline
         icon_color: >-
-          {% set has_override = (state_attr('sensor.room_living_state', 'manually_controlled_lights') or []) | count > 0 %}
-          {% set lights_on = state_attr('sensor.room_living_state', 'lights_on') | default(0) | int %}
-          {% if has_override %}red
-          {% elif lights_on > 0 %}amber
-          {% else %}grey{% endif %}
+          {% set has_override = (state_attr('sensor.room_living_state',
+          'manually_controlled_lights') or []) | count > 0 %} {% set lights_on =
+          state_attr('sensor.room_living_state', 'lights_on') | default(0) | int
+          %} {% if has_override %}red {% elif lights_on > 0 %}amber {% else
+          %}grey{% endif %}
         tap_action:
           action: more-info
         card_mod:
           style:
             ha-tile-icon$: |
               .container {
-                width: 36px !important;
-                height: 36px !important;
-                border-radius: 10px !important;
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 12px !important;
               }
             ha-tile-info$: |
               .primary {
-                font-size: 13px !important;
-                font-weight: 600 !important;
+                font-size: 14px !important;
+                font-weight: 550 !important;
                 color: var(--primary-text-color) !important;
               }
               .secondary {
-                font-size: 12px !important;
-                font-weight: 500 !important;
+                font-size: 13px !important;
+                font-weight: 600 !important;
                 font-variant-numeric: tabular-nums !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
@@ -466,52 +481,36 @@ cards:
               }
             .: |
               ha-card {
-                background: var(--popup-surface-off, rgba(246, 246, 248, 0.95)) !important;
-                border: var(--popup-border-off, 1.5px solid rgba(0, 0, 0, 0.04)) !important;
+                background: rgba(244, 244, 246, 1.0) !important;
+                border: 1px solid rgba(0, 0, 0, 0.06) !important;
                 border-radius: 14px !important;
                 height: 56px !important;
-                padding: 0 12px !important;
+                padding: 0 10px !important;
                 margin: 0 !important;
-                box-shadow: var(--popup-shadow-off, none) !important;
+                box-shadow: none !important;
+              }
+              @media (prefers-color-scheme: dark) {
+                ha-card {
+                  background: rgba(44, 44, 46, 0.8) !important;
+                  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                }
               }
               ha-tile-icon {
-                --mdc-icon-size: 20px !important;
+                --mdc-icon-size: 22px !important;
               }
-
-  # ─── OVERRIDE PILLS (conditional, side-by-side) ───
-  - type: custom:layout-card
-    layout_type: custom:grid-layout
-    layout:
-      grid-template-columns: repeat(2, 1fr)
-      gap: 8px
-      padding: 0
-    card_mod:
-      style: |
-        ha-card {
-          {% set n = (state_attr('sensor.room_living_state', 'manually_controlled_lights') or []) | count %}
-          {% if n == 0 %}
-          display: none !important;
-          {% else %}
-          background: transparent !important;
-          box-shadow: none !important;
-          border: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          {% endif %}
-        }
-        .card-content {
-          padding: 0 !important;
-          margin: 0 !important;
-        }
-    cards:
       - type: custom:mushroom-template-card
         entity: sensor.room_living_state
-        primary: Reset Overrides
+        primary: Override Active
         secondary: >-
-          {% set n = (state_attr('sensor.room_living_state', 'manually_controlled_lights') or []) | count %}
-          {% if n > 0 %}{{ n }} light{{ 's' if n > 1 else '' }}{% endif %}
-        icon: mdi:restore
-        icon_color: red
+          {% set count = (state_attr('sensor.room_living_state',
+          'manually_controlled_lights') or []) | count %} {% set timer =
+          state_attr('sensor.oal_main_living_status',
+          'override_remaining_formatted') | default('') %} {% if count > 0 %}
+            {% set text = count | string + ' light' + ('s' if count > 1 else '') %}
+            {% if timer and timer != '0m' %}{{ text }} - resets in {{ timer }}
+            {% else %}{{ text }}{% endif %}
+          {% endif %}
+        icon: mdi:hand-back-left
         tap_action:
           action: perform-action
           perform_action: adaptive_lighting.set_manual_control
@@ -522,93 +521,61 @@ cards:
               - switch.adaptive_lighting_column_lights
               - switch.adaptive_lighting_recessed_ceiling
             manual_control: false
+        color: red
+        features_position: bottom
+        view_layout:
+          grid-column: 1 / -1
         card_mod:
           style:
             ha-tile-icon$: |
               .container {
-                width: 36px !important;
-                height: 36px !important;
-                border-radius: 10px !important;
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 12px !important;
               }
             ha-tile-info$: |
               .primary {
-                font-size: 13px !important;
-                font-weight: 600 !important;
-              }
-              .secondary {
-                font-size: 12px !important;
-                font-weight: 500 !important;
-                color: #ff3b30 !important;
-              }
-            .: |
-              ha-card {
-                background: rgba(255, 59, 48, 0.10) !important;
-                border: 1px solid rgba(255, 59, 48, 0.15) !important;
-                border-radius: 14px !important;
-                height: 56px !important;
-                padding: 0 12px !important;
-                margin: 0 !important;
-                box-shadow: none !important;
-                transition: background 0.2s ease, transform 0.1s ease !important;
-              }
-              ha-card:active {
-                transform: scale(0.98) !important;
-                background: rgba(255, 59, 48, 0.16) !important;
-              }
-              ha-tile-icon {
-                --mdc-icon-size: 20px !important;
-              }
-      - type: custom:mushroom-template-card
-        entity: sensor.room_living_state
-        primary: Override Active
-        secondary: >-
-          {% set count = (state_attr('sensor.room_living_state', 'manually_controlled_lights') or []) | count %}
-          {% set timer = state_attr('sensor.oal_main_living_status', 'override_remaining_formatted') | default('') %}
-          {% if count > 0 %}
-            {% if timer and timer != '0m' %}resets {{ timer }}
-            {% else %}{{ count }} light{{ 's' if count > 1 else '' }}{% endif %}
-          {% endif %}
-        icon: mdi:hand-back-left
-        icon_color: red
-        tap_action:
-          action: more-info
-        card_mod:
-          style:
-            ha-tile-icon$: |
-              .container {
-                width: 36px !important;
-                height: 36px !important;
-                border-radius: 10px !important;
-              }
-            ha-tile-info$: |
-              .primary {
-                font-size: 13px !important;
-                font-weight: 600 !important;
+                font-size: 15px !important;
+                font-weight: 550 !important;
                 color: var(--primary-text-color) !important;
               }
               .secondary {
-                font-size: 12px !important;
-                font-weight: 500 !important;
+                font-size: 14px !important;
+                font-weight: 600 !important;
                 color: #ff3b30 !important;
               }
             .: |
               ha-card {
-                background: var(--popup-surface-off, rgba(246, 246, 248, 0.95)) !important;
+                {% set n = (state_attr('sensor.room_living_state', 'manually_controlled_lights') or []) | count %}
+                {% if n == 0 %}
+                display: none !important;
+                {% else %}
+                background: rgba(244, 244, 246, 1.0) !important;
                 border: 1px solid rgba(255, 59, 48, 0.15) !important;
                 border-radius: 14px !important;
                 height: 56px !important;
                 padding: 0 12px !important;
                 margin: 0 !important;
                 box-shadow: none !important;
+                cursor: pointer !important;
+                {% endif %}
+              }
+              ha-card:active {
+                transform: scale(0.96) !important;
+              }
+              @media (prefers-color-scheme: dark) {
+                ha-card {
+                  background: rgba(44, 44, 46, 0.8) !important;
+                  border-color: rgba(255, 59, 48, 0.20) !important;
+                }
               }
               ha-tile-icon {
-                --mdc-icon-size: 20px !important;
+                --mdc-icon-size: 22px !important;
               }
-
-  # ─── SECTION LABEL: Media ───
   - type: custom:mushroom-template-card
     primary: MEDIA
     icon: ""
+    features_position: bottom
     card_mod:
       style:
         ha-tile-info$: |
@@ -616,7 +583,7 @@ cards:
             font-size: 16px !important;
             font-weight: 600 !important;
             color: var(--secondary-text-color) !important;
-            opacity: 0.6 !important;
+            opacity: 0.55 !important;
             letter-spacing: 0.06em !important;
             text-transform: uppercase !important;
           }
@@ -625,16 +592,13 @@ cards:
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 8px 0 0 0 !important;
+            padding: 4px 0 0 0 !important;
             margin: 0 !important;
             min-height: 0 !important;
           }
           ha-tile-icon {
             display: none !important;
           }
-
-  # ─── SONOS MEDIA PLAYER ───
-  # Built-in prev/next hidden; sub-buttons provide styled prev/next + group/ungroup
   - type: custom:bubble-card
     card_type: media-player
     entity: media_player.living_room
@@ -642,7 +606,7 @@ cards:
     icon: mdi:speaker-wireless
     card_layout: large-2-rows
     show_state: true
-    show_icon: true
+    show_icon: false
     show_name: true
     show_last_changed: false
     show_attribute: false
@@ -654,50 +618,58 @@ cards:
       volume_button: false
       play_pause_button: false
     sub_button:
-      - name: Prev
-        icon: mdi:skip-previous
-        entity: media_player.living_room
-        show_state: false
-        show_background: true
-        state_background: false
-        tap_action:
-          action: perform-action
-          perform_action: media_player.media_previous_track
-          target:
-            entity_id: media_player.living_room
-      - name: Next
-        icon: mdi:skip-next
-        entity: media_player.living_room
-        show_state: false
-        show_background: true
-        state_background: false
-        tap_action:
-          action: perform-action
-          perform_action: media_player.media_next_track
-          target:
-            entity_id: media_player.living_room
-      - name: Group All
-        icon: mdi:speaker-multiple
-        entity: media_player.living_room
-        show_state: false
-        show_background: true
-        state_background: false
-        tap_action:
-          action: perform-action
-          perform_action: script.turn_on
-          target:
-            entity_id: script.sonos_group_all_to_playing
-      - name: Ungroup
-        icon: mdi:speaker-off
-        entity: media_player.living_room
-        show_state: false
-        show_background: true
-        state_background: false
-        tap_action:
-          action: perform-action
-          perform_action: script.turn_on
-          target:
-            entity_id: script.sonos_ungroup_all
+      main:
+        - name: Next
+          icon: mdi:skip-next
+          entity: media_player.living_room
+          show_state: false
+          show_background: true
+          state_background: false
+          tap_action:
+            action: perform-action
+            perform_action: media_player.media_next_track
+            target:
+              entity_id: media_player.living_room
+        - name: Prev
+          icon: mdi:skip-previous
+          entity: media_player.living_room
+          show_state: false
+          show_background: true
+          state_background: false
+          tap_action:
+            action: perform-action
+            perform_action: media_player.media_previous_track
+            target:
+              entity_id: media_player.living_room
+        - name: Group All
+          icon: mdi:speaker-multiple
+          entity: media_player.living_room
+          show_state: false
+          show_background: true
+          state_background: false
+          tap_action:
+            action: perform-action
+            perform_action: script.turn_on
+            target:
+              entity_id: script.sonos_group_all_to_playing
+        - name: Ungroup
+          icon: mdi:speaker-off
+          entity: media_player.living_room
+          show_state: false
+          show_background: true
+          state_background: false
+          tap_action:
+            action: perform-action
+            perform_action: script.turn_on
+            target:
+              entity_id: script.sonos_ungroup_all
+      bottom: []
+    rows: 1.125
+    button_action:
+      tap_action:
+        action: more-info
+    main_buttons_position: default
+    main_buttons_full_width: false
     card_mod:
       style: |
         ha-card {
@@ -705,9 +677,8 @@ cards:
           border: none !important;
           box-shadow: none !important;
           margin: 0 !important;
+          padding: 0 !important;
         }
-
-  # ─── SECTION LABEL: Alarms ───
   - type: custom:mushroom-template-card
     primary: ALARMS
     icon: ""
@@ -718,7 +689,7 @@ cards:
             font-size: 16px !important;
             font-weight: 600 !important;
             color: var(--secondary-text-color) !important;
-            opacity: 0.6 !important;
+            opacity: 0.55 !important;
             letter-spacing: 0.06em !important;
             text-transform: uppercase !important;
           }
@@ -727,44 +698,30 @@ cards:
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 8px 0 0 0 !important;
+            padding: 4px 0 0 0 !important;
             margin: 0 !important;
             min-height: 0 !important;
           }
           ha-tile-icon {
             display: none !important;
           }
-
-  # ─── ALARM PILLS (2-col grid) ───
   - type: custom:layout-card
     layout_type: custom:grid-layout
     layout:
       grid-template-columns: repeat(2, 1fr)
       gap: 8px
-      padding: 0
-    card_mod:
-      style: |
-        ha-card {
-          background: transparent !important;
-          box-shadow: none !important;
-          border: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-        .card-content {
-          padding: 0 !important;
-          margin: 0 !important;
-        }
+      padding: 2px 0 8px 0
+      margin: 0
     cards:
       - type: custom:bubble-card
         card_type: button
-        button_type: switch
+        button_type: state
         entity: switch.sonos_alarm_520
-        name: Living Room
+        name: 10:30 AM
         icon: mdi:alarm
+        show_name: true
         show_state: false
-        show_attribute: true
-        attribute: recurrence
+        show_attribute: false
         scrolling_effect: false
         tap_action:
           action: toggle
@@ -774,53 +731,53 @@ cards:
           data:
             alarm_entity: switch.sonos_alarm_520
         card_mod:
-          style: |
-            ha-card { background: transparent !important; border: none !important; box-shadow: none !important; }
+          style: >
+            ha-card { background: transparent !important; border: none
+            !important; box-shadow: none !important; margin: 0 !important;
+            padding: 0 !important; }
         styles: |-
           ${(() => {
             const isOn = state === 'on';
             const isDark = hass.themes?.darkMode;
-            const accentColor = 'rgb(10, 132, 255)';
-            const surfaceOn = isDark ? 'linear-gradient(180deg, rgba(10, 60, 120, 0.25) 0%, rgba(10, 50, 100, 0.20) 100%)' : 'linear-gradient(180deg, rgba(220, 238, 255, 0.97) 0%, rgba(210, 232, 255, 0.95) 100%)';
-            const surfaceOff = isDark ? 'rgba(32, 32, 34, 0.85)' : 'rgba(246, 246, 248, 0.95)';
-            const borderOn = isDark ? '1.5px solid rgba(10, 132, 255, 0.14)' : '1.5px solid rgba(10, 132, 255, 0.20)';
-            const borderOff = isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid rgba(0, 0, 0, 0.04)';
-            const boxShadowOn = isDark ? '0 2px 10px rgba(0, 0, 0, 0.3)' : '0 2px 10px rgba(0, 0, 0, 0.12)';
-            const boxShadowOff = isDark ? '0 1px 4px rgba(0, 0, 0, 0.15)' : '0 1px 4px rgba(0, 0, 0, 0.08)';
-            const iconBgOff = isDark ? 'rgba(10, 132, 255, 0.08)' : 'rgba(10, 132, 255, 0.06)';
-            const entity = hass.states['switch.sonos_alarm_520'];
-            const timeRaw = entity?.attributes?.time || '';
-            const timeStr = timeRaw.substring(0, 5) || '--:--';
-            const recurrence = entity?.attributes?.recurrence || '';
-            const recMap = {DAILY: 'Daily', WEEKDAYS: 'Weekdays', WEEKENDS: 'Weekends', ONCE: 'Once'};
-            const recStr = recMap[recurrence] || (recurrence?.startsWith('ON_') ? 'Custom' : recurrence);
-            const nameEl = card.querySelector('.bubble-name');
-            if (nameEl) nameEl.innerText = timeStr;
-            const attrEl = card.querySelector('.bubble-attribute');
-            if (attrEl) attrEl.innerText = recStr;
+            const ac = '#0a84ff';
+            const sOn = isDark ? 'linear-gradient(180deg, rgba(10,60,120,0.35) 0%, rgba(10,50,100,0.30) 100%)' : 'linear-gradient(180deg, rgba(220,238,255,1.0) 0%, rgba(210,232,255,1.0) 100%)';
+            const sOff = isDark ? 'rgba(32,32,34,0.7)' : 'rgba(244,244,246,1.0)';
+            const bOn = isDark ? '1.5px solid rgba(10,132,255,0.18)' : '1.5px solid rgba(10,132,255,0.20)';
+            const bOff = isDark ? '1.5px solid rgba(255,255,255,0.08)' : '1.5px solid rgba(0,0,0,0.04)';
+            const nOn = isDark ? 'rgba(255,255,255,0.95)' : 'rgba(20,20,20,0.90)';
+            const nOff = isDark ? 'rgba(255,255,255,0.80)' : 'rgba(0,0,0,0.80)';
+            const shOn = isDark ? '0 2px 10px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.10)';
+            const shOff = isDark ? '0 1px 4px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)';
+            const iBgOn = isDark ? 'rgba(10,132,255,0.18)' : 'rgba(10,132,255,0.12)';
+            const iBgOff = isDark ? 'rgba(10,132,255,0.10)' : 'rgba(10,132,255,0.08)';
+            const ent = hass.states['switch.sonos_alarm_520'];
+            const at = ent?.attributes?.time || '';
+            const rec = ent?.attributes?.recurrence || '';
+            let td = at;
+            if (at) { const p = at.split(':'); const h = parseInt(p[0]); td = (h===0?12:h>12?h-12:h)+':'+p[1]+' '+(h>=12?'PM':'AM'); }
+            const dm = {'DAILY':'Daily','WEEKDAYS':'Weekdays','WEEKENDS':'Weekends','ON_0':'Sun','ON_1':'Mon','ON_2':'Tue','ON_3':'Wed','ON_4':'Thu','ON_5':'Fri','ON_6':'Sat'};
+            const recLabel = dm[rec] || rec;
+            const ne = card.querySelector('.bubble-name');
+            if (ne && td) ne.innerText = td + ' - ' + recLabel;
             return `
-              :host { --bubble-accent-color: ${accentColor} !important; --bubble-button-background-color: transparent !important; }
-              .bubble-button-background, .bubble-button-background-color, .bubble-background { background: transparent !important; border-radius: 14px !important; }
-              .bubble-button-card-container { display: flex !important; flex-direction: row !important; align-items: center !important; padding: 0 12px !important; height: 56px !important; border-radius: 14px !important; overflow: hidden !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isOn ? surfaceOn : surfaceOff} !important; border: ${isOn ? borderOn : borderOff} !important; box-shadow: ${isOn ? boxShadowOn : boxShadowOff} !important; }
-              .bubble-button-card-container:active { transform: scale(0.98) !important; }
-              .bubble-content-container { display: grid !important; grid-template-columns: 36px 1fr !important; grid-template-rows: auto auto !important; align-items: center !important; column-gap: 10px !important; row-gap: 1px !important; width: 100% !important; height: 100% !important; padding: 0 !important; }
-              .bubble-icon-container { grid-column: 1 !important; grid-row: 1 / 3 !important; width: 36px !important; min-width: 36px !important; height: 36px !important; min-height: 36px !important; border-radius: 10px !important; display: flex !important; align-items: center !important; justify-content: center !important; margin: 0 !important; background: ${isOn ? 'rgba(10, 132, 255, 0.14)' : iconBgOff} !important; border: ${isOn ? '1px solid rgba(10, 132, 255, 0.18)' : '1px solid rgba(10, 132, 255, 0.10)'} !important; }
-              .bubble-icon { --mdc-icon-size: 20px !important; color: ${accentColor} !important; opacity: ${isOn ? '1' : '0.65'} !important; }
-              .bubble-name-container { grid-column: 2 !important; grid-row: 1 !important; margin: 0 !important; min-width: 0 !important; }
-              .bubble-name { font-weight: 600 !important; font-size: 13px !important; line-height: 1.3 !important; color: ${isOn ? (isDark ? 'rgba(255, 255, 255, 0.92)' : 'rgba(30, 30, 30, 0.9)') : (isDark ? 'rgba(255, 255, 255, 0.70)' : 'rgba(0, 0, 0, 0.55)')} !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-              .bubble-attribute { grid-column: 2 !important; grid-row: 2 !important; font-size: 12px !important; font-weight: 500 !important; font-variant-numeric: tabular-nums !important; margin: 0 !important; color: ${isOn ? 'rgba(10, 132, 255, 0.80)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.35)')} !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+              .bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto !important; justify-items: center !important; align-items: center !important; text-align: center !important; min-height: 80px !important; padding: 12px 6px 6px 6px !important; border-radius: 18px !important; overflow: hidden !important; clip-path: inset(0 round 18px) !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isOn ? sOn : sOff} !important; border: ${isOn ? bOn : bOff} !important; box-shadow: ${isOn ? shOn : shOff} !important; }
+              .bubble-button-card-container:active { transform: scale(0.96) !important; }
+              .bubble-content-container { display: grid !important; grid-template-rows: auto auto !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; }
+              .bubble-icon-container { min-width: 50px !important; min-height: 50px !important; max-width: 50px !important; max-height: 50px !important; grid-row: 1 !important; margin: 0 0 4px 0 !important; border-radius: 14px !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isOn ? iBgOn : iBgOff} !important; border: ${isOn ? '1px solid rgba(10,132,255,0.22)' : '1px solid rgba(10,132,255,0.10)'} !important; }
+              .bubble-icon { --mdc-icon-size: 26px !important; color: ${ac} !important; opacity: ${isOn ? '1' : '0.55'} !important; }
+              .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
+              .bubble-name { font-weight: 600 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${isOn ? nOn : nOff} !important; font-variant-numeric: tabular-nums !important; }
             `;
           })()}
-
       - type: custom:bubble-card
         card_type: button
-        button_type: switch
+        button_type: state
         entity: switch.sonos_alarm_521
-        name: Bedroom
+        name: 7:00 AM
         icon: mdi:alarm
+        show_name: true
         show_state: false
-        show_attribute: true
-        attribute: recurrence
+        show_attribute: false
         scrolling_effect: false
         tap_action:
           action: toggle
@@ -830,40 +787,41 @@ cards:
           data:
             alarm_entity: switch.sonos_alarm_521
         card_mod:
-          style: |
-            ha-card { background: transparent !important; border: none !important; box-shadow: none !important; }
+          style: >
+            ha-card { background: transparent !important; border: none
+            !important; box-shadow: none !important; margin: 0 !important;
+            padding: 0 !important; }
         styles: |-
           ${(() => {
             const isOn = state === 'on';
             const isDark = hass.themes?.darkMode;
-            const accentColor = 'rgb(10, 132, 255)';
-            const surfaceOn = isDark ? 'linear-gradient(180deg, rgba(10, 60, 120, 0.25) 0%, rgba(10, 50, 100, 0.20) 100%)' : 'linear-gradient(180deg, rgba(220, 238, 255, 0.97) 0%, rgba(210, 232, 255, 0.95) 100%)';
-            const surfaceOff = isDark ? 'rgba(32, 32, 34, 0.85)' : 'rgba(246, 246, 248, 0.95)';
-            const borderOn = isDark ? '1.5px solid rgba(10, 132, 255, 0.14)' : '1.5px solid rgba(10, 132, 255, 0.20)';
-            const borderOff = isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid rgba(0, 0, 0, 0.04)';
-            const boxShadowOn = isDark ? '0 2px 10px rgba(0, 0, 0, 0.3)' : '0 2px 10px rgba(0, 0, 0, 0.12)';
-            const boxShadowOff = isDark ? '0 1px 4px rgba(0, 0, 0, 0.15)' : '0 1px 4px rgba(0, 0, 0, 0.08)';
-            const iconBgOff = isDark ? 'rgba(10, 132, 255, 0.08)' : 'rgba(10, 132, 255, 0.06)';
-            const entity = hass.states['switch.sonos_alarm_521'];
-            const timeRaw = entity?.attributes?.time || '';
-            const timeStr = timeRaw.substring(0, 5) || '--:--';
-            const recurrence = entity?.attributes?.recurrence || '';
-            const recMap = {DAILY: 'Daily', WEEKDAYS: 'Weekdays', WEEKENDS: 'Weekends', ONCE: 'Once'};
-            const recStr = recMap[recurrence] || (recurrence?.startsWith('ON_') ? 'Custom' : recurrence);
-            const nameEl = card.querySelector('.bubble-name');
-            if (nameEl) nameEl.innerText = timeStr;
-            const attrEl = card.querySelector('.bubble-attribute');
-            if (attrEl) attrEl.innerText = recStr;
+            const ac = '#0a84ff';
+            const sOn = isDark ? 'linear-gradient(180deg, rgba(10,60,120,0.35) 0%, rgba(10,50,100,0.30) 100%)' : 'linear-gradient(180deg, rgba(220,238,255,1.0) 0%, rgba(210,232,255,1.0) 100%)';
+            const sOff = isDark ? 'rgba(32,32,34,0.7)' : 'rgba(244,244,246,1.0)';
+            const bOn = isDark ? '1.5px solid rgba(10,132,255,0.18)' : '1.5px solid rgba(10,132,255,0.20)';
+            const bOff = isDark ? '1.5px solid rgba(255,255,255,0.08)' : '1.5px solid rgba(0,0,0,0.04)';
+            const nOn = isDark ? 'rgba(255,255,255,0.95)' : 'rgba(20,20,20,0.90)';
+            const nOff = isDark ? 'rgba(255,255,255,0.80)' : 'rgba(0,0,0,0.80)';
+            const shOn = isDark ? '0 2px 10px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.10)';
+            const shOff = isDark ? '0 1px 4px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)';
+            const iBgOn = isDark ? 'rgba(10,132,255,0.18)' : 'rgba(10,132,255,0.12)';
+            const iBgOff = isDark ? 'rgba(10,132,255,0.10)' : 'rgba(10,132,255,0.08)';
+            const ent = hass.states['switch.sonos_alarm_521'];
+            const at = ent?.attributes?.time || '';
+            const rec = ent?.attributes?.recurrence || '';
+            let td = at;
+            if (at) { const p = at.split(':'); const h = parseInt(p[0]); td = (h===0?12:h>12?h-12:h)+':'+p[1]+' '+(h>=12?'PM':'AM'); }
+            const dm = {'DAILY':'Daily','WEEKDAYS':'Weekdays','WEEKENDS':'Weekends','ON_0':'Sun','ON_1':'Mon','ON_2':'Tue','ON_3':'Wed','ON_4':'Thu','ON_5':'Fri','ON_6':'Sat'};
+            const recLabel = dm[rec] || rec;
+            const ne = card.querySelector('.bubble-name');
+            if (ne && td) ne.innerText = td + ' - ' + recLabel;
             return `
-              :host { --bubble-accent-color: ${accentColor} !important; --bubble-button-background-color: transparent !important; }
-              .bubble-button-background, .bubble-button-background-color, .bubble-background { background: transparent !important; border-radius: 14px !important; }
-              .bubble-button-card-container { display: flex !important; flex-direction: row !important; align-items: center !important; padding: 0 12px !important; height: 56px !important; border-radius: 14px !important; overflow: hidden !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isOn ? surfaceOn : surfaceOff} !important; border: ${isOn ? borderOn : borderOff} !important; box-shadow: ${isOn ? boxShadowOn : boxShadowOff} !important; }
-              .bubble-button-card-container:active { transform: scale(0.98) !important; }
-              .bubble-content-container { display: grid !important; grid-template-columns: 36px 1fr !important; grid-template-rows: auto auto !important; align-items: center !important; column-gap: 10px !important; row-gap: 1px !important; width: 100% !important; height: 100% !important; padding: 0 !important; }
-              .bubble-icon-container { grid-column: 1 !important; grid-row: 1 / 3 !important; width: 36px !important; min-width: 36px !important; height: 36px !important; min-height: 36px !important; border-radius: 10px !important; display: flex !important; align-items: center !important; justify-content: center !important; margin: 0 !important; background: ${isOn ? 'rgba(10, 132, 255, 0.14)' : iconBgOff} !important; border: ${isOn ? '1px solid rgba(10, 132, 255, 0.18)' : '1px solid rgba(10, 132, 255, 0.10)'} !important; }
-              .bubble-icon { --mdc-icon-size: 20px !important; color: ${accentColor} !important; opacity: ${isOn ? '1' : '0.65'} !important; }
-              .bubble-name-container { grid-column: 2 !important; grid-row: 1 !important; margin: 0 !important; min-width: 0 !important; }
-              .bubble-name { font-weight: 600 !important; font-size: 13px !important; line-height: 1.3 !important; color: ${isOn ? (isDark ? 'rgba(255, 255, 255, 0.92)' : 'rgba(30, 30, 30, 0.9)') : (isDark ? 'rgba(255, 255, 255, 0.70)' : 'rgba(0, 0, 0, 0.55)')} !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-              .bubble-attribute { grid-column: 2 !important; grid-row: 2 !important; font-size: 12px !important; font-weight: 500 !important; font-variant-numeric: tabular-nums !important; margin: 0 !important; color: ${isOn ? 'rgba(10, 132, 255, 0.80)' : (isDark ? 'rgba(255, 255, 255, 0.30)' : 'rgba(60, 60, 60, 0.35)')} !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+              .bubble-button-card-container { position: relative !important; display: grid !important; grid-template-rows: auto auto !important; justify-items: center !important; align-items: center !important; text-align: center !important; min-height: 80px !important; padding: 12px 6px 6px 6px !important; border-radius: 18px !important; overflow: hidden !important; clip-path: inset(0 round 18px) !important; transition: transform 0.15s ease-out, background 0.3s ease, box-shadow 0.3s ease !important; background: ${isOn ? sOn : sOff} !important; border: ${isOn ? bOn : bOff} !important; box-shadow: ${isOn ? shOn : shOff} !important; }
+              .bubble-button-card-container:active { transform: scale(0.96) !important; }
+              .bubble-content-container { display: grid !important; grid-template-rows: auto auto !important; justify-items: center !important; width: 100% !important; position: relative !important; z-index: 5 !important; }
+              .bubble-icon-container { min-width: 50px !important; min-height: 50px !important; max-width: 50px !important; max-height: 50px !important; grid-row: 1 !important; margin: 0 0 4px 0 !important; border-radius: 14px !important; display: flex !important; align-items: center !important; justify-content: center !important; background: ${isOn ? iBgOn : iBgOff} !important; border: ${isOn ? '1px solid rgba(10,132,255,0.22)' : '1px solid rgba(10,132,255,0.10)'} !important; }
+              .bubble-icon { --mdc-icon-size: 26px !important; color: ${ac} !important; opacity: ${isOn ? '1' : '0.55'} !important; }
+              .bubble-name-container { grid-row: 2 !important; margin: 0 !important; width: 100% !important; }
+              .bubble-name { font-weight: 600 !important; font-size: 13px !important; line-height: 1.2 !important; justify-content: center !important; margin: 0 2px !important; color: ${isOn ? nOn : nOff} !important; font-variant-numeric: tabular-nums !important; }
             `;
           })()}

@@ -13,6 +13,13 @@ This runbook executes the OAL v14 architecture migration in safe, testable phase
 Primary file:
 - `packages/oal_lighting_control_package.yaml`
 
+Companion design plan (read fully before execution):
+- `smooth-jingling-feather.md`
+
+Source-of-truth usage:
+- Use `RUNBOOK.md` for implementation sequencing and validation gates.
+- Use `smooth-jingling-feather.md` for architecture intent and edge-case rationale.
+
 ## 2. Preconditions
 1. Home Assistant is reachable.
 2. You can run config checks (`ha_check_config`).

@@ -1,0 +1,230 @@
+title: Adaptive Living
+icon: mdi:home-automation
+views:
+  - type: sections
+    title: Column RGB Ops
+    path: column-rgb-ops
+    icon: mdi:palette-swatch
+    max_columns: 4
+    badges:
+      - type: entity
+        entity: input_boolean.oal_column_rgb_session_active
+        show_state: true
+        show_icon: true
+        show_name: true
+        name: Session
+      - type: entity
+        entity: binary_sensor.oal_column_rgb_protect_active
+        show_state: true
+        show_icon: true
+        show_name: true
+        name: Protect
+      - type: entity
+        entity: switch.adaptive_lighting_sleep_mode_column_lights
+        show_state: true
+        show_icon: true
+        show_name: true
+        name: Sleep
+      - type: entity
+        entity: input_boolean.oal_column_rgb_debug_events
+        show_state: true
+        show_icon: true
+        show_name: false
+    header:
+      layout: center
+      badges_position: bottom
+    sections:
+      - type: grid
+        cards:
+          - type: entities
+            title: Ownership and Controls
+            show_header_toggle: false
+            entities:
+              - entity: input_boolean.oal_column_rgb_session_active
+                name: RGB Session Active
+              - entity: binary_sensor.oal_column_rgb_protect_active
+                name: RGB Protect Active
+              - entity: binary_sensor.oal_column_rgb_window_active
+                name: RGB Window Active
+              - entity: switch.adaptive_lighting_sleep_mode_column_lights
+                name: Column Sleep Mode
+              - entity: input_boolean.oal_column_rgb_guard_kill_switch
+                name: Guard Kill Switch
+              - entity: input_boolean.oal_column_rgb_debug_events
+                name: Debug Event Emission
+              - type: attribute
+                entity: binary_sensor.oal_column_rgb_protect_active
+                attribute: manual_count
+                name: Manual Count
+              - type: attribute
+                entity: binary_sensor.oal_column_rgb_protect_active
+                attribute: guard_kill_switch
+                name: Guard Kill Switch (Attr)
+          - type: entities
+            title: Sun and Runtime Context
+            show_header_toggle: false
+            entities:
+              - entity: sun.sun
+                name: Sun
+              - type: attribute
+                entity: sun.sun
+                attribute: elevation
+                name: Sun Elevation
+              - type: attribute
+                entity: sun.sun
+                attribute: rising
+                name: Sun Rising
+              - entity: input_select.oal_active_configuration
+                name: Active OAL Config
+              - entity: switch.adaptive_lighting_column_lights
+                name: Column AL Switch
+              - type: attribute
+                entity: switch.adaptive_lighting_column_lights
+                attribute: manual_control
+                name: Column Manual List
+              - type: attribute
+                entity: switch.adaptive_lighting_column_lights
+                attribute: autoreset_control_seconds
+                name: Autoreset Seconds
+              - entity: input_boolean.oal_test_mode
+                name: Test Mode
+              - entity: input_number.oal_test_sun_elevation
+                name: Test Sun Elevation
+              - entity: input_boolean.oal_test_sun_rising
+                name: Test Sun Rising
+              - entity: sensor.oal_effective_sun_elevation
+                name: Effective Sun Elevation
+              - entity: binary_sensor.oal_effective_sun_rising
+                name: Effective Sun Rising
+
+      - type: grid
+        cards:
+          - type: history-graph
+            title: Lifecycle Health (12h)
+            hours_to_show: 12
+            entities:
+              - entity: input_boolean.oal_column_rgb_session_active
+                name: Session
+              - entity: binary_sensor.oal_column_rgb_protect_active
+                name: Protect
+              - entity: binary_sensor.oal_column_rgb_window_active
+                name: Window
+              - entity: switch.adaptive_lighting_sleep_mode_column_lights
+                name: Sleep
+          - type: logbook
+            title: Column Lifecycle Logbook (4h)
+            hours_to_show: 4
+            entities:
+              - automation.oal_v13_column_lights_prepare_rgb_mode
+              - automation.oal_v13_column_lights_rgb_transition
+              - automation.oal_v13_column_lights_rgb_self_heal
+              - automation.oal_v13_column_lights_sleep_mode_final_safety
+              - automation.oal_v13_column_lights_morning_exit_rgb_mode
+              - automation.oal_v13_core_adjustment_engine_master
+              - automation.oal_v13_configuration_manager_power_handoff
+              - script.oal_reset_soft
+              - script.oal_reset_room
+              - switch.adaptive_lighting_column_lights
+              - switch.adaptive_lighting_sleep_mode_column_lights
+
+      - type: grid
+        cards:
+          - type: markdown
+            title: Decision Map (`oal_column_rgb_debug`)
+            content: |
+              Use Developer Tools -> Events -> Listen to `oal_column_rgb_debug`.
+
+              Decision quick map:
+              - `prepare_on_start` -> startup prepare eligibility.
+              - `protect_engage` -> protection preserved/engaged.
+              - `protect_skip` -> protection intentionally not applied.
+              - `release_forced` -> session/manual released to AL ownership.
+              - `heal_executed` -> self-heal restored manual RGB ownership.
+              - `engine_protect_filter` -> engine filtered columns (`columns_filtered`) or explicit bypass (`override_all_bypass`).
+              - `startup_reconcile` -> startup session state reconciled.
+          - type: entities
+            title: Last Triggered (Trace Routing)
+            show_header_toggle: false
+            entities:
+              - type: attribute
+                entity: automation.oal_v13_core_adjustment_engine_master
+                attribute: last_triggered
+                name: Core Engine
+              - type: attribute
+                entity: automation.oal_v13_configuration_manager_power_handoff
+                attribute: last_triggered
+                name: Config Manager
+              - type: attribute
+                entity: automation.oal_v13_column_lights_prepare_rgb_mode
+                attribute: last_triggered
+                name: Prepare RGB
+              - type: attribute
+                entity: automation.oal_v13_column_lights_rgb_self_heal
+                attribute: last_triggered
+                name: RGB Self-Heal
+              - type: attribute
+                entity: automation.oal_v13_column_lights_sleep_mode_final_safety
+                attribute: last_triggered
+                name: Sleep Trigger
+              - type: attribute
+                entity: automation.oal_v13_column_lights_morning_exit_rgb_mode
+                attribute: last_triggered
+                name: Morning Exit
+              - type: attribute
+                entity: automation.oal_v13_system_startup_initialization
+                attribute: last_triggered
+                name: Startup Initialization
+
+      - type: grid
+        cards:
+          - type: grid
+            title: Runbook Controls
+            columns: 2
+            square: false
+            cards:
+              - type: button
+                name: Run Soft Reset
+                icon: mdi:restore
+                tap_action:
+                  action: call-service
+                  service: script.turn_on
+                  target:
+                    entity_id: script.oal_reset_soft
+              - type: button
+                name: Trigger Sleep Safety
+                icon: mdi:weather-night
+                tap_action:
+                  action: call-service
+                  service: automation.trigger
+                  target:
+                    entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
+                  data:
+                    skip_condition: false
+              - type: button
+                name: Trigger Prepare RGB
+                icon: mdi:palette
+                tap_action:
+                  action: call-service
+                  service: automation.trigger
+                  target:
+                    entity_id: automation.oal_v13_column_lights_prepare_rgb_mode
+                  data:
+                    skip_condition: false
+              - type: button
+                name: Trigger Self-Heal
+                icon: mdi:auto-fix
+                tap_action:
+                  action: call-service
+                  service: automation.trigger
+                  target:
+                    entity_id: automation.oal_v13_column_lights_rgb_self_heal
+                  data:
+                    skip_condition: false
+          - type: markdown
+            title: Operator Notes
+            content: |
+              If behavior diverges:
+              1. Confirm `Guard Kill Switch` is OFF.
+              2. Confirm `Debug Event Emission` is ON.
+              3. Inspect latest `oal_column_rgb_debug` event payload.
+              4. Open trace for the source automation named in that event.

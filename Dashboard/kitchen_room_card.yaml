@@ -30,7 +30,9 @@ cards:
             action: call-service
             service: adaptive_lighting.set_manual_control
             data:
-              entity_id: switch.adaptive_lighting_kitchen_island
+              entity_id:
+                - switch.adaptive_lighting_kitchen_island
+                - switch.adaptive_lighting_kitchen_undercabinet
               manual_control: false
           name: Adaptive Reset
         - entity: media_player.kitchen
@@ -61,7 +63,7 @@ cards:
       bottom: []
     styles: |-
       ${(() => {
-        const lightsOn = hass.states['light.kitchen_main_lights']?.state === 'on';
+        const lightsOn = parseInt(hass.states['sensor.room_kitchen_state']?.attributes?.lights_on || '0') > 0;
         const isPlaying = hass.states['media_player.kitchen']?.state === 'playing';
         let iconColor, iconBg;
         if (isPlaying) {

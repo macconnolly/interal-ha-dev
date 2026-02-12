@@ -1,0 +1,4 @@
+interface:
+  display_name: "HA Safe Package Deploy"
+  short_description: "Safe HA package deployment with backups"
+  default_prompt: "Use $ha-safe-package-deploy to deploy package YAML files with mandatory backups, git commits, and transfer verification."

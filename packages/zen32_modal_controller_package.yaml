@@ -945,6 +945,7 @@ script:
           entity_id:
             - input_number.oal_manual_offset_main_living_brightness
             - input_number.oal_manual_offset_kitchen_island_brightness
+            - input_number.oal_manual_offset_kitchen_undercabinet_brightness
             - input_number.oal_manual_offset_bedroom_primary_brightness
             - input_number.oal_manual_offset_accent_spots_brightness
             - input_number.oal_manual_offset_recessed_ceiling_brightness
@@ -992,6 +993,7 @@ script:
           entity_id:
             - input_number.oal_manual_offset_main_living_brightness
             - input_number.oal_manual_offset_kitchen_island_brightness
+            - input_number.oal_manual_offset_kitchen_undercabinet_brightness
             - input_number.oal_manual_offset_bedroom_primary_brightness
             - input_number.oal_manual_offset_accent_spots_brightness
             - input_number.oal_manual_offset_recessed_ceiling_brightness

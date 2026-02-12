@@ -136,7 +136,7 @@ cards:
           grid-template-columns: repeat(2, 1fr)
     cards:
       # Note: Light tiles identical to v2/v3. Copy from living-rooom-v2.yaml.
-      # 1. Floor Lamp, 2. Couch, 3. Corner, 4. Credenza, 5. Spots, 6. Columns
+      # 1. Floor Lamp, 2. Couch, 3. Entryway, 4. Credenza, 5. Spots, 6. Columns
       - type: custom:bubble-card
         card_type: button
         button_type: slider
@@ -144,7 +144,7 @@ cards:
         name: Floor
         icon: mdi:floor-lamp
         show_state: false
-        show_attribute: true
+        show_attribute: false
         attribute: brightness
         scrolling_effect: false
         tap_action:
@@ -269,19 +269,18 @@ cards:
                 color: ${isOn ? nameOn : nameOff} !important;
                 transition: color 0.25s ease !important;
               }
-              .bubble-attribute {
-                font-size: 0 !important;
-                font-weight: 500 !important;
-                margin-top: 1px !important;
-                justify-content: center !important;
-              }
-              .bubble-attribute::after {
+              .bubble-name-container::after {
                 content: '${brightnessLabel}' !important;
+                display: block !important;
                 font-size: 13px !important;
                 font-weight: 500 !important;
                 font-variant-numeric: tabular-nums !important;
+                margin-top: 1px !important;
                 color: ${isOn ? attrOn : attrOff} !important;
                 transition: color 0.25s ease !important;
+              }
+              .bubble-attribute {
+                display: none !important;
               }
               .bubble-range-slider {
                 position: absolute !important;
@@ -331,6 +330,9 @@ cards:
               .is-dragging .bubble-attribute {
                 opacity: 0 !important;
               }
+              .is-dragging .bubble-name-container::after {
+                opacity: 0 !important;
+              }
             `;
           })()}
 
@@ -341,7 +343,7 @@ cards:
         name: Couch
         icon: mdi:lamp
         show_state: false
-        show_attribute: true
+        show_attribute: false
         attribute: brightness
         scrolling_effect: false
         tap_action:
@@ -459,19 +461,18 @@ cards:
                 color: ${isOn ? nameOn : nameOff} !important;
                 transition: color 0.25s ease !important;
               }
-              .bubble-attribute {
-                font-size: 0 !important;
-                font-weight: 500 !important;
-                margin-top: 1px !important;
-                justify-content: center !important;
-              }
-              .bubble-attribute::after {
+              .bubble-name-container::after {
                 content: '${brightnessLabel}' !important;
+                display: block !important;
                 font-size: 13px !important;
                 font-weight: 500 !important;
                 font-variant-numeric: tabular-nums !important;
+                margin-top: 1px !important;
                 color: ${isOn ? attrOn : attrOff} !important;
                 transition: color 0.25s ease !important;
+              }
+              .bubble-attribute {
+                display: none !important;
               }
               .bubble-range-slider {
                 position: absolute !important;
@@ -521,6 +522,9 @@ cards:
               .is-dragging .bubble-attribute {
                 opacity: 0 !important;
               }
+              .is-dragging .bubble-name-container::after {
+                opacity: 0 !important;
+              }
             `;
           })()}
 
@@ -531,7 +535,7 @@ cards:
         name: Entryway
         icon: mdi:lamp
         show_state: false
-        show_attribute: true
+        show_attribute: false
         attribute: brightness
         scrolling_effect: false
         tap_action:
@@ -649,19 +653,18 @@ cards:
                 color: ${isOn ? nameOn : nameOff} !important;
                 transition: color 0.25s ease !important;
               }
-              .bubble-attribute {
-                font-size: 0 !important;
-                font-weight: 500 !important;
-                margin-top: 1px !important;
-                justify-content: center !important;
-              }
-              .bubble-attribute::after {
+              .bubble-name-container::after {
                 content: '${brightnessLabel}' !important;
+                display: block !important;
                 font-size: 13px !important;
                 font-weight: 500 !important;
                 font-variant-numeric: tabular-nums !important;
+                margin-top: 1px !important;
                 color: ${isOn ? attrOn : attrOff} !important;
                 transition: color 0.25s ease !important;
+              }
+              .bubble-attribute {
+                display: none !important;
               }
               .bubble-range-slider {
                 position: absolute !important;
@@ -711,6 +714,9 @@ cards:
               .is-dragging .bubble-attribute {
                 opacity: 0 !important;
               }
+              .is-dragging .bubble-name-container::after {
+                opacity: 0 !important;
+              }
             `;
           })()}
 
@@ -721,7 +727,7 @@ cards:
         name: Credenza
         icon: mdi:television-ambient-light
         show_state: false
-        show_attribute: true
+        show_attribute: false
         attribute: brightness
         scrolling_effect: false
         tap_action:
@@ -839,19 +845,18 @@ cards:
                 color: ${isOn ? nameOn : nameOff} !important;
                 transition: color 0.25s ease !important;
               }
-              .bubble-attribute {
-                font-size: 0 !important;
-                font-weight: 500 !important;
-                margin-top: 1px !important;
-                justify-content: center !important;
-              }
-              .bubble-attribute::after {
+              .bubble-name-container::after {
                 content: '${brightnessLabel}' !important;
+                display: block !important;
                 font-size: 13px !important;
                 font-weight: 500 !important;
                 font-variant-numeric: tabular-nums !important;
+                margin-top: 1px !important;
                 color: ${isOn ? attrOn : attrOff} !important;
                 transition: color 0.25s ease !important;
+              }
+              .bubble-attribute {
+                display: none !important;
               }
               .bubble-range-slider {
                 position: absolute !important;
@@ -901,6 +906,9 @@ cards:
               .is-dragging .bubble-attribute {
                 opacity: 0 !important;
               }
+              .is-dragging .bubble-name-container::after {
+                opacity: 0 !important;
+              }
             `;
           })()}
 
@@ -911,7 +919,7 @@ cards:
         name: Spots
         icon: mdi:wall-sconce-flat
         show_state: false
-        show_attribute: true
+        show_attribute: false
         attribute: brightness
         scrolling_effect: false
         tap_action:
@@ -1029,19 +1037,18 @@ cards:
                 color: ${isOn ? nameOn : nameOff} !important;
                 transition: color 0.25s ease !important;
               }
-              .bubble-attribute {
-                font-size: 0 !important;
-                font-weight: 500 !important;
-                margin-top: 1px !important;
-                justify-content: center !important;
-              }
-              .bubble-attribute::after {
+              .bubble-name-container::after {
                 content: '${brightnessLabel}' !important;
+                display: block !important;
                 font-size: 13px !important;
                 font-weight: 500 !important;
                 font-variant-numeric: tabular-nums !important;
+                margin-top: 1px !important;
                 color: ${isOn ? attrOn : attrOff} !important;
                 transition: color 0.25s ease !important;
+              }
+              .bubble-attribute {
+                display: none !important;
               }
               .bubble-range-slider {
                 position: absolute !important;
@@ -1091,6 +1098,9 @@ cards:
               .is-dragging .bubble-attribute {
                 opacity: 0 !important;
               }
+              .is-dragging .bubble-name-container::after {
+                opacity: 0 !important;
+              }
             `;
           })()}
 
@@ -1101,7 +1111,7 @@ cards:
         name: Columns
         icon: mdi:pillar
         show_state: false
-        show_attribute: true
+        show_attribute: false
         attribute: brightness
         scrolling_effect: false
         tap_action:
@@ -1219,19 +1229,18 @@ cards:
                 color: ${isOn ? nameOn : nameOff} !important;
                 transition: color 0.25s ease !important;
               }
-              .bubble-attribute {
-                font-size: 0 !important;
-                font-weight: 500 !important;
-                margin-top: 1px !important;
-                justify-content: center !important;
-              }
-              .bubble-attribute::after {
+              .bubble-name-container::after {
                 content: '${brightnessLabel}' !important;
+                display: block !important;
                 font-size: 13px !important;
                 font-weight: 500 !important;
                 font-variant-numeric: tabular-nums !important;
+                margin-top: 1px !important;
                 color: ${isOn ? attrOn : attrOff} !important;
                 transition: color 0.25s ease !important;
+              }
+              .bubble-attribute {
+                display: none !important;
               }
               .bubble-range-slider {
                 position: absolute !important;
@@ -1279,6 +1288,9 @@ cards:
                 opacity: 1 !important;
               }
               .is-dragging .bubble-attribute {
+                opacity: 0 !important;
+              }
+              .is-dragging .bubble-name-container::after {
                 opacity: 0 !important;
               }
             `;

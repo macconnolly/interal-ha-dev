@@ -46,7 +46,7 @@ cards:
     styles: >-
       ${(() => {
         const roomState = hass.states['sensor.room_kitchen_state']?.state || 'idle';
-        const hasOverride = hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control?.length > 0;
+        const hasOverride = !!hass.states['sensor.room_kitchen_state']?.attributes?.has_override;
         const lightsOn = parseInt(hass.states['sensor.room_kitchen_state']?.attributes?.lights_on || '0');
 
         // Color accents based on room state
@@ -415,8 +415,8 @@ cards:
             position: absolute !important;
             top: 5px !important;
             right: 5px !important;
-            width: ${(hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control?.includes('light.kitchen_main_lights')) ? '7px' : '0px'} !important;
-            height: ${(hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control?.includes('light.kitchen_main_lights')) ? '7px' : '0px'} !important;
+            width: ${((hass.states['sensor.room_kitchen_state']?.attributes?.manually_controlled_lights || []).includes('light.kitchen_main_lights')) ? '7px' : '0px'} !important;
+            height: ${((hass.states['sensor.room_kitchen_state']?.attributes?.manually_controlled_lights || []).includes('light.kitchen_main_lights')) ? '7px' : '0px'} !important;
             border-radius: 50% !important;
             background: rgb(255, 110, 90) !important;
             border: 1px solid rgba(255, 255, 255, 0.6) !important;

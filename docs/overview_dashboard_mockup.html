@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Home Overview - Best in Class</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Updated Google Fonts link with broader range to ensure all icons render properly -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   1. DESIGN SYSTEM & TOKENS
+   ══════════════════════════════════════════════════════════════════════ */
+:root {
+    /* ─── Core Palette (Solid, Matte Colors) ─── */
+    --amber: #F0A030;
+    --amber-bright: #FFB300;
+    --amber-glow: rgba(240, 160, 48, 0.35);
+    --amber-light: rgba(240, 160, 48, 0.15);
+    
+    --blue: #2196F3;
+    --blue-glow: rgba(33, 150, 243, 0.3);
+    
+    --green: #34C759;
+    --orange: #F57C00;
+
+    /* ─── Typography & Neutrals ─── */
+    --text-primary: #1C1C1E;
+    --text-secondary: #86868B;
+    --text-tertiary: #AEAEB2;
+    
+    /* ─── Glassmorphism & Surfaces ─── */
+    /* Cards are solid/frosted white to pop off the blue background */
+    --glass-card-bg: rgba(248, 249, 250, 0.92);
+    --glass-card-border: rgba(255, 255, 255, 0.8);
+    --glass-shadow: 0 8px 24px rgba(0, 30, 60, 0.12), 0 2px 6px rgba(0, 30, 60, 0.05);
+    
+    --tile-bg: #FFFFFF;
+    
+    /* ─── Dimensions ─── */
+    --radius-card: 24px;
+    --radius-tile: 16px;
+    --radius-pill: 32px;
+}
+
+/* ─── Reset & Base ─── */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-primary);
+    /* SmartThings-style deep blue/teal gradient background */
+    background: linear-gradient(160deg, #6C9BC2 0%, #4A84A8 40%, #366A8C 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    padding-bottom: 120px; /* Space for Tab Bar */
+    overflow-x: hidden;
+}
+
+/* ─── Iconography (Apple Rule: Outline Inactive, Filled Active) ─── */
+.icon {
+    font-family: 'Material Symbols Rounded';
+    font-size: 24px;
+    line-height: 1;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    transition: all 0.2s ease;
+    display: inline-block;
+    vertical-align: middle;
+    overflow: hidden;
+    width: 24px;
+    text-align: center;
+}
+
+.icon-filled, .active .icon, .on .icon {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ─── Layout Utility ─── */
+.page {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: max(16px, env(safe-area-inset-top)) 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Universal Card Style */
+.card {
+    background: var(--glass-card-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-card-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--glass-shadow);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   2. QUICK SCENES (Top Row Pills)
+   ══════════════════════════════════════════════════════════════════════ */
+.scenes-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.scene-pill {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-pill);
+    padding: 12px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.scene-pill .icon { font-size: 24px; color: rgba(255,255,255,0.8); }
+.scene-pill span { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.9); }
+
+/* Active Scene */
+.scene-pill.active {
+    background: #FFF9EE;
+    border-color: var(--amber);
+    box-shadow: 0 4px 16px var(--amber-glow);
+}
+.scene-pill.active .icon { color: var(--amber); font-variation-settings: 'FILL' 1; }
+.scene-pill.active span { color: var(--text-primary); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   3. SYSTEM STATUS GRID (SmartThings Style)
+   ══════════════════════════════════════════════════════════════════════ */
+.status-card {
+    padding: 14px;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.grid-tile {
+    background: var(--tile-bg);
+    border-radius: var(--radius-tile);
+    padding: 14px 4px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    border: 1px solid rgba(0,0,0,0.02);
+}
+
+.grid-tile .icon { margin-bottom: 6px; font-size: 24px; color: var(--text-secondary); }
+.grid-tile .value { font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+.grid-tile .label { font-size: 9px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+/* Tile States */
+.grid-tile.active .icon { color: var(--amber); font-variation-settings: 'FILL' 1; }
+.grid-tile.alert .icon { color: var(--orange); font-variation-settings: 'FILL' 1; }
+.grid-tile.active .value, .grid-tile.alert .value { color: var(--text-primary); }
+
+.pulse-dot {
+    position: absolute; top: 6px; right: 8px;
+    width: 6px; height: 6px; background: var(--orange); border-radius: 50%;
+    animation: pulse 2s infinite ease-in-out;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.7); } }
+
+/* ══════════════════════════════════════════════════════════════════════
+   4. HERO CARD (Spatial Awareness & Quick Controls)
+   ══════════════════════════════════════════════════════════════════════ */
+.hero-card {
+    position: relative;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    background: linear-gradient(135deg, #EBE5DB 0%, #D8D1C7 100%);
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-card-border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.hero-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at top right, rgba(255,255,255,0.4), transparent 60%);
+    pointer-events: none;
+}
+
+/* Action Buttons Restored at Top Right */
+.hero-header {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    position: relative;
+    z-index: 10;
+}
+
+.hero-btn {
+    width: 38px; height: 38px; border-radius: 12px;
+    background: rgba(255, 255, 255, 0.6);
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+
+.hero-btn .icon { font-size: 20px; color: var(--text-secondary); }
+.hero-btn.active { background: var(--amber); box-shadow: 0 4px 12px var(--amber-glow); }
+.hero-btn.active .icon { color: #FFF; font-variation-settings: 'FILL' 1; }
+
+.hero-overlays {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 10px;
+    position: relative;
+    z-index: 10;
+}
+
+.overlay-chip {
+    background: rgba(255, 255, 255, 0.85); /* Solid enough to be a tile */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 10px 0 12px; position: relative; overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.overlay-chip .icon { font-size: 20px; color: var(--text-primary); margin-bottom: 2px; }
+.overlay-chip .name { font-size: 9px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.overlay-chip .pct { font-size: 11px; font-weight: 700; color: var(--amber); margin-top: 1px; }
+
+.overlay-bar {
+    position: absolute; bottom: 0; left: 6px; right: 6px; height: 3px;
+    background: var(--amber-light); border-radius: 2px 2px 0 0;
+}
+.overlay-bar-fill { height: 100%; background: var(--amber); border-radius: 2px 2px 0 0; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   5. ACTIVE TRAY (Media & Automations)
+   ══════════════════════════════════════════════════════════════════════ */
+.tray-card {
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+}
+
+/* Media Card */
+.media-card { border-left: 4px solid var(--blue); }
+.album-art { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.media-info { flex: 1; }
+.media-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.media-artist { font-size: 13px; color: var(--text-secondary); }
+.active-zones { font-size: 10px; font-weight: 700; color: var(--blue); text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; }
+.play-btn { width: 36px; height: 36px; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; color: var(--text-primary); cursor: pointer;}
+
+/* Automation Card */
+.auto-card { border-left: 4px solid var(--green); margin-top: -4px; }
+.auto-icon-box { width: 36px; height: 36px; border-radius: 50%; background: rgba(52, 199, 89, 0.15); display: flex; align-items: center; justify-content: center; color: var(--green); }
+.auto-info { flex: 1; }
+.auto-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.auto-desc { font-size: 12px; color: var(--text-secondary); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   6. ROOM CARDS (The Control Core)
+   ══════════════════════════════════════════════════════════════════════ */
+.room-list { display: flex; flex-direction: column; gap: 12px; }
+
+.room-card {
+    padding: 16px;
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle Brightness Background Fill (Only shows when active) */
+.room-fill {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    background: rgba(245, 166, 35, 0.05);
+    z-index: 0;
+    transition: width 0.3s ease;
+}
+
+/* Top Brightness Indicator Bar */
+.room-brightness-bar {
+    position: absolute; top: 0; left: 16px; width: calc(100% - 32px); height: 3px;
+    background: rgba(245, 166, 35, 0.15); border-radius: 0 0 4px 4px;
+    z-index: 1;
+}
+.room-brightness-fill { height: 100%; background: var(--amber); border-radius: 0 0 4px 4px; }
+
+/* Room Icon */
+.room-icon-box {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: #F2F2F7; /* Neutral off state */
+    display: flex; align-items: center; justify-content: center;
+    position: relative; flex-shrink: 0;
+    z-index: 1;
+    transition: all 0.2s;
+}
+.room-card.on .room-icon-box { background: #FFF0D4; } /* Warm background when on */
+.room-icon-box .icon { color: var(--text-secondary); font-size: 26px; }
+.room-card.on .room-icon-box .icon { color: var(--amber); font-variation-settings: 'FILL' 1; }
+
+.presence-badge {
+    position: absolute; top: -4px; right: -4px;
+    width: 16px; height: 16px; background: #333;
+    border: 2px solid #fff; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+}
+.presence-badge .icon { font-size: 11px; color: var(--amber); font-variation-settings: 'FILL' 1; }
+
+/* Room Info */
+.room-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; z-index: 1; }
+.room-name { font-size: 17px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.room-status { font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-top: 2px; }
+.status-highlight { color: var(--amber); font-weight: 700; }
+
+/* Controls Area (Right side) - Fixed to prevent overlap */
+.room-controls {
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0; z-index: 1;
+}
+
+/* Sub Buttons (Squircle/Rounded Rect) */
+.sub-btn {
+    width: 36px; height: 36px; border-radius: 12px; 
+    background: rgba(0,0,0,0.04);
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s;
+}
+.sub-btn .icon { font-size: 20px; color: var(--text-secondary); }
+
+.sub-btn.active { background: var(--amber); box-shadow: 0 4px 10px var(--amber-glow); }
+.sub-btn.active .icon { color: #fff; font-variation-settings: 'FILL' 1; }
+
+/* iOS Toggle */
+.ios-toggle {
+    width: 50px; height: 30px; border-radius: 30px;
+    background: #E5E5EA; position: relative; transition: background 0.3s;
+    cursor: pointer; margin-left: 4px; flex-shrink: 0;
+}
+.ios-toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: transform 0.3s cubic-bezier(0.3, 0, 0, 1);
+}
+.ios-toggle.on { background: var(--amber); box-shadow: 0 2px 8px var(--amber-glow); }
+.ios-toggle.on::after { transform: translateX(20px); }
+
+.nav-chevron { color: var(--text-tertiary); font-size: 20px; margin-left: 2px; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   7. CLIMATE CARD (Precision Match)
+   ══════════════════════════════════════════════════════════════════════ */
+.climate-card {
+    padding: 24px;
+    display: flex; flex-direction: column; gap: 24px;
+}
+
+/* Top: Indoor & Targets */
+.climate-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+}
+.climate-indoor { display: flex; flex-direction: column; }
+.c-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+.c-temp-main { font-size: 64px; font-weight: 700; color: var(--text-primary); line-height: 1; letter-spacing: -2px; margin-top: 4px; }
+
+.climate-targets { display: flex; gap: 24px; text-align: right; }
+.c-target-col { display: flex; flex-direction: column; align-items: flex-end; }
+.c-target-temp { font-size: 36px; font-weight: 700; line-height: 1; margin-top: 4px; letter-spacing: -1px; }
+.c-heat-val { color: var(--orange); }
+.c-cool-val { color: var(--blue); }
+
+/* Dual Slider & Scale */
+.climate-slider-container {
+    position: relative;
+    padding-bottom: 24px; 
+}
+.climate-track {
+    height: 36px;
+    border-radius: 18px;
+    background: rgba(0,0,0,0.06);
+    position: relative;
+    display: flex; align-items: center;
+}
+/* Fill gradients for slider */
+.climate-fill-heat {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 60%;
+    background: linear-gradient(90deg, #DFD2BD 0%, #D4A778 100%);
+    border-radius: 18px 0 0 18px;
+}
+.climate-fill-cool {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 20%;
+    background: linear-gradient(90deg, #ABCBE8 0%, #8FBCE0 100%);
+    border-radius: 0 18px 18px 0;
+}
+
+.climate-thumb {
+    width: 40px; height: 40px; background: #fff; border-radius: 50%;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+    cursor: grab; z-index: 2;
+}
+.climate-thumb::after { content: ''; width: 10px; height: 10px; border-radius: 50%; }
+.thumb-heat { left: calc(60% - 20px); }
+.thumb-heat::after { background: var(--orange); }
+.thumb-cool { left: calc(80% - 20px); }
+.thumb-cool::after { background: var(--blue); }
+
+/* Tick Marks & Current Marker (Perfectly Aligned Horizontally) */
+.climate-scale {
+    position: absolute; left: 0; right: 0; top: 46px;
+    height: 30px;
+}
+/* Flex-column layout keeps the pipe | and text vertically stacked uniformly */
+.scale-item {
+    position: absolute; top: 0;
+    display: flex; flex-direction: column; align-items: center;
+    line-height: 1.2;
+}
+.scale-tick {
+    font-size: 11px; font-weight: 500; color: var(--text-tertiary);
+}
+.scale-current {
+    font-size: 13px; font-weight: 700; color: var(--text-primary);
+}
+.scale-icon { font-size: 10px; margin-bottom: 2px; line-height: 1; }
+
+/* Status Row */
+.climate-status-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 14px; font-weight: 500; color: var(--text-secondary);
+    margin-top: 12px;
+}
+.status-item { display: flex; align-items: center; gap: 8px; }
+.status-item .icon.blue { color: var(--blue); font-size: 20px; font-variation-settings: 'FILL' 1; }
+.status-item .icon.orange { color: var(--orange); font-size: 20px; font-variation-settings: 'FILL' 1; }
+
+/* Weather Forecast */
+.weather-forecast {
+    border-top: 1px solid rgba(0,0,0,0.06);
+    padding-top: 20px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.w-current { display: flex; align-items: center; gap: 12px; flex: 1; }
+.w-current .icon { font-size: 40px; color: var(--text-secondary); }
+.w-current-info { display: flex; flex-direction: column; }
+.w-current-temp { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.w-current-desc { font-size: 13px; color: var(--text-secondary); }
+
+.w-divider { width: 1px; height: 40px; background: rgba(0,0,0,0.08); margin: 0 16px; }
+
+.w-days { display: flex; gap: 14px; flex: 1.5; justify-content: space-between; }
+.w-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.w-day-name { font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px;}
+.w-day .icon { font-size: 26px; color: var(--text-secondary); }
+.w-day-temps { font-size: 12px; font-weight: 600; }
+.w-hi { color: var(--text-primary); }
+.w-lo { color: var(--text-tertiary); }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   8. NEXT ALARM
+   ══════════════════════════════════════════════════════════════════════ */
+.alarm-card {
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 16px;
+}
+.alarm-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: var(--blue-glow); display: flex; align-items: center; justify-content: center;
+    color: var(--blue);
+}
+.alarm-icon .icon { font-size: 26px; }
+.alarm-info { flex: 1; }
+.alarm-time { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+.alarm-desc { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
+
+.alarm-chain { display: flex; gap: 8px; }
+.alarm-chain .icon { font-size: 18px; color: var(--text-tertiary); }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   9. TAB BAR (Bottom Navigation)
+   ══════════════════════════════════════════════════════════════════════ */
+.tab-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 96px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border-top: 1px solid rgba(255,255,255,0.6);
+    display: flex; justify-content: space-around;
+    padding-top: 14px;
+    padding-bottom: 28px; /* Safe area allowance */
+    z-index: 1000;
+}
+.tab {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    flex: 1; cursor: pointer; color: var(--text-tertiary);
+    position: relative;
+}
+.tab.active { color: var(--amber); }
+.tab .icon { font-size: 28px; }
+.tab span { font-size: 10px; font-weight: 600; }
+
+.playing-dot {
+    position: absolute; top: 2px; right: 22px;
+    width: 8px; height: 8px; background: var(--blue);
+    border-radius: 50%; box-shadow: 0 0 0 2px white;
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+    <!-- 1. QUICK SCENES -->
+    <div class="scenes-container">
+        <div class="scene-pill">
+            <span class="icon">light_mode</span>
+            <span>All On</span>
+        </div>
+        <div class="scene-pill active">
+            <span class="icon">nightlight</span>
+            <span>Relax</span>
+        </div>
+        <div class="scene-pill">
+            <span class="icon">bed</span>
+            <span>Bed</span>
+        </div>
+        <div class="scene-pill">
+            <span class="icon">power_settings_new</span>
+            <span>All Off</span>
+        </div>
+    </div>
+
+    <!-- 2. SYSTEM STATUS GRID (SmartThings Style) -->
+    <div class="card status-card">
+        <div class="status-grid">
+            <!-- Active / Controls Row -->
+            <div class="grid-tile active">
+                <span class="icon icon-filled">lightbulb</span>
+                <span class="value">6 On</span>
+                <span class="label">Adapting</span>
+            </div>
+            <div class="grid-tile alert">
+                <div class="pulse-dot"></div>
+                <span class="icon icon-filled">timer</span>
+                <span class="value">14:32</span>
+                <span class="label">Manual</span>
+            </div>
+            <div class="grid-tile active">
+                <span class="icon icon-filled">bolt</span>
+                <span class="value">19</span>
+                <span class="label">Boost</span>
+            </div>
+            <div class="grid-tile">
+                <span class="icon">tune</span>
+                <span class="value">Mode</span>
+                <span class="label">Adaptive ▼</span>
+            </div>
+            <!-- Ambient Sensors Row (Monochrome) -->
+            <div class="grid-tile">
+                <span class="icon">partly_cloudy_day</span>
+                <span class="value">Cloudy</span>
+                <span class="label">Weather</span>
+            </div>
+            <div class="grid-tile">
+                <span class="icon">thermostat</span>
+                <span class="value">37°F</span>
+                <span class="label">Outside</span>
+            </div>
+            <div class="grid-tile">
+                <span class="icon">water_drop</span>
+                <span class="value">42%</span>
+                <span class="label">Humidity</span>
+            </div>
+            <div class="grid-tile">
+                <span class="icon">home</span>
+                <span class="value">73°F</span>
+                <span class="label">Inside</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. HERO CARD (Spatial Orientation) -->
+    <div class="card hero-card">
+        <div class="hero-header">
+            <button class="hero-btn active"><span class="icon">wb_twilight</span></button>
+            <button class="hero-btn"><span class="icon">play_pause</span></button>
+            <button class="hero-btn"><span class="icon">alarm</span></button>
+            <button class="hero-btn"><span class="icon">settings</span></button>
+            <button class="hero-btn"><span class="icon">group_add</span></button>
+        </div>
+        <!-- Overlays -->
+        <div class="hero-overlays">
+            <div class="overlay-chip">
+                <span class="icon">weekend</span>
+                <span class="name">Living</span>
+                <span class="pct">81%</span>
+                <div class="overlay-bar"><div class="overlay-bar-fill" style="width: 81%;"></div></div>
+            </div>
+            <div class="overlay-chip">
+                <span class="icon">kitchen</span>
+                <span class="name">Kitchen</span>
+                <span class="pct">76%</span>
+                <div class="overlay-bar"><div class="overlay-bar-fill" style="width: 76%;"></div></div>
+            </div>
+            <div class="overlay-chip">
+                <span class="icon">bed</span>
+                <span class="name">Bed</span>
+                <span class="pct">74%</span>
+                <div class="overlay-bar"><div class="overlay-bar-fill" style="width: 74%;"></div></div>
+            </div>
+            <div class="overlay-chip">
+                <span class="icon">highlight</span>
+                <span class="name">Spots</span>
+                <span class="pct">65%</span>
+                <div class="overlay-bar"><div class="overlay-bar-fill" style="width: 65%;"></div></div>
+            </div>
+            <div class="overlay-chip">
+                <span class="icon">lightbulb</span>
+                <span class="name">Ceiling</span>
+                <span class="pct">65%</span>
+                <div class="overlay-bar"><div class="overlay-bar-fill" style="width: 65%;"></div></div>
+            </div>
+            <div class="overlay-chip">
+                <span class="icon">view_week</span>
+                <span class="name">Columns</span>
+                <span class="pct">93%</span>
+                <div class="overlay-bar"><div class="overlay-bar-fill" style="width: 93%;"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. ACTIVE TRAY -->
+    <!-- Now Playing -->
+    <div class="card tray-card media-card">
+        <div class="album-art"></div>
+        <div class="media-info">
+            <div class="media-title">Get Along</div>
+            <div class="media-artist">Kenny Chesney</div>
+            <div class="active-zones">Living · Kitchen</div>
+        </div>
+        <div class="play-btn"><span class="icon icon-filled">pause</span></div>
+    </div>
+    <!-- Automation Alert -->
+    <div class="card tray-card auto-card">
+        <div class="auto-icon-box"><span class="icon icon-filled">bolt</span></div>
+        <div class="auto-info">
+            <div class="auto-title">Relax Mode Active</div>
+            <div class="auto-desc">Lights dimming · Temp adapting</div>
+        </div>
+    </div>
+
+    <!-- 5. ROOM CARDS -->
+    <div class="room-list">
+        
+        <!-- Living Room -->
+        <div class="card room-card on">
+            <div class="room-brightness-bar"><div class="room-brightness-fill" style="width: 81%;"></div></div>
+            <div class="room-fill" style="width: 81%"></div>
+            
+            <div class="room-icon-box">
+                <span class="icon">weekend</span>
+                <div class="presence-badge"><span class="icon">person</span></div>
+            </div>
+            
+            <div class="room-info">
+                <div class="room-name">Living Room</div>
+                <div class="room-status"><span class="status-highlight">9 of 10 on</span> · 81% · 73°F</div>
+            </div>
+            
+            <div class="room-controls">
+                <button class="sub-btn active"><span class="icon">highlight</span></button>
+                <button class="sub-btn active"><span class="icon">view_week</span></button>
+                <div class="ios-toggle on"></div>
+                <span class="icon nav-chevron">chevron_right</span>
+            </div>
+        </div>
+
+        <!-- Kitchen -->
+        <div class="card room-card on">
+            <div class="room-brightness-bar"><div class="room-brightness-fill" style="width: 76%;"></div></div>
+            <div class="room-fill" style="width: 76%"></div>
+            
+            <div class="room-icon-box">
+                <span class="icon">kitchen</span>
+                <div class="presence-badge"><span class="icon">person</span></div>
+            </div>
+            
+            <div class="room-info">
+                <div class="room-name">Kitchen</div>
+                <div class="room-status"><span class="status-highlight">7 of 8 on</span> · 76% · 72°F</div>
+            </div>
+            
+            <div class="room-controls">
+                <button class="sub-btn active"><span class="icon">lightbulb</span></button>
+                <button class="sub-btn"><span class="icon">kitchen</span></button>
+                <div class="ios-toggle on"></div>
+                <span class="icon nav-chevron">chevron_right</span>
+            </div>
+        </div>
+
+        <!-- Bedroom -->
+        <div class="card room-card on">
+            <div class="room-brightness-bar"><div class="room-brightness-fill" style="width: 74%;"></div></div>
+            <div class="room-fill" style="width: 74%"></div>
+            
+            <div class="room-icon-box">
+                <span class="icon">bed</span>
+            </div>
+            
+            <div class="room-info">
+                <div class="room-name">Bedroom</div>
+                <div class="room-status"><span class="status-highlight">2 of 2 on</span> · 74%</div>
+            </div>
+            
+            <div class="room-controls">
+                <button class="sub-btn active"><span class="icon">lightbulb</span></button>
+                <div class="ios-toggle on"></div>
+                <span class="icon nav-chevron">chevron_right</span>
+            </div>
+        </div>
+
+        <!-- Dining Room -->
+        <div class="card room-card">
+            <div class="room-brightness-bar"><div class="room-brightness-fill" style="width: 0%;"></div></div>
+            <div class="room-fill" style="width: 0%;"></div>
+            
+            <div class="room-icon-box">
+                <span class="icon">restaurant</span>
+            </div>
+            
+            <div class="room-info">
+                <div class="room-name">Dining Room</div>
+                <div class="room-status">8 of 10 on · 80% · 71°F</div>
+            </div>
+            
+            <div class="room-controls">
+                <button class="sub-btn"><span class="icon">flare</span></button>
+                <div class="ios-toggle"></div>
+                <span class="icon nav-chevron">chevron_right</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 6. CLIMATE CARD -->
+    <div class="card climate-card">
+        <div class="climate-header">
+            <div class="climate-indoor">
+                <span class="c-label">INDOOR</span>
+                <span class="c-temp-main">73°</span>
+            </div>
+            <div class="climate-targets">
+                <div class="c-target-col">
+                    <span class="c-label">HEAT</span>
+                    <span class="c-target-temp c-heat-val">72°</span>
+                </div>
+                <div class="c-target-col">
+                    <span class="c-label">COOL</span>
+                    <span class="c-target-temp c-cool-val">76°</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dual Slider & Accurate Scale Alignment -->
+        <div class="climate-slider-container">
+            <div class="climate-track">
+                <!-- Heat Fill -->
+                <div class="climate-fill-heat"></div>
+                <!-- Cool Fill -->
+                <div class="climate-fill-cool"></div>
+                <!-- Heat Thumb (~60%) -->
+                <div class="climate-thumb thumb-heat"></div>
+                <!-- Cool Thumb (~80%) -->
+                <div class="climate-thumb thumb-cool"></div>
+            </div>
+            
+            <!-- Scale properly aligned as a single horizontal line below track -->
+            <div class="climate-scale">
+                <div class="scale-item scale-tick" style="left: 0;">
+                    <span class="scale-icon">|</span>
+                    <span>60°</span>
+                </div>
+                <div class="scale-item scale-tick" style="left: 50%; transform: translateX(-50%);">
+                    <span class="scale-icon">|</span>
+                    <span>70°</span>
+                </div>
+                <div class="scale-item scale-current" style="left: 65%; transform: translateX(-50%);">
+                    <span class="scale-icon">▲</span>
+                    <span>73°</span>
+                </div>
+                <div class="scale-item scale-tick" style="right: 0;">
+                    <span class="scale-icon">|</span>
+                    <span>80°</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Row -->
+        <div class="climate-status-row">
+            <div class="status-item">
+                <span class="icon blue">water_drop</span>
+                Humidity 42%
+            </div>
+            <div class="status-item">
+                <span class="icon orange">local_fire_department</span>
+                Heating · Eco
+            </div>
+        </div>
+
+        <!-- Weather Strip -->
+        <div class="weather-forecast">
+            <div class="w-current">
+                <span class="icon">partly_cloudy_day</span>
+                <div class="w-current-info">
+                    <span class="w-current-temp">37°</span>
+                    <span class="w-current-desc">Partly Cloudy</span>
+                </div>
+            </div>
+            <div class="w-divider"></div>
+            <div class="w-days">
+                <div class="w-day">
+                    <span class="w-day-name">Tue</span>
+                    <span class="icon">partly_cloudy_day</span>
+                    <span class="w-day-temps"><span class="w-hi">42°</span> <span class="w-lo">28°</span></span>
+                </div>
+                <div class="w-day">
+                    <span class="w-day-name">Wed</span>
+                    <span class="icon">cloud</span>
+                    <span class="w-day-temps"><span class="w-hi">38°</span> <span class="w-lo">25°</span></span>
+                </div>
+                <div class="w-day">
+                    <span class="w-day-name">Thu</span>
+                    <span class="icon">weather_snowy</span>
+                    <span class="w-day-temps"><span class="w-hi">33°</span> <span class="w-lo">22°</span></span>
+                </div>
+                <div class="w-day">
+                    <span class="w-day-name">Fri</span>
+                    <span class="icon">sunny</span>
+                    <span class="w-day-temps"><span class="w-hi">45°</span> <span class="w-lo">30°</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. NEXT ALARM -->
+    <div class="card alarm-card">
+        <div class="alarm-icon">
+            <span class="icon icon-filled">alarm</span>
+        </div>
+        <div class="alarm-info">
+            <div class="alarm-time">7:00 AM · Daily</div>
+            <div class="alarm-desc">Wake Up Routine</div>
+        </div>
+        <div class="alarm-chain">
+            <span class="icon">lightbulb</span>
+            <span class="icon">thermostat</span>
+            <span class="icon">speaker</span>
+        </div>
+    </div>
+
+</div>
+
+<!-- BOTTOM TAB BAR -->
+<div class="tab-bar">
+    <div class="tab active">
+        <span class="icon icon-filled">home</span>
+        <span>Overview</span>
+    </div>
+    <div class="tab">
+        <span class="icon">weekend</span>
+        <span>Living</span>
+    </div>
+    <div class="tab">
+        <span class="icon">kitchen</span>
+        <span>Kitchen</span>
+    </div>
+    <div class="tab">
+        <span class="icon">bed</span>
+        <span>Bedroom</span>
+    </div>
+    <div class="tab">
+        <span class="icon">restaurant</span>
+        <span>Dining</span>
+    </div>
+    <div class="tab">
+        <div class="playing-dot"></div>
+        <span class="icon">library_music</span>
+        <span>Media</span>
+    </div>
+</div>
+
+</body>
+</html>

@@ -81,6 +81,7 @@ cards:
                         {% set zones = [
                           'switch.adaptive_lighting_main_living',
                           'switch.adaptive_lighting_kitchen_island',
+                          'switch.adaptive_lighting_kitchen_undercabinet',
                           'switch.adaptive_lighting_bedroom_primary',
                           'switch.adaptive_lighting_accent_spots',
                           'switch.adaptive_lighting_recessed_ceiling',
@@ -241,6 +242,7 @@ cards:
             // Replicating sensor.hero_button_reset_state logic client-side
             const zones = [
               'switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
+              'switch.adaptive_lighting_kitchen_undercabinet',
               'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
               'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'
             ];
@@ -630,8 +632,8 @@ cards:
                 position: absolute !important;
                 top: 5px !important;
                 right: 5px !important;
-                width: ${(hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control?.length > 0) ? '7px' : '0px'} !important;
-                height: ${(hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control?.length > 0) ? '7px' : '0px'} !important;
+                width: ${((hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control?.length > 0) || (hass.states['switch.adaptive_lighting_kitchen_undercabinet']?.attributes?.manual_control?.length > 0)) ? '7px' : '0px'} !important;
+                height: ${((hass.states['switch.adaptive_lighting_kitchen_island']?.attributes?.manual_control?.length > 0) || (hass.states['switch.adaptive_lighting_kitchen_undercabinet']?.attributes?.manual_control?.length > 0)) ? '7px' : '0px'} !important;
                 border-radius: 50% !important;
                 background: rgb(255, 110, 90) !important;
                 border: 1px solid rgba(255, 255, 255, 0.6) !important;

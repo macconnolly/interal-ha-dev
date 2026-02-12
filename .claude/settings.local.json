@@ -65,7 +65,8 @@
       "WebFetch(domain:api.github.com)",
       "WebFetch(domain:www.home-assistant.io)",
       "Bash(git pull:*)",
-      "Bash(sshpass:*)"
+      "Bash(sshpass:*)",
+      "WebFetch(domain:developers.home-assistant.io)"
     ],
     "deny": [],
     "ask": []

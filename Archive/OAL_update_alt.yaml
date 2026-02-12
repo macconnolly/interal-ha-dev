@@ -24,10 +24,6 @@ light:
     unique_id: "oal_kitchen_island_lights_group_v13"
     entities:
       - light.kitchen_island_pendants
-  - platform: group
-    name: "kitchen_undercabinet_lights"
-    unique_id: "oal_kitchen_undercabinet_lights_group_v13"
-    entities:
       - light.kitchen_counter_cabinet_underlights
   - platform: group
     name: "bedroom_primary_lights"
@@ -135,7 +131,6 @@ group:
     entities:
       - switch.adaptive_lighting_main_living
       - switch.adaptive_lighting_kitchen_island
-      - switch.adaptive_lighting_kitchen_undercabinet
       - switch.adaptive_lighting_bedroom_primary
       - switch.adaptive_lighting_accent_spots
       - switch.adaptive_lighting_recessed_ceiling
@@ -146,7 +141,6 @@ group:
     entities:
       - switch.adaptive_lighting_sleep_mode_main_living
       - switch.adaptive_lighting_sleep_mode_kitchen_island
-      - switch.adaptive_lighting_sleep_mode_kitchen_undercabinet
       - switch.adaptive_lighting_sleep_mode_bedroom_primary
       - switch.adaptive_lighting_sleep_mode_accent_spots
       - switch.adaptive_lighting_sleep_mode_recessed_ceiling
@@ -246,22 +240,12 @@ input_number:
 
   oal_offset_column_rgb_green:
     name: "OAL Offset: Column RGB Green"
-    min: 135
+    min: 165
     max: 165
     step: 1
-    initial: 150
+    initial: 165
     unit_of_measurement: ""
     icon: mdi:palette
-
-  # Column test harness: effective-sun override controls
-  oal_test_sun_elevation:
-    name: "OAL Test Sun Elevation"
-    min: -90
-    max: 90
-    step: 0.1
-    initial: 0
-    unit_of_measurement: "deg"
-    icon: mdi:weather-sunny-alert
 
   # Night behavior offsets (post-twilight dimming)
   oal_offset_night_brightness:
@@ -327,15 +311,6 @@ input_number:
     initial: 0
     unit_of_measurement: "%"
     icon: mdi:silverware-fork-knife
-
-  oal_manual_offset_kitchen_undercabinet_brightness:
-    name: "OAL Manual Offset - Kitchen Undercabinet B"
-    min: -100
-    max: 100
-    step: 1
-    initial: 0
-    unit_of_measurement: "%"
-    icon: mdi:led-strip-variant
 
   oal_manual_offset_bedroom_primary_brightness:
     name: "OAL Manual Offset - Bedroom Primary B"
@@ -414,31 +389,16 @@ input_boolean:
     initial: false
     icon: mdi:lock-clock
 
+  # Column RGB session and guard helpers (Phase A)
   oal_column_rgb_session_active:
     name: "OAL Column RGB Session Active"
     initial: false
-    icon: mdi:palette-swatch
+    icon: mdi:palette-outline
 
   oal_column_rgb_guard_kill_switch:
     name: "OAL Column RGB Guard Kill Switch"
     initial: false
-    icon: mdi:shield-off
-
-  oal_column_rgb_debug_events:
-    name: "OAL Column RGB Debug Events"
-    initial: false
-    icon: mdi:bug
-
-  # Column test harness: enable effective-sun override
-  oal_test_mode:
-    name: "OAL Test Mode"
-    initial: false
-    icon: mdi:test-tube
-
-  oal_test_sun_rising:
-    name: "OAL Test Sun Rising"
-    initial: false
-    icon: mdi:weather-sunset-up
+    icon: mdi:shield-off-outline
 
   # Room Card Show/Hide Toggles
   living_room_expanded:
@@ -498,23 +458,6 @@ adaptive_lighting:
   - name: "kitchen_island"
     lights:
       - light.kitchen_island_pendants
-    interval: 15
-    transition: 1
-    initial_transition: 1
-    take_over_control: true
-    detect_non_ha_changes: true
-    adapt_delay: 0
-    include_config_in_attributes: true
-    autoreset_control_seconds: 14400
-    min_brightness: 20                    # SYNC: comfort_min_b
-    max_brightness: 100                   # SYNC: comfort_max_b
-    min_color_temp: 2000                  # SYNC: min_k
-    max_color_temp: 4000                  # SYNC: max_k
-    sleep_brightness: 5
-    sleep_color_temp: 2000
-
-  - name: "kitchen_undercabinet"
-    lights:
       - light.kitchen_counter_cabinet_underlights
     interval: 15
     transition: 1
@@ -524,7 +467,7 @@ adaptive_lighting:
     adapt_delay: 0
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 55                    # User-calibrated undercabinet floor
+    min_brightness: 20                    # SYNC: comfort_min_b (was 25, -5 per user)
     max_brightness: 100                   # SYNC: comfort_max_b
     min_color_temp: 2000                  # SYNC: min_k
     max_color_temp: 4000                  # SYNC: max_k
@@ -596,7 +539,7 @@ adaptive_lighting:
   # ═══════════════════════════════════════════════════════════════════════════
   # SYNC REQUIRED: When changing these values, also update:
   #   1. OAL Engine config (~line 625): comfort_max_b, max_k
-  #   2. Column lifecycle/reset guards (session + evening window ownership logic)
+  #   2. oal_reset_soft script (~line 2818): prefer_rgb_color
   # ═══════════════════════════════════════════════════════════════════════════
   - name: "column_lights"
     lights:
@@ -623,7 +566,7 @@ adaptive_lighting:
     sleep_brightness: 1
     sleep_color_temp: 2700                # Govee actual hardware min
     sleep_rgb_or_color_temp: "rgb_color"
-    sleep_rgb_color: [232, 150, 0]       # Calibrated to reduce red bias and preserve amber warmth
+    sleep_rgb_color: [245, 120, 0]
     sleep_transition: 0
     transition_until_sleep: true
     send_split_delay: 50               # Was 10000 (10s!) - now 50ms as recommended
@@ -749,16 +692,11 @@ automation:
         {{ trigger.platform == 'event' and
            (trigger.event.data.force | default(false)) == true }}
 
-      # Force intent contract:
-      # - column_safe: preserve protected column RGB ownership (default/fallback)
-      # - override_all: explicit operator override that can touch protected columns
+      # Force intent for column-safe vs override behavior (ISSUE-15)
+      # SYNC: All oal_watchdog_trigger emitters must include force_intent
       force_intent: >
-        {% if trigger.platform == 'event' %}
-          {% set raw = trigger.event.data.force_intent | default('column_safe') %}
-          {{ raw if raw in ['column_safe', 'override_all'] else 'column_safe' }}
-        {% else %}
-          column_safe
-        {% endif %}
+        {{ trigger.event.data.force_intent | default('column_safe')
+           if trigger.platform == 'event' else 'column_safe' }}
 
       # Legacy variable - kept for potential future use
       is_periodic_only: "{{ trigger.platform == 'time_pattern' }}"
@@ -778,17 +716,6 @@ automation:
         - entity_id: switch.adaptive_lighting_kitchen_island
           id: kitchen_island
           comfort_min_b: 20                 # SYNC: AL min_brightness
-          comfort_max_b: 100                # SYNC: AL max_brightness
-          min_k: 2000                       # SYNC: AL min_color_temp
-          max_k: 4000                       # SYNC: AL max_color_temp
-          env_sensitivity: 1.0
-          night_sensitivity: 0.5            # Moderate night dim
-          hard_min_b: 1
-          hard_max_b: 100
-
-        - entity_id: switch.adaptive_lighting_kitchen_undercabinet
-          id: kitchen_undercabinet
-          comfort_min_b: 55                 # SYNC: AL min_brightness
           comfort_max_b: 100                # SYNC: AL max_brightness
           min_k: 2000                       # SYNC: AL min_color_temp
           max_k: 4000                       # SYNC: AL max_color_temp
@@ -1001,68 +928,6 @@ automation:
                   max_color_temp: "{{ final_max_k | round(0) }}"
                   transition: "{{ transition_speed }}"
 
-          # ========== KITCHEN UNDERCABINET (Independent bounds) ==========
-          - sequence:
-              - variables:
-                  comfort_min_b: 55
-                  comfort_max_b: 100
-                  env_sensitivity: 1.0
-                  night_sensitivity: 0.5
-                  hard_min_b: 1
-                  hard_max_b: 100
-                  min_k: 2000
-                  max_k: 4000
-
-                  night_with_sensitivity: >
-                    {{ comp_night_b_raw * night_strength * 0.5 }}
-                  night_warmth_with_sensitivity: >
-                    {{ comp_night_k_raw * night_strength * 0.5 }}
-
-                  auto_offset_b: >
-                    {{ base_config_b + (env_with_sunset_capped * 1.0) + night_with_sensitivity }}
-
-                  auto_min_raw: "{{ 55 + auto_offset_b }}"
-                  auto_max_raw: "{{ 100 + auto_offset_b }}"
-
-                  auto_min_clamped: >
-                    {{ [55, [100, auto_min_raw] | min] | max }}
-                  auto_max_clamped: >
-                    {{ [55, [100, auto_max_raw] | min] | max }}
-
-                  manual_offset_b: >
-                    {{ states('input_number.oal_manual_offset_kitchen_undercabinet_brightness') | float(0) }}
-
-                  min_with_manual: "{{ auto_min_clamped + manual_offset_b }}"
-                  max_with_manual: "{{ auto_max_clamped + manual_offset_b }}"
-
-                  global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
-                  global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
-
-                  clamped_min_b: "{{ [1, [100, global_min_b] | min] | max }}"
-                  clamped_max_b: "{{ [1, [100, global_max_b] | min] | max }}"
-
-                  final_min_b: "{{ clamped_min_b }}"
-                  final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
-
-                  final_min_k: >
-                    {% set proposed = 2000 + base_warmth_offset + night_warmth_with_sensitivity %}
-                    {{ [2000, [4000, proposed] | min] | max }}
-                  final_max_k: >
-                    {% set proposed = 4000 + base_warmth_offset + night_warmth_with_sensitivity %}
-                    {% set clamped = [2000, [4000, proposed] | min] | max %}
-                    {{ [final_min_k | float, clamped] | max }}
-
-              - service: adaptive_lighting.change_switch_settings
-                continue_on_error: true
-                target:
-                  entity_id: switch.adaptive_lighting_kitchen_undercabinet
-                data:
-                  min_brightness: "{{ final_min_b | round(0) }}"
-                  max_brightness: "{{ final_max_b | round(0) }}"
-                  min_color_temp: "{{ final_min_k | round(0) }}"
-                  max_color_temp: "{{ final_max_k | round(0) }}"
-                  transition: "{{ transition_speed }}"
-
           # ========== BEDROOM PRIMARY (Govee warmth - 2700-6500K hardware) ==========
           - sequence:
               - variables:
@@ -1263,15 +1128,8 @@ automation:
                   night_with_sensitivity: 0
                   night_warmth_with_sensitivity: 0
 
-                  column_config_b: >
-                    {% if states('input_select.oal_active_configuration') == 'Full Bright' %}
-                      0
-                    {% else %}
-                      {{ base_config_b }}
-                    {% endif %}
-
                   auto_offset_b: >
-                    {{ column_config_b + (env_with_sunset_capped * 0.7) + night_with_sensitivity }}
+                    {{ base_config_b + (env_with_sunset_capped * 0.7) + night_with_sensitivity }}
 
                   auto_min_raw: "{{ 1 + auto_offset_b }}"
                   auto_max_raw: "{{ 80 + auto_offset_b }}"
@@ -1368,26 +1226,6 @@ automation:
                       transition: "{{ 0 if is_force_apply else transition_speed }}"
                     continue_on_error: true
 
-          # Kitchen Undercabinet
-          - sequence:
-              - variables:
-                  all_lights: "{{ (state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'configuration') or {}).get('lights', []) }}"
-                  all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
-                  manual_lights: "{{ state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'manual_control') | default([]) }}"
-                  on_lights: "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
-              - if:
-                  - condition: template
-                    value_template: "{{ on_lights | length > 0 }}"
-                then:
-                  - service: adaptive_lighting.apply
-                    target:
-                      entity_id: switch.adaptive_lighting_kitchen_undercabinet
-                    data:
-                      lights: "{{ on_lights }}"
-                      turn_on_lights: false
-                      transition: "{{ 0 if is_force_apply else transition_speed }}"
-                    continue_on_error: true
-
           # Bedroom Primary
           - sequence:
               - variables:
@@ -1448,63 +1286,30 @@ automation:
                       transition: "{{ 0 if is_force_apply else transition_speed }}"
                     continue_on_error: true
 
-          # Column Lights
+          # Column Lights (BUG-01 fix: respect column RGB protection even under force)
           - sequence:
               - variables:
                   all_lights: "{{ (state_attr('switch.adaptive_lighting_column_lights', 'configuration') or {}).get('lights', []) }}"
                   all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
                   manual_lights: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) }}"
-                  sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
-                  sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
+                  # SYNC: canonical column_rgb_protect_now guard (ISSUE-22)
+                  # Bounds: prepare_rgb (-5 <= elev < 3, descending), sleep at -5
                   column_rgb_protect_now: >
-                    {{ is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off')
-                       and is_state('input_boolean.oal_column_rgb_session_active', 'on')
-                       and not is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on')
-                       and (sun_rising == false)
-                       and (sun_elevation >= -5 and sun_elevation < 3) }}
+                    {% set session_on = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
+                    {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+                    {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+                    {% set in_window = (not rising) and elev >= -5 and elev < 3 %}
+                    {% set sleep_off = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') %}
+                    {% set kill_off = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off') %}
+                    {{ session_on and in_window and sleep_off and kill_off }}
                   on_lights: >
                     {% if column_rgb_protect_now and force_intent != 'override_all' %}
                       []
-                    {% elif is_force_apply %}
+                    {% elif is_force_apply and (not column_rgb_protect_now or force_intent == 'override_all') %}
                       {{ all_on_lights }}
                     {% else %}
                       {{ all_on_lights | reject('in', manual_lights) | list }}
                     {% endif %}
-              - choose:
-                  - conditions:
-                      - condition: state
-                        entity_id: input_boolean.oal_column_rgb_debug_events
-                        state: "on"
-                      - condition: template
-                        value_template: "{{ column_rgb_protect_now and is_force_apply and force_intent != 'override_all' }}"
-                    sequence:
-                      - event: oal_column_rgb_debug
-                        event_data:
-                          decision: "engine_protect_filter"
-                          source: "oal_core_adjustment_engine_v13"
-                          result: "columns_filtered"
-                          force_intent: "{{ force_intent }}"
-                          on_lights_count: "{{ on_lights | length }}"
-                          manual_count: "{{ manual_lights | length }}"
-                          sun_elevation: "{{ sun_elevation }}"
-                          sun_rising: "{{ sun_rising }}"
-                  - conditions:
-                      - condition: state
-                        entity_id: input_boolean.oal_column_rgb_debug_events
-                        state: "on"
-                      - condition: template
-                        value_template: "{{ column_rgb_protect_now and is_force_apply and force_intent == 'override_all' }}"
-                    sequence:
-                      - event: oal_column_rgb_debug
-                        event_data:
-                          decision: "engine_protect_filter"
-                          source: "oal_core_adjustment_engine_v13"
-                          result: "override_all_bypass"
-                          force_intent: "{{ force_intent }}"
-                          on_lights_count: "{{ on_lights | length }}"
-                          manual_count: "{{ manual_lights | length }}"
-                          sun_elevation: "{{ sun_elevation }}"
-                          sun_rising: "{{ sun_rising }}"
               - if:
                   - condition: template
                     value_template: "{{ on_lights | length > 0 }}"
@@ -1561,10 +1366,9 @@ automation:
           is_baseline: true
           is_force_on: false
         
-        # Full Brightness: high global lift while preserving per-zone warmth policy.
-        # Column zone explicitly excludes this config boost in Core Engine.
+        # Full Brightness: Turn on ALL lights with AL's calculated values
         "Full Bright":
-          b: 60
+          b: 0
           k: 0
           lights_off: []
           lights_dimmed: {}
@@ -1593,8 +1397,7 @@ automation:
             - light.kitchen_main_lights
           lights_dimmed:
             light.accent_spots_lights: 10 # Dim spots
-            light.kitchen_island_pendants: 5
-            light.kitchen_counter_cabinet_underlights: 5
+            light.kitchen_island_lights: 5 # Low glow on pendants
           is_baseline: false
           is_force_on: false
         
@@ -1636,44 +1439,13 @@ automation:
       is_baseline: "{{ target_profile.get('is_baseline', false) }}"
       is_force_on: "{{ target_profile.get('is_force_on', false) }}"
       is_sleep: "{{ target_profile.get('is_sleep', false) }}"
-      is_force_apply: false
-
-      # Guard trigger state access for manual/triggered runs where from_state may be absent.
-      trigger_has_from_state: >
-        {{ trigger is defined
-           and trigger.platform is defined
-           and trigger.platform == 'state'
-           and trigger.from_state is defined
-           and trigger.from_state is not none
-           and trigger.from_state.state is defined }}
-      from_state_value: "{{ trigger.from_state.state if trigger_has_from_state else '' }}"
 
       # Track transitions to/from Adaptive for snapshot/restore
-      was_adaptive: "{{ trigger_has_from_state and from_state_value == 'Adaptive' }}"
+      was_adaptive: "{{ trigger.from_state.state == 'Adaptive' if trigger.from_state is not none else false }}"
 
       # FIX 2: Calculate expanded switches once for efficiency
       all_switches_expanded: >
         {{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}
-      sleep_switches_all: >
-        {{ expand('group.oal_sleep_mode_switches') | map(attribute='entity_id') | list }}
-      sleep_switches_non_column: >
-        {{ sleep_switches_all | reject('eq', 'switch.adaptive_lighting_sleep_mode_column_lights') | list }}
-
-      # Canonical runtime guard for column RGB ownership protection.
-      # SYNC: Evening protect window is descending sun only, -5 <= elevation < 3.
-      column_manual_lights: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) }}"
-      column_light_entities:
-        - light.living_column_strip_light_matter
-        - light.dining_column_strip_light_matter
-      sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
-      sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
-      column_rgb_green: "{{ states('input_number.oal_offset_column_rgb_green') | int(150) }}"
-      column_rgb_protect_now: >
-        {{ is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off')
-           and is_state('input_boolean.oal_column_rgb_session_active', 'on')
-           and not is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on')
-           and (sun_rising == false)
-           and (sun_elevation >= -5 and sun_elevation < 3) }}
       
       all_adaptive_lights_expanded: >
         {{ expand('light.all_adaptive_lights') | map(attribute='entity_id') | list }}
@@ -1687,8 +1459,8 @@ automation:
 
       # Track previously controlled lights for proper cleanup during transitions
       prev_controlled_lights: >
-        {% if trigger_has_from_state and is_state('input_boolean.oal_config_power_handoff_active', 'on') %}
-          {% set prev_config = from_state_value %}
+        {% if trigger.from_state is not none and is_state('input_boolean.oal_config_power_handoff_active', 'on') %}
+          {% set prev_config = trigger.from_state.state %}
           {% set prev_profile = config_profiles.get(prev_config, {}) %}
           {% set lights_off = prev_profile.get('lights_off', []) %}
           {% set lights_dimmed = prev_profile.get('lights_dimmed', {}).keys() | list %}
@@ -1713,30 +1485,11 @@ automation:
         then:
           - service: switch.turn_on
             target:
-              entity_id: "{{ sleep_switches_all }}"
+              entity_id: "{{ expand('group.oal_sleep_mode_switches') | map(attribute='entity_id') | list }}"
         else:
-          # Column sleep ownership is elevation-driven and controlled by
-          # oal_column_lights_sleep_trigger_v13. Do not blanket-toggle it here.
           - service: switch.turn_off
             target:
-              entity_id: "{{ sleep_switches_non_column }}"
-          # Re-evaluate column sleep ownership after config transition.
-          - service: automation.trigger
-            target:
-              entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
-          - if:
-              - condition: state
-                entity_id: input_boolean.oal_column_rgb_debug_events
-                state: "on"
-            then:
-              - event: oal_column_rgb_debug
-                event_data:
-                  decision: "config_manager_sleep_sync"
-                  source: "oal_configuration_manager_v13"
-                  result: "column_sleep_delegated"
-                  is_sleep_target: "{{ is_sleep }}"
-                  sun_elevation: "{{ sun_elevation }}"
-                  sun_rising: "{{ sun_rising }}"
+              entity_id: "{{ expand('group.oal_sleep_mode_switches') | map(attribute='entity_id') | list }}"
 
       # =========================================================================
       # SNAPSHOT: Capture light state when leaving Adaptive mode
@@ -1761,28 +1514,15 @@ automation:
                 value_template: "{{ is_baseline }}"
             sequence:
               # 0. Turn off AL sleep switches if exiting Sleep mode
-              - if: "{{ trigger_has_from_state and from_state_value == 'Sleep' }}"
+              - if: "{{ trigger.from_state.state == 'Sleep' }}"
                 then:
                   - service: switch.turn_off
                     target:
-                      entity_id: "{{ sleep_switches_non_column }}"
+                      entity_id: "{{ expand('group.oal_sleep_mode_switches') | map(attribute='entity_id') | list }}"
                   # Re-evaluate column lights' independent sun-elevation sleep schedule
                   - service: automation.trigger
                     target:
                       entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
-                  - if:
-                      - condition: state
-                        entity_id: input_boolean.oal_column_rgb_debug_events
-                        state: "on"
-                    then:
-                      - event: oal_column_rgb_debug
-                        event_data:
-                          decision: "config_manager_sleep_sync"
-                          source: "oal_configuration_manager_v13"
-                          result: "column_sleep_delegated"
-                          reason: "exiting_sleep_config"
-                          sun_elevation: "{{ sun_elevation }}"
-                          sun_rising: "{{ sun_rising }}"
 
               # 0b. Restore previous light state (snapshot from before config mode)
               - service: scene.turn_on
@@ -1804,7 +1544,7 @@ automation:
                         - light.living_column_strip_light_matter
                         - light.dining_column_strip_light_matter
                     data:
-                      rgb_color: [255, "{{ column_rgb_green }}", 0]
+                      rgb_color: [255, 165, 0]
                       transition: 0
                   - delay: "00:00:01"
                   - service: light.turn_on
@@ -1825,21 +1565,24 @@ automation:
                         - light.living_column_strip_light_matter
                         - light.dining_column_strip_light_matter
                       manual_control: true
-                  - if:
-                      - condition: state
-                        entity_id: input_boolean.oal_column_rgb_debug_events
-                        state: "on"
-                    then:
-                      - event: oal_column_rgb_debug
-                        event_data:
-                          decision: "config_manager_column_reassert"
-                          source: "oal_configuration_manager_v13"
-                          result: "rgb_reapplied"
-                          sun_elevation: "{{ sun_elevation }}"
-                          sun_rising: "{{ sun_rising }}"
+                  - event: oal_column_rgb_debug
+                    event_data:
+                      action: "config_manager_column_reassert"
+                      result: "rgb_reapplied"
+                      timestamp: "{{ now().isoformat() }}"
 
-              # 1. Release manual controls system-wide (column-safe during RGB protect)
+              # 1. Release manual controls system-wide (BUG-03 fix: skip protected columns)
               - variables:
+                  # SYNC: canonical column_rgb_protect_now guard (ISSUE-22)
+                  column_rgb_protect_now: >
+                    {% set session_on = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
+                    {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+                    {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+                    {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+                    {% set in_window = (not rising) and elev >= -5 and elev < 3 %}
+                    {% set sleep_off = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') %}
+                    {% set kill_off = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off') %}
+                    {{ session_on and in_window and sleep_off and kill_off }}
                   switches_to_clear: >
                     {% if column_rgb_protect_now %}
                       {{ all_switches_expanded | reject('eq', 'switch.adaptive_lighting_column_lights') | list }}
@@ -1850,31 +1593,30 @@ automation:
                   for_each: "{{ switches_to_clear }}"
                   sequence:
                     - service: adaptive_lighting.set_manual_control
-                      continue_on_error: true
                       target:
                         entity_id: "{{ repeat.item }}"
                       data:
                         manual_control: false
-              
+
               # 2. Clear handoff flag (no overrides in adaptive baseline)
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_power_handoff_active
-              
+
               # 3. Set baseline offsets (0, 0)
               - service: input_number.set_value
                 target:
                   entity_id: input_number.oal_offset_config_brightness
                 data:
                   value: 0
-              
+
               - service: input_number.set_value
                 target:
                   entity_id: input_number.oal_offset_config_warmth
                 data:
                   value: 0
-              
-              
+
+
               # 5. Unlock engine - Core Engine will manage lights naturally
               - service: input_boolean.turn_off
                 target:
@@ -1891,13 +1633,24 @@ automation:
           
           # =====================================================================
           # FORCE ON PATH: Full Brightness - turn on ALL lights with AL values
+          # (BUG-05 fix: skip column clear+apply when protected)
           # =====================================================================
           - conditions:
               - condition: template
                 value_template: "{{ is_force_on }}"
             sequence:
-              # 1. Release manual controls system-wide (column-safe during RGB protect)
+              # 1. Release manual controls (skip protected columns)
               - variables:
+                  # SYNC: canonical column_rgb_protect_now guard (ISSUE-22)
+                  column_rgb_protect_now: >
+                    {% set session_on = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
+                    {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+                    {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+                    {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+                    {% set in_window = (not rising) and elev >= -5 and elev < 3 %}
+                    {% set sleep_off = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') %}
+                    {% set kill_off = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off') %}
+                    {{ session_on and in_window and sleep_off and kill_off }}
                   switches_to_clear: >
                     {% if column_rgb_protect_now %}
                       {{ all_switches_expanded | reject('eq', 'switch.adaptive_lighting_column_lights') | list }}
@@ -1914,47 +1667,45 @@ automation:
                   for_each: "{{ switches_to_clear }}"
                   sequence:
                     - service: adaptive_lighting.set_manual_control
-                      continue_on_error: true
                       target:
                         entity_id: "{{ repeat.item }}"
                       data:
                         manual_control: false
-              
-              # 2. Turn on lights with AL's calculated settings
+
+              # 2. Turn on lights with AL's calculated settings (skip protected columns)
               - repeat:
                   for_each: "{{ switches_to_apply }}"
                   sequence:
                     - service: adaptive_lighting.apply
-                      continue_on_error: true
                       target:
                         entity_id: "{{ repeat.item }}"
                       data:
                         turn_on_lights: true
                         transition: "{{ 0 if is_force_apply else transition_speed }}"
-              
+
               # 3. Clear handoff flag (no overrides in force-on)
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_power_handoff_active
-              
-              # 4. Persist profile offsets so Core Engine follows active config.
+
+              # 4. Set baseline offsets (0, 0)
               - service: input_number.set_value
                 target:
                   entity_id: input_number.oal_offset_config_brightness
                 data:
-                  value: "{{ target_profile.b }}"
-              
+                  value: 0
+
               - service: input_number.set_value
                 target:
                   entity_id: input_number.oal_offset_config_warmth
                 data:
-                  value: "{{ target_profile.k }}"
-              
+                  value: 0
+
               # 5. Unlock engine
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_transition_active
-              
+
               # EXIT: Force-on path complete
 
         # =======================================================================
@@ -1964,11 +1715,34 @@ automation:
         # =======================================================================
         default:
           # PHASE 1: Cleanup previous config's power handoff (if any)
+          # BUG-06 fix: exclude protected column lights from cleanup lists
           - choose:
               - conditions:
                   - condition: template
                     value_template: "{{ prev_controlled_lights | length > 0 }}"
                 sequence:
+                  - variables:
+                      # SYNC: canonical column_rgb_protect_now guard (ISSUE-22)
+                      column_rgb_protect_now: >
+                        {% set session_on = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
+                        {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+                        {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+                        {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+                        {% set in_window = (not rising) and elev >= -5 and elev < 3 %}
+                        {% set sleep_off = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') %}
+                        {% set kill_off = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off') %}
+                        {{ session_on and in_window and sleep_off and kill_off }}
+                      # Column light entity IDs to exclude when protected
+                      column_light_entities:
+                        - light.living_column_strip_light_matter
+                        - light.dining_column_strip_light_matter
+                      # Filter protected column lights out of cleanup target list
+                      safe_prev_controlled_lights: >
+                        {% if column_rgb_protect_now %}
+                          {{ prev_controlled_lights | reject('in', column_light_entities) | list }}
+                        {% else %}
+                          {{ prev_controlled_lights }}
+                        {% endif %}
                   # Release manual control on previously controlled lights
                   # Match lights to their respective switches instead of passing all to all
                   - repeat:
@@ -1978,19 +1752,11 @@ automation:
                             # Get lights managed by this switch and expand groups to individuals
                             switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
                             switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
-                            # Find which prev_controlled_lights belong to this switch
-                            raw_lights_for_switch: "{{ prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
-                            # Column-aware filtering at light level prevents protected RGB release.
-                            lights_for_switch: >
-                              {% if column_rgb_protect_now and repeat.item == 'switch.adaptive_lighting_column_lights' %}
-                                {{ raw_lights_for_switch | reject('in', column_light_entities) | list }}
-                              {% else %}
-                                {{ raw_lights_for_switch }}
-                              {% endif %}
+                            # Find which safe_prev_controlled_lights belong to this switch
+                            lights_for_switch: "{{ safe_prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
                         - if: "{{ lights_for_switch | length > 0 }}"
                           then:
                             - service: adaptive_lighting.set_manual_control
-                              continue_on_error: true
                               target:
                                 entity_id: "{{ repeat.item }}"
                               data:
@@ -2004,17 +1770,10 @@ automation:
                         - variables:
                             switch_managed: "{{ state_attr(repeat.item, 'configuration').lights | default([]) }}"
                             switch_lights_expanded: "{{ expand(switch_managed) | map(attribute='entity_id') | list }}"
-                            raw_lights_for_switch: "{{ prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
-                            lights_for_switch: >
-                              {% if column_rgb_protect_now and repeat.item == 'switch.adaptive_lighting_column_lights' %}
-                                {{ raw_lights_for_switch | reject('in', column_light_entities) | list }}
-                              {% else %}
-                                {{ raw_lights_for_switch }}
-                              {% endif %}
+                            lights_for_switch: "{{ safe_prev_controlled_lights | select('in', switch_lights_expanded) | list }}"
                         - if: "{{ lights_for_switch | length > 0 }}"
                           then:
                             - service: adaptive_lighting.apply
-                              continue_on_error: true
                               target:
                                 entity_id: "{{ repeat.item }}"
                               data:
@@ -2091,7 +1850,6 @@ automation:
                               value_template: "{{ lights_for_this_switch | length > 0 }}"
                           then:
                             - service: adaptive_lighting.set_manual_control
-                              continue_on_error: true
                               target:
                                 entity_id: "{{ switch_id }}"
                               data:
@@ -2134,6 +1892,7 @@ automation:
           - event: oal_watchdog_trigger
             event_data:
               message: "Override config applied - recalculating zones"
+              force_intent: "column_safe"
   # ---------------------------------------------------------------------------
   # 4.3 Sunset Gaussian offsets (brightness + warmth)
   # ---------------------------------------------------------------------------
@@ -2144,20 +1903,12 @@ automation:
         event: start
       - platform: time_pattern
         minutes: "/1"
-      # Column test harness refreshes
-      - platform: state
-        entity_id:
-          - input_boolean.oal_test_mode
-          - input_number.oal_test_sun_elevation
-          - input_boolean.oal_test_sun_rising
     condition:
       - condition: state
         entity_id: input_boolean.oal_system_paused
         state: "off"
     variables:
       elevation: "{{ state_attr('sun.sun', 'elevation') | float(90) }}"
-      column_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(90) }}"
-      column_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
       e: 2.71828
       brightness_offset: >
         {% if 8 >= elevation >= -8 %}
@@ -2173,18 +1924,9 @@ automation:
         {% else %}
           0
         {% endif %}
-      # Column RGB green follows a gentle sunset Gaussian for warmer amber.
-      # Uses effective sun elevation so test harness drives this path.
-      column_rgb_green: >
-        {% if -10 <= column_elevation <= 5 %}
-          {% set center = -1 %}
-          {% set sigma = 3 %}
-          {% set gauss = e ** (-((column_elevation - center) ** 2) / (2 * (sigma ** 2))) %}
-          {% set green = (150 - (gauss * 10)) | round(0) | int %}
-          {{ 135 if green < 135 else 165 if green > 165 else green }}
-        {% else %}
-          150
-        {% endif %}
+      # Column RGB target is intentionally fixed at amber to avoid yellow drift
+      # and device quantization regressions seen near sunset.
+      column_rgb_green: "165"
     action:
       - service: input_number.set_value
         target:
@@ -2211,17 +1953,12 @@ automation:
   - id: oal_column_lights_prepare_rgb_mode_v13
     alias: "OAL v13 - Column Lights Prepare RGB Mode"
     description: "Switches column lights to RGB mode at safe brightness before color transition to prevent Govee purple bug"
-    mode: restart
     trigger:
       - platform: numeric_state
         entity_id: sun.sun
         attribute: elevation
         below: 3
         id: evening_cross
-      - platform: numeric_state
-        entity_id: input_number.oal_test_sun_elevation
-        below: 3
-        id: test_evening_cross
       - platform: homeassistant
         event: start
         id: startup_recovery
@@ -2232,8 +1969,23 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_system_paused
         state: "off"
+      - condition: template
+        value_template: "{{ not state_attr('sun.sun', 'rising') | default(true) }}"
+      - condition: template
+        value_template: >
+          {{ is_state('light.living_column_strip_light_matter', 'on')
+             or is_state('light.dining_column_strip_light_matter', 'on') }}
+      - condition: state
+        entity_id: switch.adaptive_lighting_sleep_mode_column_lights
+        state: "off"
+      # ISSUE-11 fix: zone-safe guard - check BOTH column lights, not just one
+      - condition: template
+        value_template: >
+          {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+          {{ 'light.living_column_strip_light_matter' not in manual_list
+             and 'light.dining_column_strip_light_matter' not in manual_list }}
+    mode: restart
     action:
-      # Recovery path for startup/reload so columns can re-enter session window safely.
       - choose:
           - conditions:
               - condition: template
@@ -2245,92 +1997,6 @@ automation:
                 value_template: "{{ trigger.id == 'automation_reload_recovery' }}"
             sequence:
               - delay: "00:00:03"
-      # Test trigger is valid only when test mode is enabled.
-      - condition: template
-        value_template: >
-          {{ trigger.id != 'test_evening_cross'
-             or is_state('input_boolean.oal_test_mode', 'on') }}
-      # Test-mode race guard: ensure effective sun sensor has caught up to test input
-      # before evaluating the evening window condition.
-      - if:
-          - condition: template
-            value_template: "{{ trigger.id == 'test_evening_cross' }}"
-        then:
-          - wait_template: >
-              {{ ((states('sensor.oal_effective_sun_elevation') | float(999))
-                   - (states('input_number.oal_test_sun_elevation') | float(0))) | abs < 0.2 }}
-            timeout: "00:00:03"
-            continue_on_timeout: true
-      - variables:
-          dbg_enabled: "{{ is_state('input_boolean.oal_column_rgb_debug_events', 'on') }}"
-          dbg_sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
-          dbg_sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
-          dbg_sun_source: "{{ state_attr('sensor.oal_effective_sun_elevation', 'source') | default('live') }}"
-          dbg_live_sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(999) }}"
-          dbg_live_sun_rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
-          dbg_columns_on: >
-            {{ is_state('light.living_column_strip_light_matter', 'on')
-               or is_state('light.dining_column_strip_light_matter', 'on') }}
-          dbg_sleep_on: "{{ is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on') }}"
-          dbg_manual_list: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) }}"
-          dbg_manual_empty: >
-            {{ 'light.living_column_strip_light_matter' not in dbg_manual_list
-               and 'light.dining_column_strip_light_matter' not in dbg_manual_list }}
-          green_value: "{{ states('input_number.oal_offset_column_rgb_green') | int(150) }}"
-          dbg_in_window: "{{ (dbg_sun_rising == false) and (dbg_sun_elevation >= -5 and dbg_sun_elevation < 3) }}"
-          dbg_startup_eligible: "{{ dbg_in_window and dbg_columns_on and (not dbg_sleep_on) and dbg_manual_empty }}"
-          dbg_startup_reason: >
-            {% if dbg_sun_rising %}
-              sun_rising
-            {% elif not dbg_in_window %}
-              outside_window
-            {% elif not dbg_columns_on %}
-              columns_off
-            {% elif dbg_sleep_on %}
-              sleep_mode_on
-            {% elif not dbg_manual_empty %}
-              manual_not_empty
-            {% else %}
-              eligible
-            {% endif %}
-      - if:
-          - condition: template
-            value_template: "{{ trigger.id in ['startup_recovery', 'automation_reload_recovery'] and dbg_enabled }}"
-        then:
-          - event: oal_column_rgb_debug
-            event_data:
-              decision: "prepare_on_recovery"
-              source: "oal_column_lights_prepare_rgb_mode_v13"
-              result: "{{ 'execute' if dbg_startup_eligible else 'skip' }}"
-              reason: "{{ dbg_startup_reason }}"
-              sun_elevation: "{{ dbg_sun_elevation }}"
-              sun_rising: "{{ dbg_sun_rising }}"
-              sun_source: "{{ dbg_sun_source }}"
-              live_sun_elevation: "{{ dbg_live_sun_elevation }}"
-              live_sun_rising: "{{ dbg_live_sun_rising }}"
-              columns_on: "{{ dbg_columns_on }}"
-              sleep_mode_on: "{{ dbg_sleep_on }}"
-              manual_count: "{{ dbg_manual_list | length }}"
-
-      # Canonical evening protect window: descending sun only, -5 <= elevation < 3.
-      - condition: template
-        value_template: >
-          {% set elev = states('sensor.oal_effective_sun_elevation') | float(999) %}
-          {% set rising = is_state('binary_sensor.oal_effective_sun_rising', 'on') %}
-          {{ (rising == false) and (elev >= -5 and elev < 3) }}
-      - condition: template
-        value_template: >
-          {{ is_state('light.living_column_strip_light_matter', 'on')
-             or is_state('light.dining_column_strip_light_matter', 'on') }}
-      - condition: state
-        entity_id: switch.adaptive_lighting_sleep_mode_column_lights
-        state: "off"
-      - condition: template
-        value_template: >
-          {% set manual = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
-          {{ 'light.living_column_strip_light_matter' not in manual
-             and 'light.dining_column_strip_light_matter' not in manual }}
-
       # Step 1: Raise brightness to safe level (above 33%)
       - service: light.turn_on
         continue_on_error: true
@@ -2343,7 +2009,7 @@ automation:
           transition: 0
       - delay: "00:00:10"
 
-      # Step 2: Switch to RGB mode with calibrated warm amber (hue ~32-38)
+      # Step 2: Switch to RGB mode with safe orange (hue > 38)
       - service: light.turn_on
         continue_on_error: true
         target:
@@ -2351,7 +2017,7 @@ automation:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
         data:
-          rgb_color: [255, "{{ green_value }}", 0]
+          rgb_color: [255, 165, 0]
           transition: 0
       - delay: "00:00:10"
 
@@ -2365,31 +2031,14 @@ automation:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
           manual_control: true
-      - wait_template: >
-          {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) > 0 }}
-        timeout: "00:00:05"
-        continue_on_timeout: true
+
+      # Step 3b: Set session flag (B1 - disambiguates RGB lifecycle from generic manual)
       - service: input_boolean.turn_on
         target:
           entity_id: input_boolean.oal_column_rgb_session_active
-      - if:
-          - condition: template
-            value_template: "{{ dbg_enabled }}"
-        then:
-          - event: oal_column_rgb_debug
-            event_data:
-              decision: "protect_engage"
-              source: "oal_column_lights_prepare_rgb_mode_v13"
-              result: "session_locked"
-              trigger_id: "{{ trigger.id }}"
-              sun_elevation: "{{ dbg_sun_elevation }}"
-              sun_rising: "{{ dbg_sun_rising }}"
-              sun_source: "{{ dbg_sun_source }}"
-              live_sun_elevation: "{{ dbg_live_sun_elevation }}"
-              live_sun_rising: "{{ dbg_live_sun_rising }}"
-              manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
 
-      # Step 4: Reduce brightness for evening
+      # Step 4: Reduce brightness for evening hold
+      # GAP-03/B1b: lowered from 20% to 5% to reduce deep-night brightness jump
       - service: light.turn_on
         continue_on_error: true
         target:
@@ -2414,9 +2063,6 @@ automation:
         entity_id: input_boolean.oal_system_paused
         state: "off"
       - condition: state
-        entity_id: input_boolean.oal_column_rgb_session_active
-        state: "on"
-      - condition: state
         entity_id: switch.adaptive_lighting_sleep_mode_column_lights
         state: "off"
       # Ensure prepare automation has run (manual_control set)
@@ -2424,7 +2070,7 @@ automation:
         value_template: >
           {{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length > 0 }}
     variables:
-      green_value: "{{ states('input_number.oal_offset_column_rgb_green') | int(150) }}"
+      green_value: "{{ states('input_number.oal_offset_column_rgb_green') | int(165) }}"
     action:
       - service: light.turn_on
         target:
@@ -2447,30 +2093,17 @@ automation:
         entity_id: sun.sun
         attribute: elevation
         above: 8
-        id: morning_cross
-      - platform: numeric_state
-        entity_id: input_number.oal_test_sun_elevation
-        above: 8
-        id: test_morning_cross
     condition:
       - condition: state
         entity_id: input_boolean.oal_system_paused
         state: "off"
-      - condition: state
-        entity_id: input_boolean.oal_column_rgb_session_active
-        state: "on"
       - condition: template
-        value_template: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
+        value_template: "{{ state_attr('sun.sun', 'rising') | default(false) }}"
       - condition: template
         value_template: >
           {{ is_state('light.living_column_strip_light_matter', 'on')
              or is_state('light.dining_column_strip_light_matter', 'on') }}
     action:
-      # Test trigger is valid only when test mode is enabled.
-      - condition: template
-        value_template: >
-          {{ trigger.id != 'test_morning_cross'
-             or is_state('input_boolean.oal_test_mode', 'on') }}
       # Step 1: Raise to safe brightness
       - service: light.turn_on
         continue_on_error: true
@@ -2505,10 +2138,8 @@ automation:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
           manual_control: false
-      - wait_template: >
-          {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) == 0 }}
-        timeout: "00:00:05"
-        continue_on_timeout: true
+
+      # Step 3b: Clear session flag (B2 - session complete)
       - service: input_boolean.turn_off
         target:
           entity_id: input_boolean.oal_column_rgb_session_active
@@ -2523,206 +2154,125 @@ automation:
           transition: 0
 
   # ---------------------------------------------------------------------------
-  # 4.3d Column Lights RGB Self-Heal
+  # 4.3c-heal Column Lights RGB Self-Heal (B3/B4, GAP-02)
+  # Restores manual+RGB if accidentally cleared during active protected window.
+  # Anti-thrash: mode:single + cooldown guard + evening-only window.
   # ---------------------------------------------------------------------------
   - id: oal_column_lights_rgb_self_heal_v13
     alias: "OAL v13 - Column Lights RGB Self-Heal"
-    description: "Restores RGB + manual control if column session is active and manual_control is cleared unexpectedly."
+    description: "Re-applies RGB and manual lock if cleared during active protected window"
     mode: single
     trigger:
-      - platform: homeassistant
-        event: start
-        id: startup
       - platform: template
         value_template: >
-          {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) == 0 }}
-        for: "00:00:20"
-        id: manual_cleared
+          {{ is_state('input_boolean.oal_column_rgb_session_active', 'on')
+             and (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length == 0) }}
+        for: "00:00:05"
+        id: "manual_cleared"
       - platform: time_pattern
         minutes: "/1"
-        id: periodic
-      - platform: template
-        value_template: >
-          {% set hs = state_attr('light.column_lights', 'hs_color') %}
-          {% if hs is sequence and (hs | count) > 0 %}
-            {% set hue = hs[0] | float(0) %}
-            {{ hue > 90 }}
-          {% else %}
-            false
-          {% endif %}
-        for: "00:00:05"
-        id: color_anomaly
+        id: "periodic_check"
     condition:
-      - condition: state
-        entity_id: input_boolean.oal_system_paused
-        state: "off"
-      - condition: state
-        entity_id: input_boolean.oal_column_rgb_guard_kill_switch
-        state: "off"
+      # Session must be active
       - condition: state
         entity_id: input_boolean.oal_column_rgb_session_active
         state: "on"
+      # Must be in evening protect window
+      - condition: template
+        value_template: >
+          {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+          {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+          {{ (not rising) and elev >= -5 and elev < 3 }}
+      # Sleep switch must be off
       - condition: state
         entity_id: switch.adaptive_lighting_sleep_mode_column_lights
         state: "off"
+      # Kill switch must be off
+      - condition: state
+        entity_id: input_boolean.oal_column_rgb_guard_kill_switch
+        state: "off"
+      # Heal when manual lock is lost OR color mode/hue/brightness drift occurs
       - condition: template
         value_template: >
-          {% set elev = states('sensor.oal_effective_sun_elevation') | float(999) %}
-          {% set rising = is_state('binary_sensor.oal_effective_sun_rising', 'on') %}
-          {{ (rising == false) and (elev >= -5 and elev < 3) }}
-      - condition: template
-        value_template: >
-          {{ is_state('light.living_column_strip_light_matter', 'on')
-             or is_state('light.dining_column_strip_light_matter', 'on') }}
-      - condition: template
-        value_template: >
-          {% set manual_count = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length %}
+          {% set manual_count = (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) | length %}
           {% set mode = state_attr('light.column_lights', 'color_mode') | default('unknown') %}
           {% set brightness = state_attr('light.column_lights', 'brightness') | int(0) %}
           {% set hs = state_attr('light.column_lights', 'hs_color') %}
           {% set hue = (hs[0] if (hs is sequence and (hs | count) > 0) else 0) | float(0) %}
-          {{ (manual_count == 0) or (hue > 90) or (mode != 'hs') or (brightness > 64) }}
+          {{ (manual_count == 0) or (mode != 'hs') or (brightness > 64) or (hue > 90) }}
+      # At least one column light must be on
+      - condition: template
+        value_template: >
+          {{ is_state('light.living_column_strip_light_matter', 'on')
+             or is_state('light.dining_column_strip_light_matter', 'on') }}
+      # System not paused
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
     action:
       - variables:
-          green_value: "{{ states('input_number.oal_offset_column_rgb_green') | int(150) }}"
-          manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
+          green_value: "{{ states('input_number.oal_offset_column_rgb_green') | int(165) }}"
           current_color_mode: "{{ state_attr('light.column_lights', 'color_mode') | default('unknown') }}"
           current_brightness: "{{ state_attr('light.column_lights', 'brightness') | int(0) }}"
           hs: "{{ state_attr('light.column_lights', 'hs_color') }}"
           current_hue: "{{ (hs[0] if (hs is sequence and (hs | count) > 0) else 0) | float(0) }}"
-          is_color_anomaly: "{{ current_hue > 90 }}"
-          is_mode_mismatch: "{{ current_color_mode != 'hs' }}"
-          is_brightness_anomaly: "{{ current_brightness > 64 }}"
           heal_reason: >
-            {% if is_mode_mismatch %}
+            {% if current_color_mode != 'hs' %}
               mode_mismatch
-            {% elif is_brightness_anomaly %}
+            {% elif current_brightness > 64 %}
               brightness_high
-            {% elif is_color_anomaly %}
+            {% elif current_hue > 90 %}
               hue_out_of_range
             {% else %}
-              unknown
+              manual_cleared
             {% endif %}
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ is_color_anomaly or is_mode_mismatch or is_brightness_anomaly }}"
-            sequence:
-              # Re-seed Govee color at safe brightness to clear purple/pink artifacts.
-              - service: light.turn_on
-                continue_on_error: true
-                target:
-                  entity_id:
-                    - light.living_column_strip_light_matter
-                    - light.dining_column_strip_light_matter
-                data:
-                  brightness_pct: 35
-                  transition: 0
-              - delay: "00:00:02"
-              - service: light.turn_on
-                continue_on_error: true
-                target:
-                  entity_id:
-                    - light.living_column_strip_light_matter
-                    - light.dining_column_strip_light_matter
-                data:
-                  rgb_color: [255, "{{ green_value }}", 0]
-                  transition: 0
-              - delay: "00:00:02"
-              - service: adaptive_lighting.set_manual_control
-                continue_on_error: true
-                target:
-                  entity_id: switch.adaptive_lighting_column_lights
-                data:
-                  lights:
-                    - light.living_column_strip_light_matter
-                    - light.dining_column_strip_light_matter
-                  manual_control: true
-              - wait_template: >
-                  {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) > 0 }}
-                timeout: "00:00:05"
-                continue_on_timeout: true
-              - service: light.turn_on
-                continue_on_error: true
-                target:
-                  entity_id:
-                    - light.living_column_strip_light_matter
-                    - light.dining_column_strip_light_matter
-                data:
-                  brightness_pct: 5
-                  transition: 0
-              - if:
-                  - condition: state
-                    entity_id: input_boolean.oal_column_rgb_debug_events
-                    state: "on"
-                then:
-                  - event: oal_column_rgb_debug
-                    event_data:
-                      decision: "heal_executed"
-                      source: "oal_column_lights_rgb_self_heal_v13"
-                      trigger_id: "{{ trigger.id }}"
-                      result: "color_reseeded"
-                      reason: "{{ heal_reason }}"
-                      color_mode: "{{ current_color_mode }}"
-                      brightness: "{{ current_brightness }}"
-                      current_hue: "{{ current_hue }}"
-                      sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
-                      sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
-                      sun_source: "{{ state_attr('sensor.oal_effective_sun_elevation', 'source') | default('live') }}"
-                      live_sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(999) }}"
-                      live_sun_rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
-                      manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
-          - conditions:
-              - condition: template
-                value_template: "{{ manual_count == 0 }}"
-            sequence:
-              - service: light.turn_on
-                continue_on_error: true
-                target:
-                  entity_id:
-                    - light.living_column_strip_light_matter
-                    - light.dining_column_strip_light_matter
-                data:
-                  rgb_color: [255, "{{ green_value }}", 0]
-                  transition: 0
-              - service: adaptive_lighting.set_manual_control
-                continue_on_error: true
-                target:
-                  entity_id: switch.adaptive_lighting_column_lights
-                data:
-                  lights:
-                    - light.living_column_strip_light_matter
-                    - light.dining_column_strip_light_matter
-                  manual_control: true
-              - wait_template: >
-                  {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) > 0 }}
-                timeout: "00:00:05"
-                continue_on_timeout: true
-              - if:
-                  - condition: state
-                    entity_id: input_boolean.oal_column_rgb_debug_events
-                    state: "on"
-                then:
-                  - event: oal_column_rgb_debug
-                    event_data:
-                      decision: "heal_executed"
-                      source: "oal_column_lights_rgb_self_heal_v13"
-                      trigger_id: "{{ trigger.id }}"
-                      result: "manual_restored"
-                      sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
-                      sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
-                      sun_source: "{{ state_attr('sensor.oal_effective_sun_elevation', 'source') | default('live') }}"
-                      live_sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(999) }}"
-                      live_sun_rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
-                      manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
+      # Re-apply RGB color
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+        data:
+          rgb_color: [255, "{{ green_value }}", 0]
+          transition: 0
+      # Re-lock manual control
+      - service: adaptive_lighting.set_manual_control
+        continue_on_error: true
+        target:
+          entity_id: switch.adaptive_lighting_column_lights
+        data:
+          lights:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+          manual_control: true
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - light.living_column_strip_light_matter
+            - light.dining_column_strip_light_matter
+        data:
+          brightness_pct: 5
+          transition: 0
+      # Debug trace event (F3)
+      - event: oal_column_rgb_debug
+        event_data:
+          action: "heal_executed"
+          trigger_id: "{{ trigger.id }}"
+          green_value: "{{ green_value }}"
+          reason: "{{ heal_reason }}"
+          color_mode: "{{ current_color_mode }}"
+          brightness: "{{ current_brightness }}"
+          current_hue: "{{ current_hue }}"
+          timestamp: "{{ now().isoformat() }}"
 
   # ---------------------------------------------------------------------------
-  # 4.3e Column Lights Sleep Mode (Final Safety)
+  # 4.3d Column Lights Sleep Mode (Final Safety)
   # ---------------------------------------------------------------------------
   - id: oal_column_lights_sleep_trigger_v13
     alias: "OAL v13 - Column Lights Sleep Mode (Final Safety)"
     description: "Enables sleep mode after RGB transition completes"
-    mode: restart
     trigger:
       - platform: homeassistant
         event: start
@@ -2732,204 +2282,46 @@ automation:
         below: -5
         id: "evening_final"
       - platform: numeric_state
-        entity_id: input_number.oal_test_sun_elevation
-        below: -5
-        id: "test_evening_final"
-      - platform: numeric_state
         entity_id: sun.sun
         attribute: elevation
         above: 5   # Exit sleep mode earlier for morning RGB fade (was: 12)
         id: "morning_trigger"
-      - platform: numeric_state
-        entity_id: input_number.oal_test_sun_elevation
-        above: 5
-        id: "test_morning_trigger"
     condition:
       - condition: state
         entity_id: input_boolean.oal_system_paused
         state: "off"
     action:
-      # Test triggers are valid only when test mode is enabled.
-      - condition: template
-        value_template: >
-          {{ trigger.id not in ['test_evening_final', 'test_morning_trigger']
-             or is_state('input_boolean.oal_test_mode', 'on') }}
       - choose:
           - conditions:
               - condition: trigger
-                id:
-                  - "evening_final"
-                  - "test_evening_final"
+                id: "evening_final"
             sequence:
-              - service: adaptive_lighting.set_manual_control
-                continue_on_error: true
-                target:
-                  entity_id: switch.adaptive_lighting_column_lights
-                data:
-                  lights:
-                    - light.living_column_strip_light_matter
-                    - light.dining_column_strip_light_matter
-                  manual_control: false
               - service: switch.turn_on
                 target:
                   entity_id: switch.adaptive_lighting_sleep_mode_column_lights
-              - service: input_boolean.turn_off
-                target:
-                  entity_id: input_boolean.oal_column_rgb_session_active
-              - service: adaptive_lighting.apply
-                continue_on_error: true
-                target:
-                  entity_id: switch.adaptive_lighting_column_lights
-                data:
-                  lights:
-                    - light.living_column_strip_light_matter
-                    - light.dining_column_strip_light_matter
-                  adapt_brightness: true
-                  adapt_color: true
-                  turn_on_lights: false
-              - if:
-                  - condition: state
-                    entity_id: input_boolean.oal_column_rgb_debug_events
-                    state: "on"
-                then:
-                  - event: oal_column_rgb_debug
-                    event_data:
-                      decision: "release_forced"
-                      source: "oal_column_lights_sleep_trigger_v13"
-                      result: "session_cleared"
-                      reason: "evening_final_below_minus5"
-                      sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
-                      sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
-                      sun_source: "{{ state_attr('sensor.oal_effective_sun_elevation', 'source') | default('live') }}"
           - conditions:
               - condition: trigger
-                id:
-                  - "morning_trigger"
-                  - "test_morning_trigger"
-              - condition: state
-                entity_id: binary_sensor.oal_effective_sun_rising
-                state: "on"
+                id: "morning_trigger"
             sequence:
               # Only toggle sleep mode here; Govee-safe RGB→color_temp transition
               # happens at 8° via oal_column_lights_morning_exit_rgb_v13
-              - service: adaptive_lighting.set_manual_control
-                continue_on_error: true
-                target:
-                  entity_id: switch.adaptive_lighting_column_lights
-                data:
-                  lights:
-                    - light.living_column_strip_light_matter
-                    - light.dining_column_strip_light_matter
-                  manual_control: false
               - service: switch.turn_off
                 target:
                   entity_id: switch.adaptive_lighting_sleep_mode_column_lights
-              - service: input_boolean.turn_off
-                target:
-                  entity_id: input_boolean.oal_column_rgb_session_active
-              - service: adaptive_lighting.apply
-                continue_on_error: true
-                target:
-                  entity_id: switch.adaptive_lighting_column_lights
-                data:
-                  lights:
-                    - light.living_column_strip_light_matter
-                    - light.dining_column_strip_light_matter
-                  adapt_brightness: true
-                  adapt_color: true
-                  turn_on_lights: false
-              - if:
-                  - condition: state
-                    entity_id: input_boolean.oal_column_rgb_debug_events
-                    state: "on"
-                then:
-                  - event: oal_column_rgb_debug
-                    event_data:
-                      decision: "release_forced"
-                      source: "oal_column_lights_sleep_trigger_v13"
-                      result: "session_cleared"
-                      reason: "morning_trigger_above5"
-                      sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
-                      sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
-                      sun_source: "{{ state_attr('sensor.oal_effective_sun_elevation', 'source') | default('live') }}"
         default:
-          - choose:
-              # Canonical night hold: keep sleep on when below -5.
-              - conditions:
-                  - condition: template
-                    value_template: >
-                      {{ states('sensor.oal_effective_sun_elevation') | float(999) < -5 }}
-                sequence:
-                  - service: adaptive_lighting.set_manual_control
-                    continue_on_error: true
-                    target:
-                      entity_id: switch.adaptive_lighting_column_lights
-                    data:
-                      lights:
-                        - light.living_column_strip_light_matter
-                        - light.dining_column_strip_light_matter
-                      manual_control: false
-                  - service: switch.turn_on
-                    target:
-                      entity_id: switch.adaptive_lighting_sleep_mode_column_lights
-                  - service: input_boolean.turn_off
-                    target:
-                      entity_id: input_boolean.oal_column_rgb_session_active
-                  - service: adaptive_lighting.apply
-                    continue_on_error: true
-                    target:
-                      entity_id: switch.adaptive_lighting_column_lights
-                    data:
-                      lights:
-                        - light.living_column_strip_light_matter
-                        - light.dining_column_strip_light_matter
-                      adapt_brightness: true
-                      adapt_color: true
-                      turn_on_lights: false
-                  - if:
-                      - condition: state
-                        entity_id: input_boolean.oal_column_rgb_debug_events
-                        state: "on"
-                    then:
-                      - event: oal_column_rgb_debug
-                        event_data:
-                          decision: "release_forced"
-                          source: "oal_column_lights_sleep_trigger_v13"
-                          result: "session_cleared"
-                          reason: "startup_or_default_below_minus5"
-                          sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
-                          sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
-                          sun_source: "{{ state_attr('sensor.oal_effective_sun_elevation', 'source') | default('live') }}"
-              # Morning unlock is allowed only when sun is rising.
-              - conditions:
-                  - condition: template
-                    value_template: >
-                      {{ (states('sensor.oal_effective_sun_elevation') | float(999) > 5)
-                         and is_state('binary_sensor.oal_effective_sun_rising', 'on') }}
-                sequence:
-                  - service: adaptive_lighting.set_manual_control
-                    continue_on_error: true
-                    target:
-                      entity_id: switch.adaptive_lighting_column_lights
-                    data:
-                      lights:
-                        - light.living_column_strip_light_matter
-                        - light.dining_column_strip_light_matter
-                      manual_control: false
-                  - service: switch.turn_off
-                    target:
-                      entity_id: switch.adaptive_lighting_sleep_mode_column_lights
-                  - service: adaptive_lighting.apply
-                    continue_on_error: true
-                    target:
-                      entity_id: switch.adaptive_lighting_column_lights
-                    data:
-                      lights:
-                        - light.living_column_strip_light_matter
-                        - light.dining_column_strip_light_matter
-                      adapt_brightness: true
-                      adapt_color: true
-                      turn_on_lights: false
+          - if:
+              - condition: numeric_state
+                entity_id: sun.sun
+                attribute: elevation
+                below: -5
+            then:
+              - service: switch.turn_on
+                target:
+                  entity_id: switch.adaptive_lighting_sleep_mode_column_lights
+            else:
+              - service: switch.turn_off
+                target:
+                  entity_id: switch.adaptive_lighting_sleep_mode_column_lights
 
   # ---------------------------------------------------------------------------
   # 4.4 Environmental adaptation (lux + weather + season)
@@ -3157,19 +2549,10 @@ automation:
     variables:
       mode: "{{ states('input_select.oal_isolated_override_mode') }}"
       transition_speed: "{{ states('input_number.oal_control_transition_speed') | float(0.3) }}"
-      previous_mode: >
-        {{ trigger.from_state.state
-           if trigger is defined
-           and trigger.platform is defined
-           and trigger.platform == 'state'
-           and trigger.from_state is defined
-           and trigger.from_state is not none
-           and trigger.from_state.state is defined
-           else '' }}
     action:
       - condition: template
         value_template: >
-          {{ previous_mode == 'Work (Office Desk)' }}
+          {{ trigger.from_state is not none and trigger.from_state.state == 'Work (Office Desk)' }}
       - service: adaptive_lighting.set_manual_control
         data:
           entity_id: switch.adaptive_lighting_main_living
@@ -3233,7 +2616,7 @@ automation:
                     -1800
                   {% elif 'main_living' in current_switch %}
                     -1200
-                  {% elif 'kitchen_island' in current_switch or 'kitchen_undercabinet' in current_switch %}
+                  {% elif 'kitchen_island' in current_switch %}
                     -2700
                   {% else %}
                     -1500
@@ -3300,13 +2683,6 @@ automation:
           set_manual_control: true
       - service: adaptive_lighting.apply
         data:
-          entity_id: switch.adaptive_lighting_kitchen_undercabinet
-          brightness_pct: 80
-          transition: 600
-          turn_on_lights: true
-          set_manual_control: true
-      - service: adaptive_lighting.apply
-        data:
           entity_id: switch.adaptive_lighting_bedroom_primary
           brightness_pct: 80
           transition: 0
@@ -3321,71 +2697,29 @@ automation:
     trigger:
       - platform: state
         entity_id: media_player.living_room_apple_tv
-        to: "playing"
+        to: "Playing"
         id: "start_movie"
       - platform: state
         entity_id: media_player.living_room_apple_tv
         to:
-          - "paused"
-          - "off"
-          - "idle"
-          - "standby"
+          - "Paused"
+          - "Off"
         for: "00:01:30"
         id: "end_movie"
-      - platform: homeassistant
-        event: start
-        id: "startup_reconcile"
-      - platform: event
-        event_type: automation_reloaded
-        id: "startup_reconcile"
-      - platform: state
-        entity_id: input_select.oal_active_configuration
-        to: "Adaptive"
-        id: "force_adaptive"
     condition:
       - condition: state
         entity_id: input_boolean.oal_system_paused
         state: "off"
     action:
-      - variables:
-          trigger_id: "{{ trigger.id if trigger is defined and trigger.id is defined else 'manual' }}"
-          player_state: "{{ states('media_player.living_room_apple_tv') | lower }}"
-          should_start_movie: >
-            {{ (trigger_id == 'start_movie')
-               or (trigger_id in ['manual', 'startup_reconcile'] and player_state == 'playing') }}
-          should_end_movie: >
-            {{ ((trigger_id in ['end_movie', 'force_adaptive'])
-                or (trigger_id in ['manual', 'startup_reconcile'] and player_state != 'playing'))
-               and is_state('input_boolean.oal_movie_mode_active', 'on') }}
-          should_snapshot: >
-            {{ trigger_id != 'startup_reconcile'
-               and is_state('input_boolean.oal_movie_mode_active', 'off') }}
-      - if:
-          - condition: template
-            value_template: "{{ trigger_id == 'startup_reconcile' }}"
-        then:
-          - delay: "00:00:15"
-          - variables:
-              player_state: "{{ states('media_player.living_room_apple_tv') | lower }}"
-              should_start_movie: >
-                {{ player_state == 'playing' }}
-              should_end_movie: >
-                {{ player_state != 'playing'
-                   and is_state('input_boolean.oal_movie_mode_active', 'on') }}
-              should_snapshot: false
       - choose:
-          - conditions: "{{ should_start_movie }}"
+          - conditions: "{{ trigger.id == 'start_movie' }}"
             sequence:
-              # Snapshot only for live/manual transitions, not startup reconciliation.
-              - if:
-                  - condition: template
-                    value_template: "{{ should_snapshot }}"
-                then:
-                  - service: scene.create
-                    data:
-                      scene_id: oal_before_movie
-                      snapshot_entities:
-                        - light.all_adaptive_lights
+              # Snapshot current state
+              - service: scene.create
+                data:
+                  scene_id: oal_before_movie
+                  snapshot_entities:
+                    - light.all_adaptive_lights
               
               # Set manual control FIRST to prevent AL interference
               # FIX: Must specify entity_id for each switch - service was broken without target
@@ -3402,13 +2736,6 @@ automation:
                   entity_id: switch.adaptive_lighting_kitchen_island
                 data:
                   lights: light.kitchen_island_lights
-                  manual_control: true
-              - service: adaptive_lighting.set_manual_control
-                continue_on_error: true
-                target:
-                  entity_id: switch.adaptive_lighting_kitchen_undercabinet
-                data:
-                  lights: light.kitchen_undercabinet_lights
                   manual_control: true
               - service: adaptive_lighting.set_manual_control
                 continue_on_error: true
@@ -3445,32 +2772,29 @@ automation:
                 target:
                   entity_id: input_boolean.oal_movie_mode_active
 
-          - conditions: "{{ should_end_movie }}"
+          - conditions: "{{ trigger.id == 'end_movie' }}"
             sequence:
-              - variables:
-                  movie_scene_available: >
-                    {{ states('scene.oal_before_movie') not in ['unknown', 'unavailable'] }}
-              # Restore snapshot (lights return to pre-movie state) when available.
-              - if:
-                  - condition: template
-                    value_template: "{{ movie_scene_available }}"
-                then:
-                  - service: scene.turn_on
-                    target:
-                      entity_id: scene.oal_before_movie
-                    data:
-                      transition: 3
+              - condition: state
+                entity_id: input_boolean.oal_movie_mode_active
+                state: "on"
+              
+              # Restore snapshot (lights return to pre-movie state)
+              - service: scene.turn_on
+                target:
+                  entity_id: scene.oal_before_movie
+                data:
+                  transition: 3
               
               # CRITICAL: Clear manual control to restore AL adaptive control
-              # This allows AL to resume managing movie-touched lights only.
-              # Column lights are intentionally excluded from this path.
+              # BUG-02 fix: only clear movie-touched switches, not all zones
+              # Movie mode sets manual on: main_living, kitchen_island, recessed_ceiling, accent_spots
+              # Column lights are never touched by movie mode - must not clear them here
               - service: adaptive_lighting.set_manual_control
                 continue_on_error: true
                 target:
                   entity_id:
                     - switch.adaptive_lighting_main_living
                     - switch.adaptive_lighting_kitchen_island
-                    - switch.adaptive_lighting_kitchen_undercabinet
                     - switch.adaptive_lighting_recessed_ceiling
                     - switch.adaptive_lighting_accent_spots
                 data:
@@ -3479,16 +2803,6 @@ automation:
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_movie_mode_active
-              # Startup-reconciled sessions may not have a snapshot scene; recalc adaptives.
-              - if:
-                  - condition: template
-                    value_template: "{{ not movie_scene_available }}"
-                then:
-                  - event: oal_watchdog_trigger
-                    event_data:
-                      force: true
-                      force_intent: "column_safe"
-                      source: "movie_mode_end_no_snapshot"
 
   # ---------------------------------------------------------------------------
   # 4.11 Sleep-mode schedule (sets input_select → Config Manager → Core Engine)
@@ -3533,8 +2847,6 @@ automation:
             event_type: component_loaded
             event_data:
               component: adaptive_lighting
-        timeout: "00:01:00"
-        continue_on_timeout: true
       - delay: "00:00:10"
       # Clear any persisted AL sleep mode switches from prior session
       - service: switch.turn_off
@@ -3542,7 +2854,6 @@ automation:
           entity_id:
             - switch.adaptive_lighting_sleep_mode_main_living
             - switch.adaptive_lighting_sleep_mode_kitchen_island
-            - switch.adaptive_lighting_sleep_mode_kitchen_undercabinet
             - switch.adaptive_lighting_sleep_mode_bedroom_primary
             - switch.adaptive_lighting_sleep_mode_accent_spots
             - switch.adaptive_lighting_sleep_mode_recessed_ceiling
@@ -3553,12 +2864,6 @@ automation:
       - service: input_boolean.turn_off
         target:
           entity_id: input_boolean.oal_system_paused
-      # Re-enable critical OAL automations that should always be active.
-      - service: automation.turn_on
-        target:
-          entity_id:
-            - automation.oal_auto_switch_to_manual_config_on_manual_control
-            - automation.oal_auto_switch_to_adaptive_when_all_zones_clear
       - service: script.oal_reset_global
       - delay: "00:00:02"
       # Trigger initial calculations with force=true to ensure all lights updated
@@ -3567,62 +2872,56 @@ automation:
           message: "System startup - forcing initial engine run"
           force: true
           force_intent: "column_safe"
-      # Re-evaluate column sleep safety after startup reset/toggles settle.
+
+      # E2/ISSUE-07 fix: Re-evaluate column sleep after all startup toggles
+      # This converges sleep switch to elevation-correct state
+      - delay: "00:00:02"
       - service: automation.trigger
         target:
           entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
-      # Reconcile session state so stale startup flags do not preserve false ownership.
+
+      # E3: Startup session reconciliation
+      # Clear impossible session state; allow prepare recovery only under valid window
       - variables:
-          sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
-          sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
-          sun_source: "{{ state_attr('sensor.oal_effective_sun_elevation', 'source') | default('live') }}"
-          columns_on: >
+          elev: "{{ state_attr('sun.sun', 'elevation') | float(90) }}"
+          rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
+          in_window: "{{ (not rising) and elev >= -5 and elev < 3 }}"
+          sleep_off: "{{ is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') }}"
+          any_column_on: >
             {{ is_state('light.living_column_strip_light_matter', 'on')
                or is_state('light.dining_column_strip_light_matter', 'on') }}
-          column_sleep_on: "{{ is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on') }}"
-          startup_valid_window: "{{ (sun_rising == false) and (sun_elevation >= -5 and sun_elevation < 3) }}"
-          startup_can_recover: "{{ startup_valid_window and (not column_sleep_on) and columns_on }}"
-      - if:
-          - condition: template
-            value_template: >
-              {{ is_state('input_boolean.oal_column_rgb_session_active', 'on') and not startup_can_recover }}
-        then:
-          - service: input_boolean.turn_off
-            target:
-              entity_id: input_boolean.oal_column_rgb_session_active
-          - if:
-              - condition: state
-                entity_id: input_boolean.oal_column_rgb_debug_events
-                state: "on"
-            then:
+          manual_empty: >
+            {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) | length == 0 }}
+      - choose:
+          - conditions:
+              - condition: template
+                # Session impossible: outside window or sleep on
+                value_template: "{{ not in_window or not sleep_off }}"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.oal_column_rgb_session_active
               - event: oal_column_rgb_debug
                 event_data:
-                  decision: "startup_reconcile"
-                  source: "oal_system_startup_v13"
-                  result: "session_cleared"
-                  reason: "startup_not_recoverable"
-                  sun_elevation: "{{ sun_elevation }}"
-                  sun_rising: "{{ sun_rising }}"
-                  sun_source: "{{ sun_source }}"
-                  columns_on: "{{ columns_on }}"
-                  sleep_mode_on: "{{ column_sleep_on }}"
-        else:
-          - if:
-              - condition: state
-                entity_id: input_boolean.oal_column_rgb_debug_events
-                state: "on"
-            then:
+                  action: "startup_session_cleared"
+                  reason: "outside_window_or_sleep_on"
+                  timestamp: "{{ now().isoformat() }}"
+          - conditions:
+              - condition: template
+                # Valid recovery window: lights on, manual cleared by restart, session was active
+                value_template: >
+                  {{ in_window and sleep_off and any_column_on and manual_empty
+                     and is_state('input_boolean.oal_column_rgb_session_active', 'on') }}
+            sequence:
+              # Trigger prepare to recover RGB state (ISSUE-20)
+              - service: automation.trigger
+                target:
+                  entity_id: automation.oal_v13_column_lights_prepare_rgb_mode
               - event: oal_column_rgb_debug
                 event_data:
-                  decision: "startup_reconcile"
-                  source: "oal_system_startup_v13"
-                  result: "{{ 'session_retained' if is_state('input_boolean.oal_column_rgb_session_active', 'on') else 'session_already_off' }}"
-                  reason: "{{ 'recoverable_window' if startup_can_recover else 'session_off' }}"
-                  sun_elevation: "{{ sun_elevation }}"
-                  sun_rising: "{{ sun_rising }}"
-                  sun_source: "{{ sun_source }}"
-                  columns_on: "{{ columns_on }}"
-                  sleep_mode_on: "{{ column_sleep_on }}"
+                  action: "startup_prepare_recovery"
+                  reason: "valid_window_session_active_manual_cleared"
+                  timestamp: "{{ now().isoformat() }}"
 
   # ---------------------------------------------------------------------------
   # 4.13 Watchdog (ensure engine runs at least every 30 minutes)
@@ -3659,9 +2958,6 @@ automation:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
         data:
           manual_control: false
-      - service: input_boolean.turn_off
-        target:
-          entity_id: input_boolean.oal_column_rgb_session_active
       # Only reset offsets if zen32 hasn't been touched in 24h
       - condition: template
         value_template: >
@@ -3720,11 +3016,10 @@ automation:
         entity_id:
           - switch.adaptive_lighting_main_living
           - switch.adaptive_lighting_kitchen_island
-          - switch.adaptive_lighting_kitchen_undercabinet
           - switch.adaptive_lighting_bedroom_primary
           - switch.adaptive_lighting_accent_spots
           - switch.adaptive_lighting_recessed_ceiling
-          - switch.adaptive_lighting_column_lights
+          - switch.adaptive_lighting_column_lights  # ISSUE-08 fix: was missing
     condition:
       - condition: state
         entity_id: input_boolean.oal_autoreset_sync_lock
@@ -3874,21 +3169,26 @@ automation:
     alias: "OAL - Auto Switch to Manual Config on Manual Control"
     description: "Switches config to 'Manual' when any AL switch detects manual control"
     mode: single
-    initial_state: true
     trigger:
       - platform: template
         value_template: >
+          {# C3: Exclude protected column manual from aggregate count to prevent thrash #}
           {% set zones = [
             'switch.adaptive_lighting_main_living',
             'switch.adaptive_lighting_kitchen_island',
-            'switch.adaptive_lighting_kitchen_undercabinet',
             'switch.adaptive_lighting_bedroom_primary',
             'switch.adaptive_lighting_accent_spots',
-            'switch.adaptive_lighting_recessed_ceiling'
+            'switch.adaptive_lighting_recessed_ceiling',
+            'switch.adaptive_lighting_column_lights'
           ] %}
+          {% set column_protected = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
           {% set ns = namespace(count=0) %}
           {% for z in zones %}
-            {% set ns.count = ns.count + (state_attr(z, 'manual_control') | default([]) | length) %}
+            {% if z == 'switch.adaptive_lighting_column_lights' and column_protected %}
+              {# Skip column manual count when RGB session is active #}
+            {% else %}
+              {% set ns.count = ns.count + (state_attr(z, 'manual_control') | default([]) | length) %}
+            {% endif %}
           {% endfor %}
           {{ ns.count > 0 }}
         for: "00:00:03"
@@ -3905,9 +3205,6 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_config_transition_active
         state: "off"
-      - condition: state
-        entity_id: input_boolean.oal_movie_mode_active
-        state: "off"
     action:
       - service: input_select.select_option
         target:
@@ -3923,21 +3220,26 @@ automation:
     alias: "OAL - Auto Switch to Adaptive When All Zones Clear"
     description: "Returns to Adaptive mode when autoreset/reset clears all manual control"
     mode: single
-    initial_state: true
     trigger:
       - platform: template
         value_template: >
+          {# C3: Exclude protected column manual from aggregate count to prevent thrash #}
           {% set zones = [
             'switch.adaptive_lighting_main_living',
             'switch.adaptive_lighting_kitchen_island',
-            'switch.adaptive_lighting_kitchen_undercabinet',
             'switch.adaptive_lighting_bedroom_primary',
             'switch.adaptive_lighting_accent_spots',
-            'switch.adaptive_lighting_recessed_ceiling'
+            'switch.adaptive_lighting_recessed_ceiling',
+            'switch.adaptive_lighting_column_lights'
           ] %}
+          {% set column_protected = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
           {% set ns = namespace(count=0) %}
           {% for z in zones %}
-            {% set ns.count = ns.count + (state_attr(z, 'manual_control') | default([]) | length) %}
+            {% if z == 'switch.adaptive_lighting_column_lights' and column_protected %}
+              {# Skip column manual count when RGB session is active #}
+            {% else %}
+              {% set ns.count = ns.count + (state_attr(z, 'manual_control') | default([]) | length) %}
+            {% endif %}
           {% endfor %}
           {{ ns.count == 0 }}
         for: "00:00:03"
@@ -3950,9 +3252,6 @@ automation:
         state: "off"
       - condition: state
         entity_id: input_boolean.oal_config_transition_active
-        state: "off"
-      - condition: state
-        entity_id: input_boolean.oal_movie_mode_active
         state: "off"
     action:
       - service: input_number.set_value
@@ -3998,10 +3297,6 @@ automation:
         id: recessed_ceiling
       - platform: template
         value_template: >
-          {{ state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'manual_control') | default([]) | length > 0 }}
-        id: kitchen_undercabinet
-      - platform: template
-        value_template: >
           {{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length > 0 }}
         id: column_lights
 
@@ -4013,9 +3308,6 @@ automation:
         kitchen_island:
           switch: switch.adaptive_lighting_kitchen_island
           friendly: "Kitchen Island"
-        kitchen_undercabinet:
-          switch: switch.adaptive_lighting_kitchen_undercabinet
-          friendly: "Kitchen Undercabinet"
         bedroom_primary:
           switch: switch.adaptive_lighting_bedroom_primary
           friendly: "Bedroom"
@@ -4134,11 +3426,6 @@ automation:
         id: kitchen_island
       - platform: state
         entity_id:
-          - light.kitchen_counter_cabinet_underlights
-        attribute: brightness
-        id: kitchen_undercabinet
-      - platform: state
-        entity_id:
           - light.master_presence
           - light.master_bedroom_corner_accent_govee
         attribute: brightness
@@ -4170,9 +3457,6 @@ automation:
         kitchen_island:
           switch: switch.adaptive_lighting_kitchen_island
           friendly: "Kitchen Island"
-        kitchen_undercabinet:
-          switch: switch.adaptive_lighting_kitchen_undercabinet
-          friendly: "Kitchen Undercabinet"
         bedroom_primary:
           switch: switch.adaptive_lighting_bedroom_primary
           friendly: "Bedroom Primary"
@@ -4268,7 +3552,6 @@ automation:
         entity_id:
           - switch.adaptive_lighting_main_living
           - switch.adaptive_lighting_kitchen_island
-          - switch.adaptive_lighting_kitchen_undercabinet
           - switch.adaptive_lighting_bedroom_primary
           - switch.adaptive_lighting_accent_spots
           - switch.adaptive_lighting_recessed_ceiling
@@ -4279,7 +3562,6 @@ automation:
       switch_to_helper:
         switch.adaptive_lighting_main_living: input_number.oal_manual_offset_main_living_brightness
         switch.adaptive_lighting_kitchen_island: input_number.oal_manual_offset_kitchen_island_brightness
-        switch.adaptive_lighting_kitchen_undercabinet: input_number.oal_manual_offset_kitchen_undercabinet_brightness
         switch.adaptive_lighting_bedroom_primary: input_number.oal_manual_offset_bedroom_primary_brightness
         switch.adaptive_lighting_accent_spots: input_number.oal_manual_offset_accent_spots_brightness
         switch.adaptive_lighting_recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
@@ -4329,7 +3611,7 @@ script:
     sequence:
       # Force Core Engine to apply offset changes IMMEDIATELY
       # This bypasses the 1s trigger delay and ensures lights respond instantly
-      # NOTE: adaptive_lighting.apply uses force=True internally, ignores manual_control
+      # BUG-07 fix: emit column_safe intent so protected columns are not overwritten
       - event: oal_watchdog_trigger
         event_data:
           message: "Manual adjustment - forcing immediate apply"
@@ -4437,17 +3719,15 @@ script:
           zone_groups:
             main_living: light.main_living_lights
             kitchen_island: light.kitchen_island_lights
-            kitchen_undercabinet: light.kitchen_undercabinet_lights
             bedroom_primary: light.bedroom_primary_lights
             accent_spots: light.accent_spots_lights
             recessed_ceiling: light.recessed_ceiling_lights
             column_lights: light.column_lights
-
+          
           # All zone IDs
           all_zone_ids:
             - main_living
             - kitchen_island
-            - kitchen_undercabinet
             - bedroom_primary
             - accent_spots
             - recessed_ceiling
@@ -4532,37 +3812,7 @@ script:
                   entity_id: input_number.oal_manual_offset_kitchen_island_brightness
                 data:
                   value: "{{ new_value }}"
-
-          # Kitchen Undercabinet
-          - if:
-              - condition: template
-                value_template: "{{ 'kitchen_undercabinet' in target_zones }}"
-            then:
-              - variables:
-                  b_base: >
-                    {{ state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'brightness_pct') | float(50) }}
-                  base_step: >
-                    {% if dir == 1 %}
-                      {% if b_base < 30 %} 10
-                      {% elif b_base < 60 %} 15
-                      {% else %} 20
-                      {% endif %}
-                    {% else %}
-                      {% if b_base < 40 %} 10
-                      {% elif b_base < 70 %} 15
-                      {% else %} 20
-                      {% endif %}
-                    {% endif %}
-                  step: "{{ base_step * 0.9 }}"
-                  current_offset: "{{ states('input_number.oal_manual_offset_kitchen_undercabinet_brightness') | float(0) }}"
-                  raw_new: "{{ current_offset + (step * dir) }}"
-                  new_value: "{{ [-100, [100, raw_new] | min] | max }}"
-              - service: input_number.set_value
-                target:
-                  entity_id: input_number.oal_manual_offset_kitchen_undercabinet_brightness
-                data:
-                  value: "{{ new_value }}"
-
+          
           # Bedroom Primary
           - if:
               - condition: template
@@ -4767,28 +4017,28 @@ script:
 
   oal_reset_soft:
     alias: "OAL v13 Reset Soft (Manual, Configs, Zonal)"
-    description: "Resets only manual-controlled zones. Gaussian-curve aware for column lights."
+    description: "Resets only manual-controlled zones. Column-RGB-protect aware."
     icon: mdi:restore
     mode: queued
-    max: 10
+    max: 3
     variables:
       # =========================================================================
-      # Gaussian Curve Detection (for column lights RGB mode)
+      # Column RGB Protection (canonical guard - D2, ISSUE-22)
+      # SYNC: bounds must match prepare_rgb trigger (below 3°, descending)
+      #        and sleep trigger (below -5°)
       # =========================================================================
-      sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
-      sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
-      # Canonical protect predicate: session + manual + sleep-off + evening window.
-      # SYNC: prepare_rgb (<3 descending) and sleep trigger (<-5) define bounds.
-      columns_manual_list: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) }}"
-      columns_manual: "{{ columns_manual_list | length > 0 }}"
-      in_column_rgb_mode: >
-        {{ is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off')
-           and is_state('input_boolean.oal_column_rgb_session_active', 'on')
-           and columns_manual
-           and not is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on')
-           and (sun_rising == false)
-           and (sun_elevation >= -5 and sun_elevation < 3) }}
-      column_rgb_green: "{{ states('input_number.oal_offset_column_rgb_green') | int(150) }}"
+      column_rgb_green: "{{ states('input_number.oal_offset_column_rgb_green') | int(165) }}"
+
+      # SYNC: canonical column_rgb_protect_now guard
+      column_rgb_protect_now: >
+        {% set session_on = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
+        {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+        {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+        {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+        {% set in_window = (not rising) and elev >= -5 and elev < 3 %}
+        {% set sleep_off = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') %}
+        {% set kill_off = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off') %}
+        {{ session_on and in_window and sleep_off and kill_off }}
 
       # Capture config state BEFORE any manual_control clearing.
       # The reverse watcher (oal_auto_switch_to_adaptive_config) could change
@@ -4796,26 +4046,24 @@ script:
       was_non_adaptive: "{{ states('input_select.oal_active_configuration') != 'Adaptive' }}"
 
       # =========================================================================
-      # Targeted Reset - Direct AL Switch Attributes (ISSUE-09)
+      # Targeted Reset - Direct AL Switch Attributes (D1/ISSUE-09 fix)
+      # Replaced sensor.oal_system_status dependency with direct reads
       # =========================================================================
-      # Derive manual zones directly from AL switch manual_control attributes,
-      # not from sensor.oal_system_status (which may lag during transitions).
+      # Zone switch to offset mapping
       zone_switch_offset_map:
         switch.adaptive_lighting_main_living: input_number.oal_manual_offset_main_living_brightness
         switch.adaptive_lighting_kitchen_island: input_number.oal_manual_offset_kitchen_island_brightness
-        switch.adaptive_lighting_kitchen_undercabinet: input_number.oal_manual_offset_kitchen_undercabinet_brightness
         switch.adaptive_lighting_bedroom_primary: input_number.oal_manual_offset_bedroom_primary_brightness
         switch.adaptive_lighting_accent_spots: input_number.oal_manual_offset_accent_spots_brightness
         switch.adaptive_lighting_recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
         switch.adaptive_lighting_column_lights: input_number.oal_manual_offset_column_lights_brightness
 
-      # Non-column manual zones from direct AL switch state.
+      # Derive manual switches directly from AL switch attributes (not sensor)
       manual_non_column_switches: >
         {% set ns = namespace(switches=[]) %}
         {% set non_column = [
           'switch.adaptive_lighting_main_living',
           'switch.adaptive_lighting_kitchen_island',
-          'switch.adaptive_lighting_kitchen_undercabinet',
           'switch.adaptive_lighting_bedroom_primary',
           'switch.adaptive_lighting_accent_spots',
           'switch.adaptive_lighting_recessed_ceiling'
@@ -4827,12 +4075,16 @@ script:
         {% endfor %}
         {{ ns.switches }}
 
-      # All manual zones (column optional), used for targeted offset reset.
+      # Check if columns are under manual control (direct from AL switch)
+      columns_manual: >
+        {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) | length > 0 }}
+
+      # All manually-controlled switches (for offset reset)
       all_manual_switches: >
         {% set cols = ['switch.adaptive_lighting_column_lights'] if columns_manual else [] %}
         {{ manual_non_column_switches + cols }}
 
-      # Offset entities to reset (global warmth included when any zone is manual).
+      # Offset entities to reset (global warmth always included when any zone is manual)
       offset_entities_to_reset: >
         {% set ns = namespace(offsets=[]) %}
         {% if all_manual_switches | length > 0 %}
@@ -4850,7 +4102,7 @@ script:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
 
       # =========================================================================
-      # Column Lights Reset - Gaussian Curve Aware (only if columns are manual)
+      # Column Lights Reset - Protection-aware (D2: canonical guard)
       # =========================================================================
       - if:
           - condition: template
@@ -4859,9 +4111,10 @@ script:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ in_column_rgb_mode }}"
+                    # D2: Use canonical protect guard, not broad RGB mode window
+                    value_template: "{{ column_rgb_protect_now }}"
                 sequence:
-                  # During Gaussian window: Apply correct RGB color directly
+                  # Protected: re-apply correct RGB color, keep manual lock
                   - service: light.turn_on
                     continue_on_error: true
                     target:
@@ -4881,71 +4134,42 @@ script:
                         - light.living_column_strip_light_matter
                         - light.dining_column_strip_light_matter
                       manual_control: true
+                  # D4: Wait checkpoint - confirm manual lock applied
                   - wait_template: >
-                      {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) > 0 }}
-                    timeout: "00:00:05"
+                      {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) | length > 0 }}
+                    timeout: "00:00:03"
                     continue_on_timeout: true
-                  - if:
-                      - condition: state
-                        entity_id: input_boolean.oal_column_rgb_debug_events
-                        state: "on"
-                    then:
-                      - event: oal_column_rgb_debug
-                        event_data:
-                          decision: "protect_engage"
-                          source: "oal_reset_soft"
-                          result: "manual_preserved"
-                          reason: "protected_window"
-                          sun_elevation: "{{ sun_elevation }}"
-                          sun_rising: "{{ sun_rising }}"
-                          manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
             default:
-              # Outside protected window: release columns to AL ownership.
+              # Not protected: release columns to AL ownership
+              # BUG-04/ISSUE-13 fix: removed hardcoded sleep_rgb_color override
+              # AL canonical config is source of truth for sleep color [245, 120, 0]
+              - service: adaptive_lighting.change_switch_settings
+                data:
+                  entity_id: switch.adaptive_lighting_column_lights
+                  use_defaults: configuration
+                  include_config_in_attributes: true
+                  initial_transition: 1
+                  sleep_transition: 1
+                  transition: 1
+                  separate_turn_on_commands: true
+                  send_split_delay: 1
+                  prefer_rgb_color: false
+                  sleep_rgb_or_color_temp: "rgb_color"
+              # Clear column lights manual control
               - service: adaptive_lighting.set_manual_control
                 target:
                   entity_id: switch.adaptive_lighting_column_lights
                 data:
                   manual_control: false
+              # D5: Clear session flag when releasing columns
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.oal_column_rgb_session_active
+              # D4: Wait checkpoint - confirm manual release
               - wait_template: >
-                  {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) == 0 }}
-                timeout: "00:00:05"
+                  {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) | length == 0 }}
+                timeout: "00:00:03"
                 continue_on_timeout: true
-              - service: input_boolean.turn_off
-                target:
-                  entity_id: input_boolean.oal_column_rgb_session_active
-              - if:
-                  - condition: state
-                    entity_id: input_boolean.oal_column_rgb_debug_events
-                    state: "on"
-                then:
-                  - event: oal_column_rgb_debug
-                    event_data:
-                      decision: "release_forced"
-                      source: "oal_reset_soft"
-                      result: "manual_cleared"
-                      reason: "outside_protect_window"
-                      sun_elevation: "{{ sun_elevation }}"
-                      sun_rising: "{{ sun_rising }}"
-                      manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
-        else:
-          - if:
-              - condition: template
-                value_template: "{{ is_state('input_boolean.oal_column_rgb_session_active', 'on') }}"
-            then:
-              - service: input_boolean.turn_off
-                target:
-                  entity_id: input_boolean.oal_column_rgb_session_active
-              - if:
-                  - condition: state
-                    entity_id: input_boolean.oal_column_rgb_debug_events
-                    state: "on"
-                then:
-                  - event: oal_column_rgb_debug
-                    event_data:
-                      decision: "protect_skip"
-                      source: "oal_reset_soft"
-                      result: "session_cleared"
-                      reason: "columns_not_manual"
 
       # =========================================================================
       # Non-Column Zones Reset - Only Target Manual-Controlled
@@ -4998,17 +4222,6 @@ script:
         data:
           option: "Adaptive"
 
-      # Reconcile time-dependent dynamic offsets immediately so soft reset
-      # cannot leave stale zero values until periodic automations run.
-      - service: automation.trigger
-        continue_on_error: true
-        target:
-          entity_id: automation.oal_v13_seamless_sunset_logic_unified_gaussian_curve
-      - service: automation.trigger
-        continue_on_error: true
-        target:
-          entity_id: automation.oal_v13_night_behavior_manager
-
       # LAST: Only fire direct watchdog if Config Manager won't run
       # was_non_adaptive captured at script start (Part A), before any clearing
       - if:
@@ -5049,16 +4262,6 @@ script:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
         data:
           use_defaults: "configuration"
-      # Immediately recompute dynamic offsets after reset_global zeros helpers.
-      # Prevents startup/reset windows where night offsets remain at 0.
-      - service: automation.trigger
-        continue_on_error: true
-        target:
-          entity_id: automation.oal_v13_seamless_sunset_logic_unified_gaussian_curve
-      - service: automation.trigger
-        continue_on_error: true
-        target:
-          entity_id: automation.oal_v13_night_behavior_manager
 
   # -------------------------------------------------------------------------
   # Parameterized Room Reset Script (replaces hardcoded oal_reset_living_room)
@@ -5068,7 +4271,7 @@ script:
     description: "Resets manual control and offsets for zones containing specified lights"
     icon: mdi:refresh
     mode: queued
-    max: 10
+    max: 3
     fields:
       lights:
         description: "Light group or entities to reset (e.g., light.all_living_room_lights)"
@@ -5087,7 +4290,6 @@ script:
           zone_groups:
             main_living: light.main_living_lights
             kitchen_island: light.kitchen_island_lights
-            kitchen_undercabinet: light.kitchen_undercabinet_lights
             bedroom_primary: light.bedroom_primary_lights
             accent_spots: light.accent_spots_lights
             recessed_ceiling: light.recessed_ceiling_lights
@@ -5096,7 +4298,6 @@ script:
           zone_switches:
             main_living: switch.adaptive_lighting_main_living
             kitchen_island: switch.adaptive_lighting_kitchen_island
-            kitchen_undercabinet: switch.adaptive_lighting_kitchen_undercabinet
             bedroom_primary: switch.adaptive_lighting_bedroom_primary
             accent_spots: switch.adaptive_lighting_accent_spots
             recessed_ceiling: switch.adaptive_lighting_recessed_ceiling
@@ -5105,7 +4306,6 @@ script:
           zone_offsets:
             main_living: input_number.oal_manual_offset_main_living_brightness
             kitchen_island: input_number.oal_manual_offset_kitchen_island_brightness
-            kitchen_undercabinet: input_number.oal_manual_offset_kitchen_undercabinet_brightness
             bedroom_primary: input_number.oal_manual_offset_bedroom_primary_brightness
             accent_spots: input_number.oal_manual_offset_accent_spots_brightness
             recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
@@ -5114,7 +4314,6 @@ script:
           all_zone_ids:
             - main_living
             - kitchen_island
-            - kitchen_undercabinet
             - bedroom_primary
             - accent_spots
             - recessed_ceiling
@@ -5156,32 +4355,29 @@ script:
           # Check if any target zones include columns
           targets_include_columns: "{{ 'column_lights' in target_zones }}"
 
-          # Check if columns currently have manual_control (set by prepare_rgb)
-          # Canonical runtime guard: session + manual + sleep-off + evening window.
-          columns_manual_list: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) }}"
-          columns_currently_manual: "{{ columns_manual_list | length > 0 }}"
+          column_rgb_green: "{{ states('input_number.oal_offset_column_rgb_green') | int(165) }}"
 
-          # Column RGB protection window: descending only, -5 <= elevation < 3.
-          sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
-          sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
-          in_column_rgb_mode: >
-            {{ is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off')
-               and is_state('input_boolean.oal_column_rgb_session_active', 'on')
-               and columns_currently_manual
-               and not is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on')
-               and (sun_rising == false)
-               and (sun_elevation >= -5 and sun_elevation < 3) }}
-          column_rgb_green: "{{ states('input_number.oal_offset_column_rgb_green') | int(150) }}"
+          # D2: Canonical column_rgb_protect_now guard (ISSUE-22)
+          # SYNC: bounds match prepare_rgb (-5 <= elev < 3, descending), sleep at -5
+          column_rgb_protect_now: >
+            {% set session_on = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
+            {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+            {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+            {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+            {% set in_window = (not rising) and elev >= -5 and elev < 3 %}
+            {% set sleep_off = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') %}
+            {% set kill_off = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off') %}
+            {{ session_on and in_window and sleep_off and kill_off }}
 
           # Non-column switches for standard AL handling
           non_column_switches: >
             {{ target_switches | reject('eq', 'switch.adaptive_lighting_column_lights') | list }}
 
           # Switches to receive adaptive_lighting.apply (turn_on_lights: true)
-          # During column RGB mode: exclude columns (they get direct RGB above)
-          # Outside RGB mode: include all targets (preserves turn-on behavior for columns)
+          # When columns protected: exclude columns (they get direct RGB above)
+          # Otherwise: include all targets (preserves turn-on behavior for columns)
           apply_switches: >
-            {% if targets_include_columns and in_column_rgb_mode %}
+            {% if targets_include_columns and column_rgb_protect_now %}
               {{ non_column_switches }}
             {% else %}
               {{ target_switches }}
@@ -5198,6 +4394,25 @@ script:
           value: 0
 
       # =========================================================================
+      # Engine First — update AL parameters BEFORE applying
+      # =========================================================================
+      # The engine reads offset=0, calls change_switch_settings (correct params),
+      # then its own apply phase pushes correct values to ON lights (turn_on_lights: false).
+      # We wait for completion so the subsequent apply sees correct AL parameters.
+      # This eliminates the stale-apply fluctuation bug (apply pushing old offset,
+      # then engine correcting 200ms later → visible brightness jump).
+      - event: oal_watchdog_trigger
+        event_data:
+          force: true
+          force_intent: "column_safe"
+          source: "room_reset"
+      - wait_for_trigger:
+          - platform: event
+            event_type: oal_engine_calculation_complete
+        timeout: "00:00:05"
+        continue_on_timeout: true
+
+      # =========================================================================
       # Non-Column Zones: Standard AL Reset
       # =========================================================================
       - if:
@@ -5211,7 +4426,7 @@ script:
               manual_control: false
 
       # =========================================================================
-      # Column Zones: Govee-safe reset (mirrors oal_reset_soft protect/release policy)
+      # Column Zones: Protection-aware Reset (D2: canonical guard)
       # =========================================================================
       - if:
           - condition: template
@@ -5220,9 +4435,10 @@ script:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ in_column_rgb_mode }}"
+                    # D2: Use canonical protect guard
+                    value_template: "{{ column_rgb_protect_now }}"
                 sequence:
-                  # During Gaussian window: apply correct RGB color directly
+                  # Protected: apply correct RGB color, keep manual lock
                   - service: light.turn_on
                     continue_on_error: true
                     target:
@@ -5238,78 +4454,27 @@ script:
                     data:
                       lights: "{{ column_light_entities }}"
                       manual_control: true
+                  # D4: Wait checkpoint - confirm manual lock applied
                   - wait_template: >
-                      {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) > 0 }}
-                    timeout: "00:00:05"
+                      {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) | length > 0 }}
+                    timeout: "00:00:03"
                     continue_on_timeout: true
-                  - if:
-                      - condition: state
-                        entity_id: input_boolean.oal_column_rgb_debug_events
-                        state: "on"
-                    then:
-                      - event: oal_column_rgb_debug
-                        event_data:
-                          decision: "protect_engage"
-                          source: "oal_reset_room"
-                          result: "manual_preserved"
-                          reason: "protected_window"
-                          sun_elevation: "{{ sun_elevation }}"
-                          sun_rising: "{{ sun_rising }}"
-                          manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
             default:
-              # Outside protected window: release columns to AL ownership.
+              # Not protected: standard AL release
               - service: adaptive_lighting.set_manual_control
                 target:
                   entity_id: switch.adaptive_lighting_column_lights
                 data:
                   manual_control: false
-              - wait_template: >
-                  {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) == 0 }}
-                timeout: "00:00:05"
-                continue_on_timeout: true
+              # D5: Clear session flag when releasing columns
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_column_rgb_session_active
-              - if:
-                  - condition: state
-                    entity_id: input_boolean.oal_column_rgb_debug_events
-                    state: "on"
-                then:
-                  - event: oal_column_rgb_debug
-                    event_data:
-                      decision: "release_forced"
-                      source: "oal_reset_room"
-                      result: "manual_cleared"
-                      reason: "outside_protect_window"
-                      sun_elevation: "{{ sun_elevation }}"
-                      sun_rising: "{{ sun_rising }}"
-                      manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
-        else:
-          - if:
-              - condition: state
-                entity_id: input_boolean.oal_column_rgb_debug_events
-                state: "on"
-            then:
-              - event: oal_column_rgb_debug
-                event_data:
-                  decision: "protect_skip"
-                  source: "oal_reset_room"
-                  result: "not_applicable"
-                  reason: "targets_exclude_columns"
-
-      # =========================================================================
-      # Engine Recalculate (after column protect/release decisions)
-      # =========================================================================
-      - event: oal_watchdog_trigger
-        event_data:
-          force: true
-          force_intent: "column_safe"
-          source: "room_reset"
-      - wait_for_trigger:
-          - platform: event
-            event_type: oal_engine_calculation_complete
-        timeout: "00:00:05"
-        continue_on_timeout: true
+              # D4: Wait checkpoint - confirm manual release
+              - wait_template: >
+                  {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([])) | length == 0 }}
+                timeout: "00:00:03"
+                continue_on_timeout: true
 
       # =========================================================================
       # Apply — turn on OFF lights with correct AL parameters
@@ -5341,71 +4506,42 @@ template:
   # ---------------------------------------------------------------------------
   # Template wrappers removed in favor of Matter entities + AL sleep mode approach.
   # Matter entities (light.living_column_strip_light_matter, light.dining_column_strip_light_matter)
-  # provide native RGB support, and AL sleep mode enforces safe [245, 120, 0] color.
+  # provide native RGB support, and AL sleep mode enforces safe [255, 165, 0] color.
   # See: docs/govee_matter_color_issues_technical_report.md
   #
   # Previous implementation used template lights to clamp blue channel, but:
   # - Matter entities with native RGB bypass the Matter hue conversion bug
   # - AL sleep mode with sleep_rgb_color provides simpler, more reliable control
+  # - Column RGB protection uses canonical column_rgb_protect_now guard (evening window only)
   # - RGB transition automations (4.3b, 4.3c) handle evening color nuance
   # ---------------------------------------------------------------------------
 
-  - sensor:
-      - name: "OAL Effective Sun Elevation"
-        unique_id: oal_effective_sun_elevation_v13
-        icon: mdi:weather-sunny-alert
-        state: >
-          {% if is_state('input_boolean.oal_test_mode', 'on') %}
-            {{ states('input_number.oal_test_sun_elevation') | float(0) | round(2) }}
-          {% else %}
-            {{ state_attr('sun.sun', 'elevation') | float(0) | round(2) }}
-          {% endif %}
-        attributes:
-          source: "{{ 'test' if is_state('input_boolean.oal_test_mode', 'on') else 'live' }}"
-          live_elevation: "{{ state_attr('sun.sun', 'elevation') | float(0) | round(2) }}"
-          test_elevation: "{{ states('input_number.oal_test_sun_elevation') | float(0) | round(2) }}"
-
-  - binary_sensor:
-      - name: "OAL Effective Sun Rising"
-        unique_id: oal_effective_sun_rising_v13
-        icon: mdi:weather-sunset-up
-        state: >
-          {% if is_state('input_boolean.oal_test_mode', 'on') %}
-            {{ is_state('input_boolean.oal_test_sun_rising', 'on') }}
-          {% else %}
-            {{ state_attr('sun.sun', 'rising') | default(true) }}
-          {% endif %}
-        attributes:
-          source: "{{ 'test' if is_state('input_boolean.oal_test_mode', 'on') else 'live' }}"
-          live_rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
-          test_rising: "{{ is_state('input_boolean.oal_test_sun_rising', 'on') }}"
-
+  # ---------------------------------------------------------------------------
+  # 6.0a Column RGB Observability Sensors (A2)
+  # NOTE: These are observability aids only. Inline column_rgb_protect_now
+  # in automations/scripts is the safety authority (ISSUE-22).
+  # ---------------------------------------------------------------------------
   - binary_sensor:
       - name: "OAL Column RGB Window Active"
-        unique_id: oal_column_rgb_window_active_v13
+        unique_id: oal_column_rgb_window_active
         icon: mdi:weather-sunset-down
         state: >
-          {% set elev = states('sensor.oal_effective_sun_elevation') | float(999) %}
-          {% set rising = is_state('binary_sensor.oal_effective_sun_rising', 'on') %}
-          {{ (rising == false) and (elev >= -5 and elev < 3) }}
+          {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+          {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+          {{ (not rising) and elev >= -5 and elev < 3 }}
 
       - name: "OAL Column RGB Protect Active"
-        unique_id: oal_column_rgb_protect_active_v13
+        unique_id: oal_column_rgb_protect_active
         icon: mdi:shield-check
         state: >
-          {% set manual = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
-          {% set elev = states('sensor.oal_effective_sun_elevation') | float(999) %}
-          {% set rising = is_state('binary_sensor.oal_effective_sun_rising', 'on') %}
-          {{ is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off')
-             and is_state('input_boolean.oal_column_rgb_session_active', 'on')
-             and (manual | length > 0)
-             and not is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on')
-             and (rising == false)
-             and (elev >= -5 and elev < 3) }}
-        attributes:
-          session_active: "{{ is_state('input_boolean.oal_column_rgb_session_active', 'on') }}"
-          manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
-          guard_kill_switch: "{{ states('input_boolean.oal_column_rgb_guard_kill_switch') }}"
+          {% set session_on = is_state('input_boolean.oal_column_rgb_session_active', 'on') %}
+          {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
+          {% set elev = state_attr('sun.sun', 'elevation') | float(90) %}
+          {% set rising = state_attr('sun.sun', 'rising') | default(true) %}
+          {% set in_window = (not rising) and elev >= -5 and elev < 3 %}
+          {% set sleep_off = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'off') %}
+          {% set kill_off = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off') %}
+          {{ session_on and in_window and sleep_off and kill_off }}
 
   - sensor:
       # -----------------------------------------------------------------------
@@ -5424,7 +4560,6 @@ template:
           {% set zones = [
             states('input_number.oal_manual_offset_main_living_brightness') | float(0),
             states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0),
-            states('input_number.oal_manual_offset_kitchen_undercabinet_brightness') | float(0),
             states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0),
             states('input_number.oal_manual_offset_accent_spots_brightness') | float(0),
             states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0),
@@ -5470,16 +4605,6 @@ template:
             {{ (state_attr('switch.adaptive_lighting_kitchen_island', 'configuration') or {}).get('max_brightness', 0) }}
           kitchen_island_manual_offset_brightness_pct: >
             {{ states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) }}
-
-          # Kitchen undercabinet
-          kitchen_undercabinet_baseline_brightness_pct: >
-            {{ state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'brightness_pct') | float(0) }}
-          kitchen_undercabinet_effective_min_brightness_pct: >
-            {{ (state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'configuration') or {}).get('min_brightness', 0) }}
-          kitchen_undercabinet_effective_max_brightness_pct: >
-            {{ (state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'configuration') or {}).get('max_brightness', 0) }}
-          kitchen_undercabinet_manual_offset_brightness_pct: >
-            {{ states('input_number.oal_manual_offset_kitchen_undercabinet_brightness') | float(0) }}
 
           # Bedroom primary
           bedroom_primary_baseline_brightness_pct: >
@@ -5598,7 +4723,6 @@ template:
             {% set zone_map = [
               ('switch.adaptive_lighting_main_living', false),
               ('switch.adaptive_lighting_kitchen_island', false),
-              ('switch.adaptive_lighting_kitchen_undercabinet', false),
               ('switch.adaptive_lighting_bedroom_primary', false),
               ('switch.adaptive_lighting_accent_spots', false),
               ('switch.adaptive_lighting_recessed_ceiling', false),
@@ -5621,13 +4745,12 @@ template:
             {{ ns.count }}
           # --- Phase 3: Extended attributes (Tasks 3.1-3.14) ---
           zones_adaptive: >
-            {{ 7 - (state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0)) }}
+            {{ 6 - (state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0)) }}
           overridden_zones: >
             {% set ns = namespace(zones=[]) %}
             {% set zone_map = [
               ('Main Living', 'switch.adaptive_lighting_main_living', false),
-              ('Kitchen Island', 'switch.adaptive_lighting_kitchen_island', false),
-              ('Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet', false),
+              ('Kitchen', 'switch.adaptive_lighting_kitchen_island', false),
               ('Bedroom', 'switch.adaptive_lighting_bedroom_primary', false),
               ('Spots', 'switch.adaptive_lighting_accent_spots', false),
               ('Ceiling', 'switch.adaptive_lighting_recessed_ceiling', false),
@@ -5824,77 +4947,6 @@ template:
             {{ state_attr('switch.adaptive_lighting_kitchen_island', 'color_temp_kelvin') | int(0) }}
           zone_id: "kitchen_island"
           friendly_name: "Kitchen"
-
-      - name: "OAL Kitchen Undercabinet Status"
-        unique_id: oal_kitchen_undercabinet_status_v13
-        icon: mdi:lightbulb-group
-        availability: >
-          {{ states('switch.adaptive_lighting_kitchen_undercabinet') not in ['unknown', 'unavailable'] }}
-        state: >
-          {% set manual_list = state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'manual_control') | default([]) %}
-          {% if manual_list | length == 0 %}
-            A
-          {% else %}
-            {% set timer_dict = state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {% set secs = (timer_values | min | default(0)) | int %}
-            {% set hours = (secs // 3600) | int %}
-            {% set mins = ((secs % 3600) // 60) | int %}
-            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
-          {% endif %}
-        attributes:
-          mode: >
-            {% set manual_list = state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'manual_control') | default([]) %}
-            {{ 'manual' if manual_list | length > 0 else 'adaptive' }}
-          brightness_target: >
-            {{ state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'brightness_pct') | int(0) }}
-          brightness_base: >
-            {{ state_attr('sensor.oal_real_time_monitor', 'kitchen_undercabinet_baseline_brightness_pct') | int(0) }}
-          zone_manual_offset: >
-            {{ states('input_number.oal_manual_offset_kitchen_undercabinet_brightness') | int(0) }}
-          total_offset: >
-            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
-            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
-            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
-            {% set sens = 1.0 %}
-            {% set manual = states('input_number.oal_manual_offset_kitchen_undercabinet_brightness') | float(0) %}
-            {{ (cfg + sun + (env * sens) + manual) | round(1) }}
-          effective_min_brightness: >
-            {{ ((state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'configuration') or {}).get('min_brightness', 0)) | int(0) }}
-          effective_max_brightness: >
-            {{ ((state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'configuration') or {}).get('max_brightness', 0)) | int(0) }}
-          night_offset_component: >
-            {% set raw_night = states('input_number.oal_offset_night_brightness') | float(0) %}
-            {% set strength = states('input_number.oal_night_dimming_strength') | float(100) / 100 %}
-            {{ (raw_night * strength * 0.5) | round(1) }}
-          max_cap_reason: >
-            {% if states('input_boolean.oal_night_dimming_enabled') == 'on'
-                  and (states('input_number.oal_offset_night_brightness') | float(0)) < 0 %}
-              night_dimming_active
-            {% else %}
-              no_night_dimming_cap
-            {% endif %}
-          env_sensitivity: 1.0
-          override_remaining_seconds: >
-            {% set timer_dict = state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {{ (timer_values | min | default(0)) | int }}
-          override_remaining_formatted: >
-            {% set timer_dict = state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {% set secs = (timer_values | min | default(0)) | int %}
-            {% set hours = (secs // 3600) | int %}
-            {% set mins = ((secs % 3600) // 60) | int %}
-            {% if secs <= 0 %}N/A
-            {% elif hours > 0 %}{{ hours }}h {{ mins }}m
-            {% else %}{{ mins }}m{% endif %}
-          lights_overridden: >
-            {{ state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'manual_control') | default([]) | length }}
-          lights_total: 1
-          color_temp_kelvin: >
-            {{ state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'color_temp_kelvin') | int(0) }}
-          zone_id: "kitchen_undercabinet"
-          friendly_name: "Kitchen Under"
 
       - name: "OAL Bedroom Primary Status"
         unique_id: oal_bedroom_primary_status_v13
@@ -6152,7 +5204,6 @@ template:
             {% set zones = [
               state_attr('switch.adaptive_lighting_main_living', 'brightness_pct') | float(0),
               state_attr('switch.adaptive_lighting_kitchen_island', 'brightness_pct') | float(0),
-              state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'brightness_pct') | float(0),
               state_attr('switch.adaptive_lighting_bedroom_primary', 'brightness_pct') | float(0),
               state_attr('switch.adaptive_lighting_accent_spots', 'brightness_pct') | float(0),
               state_attr('switch.adaptive_lighting_recessed_ceiling', 'brightness_pct') | float(0),
@@ -6173,8 +5224,7 @@ template:
         state: >
           {% set switches = [
             ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
-            ('kitchen_island', 'Kitchen Island', 'switch.adaptive_lighting_kitchen_island'),
-            ('kitchen_undercabinet', 'Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet'),
+            ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
             ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
             ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
             ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
@@ -6201,7 +5251,6 @@ template:
             {% set switches = [
               ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
               ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
-              ('kitchen_undercabinet', 'Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet'),
               ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
               ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
@@ -6223,7 +5272,6 @@ template:
             {% set switches = [
               ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
               ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
-              ('kitchen_undercabinet', 'Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet'),
               ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
               ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
@@ -6245,7 +5293,6 @@ template:
             {% set switches = [
               ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
               ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
-              ('kitchen_undercabinet', 'Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet'),
               ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
               ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
@@ -6268,7 +5315,6 @@ template:
             {% set switches = [
               ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
               ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
-              ('kitchen_undercabinet', 'Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet'),
               ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
               ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
@@ -6720,23 +5766,23 @@ template:
         unique_id: hero_button_config_state
         state: >
           {% set config = states('input_select.oal_active_configuration') %}
-          {% if 'Full Bright' in config %} Baseline
-          {% elif 'Dim Ambient' in config %} Dimmed
+          {% if 'Full Brightness' in config %} Baseline
+          {% elif 'Dimmed Ambient' in config %} Dimmed
           {% elif 'Warm Ambient' in config %} Warm
           {% elif 'TV Mode' in config %} TV
           {% elif 'Sleep' in config %} Sleep
           {% else %} Manual {% endif %}
         attributes:
           is_baseline: >
-            {{ 'Full Bright' in states('input_select.oal_active_configuration') }}
+            {{ 'Full Brightness' in states('input_select.oal_active_configuration') }}
           icon_color: >
-            {% if 'Full Bright' in states('input_select.oal_active_configuration') %} rgba(80, 80, 80, 0.5)
+            {% if 'Full Brightness' in states('input_select.oal_active_configuration') %} rgba(80, 80, 80, 0.5)
             {% else %} rgba(120, 80, 180, 0.9) {% endif %}
           bg_color: >
-             {% if 'Full Bright' in states('input_select.oal_active_configuration') %} rgba(120, 120, 120, 0.10)
+             {% if 'Full Brightness' in states('input_select.oal_active_configuration') %} rgba(120, 120, 120, 0.10)
              {% else %} rgba(138, 100, 200, 0.15) {% endif %}
           border_color: >
-             {% if 'Full Bright' in states('input_select.oal_active_configuration') %} 1px solid rgba(120, 120, 120, 0.25)
+             {% if 'Full Brightness' in states('input_select.oal_active_configuration') %} 1px solid rgba(120, 120, 120, 0.25)
              {% else %} 1px solid rgba(138, 100, 200, 0.35) {% endif %}
 
       # HERO BUTTON: RESET STATE
@@ -6744,10 +5790,9 @@ template:
       - name: "Hero Button Reset State"
         unique_id: hero_button_reset_state
         state: >
-          {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island',
-                          'switch.adaptive_lighting_kitchen_undercabinet', 'switch.adaptive_lighting_bedroom_primary',
-                          'switch.adaptive_lighting_accent_spots', 'switch.adaptive_lighting_recessed_ceiling',
-                          'switch.adaptive_lighting_column_lights'] %}
+          {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
+                          'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
+                          'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
           {% set manual_count = namespace(value=0) %}
           {% for z in zones %}
              {% set manual_count.value = manual_count.value + (state_attr(z, 'manual_control') | default([]) | length) %}
@@ -6756,7 +5801,6 @@ template:
         attributes:
           time_remaining: >
             {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
-                            'switch.adaptive_lighting_kitchen_undercabinet',
                             'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
                             'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
             {% set soonest = namespace(value=999999) %}
@@ -6780,7 +5824,6 @@ template:
              {{ state_attr('sensor.oal_real_time_monitor', 'Boost source') }}
           display_label: >
             {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
-                            'switch.adaptive_lighting_kitchen_undercabinet',
                             'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
                             'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
             {% set manual_active = this.state == 'on' %}
@@ -6849,24 +5892,32 @@ template:
                else 'rgba(80, 80, 80, 0.7)' }}
           # Counting attributes
           number_on: >
-            {% set light_entities = state_attr('light.all_adaptive_lights', 'entity_id') | default([]) %}
-            {% set lights = expand(light_entities) | list %}
+            {% set lights = expand('light.living_room_adaptive_light',
+                                   'light.kitchen_island_adaptive_light',
+                                   'light.bedroom_primary_adaptive_light',
+                                   'light.accent_spots_adaptive_light',
+                                   'light.recessed_ceiling_adaptive_light',
+                                   'light.column_lights_adaptive_light') %}
             {{ lights | selectattr('state', 'eq', 'on') | list | length }}
-          total_lights: >
-            {% set light_entities = state_attr('light.all_adaptive_lights', 'entity_id') | default([]) %}
-            {% set lights = expand(light_entities) | list %}
-            {{ lights | list | length }}
+          total_lights: 6
           all_on: >
-            {% set light_entities = state_attr('light.all_adaptive_lights', 'entity_id') | default([]) %}
-            {% set lights = expand(light_entities) | list %}
-            {{ lights | length > 0 and (lights | selectattr('state', 'eq', 'on') | list | length) == lights | length }}
+            {% set lights = expand('light.living_room_adaptive_light',
+                                   'light.kitchen_island_adaptive_light',
+                                   'light.bedroom_primary_adaptive_light',
+                                   'light.accent_spots_adaptive_light',
+                                   'light.recessed_ceiling_adaptive_light',
+                                   'light.column_lights_adaptive_light') %}
+            {{ (lights | selectattr('state', 'eq', 'on') | list | length) == lights | length }} 
           all_off: >
-            {% set light_entities = state_attr('light.all_adaptive_lights', 'entity_id') | default([]) %}
-            {% set lights = expand(light_entities) | list %}
-            {{ lights | length > 0 and (lights | selectattr('state', 'eq', 'on') | list | length) == 0 }}
+            {% set lights = expand('light.living_room_adaptive_light',
+                                   'light.kitchen_island_adaptive_light',
+                                   'light.bedroom_primary_adaptive_light',
+                                   'light.accent_spots_adaptive_light',
+                                   'light.recessed_ceiling_adaptive_light',
+                                   'light.column_lights_adaptive_light') %}
+            {{ (lights | selectattr('state', 'eq', 'on') | list | length) == 0 }}
           manually_controlled: >
             {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
-                            'switch.adaptive_lighting_kitchen_undercabinet',
                             'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
                             'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
             {% set manual_count = namespace(value=0) %}
@@ -7184,46 +6235,26 @@ template:
         unique_id: room_kitchen_state_v13
         icon: mdi:countertop
         state: >
-          {% set kitchen_lights = ['light.kitchen_main_lights', 'light.kitchen_island_pendants', 'light.kitchen_counter_cabinet_underlights'] %}
-          {% set lights_on = kitchen_lights | select('is_state', 'on') | list | length %}
+          {% set is_on = is_state('light.kitchen_main_lights', 'on') %}
           {% set is_playing = is_state('media_player.kitchen', 'playing') %}
-          {% set island_manual = state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) %}
-          {% set undercab_manual = state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'manual_control') | default([]) %}
-          {% set recessed_manual = state_attr('switch.adaptive_lighting_recessed_ceiling', 'manual_control') | default([]) %}
-          {% set combined_manual = (island_manual + undercab_manual + recessed_manual) | unique | list %}
-          {% set kitchen_manual = combined_manual | select('in', kitchen_lights) | list %}
-          {% set has_override = kitchen_manual | length > 0 %}
+          {% set has_override = (state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') or []) | length > 0 %}
           
           {% if has_override %}override
           {% elif is_playing %}playing
-          {% elif lights_on > 0 %}active
+          {% elif is_on %}active
           {% else %}idle{% endif %}
         attributes:
-          lights_on: >
-            {% set kitchen_lights = ['light.kitchen_main_lights', 'light.kitchen_island_pendants', 'light.kitchen_counter_cabinet_underlights'] %}
-            {{ kitchen_lights | select('is_state', 'on') | list | length }}
-          total_lights: 3
-          brightness: >
-            {% set kitchen_lights = ['light.kitchen_main_lights', 'light.kitchen_island_pendants', 'light.kitchen_counter_cabinet_underlights'] %}
-            {% set on_lights = kitchen_lights | select('is_state', 'on') | list %}
-            {% if on_lights | length > 0 %}
-              {% set ns = namespace(total=0) %}
-              {% for l in on_lights %}
-                {% set ns.total = ns.total + (state_attr(l, 'brightness') | default(0) | int) %}
-              {% endfor %}
-              {{ (ns.total / (on_lights | length) / 2.55) | round(0) }}
-            {% else %}0{% endif %}
+          lights_on: "{{ 1 if is_state('light.kitchen_main_lights', 'on') else 0 }}"
+          total_lights: 1
+          brightness: "{{ (state_attr('light.kitchen_main_lights', 'brightness') | default(0) / 2.55) | round(0) }}"
           audio_state: "{{ states('media_player.kitchen') }}"
           audio_track: "{{ state_attr('media_player.kitchen', 'media_title') | default('') }}"
           in_group: "{{ states('sensor.sonos_kitchen_in_playing_group') in ['True', 'on', true] }}"
-          # Override status - aggregated from both kitchen AL switches
+          # Override status - aggregated from kitchen AL switch
           manually_controlled_lights: >
-            {% set island = state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) %}
-            {% set undercab = state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'manual_control') | default([]) %}
-            {% set recessed = state_attr('switch.adaptive_lighting_recessed_ceiling', 'manual_control') | default([]) %}
-            {% set combined = (island + undercab + recessed) | unique | list %}
+            {% set kitchen = state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) %}
             {% set kitchen_lights = ['light.kitchen_main_lights', 'light.kitchen_island_pendants', 'light.kitchen_counter_cabinet_underlights'] %}
-            {{ combined | select('in', kitchen_lights) | list }}
+            {{ kitchen | select('in', kitchen_lights) | list }}
           has_override: >
             {{ (this.attributes.manually_controlled_lights | default([])) | length > 0 }}
           override_count: >
@@ -7249,15 +6280,11 @@ template:
             {% elif state == 'override' %}✋ Manual
             {% elif this.attributes.has_upcoming_alarm %}⏰ {{ alarm_time }}
             {% else %}Ready{% endif %}
-          # Brightness offset - average of the two kitchen-specific AL zones
+          # Brightness offset - kitchen zone offset
           brightness_offset: >
-            {% set offsets = [
-              states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0),
-              states('input_number.oal_manual_offset_kitchen_undercabinet_brightness') | float(0)
-            ] %}
-            {{ (offsets | sum / offsets | length) | round(0) }}
+            {{ states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) | round(0) }}
           offset_direction: >
-            {% set offset = this.attributes.brightness_offset | default(0) | float(0) %}
+            {% set offset = states('input_number.oal_manual_offset_kitchen_island_brightness') | float(0) %}
             {% if offset > 0 %}brighter{% elif offset < 0 %}dimmer{% else %}neutral{% endif %}
           # Alarm attributes - Kitchen speaker
           next_alarm_entity: >

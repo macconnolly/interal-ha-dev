@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+
+<html lang="en" style="color-scheme: light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Climate Card – v3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════
+       TOKENS — LIGHT
+       ═══════════════════════════════════════════ */
+    :root {
+      --bg1:#d9ccbc; --bg2:#c8c0b4; --bg3:#a8a199; --bg4:#838990;
+      --glass:rgba(255,255,255,0.68); --glass-border:rgba(255,255,255,0.45);
+      --shadow:0 1px 3px rgba(0,0,0,0.10),0 8px 32px rgba(0,0,0,0.10);
+      --shadow-up:0 1px 4px rgba(0,0,0,0.10),0 12px 36px rgba(0,0,0,0.12);
+      --inset:inset 0 0 0 0.5px rgba(0,0,0,0.06);
+      --text:#1C1C1E; --text-sub:rgba(28,28,30,0.55); --text-muted:#8E8E93;
+      --amber:#D4850A; --amber-fill:rgba(212,133,10,0.10); --amber-border:rgba(212,133,10,0.22);
+      --blue:#007AFF; --blue-fill:rgba(0,122,255,0.09); --blue-border:rgba(0,122,255,0.18);
+      --green:#34C759;
+      --track-bg:rgba(28,28,30,0.055); --track-h:44px;
+      --thumb-bg:#fff;
+      --thumb-sh:0 1px 2px rgba(0,0,0,0.12),0 4px 12px rgba(0,0,0,0.06);
+      --thumb-sh-a:0 2px 4px rgba(0,0,0,0.16),0 8px 20px rgba(0,0,0,0.10);
+      --r-card:24px; --r-tile:16px; --r-pill:999px; --r-track:4px;
+      --ctrl-bg:rgba(255,255,255,0.52); --ctrl-border:rgba(0,0,0,0.05); --ctrl-sh:0 1px 2px rgba(0,0,0,0.05),0 2px 8px rgba(0,0,0,0.04);
+      --chip-bg:rgba(255,255,255,0.48); --chip-border:rgba(0,0,0,0.05);
+      --chip-sh:0 1px 3px rgba(0,0,0,0.04);
+      --dd-bg:rgba(255,255,255,0.84); --dd-border:rgba(255,255,255,0.60);
+      --divider:rgba(28,28,30,0.07);
+      --toggle-off:rgba(28,28,30,0.10); --toggle-on:rgba(52,199,89,0.28);
+      --toggle-knob:rgba(255,255,255,0.96);
+      color-scheme:light;
+    }
+
+    /* ═══════════════════════════════════════════
+       TOKENS — DARK
+       ═══════════════════════════════════════════ */
+    html.dark {
+      --bg1:#1c3038; --bg2:#1e2640; --bg3:#242244; --bg4:#1a1a30;
+      --glass:rgba(44,44,46,0.72); --glass-border:rgba(255,255,255,0.08);
+      --shadow:0 1px 3px rgba(0,0,0,0.30),0 8px 28px rgba(0,0,0,0.28);
+      --shadow-up:0 1px 4px rgba(0,0,0,0.35),0 12px 36px rgba(0,0,0,0.35);
+      --inset:inset 0 0 0 0.5px rgba(255,255,255,0.06);
+      --text:#F5F5F7; --text-sub:rgba(245,245,247,0.50); --text-muted:rgba(245,245,247,0.35);
+      --amber:#E8961E; --amber-fill:rgba(232,150,30,0.14); --amber-border:rgba(232,150,30,0.25);
+      --blue:#0A84FF; --blue-fill:rgba(10,132,255,0.13); --blue-border:rgba(10,132,255,0.22);
+      --green:#30D158;
+      --track-bg:rgba(255,255,255,0.06);
+      --thumb-bg:#F5F5F7;
+      --thumb-sh:0 1px 2px rgba(0,0,0,0.35),0 4px 12px rgba(0,0,0,0.18);
+      --thumb-sh-a:0 2px 4px rgba(0,0,0,0.40),0 8px 20px rgba(0,0,0,0.25);
+      --ctrl-bg:rgba(255,255,255,0.08); --ctrl-border:rgba(255,255,255,0.08); --ctrl-sh:0 1px 2px rgba(0,0,0,0.25),0 2px 8px rgba(0,0,0,0.15);
+      --chip-bg:rgba(58,58,60,0.50); --chip-border:rgba(255,255,255,0.06);
+      --chip-sh:0 1px 3px rgba(0,0,0,0.18);
+      --dd-bg:rgba(58,58,60,0.88); --dd-border:rgba(255,255,255,0.08);
+      --divider:rgba(255,255,255,0.06);
+      --toggle-off:rgba(255,255,255,0.10); --toggle-on:rgba(48,209,88,0.30);
+      --toggle-knob:rgba(255,255,255,0.92);
+      color-scheme:dark;
+    }
+
+    /* ═══════════════════════════════════════════
+       BASE
+       ═══════════════════════════════════════════ */
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:"DM Sans",system-ui,-apple-system,sans-serif;
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .scene{
+      min-height:100%;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      padding:32px 16px;gap:20px;
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(255,255,255,0.55),transparent 55%),
+        radial-gradient(ellipse 900px 700px at 80% 15%,rgba(255,255,255,0.35),transparent 60%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    .scene::before{
+      content:"";position:fixed;inset:-60px;
+      background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));
+      filter:blur(28px) saturate(1.05);z-index:-2;
+    }
+    html.dark .scene{
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(255,255,255,0.02),transparent 55%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    html.dark .scene::before{
+      background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));filter:blur(28px);
+    }
+
+    /* ═══════════════════════════════════════════
+       INLINE SVG ICONS
+       ═══════════════════════════════════════════ */
+    .icon{display:inline-block;vertical-align:middle;fill:currentColor;flex-shrink:0}
+    .icon-20{width:20px;height:20px}
+    .icon-18{width:18px;height:18px}
+    .icon-16{width:16px;height:16px}
+    .icon-14{width:14px;height:14px}
+
+    /* ═══════════════════════════════════════════
+       THEME TOGGLE (dev)
+       ═══════════════════════════════════════════ */
+    .theme-toggle{
+      display:flex;gap:4px;padding:4px;
+      border-radius:var(--r-pill);background:var(--glass);
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--glass-border);box-shadow:var(--shadow);
+    }
+    .theme-btn{
+      padding:8px 16px;border:none;border-radius:var(--r-pill);
+      background:transparent;color:var(--text-muted);
+      font-family:inherit;font-size:13px;font-weight:600;
+      cursor:pointer;transition:all 180ms ease;
+      display:flex;align-items:center;gap:6px;
+    }
+    .theme-btn.active{
+      background:var(--chip-bg);color:var(--text);
+      box-shadow:0 1px 6px rgba(0,0,0,0.06);
+    }
+
+    /* ═══════════════════════════════════════════
+       CARD
+       ═══════════════════════════════════════════ */
+    .card{
+      position:relative;
+      width:400px;max-width:100%;
+      border-radius:var(--r-card);background:var(--glass);
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--ctrl-border);
+      box-shadow:var(--shadow),var(--inset);
+      padding:20px;display:flex;flex-direction:column;gap:0;
+      transition:background .3s,border-color .3s,box-shadow .3s,opacity .3s;
+    }
+    .card[data-mode="off"]{opacity:.55}
+    .card[data-action="heating"]{border-color:rgba(212,133,10,0.16)}
+    .card[data-action="cooling"]{border-color:rgba(0,122,255,0.14)}
+    html.dark .card[data-action="heating"]{border-color:rgba(232,150,30,0.14)}
+    html.dark .card[data-action="cooling"]{border-color:rgba(10,132,255,0.12)}
+
+    /* ── Header ── */
+    .hdr{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+
+    /* Unified header control surface */
+    .hdr-ctrl{
+      display:grid;place-items:center;
+      border-radius:10px;border:1px solid var(--ctrl-border);
+      background:var(--ctrl-bg);box-shadow:var(--ctrl-sh);
+      transition:all .15s ease;
+    }
+
+    .hdr-icon{
+      width:36px;height:36px;color:var(--text-muted);
+    }
+    .hdr-icon[data-a="heating"]{background:var(--amber-fill);color:var(--amber);border-color:var(--amber-border)}
+    .hdr-icon[data-a="cooling"]{background:var(--blue-fill);color:var(--blue);border-color:var(--blue-border)}
+    .hdr-title{font-weight:700;font-size:14px;color:var(--text-sub);letter-spacing:.1px}
+    .hdr-spacer{flex:1}
+
+    /* Fan button — inherits .hdr-ctrl */
+    .fan-btn{
+      width:34px;height:34px;
+      color:var(--text-muted);cursor:pointer;
+    }
+    .fan-btn:hover{box-shadow:var(--shadow)}
+    .fan-btn:active{transform:scale(.94)}
+    .fan-btn.on{background:rgba(52,199,89,0.12);color:var(--green);border-color:rgba(52,199,89,0.15)}
+    .fan-btn.on .icon{animation:fan-spin 1.8s linear infinite}
+    html.dark .fan-btn.on{background:rgba(48,209,88,0.14);border-color:rgba(48,209,88,0.18)}
+    @keyframes fan-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+    /* Mode pill — same surface as .hdr-ctrl, capsule shape */
+    .mode-wrap{position:relative}
+    .mode-btn{
+      display:flex;align-items:center;gap:5px;
+      padding:7px 8px 7px 12px;border-radius:var(--r-pill);
+      border:1px solid var(--ctrl-border);background:var(--ctrl-bg);
+      box-shadow:var(--ctrl-sh);font-family:inherit;font-size:12px;
+      font-weight:600;color:var(--text-sub);cursor:pointer;
+      transition:all .15s ease;letter-spacing:.2px;
+    }
+    .mode-btn:hover{box-shadow:var(--shadow)}
+    .mode-btn:active{transform:scale(.97)}
+    .mode-btn .chevron{transition:transform .2s ease}
+    .mode-btn[aria-expanded="true"] .chevron{transform:rotate(180deg)}
+
+    .mode-menu{
+      position:absolute;top:calc(100% + 6px);right:0;
+      min-width:160px;padding:5px;border-radius:var(--r-tile);
+      background:var(--dd-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--dd-border);box-shadow:var(--shadow-up);
+      z-index:10;display:none;flex-direction:column;gap:1px;
+    }
+    .mode-menu.open{display:flex;animation:menuIn .14s ease forwards}
+    @keyframes menuIn{
+      from{opacity:0;transform:translateY(-4px) scale(.97)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+    .mode-opt{
+      padding:9px 12px;border-radius:11px;border:none;
+      background:transparent;font-family:inherit;font-size:13px;
+      font-weight:600;color:var(--text);text-align:left;cursor:pointer;
+      display:flex;align-items:center;gap:8px;transition:background .1s;
+    }
+    .mode-opt:hover{background:var(--track-bg)}
+    .mode-opt:active{transform:scale(.97)}
+    .mode-opt.active{font-weight:700}
+    .mode-opt.active[data-m="heat_cool"],
+    .mode-opt.active[data-m="heat"]{background:var(--amber-fill);color:var(--amber)}
+    .mode-opt.active[data-m="cool"]{background:var(--blue-fill);color:var(--blue)}
+    .mode-opt.active[data-m="off"]{background:var(--track-bg);color:var(--text-muted)}
+    .mode-divider{height:1px;background:var(--divider);margin:3px 8px}
+    .mode-opt.eco-opt .eco-check{
+      margin-left:auto;width:18px;height:18px;border-radius:999px;
+      border:1.5px solid var(--text-muted);display:grid;place-items:center;
+      transition:all .15s;
+    }
+    .mode-opt.eco-opt.active .eco-check{
+      background:var(--green);border-color:var(--green);
+    }
+
+    /* ═══════════════════════════════════════════
+       TEMPERATURE ZONE
+       ═══════════════════════════════════════════ */
+    .temps{
+      display:flex;align-items:flex-start;justify-content:space-between;
+      margin-bottom:20px;
+    }
+    .t-group{display:flex;flex-direction:column;gap:1px}
+    .t-label{
+      font-size:12px;font-weight:600;letter-spacing:.3px;
+    }
+    .t-label.indoor{color:var(--text-sub)}
+    .t-label.heat{color:var(--amber)}
+    .t-label.cool{color:var(--blue)}
+    .t-val{
+      font-size:48px;font-weight:700;letter-spacing:-1.5px;
+      line-height:1;font-variant-numeric:tabular-nums;
+    }
+    .deg{font-size:0.6em;vertical-align:baseline;position:relative;top:-0.18em;margin-left:-1px}
+    .t-val.heat{color:var(--amber)}
+    .t-val.cool{color:var(--blue)}
+
+    .t-right{display:flex;gap:16px}
+    .t-right .t-group{align-items:flex-end}
+
+    /* ═══════════════════════════════════════════
+       SLIDER
+       ═══════════════════════════════════════════ */
+    .slider-zone{display:flex;flex-direction:column;margin-bottom:14px}
+    .slider{position:relative;height:var(--track-h);user-select:none;touch-action:none}
+    .track{position:absolute;inset:0;border-radius:var(--r-track);background:var(--track-bg);overflow:hidden}
+
+    /* Fills — use exact accent token colors (--amber / --blue) */
+    .fill-h{
+      position:absolute;top:0;bottom:0;left:0;
+      border-radius:var(--r-track) 0 0 var(--r-track);
+      background:linear-gradient(90deg,rgba(212,133,10,.52) 0%,rgba(212,133,10,.34) 50%,rgba(212,133,10,.14) 100%);
+      transition:width 60ms ease;
+    }
+    html.dark .fill-h{
+      background:linear-gradient(90deg,rgba(232,150,30,.46) 0%,rgba(232,150,30,.30) 50%,rgba(232,150,30,.12) 100%);
+    }
+    .fill-c{
+      position:absolute;top:0;bottom:0;right:0;
+      border-radius:0 var(--r-track) var(--r-track) 0;
+      background:linear-gradient(90deg,rgba(0,122,255,.12) 0%,rgba(0,122,255,.28) 45%,rgba(0,122,255,.44) 100%);
+      transition:width 60ms ease;
+    }
+    html.dark .fill-c{
+      background:linear-gradient(90deg,rgba(10,132,255,.10) 0%,rgba(10,132,255,.28) 45%,rgba(10,132,255,.42) 100%);
+    }
+    
+
+    /* Thumbs — 44px invisible touch target, 26px visible disc */
+    .thumb{
+      position:absolute;top:50%;
+      width:44px;height:44px;
+      transform:translate(-50%,-50%);border-radius:999px;
+      background:transparent;
+      cursor:grab;z-index:3;
+      transition:transform .15s;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .thumb:active{cursor:grabbing;transform:translate(-50%,-50%) scale(1.08)}
+    .thumb.dragging{cursor:grabbing;transform:translate(-50%,-50%) scale(1.08)}
+    .thumb:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+
+    /* Colored stroke — behind disc (z-index:1) */
+    .thumb-stroke{
+      position:absolute;width:2px;
+      top:2px;bottom:2px;left:50%;transform:translateX(-50%);
+      border-radius:2px;z-index:1;
+    }
+    .thumb.heat .thumb-stroke{background:var(--amber)}
+    .thumb.cool .thumb-stroke{background:var(--blue)}
+
+    /* White disc — 26px visible circle (z-index:2) */
+    .thumb-disc{
+      width:26px;height:26px;border-radius:999px;
+      background:var(--thumb-bg);
+      box-shadow:var(--thumb-sh);
+      z-index:2;position:relative;
+      transition:box-shadow .15s;
+    }
+    .thumb:hover .thumb-disc{box-shadow:var(--thumb-sh-a)}
+    .thumb:active .thumb-disc,.thumb.dragging .thumb-disc{box-shadow:var(--thumb-sh-a)}
+
+    /* Center dot (z-index:3) */
+    .thumb-dot{
+      width:8px;height:8px;border-radius:999px;
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      z-index:3;
+    }
+    .thumb.heat .thumb-dot{background:var(--amber);box-shadow:0 0 0 .5px rgba(212,133,10,0.3)}
+    .thumb.cool .thumb-dot{background:var(--blue);box-shadow:0 0 0 .5px rgba(0,122,255,0.3)}
+
+    /* Current temp marker — arrow points UP */
+    .cur-marker{
+      position:absolute;bottom:-14px;transform:translateX(-50%);
+      display:flex;flex-direction:column;align-items:center;
+      z-index:2;transition:left .25s ease;
+    }
+    .cur-arrow{
+      width:0;height:0;
+      border-left:4px solid transparent;border-right:4px solid transparent;
+      border-bottom:5px solid var(--text-muted);
+    }
+    .cur-label{
+      font-size:11px;font-weight:700;color:var(--text-sub);
+      margin-top:1px;font-variant-numeric:tabular-nums;
+      letter-spacing:-.2px;white-space:nowrap;
+    }
+
+    /* Scale */
+    .scale{display:flex;justify-content:space-between;padding:13px 2px 0}
+    .scale-mark{display:flex;flex-direction:column;align-items:center;gap:2px;transition:opacity .2s ease}
+    .scale-tick{width:1px;height:5px;background:var(--text-muted);opacity:.35;border-radius:1px}
+    .scale-num{font-size:10px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums;letter-spacing:.4px}
+
+    /* ═══════════════════════════════════════════
+       STATUS ROW
+       ═══════════════════════════════════════════ */
+    .status{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:13px 0;
+      border-top:1px solid var(--divider);
+    }
+    .status-item{
+      display:flex;align-items:center;gap:6px;
+      font-size:13px;font-weight:600;color:var(--text-sub);letter-spacing:.1px;
+    }
+    .status-humidity .icon{color:var(--blue)}
+    .status-action .icon.heat-ic{color:var(--amber)}
+    .status-action .icon.cool-ic{color:var(--blue)}
+    .status-action .icon.idle-ic{color:var(--text-muted)}
+
+    /* ═══════════════════════════════════════════
+       MODE OVERRIDES
+       ═══════════════════════════════════════════ */
+    .card[data-mode="heat"] .fill-c,
+    .card[data-mode="heat"] .thumb.cool,
+    .card[data-mode="heat"] .t-group.cool{display:none}
+
+    .card[data-mode="cool"] .fill-h,
+    .card[data-mode="cool"] .thumb.heat,
+    .card[data-mode="cool"] .t-group.heat{display:none}
+
+    .card[data-mode="off"] .fill-h,
+    .card[data-mode="off"] .fill-c,
+    .card[data-mode="off"] .thumb,
+    .card[data-mode="off"] .t-right,
+    .card[data-mode="off"] .cur-marker{display:none}
+    .card[data-mode="off"] .track{opacity:.35}
+
+    .card[data-mode="heat"] .fill-h{
+      border-radius:var(--r-track);
+      background:linear-gradient(90deg,rgba(212,133,10,.52) 0%,rgba(212,133,10,.34) 50%,rgba(212,133,10,.14) 100%);
+    }
+    html.dark .card[data-mode="heat"] .fill-h{
+      background:linear-gradient(90deg,rgba(232,150,30,.46) 0%,rgba(232,150,30,.30) 50%,rgba(232,150,30,.12) 100%);
+    }
+    .card[data-mode="cool"] .fill-c{
+      border-radius:var(--r-track);
+      background:linear-gradient(90deg,rgba(0,122,255,.12) 0%,rgba(0,122,255,.28) 50%,rgba(0,122,255,.44) 100%);
+    }
+    html.dark .card[data-mode="cool"] .fill-c{
+      background:linear-gradient(90deg,rgba(10,132,255,.10) 0%,rgba(10,132,255,.28) 50%,rgba(10,132,255,.42) 100%);
+    }
+
+    /* ═══════════════════════════════════════════
+       DEADBAND — subtle comfort zone indicator
+       ═══════════════════════════════════════════ */
+    .deadband{
+      position:absolute;top:0;bottom:0;
+      background:repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 3px,
+        rgba(28,28,30,0.025) 3px,
+        rgba(28,28,30,0.025) 4px
+      );
+      transition:left 60ms,width 60ms;
+    }
+    html.dark .deadband{
+      background:repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 3px,
+        rgba(255,255,255,0.02) 3px,
+        rgba(255,255,255,0.02) 4px
+      );
+    }
+
+    /* ═══════════════════════════════════════════
+       ENHANCED GLASS — gradient stroke for depth
+       ═══════════════════════════════════════════ */
+    .card::before{
+      content:"";position:absolute;inset:0;border-radius:var(--r-card);
+      padding:1px;
+      background:linear-gradient(160deg,rgba(255,255,255,0.50),rgba(255,255,255,0.08) 40%,rgba(255,255,255,0.02) 60%,rgba(255,255,255,0.20));
+      -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+      pointer-events:none;z-index:0;
+    }
+    html.dark .card::before{
+      background:linear-gradient(160deg,rgba(255,255,255,0.14),rgba(255,255,255,0.03) 40%,rgba(255,255,255,0.01) 60%,rgba(255,255,255,0.08));
+    }
+
+    /* ═══════════════════════════════════════════
+       ACCESSIBILITY — reduced motion
+       ═══════════════════════════════════════════ */
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{
+        animation-duration:0.01ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:0.01ms !important;
+      }
+    }
+
+    /* ═══════════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════════ */
+    @media(max-width:440px){
+      .card{padding:16px;--r-track:8px}
+      .t-val{font-size:42px;letter-spacing:-1.3px}
+    }
+  </style>
+
+</head>
+
+<body>
+  <!-- ═══════════════════════════════════════════
+       SVG ICON SPRITE (hidden)
+       ═══════════════════════════════════════════ -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <!-- Thermostat: outlined (hollow stem) — idle/off -->
+    <symbol id="i-thermo" viewBox="0 0 24 24">
+      <path d="M15 13V5c0-1.66-1.34-3-3-3S9 3.34 9 5v8c-1.86 1.27-3 3.36-3 5.5 0 3.58 2.69 6.5 6 6.5s6-2.92 6-6.5c0-2.14-1.14-4.23-3-5.5zm-3-7c.55 0 1 .45 1 1v3h-2V6c0-.55.45-1 1-1zm0 15c-2.21 0-4-1.79-4-4 0-1.5.81-2.89 2.12-3.63l.38-.23V8h3v5.14l.38.23C15.19 14.11 16 15.5 16 17c0 2.21-1.79 4-4 4z"/>
+    </symbol>
+    <!-- Thermostat: filled (solid) — heating/cooling -->
+    <symbol id="i-thermo-fill" viewBox="0 0 24 24">
+      <path d="M15 13V5c0-1.66-1.34-3-3-3S9 3.34 9 5v8a5 5 0 103 8 5 5 0 003-8z"/>
+    </symbol>
+    <!-- Air: outlined (thinner streams) — fan off -->
+    <symbol id="i-air-o" viewBox="0 0 24 24">
+      <path d="M14.5 17c0 1.65-1.35 3-3 3s-3-1.35-3-3h1c0 1.1.9 2 2 2s2-.9 2-2-.9-2-2-2H2v-1h9.5c1.65 0 3 1.35 3 3zM19 6.5C19 4.57 17.43 3 15.5 3S12 4.57 12 6.5h1c0-1.38 1.12-2.5 2.5-2.5S18 5.12 18 6.5 16.88 9 15.5 9H2v1h13.5C17.43 10 19 8.43 19 6.5zm-2 5c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2h7v-1h-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1h1z"/>
+    </symbol>
+    <!-- Air: filled (bold streams) — fan on -->
+    <symbol id="i-air" viewBox="0 0 24 24">
+      <path d="M14.5 17c0 1.65-1.35 3-3 3s-3-1.35-3-3h2c0 .55.45 1 1 1s1-.45 1-1-.45-1-1-1H2v-2h9.5c1.65 0 3 1.35 3 3zM19 6.5C19 4.57 17.43 3 15.5 3S12 4.57 12 6.5h2c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5S16.33 8 15.5 8H2v2h13.5C17.43 10 19 8.43 19 6.5zm-2 5c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2h7v-2h-5z"/>
+    </symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24">
+      <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
+    </symbol>
+    <symbol id="i-thermo-auto" viewBox="0 0 24 24">
+      <path d="M11 13V5c0-1.66-1.34-3-3-3S5 3.34 5 5v8a5 5 0 103 8 5 5 0 003-8zM8 4c.55 0 1 .45 1 1v8H7V5c0-.55.45-1 1-1z"/>
+      <path d="M18.36 8h-1.22l-2.4 7h1.3l.5-1.5h2.42l.5 1.5h1.3L18.36 8zm-1.53 4.33L17.75 9.6l.92 2.73h-1.84z"/>
+    </symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24">
+      <path d="M12 12.9a2.13 2.13 0 00-2 2.13c0 .95.64 1.77 1.5 2.04V22h1v-4.93A2.13 2.13 0 0014 14.94c0-1.15-.89-2.04-2-2.04zM16 6l-.44.55C14.38 8.02 12 7.19 12 5c0-.66.27-1.26.7-1.7L12 2c-5 3-7 7.5-7 11.5C5 17.42 7.42 21 12 21s7-3.58 7-7.5c0-4-2.5-6.5-3-7.5z"/>
+    </symbol>
+    <symbol id="i-snow" viewBox="0 0 24 24">
+      <path d="M22 11h-4.17l2.54-2.54-1.42-1.42L15 11h-2V9l3.96-3.96-1.42-1.42L13 6.17V2h-2v4.17L8.46 3.63 7.04 5.04 11 9v2H9L5.04 7.04 3.63 8.46 6.17 11H2v2h4.17l-2.54 2.54 1.42 1.42L9 13h2v2l-3.96 3.96 1.42 1.42L11 17.83V22h2v-4.17l2.54 2.54 1.42-1.42L13 15v-2h2l3.96 3.96 1.42-1.42L17.83 13H22z"/>
+    </symbol>
+    <symbol id="i-power" viewBox="0 0 24 24">
+      <path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A6.92 6.92 0 0119 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.27 1.08-4.28 2.59-5.59L6.17 5.17A8.93 8.93 0 003 12a9 9 0 0018 0c0-2.74-1.23-5.19-3.17-6.83z"/>
+    </symbol>
+    <symbol id="i-eco" viewBox="0 0 24 24">
+      <path d="M6.05 8.05a7 7 0 009.9 9.9C17.83 16.17 20 10 17 8c-1.5-1-6.5-.5-9 .5-.5-2 1-5 1-5S4.17 6.17 6.05 8.05z"/>
+    </symbol>
+    <symbol id="i-water" viewBox="0 0 24 24">
+      <path d="M12 2c-5.33 4.55-8 8.48-8 11.8C4 18.78 7.58 22 12 22s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/>
+    </symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+    </symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24">
+      <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 00-1.41 0c-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 00-1.41 0c-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 00 0-1.41.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 000-1.41.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>
+    </symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24">
+      <path d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 01-4.4 2.26 5.403 5.403 0 01-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+    </symbol>
+  </svg>
+
+  <div class="scene">
+    <!-- Theme toggle -->
+    <div class="theme-toggle">
+      <button class="theme-btn active" data-theme="light" onclick="setTheme('light')">
+        <svg class="icon icon-16"><use href="#i-sun"/></svg> Light
+      </button>
+      <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">
+        <svg class="icon icon-16"><use href="#i-moon"/></svg> Dark
+      </button>
+    </div>
+
+```
+<!-- ═══════════════════════════════════════
+     CLIMATE CARD
+     ═══════════════════════════════════════ -->
+<div class="card" data-mode="heat_cool" data-action="idle" id="card">
+
+  <!-- Header: icon + title ... fan + mode -->
+  <div class="hdr">
+    <div class="hdr-icon hdr-ctrl" data-a="idle" id="hdrIcon">
+      <svg class="icon icon-20"><use href="#i-thermo" id="hdrIconUse"/></svg>
+    </div>
+    <span class="hdr-title">Climate</span>
+    <div class="hdr-spacer"></div>
+    <button class="fan-btn hdr-ctrl" id="fanBtn" onclick="toggleFan()" title="Fan" aria-label="Toggle fan">
+      <svg class="icon icon-18"><use href="#i-air-o" id="fanIconUse"/></svg>
+    </button>
+    <div class="mode-wrap">
+      <button class="mode-btn" id="modeBtn" onclick="toggleMenu()" aria-expanded="false">
+        <span id="modeLbl">Heat / Cool</span>
+        <svg class="icon icon-14 chevron"><use href="#i-chevron"/></svg>
+      </button>
+      <div class="mode-menu" id="modeMenu">
+        <button class="mode-opt active" data-m="heat_cool" onclick="setMode('heat_cool')">
+          <svg class="icon icon-18" style="color:var(--amber)"><use href="#i-thermo-auto"/></svg> Heat / Cool
+        </button>
+        <button class="mode-opt" data-m="heat" onclick="setMode('heat')">
+          <svg class="icon icon-18" style="color:var(--amber)"><use href="#i-flame"/></svg> Heat
+        </button>
+        <button class="mode-opt" data-m="cool" onclick="setMode('cool')">
+          <svg class="icon icon-18" style="color:var(--blue)"><use href="#i-snow"/></svg> Cool
+        </button>
+        <button class="mode-opt" data-m="off" onclick="setMode('off')">
+          <svg class="icon icon-18"><use href="#i-power"/></svg> Off
+        </button>
+        <div class="mode-divider"></div>
+        <button class="mode-opt eco-opt active" id="ecoOpt" onclick="toggleEco()">
+          <svg class="icon icon-18" style="color:var(--green)"><use href="#i-eco"/></svg> Eco
+          <span class="eco-check" id="ecoCheck">
+            <svg class="icon icon-14" style="color:#fff"><use href="#i-check"/></svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Temperatures — all same size -->
+  <div class="temps">
+    <div class="t-group indoor">
+      <span class="t-label indoor">Indoor</span>
+      <span class="t-val" id="curTemp">70<span class="deg">°</span></span>
+    </div>
+    <div class="t-right" id="tRight">
+      <div class="t-group heat">
+        <span class="t-label heat">Heat</span>
+        <span class="t-val heat" id="heatR">68<span class="deg">°</span></span>
+      </div>
+      <div class="t-group cool">
+        <span class="t-label cool">Cool</span>
+        <span class="t-val cool" id="coolR">76<span class="deg">°</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slider -->
+  <div class="slider-zone">
+    <div class="slider" id="slider">
+      <div class="track">
+        <div class="fill-h" id="fillH"></div>
+        <div class="fill-c" id="fillC"></div>
+        <div class="deadband" id="db"></div>
+      </div>
+      <div class="thumb heat" id="tH" role="slider" aria-label="Heat setpoint" aria-valuemin="50" aria-valuemax="90" aria-valuenow="68" aria-valuetext="Heat setpoint: 68 degrees" tabindex="0">
+        <div class="thumb-stroke"></div>
+        <div class="thumb-disc"></div>
+        <div class="thumb-dot"></div>
+      </div>
+      <div class="thumb cool" id="tC" role="slider" aria-label="Cool setpoint" aria-valuemin="50" aria-valuemax="90" aria-valuenow="76" aria-valuetext="Cool setpoint: 76 degrees" tabindex="0">
+        <div class="thumb-stroke"></div>
+        <div class="thumb-disc"></div>
+        <div class="thumb-dot"></div>
+      </div>
+      <div class="cur-marker" id="curMark">
+        <div class="cur-arrow"></div>
+        <div class="cur-label" id="curLbl">70°</div>
+      </div>
+    </div>
+    <div class="scale">
+      <div class="scale-mark"><div class="scale-tick"></div><span class="scale-num" id="sMin">60°</span></div>
+      <div class="scale-mark" id="sMidMark"><div class="scale-tick"></div><span class="scale-num" id="sMid">70°</span></div>
+      <div class="scale-mark"><div class="scale-tick"></div><span class="scale-num" id="sMax">80°</span></div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status">
+    <div class="status-item status-humidity">
+      <svg class="icon icon-18"><use href="#i-water"/></svg>
+      <span>Humidity <span id="humV">35</span>%</span>
+    </div>
+    <div class="status-item status-action" id="actionRow">
+      <svg class="icon icon-18 idle-ic" id="actIcon"><use id="actIconUse" href="#i-pause"/></svg>
+      <span id="actLbl">Idle · Eco</span>
+    </div>
+  </div>
+
+</div>
+```
+
+  </div>
+
+  <script>
+    const S={
+      mode:'heat_cool',action:'idle',preset:'eco',fan:'off',
+      cur:70,heat:68,cool:76,hum:35,
+      min:50,max:90,dMin:60,dMax:80
+    };
+
+    /* Theme */
+    function setTheme(t){
+      document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelector(`[data-theme="${t}"]`).classList.add('active');
+      if(t==='dark'){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark'}
+      else{document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light'}
+    }
+
+    /* Menu */
+    function toggleMenu(){
+      const m=document.getElementById('modeMenu'),b=document.getElementById('modeBtn');
+      m.classList.toggle('open');b.setAttribute('aria-expanded',m.classList.contains('open'));
+    }
+    document.addEventListener('click',e=>{
+      if(!e.target.closest('.mode-wrap')){
+        document.getElementById('modeMenu').classList.remove('open');
+        document.getElementById('modeBtn').setAttribute('aria-expanded','false');
+      }
+    });
+
+    const ML={heat_cool:'Heat / Cool',heat:'Heat',cool:'Cool',off:'Off'};
+    function setMode(m){
+      S.mode=m;
+      const card=document.getElementById('card');
+      card.dataset.mode=m;
+      document.getElementById('modeLbl').textContent=ML[m];
+      document.getElementById('modeMenu').classList.remove('open');
+      document.getElementById('modeBtn').setAttribute('aria-expanded','false');
+      document.querySelectorAll('.mode-opt:not(.eco-opt)').forEach(o=>o.classList.toggle('active',o.dataset.m===m));
+      if(m==='off')S.action='off';
+      else if(m==='heat')S.action=S.cur<S.heat?'heating':'idle';
+      else if(m==='cool')S.action=S.cur>S.cool?'cooling':'idle';
+      else S.action='idle';
+      render();
+    }
+
+    function toggleEco(){
+      S.preset=S.preset==='eco'?'none':'eco';
+      const opt=document.getElementById('ecoOpt');
+      opt.classList.toggle('active',S.preset==='eco');
+      render();
+    }
+
+    function toggleFan(){
+      S.fan=S.fan==='on'?'off':'on';
+      document.getElementById('fanBtn').classList.toggle('on',S.fan==='on');
+      // Outlined when off, filled when on (Apple SF Symbols convention)
+      document.getElementById('fanIconUse').setAttribute('href',S.fan==='on'?'#i-air':'#i-air-o');
+    }
+
+    /* Slider math */
+    const sl=document.getElementById('slider');
+    const tH=document.getElementById('tH'),tC=document.getElementById('tC');
+    let drag=null,dragStartX=0,dragActive=false;const PAD=20;const DRAG_THRESHOLD=4;
+
+    const t2p=t=>(t-S.dMin)/(S.dMax-S.dMin);
+    const p2t=p=>Math.round(S.dMin+p*(S.dMax-S.dMin));
+    const p2px=p=>{const w=sl.offsetWidth;return PAD+Math.max(0,Math.min(1,p))*(w-2*PAD)};
+    const px2p=px=>{const w=sl.offsetWidth;return Math.max(0,Math.min(1,(px-PAD)/(w-2*PAD)))};
+
+    const actionIcons={heating:'#i-flame',cooling:'#i-snow',idle:'#i-pause',off:'#i-power'};
+    const actionClass={heating:'heat-ic',cooling:'cool-ic',idle:'idle-ic',off:'idle-ic'};
+    const actionNames={heating:'Heating',cooling:'Cooling',idle:'Idle',off:'Off'};
+
+    function render(){
+      const hp=t2p(S.heat),cp=t2p(S.cool),xp=t2p(S.cur);
+      tH.style.left=p2px(hp)+'px';tC.style.left=p2px(cp)+'px';
+      const hpx=p2px(hp),cpx=p2px(cp),w=sl.offsetWidth;
+      document.getElementById('fillH').style.width=hpx+'px';
+      document.getElementById('fillC').style.width=(w-cpx)+'px';
+      const db=document.getElementById('db');db.style.left=hpx+'px';db.style.width=Math.max(0,cpx-hpx)+'px';
+      document.getElementById('curMark').style.left=p2px(xp)+'px';
+      const D='<span class="deg">°</span>';
+      document.getElementById('curLbl').textContent=S.cur+'°';
+      document.getElementById('heatR').innerHTML=S.heat+D;
+      document.getElementById('coolR').innerHTML=S.cool+D;
+      document.getElementById('curTemp').innerHTML=S.cur+D;
+      document.getElementById('humV').textContent=S.hum;
+
+      // ARIA
+      tH.setAttribute('aria-valuenow',S.heat);
+      tH.setAttribute('aria-valuemin',S.min);
+      tH.setAttribute('aria-valuemax',S.cool-2);
+      tH.setAttribute('aria-valuetext','Heat setpoint: '+S.heat+' degrees');
+      tC.setAttribute('aria-valuenow',S.cool);
+      tC.setAttribute('aria-valuemin',S.heat+2);
+      tC.setAttribute('aria-valuemax',S.max);
+      tC.setAttribute('aria-valuetext','Cool setpoint: '+S.cool+' degrees');
+
+      // Hide mid scale label when current temp marker is close to avoid duplication
+      const midTemp = S.dMin + (S.dMax - S.dMin) / 2; // 70
+      const dist = Math.abs(S.cur - midTemp);
+      document.getElementById('sMidMark').style.opacity = dist < 3 ? '0' : '1';
+
+      const card=document.getElementById('card');
+      card.dataset.action=S.action;
+      document.getElementById('hdrIcon').dataset.a=S.action;
+      // Outlined when idle/off, filled when active (Apple SF Symbols convention)
+      document.getElementById('hdrIconUse').setAttribute('href',
+        (S.action==='heating'||S.action==='cooling')?'#i-thermo-fill':'#i-thermo');
+
+      let lbl=actionNames[S.action];
+      if(S.preset==='eco'&&S.action!=='off')lbl+=' · Eco';
+      document.getElementById('actLbl').textContent=lbl;
+      document.getElementById('actIconUse').setAttribute('href',actionIcons[S.action]);
+      const ic=document.getElementById('actIcon');
+      ic.className='icon icon-18 '+actionClass[S.action];
+    }
+
+    function startDrag(w,e){
+      e.preventDefault();drag=w;dragActive=false;
+      dragStartX=e.touches?e.touches[0].clientX:e.clientX;
+      (w==='heat'?tH:tC).style.transition='none';
+      document.body.style.cursor='grabbing';
+    }
+    function onMove(cx){
+      if(!drag)return;
+      if(!dragActive){
+        if(Math.abs(cx-dragStartX)<DRAG_THRESHOLD)return;
+        dragActive=true;
+        (drag==='heat'?tH:tC).classList.add('dragging');
+      }
+      const r=sl.getBoundingClientRect(),px=cx-r.left,p=px2p(px),t=p2t(p);
+      if(drag==='heat')S.heat=Math.max(S.min,Math.min(t,S.cool-2));
+      else S.cool=Math.min(S.max,Math.max(t,S.heat+2));
+      render();
+    }
+    function endDrag(){
+      if(!drag)return;
+      const el=drag==='heat'?tH:tC;
+      el.style.transition='';
+      el.classList.remove('dragging');
+      drag=null;dragActive=false;document.body.style.cursor='';
+    }
+
+    tH.addEventListener('mousedown',e=>startDrag('heat',e));
+    tC.addEventListener('mousedown',e=>startDrag('cool',e));
+    document.addEventListener('mousemove',e=>onMove(e.clientX));
+    document.addEventListener('mouseup',endDrag);
+    tH.addEventListener('touchstart',e=>startDrag('heat',e),{passive:false});
+    tC.addEventListener('touchstart',e=>startDrag('cool',e),{passive:false});
+    document.addEventListener('touchmove',e=>{if(drag){e.preventDefault();onMove(e.touches[0].clientX)}},{passive:false});
+    document.addEventListener('touchend',endDrag);
+
+    function thumbKey(w,e){
+      const s=e.shiftKey?5:1;
+      if(e.key==='ArrowRight'||e.key==='ArrowUp'){
+        e.preventDefault();
+        if(w==='heat')S.heat=Math.min(S.heat+s,S.cool-2);else S.cool=Math.min(S.cool+s,S.max);
+        render();
+      }else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){
+        e.preventDefault();
+        if(w==='heat')S.heat=Math.max(S.heat-s,S.min);else S.cool=Math.max(S.cool-s,S.heat+2);
+        render();
+      }
+    }
+    tH.addEventListener('keydown',e=>thumbKey('heat',e));
+    tC.addEventListener('keydown',e=>thumbKey('cool',e));
+
+    render();
+    window.addEventListener('resize',render);
+  </script>
+
+</body>
+</html>

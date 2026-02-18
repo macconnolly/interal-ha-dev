@@ -184,6 +184,23 @@ const STYLES = `
     background: rgba(255,255,255,0.06);
     border-color: rgba(255,255,255,0.08);
   }
+  /* Info tile accent states - driven by hvac_action */
+  .hdr-tile[data-action="heating"] {
+    background: var(--amber-fill);
+    border-color: var(--amber-border);
+  }
+  .hdr-tile[data-action="cooling"] {
+    background: var(--blue-fill);
+    border-color: var(--blue-border);
+  }
+  :host(.dark) .hdr-tile[data-action="heating"] {
+    background: var(--amber-fill);
+    border-color: var(--amber-border);
+  }
+  :host(.dark) .hdr-tile[data-action="cooling"] {
+    background: var(--blue-fill);
+    border-color: var(--blue-border);
+  }
   .hdr-icon {
     width: 24px;
     height: 24px;
@@ -197,14 +214,10 @@ const STYLES = `
     color: var(--text-muted);
   }
   .hdr-icon[data-a="heating"] {
-    background: var(--amber-fill);
     color: var(--amber);
-    border-color: var(--amber-border);
   }
   .hdr-icon[data-a="cooling"] {
-    background: var(--blue-fill);
     color: var(--blue);
-    border-color: var(--blue-border);
   }
   .hdr-text {
     display: flex;
@@ -294,19 +307,19 @@ const STYLES = `
   .mode-btn .chevron { transition: transform .2s ease; font-size: 14px; width: 14px; height: 14px; }
   .mode-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
 
-  /* Mode accent states */
-  .mode-btn[data-mode="heat_cool"],
-  .mode-btn[data-mode="heat"] {
+  /* Mode accent states - driven by hvac_action, not mode */
+  .mode-btn[data-action="heating"] {
     background: var(--amber-fill);
     color: var(--amber);
     border-color: var(--amber-border);
   }
-  .mode-btn[data-mode="cool"] {
+  .mode-btn[data-action="cooling"] {
     background: var(--blue-fill);
     color: var(--blue);
     border-color: var(--blue-border);
   }
-  .mode-btn[data-mode="off"] {
+  .mode-btn[data-action="idle"],
+  .mode-btn[data-action="off"] {
     color: var(--text-muted);
   }
 
@@ -610,7 +623,7 @@ const TEMPLATE = `
 
       <!-- Header -->
       <div class="hdr">
-        <div class="hdr-tile" id="hdrTile">
+        <div class="hdr-tile" id="hdrTile" data-action="idle">
           <div class="hdr-icon" id="hdrIcon" data-a="idle">
             <span class="icon icon-18" id="hdrIconEl">thermostat</span>
           </div>
@@ -624,7 +637,7 @@ const TEMPLATE = `
           <span class="icon icon-18" id="fanIconEl">mode_fan</span>
         </button>
         <div class="mode-wrap">
-          <button class="mode-btn" id="modeBtn" aria-expanded="false" data-mode="heat_cool">
+          <button class="mode-btn" id="modeBtn" aria-expanded="false" data-action="idle">
             <span class="icon mode-icon" id="modeIcon">device_thermostat</span>
             <span id="modeLbl">Heat / Cool</span>
             <span class="icon chevron">expand_more</span>
@@ -757,17 +770,54 @@ class TunetClimateCard extends HTMLElement {
 
   /* -- Config -- */
 
-  static getConfigElement() {
-    return document.createElement('tunet-climate-card-editor');
+  static getConfigForm() {
+    return {
+      schema: [
+        {
+          name: 'entity',
+          required: true,
+          selector: { entity: { domain: 'climate' } },
+        },
+        {
+          name: 'humidity_entity',
+          selector: { entity: { domain: 'sensor', device_class: 'humidity' } },
+        },
+        {
+          name: 'name',
+          selector: { text: {} },
+        },
+        {
+          name: '',
+          type: 'grid',
+          schema: [
+            {
+              name: 'display_min',
+              selector: { number: { min: 0, max: 120, step: 1, mode: 'box' } },
+            },
+            {
+              name: 'display_max',
+              selector: { number: { min: 0, max: 120, step: 1, mode: 'box' } },
+            },
+          ],
+        },
+      ],
+      computeLabel: (schema) => {
+        const labels = {
+          entity: 'Climate Entity',
+          humidity_entity: 'Humidity Sensor',
+          name: 'Card Name',
+          display_min: 'Scale Min',
+          display_max: 'Scale Max',
+        };
+        return labels[schema.name] || schema.name;
+      },
+    };
   }
 
   static getStubConfig() {
     return {
       entity: '',
-      humidity_entity: '',
       name: 'Climate',
-      display_min: null,
-      display_max: null,
     };
   }
 
@@ -1012,6 +1062,7 @@ class TunetClimateCard extends HTMLElement {
 
     // Header icon state
     $.hdrIcon.dataset.a = s.action;
+    $.hdrTile.dataset.action = s.action;
     if (s.action === 'heating' || s.action === 'cooling') {
       $.hdrIconEl.classList.add('filled');
     } else {
@@ -1026,12 +1077,12 @@ class TunetClimateCard extends HTMLElement {
     // Hide fan button if entity doesn't support fan modes
     $.fanBtn.style.display = (s.fanModes && s.fanModes.length > 0) ? '' : 'none';
 
-    // Mode button - label, icon, and accent
+    // Mode button - label, icon, and accent (accent follows action, not mode)
     const modeLabels = { heat_cool: 'Heat / Cool', heat: 'Heat', cool: 'Cool', off: 'Off' };
     const modeIcons = { heat_cool: 'device_thermostat', heat: 'local_fire_department', cool: 'ac_unit', off: 'power_settings_new' };
     $.modeLbl.textContent = modeLabels[s.mode] || s.mode;
     $.modeIcon.textContent = modeIcons[s.mode] || 'device_thermostat';
-    $.modeBtn.dataset.mode = s.mode;
+    $.modeBtn.dataset.action = s.action;
 
     // Mode menu active states
     this.shadowRoot.querySelectorAll('.mode-opt:not(.eco-opt)').forEach(opt => {
@@ -1431,138 +1482,10 @@ class TunetClimateCard extends HTMLElement {
 }
 
 /* ===============================================================
-   Visual Config Editor
-   =============================================================== */
-
-class TunetClimateCardEditor extends HTMLElement {
-  constructor() {
-    super();
-    this._config = {};
-    this._hass = null;
-  }
-
-  set hass(hass) {
-    this._hass = hass;
-    if (this._entityPicker) this._entityPicker.hass = hass;
-    if (this._humidityPicker) this._humidityPicker.hass = hass;
-  }
-
-  setConfig(config) {
-    this._config = { ...config };
-    if (this._rendered) this._updateValues();
-    else this._render();
-  }
-
-  _render() {
-    this._rendered = true;
-
-    // Container
-    const editor = document.createElement('div');
-    editor.style.cssText = 'display:flex;flex-direction:column;gap:16px;padding:16px 0;';
-
-    // Entity picker
-    this._entityPicker = document.createElement('ha-entity-picker');
-    this._entityPicker.label = 'Climate Entity';
-    this._entityPicker.includeDomains = ['climate'];
-    this._entityPicker.allowCustomEntity = true;
-    this._entityPicker.value = this._config.entity || '';
-    if (this._hass) this._entityPicker.hass = this._hass;
-    this._entityPicker.addEventListener('value-changed', (ev) => {
-      ev.stopPropagation();
-      this._config = { ...this._config, entity: ev.detail.value };
-      this._fireChanged();
-    });
-    editor.appendChild(this._entityPicker);
-
-    // Humidity picker
-    this._humidityPicker = document.createElement('ha-entity-picker');
-    this._humidityPicker.label = 'Humidity Sensor (optional)';
-    this._humidityPicker.includeDomains = ['sensor'];
-    this._humidityPicker.allowCustomEntity = true;
-    this._humidityPicker.value = this._config.humidity_entity || '';
-    if (this._hass) this._humidityPicker.hass = this._hass;
-    this._humidityPicker.addEventListener('value-changed', (ev) => {
-      ev.stopPropagation();
-      this._config = { ...this._config, humidity_entity: ev.detail.value || undefined };
-      this._fireChanged();
-    });
-    editor.appendChild(this._humidityPicker);
-
-    // Name field
-    this._nameField = document.createElement('ha-textfield');
-    this._nameField.label = 'Card Name';
-    this._nameField.placeholder = 'Climate';
-    this._nameField.value = this._config.name || '';
-    this._nameField.addEventListener('change', () => {
-      this._config = { ...this._config, name: this._nameField.value || undefined };
-      this._fireChanged();
-    });
-    editor.appendChild(this._nameField);
-
-    // Scale row
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;gap:12px;';
-
-    this._dMinField = document.createElement('ha-textfield');
-    this._dMinField.label = 'Scale Min';
-    this._dMinField.type = 'number';
-    this._dMinField.placeholder = 'Auto';
-    this._dMinField.style.flex = '1';
-    this._dMinField.value = this._config.display_min != null ? String(this._config.display_min) : '';
-    this._dMinField.addEventListener('change', () => {
-      const v = this._dMinField.value;
-      this._config = { ...this._config };
-      if (v !== '') this._config.display_min = Number(v);
-      else delete this._config.display_min;
-      this._fireChanged();
-    });
-    row.appendChild(this._dMinField);
-
-    this._dMaxField = document.createElement('ha-textfield');
-    this._dMaxField.label = 'Scale Max';
-    this._dMaxField.type = 'number';
-    this._dMaxField.placeholder = 'Auto';
-    this._dMaxField.style.flex = '1';
-    this._dMaxField.value = this._config.display_max != null ? String(this._config.display_max) : '';
-    this._dMaxField.addEventListener('change', () => {
-      const v = this._dMaxField.value;
-      this._config = { ...this._config };
-      if (v !== '') this._config.display_max = Number(v);
-      else delete this._config.display_max;
-      this._fireChanged();
-    });
-    row.appendChild(this._dMaxField);
-
-    editor.appendChild(row);
-    this.appendChild(editor);
-  }
-
-  _updateValues() {
-    if (this._entityPicker) this._entityPicker.value = this._config.entity || '';
-    if (this._humidityPicker) this._humidityPicker.value = this._config.humidity_entity || '';
-    if (this._nameField) this._nameField.value = this._config.name || '';
-    if (this._dMinField) this._dMinField.value = this._config.display_min != null ? String(this._config.display_min) : '';
-    if (this._dMaxField) this._dMaxField.value = this._config.display_max != null ? String(this._config.display_max) : '';
-  }
-
-  _fireChanged() {
-    const config = { type: 'custom:tunet-climate-card', ...this._config };
-    // Clean undefined values
-    Object.keys(config).forEach(k => { if (config[k] === undefined) delete config[k]; });
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config },
-      bubbles: true,
-      composed: true,
-    }));
-  }
-}
-
-/* ===============================================================
    Registration
    =============================================================== */
 
 customElements.define('tunet-climate-card', TunetClimateCard);
-customElements.define('tunet-climate-card-editor', TunetClimateCardEditor);
 
 // Register with HA card picker
 window.customCards = window.customCards || [];

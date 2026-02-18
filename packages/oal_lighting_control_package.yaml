@@ -3706,7 +3706,8 @@ automation:
           - condition: template
             value_template: >
               {{ (trigger_id == 'tv_start' or (trigger_id == 'manual' and player_state == 'playing'))
-                 and autofollow_enabled and gate_passes and gate_setting != 'Ask First' and config != 'TV Mode' }}
+                 and autofollow_enabled and gate_passes and gate_setting != 'Ask First'
+                 and config not in ['TV Mode', 'Sleep'] }}
         then:
           - service: input_boolean.turn_on
             target:
@@ -3877,7 +3878,7 @@ automation:
                or is_state('input_boolean.oal_tv_bridge_active', 'on') }}
           presence_prompt_pending: "{{ is_state('input_boolean.oal_tv_presence_prompt_pending', 'on') }}"
       - choose:
-          - conditions: "{{ trigger_id == 'presence_restored' }}"
+          - conditions: "{{ trigger_id == 'presence_restored' and presence_prompt_pending }}"
             sequence:
               - service: input_boolean.turn_off
                 target:
@@ -4987,6 +4988,8 @@ automation:
             sequence:
               - if: "{{ bridge_active and config == 'TV Bridge' }}"
                 then:
+                  # Intentional: keep TV Bridge active indefinitely by canceling
+                  # expiry timer only. Session ownership remains with bridge flag.
                   - service: timer.cancel
                     target:
                       entity_id: timer.oal_tv_bridge_timer

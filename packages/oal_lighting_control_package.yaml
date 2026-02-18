@@ -4988,16 +4988,35 @@ automation:
             sequence:
               - if: "{{ bridge_active and config == 'TV Bridge' }}"
                 then:
-                  # Intentional: keep TV Bridge active indefinitely by canceling
-                  # expiry timer only. Session ownership remains with bridge flag.
-                  - service: timer.cancel
-                    target:
-                      entity_id: timer.oal_tv_bridge_timer
-                  - service: notify.notify
-                    data:
-                      message: "Keeping TV Bridge active without expiry timer."
-                      data:
-                        tag: "oal_bridge_expiring"
+                  - choose:
+                      # Keep timed bridge only when timer is still running.
+                      - conditions: "{{ bridge_timer_state in ['active', 'paused'] }}"
+                        sequence:
+                          - service: notify.notify
+                            data:
+                              message: "Keeping TV Bridge active with timer."
+                              data:
+                                tag: "oal_bridge_expiring"
+                    # If no active bridge timer exists, fail safe back to Adaptive.
+                    default:
+                      - service: input_boolean.turn_off
+                        target:
+                          entity_id:
+                            - input_boolean.oal_tv_follow_session_active
+                            - input_boolean.oal_tv_bridge_active
+                      - service: timer.cancel
+                        target:
+                          entity_id: timer.oal_tv_bridge_timer
+                      - service: input_select.select_option
+                        target:
+                          entity_id: input_select.oal_active_configuration
+                        data:
+                          option: "Adaptive"
+                      - service: notify.notify
+                        data:
+                          message: "No bridge timer active. Returned to Adaptive."
+                          data:
+                            tag: "oal_bridge_expiring"
 
           - conditions: "{{ trigger.id == 'presence_keep' }}"
             sequence:

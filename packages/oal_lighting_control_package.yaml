@@ -3600,6 +3600,19 @@ automation:
                      and gate_setting != 'Ask First'
                      and config != 'TV Mode' }}
                 sequence:
+                  # Clear stale non-column manual flags before handing control to TV Mode.
+                  - service: adaptive_lighting.set_manual_control
+                    continue_on_error: true
+                    target:
+                      entity_id:
+                        - switch.adaptive_lighting_main_living
+                        - switch.adaptive_lighting_kitchen_island
+                        - switch.adaptive_lighting_kitchen_undercabinet
+                        - switch.adaptive_lighting_bedroom_primary
+                        - switch.adaptive_lighting_accent_spots
+                        - switch.adaptive_lighting_recessed_ceiling
+                    data:
+                      manual_control: false
                   - service: input_boolean.turn_on
                     target:
                       entity_id: input_boolean.oal_tv_follow_session_active
@@ -3677,6 +3690,19 @@ automation:
               {{ (trigger_id == 'tv_start' or (trigger_id == 'manual' and player_state == 'playing'))
                  and autofollow_enabled and gate_passes and gate_setting != 'Ask First' and config != 'TV Mode' }}
         then:
+          # Clear stale non-column manual flags before handing control to TV Mode.
+          - service: adaptive_lighting.set_manual_control
+            continue_on_error: true
+            target:
+              entity_id:
+                - switch.adaptive_lighting_main_living
+                - switch.adaptive_lighting_kitchen_island
+                - switch.adaptive_lighting_kitchen_undercabinet
+                - switch.adaptive_lighting_bedroom_primary
+                - switch.adaptive_lighting_accent_spots
+                - switch.adaptive_lighting_recessed_ceiling
+            data:
+              manual_control: false
           - service: input_boolean.turn_on
             target:
               entity_id: input_boolean.oal_tv_follow_session_active
@@ -4810,6 +4836,19 @@ automation:
             sequence:
               - if: "{{ player_state == 'playing' and config not in ['TV Mode', 'Sleep'] }}"
                 then:
+                  # Clear stale non-column manual flags before handing control to TV Mode.
+                  - service: adaptive_lighting.set_manual_control
+                    continue_on_error: true
+                    target:
+                      entity_id:
+                        - switch.adaptive_lighting_main_living
+                        - switch.adaptive_lighting_kitchen_island
+                        - switch.adaptive_lighting_kitchen_undercabinet
+                        - switch.adaptive_lighting_bedroom_primary
+                        - switch.adaptive_lighting_accent_spots
+                        - switch.adaptive_lighting_recessed_ceiling
+                    data:
+                      manual_control: false
                   - service: input_boolean.turn_on
                     target:
                       entity_id: input_boolean.oal_tv_follow_session_active

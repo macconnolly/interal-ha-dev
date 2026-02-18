@@ -6,12 +6,12 @@
 
 const CARD_VERSION = '1.0.0';
 
-/* ═══════════════════════════════════════════════════════════════
-   CSS — Complete token system + component styles
-   ═══════════════════════════════════════════════════════════════ */
+/* ===============================================================
+   CSS - Complete token system + component styles
+   =============================================================== */
 
 const STYLES = `
-  /* ── Tokens: Light ── */
+  /* -- Tokens: Light -- */
   :host {
     --glass: rgba(255,255,255,0.68);
     --glass-border: rgba(255,255,255,0.45);
@@ -36,20 +36,17 @@ const STYLES = `
     --r-card: 24px;
     --r-tile: 16px;
     --r-pill: 999px;
-    --r-track: 4px;
+    --r-track: 14px;
     --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.05);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
     --dd-bg: rgba(255,255,255,0.84);
     --dd-border: rgba(255,255,255,0.60);
     --divider: rgba(28,28,30,0.07);
-    --toggle-off: rgba(28,28,30,0.10);
-    --toggle-on: rgba(52,199,89,0.28);
-    --toggle-knob: rgba(255,255,255,0.96);
     display: block;
   }
 
-  /* ── Tokens: Dark ── */
+  /* -- Tokens: Dark -- */
   :host(.dark) {
     --glass: rgba(44,44,46,0.72);
     --glass-border: rgba(255,255,255,0.08);
@@ -76,15 +73,12 @@ const STYLES = `
     --dd-bg: rgba(58,58,60,0.88);
     --dd-border: rgba(255,255,255,0.08);
     --divider: rgba(255,255,255,0.06);
-    --toggle-off: rgba(255,255,255,0.10);
-    --toggle-on: rgba(48,209,88,0.30);
-    --toggle-knob: rgba(255,255,255,0.92);
   }
 
-  /* ── Reset ── */
+  /* -- Reset -- */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* ── Base ── */
+  /* -- Base -- */
   .card-wrap {
     font-family: "DM Sans", system-ui, -apple-system, sans-serif;
     color: var(--text);
@@ -92,7 +86,7 @@ const STYLES = `
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* ── Icons: Material Symbols Rounded ── */
+  /* -- Icons: Material Symbols Rounded -- */
   .icon {
     font-family: 'Material Symbols Rounded';
     font-weight: normal;
@@ -116,7 +110,7 @@ const STYLES = `
   .icon-16 { font-size: 16px; }
   .icon-14 { font-size: 14px; }
 
-  /* ── Card Surface ── */
+  /* -- Card Surface -- */
   .card {
     position: relative;
     width: 100%;
@@ -126,7 +120,7 @@ const STYLES = `
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--ctrl-border);
     box-shadow: var(--shadow), var(--inset);
-    padding: 20px;
+    padding: 20px 20px 14px;
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -164,19 +158,35 @@ const STYLES = `
       rgba(255,255,255,0.08));
   }
 
-  /* ── Header ── */
+  /* -- Header -- */
   .hdr {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 18px;
+    gap: 8px;
+    margin-bottom: 16px;
   }
-  .hdr-icon {
-    width: 34px;
-    height: 34px;
+  .hdr-tile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 6px 6px;
     border-radius: 10px;
+    border: 1px solid var(--ctrl-border);
+    background: var(--ctrl-bg);
+    box-shadow: var(--ctrl-sh);
+    cursor: pointer;
+    transition: all .15s ease;
+    min-width: 0;
+  }
+  .hdr-tile:hover { box-shadow: var(--shadow); }
+  .hdr-tile:active { transform: scale(.98); }
+  .hdr-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
     display: grid;
     place-items: center;
+    flex-shrink: 0;
     border: 1px solid transparent;
     background: transparent;
     transition: all .2s ease;
@@ -192,15 +202,38 @@ const STYLES = `
     color: var(--blue);
     border-color: var(--blue-border);
   }
+  .hdr-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
   .hdr-title {
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-sub);
     letter-spacing: .1px;
+    line-height: 1.15;
   }
+  .hdr-sub {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: .1px;
+    line-height: 1.15;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hdr-sub .heat-ic { color: var(--amber); }
+  .hdr-sub .cool-ic { color: var(--blue); }
+  .hdr-sub .fan-ic { color: var(--green); }
   .hdr-spacer { flex: 1; }
 
-  /* ── Fan Button ── */
+  /* -- Fan Button -- */
   .fan-btn {
     width: 34px;
     height: 34px;
@@ -231,14 +264,15 @@ const STYLES = `
     to { transform: rotate(360deg); }
   }
 
-  /* ── Mode Pill ── */
+  /* -- Mode Button (matches icon button language) -- */
   .mode-wrap { position: relative; }
   .mode-btn {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 7px 8px 7px 12px;
-    border-radius: var(--r-pill);
+    gap: 4px;
+    height: 34px;
+    padding: 0 8px 0 8px;
+    border-radius: 10px;
     border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg);
     box-shadow: var(--ctrl-sh);
@@ -252,10 +286,27 @@ const STYLES = `
   }
   .mode-btn:hover { box-shadow: var(--shadow); }
   .mode-btn:active { transform: scale(.97); }
-  .mode-btn .chevron { transition: transform .2s ease; }
+  .mode-btn .mode-icon { font-size: 16px; width: 16px; height: 16px; }
+  .mode-btn .chevron { transition: transform .2s ease; font-size: 14px; width: 14px; height: 14px; }
   .mode-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
 
-  /* ── Dropdown Menu ── */
+  /* Mode accent states */
+  .mode-btn[data-mode="heat_cool"],
+  .mode-btn[data-mode="heat"] {
+    background: var(--amber-fill);
+    color: var(--amber);
+    border-color: var(--amber-border);
+  }
+  .mode-btn[data-mode="cool"] {
+    background: var(--blue-fill);
+    color: var(--blue);
+    border-color: var(--blue-border);
+  }
+  .mode-btn[data-mode="off"] {
+    color: var(--text-muted);
+  }
+
+  /* -- Dropdown Menu -- */
   .mode-menu {
     position: absolute;
     top: calc(100% + 6px);
@@ -320,12 +371,12 @@ const STYLES = `
     border-color: var(--green);
   }
 
-  /* ── Temperature Zone ── */
+  /* -- Temperature Zone -- */
   .temps {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
   .t-group { display: flex; flex-direction: column; gap: 1px; }
   .t-label {
@@ -355,8 +406,8 @@ const STYLES = `
   .t-right { display: flex; gap: 16px; }
   .t-right .t-group { align-items: flex-end; }
 
-  /* ── Slider ── */
-  .slider-zone { display: flex; flex-direction: column; margin-bottom: 14px; }
+  /* -- Slider -- */
+  .slider-zone { display: flex; flex-direction: column; margin-bottom: 0; }
   .slider {
     position: relative;
     height: var(--track-h);
@@ -475,10 +526,10 @@ const STYLES = `
   }
 
   /* Scale */
-  .scale { display: flex; justify-content: space-between; padding: 13px 2px 0; }
+  .scale { display: flex; justify-content: space-between; padding: 4px 2px 0; }
   .scale-mark {
     display: flex; flex-direction: column; align-items: center;
-    gap: 2px; transition: opacity .2s ease;
+    gap: 1px; transition: opacity .2s ease;
   }
   .scale-tick {
     width: 1px; height: 5px;
@@ -486,29 +537,13 @@ const STYLES = `
     opacity: .35; border-radius: 1px;
   }
   .scale-num {
-    font-size: 10px; font-weight: 600;
+    font-size: 11px; font-weight: 600;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
-    letter-spacing: .4px;
+    letter-spacing: .3px;
   }
 
-  /* ── Status Row ── */
-  .status {
-    display: flex; align-items: center;
-    justify-content: space-between;
-    padding: 13px 0;
-    border-top: 1px solid var(--divider);
-  }
-  .status-item {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 13px; font-weight: 600;
-    color: var(--text-sub); letter-spacing: .1px;
-  }
-  .status-action .icon.heat-ic { color: var(--amber); }
-  .status-action .icon.cool-ic { color: var(--blue); }
-  .status-action .icon.idle-ic { color: var(--text-muted); }
-
-  /* ── Mode Visibility Overrides ── */
+  /* -- Mode Visibility Overrides -- */
   .card[data-mode="heat"] .fill-c,
   .card[data-mode="heat"] .thumb.cool,
   .card[data-mode="heat"] .t-group.cool { display: none; }
@@ -540,7 +575,7 @@ const STYLES = `
     background: linear-gradient(90deg, rgba(10,132,255,.10) 0%, rgba(10,132,255,.28) 50%, rgba(10,132,255,.42) 100%);
   }
 
-  /* ── Accessibility ── */
+  /* -- Accessibility -- */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -549,16 +584,16 @@ const STYLES = `
     }
   }
 
-  /* ── Responsive ── */
+  /* -- Responsive -- */
   @media (max-width: 440px) {
-    .card { padding: 16px; --r-track: 8px; }
+    .card { padding: 16px 16px 12px; --r-track: 12px; }
     .t-val { font-size: 42px; letter-spacing: -1.3px; }
   }
 `;
 
-/* ═══════════════════════════════════════════════════════════════
+/* ===============================================================
    HTML Template
-   ═══════════════════════════════════════════════════════════════ */
+   =============================================================== */
 
 const TEMPLATE = `
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -571,18 +606,24 @@ const TEMPLATE = `
 
       <!-- Header -->
       <div class="hdr">
-        <div class="hdr-icon" id="hdrIcon" data-a="idle">
-          <span class="icon icon-20" id="hdrIconEl">thermostat</span>
+        <div class="hdr-tile" id="hdrTile">
+          <div class="hdr-icon" id="hdrIcon" data-a="idle">
+            <span class="icon icon-18" id="hdrIconEl">thermostat</span>
+          </div>
+          <div class="hdr-text">
+            <span class="hdr-title" id="cardTitle">Climate</span>
+            <span class="hdr-sub" id="hdrSub"></span>
+          </div>
         </div>
-        <span class="hdr-title" id="cardTitle">Climate</span>
         <div class="hdr-spacer"></div>
         <button class="fan-btn" id="fanBtn" title="Fan" aria-label="Toggle fan">
-          <span class="icon icon-18" id="fanIconEl">air</span>
+          <span class="icon icon-18" id="fanIconEl">mode_fan</span>
         </button>
         <div class="mode-wrap">
-          <button class="mode-btn" id="modeBtn" aria-expanded="false">
+          <button class="mode-btn" id="modeBtn" aria-expanded="false" data-mode="heat_cool">
+            <span class="icon mode-icon" id="modeIcon">device_thermostat</span>
             <span id="modeLbl">Heat / Cool</span>
-            <span class="icon icon-14 chevron">expand_more</span>
+            <span class="icon chevron">expand_more</span>
           </button>
           <div class="mode-menu" id="modeMenu">
             <button class="mode-opt active" data-m="heat_cool">
@@ -656,25 +697,13 @@ const TEMPLATE = `
         </div>
       </div>
 
-      <!-- Status -->
-      <div class="status">
-        <div class="status-item status-humidity">
-          <span class="icon icon-18 filled" style="color:var(--blue)">water_drop</span>
-          <span>Humidity <span id="humV">--</span>%</span>
-        </div>
-        <div class="status-item status-action" id="actionRow">
-          <span class="icon icon-18 idle-ic" id="actIcon">pause_circle</span>
-          <span id="actLbl">Idle</span>
-        </div>
-      </div>
-
     </div>
   </div>
 `;
 
-/* ═══════════════════════════════════════════════════════════════
+/* ===============================================================
    Card Class
-   ═══════════════════════════════════════════════════════════════ */
+   =============================================================== */
 
 class TunetClimateCard extends HTMLElement {
   constructor() {
@@ -688,6 +717,10 @@ class TunetClimateCard extends HTMLElement {
     this._debounceTimer = null;
     this._rendered = false;
 
+    // Inject fonts into document.head (once globally)
+    // Shadow DOM <link> tags don't reliably load fonts in all browsers
+    TunetClimateCard._injectFonts();
+
     // Bound handlers for document-level listeners
     this._onMouseMove = this._onMouseMove.bind(this);
     this._onMouseUp = this._onEndDrag.bind(this);
@@ -696,7 +729,29 @@ class TunetClimateCard extends HTMLElement {
     this._onDocClick = this._onDocClick.bind(this);
   }
 
-  /* ── Config ── */
+  static _injectFonts() {
+    if (TunetClimateCard._fontsInjected) return;
+    TunetClimateCard._fontsInjected = true;
+
+    const links = [
+      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
+    ];
+
+    for (const cfg of links) {
+      // Skip if already present
+      if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
+      const link = document.createElement('link');
+      link.rel = cfg.rel;
+      link.href = cfg.href;
+      if (cfg.crossOrigin !== undefined) link.crossOrigin = cfg.crossOrigin;
+      document.head.appendChild(link);
+    }
+  }
+
+  /* -- Config -- */
 
   static getConfigElement() {
     return document.createElement('tunet-climate-card-editor');
@@ -726,7 +781,7 @@ class TunetClimateCard extends HTMLElement {
     if (this._rendered) this._updateAll();
   }
 
-  /* ── HA State ── */
+  /* -- HA State -- */
 
   set hass(hass) {
     const oldHass = this._hass;
@@ -757,7 +812,7 @@ class TunetClimateCard extends HTMLElement {
     return 4;
   }
 
-  /* ── Lifecycle ── */
+  /* -- Lifecycle -- */
 
   connectedCallback() {
     document.addEventListener('mousemove', this._onMouseMove);
@@ -775,7 +830,7 @@ class TunetClimateCard extends HTMLElement {
     document.removeEventListener('click', this._onDocClick);
   }
 
-  /* ── Render ── */
+  /* -- Render -- */
 
   _render() {
     const style = document.createElement('style');
@@ -790,22 +845,28 @@ class TunetClimateCard extends HTMLElement {
     // Cache DOM refs
     this.$ = {};
     const ids = [
-      'card', 'hdrIcon', 'hdrIconEl', 'cardTitle', 'fanBtn', 'fanIconEl',
-      'modeBtn', 'modeLbl', 'modeMenu', 'ecoOpt', 'ecoCheck',
+      'card', 'hdrTile', 'hdrIcon', 'hdrIconEl', 'cardTitle', 'hdrSub', 'fanBtn', 'fanIconEl',
+      'modeBtn', 'modeLbl', 'modeIcon', 'modeMenu', 'ecoOpt', 'ecoCheck',
       'curTemp', 'heatR', 'coolR', 'tRight',
       'slider', 'fillH', 'fillC', 'db', 'tH', 'tC', 'curMark', 'curLbl',
       'sMin', 'sMid', 'sMidMark', 'sMax',
-      'humV', 'actIcon', 'actLbl', 'actionRow',
     ];
     ids.forEach(id => {
       this.$[id] = this.shadowRoot.getElementById(id);
     });
   }
 
-  /* ── Setup Listeners ── */
+  /* -- Setup Listeners -- */
 
   _setupListeners() {
     const $ = this.$;
+
+    // Header tile - open more_info
+    $.hdrTile.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const ev = new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: this._config.entity } });
+      this.dispatchEvent(ev);
+    });
 
     // Fan toggle
     $.fanBtn.addEventListener('click', (e) => {
@@ -833,11 +894,11 @@ class TunetClimateCard extends HTMLElement {
       this._toggleEco();
     });
 
-    // Thumb drag – mouse
+    // Thumb drag - mouse
     $.tH.addEventListener('mousedown', (e) => this._startDrag('heat', e));
     $.tC.addEventListener('mousedown', (e) => this._startDrag('cool', e));
 
-    // Thumb drag – touch
+    // Thumb drag - touch
     $.tH.addEventListener('touchstart', (e) => this._startDrag('heat', e), { passive: false });
     $.tC.addEventListener('touchstart', (e) => this._startDrag('cool', e), { passive: false });
 
@@ -850,7 +911,7 @@ class TunetClimateCard extends HTMLElement {
     this._resizeObserver.observe($.slider);
   }
 
-  /* ── Entity Helpers ── */
+  /* -- Entity Helpers -- */
 
   _getEntity() {
     if (!this._hass || !this._config.entity) return null;
@@ -866,8 +927,8 @@ class TunetClimateCard extends HTMLElement {
     const entity = this._getEntity();
     if (!entity) return null;
     const a = entity.attributes;
-    const mode = entity.state;
-    const action = a.hvac_action || 'idle';
+    const mode = entity.state; // heat, cool, heat_cool, off, auto, dry, fan_only
+    const action = a.hvac_action || 'idle'; // heating, cooling, idle, off, drying, fan
 
     // Determine setpoints
     let heat, cool;
@@ -901,10 +962,10 @@ class TunetClimateCard extends HTMLElement {
     const humEntity = this._getHumidity();
     const humidity = humEntity ? Math.round(Number(humEntity.state)) : null;
 
-    // Normalize mode
+    // Normalize mode for our card (map auto -> heat_cool, etc.)
     let cardMode = mode;
     if (mode === 'auto') cardMode = 'heat_cool';
-    if (mode === 'fan_only' || mode === 'dry') cardMode = 'off';
+    if (mode === 'fan_only' || mode === 'dry') cardMode = 'off'; // not natively supported, show as off
 
     return {
       mode: cardMode,
@@ -925,14 +986,17 @@ class TunetClimateCard extends HTMLElement {
     };
   }
 
-  /* ── Full Update ── */
+  /* -- Full Update -- */
 
   _updateAll() {
     const $ = this.$;
     if (!$ || !$.card) return;
+    // Don't overwrite slider while user is dragging or during service cooldown
+    if (this._drag || this._serviceCooldown) return;
     const s = this._getState();
     if (!s) return;
 
+    // Store for slider math
     this._state = s;
 
     // Card title
@@ -954,11 +1018,16 @@ class TunetClimateCard extends HTMLElement {
     $.fanBtn.classList.toggle('on', s.fanOn);
     if (s.fanOn) $.fanIconEl.classList.add('filled');
     else $.fanIconEl.classList.remove('filled');
+
+    // Hide fan button if entity doesn't support fan modes
     $.fanBtn.style.display = (s.fanModes && s.fanModes.length > 0) ? '' : 'none';
 
-    // Mode pill label
+    // Mode button - label, icon, and accent
     const modeLabels = { heat_cool: 'Heat / Cool', heat: 'Heat', cool: 'Cool', off: 'Off' };
+    const modeIcons = { heat_cool: 'device_thermostat', heat: 'local_fire_department', cool: 'ac_unit', off: 'power_settings_new' };
     $.modeLbl.textContent = modeLabels[s.mode] || s.mode;
+    $.modeIcon.textContent = modeIcons[s.mode] || 'device_thermostat';
+    $.modeBtn.dataset.mode = s.mode;
 
     // Mode menu active states
     this.shadowRoot.querySelectorAll('.mode-opt:not(.eco-opt)').forEach(opt => {
@@ -967,15 +1036,18 @@ class TunetClimateCard extends HTMLElement {
 
     // Eco
     $.ecoOpt.classList.toggle('active', s.preset === 'eco');
+    // Hide eco option if entity doesn't support it
     const hasEco = s.presetModes && s.presetModes.includes('eco');
     $.ecoOpt.style.display = hasEco ? '' : 'none';
+    // Hide divider too if no eco
     const divider = this.shadowRoot.querySelector('.mode-divider');
     if (divider) divider.style.display = hasEco ? '' : 'none';
 
-    // Hide unsupported mode options
+    // Hide mode options not supported by entity
     this.shadowRoot.querySelectorAll('.mode-opt:not(.eco-opt)').forEach(opt => {
       const m = opt.dataset.m;
       const haMode = m === 'heat_cool' ? 'heat_cool' : m;
+      // Also check for 'auto' mapping to heat_cool
       const supported = s.hvacModes.includes(haMode) || (m === 'heat_cool' && s.hvacModes.includes('auto'));
       opt.style.display = supported ? '' : 'none';
     });
@@ -983,31 +1055,20 @@ class TunetClimateCard extends HTMLElement {
     // Temperature values
     const D = '<span class="deg">&deg;</span>';
     $.curTemp.innerHTML = (s.cur != null ? s.cur : '--') + D;
+
     if (s.heat != null) $.heatR.innerHTML = s.heat + D;
     else $.heatR.innerHTML = '--' + D;
+
     if (s.cool != null) $.coolR.innerHTML = s.cool + D;
     else $.coolR.innerHTML = '--' + D;
 
-    // Humidity
-    $.humV.textContent = s.humidity != null ? s.humidity : '--';
-
-    // Status action
-    const actionIcons = { heating: 'local_fire_department', cooling: 'ac_unit', idle: 'pause_circle', off: 'power_settings_new', drying: 'water_drop', fan: 'air' };
-    const actionClass = { heating: 'heat-ic', cooling: 'cool-ic', idle: 'idle-ic', off: 'idle-ic', drying: 'idle-ic', fan: 'idle-ic' };
-    const actionNames = { heating: 'Heating', cooling: 'Cooling', idle: 'Idle', off: 'Off', drying: 'Drying', fan: 'Fan' };
-
-    $.actIcon.textContent = actionIcons[s.action] || 'pause_circle';
-    const isFilled = s.action === 'heating' || s.action === 'cooling';
-    $.actIcon.className = 'icon icon-18 ' + (isFilled ? 'filled ' : '') + (actionClass[s.action] || 'idle-ic');
-
-    let actionLabel = actionNames[s.action] || 'Idle';
-    if (s.preset === 'eco' && s.action !== 'off') actionLabel += ' \u00b7 Eco';
-    $.actLbl.textContent = actionLabel;
+    // Header subtitle - humidity + action state
+    this._updateSubtitle(s);
 
     // Scale labels
-    $.sMin.textContent = s.displayMin + '\u00b0';
-    $.sMid.textContent = Math.round(s.displayMin + (s.displayMax - s.displayMin) / 2) + '\u00b0';
-    $.sMax.textContent = s.displayMax + '\u00b0';
+    $.sMin.textContent = s.displayMin + '°';
+    $.sMid.textContent = Math.round(s.displayMin + (s.displayMax - s.displayMin) / 2) + '°';
+    $.sMax.textContent = s.displayMax + '°';
 
     // Mid-scale suppression
     if (s.cur != null) {
@@ -1015,10 +1076,11 @@ class TunetClimateCard extends HTMLElement {
       $.sMidMark.style.opacity = Math.abs(s.cur - midTemp) < 3 ? '0' : '1';
     }
 
+    // Render slider positions
     this._renderSlider();
   }
 
-  /* ── Slider Math ── */
+  /* -- Slider Math -- */
 
   _t2p(temp) {
     const s = this._state;
@@ -1048,6 +1110,39 @@ class TunetClimateCard extends HTMLElement {
     return Math.max(0, Math.min(1, (px - PAD) / (w - 2 * PAD)));
   }
 
+  _updateSubtitle(s) {
+    const $ = this.$;
+    if (!$ || !$.hdrSub) return;
+
+    const actionNames = { heating: 'Heating', cooling: 'Cooling', idle: 'Idle', off: 'Off', drying: 'Drying', fan: 'Fan' };
+    const actionClass = { heating: 'heat-ic', cooling: 'cool-ic', fan: 'fan-ic' };
+
+    // Determine effective display action
+    let displayAction = s.action;
+    if (s.fanOn && (s.action === 'idle' || s.action === 'off')) {
+      displayAction = 'fan';
+    }
+
+    let parts = [];
+
+    // Humidity
+    if (s.humidity != null) {
+      parts.push(s.humidity + '% humidity');
+    }
+
+    // Action with inline icon for heating/cooling/fan
+    let actionLabel = actionNames[displayAction] || 'Idle';
+    if (s.preset === 'eco' && s.action !== 'off') actionLabel += ' \u00b7 Eco';
+    const cls = actionClass[displayAction] || '';
+    if (cls) {
+      parts.push('<span class="' + cls + '">' + actionLabel + '</span>');
+    } else {
+      parts.push(actionLabel);
+    }
+
+    $.hdrSub.innerHTML = parts.join(' \u00b7 ');
+  }
+
   _renderSlider() {
     const $ = this.$;
     const s = this._state;
@@ -1060,6 +1155,8 @@ class TunetClimateCard extends HTMLElement {
       const hpx = this._p2px(hp);
       $.tH.style.left = hpx + 'px';
       $.fillH.style.width = hpx + 'px';
+
+      // ARIA
       $.tH.setAttribute('aria-valuenow', s.heat);
       $.tH.setAttribute('aria-valuemin', s.minTemp);
       $.tH.setAttribute('aria-valuemax', s.cool != null ? s.cool - 2 : s.maxTemp);
@@ -1071,13 +1168,15 @@ class TunetClimateCard extends HTMLElement {
       const cpx = this._p2px(cp);
       $.tC.style.left = cpx + 'px';
       $.fillC.style.width = (w - cpx) + 'px';
+
+      // ARIA
       $.tC.setAttribute('aria-valuenow', s.cool);
       $.tC.setAttribute('aria-valuemin', s.heat != null ? s.heat + 2 : s.minTemp);
       $.tC.setAttribute('aria-valuemax', s.maxTemp);
       $.tC.setAttribute('aria-valuetext', 'Cool setpoint: ' + s.cool + ' degrees');
     }
 
-    // Deadband
+    // Deadband (only in heat_cool mode)
     if (s.mode === 'heat_cool' && s.heat != null && s.cool != null) {
       const hpx = this._p2px(this._t2p(s.heat));
       const cpx = this._p2px(this._t2p(s.cool));
@@ -1091,14 +1190,14 @@ class TunetClimateCard extends HTMLElement {
     // Current temp marker
     if (s.cur != null) {
       $.curMark.style.left = this._p2px(this._t2p(s.cur)) + 'px';
-      $.curLbl.textContent = s.cur + '\u00b0';
+      $.curLbl.textContent = s.cur + '°';
       $.curMark.style.display = '';
     } else {
       $.curMark.style.display = 'none';
     }
   }
 
-  /* ── Drag Handlers ── */
+  /* -- Drag Handlers -- */
 
   _startDrag(which, e) {
     e.preventDefault();
@@ -1106,6 +1205,7 @@ class TunetClimateCard extends HTMLElement {
     this._drag = which;
     this._dragActive = false;
     this._dragStartX = e.touches ? e.touches[0].clientX : e.clientX;
+
     const thumbEl = which === 'heat' ? this.$.tH : this.$.tC;
     thumbEl.style.transition = 'none';
     document.body.style.cursor = 'grabbing';
@@ -1124,6 +1224,7 @@ class TunetClimateCard extends HTMLElement {
 
   _handleDragMove(cx) {
     const DRAG_THRESHOLD = 4;
+
     if (!this._dragActive) {
       if (Math.abs(cx - this._dragStartX) < DRAG_THRESHOLD) return;
       this._dragActive = true;
@@ -1146,25 +1247,40 @@ class TunetClimateCard extends HTMLElement {
       s.cool = Math.min(s.maxTemp, Math.max(t, minCool));
     }
 
+    // Update visuals (no service call yet)
     this._renderSlider();
+
+    // Update displayed setpoint values
     const D = '<span class="deg">&deg;</span>';
-    if (this._drag === 'heat' && s.heat != null) this.$.heatR.innerHTML = s.heat + D;
-    if (this._drag === 'cool' && s.cool != null) this.$.coolR.innerHTML = s.cool + D;
+    if (this._drag === 'heat' && s.heat != null) {
+      this.$.heatR.innerHTML = s.heat + D;
+    }
+    if (this._drag === 'cool' && s.cool != null) {
+      this.$.coolR.innerHTML = s.cool + D;
+    }
   }
 
   _onEndDrag() {
     if (!this._drag) return;
+
     const which = this._drag;
     const thumbEl = which === 'heat' ? this.$.tH : this.$.tC;
     thumbEl.style.transition = '';
     thumbEl.classList.remove('dragging');
+
     document.body.style.cursor = '';
-    if (this._dragActive) this._callSetTemperature();
+
+    if (this._dragActive) {
+      // Debounce service call to prevent rate limiting on rapid adjustments
+      clearTimeout(this._debounceTimer);
+      this._debounceTimer = setTimeout(() => this._callSetTemperature(), 300);
+    }
+
     this._drag = null;
     this._dragActive = false;
   }
 
-  /* ── Keyboard ── */
+  /* -- Keyboard -- */
 
   _thumbKey(which, e) {
     const step = e.shiftKey ? 5 : 1;
@@ -1203,11 +1319,12 @@ class TunetClimateCard extends HTMLElement {
     }
   }
 
-  /* ── Service Calls ── */
+  /* -- Service Calls -- */
 
   _callSetTemperature() {
     const s = this._state;
     if (!s || !this._hass) return;
+
     const data = { entity_id: this._config.entity };
 
     if (s.mode === 'heat_cool') {
@@ -1220,6 +1337,11 @@ class TunetClimateCard extends HTMLElement {
     }
 
     this._hass.callService('climate', 'set_temperature', data);
+
+    // Block state bounce-back from resetting slider for 1.5s after service call
+    this._serviceCooldown = true;
+    clearTimeout(this._cooldownTimer);
+    this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
   }
 
   _debouncedSetTemperature() {
@@ -1229,13 +1351,18 @@ class TunetClimateCard extends HTMLElement {
 
   _setMode(mode) {
     if (!this._hass) return;
+
+    // Close menu
     this.$.modeMenu.classList.remove('open');
     this.$.modeBtn.setAttribute('aria-expanded', 'false');
+
+    // Map heat_cool back to auto if entity uses auto
     const s = this._state;
     let haMode = mode;
     if (mode === 'heat_cool' && s && s.hvacModes.includes('auto') && !s.hvacModes.includes('heat_cool')) {
       haMode = 'auto';
     }
+
     this._hass.callService('climate', 'set_hvac_mode', {
       entity_id: this._config.entity,
       hvac_mode: haMode,
@@ -1246,7 +1373,21 @@ class TunetClimateCard extends HTMLElement {
     if (!this._hass) return;
     const s = this._state;
     if (!s) return;
-    const newMode = s.fanOn ? 'auto' : 'on';
+
+    const newMode = s.fanOn ? 'off' : 'on';
+
+    // Optimistic UI update - show change immediately
+    s.fanOn = !s.fanOn;
+    this.$.fanBtn.classList.toggle('on', s.fanOn);
+    if (s.fanOn) this.$.fanIconEl.classList.add('filled');
+    else this.$.fanIconEl.classList.remove('filled');
+    this._updateSubtitle(s);
+
+    // Block state bounce-back briefly
+    this._serviceCooldown = true;
+    clearTimeout(this._cooldownTimer);
+    this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
+
     this._hass.callService('climate', 'set_fan_mode', {
       entity_id: this._config.entity,
       fan_mode: newMode,
@@ -1257,6 +1398,7 @@ class TunetClimateCard extends HTMLElement {
     if (!this._hass) return;
     const s = this._state;
     if (!s) return;
+
     const newPreset = s.preset === 'eco' ? 'none' : 'eco';
     this._hass.callService('climate', 'set_preset_mode', {
       entity_id: this._config.entity,
@@ -1264,7 +1406,7 @@ class TunetClimateCard extends HTMLElement {
     });
   }
 
-  /* ── Menu ── */
+  /* -- Menu -- */
 
   _toggleMenu() {
     const menu = this.$.modeMenu;
@@ -1274,6 +1416,7 @@ class TunetClimateCard extends HTMLElement {
   }
 
   _onDocClick(e) {
+    // Close menu when clicking outside
     if (!this.$.modeMenu || !this.$.modeMenu.classList.contains('open')) return;
     const path = e.composedPath();
     if (!path.includes(this.shadowRoot.querySelector('.mode-wrap'))) {
@@ -1283,124 +1426,141 @@ class TunetClimateCard extends HTMLElement {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* ===============================================================
    Visual Config Editor
-   ═══════════════════════════════════════════════════════════════ */
+   =============================================================== */
 
 class TunetClimateCardEditor extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
     this._config = {};
+    this._hass = null;
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (this._entityPicker) this._entityPicker.hass = hass;
+    if (this._humidityPicker) this._humidityPicker.hass = hass;
   }
 
   setConfig(config) {
-    this._config = config;
-    this._render();
+    this._config = { ...config };
+    if (this._rendered) this._updateValues();
+    else this._render();
   }
 
   _render() {
-    this.shadowRoot.innerHTML = `
-      <style>
-        .editor {
-          font-family: system-ui, -apple-system, sans-serif;
-          padding: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        label {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--primary-text-color, #333);
-        }
-        input, select {
-          padding: 8px 12px;
-          border: 1px solid var(--divider-color, #ddd);
-          border-radius: 8px;
-          font-size: 14px;
-          font-family: inherit;
-          background: var(--card-background-color, #fff);
-          color: var(--primary-text-color, #333);
-        }
-        .hint {
-          font-size: 11px;
-          color: var(--secondary-text-color, #999);
-        }
-      </style>
-      <div class="editor">
-        <div class="field">
-          <label>Climate Entity *</label>
-          <input id="entity" value="${this._config.entity || ''}" placeholder="climate.living_room">
-          <span class="hint">Required. The climate entity to control</span>
-        </div>
-        <div class="field">
-          <label>Humidity Sensor</label>
-          <input id="humidity_entity" value="${this._config.humidity_entity || ''}" placeholder="sensor.living_room_humidity">
-          <span class="hint">Optional. Displayed in the status row</span>
-        </div>
-        <div class="field">
-          <label>Card Name</label>
-          <input id="name" value="${this._config.name || 'Climate'}" placeholder="Climate">
-        </div>
-        <div class="field">
-          <label>Display Range Min (\u00b0)</label>
-          <input id="display_min" type="number" value="${this._config.display_min != null ? this._config.display_min : ''}" placeholder="Auto">
-          <span class="hint">Optional. Slider scale minimum</span>
-        </div>
-        <div class="field">
-          <label>Display Range Max (\u00b0)</label>
-          <input id="display_max" type="number" value="${this._config.display_max != null ? this._config.display_max : ''}" placeholder="Auto">
-          <span class="hint">Optional. Slider scale maximum</span>
-        </div>
-      </div>
-    `;
+    this._rendered = true;
 
-    ['entity', 'humidity_entity', 'name', 'display_min', 'display_max'].forEach(field => {
-      const el = this.shadowRoot.getElementById(field);
-      el.addEventListener('change', () => this._valueChanged());
-      el.addEventListener('input', () => this._valueChanged());
+    // Container
+    const editor = document.createElement('div');
+    editor.style.cssText = 'display:flex;flex-direction:column;gap:16px;padding:16px 0;';
+
+    // Entity picker
+    this._entityPicker = document.createElement('ha-entity-picker');
+    this._entityPicker.label = 'Climate Entity';
+    this._entityPicker.includeDomains = ['climate'];
+    this._entityPicker.allowCustomEntity = true;
+    this._entityPicker.value = this._config.entity || '';
+    if (this._hass) this._entityPicker.hass = this._hass;
+    this._entityPicker.addEventListener('value-changed', (ev) => {
+      ev.stopPropagation();
+      this._config = { ...this._config, entity: ev.detail.value };
+      this._fireChanged();
     });
+    editor.appendChild(this._entityPicker);
+
+    // Humidity picker
+    this._humidityPicker = document.createElement('ha-entity-picker');
+    this._humidityPicker.label = 'Humidity Sensor (optional)';
+    this._humidityPicker.includeDomains = ['sensor'];
+    this._humidityPicker.allowCustomEntity = true;
+    this._humidityPicker.value = this._config.humidity_entity || '';
+    if (this._hass) this._humidityPicker.hass = this._hass;
+    this._humidityPicker.addEventListener('value-changed', (ev) => {
+      ev.stopPropagation();
+      this._config = { ...this._config, humidity_entity: ev.detail.value || undefined };
+      this._fireChanged();
+    });
+    editor.appendChild(this._humidityPicker);
+
+    // Name field
+    this._nameField = document.createElement('ha-textfield');
+    this._nameField.label = 'Card Name';
+    this._nameField.placeholder = 'Climate';
+    this._nameField.value = this._config.name || '';
+    this._nameField.addEventListener('change', () => {
+      this._config = { ...this._config, name: this._nameField.value || undefined };
+      this._fireChanged();
+    });
+    editor.appendChild(this._nameField);
+
+    // Scale row
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:12px;';
+
+    this._dMinField = document.createElement('ha-textfield');
+    this._dMinField.label = 'Scale Min';
+    this._dMinField.type = 'number';
+    this._dMinField.placeholder = 'Auto';
+    this._dMinField.style.flex = '1';
+    this._dMinField.value = this._config.display_min != null ? String(this._config.display_min) : '';
+    this._dMinField.addEventListener('change', () => {
+      const v = this._dMinField.value;
+      this._config = { ...this._config };
+      if (v !== '') this._config.display_min = Number(v);
+      else delete this._config.display_min;
+      this._fireChanged();
+    });
+    row.appendChild(this._dMinField);
+
+    this._dMaxField = document.createElement('ha-textfield');
+    this._dMaxField.label = 'Scale Max';
+    this._dMaxField.type = 'number';
+    this._dMaxField.placeholder = 'Auto';
+    this._dMaxField.style.flex = '1';
+    this._dMaxField.value = this._config.display_max != null ? String(this._config.display_max) : '';
+    this._dMaxField.addEventListener('change', () => {
+      const v = this._dMaxField.value;
+      this._config = { ...this._config };
+      if (v !== '') this._config.display_max = Number(v);
+      else delete this._config.display_max;
+      this._fireChanged();
+    });
+    row.appendChild(this._dMaxField);
+
+    editor.appendChild(row);
+    this.appendChild(editor);
   }
 
-  _valueChanged() {
-    const getValue = (id) => {
-      const el = this.shadowRoot.getElementById(id);
-      return el ? el.value : '';
-    };
+  _updateValues() {
+    if (this._entityPicker) this._entityPicker.value = this._config.entity || '';
+    if (this._humidityPicker) this._humidityPicker.value = this._config.humidity_entity || '';
+    if (this._nameField) this._nameField.value = this._config.name || '';
+    if (this._dMinField) this._dMinField.value = this._config.display_min != null ? String(this._config.display_min) : '';
+    if (this._dMaxField) this._dMaxField.value = this._config.display_max != null ? String(this._config.display_max) : '';
+  }
 
-    const config = {
-      entity: getValue('entity'),
-      humidity_entity: getValue('humidity_entity'),
-      name: getValue('name') || 'Climate',
-    };
-
-    const dMin = getValue('display_min');
-    const dMax = getValue('display_max');
-    if (dMin !== '') config.display_min = Number(dMin);
-    if (dMax !== '') config.display_max = Number(dMax);
-
-    const event = new CustomEvent('config-changed', {
+  _fireChanged() {
+    const config = { type: 'custom:tunet-climate-card', ...this._config };
+    // Clean undefined values
+    Object.keys(config).forEach(k => { if (config[k] === undefined) delete config[k]; });
+    this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config },
       bubbles: true,
       composed: true,
-    });
-    this.dispatchEvent(event);
+    }));
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* ===============================================================
    Registration
-   ═══════════════════════════════════════════════════════════════ */
+   =============================================================== */
 
 customElements.define('tunet-climate-card', TunetClimateCard);
 customElements.define('tunet-climate-card-editor', TunetClimateCardEditor);
 
+// Register with HA card picker
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'tunet-climate-card',
@@ -1415,8 +1575,3 @@ console.info(
   'color: #fff; background: #D4850A; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;',
   'color: #D4850A; background: #fff3e0; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;'
 );
-
-
-
-
-Claude

@@ -1550,14 +1550,40 @@ automation:
                        and not is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on')
                        and (sun_rising == false)
                        and (sun_elevation >= -5 and sun_elevation < 3) }}
+                  tv_session_column_suppress_now: >
+                    {{ (is_state('input_boolean.oal_tv_follow_session_active', 'on')
+                       or is_state('input_boolean.oal_tv_bridge_active', 'on')
+                       or states('input_select.oal_active_configuration') in ['TV Mode', 'TV Bridge'])
+                      and force_intent != 'override_all' }}
                   on_lights: >
-                    {% if column_rgb_protect_now and force_intent != 'override_all' %}
+                    {% if tv_session_column_suppress_now %}
+                      []
+                    {% elif column_rgb_protect_now and force_intent != 'override_all' %}
                       []
                     {% elif is_force_apply %}
                       {{ all_on_lights }}
                     {% else %}
                       {{ all_on_lights | reject('in', manual_lights) | list }}
                     {% endif %}
+              - if:
+                  - condition: template
+                    value_template: "{{ tv_session_column_suppress_now and (all_on_lights | length > 0) }}"
+                then:
+                  - event: oal_column_apply_suppressed
+                    event_data:
+                      source: "oal_core_adjustment_engine_v13"
+                      reason: "tv_session_filter"
+                      trigger_platform: "{{ trigger.platform }}"
+                      force_intent: "{{ force_intent }}"
+                      is_force_apply: "{{ is_force_apply }}"
+                      active_configuration: "{{ states('input_select.oal_active_configuration') }}"
+                      tv_follow_session_active: "{{ is_state('input_boolean.oal_tv_follow_session_active', 'on') }}"
+                      tv_bridge_active: "{{ is_state('input_boolean.oal_tv_bridge_active', 'on') }}"
+                      all_on_lights_count: "{{ all_on_lights | length }}"
+                      manual_count: "{{ manual_lights | length }}"
+                      suppressed_lights: "{{ all_on_lights }}"
+                      sun_elevation: "{{ sun_elevation }}"
+                      sun_rising: "{{ sun_rising }}"
               - choose:
                   - conditions:
                       - condition: state
@@ -3477,7 +3503,7 @@ automation:
           bridge_enabled: "{{ is_state('input_boolean.oal_policy_tv_bridge_enabled', 'on') }}"
           autofollow_enabled: "{{ is_state('input_boolean.oal_policy_tv_autofollow_enabled', 'on') }}"
           session_active: "{{ is_state('input_boolean.oal_tv_follow_session_active', 'on') }}"
-          sun_below: "{{ state_attr('sun.sun', 'elevation') | float(0) < 0 }}"
+          sun_below: "{{ state_attr('sun.sun', 'elevation') | float(0) < -3 }}"
           presence_detected: >
             {{ expand('group.oal_tv_presence_sensors')
                | selectattr('state', 'defined')
@@ -3496,7 +3522,7 @@ automation:
               player_state: "{{ states('media_player.living_room_apple_tv') | lower }}"
               config: "{{ states('input_select.oal_active_configuration') }}"
               autofollow_enabled: "{{ is_state('input_boolean.oal_policy_tv_autofollow_enabled', 'on') }}"
-              sun_below: "{{ state_attr('sun.sun', 'elevation') | float(0) < 0 }}"
+              sun_below: "{{ state_attr('sun.sun', 'elevation') | float(0) < -3 }}"
               presence_detected: >
                 {{ expand('group.oal_tv_presence_sensors')
                    | selectattr('state', 'defined')
@@ -5733,6 +5759,18 @@ script:
         data:
           option: "idle"
 
+      # Overwrite stale snapshot so Config Manager baseline restore is a no-op.
+      # Without this, scene.oal_before_config_mode may re-apply outdated brightness.
+      - if:
+          - condition: template
+            value_template: "{{ was_non_adaptive }}"
+        then:
+          - service: scene.create
+            data:
+              scene_id: oal_before_config_mode
+              snapshot_entities:
+                - light.all_adaptive_lights
+
       # Set Adaptive — Config Manager triggers IF state actually changes
       - service: input_select.select_option
         target:
@@ -5740,34 +5778,54 @@ script:
         data:
           option: "Adaptive"
 
-      # Reconcile time-dependent dynamic offsets immediately so soft reset
-      # cannot leave stale zero values until periodic automations run.
-      - service: automation.trigger
-        continue_on_error: true
-        target:
-          entity_id: automation.oal_v13_seamless_sunset_logic_unified_gaussian_curve
-      - service: automation.trigger
-        continue_on_error: true
-        target:
-          entity_id: automation.oal_v13_night_behavior_manager
-
-      # LAST: Only fire direct watchdog if Config Manager won't run
-      # was_non_adaptive captured at script start (Part A), before any clearing
-      - if:
-          - condition: template
-            value_template: "{{ not was_non_adaptive }}"
-        then:
-          # Was already Adaptive → Config Manager won't fire → we trigger directly
-          - event: oal_watchdog_trigger
-            event_data:
-              force: true
-              force_intent: "column_safe"
-              source: "soft_reset"
-        else:
-          # Was non-Adaptive → Config Manager will handle transition + watchdog
-          # Wait for it to complete so subsequent code (if any) sees stable state
-          - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
-            timeout: "00:00:10"
+      - choose:
+          # Non-Adaptive start: ensure recalcs land while Config Manager owns transition lock.
+          - conditions:
+              - condition: template
+                value_template: "{{ was_non_adaptive }}"
+            sequence:
+              - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'on') }}"
+                timeout: "00:00:03"
+                continue_on_timeout: true
+              # Reconcile time-dependent dynamic offsets immediately so soft reset
+              # cannot leave stale values until periodic automations run.
+              - service: automation.trigger
+                continue_on_error: true
+                target:
+                  entity_id: automation.oal_v13_seamless_sunset_logic_unified_gaussian_curve
+              - service: automation.trigger
+                continue_on_error: true
+                target:
+                  entity_id: automation.oal_v13_night_behavior_manager
+              # Config Manager will emit the force watchdog on completion.
+              - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
+                timeout: "00:00:10"
+          # Adaptive start: lock around recalcs, then emit a single force watchdog.
+          - conditions:
+              - condition: template
+                value_template: "{{ not was_non_adaptive }}"
+            sequence:
+              - service: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.oal_config_transition_active
+              - service: automation.trigger
+                continue_on_error: true
+                target:
+                  entity_id: automation.oal_v13_seamless_sunset_logic_unified_gaussian_curve
+              - service: automation.trigger
+                continue_on_error: true
+                target:
+                  entity_id: automation.oal_v13_night_behavior_manager
+              - delay:
+                  milliseconds: 500
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.oal_config_transition_active
+              - event: oal_watchdog_trigger
+                event_data:
+                  force: true
+                  force_intent: "column_safe"
+                  source: "soft_reset"
 
   oal_reset_global:
     alias: "OAL v13 Reset Global (Nuclear)"

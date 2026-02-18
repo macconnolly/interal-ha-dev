@@ -505,6 +505,11 @@ input_boolean:
     initial: false
     icon: mdi:account-question
 
+  oal_tv_entry_transition_active:
+    name: "OAL TV Entry Transition Active"
+    initial: false
+    icon: mdi:television-guide
+
   oal_autoreset_sync_lock:
     name: "OAL Autoreset Sync Lock"
     initial: false
@@ -3600,6 +3605,9 @@ automation:
                      and gate_setting != 'Ask First'
                      and config != 'TV Mode' }}
                 sequence:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: input_boolean.oal_tv_entry_transition_active
                   # Clear stale non-column manual flags before handing control to TV Mode.
                   - service: adaptive_lighting.set_manual_control
                     continue_on_error: true
@@ -3621,6 +3629,9 @@ automation:
                       entity_id: input_select.oal_active_configuration
                     data:
                       option: "TV Mode"
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: input_boolean.oal_tv_entry_transition_active
                   - service: notify.notify
                     data:
                       title: "TV Mode Activated"
@@ -3690,6 +3701,9 @@ automation:
               {{ (trigger_id == 'tv_start' or (trigger_id == 'manual' and player_state == 'playing'))
                  and autofollow_enabled and gate_passes and gate_setting != 'Ask First' and config != 'TV Mode' }}
         then:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.oal_tv_entry_transition_active
           # Clear stale non-column manual flags before handing control to TV Mode.
           - service: adaptive_lighting.set_manual_control
             continue_on_error: true
@@ -3711,6 +3725,9 @@ automation:
               entity_id: input_select.oal_active_configuration
             data:
               option: "TV Mode"
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.oal_tv_entry_transition_active
           - service: notify.notify
             data:
               title: "TV Mode Activated"
@@ -3766,6 +3783,7 @@ automation:
                 - input_boolean.oal_tv_mode_prompt_pending
                 - input_boolean.oal_tv_mode_prompt_declined
                 - input_boolean.oal_tv_presence_prompt_pending
+                - input_boolean.oal_tv_entry_transition_active
           - service: timer.cancel
             target:
               entity_id:
@@ -3990,6 +4008,7 @@ automation:
             - input_boolean.oal_tv_mode_prompt_pending
             - input_boolean.oal_tv_mode_prompt_declined
             - input_boolean.oal_tv_presence_prompt_pending
+            - input_boolean.oal_tv_entry_transition_active
       - service: timer.cancel
         target:
           entity_id:
@@ -4132,6 +4151,7 @@ automation:
             - input_boolean.oal_tv_mode_prompt_pending
             - input_boolean.oal_tv_mode_prompt_declined
             - input_boolean.oal_tv_presence_prompt_pending
+            - input_boolean.oal_tv_entry_transition_active
       - service: timer.cancel
         target:
           entity_id:
@@ -4813,6 +4833,7 @@ automation:
                     - input_boolean.oal_tv_mode_prompt_pending
                     - input_boolean.oal_tv_mode_prompt_declined
                     - input_boolean.oal_tv_presence_prompt_pending
+                    - input_boolean.oal_tv_entry_transition_active
               - service: timer.cancel
                 target:
                   entity_id:
@@ -4836,6 +4857,9 @@ automation:
             sequence:
               - if: "{{ player_state == 'playing' and config not in ['TV Mode', 'Sleep'] }}"
                 then:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: input_boolean.oal_tv_entry_transition_active
                   # Clear stale non-column manual flags before handing control to TV Mode.
                   - service: adaptive_lighting.set_manual_control
                     continue_on_error: true
@@ -4860,12 +4884,16 @@ automation:
                       entity_id: input_select.oal_active_configuration
                     data:
                       option: "TV Mode"
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: input_boolean.oal_tv_entry_transition_active
               - service: input_boolean.turn_off
                 target:
                   entity_id:
                     - input_boolean.oal_tv_mode_prompt_pending
                     - input_boolean.oal_tv_mode_prompt_declined
                     - input_boolean.oal_tv_presence_prompt_pending
+                    - input_boolean.oal_tv_entry_transition_active
               - service: timer.cancel
                 target:
                   entity_id:
@@ -5680,7 +5708,9 @@ automation:
       # (soft reset bulk-clears all zones simultaneously, then fires its own watchdog)
       - if:
           - condition: template
-            value_template: "{{ is_state('script.oal_reset_soft', 'off') }}"
+            value_template: >
+              {{ is_state('script.oal_reset_soft', 'off')
+                 and is_state('input_boolean.oal_tv_entry_transition_active', 'off') }}
         then:
           - event: oal_watchdog_trigger
             event_data:
@@ -6370,6 +6400,7 @@ script:
             - input_boolean.oal_tv_mode_prompt_pending
             - input_boolean.oal_tv_mode_prompt_declined
             - input_boolean.oal_tv_presence_prompt_pending
+            - input_boolean.oal_tv_entry_transition_active
       - service: timer.cancel
         target:
           entity_id:

@@ -171,8 +171,8 @@ const STYLES = `
     gap: 8px;
     padding: 6px 10px 6px 6px;
     border-radius: 10px;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
+    border: 1px solid rgba(0,0,0,0.06);
+    background: rgba(0,0,0,0.03);
     box-shadow: var(--ctrl-sh);
     cursor: pointer;
     transition: all .15s ease;
@@ -180,6 +180,10 @@ const STYLES = `
   }
   .hdr-tile:hover { box-shadow: var(--shadow); }
   .hdr-tile:active { transform: scale(.98); }
+  :host(.dark) .hdr-tile {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.08);
+  }
   .hdr-icon {
     width: 24px;
     height: 24px;

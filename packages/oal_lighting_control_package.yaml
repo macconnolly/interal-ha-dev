@@ -3988,6 +3988,7 @@ automation:
             - automation.oal_v14_tv_bridge_cleanup_on_mode_change
             - automation.oal_v14_tv_presence_loss_manager
             - automation.oal_v14_tv_notification_handler
+            - automation.oal_v14_manual_control_provenance
             - automation.oal_v14_unified_timer_notification
             - automation.oal_v14_timer_notification_handler
       - service: automation.turn_off

@@ -1929,7 +1929,7 @@ automation:
           # Re-evaluate column sleep ownership after config transition.
           - service: automation.trigger
             target:
-              entity_id: automation.oal_column_lights_sleep_trigger_v13
+              entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
           - if:
               - condition: state
                 entity_id: input_boolean.oal_column_rgb_debug_events
@@ -1975,7 +1975,7 @@ automation:
                   # Re-evaluate column lights' independent sun-elevation sleep schedule
                   - service: automation.trigger
                     target:
-                      entity_id: automation.oal_column_lights_sleep_trigger_v13
+                      entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
                   - if:
                       - condition: state
                         entity_id: input_boolean.oal_column_rgb_debug_events
@@ -4032,8 +4032,8 @@ automation:
       - service: automation.turn_on
         target:
           entity_id:
-            - automation.oal_auto_switch_to_manual_config
-            - automation.oal_auto_switch_to_adaptive_config
+            - automation.oal_auto_switch_to_manual_config_on_manual_control
+            - automation.oal_auto_switch_to_adaptive_when_all_zones_clear
             - automation.oal_v14_tv_mode_controller
             - automation.oal_v14_mode_timeout_manager
             - automation.oal_v14_tv_bridge_manager
@@ -4045,7 +4045,7 @@ automation:
             - automation.oal_v14_timer_notification_handler
       - service: automation.turn_off
         target:
-          entity_id: automation.oal_v13_override_expiring_notification
+          entity_id: automation.oal_v13_override_expiring_soon_warning
       - service: script.oal_reset_global
       - delay: "00:00:02"
       # Trigger initial calculations with force=true to ensure all lights updated
@@ -4057,7 +4057,7 @@ automation:
       # Re-evaluate column sleep safety after startup reset/toggles settle.
       - service: automation.trigger
         target:
-          entity_id: automation.oal_column_lights_sleep_trigger_v13
+          entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
       # Reconcile session state so stale startup flags do not preserve false ownership.
       - variables:
           sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
@@ -6443,15 +6443,11 @@ script:
               snapshot_entities:
                 - light.all_adaptive_lights
 
-      # For non-Adaptive starts, pre-acquire transition lock so offset recalcs
-      # cannot race outside lock ownership while Config Manager starts.
-      - if:
-          - condition: template
-            value_template: "{{ was_non_adaptive }}"
-        then:
-          - service: input_boolean.turn_on
-            target:
-              entity_id: input_boolean.oal_config_transition_active
+      # Pre-acquire transition lock before config select so all recalc triggers
+      # land inside the transition window in both Adaptive and non-Adaptive starts.
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.oal_config_transition_active
 
       # Set Adaptive — Config Manager triggers IF state actually changes
       - service: input_select.select_option
@@ -6484,9 +6480,6 @@ script:
               - condition: template
                 value_template: "{{ not was_non_adaptive }}"
             sequence:
-              - service: input_boolean.turn_on
-                target:
-                  entity_id: input_boolean.oal_config_transition_active
               - service: automation.trigger
                 continue_on_error: true
                 target:

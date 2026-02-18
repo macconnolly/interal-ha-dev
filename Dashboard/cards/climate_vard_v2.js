@@ -170,6 +170,8 @@ const STYLES = `
     align-items: center;
     gap: 8px;
     padding: 6px 10px 6px 6px;
+    min-height: 42px;
+    box-sizing: border-box;
     border-radius: 10px;
     border: 1px solid rgba(0,0,0,0.06);
     background: rgba(0,0,0,0.03);
@@ -252,8 +254,9 @@ const STYLES = `
 
   /* -- Fan Button -- */
   .fan-btn {
-    width: 34px;
-    height: 34px;
+    width: 42px;
+    min-height: 42px;
+    box-sizing: border-box;
     border-radius: 10px;
     display: grid;
     place-items: center;
@@ -276,6 +279,17 @@ const STYLES = `
     background: rgba(48,209,88,0.14);
     border-color: rgba(48,209,88,0.18);
   }
+  /* Fan inherits action color when system is actively heating/cooling */
+  .fan-btn.on[data-action="heating"] {
+    background: var(--amber-fill);
+    color: var(--amber);
+    border-color: var(--amber-border);
+  }
+  .fan-btn.on[data-action="cooling"] {
+    background: var(--blue-fill);
+    color: var(--blue);
+    border-color: var(--blue-border);
+  }
   @keyframes fan-spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -287,7 +301,8 @@ const STYLES = `
     display: flex;
     align-items: center;
     gap: 4px;
-    height: 34px;
+    min-height: 42px;
+    box-sizing: border-box;
     padding: 0 8px 0 8px;
     border-radius: 10px;
     border: 1px solid var(--ctrl-border);
@@ -633,7 +648,7 @@ const TEMPLATE = `
           </div>
         </div>
         <div class="hdr-spacer"></div>
-        <button class="fan-btn" id="fanBtn" title="Fan" aria-label="Toggle fan">
+        <button class="fan-btn" id="fanBtn" title="Fan" aria-label="Toggle fan" data-action="idle">
           <span class="icon icon-18" id="fanIconEl">mode_fan</span>
         </button>
         <div class="mode-wrap">
@@ -1060,17 +1075,20 @@ class TunetClimateCard extends HTMLElement {
     $.card.dataset.mode = s.mode;
     $.card.dataset.action = s.action;
 
-    // Header icon state
+    // Header icon state - icon changes based on action
     $.hdrIcon.dataset.a = s.action;
     $.hdrTile.dataset.action = s.action;
+    const actionIcons = { heating: 'local_fire_department', cooling: 'ac_unit' };
+    $.hdrIconEl.textContent = actionIcons[s.action] || 'thermostat';
     if (s.action === 'heating' || s.action === 'cooling') {
       $.hdrIconEl.classList.add('filled');
     } else {
       $.hdrIconEl.classList.remove('filled');
     }
 
-    // Fan button
+    // Fan button - action color overrides green when system is active
     $.fanBtn.classList.toggle('on', s.fanOn);
+    $.fanBtn.dataset.action = s.action;
     if (s.fanOn) $.fanIconEl.classList.add('filled');
     else $.fanIconEl.classList.remove('filled');
 
@@ -1169,14 +1187,8 @@ class TunetClimateCard extends HTMLElement {
     const $ = this.$;
     if (!$ || !$.hdrSub) return;
 
-    const actionNames = { heating: 'Heating', cooling: 'Cooling', idle: 'Idle', off: 'Off', drying: 'Drying', fan: 'Fan' };
-    const actionClass = { heating: 'heat-ic', cooling: 'cool-ic', fan: 'fan-ic' };
-
-    // Determine effective display action
-    let displayAction = s.action;
-    if (s.fanOn && (s.action === 'idle' || s.action === 'off')) {
-      displayAction = 'fan';
-    }
+    const actionNames = { heating: 'Heating', cooling: 'Cooling', idle: 'Idle', off: 'Off', drying: 'Drying' };
+    const actionClass = { heating: 'heat-ic', cooling: 'cool-ic' };
 
     let parts = [];
 
@@ -1185,14 +1197,31 @@ class TunetClimateCard extends HTMLElement {
       parts.push(s.humidity + '% humidity');
     }
 
-    // Action with inline icon for heating/cooling/fan
-    let actionLabel = actionNames[displayAction] || 'Idle';
-    if (s.preset === 'eco' && s.action !== 'off') actionLabel += ' \u00b7 Eco';
-    const cls = actionClass[displayAction] || '';
-    if (cls) {
-      parts.push('<span class="' + cls + '">' + actionLabel + '</span>');
+    // Build action + fan label
+    const isActive = s.action === 'heating' || s.action === 'cooling';
+
+    if (isActive && s.fanOn) {
+      // Active HVAC + Fan: "Cooling · Fan" both in action color
+      const cls = actionClass[s.action];
+      let label = actionNames[s.action];
+      if (s.preset === 'eco') label += ' \u00b7 Eco';
+      parts.push('<span class="' + cls + '">' + label + ' \u00b7 Fan</span>');
+    } else if (isActive) {
+      // Active HVAC only
+      const cls = actionClass[s.action];
+      let label = actionNames[s.action];
+      if (s.preset === 'eco') label += ' \u00b7 Eco';
+      parts.push('<span class="' + cls + '">' + label + '</span>');
+    } else if (s.fanOn) {
+      // Fan only (idle/off + fan)
+      let label = 'Fan';
+      if (s.preset === 'eco') label += ' \u00b7 Eco';
+      parts.push('<span class="fan-ic">' + label + '</span>');
     } else {
-      parts.push(actionLabel);
+      // Idle/Off
+      let label = actionNames[s.action] || 'Idle';
+      if (s.preset === 'eco' && s.action !== 'off') label += ' \u00b7 Eco';
+      parts.push(label);
     }
 
     $.hdrSub.innerHTML = parts.join(' \u00b7 ');

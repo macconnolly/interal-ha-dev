@@ -1929,7 +1929,7 @@ automation:
           # Re-evaluate column sleep ownership after config transition.
           - service: automation.trigger
             target:
-              entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
+              entity_id: automation.oal_column_lights_sleep_trigger_v13
           - if:
               - condition: state
                 entity_id: input_boolean.oal_column_rgb_debug_events
@@ -1975,7 +1975,7 @@ automation:
                   # Re-evaluate column lights' independent sun-elevation sleep schedule
                   - service: automation.trigger
                     target:
-                      entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
+                      entity_id: automation.oal_column_lights_sleep_trigger_v13
                   - if:
                       - condition: state
                         entity_id: input_boolean.oal_column_rgb_debug_events
@@ -2163,6 +2163,13 @@ automation:
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_transition_active
+              # 6. Force immediate re-run so persisted force-on offsets apply now.
+              - event: oal_watchdog_trigger
+                event_data:
+                  message: "Force-on config applied - forcing immediate engine update"
+                  force: true
+                  force_intent: "column_safe"
+                  source: "config_manager_force_on_post_unlock"
               
               # EXIT: Force-on path complete
 
@@ -3888,7 +3895,7 @@ automation:
                  and behavior != 'Ignore'
                  and tv_session_owned
                  and config in ['TV Mode', 'TV Bridge']
-                 and player_state == 'playing' }}
+                 and player_state in ['playing', 'paused', 'idle'] }}
             sequence:
               - choose:
                   - conditions: "{{ behavior == 'Exit' }}"
@@ -4025,8 +4032,8 @@ automation:
       - service: automation.turn_on
         target:
           entity_id:
-            - automation.oal_auto_switch_to_manual_config_on_manual_control
-            - automation.oal_auto_switch_to_adaptive_when_all_zones_clear
+            - automation.oal_auto_switch_to_manual_config
+            - automation.oal_auto_switch_to_adaptive_config
             - automation.oal_v14_tv_mode_controller
             - automation.oal_v14_mode_timeout_manager
             - automation.oal_v14_tv_bridge_manager
@@ -4038,7 +4045,7 @@ automation:
             - automation.oal_v14_timer_notification_handler
       - service: automation.turn_off
         target:
-          entity_id: automation.oal_v13_override_expiring_soon_warning
+          entity_id: automation.oal_v13_override_expiring_notification
       - service: script.oal_reset_global
       - delay: "00:00:02"
       # Trigger initial calculations with force=true to ensure all lights updated
@@ -4050,7 +4057,7 @@ automation:
       # Re-evaluate column sleep safety after startup reset/toggles settle.
       - service: automation.trigger
         target:
-          entity_id: automation.oal_v13_column_lights_sleep_mode_final_safety
+          entity_id: automation.oal_column_lights_sleep_trigger_v13
       # Reconcile session state so stale startup flags do not preserve false ownership.
       - variables:
           sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
@@ -4133,6 +4140,10 @@ automation:
       - platform: time
         at: "03:00:00"
     action:
+      # Batch-clear guard: suppress per-zone autoreset watchdog bursts.
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.oal_autoreset_sync_lock
       # Force clear any stuck manual_control flags
       - service: adaptive_lighting.set_manual_control
         target:
@@ -4165,10 +4176,16 @@ automation:
         data:
           option: "idle"
       # Only reset offsets if zen32 hasn't been touched in 24h
-      - condition: template
-        value_template: >
-          {{ (now().timestamp() - (states('input_datetime.zen32_last_button_press') | as_timestamp(0))) > 86400 }}
-      - service: script.oal_reset_soft
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: >
+                  {{ (now().timestamp() - (states('input_datetime.zen32_last_button_press') | as_timestamp(0))) > 86400 }}
+            sequence:
+              - service: script.oal_reset_soft
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.oal_autoreset_sync_lock
 
 
   # ---------------------------------------------------------------------------
@@ -4970,15 +4987,12 @@ automation:
             sequence:
               - if: "{{ bridge_active and config == 'TV Bridge' }}"
                 then:
-                  - service: input_boolean.turn_off
-                    target:
-                      entity_id: input_boolean.oal_tv_bridge_active
                   - service: timer.cancel
                     target:
                       entity_id: timer.oal_tv_bridge_timer
                   - service: notify.notify
                     data:
-                      message: "Staying in TV Bridge mode."
+                      message: "Keeping TV Bridge active without expiry timer."
                       data:
                         tag: "oal_bridge_expiring"
 
@@ -5325,9 +5339,14 @@ automation:
     condition:
       - condition: template
         value_template: >
-          {% set from_count = (trigger.from_state.attributes.manual_control | default([])) | length if trigger.from_state is not none else 0 %}
-          {% set to_count = (trigger.to_state.attributes.manual_control | default([])) | length if trigger.to_state is not none else 0 %}
-          {{ from_count == 0 and to_count > 0 }}
+          {% set from_list = trigger.from_state.attributes.manual_control | default([]) if trigger.from_state is not none else [] %}
+          {% set to_list = trigger.to_state.attributes.manual_control | default([]) if trigger.to_state is not none else [] %}
+          {% set from_count = from_list | length %}
+          {% set to_count = to_list | length %}
+          {% set from_ctx = trigger.from_state.context.id if trigger.from_state is not none and trigger.from_state.context is not none else '' %}
+          {% set to_ctx = trigger.to_state.context.id if trigger.to_state is not none and trigger.to_state.context is not none else '' %}
+          {{ (from_count == 0 and to_count > 0)
+             or (from_count > 0 and to_count > 0 and ((from_list | sort) != (to_list | sort) or from_ctx != to_ctx)) }}
     action:
       - variables:
           source_summary: >
@@ -5710,6 +5729,7 @@ automation:
           - condition: template
             value_template: >
               {{ is_state('script.oal_reset_soft', 'off')
+                 and is_state('input_boolean.oal_autoreset_sync_lock', 'off')
                  and is_state('input_boolean.oal_tv_entry_transition_active', 'off') }}
         then:
           - event: oal_watchdog_trigger
@@ -5789,16 +5809,9 @@ script:
                     lights: "{{ on_lights }}"
                     manual_control: true
 
-      # Switch config to Manual (only if not already Manual)
-      - if:
-          - condition: template
-            value_template: "{{ states('input_select.oal_active_configuration') != 'Manual' }}"
-        then:
-          - service: input_select.select_option
-            target:
-              entity_id: input_select.oal_active_configuration
-            data:
-              option: "Manual"
+      # Config ownership note:
+      # oal_auto_switch_to_manual_config is the canonical owner of mode transitions.
+      # This script sets AL manual_control only.
 
   # Single shared manual brightness stepper (per-zone, B_base-aware)
   # Supports optional 'lights' param for per-room control
@@ -6249,10 +6262,14 @@ script:
         {{ ns.offsets }}
 
     sequence:
-      # FIRST: Turn on all AL switches (apply requires switches to be ON)
-      - service: switch.turn_on
-        target:
-          entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
+      # FIRST: Turn on only switches involved in this reset scope.
+      - if:
+          - condition: template
+            value_template: "{{ all_manual_switches | length > 0 }}"
+        then:
+          - service: switch.turn_on
+            target:
+              entity_id: "{{ all_manual_switches }}"
 
       # =========================================================================
       # Column Lights Reset - Gaussian Curve Aware (only if columns are manual)
@@ -7099,7 +7116,30 @@ template:
             {{ ns.count }}
           # --- Phase 3: Extended attributes (Tasks 3.1-3.14) ---
           zones_adaptive: >
-            {{ 7 - (state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0)) }}
+            {% set zone_map = [
+              ('switch.adaptive_lighting_main_living', false),
+              ('switch.adaptive_lighting_kitchen_island', false),
+              ('switch.adaptive_lighting_kitchen_undercabinet', false),
+              ('switch.adaptive_lighting_bedroom_primary', false),
+              ('switch.adaptive_lighting_accent_spots', false),
+              ('switch.adaptive_lighting_recessed_ceiling', false),
+              ('switch.adaptive_lighting_column_lights', true)
+            ] %}
+            {% set sun_elev = states('sensor.oal_effective_sun_elevation') | float(999) %}
+            {% set sun_rising = is_state('binary_sensor.oal_effective_sun_rising', 'on') %}
+            {% set column_protected = is_state('input_boolean.oal_column_rgb_guard_kill_switch', 'off')
+              and is_state('input_boolean.oal_column_rgb_session_active', 'on')
+              and not is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on')
+              and (sun_rising == false)
+              and (sun_elev >= -5 and sun_elev < 3) %}
+            {% set ns = namespace(count=0) %}
+            {% for entity, is_column in zone_map %}
+              {% set manual_count = state_attr(entity, 'manual_control') | default([]) | length %}
+              {% if manual_count > 0 and not (is_column and column_protected) %}
+                {% set ns.count = ns.count + 1 %}
+              {% endif %}
+            {% endfor %}
+            {{ 7 - ns.count }}
           overridden_zones: >
             {% set ns = namespace(zones=[]) %}
             {% set zone_map = [

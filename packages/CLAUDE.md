@@ -8,4 +8,51 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #4797 | 11:04 AM | 🔵 | ZEN32 LED State Machine and OAL Configuration Mapping | ~603 |
+
+### Feb 12, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #6416 | 6:47 PM | ⚖️ | TV Mode "Ask First" Prompt — Final Plan Written with Hybrid Architecture | ~669 |
+| #6414 | " | ⚖️ | Codex "Ask First" Plan Validated — 2 Critical Gaps Found, Claude Plan Preferred | ~707 |
+| #6412 | 6:43 PM | ⚖️ | TV Mode "Ask First" Plan — Second Validator Confirms PASS with 4 Priority Issues | ~753 |
+| #6411 | " | ⚖️ | "Ask First" Plan Revised — Inline wait_for_trigger Replaced with 3 Dedicated Automations | ~928 |
+| #6410 | " | ⚖️ | Plan Revised to Plan B Architecture — Separate Automations with Persistent State for "Ask First" | ~655 |
+| #6404 | 6:26 PM | ⚖️ | Plan A Selected for "Ask First" TV Mode Prompt — Inline wait_for_trigger Over Separate Automations | ~681 |
+| #6403 | " | ⚖️ | TV Mode "Ask First" Implementation Plan — Exhaustive Code Review with 5 Issues Found | ~783 |
+| #6402 | 6:25 PM | ⚖️ | Plan A Selected Over Plan B for "Ask First" TV Mode Prompt — Inline wait_for_trigger Wins | ~688 |
+| #6401 | 6:21 PM | ⚖️ | TV Mode "Ask First" Prompt — Consent-Before-Switch Design Plan | ~582 |
+| #6400 | " | ⚖️ | Two Competing "Ask First" TV Mode Plans — Claude vs Codex Architectures Under Review | ~704 |
+| #6399 | 6:18 PM | ⚖️ | TV Mode "Ask First" Prompt — Plan Written for User Approval | ~581 |
+| #6397 | 6:12 PM | 🔵 | Version C TV Mode Architecture — Complete Control Flow and Notification Infrastructure Documented | ~829 |
+| #6398 | " | ⚖️ | TV Mode Prompt Architecture — "Ask First" Gate Option with Dedicated Notification Flow | ~653 |
+| #6386 | 6:05 AM | 🔵 | OAL v14 Three-Way Comparison — Version A, B, C Location Mapping | ~477 |
+| #6377 | 5:30 AM | 🔵 | Version C Baseline Restore Path — Potential Duplicate Watchdog Trigger Issue | ~466 |
+| #6373 | " | 🔵 | Implementation_10 Full Notification System — Arbiter + Handler with Detailed Feedback | ~564 |
+| #6369 | " | 🔵 | Version C Auto-Switch Automations Properly Updated — Movie Mode Boolean Guards Removed | ~482 |
+| #6368 | " | 🔵 | Implementation_10 Auto-Switch Guards — Movie Mode Boolean Removed, TV Guard Missing | ~427 |
+| #6366 | " | 🔵 | Implementation_10 Retains input_boolean.oal_movie_mode_active — Phase 7 Cleanup Pending | ~324 |
+| #6363 | 5:29 AM | 🔵 | Implementation_10 Mode Timeout Manager — Comprehensive Startup Reconciliation | ~501 |
+| #6362 | " | 🔵 | Version C TV Bridge Manager — Uses OAL_BRIDGE_* Action Names and oal_bridge_expiring Tag | ~534 |
+| #6345 | 5:28 AM | 🔵 | Version C Notification Handler Has Smarter Extend-Both Logic with Eligibility Checks | ~412 |
+| #6340 | " | 🔵 | Implementation_10 Snapshot Restore Uses Computed restore_policy_enabled Variable | ~298 |
+| #6337 | " | 🔵 | Version C Adds input_datetime.oal_last_timeout_notification for Cooldown Tracking | ~338 |
+| #6331 | " | 🔵 | Version C Status Sensor Has Full v14 Observability Attributes — TV, Bridge, Timeout State | ~336 |
+| #6326 | 5:27 AM | 🔵 | Version C Startup Automation Missing TV Session Flag Cleanup After oal_reset_global | ~483 |
+| #6325 | " | 🔵 | Implementation_10 Has No oal_mode_before_tv — Confirms Simpler Return Strategy | ~296 |
+| #6320 | " | 🔵 | Implementation_10 Uses input_datetime for Cooldown vs oal-v14-unification Uses last_triggered | ~432 |
+| #6314 | " | 🔵 | Version C Legacy Notification Disabled, Reset Script References Need Deeper Inspection | ~316 |
+| #6312 | 5:26 AM | 🔵 | Version C Config Manager — Snapshot Policy Variables in Header, Tighter Bridge Cancellation Guard | ~620 |
+| #6303 | " | ⚖️ | Four Background Analysis Tasks Running — Individual + Three-Way Comparison | ~342 |
+| #6302 | " | 🔵 | Implementation_10 Mode Timeout Manager Differs — No Timer Pause/Resume, Always Re-Arms | ~593 |
+| #6301 | " | 🔵 | Version C TV Controller Matches Design Plan Exactly — No oal_mode_before_tv | ~446 |
+| #6297 | 5:25 AM | 🔵 | Version C Missing Derived Binary Sensors — oal_tv_mode_active and oal_movie_mode_active Not Found | ~320 |
+| #6295 | " | 🔵 | Implementation_10 Has Both Derived TV/Movie Sensors (Phase 2 Complete) | ~342 |
+| #6294 | " | 🔵 | Version C Unified Notification — Uses input_datetime Cooldown Instead of last_triggered | ~523 |
+| #6291 | " | 🔵 | Key Differences Between oal-v14-unification and Implementation_10 TV Controllers | ~562 |
+| #6287 | " | 🔵 | Implementation_10 Timer Notification Handler — Full 5-Action Handler (Phase 6) | ~476 |
+| #6279 | 5:24 AM | 🔵 | Version C Mode Timeout Manager — Key Differences: TV Cancels Timer, Stale Event Guard | ~550 |
+| #6276 | " | 🔵 | Implementation_10 TV Bridge Manager — Wait-for-Trigger Pattern (Phase 5) | ~519 |
+| #6273 | " | 🔵 | Implementation_10 TV Mode Controller v14 — Complete Trigger Adapter (Phase 2) | ~592 |
+| #6266 | 5:23 AM | 🔵 | Implementation_10 vs oal-v14-unification Entity Infrastructure Comparison | ~440 |
 </claude-mem-context>

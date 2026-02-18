@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Climate Card â v3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+
+  <style>
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       TOKENS â LIGHT
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    :root {
+      --bg1:#d9ccbc; --bg2:#c8c0b4; --bg3:#a8a199; --bg4:#838990;
+      --glass:rgba(255,255,255,0.68); --glass-border:rgba(255,255,255,0.45);
+      --shadow:0 1px 3px rgba(0,0,0,0.10),0 8px 32px rgba(0,0,0,0.10);
+      --shadow-up:0 1px 4px rgba(0,0,0,0.10),0 12px 36px rgba(0,0,0,0.12);
+      --inset:inset 0 0 0 0.5px rgba(0,0,0,0.06);
+      --text:#1C1C1E; --text-sub:rgba(28,28,30,0.55); --text-muted:#8E8E93;
+      --amber:#D4850A; --amber-fill:rgba(212,133,10,0.10); --amber-border:rgba(212,133,10,0.22);
+      --blue:#007AFF; --blue-fill:rgba(0,122,255,0.09); --blue-border:rgba(0,122,255,0.18);
+      --green:#34C759;
+      --track-bg:rgba(28,28,30,0.055); --track-h:44px;
+      --thumb-bg:#fff;
+      --thumb-sh:0 1px 2px rgba(0,0,0,0.12),0 4px 12px rgba(0,0,0,0.06);
+      --thumb-sh-a:0 2px 4px rgba(0,0,0,0.16),0 8px 20px rgba(0,0,0,0.10);
+      --r-card:24px; --r-tile:16px; --r-pill:999px; --r-track:4px;
+      --ctrl-bg:rgba(255,255,255,0.52); --ctrl-border:rgba(0,0,0,0.05); --ctrl-sh:0 1px 2px rgba(0,0,0,0.05),0 2px 8px rgba(0,0,0,0.04);
+      --chip-bg:rgba(255,255,255,0.48); --chip-border:rgba(0,0,0,0.05);
+      --chip-sh:0 1px 3px rgba(0,0,0,0.04);
+      --dd-bg:rgba(255,255,255,0.84); --dd-border:rgba(255,255,255,0.60);
+      --divider:rgba(28,28,30,0.07);
+      --toggle-off:rgba(28,28,30,0.10); --toggle-on:rgba(52,199,89,0.28);
+      --toggle-knob:rgba(255,255,255,0.96);
+      color-scheme:light;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       TOKENS â DARK
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    html.dark {
+      --bg1:#1c3038; --bg2:#1e2640; --bg3:#242244; --bg4:#1a1a30;
+      --glass:rgba(44,44,46,0.72); --glass-border:rgba(255,255,255,0.08);
+      --shadow:0 1px 3px rgba(0,0,0,0.30),0 8px 28px rgba(0,0,0,0.28);
+      --shadow-up:0 1px 4px rgba(0,0,0,0.35),0 12px 36px rgba(0,0,0,0.35);
+      --inset:inset 0 0 0 0.5px rgba(255,255,255,0.06);
+      --text:#F5F5F7; --text-sub:rgba(245,245,247,0.50); --text-muted:rgba(245,245,247,0.35);
+      --amber:#E8961E; --amber-fill:rgba(232,150,30,0.14); --amber-border:rgba(232,150,30,0.25);
+      --blue:#0A84FF; --blue-fill:rgba(10,132,255,0.13); --blue-border:rgba(10,132,255,0.22);
+      --green:#30D158;
+      --track-bg:rgba(255,255,255,0.06);
+      --thumb-bg:#F5F5F7;
+      --thumb-sh:0 1px 2px rgba(0,0,0,0.35),0 4px 12px rgba(0,0,0,0.18);
+      --thumb-sh-a:0 2px 4px rgba(0,0,0,0.40),0 8px 20px rgba(0,0,0,0.25);
+      --ctrl-bg:rgba(255,255,255,0.08); --ctrl-border:rgba(255,255,255,0.08); --ctrl-sh:0 1px 2px rgba(0,0,0,0.25),0 2px 8px rgba(0,0,0,0.15);
+      --chip-bg:rgba(58,58,60,0.50); --chip-border:rgba(255,255,255,0.06);
+      --chip-sh:0 1px 3px rgba(0,0,0,0.18);
+      --dd-bg:rgba(58,58,60,0.88); --dd-border:rgba(255,255,255,0.08);
+      --divider:rgba(255,255,255,0.06);
+      --toggle-off:rgba(255,255,255,0.10); --toggle-on:rgba(48,209,88,0.30);
+      --toggle-knob:rgba(255,255,255,0.92);
+      color-scheme:dark;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       BASE
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:"DM Sans",system-ui,-apple-system,sans-serif;
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .scene{
+      min-height:100%;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      padding:32px 16px;gap:20px;
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(255,255,255,0.55),transparent 55%),
+        radial-gradient(ellipse 900px 700px at 80% 15%,rgba(255,255,255,0.35),transparent 60%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    .scene::before{
+      content:"";position:fixed;inset:-60px;
+      background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));
+      filter:blur(28px) saturate(1.05);z-index:-2;
+    }
+    html.dark .scene{
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(255,255,255,0.02),transparent 55%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    html.dark .scene::before{
+      background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));filter:blur(28px);
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       ICONS â Material Symbols Rounded
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    .icon{
+      font-family:'Material Symbols Rounded';
+      font-weight:normal;font-style:normal;
+      display:inline-flex;align-items:center;justify-content:center;
+      line-height:1;text-transform:none;letter-spacing:normal;
+      white-space:nowrap;direction:ltr;vertical-align:middle;flex-shrink:0;
+      -webkit-font-smoothing:antialiased;
+      font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+    }
+    .icon.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .icon-20{font-size:20px}
+    .icon-18{font-size:18px}
+    .icon-16{font-size:16px}
+    .icon-14{font-size:14px}
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       THEME TOGGLE (dev)
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    .theme-toggle{
+      display:flex;gap:4px;padding:4px;
+      border-radius:var(--r-pill);background:var(--glass);
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--glass-border);box-shadow:var(--shadow);
+    }
+    .theme-btn{
+      padding:8px 16px;border:none;border-radius:var(--r-pill);
+      background:transparent;color:var(--text-muted);
+      font-family:inherit;font-size:13px;font-weight:600;
+      cursor:pointer;transition:all 180ms ease;
+      display:flex;align-items:center;gap:6px;
+    }
+    .theme-btn.active{
+      background:var(--chip-bg);color:var(--text);
+      box-shadow:0 1px 6px rgba(0,0,0,0.06);
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       CARD
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    .card{
+      position:relative;
+      width:400px;max-width:100%;
+      border-radius:var(--r-card);background:var(--glass);
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--ctrl-border);
+      box-shadow:var(--shadow),var(--inset);
+      padding:20px;display:flex;flex-direction:column;gap:0;
+      transition:background .3s,border-color .3s,box-shadow .3s,opacity .3s;
+    }
+    .card[data-mode="off"]{opacity:.55}
+    .card[data-action="heating"]{border-color:rgba(212,133,10,0.16)}
+    .card[data-action="cooling"]{border-color:rgba(0,122,255,0.14)}
+    html.dark .card[data-action="heating"]{border-color:rgba(232,150,30,0.14)}
+    html.dark .card[data-action="cooling"]{border-color:rgba(10,132,255,0.12)}
+
+    /* ââ Header ââ */
+    .hdr{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+
+    /* Icon container â transparent when idle, accent surface when active */
+    .hdr-icon{
+      width:34px;height:34px;border-radius:10px;
+      display:grid;place-items:center;
+      border:1px solid transparent;background:transparent;
+      transition:all .2s ease;color:var(--text-muted);
+    }
+    .hdr-icon[data-a="heating"]{background:var(--amber-fill);color:var(--amber);border-color:var(--amber-border)}
+    .hdr-icon[data-a="cooling"]{background:var(--blue-fill);color:var(--blue);border-color:var(--blue-border)}
+    .hdr-title{font-weight:700;font-size:14px;color:var(--text-sub);letter-spacing:.1px}
+    .hdr-spacer{flex:1}
+
+    /* Fan button â subtle surface when off, green surface when on */
+    .fan-btn{
+      width:34px;height:34px;border-radius:10px;
+      display:grid;place-items:center;
+      border:1px solid var(--ctrl-border);
+      background:var(--ctrl-bg);
+      box-shadow:var(--ctrl-sh);
+      color:var(--text-muted);cursor:pointer;
+      transition:all .15s ease;
+    }
+    .fan-btn:hover{box-shadow:var(--shadow)}
+    .fan-btn:active{transform:scale(.94)}
+    .fan-btn.on{background:rgba(52,199,89,0.12);color:var(--green);border-color:rgba(52,199,89,0.15)}
+    .fan-btn.on .icon{animation:fan-spin 1.8s linear infinite}
+    html.dark .fan-btn.on{background:rgba(48,209,88,0.14);border-color:rgba(48,209,88,0.18)}
+    @keyframes fan-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+    /* Mode pill â keeps surface (dropdown trigger needs tappable affordance) */
+    .mode-wrap{position:relative}
+    .mode-btn{
+      display:flex;align-items:center;gap:5px;
+      padding:7px 8px 7px 12px;border-radius:var(--r-pill);
+      border:1px solid var(--ctrl-border);background:var(--ctrl-bg);
+      box-shadow:var(--ctrl-sh);font-family:inherit;font-size:12px;
+      font-weight:600;color:var(--text-sub);cursor:pointer;
+      transition:all .15s ease;letter-spacing:.2px;
+    }
+    .mode-btn:hover{box-shadow:var(--shadow)}
+    .mode-btn:active{transform:scale(.97)}
+    .mode-btn .chevron{transition:transform .2s ease}
+    .mode-btn[aria-expanded="true"] .chevron{transform:rotate(180deg)}
+
+    .mode-menu{
+      position:absolute;top:calc(100% + 6px);right:0;
+      min-width:160px;padding:5px;border-radius:var(--r-tile);
+      background:var(--dd-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--dd-border);box-shadow:var(--shadow-up);
+      z-index:10;display:none;flex-direction:column;gap:1px;
+    }
+    .mode-menu.open{display:flex;animation:menuIn .14s ease forwards}
+    @keyframes menuIn{
+      from{opacity:0;transform:translateY(-4px) scale(.97)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+    .mode-opt{
+      padding:9px 12px;border-radius:11px;border:none;
+      background:transparent;font-family:inherit;font-size:13px;
+      font-weight:600;color:var(--text);text-align:left;cursor:pointer;
+      display:flex;align-items:center;gap:8px;transition:background .1s;
+    }
+    .mode-opt:hover{background:var(--track-bg)}
+    .mode-opt:active{transform:scale(.97)}
+    .mode-opt.active{font-weight:700}
+    .mode-opt.active[data-m="heat_cool"],
+    .mode-opt.active[data-m="heat"]{background:var(--amber-fill);color:var(--amber)}
+    .mode-opt.active[data-m="cool"]{background:var(--blue-fill);color:var(--blue)}
+    .mode-opt.active[data-m="off"]{background:var(--track-bg);color:var(--text-muted)}
+    .mode-divider{height:1px;background:var(--divider);margin:3px 8px}
+    .mode-opt.eco-opt .eco-check{
+      margin-left:auto;width:18px;height:18px;border-radius:999px;
+      border:1.5px solid var(--text-muted);display:grid;place-items:center;
+      transition:all .15s;
+    }
+    .mode-opt.eco-opt.active .eco-check{
+      background:var(--green);border-color:var(--green);
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       TEMPERATURE ZONE
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    .temps{
+      display:flex;align-items:flex-start;justify-content:space-between;
+      margin-bottom:20px;
+    }
+    .t-group{display:flex;flex-direction:column;gap:1px}
+    .t-label{
+      font-size:12px;font-weight:600;letter-spacing:.3px;
+    }
+    .t-label.indoor{color:var(--text-sub)}
+    .t-label.heat{color:var(--amber)}
+    .t-label.cool{color:var(--blue)}
+    .t-val{
+      font-size:48px;font-weight:700;letter-spacing:-1.5px;
+      line-height:1;font-variant-numeric:tabular-nums;
+    }
+    .deg{font-size:0.6em;vertical-align:baseline;position:relative;top:-0.18em;margin-left:-1px}
+    .t-val.heat{color:var(--amber)}
+    .t-val.cool{color:var(--blue)}
+
+    .t-right{display:flex;gap:16px}
+    .t-right .t-group{align-items:flex-end}
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       SLIDER
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    .slider-zone{display:flex;flex-direction:column;margin-bottom:14px}
+    .slider{position:relative;height:var(--track-h);user-select:none;touch-action:none}
+    .track{position:absolute;inset:0;border-radius:var(--r-track);background:var(--track-bg);overflow:hidden}
+
+    /* Fills â use exact accent token colors (--amber / --blue) */
+    .fill-h{
+      position:absolute;top:0;bottom:0;left:0;
+      border-radius:var(--r-track) 0 0 var(--r-track);
+      background:linear-gradient(90deg,rgba(212,133,10,.52) 0%,rgba(212,133,10,.34) 50%,rgba(212,133,10,.14) 100%);
+      transition:width 60ms ease;
+    }
+    html.dark .fill-h{
+      background:linear-gradient(90deg,rgba(232,150,30,.46) 0%,rgba(232,150,30,.30) 50%,rgba(232,150,30,.12) 100%);
+    }
+    .fill-c{
+      position:absolute;top:0;bottom:0;right:0;
+      border-radius:0 var(--r-track) var(--r-track) 0;
+      background:linear-gradient(90deg,rgba(0,122,255,.12) 0%,rgba(0,122,255,.28) 45%,rgba(0,122,255,.44) 100%);
+      transition:width 60ms ease;
+    }
+    html.dark .fill-c{
+      background:linear-gradient(90deg,rgba(10,132,255,.10) 0%,rgba(10,132,255,.28) 45%,rgba(10,132,255,.42) 100%);
+    }
+    
+
+    /* Thumbs â 44px invisible touch target, 26px visible disc */
+    .thumb{
+      position:absolute;top:50%;
+      width:44px;height:44px;
+      transform:translate(-50%,-50%);border-radius:999px;
+      background:transparent;
+      cursor:grab;z-index:3;
+      transition:transform .15s;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .thumb:active{cursor:grabbing;transform:translate(-50%,-50%) scale(1.08)}
+    .thumb.dragging{cursor:grabbing;transform:translate(-50%,-50%) scale(1.08)}
+    .thumb:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+
+    /* Colored stroke â behind disc (z-index:1) */
+    .thumb-stroke{
+      position:absolute;width:2px;
+      top:2px;bottom:2px;left:50%;transform:translateX(-50%);
+      border-radius:2px;z-index:1;
+    }
+    .thumb.heat .thumb-stroke{background:var(--amber)}
+    .thumb.cool .thumb-stroke{background:var(--blue)}
+
+    /* White disc â 26px visible circle (z-index:2) */
+    .thumb-disc{
+      width:26px;height:26px;border-radius:999px;
+      background:var(--thumb-bg);
+      box-shadow:var(--thumb-sh);
+      z-index:2;position:relative;
+      transition:box-shadow .15s;
+    }
+    .thumb:hover .thumb-disc{box-shadow:var(--thumb-sh-a)}
+    .thumb:active .thumb-disc,.thumb.dragging .thumb-disc{box-shadow:var(--thumb-sh-a)}
+
+    /* Center dot (z-index:3) */
+    .thumb-dot{
+      width:8px;height:8px;border-radius:999px;
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      z-index:3;
+    }
+    .thumb.heat .thumb-dot{background:var(--amber);box-shadow:0 0 0 .5px rgba(212,133,10,0.3)}
+    .thumb.cool .thumb-dot{background:var(--blue);box-shadow:0 0 0 .5px rgba(0,122,255,0.3)}
+
+    /* Current temp marker â arrow points UP */
+    .cur-marker{
+      position:absolute;bottom:-14px;transform:translateX(-50%);
+      display:flex;flex-direction:column;align-items:center;
+      z-index:2;transition:left .25s ease;
+    }
+    .cur-arrow{
+      width:0;height:0;
+      border-left:4px solid transparent;border-right:4px solid transparent;
+      border-bottom:5px solid var(--text-muted);
+    }
+    .cur-label{
+      font-size:11px;font-weight:700;color:var(--text-sub);
+      margin-top:1px;font-variant-numeric:tabular-nums;
+      letter-spacing:-.2px;white-space:nowrap;
+    }
+
+    /* Scale */
+    .scale{display:flex;justify-content:space-between;padding:13px 2px 0}
+    .scale-mark{display:flex;flex-direction:column;align-items:center;gap:2px;transition:opacity .2s ease}
+    .scale-tick{width:1px;height:5px;background:var(--text-muted);opacity:.35;border-radius:1px}
+    .scale-num{font-size:10px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums;letter-spacing:.4px}
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       STATUS ROW
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    .status{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:13px 0;
+      border-top:1px solid var(--divider);
+    }
+    .status-item{
+      display:flex;align-items:center;gap:6px;
+      font-size:13px;font-weight:600;color:var(--text-sub);letter-spacing:.1px;
+    }
+        .status-action .icon.heat-ic{color:var(--amber)}
+    .status-action .icon.cool-ic{color:var(--blue)}
+    .status-action .icon.idle-ic{color:var(--text-muted)}
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       MODE OVERRIDES
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    .card[data-mode="heat"] .fill-c,
+    .card[data-mode="heat"] .thumb.cool,
+    .card[data-mode="heat"] .t-group.cool{display:none}
+
+    .card[data-mode="cool"] .fill-h,
+    .card[data-mode="cool"] .thumb.heat,
+    .card[data-mode="cool"] .t-group.heat{display:none}
+
+    .card[data-mode="off"] .fill-h,
+    .card[data-mode="off"] .fill-c,
+    .card[data-mode="off"] .thumb,
+    .card[data-mode="off"] .t-right,
+    .card[data-mode="off"] .cur-marker{display:none}
+    .card[data-mode="off"] .track{opacity:.35}
+
+    .card[data-mode="heat"] .fill-h{
+      border-radius:var(--r-track);
+      background:linear-gradient(90deg,rgba(212,133,10,.52) 0%,rgba(212,133,10,.34) 50%,rgba(212,133,10,.14) 100%);
+    }
+    html.dark .card[data-mode="heat"] .fill-h{
+      background:linear-gradient(90deg,rgba(232,150,30,.46) 0%,rgba(232,150,30,.30) 50%,rgba(232,150,30,.12) 100%);
+    }
+    .card[data-mode="cool"] .fill-c{
+      border-radius:var(--r-track);
+      background:linear-gradient(90deg,rgba(0,122,255,.12) 0%,rgba(0,122,255,.28) 50%,rgba(0,122,255,.44) 100%);
+    }
+    html.dark .card[data-mode="cool"] .fill-c{
+      background:linear-gradient(90deg,rgba(10,132,255,.10) 0%,rgba(10,132,255,.28) 50%,rgba(10,132,255,.42) 100%);
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       DEADBAND â subtle comfort zone indicator
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    .deadband{
+      position:absolute;top:0;bottom:0;
+      background:repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 3px,
+        rgba(28,28,30,0.025) 3px,
+        rgba(28,28,30,0.025) 4px
+      );
+      transition:left 60ms,width 60ms;
+    }
+    html.dark .deadband{
+      background:repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 3px,
+        rgba(255,255,255,0.02) 3px,
+        rgba(255,255,255,0.02) 4px
+      );
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       ENHANCED GLASS â gradient stroke for depth
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    .card::before{
+      content:"";position:absolute;inset:0;border-radius:var(--r-card);
+      padding:1px;
+      background:linear-gradient(160deg,rgba(255,255,255,0.50),rgba(255,255,255,0.08) 40%,rgba(255,255,255,0.02) 60%,rgba(255,255,255,0.20));
+      -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+      pointer-events:none;z-index:0;
+    }
+    html.dark .card::before{
+      background:linear-gradient(160deg,rgba(255,255,255,0.14),rgba(255,255,255,0.03) 40%,rgba(255,255,255,0.01) 60%,rgba(255,255,255,0.08));
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       ACCESSIBILITY â reduced motion
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{
+        animation-duration:0.01ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:0.01ms !important;
+      }
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââ
+       RESPONSIVE
+       âââââââââââââââââââââââââââââââââââââââââââ */
+    @media(max-width:440px){
+      .card{padding:16px;--r-track:8px}
+      .t-val{font-size:42px;letter-spacing:-1.3px}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="scene">
+    <!-- Theme toggle -->
+    <div class="theme-toggle">
+      <button class="theme-btn active" data-theme="light" onclick="setTheme('light')">
+        <span class="icon icon-16">light_mode</span> Light
+      </button>
+      <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">
+        <span class="icon icon-16">dark_mode</span> Dark
+      </button>
+    </div>
+
+    <!-- âââââââââââââââââââââââââââââââââââââââ
+         CLIMATE CARD
+         âââââââââââââââââââââââââââââââââââââââ -->
+    <div class="card" data-mode="heat_cool" data-action="idle" id="card">
+
+      <!-- Header: icon + title ... fan + mode -->
+      <div class="hdr">
+        <div class="hdr-icon" data-a="idle" id="hdrIcon">
+          <span class="icon icon-20" id="hdrIconEl">thermostat</span>
+        </div>
+        <span class="hdr-title">Climate</span>
+        <div class="hdr-spacer"></div>
+        <button class="fan-btn" id="fanBtn" onclick="toggleFan()" title="Fan" aria-label="Toggle fan">
+          <span class="icon icon-18" id="fanIconEl">air</span>
+        </button>
+        <div class="mode-wrap">
+          <button class="mode-btn" id="modeBtn" onclick="toggleMenu()" aria-expanded="false">
+            <span id="modeLbl">Heat / Cool</span>
+            <span class="icon icon-14 chevron">expand_more</span>
+          </button>
+          <div class="mode-menu" id="modeMenu">
+            <button class="mode-opt active" data-m="heat_cool" onclick="setMode('heat_cool')">
+              <span class="icon icon-18" style="color:var(--amber)">device_thermostat</span> Heat / Cool
+            </button>
+            <button class="mode-opt" data-m="heat" onclick="setMode('heat')">
+              <span class="icon icon-18" style="color:var(--amber)">local_fire_department</span> Heat
+            </button>
+            <button class="mode-opt" data-m="cool" onclick="setMode('cool')">
+              <span class="icon icon-18" style="color:var(--blue)">ac_unit</span> Cool
+            </button>
+            <button class="mode-opt" data-m="off" onclick="setMode('off')">
+              <span class="icon icon-18">power_settings_new</span> Off
+            </button>
+            <div class="mode-divider"></div>
+            <button class="mode-opt eco-opt active" id="ecoOpt" onclick="toggleEco()">
+              <span class="icon icon-18" style="color:var(--green)">eco</span> Eco
+              <span class="eco-check" id="ecoCheck">
+                <span class="icon icon-14" style="color:#fff">check</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Temperatures â all same size -->
+      <div class="temps">
+        <div class="t-group indoor">
+          <span class="t-label indoor">Indoor</span>
+          <span class="t-val" id="curTemp">70<span class="deg">Â°</span></span>
+        </div>
+        <div class="t-right" id="tRight">
+          <div class="t-group heat">
+            <span class="t-label heat">Heat</span>
+            <span class="t-val heat" id="heatR">68<span class="deg">Â°</span></span>
+          </div>
+          <div class="t-group cool">
+            <span class="t-label cool">Cool</span>
+            <span class="t-val cool" id="coolR">76<span class="deg">Â°</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slider -->
+      <div class="slider-zone">
+        <div class="slider" id="slider">
+          <div class="track">
+            <div class="fill-h" id="fillH"></div>
+            <div class="fill-c" id="fillC"></div>
+            <div class="deadband" id="db"></div>
+          </div>
+          <div class="thumb heat" id="tH" role="slider" aria-label="Heat setpoint" aria-valuemin="50" aria-valuemax="90" aria-valuenow="68" aria-valuetext="Heat setpoint: 68 degrees" tabindex="0">
+            <div class="thumb-stroke"></div>
+            <div class="thumb-disc"></div>
+            <div class="thumb-dot"></div>
+          </div>
+          <div class="thumb cool" id="tC" role="slider" aria-label="Cool setpoint" aria-valuemin="50" aria-valuemax="90" aria-valuenow="76" aria-valuetext="Cool setpoint: 76 degrees" tabindex="0">
+            <div class="thumb-stroke"></div>
+            <div class="thumb-disc"></div>
+            <div class="thumb-dot"></div>
+          </div>
+          <div class="cur-marker" id="curMark">
+            <div class="cur-arrow"></div>
+            <div class="cur-label" id="curLbl">70Â°</div>
+          </div>
+        </div>
+        <div class="scale">
+          <div class="scale-mark"><div class="scale-tick"></div><span class="scale-num" id="sMin">60Â°</span></div>
+          <div class="scale-mark" id="sMidMark"><div class="scale-tick"></div><span class="scale-num" id="sMid">70Â°</span></div>
+          <div class="scale-mark"><div class="scale-tick"></div><span class="scale-num" id="sMax">80Â°</span></div>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="status">
+        <div class="status-item status-humidity">
+          <span class="icon icon-18 filled" style="color:var(--blue)">water_drop</span>
+          <span>Humidity <span id="humV">35</span>%</span>
+        </div>
+        <div class="status-item status-action" id="actionRow">
+          <span class="icon icon-18 idle-ic" id="actIcon">pause_circle</span>
+          <span id="actLbl">Idle Â· Eco</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const S={
+      mode:'heat_cool',action:'idle',preset:'eco',fan:'off',
+      cur:70,heat:68,cool:76,hum:35,
+      min:50,max:90,dMin:60,dMax:80
+    };
+
+    /* Theme */
+    function setTheme(t){
+      document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelector(`[data-theme="${t}"]`).classList.add('active');
+      if(t==='dark'){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark'}
+      else{document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light'}
+    }
+
+    /* Menu */
+    function toggleMenu(){
+      const m=document.getElementById('modeMenu'),b=document.getElementById('modeBtn');
+      m.classList.toggle('open');b.setAttribute('aria-expanded',m.classList.contains('open'));
+    }
+    document.addEventListener('click',e=>{
+      if(!e.target.closest('.mode-wrap')){
+        document.getElementById('modeMenu').classList.remove('open');
+        document.getElementById('modeBtn').setAttribute('aria-expanded','false');
+      }
+    });
+
+    const ML={heat_cool:'Heat / Cool',heat:'Heat',cool:'Cool',off:'Off'};
+    function setMode(m){
+      S.mode=m;
+      const card=document.getElementById('card');
+      card.dataset.mode=m;
+      document.getElementById('modeLbl').textContent=ML[m];
+      document.getElementById('modeMenu').classList.remove('open');
+      document.getElementById('modeBtn').setAttribute('aria-expanded','false');
+      document.querySelectorAll('.mode-opt:not(.eco-opt)').forEach(o=>o.classList.toggle('active',o.dataset.m===m));
+      if(m==='off')S.action='off';
+      else if(m==='heat')S.action=S.cur<S.heat?'heating':'idle';
+      else if(m==='cool')S.action=S.cur>S.cool?'cooling':'idle';
+      else S.action='idle';
+      render();
+    }
+
+    function toggleEco(){
+      S.preset=S.preset==='eco'?'none':'eco';
+      const opt=document.getElementById('ecoOpt');
+      opt.classList.toggle('active',S.preset==='eco');
+      render();
+    }
+
+    function toggleFan(){
+      S.fan=S.fan==='on'?'off':'on';
+      document.getElementById('fanBtn').classList.toggle('on',S.fan==='on');
+      // Outlined when off, filled when on (Apple SF Symbols convention)
+      const fanEl=document.getElementById('fanIconEl');
+      if(S.fan==='on'){fanEl.classList.add('filled')}else{fanEl.classList.remove('filled')}
+    }
+
+    /* Slider math */
+    const sl=document.getElementById('slider');
+    const tH=document.getElementById('tH'),tC=document.getElementById('tC');
+    let drag=null,dragStartX=0,dragActive=false;const PAD=20;const DRAG_THRESHOLD=4;
+
+    const t2p=t=>(t-S.dMin)/(S.dMax-S.dMin);
+    const p2t=p=>Math.round(S.dMin+p*(S.dMax-S.dMin));
+    const p2px=p=>{const w=sl.offsetWidth;return PAD+Math.max(0,Math.min(1,p))*(w-2*PAD)};
+    const px2p=px=>{const w=sl.offsetWidth;return Math.max(0,Math.min(1,(px-PAD)/(w-2*PAD)))};
+
+    const actionIcons={heating:'local_fire_department',cooling:'ac_unit',idle:'pause_circle',off:'power_settings_new'};
+    const actionClass={heating:'heat-ic',cooling:'cool-ic',idle:'idle-ic',off:'idle-ic'};
+    const actionNames={heating:'Heating',cooling:'Cooling',idle:'Idle',off:'Off'};
+
+    function render(){
+      const hp=t2p(S.heat),cp=t2p(S.cool),xp=t2p(S.cur);
+      tH.style.left=p2px(hp)+'px';tC.style.left=p2px(cp)+'px';
+      const hpx=p2px(hp),cpx=p2px(cp),w=sl.offsetWidth;
+      document.getElementById('fillH').style.width=hpx+'px';
+      document.getElementById('fillC').style.width=(w-cpx)+'px';
+      const db=document.getElementById('db');db.style.left=hpx+'px';db.style.width=Math.max(0,cpx-hpx)+'px';
+      document.getElementById('curMark').style.left=p2px(xp)+'px';
+      const D='<span class="deg">Â°</span>';
+      document.getElementById('curLbl').textContent=S.cur+'Â°';
+      document.getElementById('heatR').innerHTML=S.heat+D;
+      document.getElementById('coolR').innerHTML=S.cool+D;
+      document.getElementById('curTemp').innerHTML=S.cur+D;
+      document.getElementById('humV').textContent=S.hum;
+
+      // ARIA
+      tH.setAttribute('aria-valuenow',S.heat);
+      tH.setAttribute('aria-valuemin',S.min);
+      tH.setAttribute('aria-valuemax',S.cool-2);
+      tH.setAttribute('aria-valuetext','Heat setpoint: '+S.heat+' degrees');
+      tC.setAttribute('aria-valuenow',S.cool);
+      tC.setAttribute('aria-valuemin',S.heat+2);
+      tC.setAttribute('aria-valuemax',S.max);
+      tC.setAttribute('aria-valuetext','Cool setpoint: '+S.cool+' degrees');
+
+      // Hide mid scale label when current temp marker is close to avoid duplication
+      const midTemp = S.dMin + (S.dMax - S.dMin) / 2; // 70
+      const dist = Math.abs(S.cur - midTemp);
+      document.getElementById('sMidMark').style.opacity = dist < 3 ? '0' : '1';
+
+      const card=document.getElementById('card');
+      card.dataset.action=S.action;
+      document.getElementById('hdrIcon').dataset.a=S.action;
+      // Outlined when idle, filled when active (Apple SF Symbols convention)
+      const hdrEl=document.getElementById('hdrIconEl');
+      if(S.action==='heating'||S.action==='cooling'){hdrEl.classList.add('filled')}else{hdrEl.classList.remove('filled')}
+
+      let lbl=actionNames[S.action];
+      if(S.preset==='eco'&&S.action!=='off')lbl+=' Â· Eco';
+      document.getElementById('actLbl').textContent=lbl;
+      document.getElementById('actIcon').textContent=actionIcons[S.action];
+      const ic=document.getElementById('actIcon');
+      ic.className='icon icon-18 '+(S.action==='heating'||S.action==='cooling'?'filled ':'')+actionClass[S.action];
+    }
+
+    function startDrag(w,e){
+      e.preventDefault();drag=w;dragActive=false;
+      dragStartX=e.touches?e.touches[0].clientX:e.clientX;
+      (w==='heat'?tH:tC).style.transition='none';
+      document.body.style.cursor='grabbing';
+    }
+    function onMove(cx){
+      if(!drag)return;
+      if(!dragActive){
+        if(Math.abs(cx-dragStartX)<DRAG_THRESHOLD)return;
+        dragActive=true;
+        (drag==='heat'?tH:tC).classList.add('dragging');
+      }
+      const r=sl.getBoundingClientRect(),px=cx-r.left,p=px2p(px),t=p2t(p);
+      if(drag==='heat')S.heat=Math.max(S.min,Math.min(t,S.cool-2));
+      else S.cool=Math.min(S.max,Math.max(t,S.heat+2));
+      render();
+    }
+    function endDrag(){
+      if(!drag)return;
+      const el=drag==='heat'?tH:tC;
+      el.style.transition='';
+      el.classList.remove('dragging');
+      drag=null;dragActive=false;document.body.style.cursor='';
+    }
+
+    tH.addEventListener('mousedown',e=>startDrag('heat',e));
+    tC.addEventListener('mousedown',e=>startDrag('cool',e));
+    document.addEventListener('mousemove',e=>onMove(e.clientX));
+    document.addEventListener('mouseup',endDrag);
+    tH.addEventListener('touchstart',e=>startDrag('heat',e),{passive:false});
+    tC.addEventListener('touchstart',e=>startDrag('cool',e),{passive:false});
+    document.addEventListener('touchmove',e=>{if(drag){e.preventDefault();onMove(e.touches[0].clientX)}},{passive:false});
+    document.addEventListener('touchend',endDrag);
+
+    function thumbKey(w,e){
+      const s=e.shiftKey?5:1;
+      if(e.key==='ArrowRight'||e.key==='ArrowUp'){
+        e.preventDefault();
+        if(w==='heat')S.heat=Math.min(S.heat+s,S.cool-2);else S.cool=Math.min(S.cool+s,S.max);
+        render();
+      }else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){
+        e.preventDefault();
+        if(w==='heat')S.heat=Math.max(S.heat-s,S.min);else S.cool=Math.max(S.cool-s,S.heat+2);
+        render();
+      }
+    }
+    tH.addEventListener('keydown',e=>thumbKey('heat',e));
+    tC.addEventListener('keydown',e=>thumbKey('cool',e));
+
+    render();
+    window.addEventListener('resize',render);
+  </script>
+</body>
+</html>

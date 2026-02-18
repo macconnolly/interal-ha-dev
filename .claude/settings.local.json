@@ -66,7 +66,14 @@
       "WebFetch(domain:www.home-assistant.io)",
       "Bash(git pull:*)",
       "Bash(sshpass:*)",
-      "WebFetch(domain:developers.home-assistant.io)"
+      "WebFetch(domain:developers.home-assistant.io)",
+      "Bash(git -C /home/mac/HA/oal-v14-unification log --oneline -5)",
+      "Bash(git -C /home/mac/HA/oal-v14-migration log --oneline -5)",
+      "Bash(git -C /home/mac/HA/oal-v14-unification log --oneline -15)",
+      "Bash(git -C /home/mac/HA/oal-v14-unification branch --show-current)",
+      "Bash(git -C /home/mac/HA/oal-v14-migration branch --show-current)",
+      "Bash(git -C /home/mac/HA/implementation_10 branch --show-current)",
+      "mcp__claude_ai_Core_memory__memory_search"
     ],
     "deny": [],
     "ask": []

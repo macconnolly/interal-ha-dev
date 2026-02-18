@@ -186,7 +186,7 @@ input_select:
     icon: mdi:desk-lamp
 
   oal_tv_autofollow_gate:
-    name: "OAL TV Auto-follow Gate"
+    name: "OAL TV Auto-Follow Gate"
     options:
       - "Off"
       - "Night + Presence"
@@ -194,11 +194,22 @@ input_select:
     initial: "Night + Presence"
     icon: mdi:television-play
 
+  oal_mode_before_tv:
+    name: "OAL Mode Before TV"
+    icon: mdi:undo-variant
+    options:
+      - "none"
+      - "Full Bright"
+      - "Dim Ambient"
+      - "Warm Ambient"
+    initial: "none"
+
   oal_mode_timeout_state:
     name: "OAL Mode Timeout State"
     options:
       - "idle"
       - "armed"
+      - "suspended_by_tv"
       - "expired"
     initial: "idle"
     icon: mdi:timer-sand
@@ -343,7 +354,7 @@ input_number:
     icon: mdi:timer-cog
 
   oal_tv_bridge_minutes:
-    name: "OAL TV Bridge Minutes"
+    name: "OAL TV Bridge Duration (Min)"
     min: 1
     max: 60
     step: 1
@@ -414,6 +425,7 @@ input_number:
     unit_of_measurement: "%"
     icon: mdi:pillar
 
+
 input_boolean:
   oal_system_paused:
     name: "OAL System Paused"
@@ -445,28 +457,34 @@ input_boolean:
     initial: false
     icon: mdi:alarm-off
 
+  oal_movie_mode_active:
+    name: "OAL Movie Mode Active"
+    initial: false
+    icon: mdi:movie-open
+
+  # --- v14 TV Mode Unification: Policy & Session flags ---
   oal_policy_snapshot_restore_enabled:
-    name: "OAL Snapshot Restore Policy"
+    name: "OAL Policy: Snapshot Restore"
     initial: true
     icon: mdi:camera-retake
 
   oal_policy_tv_snapshot_restore_enabled:
-    name: "OAL TV Snapshot Restore Policy"
+    name: "OAL Policy: TV Snapshot Restore"
     initial: true
     icon: mdi:television-shimmer
 
   oal_policy_tv_autofollow_enabled:
-    name: "OAL TV Auto-follow Enabled"
+    name: "OAL Policy: TV Auto-Follow"
     initial: true
     icon: mdi:television-play
 
   oal_policy_tv_bridge_enabled:
-    name: "OAL TV Bridge Enabled"
+    name: "OAL Policy: TV Bridge"
     initial: true
     icon: mdi:bridge
 
   oal_mode_timeout_enabled:
-    name: "OAL Mode Timeout Enabled"
+    name: "OAL Policy: Mode Timeout"
     initial: true
     icon: mdi:timer-check
 
@@ -537,12 +555,7 @@ input_datetime:
     initial: "22:00:00"
     icon: mdi:weather-night
 
-  oal_last_timeout_notification:
-    name: "OAL Last Timeout Notification"
-    has_date: true
-    has_time: true
-    icon: mdi:message-clock-outline
-
+# --- v14 Timer entities ---
 timer:
   oal_mode_timeout:
     name: "OAL Mode Timeout"
@@ -1691,11 +1704,11 @@ automation:
           k: -1500 # Very warm
           lights_off:
             - light.column_lights            # Off - near TV glare
+            - light.living_room_floor_lamp   # Off - direct line of sight
             - light.recessed_ceiling_lights  # Off - harsh overhead
           lights_dimmed:
             light.living_room_couch_lamp: 5   # Barely visible
-            light.living_room_floor_lamp: 5   # Minimal direct light
-            light.kitchen_island_pendants: 5  # Background glow
+            light.kitchen_island_pendants: 15 # Background glow
             light.kitchen_counter_cabinet_underlights: 10  # Safety/navigation glow
             light.accent_spots_lights: 5      # Subtle ambient
             light.entryway_lamp: 8            # Navigation/safety
@@ -1716,6 +1729,7 @@ automation:
             light.accent_spots_lights: 8
             light.recessed_ceiling_lights: 5
             light.entryway_lamp: 10
+            light.living_room_credenza_light: 3  # Bias lighting
           is_baseline: false
           is_force_on: false
 
@@ -1755,10 +1769,6 @@ automation:
       # Track transitions to/from Adaptive for snapshot/restore
       was_adaptive: "{{ trigger_has_from_state and from_state_value == 'Adaptive' }}"
       was_bridge: "{{ trigger_has_from_state and from_state_value == 'TV Bridge' }}"
-      from_tv_mode: "{{ trigger_has_from_state and from_state_value in ['TV Mode', 'TV Bridge'] }}"
-      restore_policy_enabled: >
-        {{ (from_tv_mode and is_state('input_boolean.oal_policy_tv_snapshot_restore_enabled', 'on'))
-           or ((not from_tv_mode) and is_state('input_boolean.oal_policy_snapshot_restore_enabled', 'on')) }}
 
       # FIX 2: Calculate expanded switches once for efficiency
       all_switches_expanded: >
@@ -1815,8 +1825,10 @@ automation:
         target:
           entity_id: input_boolean.oal_config_transition_active
 
-      # Cancel bridge runtime state when leaving TV Bridge.
-      - if: "{{ was_bridge and config != 'TV Bridge' }}"
+      # =========================================================================
+      # BRIDGE CANCELLATION: Cancel TV bridge timer/flag on any config change
+      # =========================================================================
+      - if: "{{ was_bridge or is_state('input_boolean.oal_tv_bridge_active', 'on') }}"
         then:
           - service: timer.cancel
             target:
@@ -1903,8 +1915,17 @@ automation:
                           sun_elevation: "{{ sun_elevation }}"
                           sun_rising: "{{ sun_rising }}"
 
-              # 0b. Restore previous light state based on snapshot policy.
-              - if: "{{ restore_policy_enabled }}"
+              # 0b. Restore previous light state (snapshot from before config mode)
+              # v14: Split policy — TV restore independent of global restore
+              - variables:
+                  from_tv_mode: "{{ trigger_has_from_state and from_state_value in ['TV Mode', 'TV Bridge'] }}"
+                  should_restore: >
+                    {% if from_tv_mode %}
+                      {{ is_state('input_boolean.oal_policy_tv_snapshot_restore_enabled', 'on') }}
+                    {% else %}
+                      {{ is_state('input_boolean.oal_policy_snapshot_restore_enabled', 'on') }}
+                    {% endif %}
+              - if: "{{ should_restore }}"
                 then:
                   - service: scene.turn_on
                     target:
@@ -1912,6 +1933,13 @@ automation:
                     data:
                       transition: 0
                     continue_on_error: true  # Scene may not exist if starting fresh
+              # ALWAYS recalc after restore decision — brightness must never be stale
+              - event: oal_watchdog_trigger
+                event_data:
+                  message: "Adaptive restore — forcing engine recalc"
+                  force: true
+                  force_intent: "column_safe"
+                  source: "config_manager_adaptive_restore"
 
               # 0c. Guard against scene restore overriding protected column RGB session.
               - if:
@@ -2000,14 +2028,6 @@ automation:
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_transition_active
-
-              # 6. Trigger immediate engine update
-              - event: oal_watchdog_trigger
-                event_data:
-                  message: "Transition to Adaptive complete - forcing update"
-                  force: true
-                  force_intent: "column_safe"
-                  source: "config_manager_adaptive_restore"
               
               # EXIT: Baseline path complete - AL now works normally
           
@@ -2207,8 +2227,7 @@ automation:
                         - variables:
                             switch_id: "{{ repeat.item }}"
                             switch_lights: "{{ (state_attr(switch_id, 'configuration') or {}).get('lights', []) }}"
-                            switch_lights_expanded: "{{ expand(switch_lights) | map(attribute='entity_id') | list }}"
-                            lights_for_this_switch: "{{ new_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                            lights_for_this_switch: "{{ switch_lights | select('in', new_controlled_lights) | list }}"
                         - if:
                             - condition: template
                               value_template: "{{ lights_for_this_switch | length > 0 }}"
@@ -3437,6 +3456,167 @@ automation:
   # ---------------------------------------------------------------------------
   # 4.10 TV Mode Controller (replaces movie mode handler)
   # ---------------------------------------------------------------------------
+  # LEGACY HANDLER COMMENTED OUT FOR ROLLBACK — DELETE IN PHASE 7
+  # - id: oal_movie_mode_handler_v13
+  #   alias: "OAL v13 - Movie Mode Handler"
+  #   description: "Manages movie mode with scene snapshot and proper AL manual control handling."
+  #   mode: restart
+  #   trigger:
+  #     - platform: state
+  #       entity_id: media_player.living_room_apple_tv
+  #       to: "playing"
+  #       id: "start_movie"
+  #     - platform: state
+  #       entity_id: media_player.living_room_apple_tv
+  #       to:
+  #         - "paused"
+  #         - "off"
+  #         - "idle"
+  #         - "standby"
+  #       for: "00:01:30"
+  #       id: "end_movie"
+  #     - platform: homeassistant
+  #       event: start
+  #       id: "startup_reconcile"
+  #     - platform: event
+  #       event_type: automation_reloaded
+  #       id: "startup_reconcile"
+  #     - platform: state
+  #       entity_id: input_select.oal_active_configuration
+  #       to: "Adaptive"
+  #       id: "force_adaptive"
+  #   condition:
+  #     - condition: state
+  #       entity_id: input_boolean.oal_system_paused
+  #       state: "off"
+  #   action:
+  #     - variables:
+  #         trigger_id: "{{ trigger.id if trigger is defined and trigger.id is defined else 'manual' }}"
+  #         player_state: "{{ states('media_player.living_room_apple_tv') | lower }}"
+  #         should_start_movie: >
+  #           {{ (trigger_id == 'start_movie')
+  #              or (trigger_id in ['manual', 'startup_reconcile'] and player_state == 'playing') }}
+  #         should_end_movie: >
+  #           {{ ((trigger_id in ['end_movie', 'force_adaptive'])
+  #               or (trigger_id in ['manual', 'startup_reconcile'] and player_state != 'playing'))
+  #              and is_state('input_boolean.oal_movie_mode_active', 'on') }}
+  #         should_snapshot: >
+  #           {{ trigger_id != 'startup_reconcile'
+  #              and is_state('input_boolean.oal_movie_mode_active', 'off') }}
+  #     - if:
+  #         - condition: template
+  #           value_template: "{{ trigger_id == 'startup_reconcile' }}"
+  #       then:
+  #         - delay: "00:00:15"
+  #         - variables:
+  #             player_state: "{{ states('media_player.living_room_apple_tv') | lower }}"
+  #             should_start_movie: >
+  #               {{ player_state == 'playing' }}
+  #             should_end_movie: >
+  #               {{ player_state != 'playing'
+  #                  and is_state('input_boolean.oal_movie_mode_active', 'on') }}
+  #             should_snapshot: false
+  #     - choose:
+  #         - conditions: "{{ should_start_movie }}"
+  #           sequence:
+  #             - if:
+  #                 - condition: template
+  #                   value_template: "{{ should_snapshot }}"
+  #               then:
+  #                 - service: scene.create
+  #                   data:
+  #                     scene_id: oal_before_movie
+  #                     snapshot_entities:
+  #                       - light.all_adaptive_lights
+  #             - service: adaptive_lighting.set_manual_control
+  #               continue_on_error: true
+  #               target:
+  #                 entity_id: switch.adaptive_lighting_main_living
+  #               data:
+  #                 lights: light.main_living_lights
+  #                 manual_control: true
+  #             - service: adaptive_lighting.set_manual_control
+  #               continue_on_error: true
+  #               target:
+  #                 entity_id: switch.adaptive_lighting_kitchen_island
+  #               data:
+  #                 lights: light.kitchen_island_lights
+  #                 manual_control: true
+  #             - service: adaptive_lighting.set_manual_control
+  #               continue_on_error: true
+  #               target:
+  #                 entity_id: switch.adaptive_lighting_kitchen_undercabinet
+  #               data:
+  #                 lights: light.kitchen_undercabinet_lights
+  #                 manual_control: true
+  #             - service: adaptive_lighting.set_manual_control
+  #               continue_on_error: true
+  #               target:
+  #                 entity_id: switch.adaptive_lighting_recessed_ceiling
+  #               data:
+  #                 lights: light.recessed_ceiling_lights
+  #                 manual_control: true
+  #             - service: light.turn_off
+  #               continue_on_error: true
+  #               target:
+  #                 entity_id:
+  #                   - light.main_living_lights
+  #                   - light.kitchen_island_lights
+  #                   - light.recessed_ceiling_lights
+  #               data:
+  #                 transition: 3
+  #             - service: adaptive_lighting.apply
+  #               continue_on_error: true
+  #               data:
+  #                 entity_id: switch.adaptive_lighting_accent_spots
+  #                 lights: light.accent_spots_lights
+  #                 brightness_pct: 10
+  #                 color_temp_kelvin: 2000
+  #                 transition: 3
+  #                 turn_on_lights: true
+  #                 set_manual_control: true
+  #             - service: input_boolean.turn_on
+  #               target:
+  #                 entity_id: input_boolean.oal_movie_mode_active
+  #         - conditions: "{{ should_end_movie }}"
+  #           sequence:
+  #             - variables:
+  #                 movie_scene_available: >
+  #                   {{ states('scene.oal_before_movie') not in ['unknown', 'unavailable'] }}
+  #             - if:
+  #                 - condition: template
+  #                   value_template: "{{ movie_scene_available }}"
+  #               then:
+  #                 - service: scene.turn_on
+  #                   target:
+  #                     entity_id: scene.oal_before_movie
+  #                   data:
+  #                     transition: 3
+  #             - service: adaptive_lighting.set_manual_control
+  #               continue_on_error: true
+  #               target:
+  #                 entity_id:
+  #                   - switch.adaptive_lighting_main_living
+  #                   - switch.adaptive_lighting_kitchen_island
+  #                   - switch.adaptive_lighting_kitchen_undercabinet
+  #                   - switch.adaptive_lighting_recessed_ceiling
+  #                   - switch.adaptive_lighting_accent_spots
+  #               data:
+  #                 manual_control: false
+  #             - service: input_boolean.turn_off
+  #               target:
+  #                 entity_id: input_boolean.oal_movie_mode_active
+  #             - if:
+  #                 - condition: template
+  #                   value_template: "{{ not movie_scene_available }}"
+  #               then:
+  #                 - event: oal_watchdog_trigger
+  #                   event_data:
+  #                     force: true
+  #                     force_intent: "column_safe"
+  #                     source: "movie_mode_end_no_snapshot"
+  # END LEGACY HANDLER
+
   - id: oal_tv_mode_controller_v14
     alias: "OAL v14 - TV Mode Controller"
     description: >
@@ -3509,6 +3689,17 @@ automation:
           - choose:
               - conditions: "{{ player_state == 'playing' and autofollow_enabled and gate_passes and config != 'TV Mode' }}"
                 sequence:
+                  # Store interrupted timed mode (same as normal TV start path)
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_mode_before_tv
+                    data:
+                      option: >-
+                        {% if config in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] %}
+                          {{ config }}
+                        {% else %}
+                          {{ states('input_select.oal_mode_before_tv') }}
+                        {% endif %}
                   - service: input_boolean.turn_on
                     target:
                       entity_id: input_boolean.oal_tv_follow_session_active
@@ -3526,6 +3717,11 @@ automation:
                     then:
                       - service: input_select.select_option
                         target:
+                          entity_id: input_select.oal_mode_before_tv
+                        data:
+                          option: "none"
+                      - service: input_select.select_option
+                        target:
                           entity_id: input_select.oal_active_configuration
                         data:
                           option: "Adaptive"
@@ -3538,6 +3734,17 @@ automation:
               {{ (trigger_id == 'tv_start' or (trigger_id == 'manual' and player_state == 'playing'))
                  and autofollow_enabled and gate_passes and config != 'TV Mode' }}
         then:
+          # Store the interrupted mode if it's a timed mode (for resume after TV)
+          - service: input_select.select_option
+            target:
+              entity_id: input_select.oal_mode_before_tv
+            data:
+              option: >-
+                {% if config in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] %}
+                  {{ config }}
+                {% else %}
+                  {{ states('input_select.oal_mode_before_tv') }}
+                {% endif %}
           - service: input_boolean.turn_on
             target:
               entity_id: input_boolean.oal_tv_follow_session_active
@@ -3576,6 +3783,8 @@ automation:
               - delay: "00:01:05"
               - variables:
                   player_still_stopped: "{{ states('media_player.living_room_apple_tv') | lower != 'playing' }}"
+                  stored_mode: "{{ states('input_select.oal_mode_before_tv') }}"
+                  return_mode: "{{ stored_mode if stored_mode in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] else 'Adaptive' }}"
               - if: "{{ player_still_stopped }}"
                 then:
                   - service: input_boolean.turn_off
@@ -3583,10 +3792,15 @@ automation:
                       entity_id: input_boolean.oal_tv_follow_session_active
                   - service: input_select.select_option
                     target:
+                      entity_id: input_select.oal_mode_before_tv
+                    data:
+                      option: "none"
+                  - service: input_select.select_option
+                    target:
                       entity_id: input_select.oal_active_configuration
                     data:
-                      option: "Adaptive"
-                  - stop: "TV auto-follow ended, returned to Adaptive"
+                      option: "{{ return_mode }}"
+                  - stop: "TV auto-follow ended, returned to {{ return_mode }}"
 
   # ---------------------------------------------------------------------------
   # 4.11 Sleep-mode schedule (sets input_select → Config Manager → Core Engine)
@@ -3651,38 +3865,28 @@ automation:
       - service: input_boolean.turn_off
         target:
           entity_id: input_boolean.oal_system_paused
-      # Unconditional startup cleanup for persisted TV session/timer artifacts.
-      - service: input_boolean.turn_off
-        target:
-          entity_id:
-            - input_boolean.oal_tv_follow_session_active
-            - input_boolean.oal_tv_bridge_active
-      - service: timer.cancel
-        target:
-          entity_id:
-            - timer.oal_mode_timeout
-            - timer.oal_tv_bridge_timer
-      - service: input_select.select_option
-        target:
-          entity_id: input_select.oal_mode_timeout_state
-        data:
-          option: "idle"
       # Re-enable critical OAL automations that should always be active.
       - service: automation.turn_on
         target:
           entity_id:
             - automation.oal_auto_switch_to_manual_config_on_manual_control
             - automation.oal_auto_switch_to_adaptive_when_all_zones_clear
-            - automation.oal_v14_tv_mode_controller
+            - automation.oal_tv_mode_controller_v14
             - automation.oal_v14_mode_timeout_manager
             - automation.oal_v14_tv_bridge_manager
-            - automation.oal_v14_tv_bridge_cleanup_on_mode_change
             - automation.oal_v14_unified_timer_notification
             - automation.oal_v14_timer_notification_handler
+      # v14: Disable legacy override notification (replaced by unified arbiter)
       - service: automation.turn_off
         target:
-          entity_id: automation.oal_v13_override_expiring_soon_warning
+          entity_id: automation.oal_v13_override_expiring_notification
       - service: script.oal_reset_global
+      # v14: Clear TV session flags after startup reset
+      - service: input_boolean.turn_off
+        target:
+          entity_id:
+            - input_boolean.oal_tv_follow_session_active
+            - input_boolean.oal_tv_bridge_active
       - delay: "00:00:02"
       # Trigger initial calculations with force=true to ensure all lights updated
       - event: oal_watchdog_trigger
@@ -3785,7 +3989,7 @@ automation:
       - service: input_boolean.turn_off
         target:
           entity_id: input_boolean.oal_column_rgb_session_active
-      # Unconditional cleanup of TV/session timers before any gated reset logic.
+      # v14: Clear TV session flags — must never persist overnight
       - service: input_boolean.turn_off
         target:
           entity_id:
@@ -3794,13 +3998,18 @@ automation:
       - service: timer.cancel
         target:
           entity_id:
-            - timer.oal_mode_timeout
             - timer.oal_tv_bridge_timer
+            - timer.oal_mode_timeout
       - service: input_select.select_option
         target:
           entity_id: input_select.oal_mode_timeout_state
         data:
           option: "idle"
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.oal_mode_before_tv
+        data:
+          option: "none"
       # Only reset offsets if zen32 hasn't been touched in 24h
       - condition: template
         value_template: >
@@ -3952,8 +4161,8 @@ automation:
 
   - id: oal_v13_override_expiring_notification
     alias: "OAL v13 - Override Expiring Soon Warning"
-    mode: single
     initial_state: false
+    mode: single
     trigger:
       - platform: template
         value_template: >
@@ -4045,6 +4254,10 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_config_transition_active
         state: "off"
+      # v14: Don't switch to Manual during an active TV follow session
+      - condition: state
+        entity_id: input_boolean.oal_tv_follow_session_active
+        state: "off"
     action:
       - service: input_select.select_option
         target:
@@ -4088,6 +4301,10 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_config_transition_active
         state: "off"
+      # v14: Don't auto-return to Adaptive during an active TV follow session
+      - condition: state
+        entity_id: input_boolean.oal_tv_follow_session_active
+        state: "off"
     action:
       - service: input_number.set_value
         target:
@@ -4100,9 +4317,9 @@ automation:
         data:
           option: "Adaptive"
 
-  # -------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
   # 4.14 Global Mode Timeout Manager
-  # -------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
   - id: oal_v14_mode_timeout_manager
     alias: "OAL v14 - Mode Timeout Manager"
     mode: restart
@@ -4121,13 +4338,11 @@ automation:
       - platform: homeassistant
         event: start
         id: "startup"
-    # No automation-level condition: cleanup paths must always run.
+    # NO automation-level condition -- must always run to clean up state
     action:
       - variables:
-          trigger_id: "{{ trigger.id if trigger is defined and trigger.id is defined else 'manual' }}"
           config: "{{ states('input_select.oal_active_configuration') }}"
           timeout_enabled: "{{ is_state('input_boolean.oal_mode_timeout_enabled', 'on') }}"
-          timeout_state: "{{ states('input_select.oal_mode_timeout_state') }}"
           eligible: "{{ config in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] }}"
           is_tv: "{{ config in ['TV Mode', 'TV Bridge'] }}"
           is_manual: "{{ config == 'Manual' }}"
@@ -4135,48 +4350,127 @@ automation:
           timer_state: "{{ states('timer.oal_mode_timeout') }}"
           timeout_secs: "{{ (states('input_number.oal_control_mode_timeout_hours') | float(4) * 3600) | int }}"
 
-      - choose:
-          - conditions: "{{ trigger_id == 'startup' }}"
-            sequence: []
+      # Gate: config-reactive logic only runs for non-startup triggers.
+      # Startup has its own reconcile path below that respects restore: true.
+      - if: "{{ trigger.id != 'startup' }}"
+        then:
+          - choose:
+              # Timer expired -> return to Adaptive (always honored even if disabled mid-run)
+              - conditions: "{{ trigger.id == 'timer_expired' and eligible }}"
+                sequence:
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_mode_timeout_state
+                    data:
+                      option: "expired"
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_active_configuration
+                    data:
+                      option: "Adaptive"
 
-          # Timer expired in a timed mode -> expire + return to Adaptive.
-          - conditions: "{{ trigger_id == 'timer_expired' and eligible }}"
-            sequence:
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.oal_mode_timeout_state
-                data:
-                  option: "expired"
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.oal_active_configuration
-                data:
-                  option: "Adaptive"
+              # Enable toggle turned OFF -> cancel running timer immediately
+              - conditions: "{{ trigger.id == 'enable_toggle' and not timeout_enabled and timer_state == 'active' }}"
+                sequence:
+                  - service: timer.cancel
+                    target:
+                      entity_id: timer.oal_mode_timeout
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_mode_timeout_state
+                    data:
+                      option: "idle"
 
-          # Ignore stale/late timer finished events when no timed mode is active.
-          - conditions: "{{ trigger_id == 'timer_expired' and not eligible }}"
-            sequence:
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.oal_mode_timeout_state
-                data:
-                  option: "idle"
+              # Eligible mode entered + timeout enabled -> arm or resume timer
+              - conditions: "{{ eligible and timeout_enabled }}"
+                sequence:
+                  - if: "{{ timer_state == 'paused' }}"
+                    then:
+                      # Resume from paused remaining time (TV suspend → timed mode return)
+                      - service: timer.start
+                        target:
+                          entity_id: timer.oal_mode_timeout
+                        # No duration — resumes from paused remaining time
+                    else:
+                      # Fresh arm with full duration
+                      - service: timer.start
+                        target:
+                          entity_id: timer.oal_mode_timeout
+                        data:
+                          duration: "{{ timeout_secs }}"
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_mode_timeout_state
+                    data:
+                      option: "armed"
 
-          # Timeout disabled -> cancel immediately, even if timer is paused.
-          - conditions: "{{ trigger_id == 'enable_toggle' and not timeout_enabled }}"
-            sequence:
-              - service: timer.cancel
-                target:
-                  entity_id: timer.oal_mode_timeout
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.oal_mode_timeout_state
-                data:
-                  option: "idle"
+              # Eligible mode entered but timeout disabled -> ensure idle
+              - conditions: "{{ eligible and not timeout_enabled }}"
+                sequence:
+                  - service: timer.cancel
+                    target:
+                      entity_id: timer.oal_mode_timeout
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_mode_timeout_state
+                    data:
+                      option: "idle"
 
-          # Timed mode entered + enabled -> arm/re-arm with configured duration.
-          - conditions: "{{ eligible and timeout_enabled }}"
-            sequence:
+              # TV Mode entered -> pause timer if active (preserve remaining time)
+              - conditions: "{{ is_tv }}"
+                sequence:
+                  - if: "{{ timer_state == 'active' }}"
+                    then:
+                      - service: timer.pause
+                        target:
+                          entity_id: timer.oal_mode_timeout
+                      - service: input_select.select_option
+                        target:
+                          entity_id: input_select.oal_mode_timeout_state
+                        data:
+                          option: "suspended_by_tv"
+                    else:
+                      - service: input_select.select_option
+                        target:
+                          entity_id: input_select.oal_mode_timeout_state
+                        data:
+                          option: "idle"
+
+              # Manual entered -> cancel timer (user took deliberate control)
+              - conditions: "{{ is_manual }}"
+                sequence:
+                  - service: timer.cancel
+                    target:
+                      entity_id: timer.oal_mode_timeout
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_mode_timeout_state
+                    data:
+                      option: "idle"
+
+              # Adaptive/Sleep entered -> cancel timer
+              - conditions: "{{ is_rest }}"
+                sequence:
+                  - service: timer.cancel
+                    target:
+                      entity_id: timer.oal_mode_timeout
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_mode_timeout_state
+                    data:
+                      option: "idle"
+
+      # Startup reconciliation
+      - if: "{{ trigger.id == 'startup' }}"
+        then:
+          - delay: "00:00:20"
+          - variables:
+              config: "{{ states('input_select.oal_active_configuration') }}"
+              timer_state: "{{ states('timer.oal_mode_timeout') }}"
+              timeout_enabled: "{{ is_state('input_boolean.oal_mode_timeout_enabled', 'on') }}"
+              timeout_secs: "{{ (states('input_number.oal_control_mode_timeout_hours') | float(4) * 3600) | int }}"
+          - if: "{{ config in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] and timer_state == 'idle' and timeout_enabled }}"
+            then:
               - service: timer.start
                 target:
                   entity_id: timer.oal_mode_timeout
@@ -4188,121 +4482,9 @@ automation:
                 data:
                   option: "armed"
 
-          # Timed mode entered but disabled -> enforce idle.
-          - conditions: "{{ eligible and not timeout_enabled }}"
-            sequence:
-              - service: timer.cancel
-                target:
-                  entity_id: timer.oal_mode_timeout
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.oal_mode_timeout_state
-                data:
-                  option: "idle"
-
-          # Always-Adaptive TV policy: entering TV/Bridge cancels timed-mode timeout.
-          - conditions: "{{ is_tv }}"
-            sequence:
-              - service: timer.cancel
-                target:
-                  entity_id: timer.oal_mode_timeout
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.oal_mode_timeout_state
-                data:
-                  option: "idle"
-
-          # Manual takeover and baseline modes always cancel timer.
-          - conditions: "{{ is_manual }}"
-            sequence:
-              - service: timer.cancel
-                target:
-                  entity_id: timer.oal_mode_timeout
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.oal_mode_timeout_state
-                data:
-                  option: "idle"
-
-          - conditions: "{{ is_rest }}"
-            sequence:
-              - service: timer.cancel
-                target:
-                  entity_id: timer.oal_mode_timeout
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.oal_mode_timeout_state
-                data:
-                  option: "idle"
-
-      # Startup reconciliation.
-      - if: "{{ trigger_id == 'startup' }}"
-        then:
-          - delay: "00:00:20"
-          - variables:
-              config: "{{ states('input_select.oal_active_configuration') }}"
-              timeout_enabled: "{{ is_state('input_boolean.oal_mode_timeout_enabled', 'on') }}"
-              timeout_state: "{{ states('input_select.oal_mode_timeout_state') }}"
-              timer_state: "{{ states('timer.oal_mode_timeout') }}"
-              timeout_secs: "{{ (states('input_number.oal_control_mode_timeout_hours') | float(4) * 3600) | int }}"
-          - choose:
-              - conditions: "{{ config in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] and timeout_enabled and timer_state == 'idle' }}"
-                sequence:
-                  - service: timer.start
-                    target:
-                      entity_id: timer.oal_mode_timeout
-                    data:
-                      duration: "{{ timeout_secs }}"
-                  - service: input_select.select_option
-                    target:
-                      entity_id: input_select.oal_mode_timeout_state
-                    data:
-                      option: "armed"
-
-              - conditions: "{{ config in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] and timeout_enabled and timer_state == 'active' }}"
-                sequence:
-                  - service: input_select.select_option
-                    target:
-                      entity_id: input_select.oal_mode_timeout_state
-                    data:
-                      option: "armed"
-
-              - conditions: "{{ config in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] and not timeout_enabled }}"
-                sequence:
-                  - service: timer.cancel
-                    target:
-                      entity_id: timer.oal_mode_timeout
-                  - service: input_select.select_option
-                    target:
-                      entity_id: input_select.oal_mode_timeout_state
-                    data:
-                      option: "idle"
-
-              - conditions: "{{ config in ['TV Mode', 'TV Bridge'] and timer_state in ['active', 'paused'] }}"
-                sequence:
-                  - service: timer.cancel
-                    target:
-                      entity_id: timer.oal_mode_timeout
-                  - service: input_select.select_option
-                    target:
-                      entity_id: input_select.oal_mode_timeout_state
-                    data:
-                      option: "idle"
-
-              - conditions: "{{ config in ['Adaptive', 'Manual', 'Sleep'] }}"
-                sequence:
-                  - service: timer.cancel
-                    target:
-                      entity_id: timer.oal_mode_timeout
-                  - service: input_select.select_option
-                    target:
-                      entity_id: input_select.oal_mode_timeout_state
-                    data:
-                      option: "idle"
-
-  # -------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
   # 4.15 TV Bridge Manager
-  # -------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
   - id: oal_v14_tv_bridge_manager
     alias: "OAL v14 - TV Bridge Manager"
     mode: restart
@@ -4320,18 +4502,19 @@ automation:
         state: "TV Bridge"
     action:
       - variables:
-          return_mode: "Adaptive"
+          stored_mode: "{{ states('input_select.oal_mode_before_tv') }}"
+          return_to: "{{ stored_mode if stored_mode in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] else 'Adaptive' }}"
       - service: notify.notify
         data:
           title: "TV Bridge Ending"
-          message: "Returning to {{ return_mode }} in 5 minutes unless extended."
+          message: "Returning to {{ return_to }} in 5 minutes unless extended."
           data:
-            tag: "oal_bridge_expiring"
+            tag: "oal_timer_expiring"
             actions:
               - action: "OAL_BRIDGE_EXTEND"
                 title: "Extend Bridge"
               - action: "OAL_BRIDGE_RETURN"
-                title: "Return Adaptive"
+                title: "End Bridge"
               - action: "OAL_BRIDGE_KEEP"
                 title: "Keep Current"
       - wait_for_trigger:
@@ -4361,8 +4544,8 @@ automation:
                 data:
                   message: "Bridge extended."
                   data:
-                    tag: "oal_bridge_expiring"
-          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == 'OAL_BRIDGE_RETURN' }}"
+                    tag: "oal_timer_expiring"
+          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == 'OAL_BRIDGE_KEEP' }}"
             sequence:
               - service: input_boolean.turn_off
                 target:
@@ -4372,34 +4555,49 @@ automation:
                   entity_id: timer.oal_tv_bridge_timer
               - service: input_select.select_option
                 target:
+                  entity_id: input_select.oal_mode_before_tv
+                data:
+                  option: "none"
+              - service: notify.notify
+                data:
+                  message: "Staying in bridge mode. Select a mode manually when ready."
+                  data:
+                    tag: "oal_timer_expiring"
+          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == 'OAL_BRIDGE_RETURN' }}"
+            sequence:
+              - variables:
+                  stored_mode: "{{ states('input_select.oal_mode_before_tv') }}"
+                  return_mode: "{{ stored_mode if stored_mode in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] else 'Adaptive' }}"
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.oal_tv_bridge_active
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.oal_mode_before_tv
+                data:
+                  option: "none"
+              - service: input_select.select_option
+                target:
                   entity_id: input_select.oal_active_configuration
                 data:
                   option: "{{ return_mode }}"
               - service: notify.notify
                 data:
-                  message: "Returned to {{ return_mode }}."
+                  message: "Bridge ended — returned to {{ return_mode }}."
                   data:
-                    tag: "oal_bridge_expiring"
-          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == 'OAL_BRIDGE_KEEP' }}"
-            sequence:
-              - service: input_boolean.turn_off
-                target:
-                  entity_id: input_boolean.oal_tv_bridge_active
-              - service: timer.cancel
-                target:
-                  entity_id: timer.oal_tv_bridge_timer
-              - service: notify.notify
-                data:
-                  message: "Staying in TV Bridge mode. Select a mode manually when ready."
-                  data:
-                    tag: "oal_bridge_expiring"
+                    tag: "oal_timer_expiring"
         default:
+          - variables:
+              stored_mode: "{{ states('input_select.oal_mode_before_tv') }}"
+              return_mode: "{{ stored_mode if stored_mode in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] else 'Adaptive' }}"
           - service: input_boolean.turn_off
             target:
               entity_id: input_boolean.oal_tv_bridge_active
-          - service: timer.cancel
+          - service: input_select.select_option
             target:
-              entity_id: timer.oal_tv_bridge_timer
+              entity_id: input_select.oal_mode_before_tv
+            data:
+              option: "none"
           - service: input_select.select_option
             target:
               entity_id: input_select.oal_active_configuration
@@ -4407,45 +4605,15 @@ automation:
               option: "{{ return_mode }}"
           - service: notify.notify
             data:
-              message: "TV Bridge expired - returned to {{ return_mode }}."
+              message: "TV Bridge expired — returned to {{ return_mode }}."
               data:
-                tag: "oal_bridge_expiring"
+                tag: "oal_timer_expiring"
 
-  # -------------------------------------------------------------------------
-  # 4.15b TV Bridge Cleanup on Mode Change
-  # -------------------------------------------------------------------------
-  - id: oal_v14_tv_bridge_cleanup_on_mode_change
-    alias: "OAL v14 - TV Bridge Cleanup on Mode Change"
-    trigger:
-      - platform: state
-        entity_id: input_select.oal_active_configuration
-    condition:
-      - condition: template
-        value_template: >
-          {{ trigger.from_state is not none
-             and trigger.from_state.state == 'TV Bridge'
-             and trigger.to_state is not none
-             and trigger.to_state.state != 'TV Bridge' }}
-      - condition: or
-        conditions:
-          - condition: state
-            entity_id: input_boolean.oal_tv_bridge_active
-            state: "on"
-          - condition: template
-            value_template: "{{ states('timer.oal_tv_bridge_timer') != 'idle' }}"
-    action:
-      - service: input_boolean.turn_off
-        target:
-          entity_id: input_boolean.oal_tv_bridge_active
-      - service: timer.cancel
-        target:
-          entity_id: timer.oal_tv_bridge_timer
-
-  # -------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
   # 4.16 Unified Timer Notification Arbiter
-  # -------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
   - id: oal_v14_unified_timer_notification
-    alias: "OAL v14 - Unified Timer Notification"
+    alias: "OAL v14 - Unified Timer Expiring Notification"
     mode: single
     trigger:
       - platform: time_pattern
@@ -4454,61 +4622,55 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_system_paused
         state: "off"
+      - condition: state
+        entity_id: sun.sun
+        state: "below_horizon"
+      # Expiring check — must be in conditions so last_triggered only updates when true
+      - condition: template
+        value_template: >
+          {% set mode_state = states('timer.oal_mode_timeout') %}
+          {% set mode_remaining = 0 %}
+          {% if mode_state == 'active' %}
+            {% set parts = state_attr('timer.oal_mode_timeout', 'remaining') | default('0:0:0') %}
+            {% set h, m, s = parts.split(':') | map('int') %}
+            {% set mode_remaining = h * 3600 + m * 60 + s %}
+          {% endif %}
+          {% set zone_remaining = state_attr('sensor.oal_soonest_override', 'seconds_remaining') | int(0) %}
+          {{ (mode_remaining > 0 and mode_remaining < 300) or (zone_remaining > 0 and zone_remaining < 300) }}
+      # 90s cooldown — works correctly now because last_triggered only updates when all conditions pass
+      - condition: template
+        value_template: >
+          {% set last = state_attr('automation.oal_v14_unified_timer_notification', 'last_triggered') %}
+          {{ last is none or (now() - last).total_seconds() > 90 }}
     action:
       - variables:
-          active_config: "{{ states('input_select.oal_active_configuration') }}"
           mode_timer_state: "{{ states('timer.oal_mode_timeout') }}"
-          mode_remaining_raw: "{{ state_attr('timer.oal_mode_timeout', 'remaining') | default('0:00:00') }}"
           mode_remaining: >
             {% if mode_timer_state == 'active' %}
-              {% set parts = mode_remaining_raw.split(':') %}
-              {% if parts | length == 3 %}
-                {{ (parts[0] | int(0)) * 3600 + (parts[1] | int(0)) * 60 + (parts[2] | int(0)) }}
-              {% else %}
-                0
-              {% endif %}
-            {% else %}
-              0
-            {% endif %}
-          mode_expiring: >
-            {{ active_config in ['Full Bright', 'Dim Ambient', 'Warm Ambient']
-               and mode_remaining > 0
-               and mode_remaining < 300 }}
-          mode_name: "{{ active_config }}"
+              {% set parts = state_attr('timer.oal_mode_timeout', 'remaining') | default('0:0:0') %}
+              {% set h, m, s = parts.split(':') | map('int') %}
+              {{ h * 3600 + m * 60 + s }}
+            {% else %}0{% endif %}
+          mode_expiring: "{{ mode_remaining > 0 and mode_remaining < 300 }}"
+          mode_name: "{{ states('input_select.oal_active_configuration') }}"
           zone_remaining: "{{ state_attr('sensor.oal_soonest_override', 'seconds_remaining') | int(0) }}"
           zone_expiring: "{{ zone_remaining > 0 and zone_remaining < 300 }}"
           zone_name: "{{ state_attr('sensor.oal_soonest_override', 'zone_friendly') | default('Unknown') }}"
-          either_expiring: "{{ mode_expiring or zone_expiring }}"
           both_expiring: "{{ mode_expiring and zone_expiring }}"
-      - condition: template
-        value_template: "{{ either_expiring }}"
-      # Mode timeout warnings should fire pre-expiry regardless of sun state.
-      # Zone-only alerts remain night-scoped to avoid daytime notification noise.
-      - condition: template
-        value_template: "{{ mode_expiring or (zone_expiring and is_state('sun.sun', 'below_horizon')) }}"
-      # 90s cooldown using dedicated helper timestamp (anti-spam gate).
-      - condition: template
-        value_template: >
-          {% set last_raw = states('input_datetime.oal_last_timeout_notification') %}
-          {% set last_ts = as_timestamp(last_raw, 0) %}
-          {{ (now().timestamp() - last_ts) > 90 }}
       - service: notify.notify
         data:
           title: >
-            {% if both_expiring %}
-              OAL Timers Expiring
-            {% elif mode_expiring %}
-              OAL Mode Expiring
-            {% else %}
-              OAL Zone Expiring
-            {% endif %}
+            {% if both_expiring %}OAL Timers Expiring
+            {% elif mode_expiring %}OAL Mode Expiring
+            {% else %}OAL Zone Expiring{% endif %}
           message: >
             {% if both_expiring %}
-              Mode: {{ (mode_remaining / 60) | round(0) }}min ({{ mode_name }}). Zone: {{ (zone_remaining / 60) | round(0) }}min ({{ zone_name }}).
+              Mode: {{ (mode_remaining / 60) | round(0) }}min ({{ mode_name }})
+              Zone: {{ (zone_remaining / 60) | round(0) }}min ({{ zone_name }})
             {% elif mode_expiring %}
-              {{ mode_name }}: {{ (mode_remaining / 60) | round(0) }}min remaining.
+              {{ mode_name }}: {{ (mode_remaining / 60) | round(0) }}min remaining
             {% else %}
-              {{ zone_name }}: {{ (zone_remaining / 60) | round(0) }}min remaining.
+              {{ zone_name }}: {{ (zone_remaining / 60) | round(0) }}min remaining
             {% endif %}
           data:
             tag: "oal_timer_expiring"
@@ -4523,17 +4685,12 @@ automation:
                 title: "Return Adaptive"
               - action: "OAL_LET_EXPIRE"
                 title: "Let Expire"
-      - service: input_datetime.set_datetime
-        target:
-          entity_id: input_datetime.oal_last_timeout_notification
-        data:
-          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
 
-  # -------------------------------------------------------------------------
-  # 4.17 Unified Timer Notification Action Handler
-  # -------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 4.17 Timer Notification Action Handler
+  # ---------------------------------------------------------------------------
   - id: oal_v14_timer_notification_handler
-    alias: "OAL v14 - Timer Notification Handler"
+    alias: "OAL v14 - Timer Notification Action Handler"
     mode: single
     trigger:
       - platform: event
@@ -4562,139 +4719,43 @@ automation:
           action: "OAL_LET_EXPIRE"
         id: "let_expire"
     action:
-      - variables:
-          mode_timeout_enabled: "{{ is_state('input_boolean.oal_mode_timeout_enabled', 'on') }}"
-          mode_timeout_secs: "{{ (states('input_number.oal_control_mode_timeout_hours') | float(4) * 3600) | int }}"
-          mode_eligible: >
-            {{ mode_timeout_enabled and states('input_select.oal_active_configuration') in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] }}
-          zone_id: "{{ state_attr('sensor.oal_soonest_override', 'zone_id') | default('None') }}"
-          zone_name: "{{ state_attr('sensor.oal_soonest_override', 'zone_friendly') | default('Unknown') }}"
-          zone_remaining: "{{ state_attr('sensor.oal_soonest_override', 'seconds_remaining') | int(0) }}"
-          zone_switch: "{{ 'switch.adaptive_lighting_' ~ zone_id }}"
-          zone_eligible: >
-            {{ zone_id not in ['None', 'unknown', 'unavailable', '']
-               and zone_remaining > 0
-               and states(zone_switch) not in ['unknown', 'unavailable'] }}
       - choose:
-          - conditions: "{{ trigger.id == 'extend_mode' }}"
+          - conditions: "{{ trigger.id in ['extend_mode', 'extend_both'] }}"
             sequence:
-              - choose:
-                  - conditions: "{{ mode_eligible }}"
-                    sequence:
-                      - service: timer.start
-                        target:
-                          entity_id: timer.oal_mode_timeout
-                        data:
-                          duration: "{{ mode_timeout_secs }}"
-                      - service: input_select.select_option
-                        target:
-                          entity_id: input_select.oal_mode_timeout_state
-                        data:
-                          option: "armed"
-                      - service: notify.notify
-                        data:
-                          message: "Mode timeout extended."
-                          data:
-                            tag: "oal_timer_expiring"
-                default:
-                  - service: notify.notify
-                    data:
-                      message: "Mode extension unavailable in current mode."
-                      data:
-                        tag: "oal_timer_expiring"
-
-          - conditions: "{{ trigger.id == 'extend_zone' }}"
-            sequence:
-              - choose:
-                  - conditions: "{{ zone_eligible }}"
-                    sequence:
-                      - service: adaptive_lighting.set_manual_control
-                        target:
-                          entity_id: "{{ zone_switch }}"
-                        data:
-                          manual_control: true
-                      - service: notify.notify
-                        data:
-                          message: "Zone override extended: {{ zone_name }}."
-                          data:
-                            tag: "oal_timer_expiring"
-                default:
-                  - service: notify.notify
-                    data:
-                      message: "Zone extension unavailable."
-                      data:
-                        tag: "oal_timer_expiring"
-
-          - conditions: "{{ trigger.id == 'extend_both' }}"
-            sequence:
-              - if: "{{ mode_eligible }}"
-                then:
-                  - service: timer.start
-                    target:
-                      entity_id: timer.oal_mode_timeout
-                    data:
-                      duration: "{{ mode_timeout_secs }}"
-                  - service: input_select.select_option
-                    target:
-                      entity_id: input_select.oal_mode_timeout_state
-                    data:
-                      option: "armed"
-              - if: "{{ zone_eligible }}"
-                then:
-                  - service: adaptive_lighting.set_manual_control
-                    target:
-                      entity_id: "{{ zone_switch }}"
-                    data:
-                      manual_control: true
-              - choose:
-                  - conditions: "{{ mode_eligible and zone_eligible }}"
-                    sequence:
-                      - service: notify.notify
-                        data:
-                          message: "Mode and zone timers extended."
-                          data:
-                            tag: "oal_timer_expiring"
-                  - conditions: "{{ mode_eligible and not zone_eligible }}"
-                    sequence:
-                      - service: notify.notify
-                        data:
-                          message: "Mode timeout extended; zone extension unavailable."
-                          data:
-                            tag: "oal_timer_expiring"
-                  - conditions: "{{ not mode_eligible and zone_eligible }}"
-                    sequence:
-                      - service: notify.notify
-                        data:
-                          message: "Zone override extended; mode extension unavailable."
-                          data:
-                            tag: "oal_timer_expiring"
-                default:
-                  - service: notify.notify
-                    data:
-                      message: "Mode and zone extensions unavailable."
-                      data:
-                        tag: "oal_timer_expiring"
-
-          - conditions: "{{ trigger.id == 'return_adaptive' }}"
-            sequence:
-              - service: input_select.select_option
+              - service: timer.start
                 target:
-                  entity_id: input_select.oal_active_configuration
+                  entity_id: timer.oal_mode_timeout
                 data:
-                  option: "Adaptive"
-              - service: notify.notify
-                data:
-                  message: "Returned to Adaptive."
-                  data:
-                    tag: "oal_timer_expiring"
-
-          - conditions: "{{ trigger.id == 'let_expire' }}"
+                  duration: "{{ (states('input_number.oal_control_mode_timeout_hours') | float(4) * 3600) | int }}"
+      - choose:
+          - conditions: "{{ trigger.id in ['extend_zone', 'extend_both'] }}"
             sequence:
-              - service: notify.notify
+              - condition: template
+                value_template: "{{ state_attr('sensor.oal_soonest_override', 'zone_id') not in [none, 'None', ''] }}"
+              - service: adaptive_lighting.set_manual_control
+                target:
+                  entity_id: >
+                    switch.adaptive_lighting_{{ state_attr('sensor.oal_soonest_override', 'zone_id') }}
                 data:
-                  message: "Timers will expire naturally."
-                  data:
-                    tag: "oal_timer_expiring"
+                  manual_control: true
+      - if: "{{ trigger.id == 'return_adaptive' }}"
+        then:
+          # Direct mode set, NOT oal_reset_soft (preserves environmental offsets)
+          - service: input_select.select_option
+            target:
+              entity_id: input_select.oal_active_configuration
+            data:
+              option: "Adaptive"
+      - service: notify.notify
+        data:
+          message: >
+            {% if trigger.id == 'extend_mode' %}Mode extended.
+            {% elif trigger.id == 'extend_zone' %}Zone override extended.
+            {% elif trigger.id == 'extend_both' %}Both timers extended.
+            {% elif trigger.id == 'return_adaptive' %}Returned to Adaptive.
+            {% else %}Timers will expire naturally.{% endif %}
+          data:
+            tag: "oal_timer_expiring"
 
   # -------------------------------------------------------------------------
   # Learning Event Logger - Captures manual brightness adjustments for analysis
@@ -5717,9 +5778,11 @@ script:
           entity_id: input_select.oal_isolated_override_mode
         data:
           option: "Off"
+      # v14: Clear all TV session flags on soft reset
       - service: input_boolean.turn_off
         target:
           entity_id:
+            - input_boolean.oal_movie_mode_active
             - input_boolean.oal_tv_follow_session_active
             - input_boolean.oal_tv_bridge_active
       - service: timer.cancel
@@ -5732,6 +5795,11 @@ script:
           entity_id: input_select.oal_mode_timeout_state
         data:
           option: "idle"
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.oal_mode_before_tv
+        data:
+          option: "none"
 
       # Set Adaptive — Config Manager triggers IF state actually changes
       - service: input_select.select_option
@@ -6149,19 +6217,24 @@ template:
           manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
           guard_kill_switch: "{{ states('input_boolean.oal_column_rgb_guard_kill_switch') }}"
 
+  # --- v14 Derived binary sensors ---
   - binary_sensor:
       - name: "OAL TV Mode Active"
-        unique_id: oal_tv_mode_active_derived
+        unique_id: oal_tv_mode_active_v14
+        icon: mdi:television
         state: >
           {{ states('input_select.oal_active_configuration') in ['TV Mode', 'TV Bridge'] }}
-        icon: mdi:television
+        attributes:
+          config: "{{ states('input_select.oal_active_configuration') }}"
+          session_active: "{{ is_state('input_boolean.oal_tv_follow_session_active', 'on') }}"
+          bridge_active: "{{ is_state('input_boolean.oal_tv_bridge_active', 'on') }}"
 
-      - name: "OAL Movie Mode Active"
-        unique_id: oal_movie_mode_active_derived
+      - name: "OAL Movie Mode Active (Derived)"
+        unique_id: oal_movie_mode_active_derived_v14
+        icon: mdi:movie-open
         state: >
           {{ states('input_select.oal_active_configuration') == 'TV Mode'
              and states('media_player.living_room_apple_tv') == 'playing' }}
-        icon: mdi:movie-open
 
   - sensor:
       # -----------------------------------------------------------------------
@@ -6333,7 +6406,7 @@ template:
           {% elif states('input_select.oal_active_configuration') == 'Sleep' %}
             Sleep Mode
           {% elif states('input_select.oal_active_configuration') == 'TV Mode' %}
-            TV Mode
+            TV Mode{{ ' (Follow)' if is_state('input_boolean.oal_tv_follow_session_active', 'on') else '' }}
           {% elif states('input_select.oal_active_configuration') == 'TV Bridge' %}
             TV Bridge
           {% elif states('input_select.oal_isolated_override_mode') != 'Off' %}
@@ -6377,6 +6450,8 @@ template:
               {% endif %}
             {% endfor %}
             {{ ns.count }}
+          mode_before_tv: >
+            {{ states('input_select.oal_mode_before_tv') }}
           # --- Phase 3: Extended attributes (Tasks 3.1-3.14) ---
           zones_adaptive: >
             {{ 7 - (state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0)) }}

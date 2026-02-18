@@ -199,6 +199,7 @@ input_select:
     options:
       - "idle"
       - "armed"
+      - "suspended_by_tv"
       - "expired"
     initial: "idle"
     icon: mdi:timer-sand
@@ -1691,11 +1692,11 @@ automation:
           k: -1500 # Very warm
           lights_off:
             - light.column_lights            # Off - near TV glare
+            - light.living_room_floor_lamp   # Off - direct line of sight
             - light.recessed_ceiling_lights  # Off - harsh overhead
           lights_dimmed:
             light.living_room_couch_lamp: 5   # Barely visible
-            light.living_room_floor_lamp: 5   # Minimal direct light
-            light.kitchen_island_pendants: 5  # Background glow
+            light.kitchen_island_pendants: 15 # Background glow
             light.kitchen_counter_cabinet_underlights: 10  # Safety/navigation glow
             light.accent_spots_lights: 5      # Subtle ambient
             light.entryway_lamp: 8            # Navigation/safety
@@ -2207,8 +2208,7 @@ automation:
                         - variables:
                             switch_id: "{{ repeat.item }}"
                             switch_lights: "{{ (state_attr(switch_id, 'configuration') or {}).get('lights', []) }}"
-                            switch_lights_expanded: "{{ expand(switch_lights) | map(attribute='entity_id') | list }}"
-                            lights_for_this_switch: "{{ new_controlled_lights | select('in', switch_lights_expanded) | list }}"
+                            lights_for_this_switch: "{{ switch_lights | select('in', new_controlled_lights) | list }}"
                         - if:
                             - condition: template
                               value_template: "{{ lights_for_this_switch | length > 0 }}"
@@ -3676,7 +3676,6 @@ automation:
             - automation.oal_v14_tv_mode_controller
             - automation.oal_v14_mode_timeout_manager
             - automation.oal_v14_tv_bridge_manager
-            - automation.oal_v14_tv_bridge_cleanup_on_mode_change
             - automation.oal_v14_unified_timer_notification
             - automation.oal_v14_timer_notification_handler
       - service: automation.turn_off
@@ -4454,6 +4453,9 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_system_paused
         state: "off"
+      - condition: state
+        entity_id: sun.sun
+        state: "below_horizon"
     action:
       - variables:
           active_config: "{{ states('input_select.oal_active_configuration') }}"
@@ -4482,10 +4484,6 @@ automation:
           both_expiring: "{{ mode_expiring and zone_expiring }}"
       - condition: template
         value_template: "{{ either_expiring }}"
-      # Mode timeout warnings should fire pre-expiry regardless of sun state.
-      # Zone-only alerts remain night-scoped to avoid daytime notification noise.
-      - condition: template
-        value_template: "{{ mode_expiring or (zone_expiring and is_state('sun.sun', 'below_horizon')) }}"
       # 90s cooldown using dedicated helper timestamp (anti-spam gate).
       - condition: template
         value_template: >
@@ -6155,13 +6153,6 @@ template:
         state: >
           {{ states('input_select.oal_active_configuration') in ['TV Mode', 'TV Bridge'] }}
         icon: mdi:television
-
-      - name: "OAL Movie Mode Active"
-        unique_id: oal_movie_mode_active_derived
-        state: >
-          {{ states('input_select.oal_active_configuration') == 'TV Mode'
-             and states('media_player.living_room_apple_tv') == 'playing' }}
-        icon: mdi:movie-open
 
   - sensor:
       # -----------------------------------------------------------------------

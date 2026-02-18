@@ -191,8 +191,18 @@ input_select:
       - "Off"
       - "Night + Presence"
       - "Always Follow"
-    initial: "Night + Presence"
+      - "Ask First"
+    initial: "Ask First"
     icon: mdi:television-play
+
+  oal_tv_presence_loss_behavior:
+    name: "OAL TV Presence-Loss Behavior"
+    options:
+      - "Ignore"
+      - "Prompt"
+      - "Exit"
+    initial: "Prompt"
+    icon: mdi:account-off-outline
 
   oal_mode_timeout_state:
     name: "OAL Mode Timeout State"
@@ -480,6 +490,21 @@ input_boolean:
     initial: false
     icon: mdi:bridge
 
+  oal_tv_mode_prompt_pending:
+    name: "OAL TV Mode Prompt Pending"
+    initial: false
+    icon: mdi:message-question
+
+  oal_tv_mode_prompt_declined:
+    name: "OAL TV Mode Prompt Declined"
+    initial: false
+    icon: mdi:message-reply-text-outline
+
+  oal_tv_presence_prompt_pending:
+    name: "OAL TV Presence Prompt Pending"
+    initial: false
+    icon: mdi:account-question
+
   oal_autoreset_sync_lock:
     name: "OAL Autoreset Sync Lock"
     initial: false
@@ -543,6 +568,25 @@ input_datetime:
     has_time: true
     icon: mdi:message-clock-outline
 
+  oal_last_manual_control_at:
+    name: "OAL Last Manual Control At"
+    has_date: true
+    has_time: true
+    icon: mdi:timeline-clock-outline
+
+input_text:
+  oal_last_manual_control_source:
+    name: "OAL Last Manual Control Source"
+    max: 255
+    initial: "none"
+    icon: mdi:source-branch
+
+  oal_last_manual_control_context:
+    name: "OAL Last Manual Control Context"
+    max: 255
+    initial: "none"
+    icon: mdi:identifier
+
 timer:
   oal_mode_timeout:
     name: "OAL Mode Timeout"
@@ -553,6 +597,18 @@ timer:
     name: "OAL TV Bridge Timer"
     icon: mdi:bridge
     restore: true
+
+  oal_tv_mode_prompt:
+    name: "OAL TV Mode Prompt"
+    duration: "00:10:00"
+    restore: false
+    icon: mdi:message-question
+
+  oal_tv_presence_prompt:
+    name: "OAL TV Presence Prompt"
+    duration: "00:02:00"
+    restore: false
+    icon: mdi:account-question
 
 # =============================================================================
 # LAYER 3: ADAPTIVE LIGHTING ZONES (BASELINE CURVES)
@@ -3503,6 +3559,8 @@ automation:
           bridge_enabled: "{{ is_state('input_boolean.oal_policy_tv_bridge_enabled', 'on') }}"
           autofollow_enabled: "{{ is_state('input_boolean.oal_policy_tv_autofollow_enabled', 'on') }}"
           session_active: "{{ is_state('input_boolean.oal_tv_follow_session_active', 'on') }}"
+          prompt_pending: "{{ is_state('input_boolean.oal_tv_mode_prompt_pending', 'on') }}"
+          prompt_declined: "{{ is_state('input_boolean.oal_tv_mode_prompt_declined', 'on') }}"
           sun_below: "{{ state_attr('sun.sun', 'elevation') | float(0) < -3 }}"
           presence_detected: >
             {{ expand('group.oal_tv_presence_sensors')
@@ -3510,7 +3568,7 @@ automation:
                | selectattr('state', 'eq', 'on') | list | length > 0 }}
           gate_passes: >
             {{ gate_setting == 'Always Follow'
-               or (gate_setting == 'Night + Presence' and sun_below and presence_detected) }}
+               or (gate_setting in ['Night + Presence', 'Ask First'] and sun_below and presence_detected) }}
 
       # --- STARTUP RECONCILE ---
       - if:
@@ -3530,10 +3588,17 @@ automation:
               gate_setting: "{{ states('input_select.oal_tv_autofollow_gate') }}"
               gate_passes: >
                 {{ gate_setting == 'Always Follow'
-                   or (gate_setting == 'Night + Presence' and sun_below and presence_detected) }}
+                   or (gate_setting in ['Night + Presence', 'Ask First'] and sun_below and presence_detected) }}
               session_active: "{{ is_state('input_boolean.oal_tv_follow_session_active', 'on') }}"
+              prompt_pending: "{{ is_state('input_boolean.oal_tv_mode_prompt_pending', 'on') }}"
+              prompt_declined: "{{ is_state('input_boolean.oal_tv_mode_prompt_declined', 'on') }}"
           - choose:
-              - conditions: "{{ player_state == 'playing' and autofollow_enabled and gate_passes and config != 'TV Mode' }}"
+              - conditions: >
+                  {{ player_state == 'playing'
+                     and autofollow_enabled
+                     and gate_passes
+                     and gate_setting != 'Ask First'
+                     and config != 'TV Mode' }}
                 sequence:
                   - service: input_boolean.turn_on
                     target:
@@ -3543,6 +3608,43 @@ automation:
                       entity_id: input_select.oal_active_configuration
                     data:
                       option: "TV Mode"
+                  - service: notify.notify
+                    data:
+                      title: "TV Mode Activated"
+                      message: "Lights adjusted for TV viewing."
+                      data:
+                        tag: "oal_tv_mode_activated"
+                        actions:
+                          - action: "OAL_TV_CANCEL_AUTOFOLLOW"
+                            title: "Cancel"
+              - conditions: >
+                  {{ player_state == 'playing'
+                     and autofollow_enabled
+                     and gate_passes
+                     and gate_setting == 'Ask First'
+                     and config != 'TV Mode'
+                     and not prompt_pending
+                     and not prompt_declined }}
+                sequence:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: input_boolean.oal_tv_mode_prompt_pending
+                  - service: timer.start
+                    target:
+                      entity_id: timer.oal_tv_mode_prompt
+                    data:
+                      duration: 600
+                  - service: notify.notify
+                    data:
+                      title: "TV Mode?"
+                      message: "Apple TV is playing. Switch to TV lighting?"
+                      data:
+                        tag: "oal_tv_mode_prompt"
+                        actions:
+                          - action: "OAL_TV_ENTER"
+                            title: "Enter TV Mode"
+                          - action: "OAL_TV_DISMISS"
+                            title: "Not Now"
               - conditions: "{{ player_state != 'playing' and session_active }}"
                 sequence:
                   - service: input_boolean.turn_off
@@ -3555,6 +3657,17 @@ automation:
                           entity_id: input_select.oal_active_configuration
                         data:
                           option: "Adaptive"
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id:
+                        - input_boolean.oal_tv_mode_prompt_pending
+                        - input_boolean.oal_tv_mode_prompt_declined
+                        - input_boolean.oal_tv_presence_prompt_pending
+                  - service: timer.cancel
+                    target:
+                      entity_id:
+                        - timer.oal_tv_mode_prompt
+                        - timer.oal_tv_presence_prompt
           - stop: "Startup reconcile complete"
 
       # --- TV START ---
@@ -3562,7 +3675,7 @@ automation:
           - condition: template
             value_template: >
               {{ (trigger_id == 'tv_start' or (trigger_id == 'manual' and player_state == 'playing'))
-                 and autofollow_enabled and gate_passes and config != 'TV Mode' }}
+                 and autofollow_enabled and gate_passes and gate_setting != 'Ask First' and config != 'TV Mode' }}
         then:
           - service: input_boolean.turn_on
             target:
@@ -3572,14 +3685,67 @@ automation:
               entity_id: input_select.oal_active_configuration
             data:
               option: "TV Mode"
+          - service: notify.notify
+            data:
+              title: "TV Mode Activated"
+              message: "Lights adjusted for TV viewing."
+              data:
+                tag: "oal_tv_mode_activated"
+                actions:
+                  - action: "OAL_TV_CANCEL_AUTOFOLLOW"
+                    title: "Cancel"
           - stop: "TV Mode activated via auto-follow"
+
+      # --- ASK FIRST ---
+      - if:
+          - condition: template
+            value_template: >
+              {{ (trigger_id == 'tv_start' or (trigger_id == 'manual' and player_state == 'playing'))
+                 and autofollow_enabled
+                 and gate_setting == 'Ask First'
+                 and gate_passes
+                 and config != 'TV Mode'
+                 and not prompt_pending
+                 and not prompt_declined }}
+        then:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.oal_tv_mode_prompt_pending
+          - service: timer.start
+            target:
+              entity_id: timer.oal_tv_mode_prompt
+            data:
+              duration: 600
+          - service: notify.notify
+            data:
+              title: "TV Mode?"
+              message: "Apple TV is playing. Switch to TV lighting?"
+              data:
+                tag: "oal_tv_mode_prompt"
+                actions:
+                  - action: "OAL_TV_ENTER"
+                    title: "Enter TV Mode"
+                  - action: "OAL_TV_DISMISS"
+                    title: "Not Now"
+          - stop: "Ask First prompt sent"
 
       # --- TV STOP (single trigger, computed path) ---
       - if:
           - condition: template
-            value_template: "{{ trigger_id == 'tv_stop' and session_active }}"
+            value_template: "{{ trigger_id == 'tv_stop' }}"
         then:
-          - if: "{{ bridge_enabled and gate_passes }}"
+          - service: input_boolean.turn_off
+            target:
+              entity_id:
+                - input_boolean.oal_tv_mode_prompt_pending
+                - input_boolean.oal_tv_mode_prompt_declined
+                - input_boolean.oal_tv_presence_prompt_pending
+          - service: timer.cancel
+            target:
+              entity_id:
+                - timer.oal_tv_mode_prompt
+                - timer.oal_tv_presence_prompt
+          - if: "{{ session_active and bridge_enabled and gate_passes }}"
             then:
               - service: input_boolean.turn_off
                 target:
@@ -3597,8 +3763,23 @@ automation:
                   entity_id: timer.oal_tv_bridge_timer
                 data:
                   duration: "{{ (states('input_number.oal_tv_bridge_minutes') | float(10) * 60) | int }}"
+              - service: notify.notify
+                data:
+                  title: "TV Bridge Started"
+                  message: >
+                    Holding TV Bridge for {{ states('input_number.oal_tv_bridge_minutes') | int(10) }} minutes.
+                  data:
+                    tag: "oal_bridge_expiring"
+                    actions:
+                      - action: "OAL_BRIDGE_EXTEND"
+                        title: "Extend Bridge"
+                      - action: "OAL_BRIDGE_RETURN"
+                        title: "Return Adaptive"
+                      - action: "OAL_BRIDGE_KEEP"
+                        title: "Keep Current"
               - stop: "TV Bridge started"
-            else:
+          - if: "{{ session_active }}"
+            then:
               - delay: "00:01:05"
               - variables:
                   player_still_stopped: "{{ states('media_player.living_room_apple_tv') | lower != 'playing' }}"
@@ -3613,6 +3794,103 @@ automation:
                     data:
                       option: "Adaptive"
                   - stop: "TV auto-follow ended, returned to Adaptive"
+
+  # ---------------------------------------------------------------------------
+  # 4.10b TV Presence Loss Manager
+  # ---------------------------------------------------------------------------
+  - id: oal_v14_tv_presence_loss_manager
+    alias: "OAL v14 - TV Presence Loss Manager"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: group.oal_tv_presence_sensors
+        to: "off"
+        for: "00:01:30"
+        id: "presence_lost"
+      - platform: state
+        entity_id: group.oal_tv_presence_sensors
+        to: "on"
+        id: "presence_restored"
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+    action:
+      - variables:
+          trigger_id: "{{ trigger.id if trigger is defined and trigger.id is defined else 'manual' }}"
+          config: "{{ states('input_select.oal_active_configuration') }}"
+          behavior: "{{ states('input_select.oal_tv_presence_loss_behavior') }}"
+          player_state: "{{ states('media_player.living_room_apple_tv') | lower }}"
+          tv_session_owned: >
+            {{ is_state('input_boolean.oal_tv_follow_session_active', 'on')
+               or is_state('input_boolean.oal_tv_bridge_active', 'on') }}
+          presence_prompt_pending: "{{ is_state('input_boolean.oal_tv_presence_prompt_pending', 'on') }}"
+      - choose:
+          - conditions: "{{ trigger_id == 'presence_restored' }}"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.oal_tv_presence_prompt_pending
+              - service: timer.cancel
+                target:
+                  entity_id: timer.oal_tv_presence_prompt
+              - service: notify.notify
+                data:
+                  message: "Presence restored."
+                  data:
+                    tag: "oal_tv_presence_prompt"
+          - conditions: >
+              {{ trigger_id == 'presence_lost'
+                 and behavior != 'Ignore'
+                 and tv_session_owned
+                 and config in ['TV Mode', 'TV Bridge']
+                 and player_state == 'playing' }}
+            sequence:
+              - choose:
+                  - conditions: "{{ behavior == 'Exit' }}"
+                    sequence:
+                      - service: input_boolean.turn_off
+                        target:
+                          entity_id:
+                            - input_boolean.oal_tv_follow_session_active
+                            - input_boolean.oal_tv_bridge_active
+                            - input_boolean.oal_tv_presence_prompt_pending
+                      - service: timer.cancel
+                        target:
+                          entity_id:
+                            - timer.oal_tv_bridge_timer
+                            - timer.oal_tv_presence_prompt
+                      - service: input_select.select_option
+                        target:
+                          entity_id: input_select.oal_active_configuration
+                        data:
+                          option: "Adaptive"
+                      - service: notify.notify
+                        data:
+                          message: "TV Mode exited due to presence loss."
+                          data:
+                            tag: "oal_tv_presence_prompt"
+                  - conditions: "{{ behavior == 'Prompt' and not presence_prompt_pending }}"
+                    sequence:
+                      - service: input_boolean.turn_on
+                        target:
+                          entity_id: input_boolean.oal_tv_presence_prompt_pending
+                      - service: timer.start
+                        target:
+                          entity_id: timer.oal_tv_presence_prompt
+                        data:
+                          duration: 120
+                      - service: notify.notify
+                        data:
+                          title: "No Presence Detected"
+                          message: "Keep TV lighting active?"
+                          data:
+                            tag: "oal_tv_presence_prompt"
+                            actions:
+                              - action: "OAL_TV_PRESENCE_KEEP"
+                                title: "Keep TV Mode"
+                              - action: "OAL_TV_PRESENCE_EXIT"
+                                title: "Return Adaptive"
 
   # ---------------------------------------------------------------------------
   # 4.11 Sleep-mode schedule (sets input_select → Config Manager → Core Engine)
@@ -3683,11 +3961,16 @@ automation:
           entity_id:
             - input_boolean.oal_tv_follow_session_active
             - input_boolean.oal_tv_bridge_active
+            - input_boolean.oal_tv_mode_prompt_pending
+            - input_boolean.oal_tv_mode_prompt_declined
+            - input_boolean.oal_tv_presence_prompt_pending
       - service: timer.cancel
         target:
           entity_id:
             - timer.oal_mode_timeout
             - timer.oal_tv_bridge_timer
+            - timer.oal_tv_mode_prompt
+            - timer.oal_tv_presence_prompt
       - service: input_select.select_option
         target:
           entity_id: input_select.oal_mode_timeout_state
@@ -3703,6 +3986,8 @@ automation:
             - automation.oal_v14_mode_timeout_manager
             - automation.oal_v14_tv_bridge_manager
             - automation.oal_v14_tv_bridge_cleanup_on_mode_change
+            - automation.oal_v14_tv_presence_loss_manager
+            - automation.oal_v14_tv_notification_handler
             - automation.oal_v14_unified_timer_notification
             - automation.oal_v14_timer_notification_handler
       - service: automation.turn_off
@@ -3817,11 +4102,16 @@ automation:
           entity_id:
             - input_boolean.oal_tv_follow_session_active
             - input_boolean.oal_tv_bridge_active
+            - input_boolean.oal_tv_mode_prompt_pending
+            - input_boolean.oal_tv_mode_prompt_declined
+            - input_boolean.oal_tv_presence_prompt_pending
       - service: timer.cancel
         target:
           entity_id:
             - timer.oal_mode_timeout
             - timer.oal_tv_bridge_timer
+            - timer.oal_tv_mode_prompt
+            - timer.oal_tv_presence_prompt
       - service: input_select.select_option
         target:
           entity_id: input_select.oal_mode_timeout_state
@@ -4360,66 +4650,17 @@ automation:
                 title: "Return Adaptive"
               - action: "OAL_BRIDGE_KEEP"
                 title: "Keep Current"
-      - wait_for_trigger:
-          - platform: event
-            event_type: mobile_app_notification_action
-            event_data:
-              action: "OAL_BRIDGE_EXTEND"
-          - platform: event
-            event_type: mobile_app_notification_action
-            event_data:
-              action: "OAL_BRIDGE_RETURN"
-          - platform: event
-            event_type: mobile_app_notification_action
-            event_data:
-              action: "OAL_BRIDGE_KEEP"
-        timeout: "00:05:00"
-        continue_on_timeout: true
-      - choose:
-          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == 'OAL_BRIDGE_EXTEND' }}"
-            sequence:
-              - service: timer.start
-                target:
-                  entity_id: timer.oal_tv_bridge_timer
-                data:
-                  duration: "{{ (states('input_number.oal_tv_bridge_minutes') | float(10) * 60) | int }}"
-              - service: notify.notify
-                data:
-                  message: "Bridge extended."
-                  data:
-                    tag: "oal_bridge_expiring"
-          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == 'OAL_BRIDGE_RETURN' }}"
-            sequence:
-              - service: input_boolean.turn_off
-                target:
-                  entity_id: input_boolean.oal_tv_bridge_active
-              - service: timer.cancel
-                target:
-                  entity_id: timer.oal_tv_bridge_timer
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.oal_active_configuration
-                data:
-                  option: "{{ return_mode }}"
-              - service: notify.notify
-                data:
-                  message: "Returned to {{ return_mode }}."
-                  data:
-                    tag: "oal_bridge_expiring"
-          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == 'OAL_BRIDGE_KEEP' }}"
-            sequence:
-              - service: input_boolean.turn_off
-                target:
-                  entity_id: input_boolean.oal_tv_bridge_active
-              - service: timer.cancel
-                target:
-                  entity_id: timer.oal_tv_bridge_timer
-              - service: notify.notify
-                data:
-                  message: "Staying in TV Bridge mode. Select a mode manually when ready."
-                  data:
-                    tag: "oal_bridge_expiring"
-        default:
+      - delay: "00:05:00"
+      - if:
+          - condition: state
+            entity_id: input_boolean.oal_tv_bridge_active
+            state: "on"
+          - condition: state
+            entity_id: input_select.oal_active_configuration
+            state: "TV Bridge"
+          - condition: template
+            value_template: "{{ states('timer.oal_tv_bridge_timer') == 'idle' }}"
+        then:
           - service: input_boolean.turn_off
             target:
               entity_id: input_boolean.oal_tv_bridge_active
@@ -4466,6 +4707,280 @@ automation:
       - service: timer.cancel
         target:
           entity_id: timer.oal_tv_bridge_timer
+
+  # -------------------------------------------------------------------------
+  # 4.15c TV Notification Action Handler
+  # -------------------------------------------------------------------------
+  - id: oal_v14_tv_notification_handler
+    alias: "OAL v14 - TV Notification Handler"
+    mode: single
+    trigger:
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "OAL_TV_CANCEL_AUTOFOLLOW"
+        id: "cancel_tv"
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "OAL_TV_ENTER"
+        id: "enter_tv"
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "OAL_TV_DISMISS"
+        id: "dismiss_tv"
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "OAL_BRIDGE_EXTEND"
+        id: "bridge_extend"
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "OAL_BRIDGE_RETURN"
+        id: "bridge_return"
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "OAL_BRIDGE_KEEP"
+        id: "bridge_keep"
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "OAL_TV_PRESENCE_KEEP"
+        id: "presence_keep"
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "OAL_TV_PRESENCE_EXIT"
+        id: "presence_exit"
+      - platform: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.oal_tv_mode_prompt
+        id: "prompt_timeout"
+      - platform: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.oal_tv_presence_prompt
+        id: "presence_prompt_timeout"
+    action:
+      - variables:
+          config: "{{ states('input_select.oal_active_configuration') }}"
+          player_state: "{{ states('media_player.living_room_apple_tv') | lower }}"
+          bridge_active: "{{ is_state('input_boolean.oal_tv_bridge_active', 'on') }}"
+          bridge_timer_state: "{{ states('timer.oal_tv_bridge_timer') }}"
+          presence_still_off: "{{ is_state('group.oal_tv_presence_sensors', 'off') }}"
+          tv_session_owned: >
+            {{ is_state('input_boolean.oal_tv_follow_session_active', 'on')
+               or is_state('input_boolean.oal_tv_bridge_active', 'on') }}
+      - choose:
+          - conditions: "{{ trigger.id == 'cancel_tv' }}"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.oal_tv_follow_session_active
+                    - input_boolean.oal_tv_bridge_active
+                    - input_boolean.oal_tv_mode_prompt_pending
+                    - input_boolean.oal_tv_mode_prompt_declined
+                    - input_boolean.oal_tv_presence_prompt_pending
+              - service: timer.cancel
+                target:
+                  entity_id:
+                    - timer.oal_tv_bridge_timer
+                    - timer.oal_tv_mode_prompt
+                    - timer.oal_tv_presence_prompt
+              - if: "{{ config in ['TV Mode', 'TV Bridge'] }}"
+                then:
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_active_configuration
+                    data:
+                      option: "Adaptive"
+              - service: notify.notify
+                data:
+                  message: "Returned to Adaptive."
+                  data:
+                    tag: "oal_tv_mode_activated"
+
+          - conditions: "{{ trigger.id == 'enter_tv' }}"
+            sequence:
+              - if: "{{ player_state == 'playing' and config not in ['TV Mode', 'Sleep'] }}"
+                then:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: input_boolean.oal_tv_follow_session_active
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: input_boolean.oal_tv_bridge_active
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_active_configuration
+                    data:
+                      option: "TV Mode"
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.oal_tv_mode_prompt_pending
+                    - input_boolean.oal_tv_mode_prompt_declined
+                    - input_boolean.oal_tv_presence_prompt_pending
+              - service: timer.cancel
+                target:
+                  entity_id:
+                    - timer.oal_tv_mode_prompt
+                    - timer.oal_tv_presence_prompt
+              - service: notify.notify
+                data:
+                  message: "TV Mode activated."
+                  data:
+                    tag: "oal_tv_mode_prompt"
+
+          - conditions: "{{ trigger.id == 'dismiss_tv' }}"
+            sequence:
+              - service: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.oal_tv_mode_prompt_declined
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.oal_tv_mode_prompt_pending
+              - service: timer.cancel
+                target:
+                  entity_id: timer.oal_tv_mode_prompt
+              - service: notify.notify
+                data:
+                  message: "TV prompt dismissed."
+                  data:
+                    tag: "oal_tv_mode_prompt"
+
+          - conditions: "{{ trigger.id == 'prompt_timeout' }}"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.oal_tv_mode_prompt_pending
+
+          - conditions: "{{ trigger.id == 'bridge_extend' }}"
+            sequence:
+              - if: "{{ bridge_active and config == 'TV Bridge' }}"
+                then:
+                  - service: timer.start
+                    target:
+                      entity_id: timer.oal_tv_bridge_timer
+                    data:
+                      duration: "{{ (states('input_number.oal_tv_bridge_minutes') | float(10) * 60) | int }}"
+                  - service: notify.notify
+                    data:
+                      message: "Bridge extended."
+                      data:
+                        tag: "oal_bridge_expiring"
+
+          - conditions: "{{ trigger.id == 'bridge_return' }}"
+            sequence:
+              - if: "{{ bridge_active and config in ['TV Bridge', 'TV Mode'] }}"
+                then:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id:
+                        - input_boolean.oal_tv_follow_session_active
+                        - input_boolean.oal_tv_bridge_active
+                  - service: timer.cancel
+                    target:
+                      entity_id: timer.oal_tv_bridge_timer
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_active_configuration
+                    data:
+                      option: "Adaptive"
+                  - service: notify.notify
+                    data:
+                      message: "Returned to Adaptive."
+                      data:
+                        tag: "oal_bridge_expiring"
+
+          - conditions: "{{ trigger.id == 'bridge_keep' }}"
+            sequence:
+              - if: "{{ bridge_active and config == 'TV Bridge' }}"
+                then:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: input_boolean.oal_tv_bridge_active
+                  - service: timer.cancel
+                    target:
+                      entity_id: timer.oal_tv_bridge_timer
+                  - service: notify.notify
+                    data:
+                      message: "Staying in TV Bridge mode."
+                      data:
+                        tag: "oal_bridge_expiring"
+
+          - conditions: "{{ trigger.id == 'presence_keep' }}"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.oal_tv_presence_prompt_pending
+              - service: timer.cancel
+                target:
+                  entity_id: timer.oal_tv_presence_prompt
+              - service: notify.notify
+                data:
+                  message: "Keeping TV mode active."
+                  data:
+                    tag: "oal_tv_presence_prompt"
+
+          - conditions: "{{ trigger.id == 'presence_exit' }}"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.oal_tv_follow_session_active
+                    - input_boolean.oal_tv_bridge_active
+                    - input_boolean.oal_tv_presence_prompt_pending
+              - service: timer.cancel
+                target:
+                  entity_id:
+                    - timer.oal_tv_bridge_timer
+                    - timer.oal_tv_presence_prompt
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.oal_active_configuration
+                data:
+                  option: "Adaptive"
+              - service: notify.notify
+                data:
+                  message: "Returned to Adaptive."
+                  data:
+                    tag: "oal_tv_presence_prompt"
+
+          - conditions: "{{ trigger.id == 'presence_prompt_timeout' }}"
+            sequence:
+              - if: "{{ tv_session_owned and presence_still_off and player_state == 'playing' and config in ['TV Mode', 'TV Bridge'] }}"
+                then:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id:
+                        - input_boolean.oal_tv_follow_session_active
+                        - input_boolean.oal_tv_bridge_active
+                        - input_boolean.oal_tv_presence_prompt_pending
+                  - service: timer.cancel
+                    target:
+                      entity_id:
+                        - timer.oal_tv_bridge_timer
+                        - timer.oal_tv_presence_prompt
+                  - service: input_select.select_option
+                    target:
+                      entity_id: input_select.oal_active_configuration
+                    data:
+                      option: "Adaptive"
+                  - service: notify.notify
+                    data:
+                      message: "No response to presence prompt. Returned to Adaptive."
+                      data:
+                        tag: "oal_tv_presence_prompt"
+                else:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: input_boolean.oal_tv_presence_prompt_pending
 
   # -------------------------------------------------------------------------
   # 4.16 Unified Timer Notification Arbiter
@@ -4721,6 +5236,70 @@ automation:
                   message: "Timers will expire naturally."
                   data:
                     tag: "oal_timer_expiring"
+
+  # -------------------------------------------------------------------------
+  # 4.18 Manual Control Provenance
+  # -------------------------------------------------------------------------
+  - id: oal_v14_manual_control_provenance
+    alias: "OAL v14 - Manual Control Provenance"
+    mode: queued
+    max: 20
+    trigger:
+      - platform: state
+        entity_id:
+          - switch.adaptive_lighting_main_living
+          - switch.adaptive_lighting_kitchen_island
+          - switch.adaptive_lighting_kitchen_undercabinet
+          - switch.adaptive_lighting_bedroom_primary
+          - switch.adaptive_lighting_accent_spots
+          - switch.adaptive_lighting_recessed_ceiling
+          - switch.adaptive_lighting_column_lights
+    condition:
+      - condition: template
+        value_template: >
+          {% set from_count = (trigger.from_state.attributes.manual_control | default([])) | length if trigger.from_state is not none else 0 %}
+          {% set to_count = (trigger.to_state.attributes.manual_control | default([])) | length if trigger.to_state is not none else 0 %}
+          {{ from_count == 0 and to_count > 0 }}
+    action:
+      - variables:
+          source_summary: >
+            {% set ctx = trigger.to_state.context if trigger.to_state is not none else none %}
+            {% if ctx is not none and ctx.user_id %}
+              user:{{ ctx.user_id }}
+            {% elif ctx is not none and ctx.parent_id %}
+              parent:{{ ctx.parent_id }}
+            {% else %}
+              system
+            {% endif %}
+          context_summary: >
+            {% set ctx = trigger.to_state.context if trigger.to_state is not none else none %}
+            {% if ctx is not none %}
+              id={{ ctx.id | default('none') }},parent={{ ctx.parent_id | default('none') }},user={{ ctx.user_id | default('none') }}
+            {% else %}
+              none
+            {% endif %}
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.oal_last_manual_control_source
+        data:
+          value: "{{ source_summary }}"
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.oal_last_manual_control_context
+        data:
+          value: "{{ context_summary }}"
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.oal_last_manual_control_at
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+      - event: oal_manual_control_asserted
+        event_data:
+          source: "{{ source_summary }}"
+          context: "{{ context_summary }}"
+          switch: "{{ trigger.entity_id }}"
+          config: "{{ states('input_select.oal_active_configuration') }}"
+          manual_lights: "{{ trigger.to_state.attributes.manual_control | default([]) }}"
 
   # -------------------------------------------------------------------------
   # Learning Event Logger - Captures manual brightness adjustments for analysis
@@ -5748,11 +6327,16 @@ script:
           entity_id:
             - input_boolean.oal_tv_follow_session_active
             - input_boolean.oal_tv_bridge_active
+            - input_boolean.oal_tv_mode_prompt_pending
+            - input_boolean.oal_tv_mode_prompt_declined
+            - input_boolean.oal_tv_presence_prompt_pending
       - service: timer.cancel
         target:
           entity_id:
             - timer.oal_mode_timeout
             - timer.oal_tv_bridge_timer
+            - timer.oal_tv_mode_prompt
+            - timer.oal_tv_presence_prompt
       - service: input_select.select_option
         target:
           entity_id: input_select.oal_mode_timeout_state
@@ -5771,6 +6355,16 @@ script:
               snapshot_entities:
                 - light.all_adaptive_lights
 
+      # For non-Adaptive starts, pre-acquire transition lock so offset recalcs
+      # cannot race outside lock ownership while Config Manager starts.
+      - if:
+          - condition: template
+            value_template: "{{ was_non_adaptive }}"
+        then:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.oal_config_transition_active
+
       # Set Adaptive — Config Manager triggers IF state actually changes
       - service: input_select.select_option
         target:
@@ -5784,9 +6378,6 @@ script:
               - condition: template
                 value_template: "{{ was_non_adaptive }}"
             sequence:
-              - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'on') }}"
-                timeout: "00:00:03"
-                continue_on_timeout: true
               # Reconcile time-dependent dynamic offsets immediately so soft reset
               # cannot leave stale values until periodic automations run.
               - service: automation.trigger
@@ -6513,6 +7104,18 @@ template:
             {{ is_state('input_boolean.oal_tv_follow_session_active', 'on') }}
           tv_bridge_active: >
             {{ is_state('input_boolean.oal_tv_bridge_active', 'on') }}
+          tv_prompt_pending: >
+            {{ is_state('input_boolean.oal_tv_mode_prompt_pending', 'on') }}
+          tv_prompt_declined: >
+            {{ is_state('input_boolean.oal_tv_mode_prompt_declined', 'on') }}
+          tv_presence_prompt_pending: >
+            {{ is_state('input_boolean.oal_tv_presence_prompt_pending', 'on') }}
+          last_manual_control_source: >
+            {{ states('input_text.oal_last_manual_control_source') }}
+          last_manual_control_context: >
+            {{ states('input_text.oal_last_manual_control_context') }}
+          last_manual_control_at: >
+            {{ states('input_datetime.oal_last_manual_control_at') }}
           mode_timeout_state: >
             {{ states('input_select.oal_mode_timeout_state') }}
           mode_timeout_remaining: >

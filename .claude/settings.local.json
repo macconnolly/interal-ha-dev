@@ -73,7 +73,9 @@
       "Bash(git -C /home/mac/HA/oal-v14-unification branch --show-current)",
       "Bash(git -C /home/mac/HA/oal-v14-migration branch --show-current)",
       "Bash(git -C /home/mac/HA/implementation_10 branch --show-current)",
-      "mcp__claude_ai_Core_memory__memory_search"
+      "mcp__claude_ai_Core_memory__memory_search",
+      "Bash(wc:*)",
+      "mcp__plugin_claude-mem_mcp-search____IMPORTANT"
     ],
     "deny": [],
     "ask": []

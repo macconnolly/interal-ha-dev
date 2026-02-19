@@ -1,0 +1,1580 @@
+/**
+ * Tunet Lighting Card  v3.0.1 Beta
+ * ──────────────────────────────────────────────────────────────
+ * Complete rewrite aligned to Tunet Design Language v8.0 by Mac
+ * Reference: tunet_climate_card.js (gold standard)
+ *
+ * Architecture:
+ *   Shadow DOM custom element · Full token system (light + dark)
+ *   Design-language header (info tile + toggle + selector)
+ *   Flexible layout: grid | scroll with full config
+ *   Three entity patterns: rich YAML, group expansion, named zones
+ *   Drag-to-dim · Floating pill · Manual-control dots
+ *   Adaptive-lighting toggle · Per-entity cooldown
+ *
+ * Config options:
+ *   entities:         [string[]]   Light entity IDs (groups auto-expand)
+ *   zones:            [object[]]   Rich per-entity: {entity, name, icon}
+ *   name:             string       Card title (default: "Lighting")
+ *   subtitle:         string       Optional static subtitle override
+ *   primary_entity:   string       Entity for info-tile tap (hass-more-info)
+ *   adaptive_entity:  string       Adaptive Lighting switch entity
+ *   layout:           'grid'|'scroll'   Layout mode (default: grid)
+ *   columns:          2-5          Grid columns (default: 3)
+ *   rows:             'auto'|2-6   Max visible rows in grid (default: auto)
+ *   scroll_rows:      1-3          Rows in scroll mode (default: 2)
+ *   tile_size:        'compact'|'standard'  Tile aspect ratio (default: standard)
+ *   surface:          'card'|'section'  Surface architecture (default: card)
+ * ──────────────────────────────────────────────────────────────
+ */
+
+const LIGHTING_CARD_VERSION = '3.0.0';
+
+/* ═══════════════════════════════════════════════════════════════
+   CSS – Complete token system from Design Language v8.0
+   ═══════════════════════════════════════════════════════════════ */
+
+const LIGHTING_STYLES = `
+  /* ── Tokens: Light (Design Language §2.1) ──────── */
+  :host {
+    /* Glass Surfaces */
+    --glass: rgba(255,255,255, 0.68);
+    --glass-border: rgba(255,255,255, 0.45);
+
+    /* Shadows (two-layer: contact + ambient) */
+    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
+    --inset: inset 0 0 0 0.5px rgba(0,0,0, 0.06);
+
+    /* Text */
+    --text: #1C1C1E;
+    --text-sub: rgba(28,28,30, 0.55);
+    --text-muted: #8E8E93;
+
+    /* Accent: Amber (lighting primary) */
+    --amber: #D4850A;
+    --amber-fill: rgba(212,133,10, 0.10);
+    --amber-border: rgba(212,133,10, 0.22);
+
+    /* Accent: Blue */
+    --blue: #007AFF;
+    --blue-fill: rgba(0,122,255, 0.09);
+    --blue-border: rgba(0,122,255, 0.18);
+
+    /* Accent: Green (eco, adaptive) */
+    --green: #34C759;
+    --green-fill: rgba(52,199,89, 0.12);
+    --green-border: rgba(52,199,89, 0.15);
+
+    /* Accent: Purple */
+    --purple: #AF52DE;
+    --purple-fill: rgba(175,82,222, 0.10);
+    --purple-border: rgba(175,82,222, 0.18);
+
+    /* Track / Slider */
+    --track-bg: rgba(28,28,30, 0.055);
+    --track-h: 44px;
+
+    /* Thumb */
+    --thumb-bg: #fff;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
+
+    /* Radii */
+    --r-card: 24px;
+    --r-tile: 16px;
+    --r-pill: 999px;
+    --r-track: 4px;
+
+    /* Controls (header controls, pills, buttons) */
+    --ctrl-bg: rgba(255,255,255, 0.52);
+    --ctrl-border: rgba(0,0,0, 0.05);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+
+    /* Chips */
+    --chip-bg: rgba(255,255,255, 0.48);
+    --chip-border: rgba(0,0,0, 0.05);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
+
+    /* Dropdown Menu */
+    --dd-bg: rgba(255,255,255, 0.84);
+    --dd-border: rgba(255,255,255, 0.60);
+
+    /* Dividers */
+    --divider: rgba(28,28,30, 0.07);
+
+    /* Toggle Switch */
+    --toggle-off: rgba(28,28,30, 0.10);
+    --toggle-on: rgba(52,199,89, 0.28);
+    --toggle-knob: rgba(255,255,255, 0.96);
+
+    /* Tile Surfaces */
+    --tile-bg: rgba(255,255,255, 0.92);
+
+    color-scheme: light;
+    display: block;
+  }
+
+  /* ── Tokens: Dark (Design Language §2.2) ───────── */
+  :host(.dark) {
+    --glass: rgba(44,44,46, 0.72);
+    --glass-border: rgba(255,255,255, 0.08);
+
+    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
+    --inset: inset 0 0 0 0.5px rgba(255,255,255, 0.06);
+
+    --text: #F5F5F7;
+    --text-sub: rgba(245,245,247, 0.50);
+    --text-muted: rgba(245,245,247, 0.35);
+
+    --amber: #E8961E;
+    --amber-fill: rgba(232,150,30, 0.14);
+    --amber-border: rgba(232,150,30, 0.25);
+
+    --blue: #0A84FF;
+    --blue-fill: rgba(10,132,255, 0.13);
+    --blue-border: rgba(10,132,255, 0.22);
+
+    --green: #30D158;
+    --green-fill: rgba(48,209,88, 0.14);
+    --green-border: rgba(48,209,88, 0.18);
+
+    --purple: #BF5AF2;
+    --purple-fill: rgba(191,90,242, 0.14);
+    --purple-border: rgba(191,90,242, 0.22);
+
+    --track-bg: rgba(255,255,255, 0.06);
+    --thumb-bg: #F5F5F7;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
+
+    --ctrl-bg: rgba(255,255,255, 0.08);
+    --ctrl-border: rgba(255,255,255, 0.08);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+
+    --chip-bg: rgba(58,58,60, 0.50);
+    --chip-border: rgba(255,255,255, 0.06);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
+
+    --dd-bg: rgba(58,58,60, 0.88);
+    --dd-border: rgba(255,255,255, 0.08);
+    --divider: rgba(255,255,255, 0.06);
+
+    --toggle-off: rgba(255,255,255, 0.10);
+    --toggle-on: rgba(48,209,88, 0.30);
+    --toggle-knob: rgba(255,255,255, 0.92);
+
+    --tile-bg: rgba(44,44,46, 0.90);
+
+    color-scheme: dark;
+  }
+
+  /* ── Reset ───────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .card-wrap {
+    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Icons (Design Language §6) ──────────────────── */
+  .icon {
+    font-family: 'Material Symbols Rounded';
+    font-weight: normal;
+    font-style: normal;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    white-space: nowrap;
+    direction: ltr;
+    vertical-align: middle;
+    flex-shrink: 0;
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+  .icon.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .icon-20 { font-size: 20px; width: 20px; height: 20px; }
+  .icon-18 { font-size: 18px; width: 18px; height: 18px; }
+  .icon-16 { font-size: 16px; width: 16px; height: 16px; }
+  .icon-14 { font-size: 14px; width: 14px; height: 14px; }
+
+  /* ═══════════════════════════════════════════════════
+     CARD SURFACE (Design Language §3.1)
+     Default surface: frosted glass card
+     ═══════════════════════════════════════════════════ */
+  .card {
+    position: relative;
+    width: 400px;
+    max-width: 100%;
+    border-radius: var(--r-card);
+    background: var(--glass);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--ctrl-border);
+    box-shadow: var(--shadow), var(--inset);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: background .3s, border-color .3s, box-shadow .3s, opacity .3s;
+  }
+
+  /* Glass Stroke (Design Language §3.2) */
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--r-card);
+    padding: 1px;
+    pointer-events: none;
+    z-index: 0;
+    background: linear-gradient(160deg,
+      rgba(255,255,255, 0.50),
+      rgba(255,255,255, 0.08) 40%,
+      rgba(255,255,255, 0.02) 60%,
+      rgba(255,255,255, 0.20));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+  :host(.dark) .card::before {
+    background: linear-gradient(160deg,
+      rgba(255,255,255, 0.14),
+      rgba(255,255,255, 0.03) 40%,
+      rgba(255,255,255, 0.01) 60%,
+      rgba(255,255,255, 0.08));
+  }
+
+  /* Card state tint (Design Language §3.3) */
+  .card[data-any-on="true"] {
+    border-color: rgba(212,133,10, 0.14);
+  }
+  :host(.dark) .card[data-any-on="true"] {
+    border-color: rgba(232,150,30, 0.16);
+  }
+  .card[data-all-off="true"] {
+    opacity: 0.55;
+  }
+
+  /* ═══════════════════════════════════════════════════
+     SECTION SURFACE (alternative container mode)
+     surface: 'section' config option
+     ═══════════════════════════════════════════════════ */
+  :host([surface="section"]) .card {
+    --r-card: 32px;
+    background: rgba(255,255,255, 0.35);
+    border: 1px solid rgba(255,255,255, 0.08);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.10), var(--inset);
+  }
+  :host(.dark[surface="section"]) .card {
+    background: rgba(255,255,255, 0.05);
+    border-color: rgba(255,255,255, 0.08);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.25), var(--inset);
+  }
+  :host([surface="section"]) .card::before {
+    border-radius: 32px;
+    background: linear-gradient(160deg,
+      rgba(255,255,255, 0.40),
+      rgba(255,255,255, 0.06) 40%,
+      rgba(255,255,255, 0.01) 60%,
+      rgba(255,255,255, 0.14));
+  }
+  :host(.dark[surface="section"]) .card::before {
+    background: linear-gradient(160deg,
+      rgba(255,255,255, 0.10),
+      rgba(255,255,255, 0.02) 40%,
+      rgba(255,255,255, 0.005) 60%,
+      rgba(255,255,255, 0.06));
+  }
+
+  /* ═══════════════════════════════════════════════════
+     HEADER (Design Language §5)
+     Info tile + spacer + toggles + selector
+     ═══════════════════════════════════════════════════ */
+  .hdr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  /* Info Tile (§5.2) – tappable entity identifier */
+  .info-tile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 6px 6px;
+    min-height: 42px;
+    box-sizing: border-box;
+    border-radius: 10px;
+    border: 1px solid var(--ctrl-border);
+    background: var(--ctrl-bg);
+    box-shadow: var(--ctrl-sh);
+    cursor: pointer;
+    transition: all .15s ease;
+    min-width: 0;
+  }
+  .info-tile:hover { box-shadow: var(--shadow); }
+  .info-tile:active { transform: scale(.98); }
+  .info-tile:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+  }
+
+  /* Info tile active state (any light on) */
+  .card[data-any-on="true"] .info-tile {
+    background: var(--amber-fill);
+    border-color: var(--amber-border);
+  }
+
+  /* Entity Icon (§5.3) */
+  .entity-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    transition: all .2s ease;
+    color: var(--text-muted);
+  }
+  .card[data-any-on="true"] .entity-icon {
+    color: var(--amber);
+  }
+
+  /* Title & Subtitle (§5.4) */
+  .hdr-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .hdr-title {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text-sub);
+    letter-spacing: 0.1px;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hdr-sub {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.1px;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hdr-sub .amber-ic { color: var(--amber); }
+  .hdr-sub .green-ic { color: var(--green); }
+
+  /* Spacer (§5.5) */
+  .hdr-spacer { flex: 1; }
+
+  /* ── Pagination Dots (scroll mode) ───────────────── */
+  .header-dots {
+    display: none;
+    gap: 5px;
+    padding: 6px 10px;
+    background: var(--track-bg);
+    border-radius: var(--r-pill);
+    align-items: center;
+  }
+  :host([layout="scroll"]) .header-dots { display: flex; }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    opacity: 0.3;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .dot.active {
+    width: 14px;
+    border-radius: var(--r-pill);
+    opacity: 1;
+    background: var(--amber);
+  }
+
+  /* ── Toggle Button (§5.6) – Adaptive lighting ────── */
+  .toggle-btn {
+    width: 42px;
+    min-height: 42px;
+    box-sizing: border-box;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: all .15s ease;
+    border: 1px solid var(--ctrl-border);
+    background: var(--ctrl-bg);
+    box-shadow: var(--ctrl-sh);
+    color: var(--text-muted);
+  }
+  .toggle-btn:hover { box-shadow: var(--shadow); }
+  .toggle-btn:active { transform: scale(.94); }
+  .toggle-btn:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+  }
+  .toggle-btn.on {
+    background: var(--amber-fill);
+    color: var(--amber);
+    border-color: var(--amber-border);
+  }
+  .toggle-btn.on .icon {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+  .toggle-btn.hidden { display: none; }
+
+  /* Manual count badge on adaptive toggle */
+  .manual-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #FF3B30;
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: var(--r-pill);
+    text-align: center;
+    line-height: 18px;
+    padding: 0 4px;
+    display: none;
+    letter-spacing: 0.3px;
+  }
+  .toggle-btn.has-manual .manual-badge { display: inline-flex; }
+  .toggle-wrap { position: relative; }
+
+  /* ── Selector Button (§5.7) – All Off ────────────── */
+  .selector-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 42px;
+    box-sizing: border-box;
+    padding: 0 8px;
+    border-radius: 10px;
+    border: 1px solid var(--ctrl-border);
+    background: var(--ctrl-bg);
+    box-shadow: var(--ctrl-sh);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-sub);
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .selector-btn:hover { box-shadow: var(--shadow); }
+  .selector-btn:active { transform: scale(.97); }
+  .selector-btn:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+  }
+
+  /* ═══════════════════════════════════════════════════
+     TILE GRID (Design Language §3.5)
+     ═══════════════════════════════════════════════════ */
+
+  /* Standard grid layout */
+  .light-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 3), 1fr);
+    gap: 10px;
+  }
+
+  /* Max rows constraint (grid mode) */
+  :host([data-max-rows]) .light-grid {
+    max-height: calc(var(--max-rows) * var(--tile-h, 120px) + (var(--max-rows) - 1) * 10px);
+    overflow: hidden;
+  }
+
+  /* Scroll layout overrides */
+  :host([layout="scroll"]) .light-grid {
+    grid-template-columns: unset;
+    grid-template-rows: repeat(var(--scroll-rows, 2), 1fr);
+    grid-auto-flow: column;
+    grid-auto-columns: calc(32% - 10px);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 4px;
+    row-gap: 14px;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  :host([layout="scroll"]) .light-grid::-webkit-scrollbar { display: none; }
+
+  /* ═══════════════════════════════════════════════════
+     LIGHT TILE (Design Language §3.5 Tile Surface)
+     ═══════════════════════════════════════════════════ */
+  .l-tile {
+    background: var(--tile-bg);
+    border-radius: var(--r-tile);
+    box-shadow: var(--shadow);
+    aspect-ratio: 1 / 0.95;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    touch-action: none;
+    border: 1px solid transparent;
+    overflow: visible;
+    transition:
+      transform .2s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow .2s ease,
+      border-color .2s ease,
+      background-color .3s ease;
+  }
+
+  /* Compact tile variant */
+  :host([tile-size="compact"]) .l-tile {
+    aspect-ratio: 1 / 0.82;
+    padding: 8px 6px 16px;
+  }
+
+  /* Scroll layout tile additions */
+  :host([layout="scroll"]) .l-tile {
+    scroll-snap-align: start;
+    touch-action: pan-y;
+  }
+
+  /* Focus visible on tiles */
+  .l-tile:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+  }
+
+  /* ── Off State ───────────────────────────────────── */
+  .l-tile.off { opacity: 1; }
+  .l-tile.off .tile-icon-wrap {
+    background: var(--track-bg);
+    color: var(--text-muted);
+    border: 1px solid transparent;
+  }
+  .l-tile.off .zone-name { color: var(--text-sub); }
+  .l-tile.off .zone-val { color: var(--text-sub); opacity: 0.5; }
+  .l-tile.off .progress-fill { opacity: 0; }
+
+  /* ── On State ────────────────────────────────────── */
+  .l-tile.on { border-color: var(--amber-border); }
+  .l-tile.on .tile-icon-wrap {
+    background: var(--amber-fill);
+    color: var(--amber);
+    border: 1px solid var(--amber-border);
+  }
+  .l-tile.on .zone-val { color: var(--amber); }
+  .l-tile.on .progress-fill { background: rgba(212,133,10, 0.85); }
+  :host(.dark) .l-tile.on .progress-fill { background: rgba(232,150,30, 0.85); }
+  .l-tile.on .tile-icon-wrap .icon {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  /* ── Sliding State (drag active) ─────────────────── */
+  .l-tile.sliding {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-up);
+    z-index: 100;
+    border-color: var(--amber) !important;
+    transition: none;
+  }
+
+  /* Floating pill – .zone-val repositions during slide */
+  .l-tile.sliding .zone-val {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--amber);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.2px;
+    background: var(--tile-bg);
+    padding: 5px 16px;
+    border-radius: var(--r-pill);
+    box-shadow: var(--shadow-up);
+    z-index: 101;
+    border: 1px solid var(--ctrl-border);
+    opacity: 1;
+    white-space: nowrap;
+  }
+
+  .l-tile.sliding .progress-track { height: 6px; }
+
+  /* ── Tile Content ────────────────────────────────── */
+  .tile-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-tile);
+    display: grid;
+    place-items: center;
+    margin-bottom: 6px;
+    transition: all .2s ease;
+  }
+
+  .zone-name {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: normal;
+    color: var(--text);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%;
+    line-height: 1.15;
+    margin-bottom: 1px;
+  }
+
+  .zone-val {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: normal;
+    transition: color .2s;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Progress Track (bottom inset) ───────────────── */
+  .progress-track {
+    position: absolute;
+    bottom: 10px;
+    left: 14px;
+    right: 14px;
+    height: 4px;
+    background: var(--track-bg);
+    border-radius: var(--r-track);
+    overflow: hidden;
+    transition: height .2s ease;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--text-sub);
+    transition: width .1s ease-out;
+    border-radius: var(--r-track);
+  }
+
+  /* ── Manual Override Dot ──────────────────────────── */
+  .manual-dot {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 8px;
+    height: 8px;
+    background: #FF3B30;
+    border-radius: 50%;
+    display: none;
+  }
+  .l-tile[data-manual="true"] .manual-dot { display: block; }
+
+  /* ═══════════════════════════════════════════════════
+     ACCESSIBILITY (Design Language §11)
+     ═══════════════════════════════════════════════════ */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════
+     RESPONSIVE (Design Language §4.6)
+     ═══════════════════════════════════════════════════ */
+  @media (max-width: 440px) {
+    .card {
+      padding: 16px;
+      --r-track: 8px;
+    }
+    .light-grid { gap: 8px; }
+    .l-tile { aspect-ratio: 1 / 1.05; }
+
+    :host([layout="scroll"]) .light-grid {
+      grid-auto-columns: calc(44% - 6px);
+      scroll-padding-left: 0;
+    }
+
+    :host([surface="section"]) .card {
+      --r-card: 28px;
+    }
+  }
+`;
+
+/* ═══════════════════════════════════════════════════════════════
+   HTML Template
+   ═══════════════════════════════════════════════════════════════ */
+
+const LIGHTING_TEMPLATE = `
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+
+  <div class="card-wrap">
+    <div class="card">
+
+      <!-- Header (Design Language §5) -->
+      <div class="hdr">
+
+        <!-- Info Tile (§5.2) -->
+        <div class="info-tile" id="infoTile" tabindex="0">
+          <div class="entity-icon" id="entityIcon">
+            <span class="icon icon-18" id="entityGlyph">lightbulb</span>
+          </div>
+          <div class="hdr-text">
+            <div class="hdr-title" id="hdrTitle">Lighting</div>
+            <div class="hdr-sub" id="hdrSub">All off</div>
+          </div>
+        </div>
+
+        <!-- Spacer -->
+        <div class="hdr-spacer"></div>
+
+        <!-- Pagination dots (scroll mode only) -->
+        <div class="header-dots" id="headerDots"></div>
+
+        <!-- Adaptive Lighting Toggle (§5.6) -->
+        <div class="toggle-wrap" id="adaptiveWrap">
+          <button class="toggle-btn hidden" id="adaptiveBtn"
+                  aria-label="Toggle adaptive lighting">
+            <span class="icon icon-18">auto_awesome</span>
+          </button>
+          <span class="manual-badge" id="manualBadge">0</span>
+        </div>
+
+        <!-- All Off Button (§5.7) -->
+        <button class="selector-btn" id="allOffBtn"
+                aria-label="Turn all lights off">
+          <span class="icon icon-16">power_settings_new</span>
+          <span>All Off</span>
+        </button>
+
+      </div>
+
+      <!-- Tile Grid -->
+      <div class="light-grid" id="lightGrid"></div>
+
+    </div>
+  </div>
+`;
+
+/* ═══════════════════════════════════════════════════════════════
+   Card Class
+   ═══════════════════════════════════════════════════════════════ */
+
+class TunetLightingCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._config = {};
+    this._hass = null;
+    this._rendered = false;
+    this._resolvedZones = [];  // [{entity, name, icon}, ...]
+    this._tiles = {};
+    this._dragState = null;
+    this._serviceCooldown = {};
+    this._cooldownTimers = {};
+
+    TunetLightingCard._injectFonts();
+
+    this._onPointerMove = this._onPointerMove.bind(this);
+    this._onPointerUp   = this._onPointerUp.bind(this);
+  }
+
+  /* ── Font injection (once globally) ────────────── */
+
+  static _injectFonts() {
+    if (TunetLightingCard._fontsInjected) return;
+    TunetLightingCard._fontsInjected = true;
+
+    const links = [
+      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
+    ];
+
+    for (const cfg of links) {
+      if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
+      const link = document.createElement('link');
+      link.rel = cfg.rel;
+      link.href = cfg.href;
+      if (cfg.crossOrigin !== undefined) link.crossOrigin = cfg.crossOrigin;
+      document.head.appendChild(link);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════
+     CONFIG – Declarative schema (Design Language §13)
+     ═══════════════════════════════════════════════════ */
+
+  static getConfigForm() {
+    return {
+      schema: [
+        {
+          name: 'entities',
+          selector: { entity: { domain: 'light', multiple: true } },
+        },
+        { name: 'name',            selector: { text: {} } },
+        { name: 'primary_entity',  selector: { entity: { domain: 'light' } } },
+        { name: 'adaptive_entity', selector: { entity: { domain: ['switch', 'automation', 'input_boolean'] } } },
+        { name: 'surface',         selector: { select: { options: ['card', 'section'] } } },
+        { name: 'layout',          selector: { select: { options: ['grid', 'scroll'] } } },
+        {
+          name: '', type: 'grid', schema: [
+            { name: 'columns',     selector: { number: { min: 2, max: 5, step: 1, mode: 'box' } } },
+            { name: 'scroll_rows', selector: { number: { min: 1, max: 3, step: 1, mode: 'box' } } },
+          ],
+        },
+        {
+          name: '', type: 'grid', schema: [
+            { name: 'rows',        selector: { text: {} } },
+            { name: 'tile_size',   selector: { select: { options: ['standard', 'compact'] } } },
+          ],
+        },
+      ],
+      computeLabel: (s) => ({
+        entities:        'Light Entities (groups auto-expand)',
+        name:            'Card Title',
+        primary_entity:  'Primary Entity (info tile tap)',
+        adaptive_entity: 'Adaptive Lighting Switch',
+        surface:         'Surface Style',
+        layout:          'Layout Mode',
+        columns:         'Grid Columns',
+        rows:            'Max Rows (auto or number)',
+        scroll_rows:     'Scroll Rows',
+        tile_size:       'Tile Size',
+      }[s.name] || s.name),
+    };
+  }
+
+  static getStubConfig() {
+    return { entities: [], name: 'Lighting' };
+  }
+
+  setConfig(config) {
+    // Support three entity patterns:
+    // 1. zones: [{entity, name, icon}, ...]  (rich per-entity)
+    // 2. entities: [string, ...]  (simple list + group expansion)
+    // 3. Both can be mixed
+    const hasZones = config.zones && Array.isArray(config.zones) && config.zones.length > 0;
+    const hasEntities = config.entities && Array.isArray(config.entities) && config.entities.length > 0;
+
+    if (!hasZones && !hasEntities) {
+      throw new Error('Define at least one entity via "entities" or "zones"');
+    }
+
+    const columns = config.columns != null ? Math.max(2, Math.min(5, Number(config.columns))) : 3;
+    const scrollRows = config.scroll_rows != null ? Math.max(1, Math.min(3, Number(config.scroll_rows))) : 2;
+    const layout = config.layout === 'scroll' ? 'scroll' : 'grid';
+    const surface = config.surface === 'section' ? 'section' : 'card';
+    const tileSize = config.tile_size === 'compact' ? 'compact' : 'standard';
+    const rows = config.rows === 'auto' || config.rows == null ? null : Math.max(1, Math.min(6, Number(config.rows)));
+
+    this._config = {
+      entities:        hasEntities ? config.entities : [],
+      zones:           hasZones ? config.zones : [],
+      name:            config.name || 'Lighting',
+      subtitle:        config.subtitle || '',
+      primary_entity:  config.primary_entity || '',
+      adaptive_entity: config.adaptive_entity || '',
+      columns,
+      layout,
+      scroll_rows:     scrollRows,
+      surface,
+      tile_size:       tileSize,
+      rows,
+    };
+
+    // Host attributes for CSS layout switching
+    if (layout === 'scroll') {
+      this.setAttribute('layout', 'scroll');
+    } else {
+      this.removeAttribute('layout');
+    }
+
+    if (surface === 'section') {
+      this.setAttribute('surface', 'section');
+    } else {
+      this.removeAttribute('surface');
+    }
+
+    if (tileSize === 'compact') {
+      this.setAttribute('tile-size', 'compact');
+    } else {
+      this.removeAttribute('tile-size');
+    }
+
+    if (rows) {
+      this.setAttribute('data-max-rows', rows);
+      this.style.setProperty('--max-rows', rows);
+    } else {
+      this.removeAttribute('data-max-rows');
+    }
+
+    if (this._rendered && this._hass) {
+      this._resolveZones();
+      this._buildGrid();
+      this._updateAll();
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════
+     HA STATE
+     ═══════════════════════════════════════════════════ */
+
+  set hass(hass) {
+    const oldHass = this._hass;
+    this._hass = hass;
+
+    if (!this._rendered) {
+      this._render();
+      this._resolveZones();
+      this._buildGrid();
+      this._setupListeners();
+      this._rendered = true;
+    }
+
+    // Dark mode detection (Design Language §12.1)
+    const isDark = !!(hass.themes && hass.themes.darkMode);
+    this.classList.toggle('dark', isDark);
+
+    if (!oldHass || this._entitiesChanged(oldHass, hass)) {
+      this._updateAll();
+    }
+  }
+
+  _entitiesChanged(oldH, newH) {
+    for (const zone of this._resolvedZones) {
+      if (oldH.states[zone.entity] !== newH.states[zone.entity]) return true;
+    }
+    const ae = this._config.adaptive_entity;
+    if (ae && oldH.states[ae] !== newH.states[ae]) return true;
+    return false;
+  }
+
+  getCardSize() {
+    const rows = Math.ceil(this._resolvedZones.length / (this._config.columns || 3));
+    return 2 + rows * 2;
+  }
+
+  /* ═══════════════════════════════════════════════════
+     ZONE RESOLUTION – Three entity patterns
+     ═══════════════════════════════════════════════════ */
+
+  _resolveZones() {
+    const zones = [];
+    const seen = new Set();
+
+    const addZone = (entity, name, icon) => {
+      if (seen.has(entity)) return;
+      seen.add(entity);
+      zones.push({ entity, name: name || null, icon: icon || null });
+    };
+
+    // Pattern 1: Rich per-entity YAML zones
+    for (const z of this._config.zones) {
+      if (typeof z === 'string') {
+        // Simple string in zones array
+        this._expandEntity(z, zones, seen);
+      } else if (z && z.entity) {
+        // Rich zone object – check if it's a group
+        const entity = this._hass ? this._hass.states[z.entity] : null;
+        if (entity && entity.attributes && entity.attributes.entity_id &&
+            Array.isArray(entity.attributes.entity_id)) {
+          // Group – expand with optional name/icon overrides
+          for (const memberId of entity.attributes.entity_id) {
+            addZone(memberId, null, null);
+          }
+        } else {
+          addZone(z.entity, z.name || null, z.icon || null);
+        }
+      }
+    }
+
+    // Pattern 2: Entity list with group expansion
+    for (const id of this._config.entities) {
+      this._expandEntity(id, zones, seen);
+    }
+
+    this._resolvedZones = zones;
+  }
+
+  _expandEntity(id, zones, seen) {
+    if (seen.has(id)) return;
+    const entity = this._hass ? this._hass.states[id] : null;
+    if (entity && entity.attributes && entity.attributes.entity_id &&
+        Array.isArray(entity.attributes.entity_id)) {
+      // It's a group – expand to individual members
+      for (const memberId of entity.attributes.entity_id) {
+        if (!seen.has(memberId)) {
+          seen.add(memberId);
+          zones.push({ entity: memberId, name: null, icon: null });
+        }
+      }
+    } else {
+      seen.add(id);
+      zones.push({ entity: id, name: null, icon: null });
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════
+     LIFECYCLE
+     ═══════════════════════════════════════════════════ */
+
+  connectedCallback() {
+    document.addEventListener('pointermove', this._onPointerMove);
+    document.addEventListener('pointerup',   this._onPointerUp);
+    document.addEventListener('pointercancel', this._onPointerUp);
+  }
+
+  disconnectedCallback() {
+    document.removeEventListener('pointermove', this._onPointerMove);
+    document.removeEventListener('pointerup',   this._onPointerUp);
+    document.removeEventListener('pointercancel', this._onPointerUp);
+  }
+
+  /* ═══════════════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════════════ */
+
+  _render() {
+    const style = document.createElement('style');
+    style.textContent = LIGHTING_STYLES;
+    this.shadowRoot.appendChild(style);
+
+    const tpl = document.createElement('template');
+    tpl.innerHTML = LIGHTING_TEMPLATE;
+    this.shadowRoot.appendChild(tpl.content.cloneNode(true));
+
+    this.$ = {
+      card:        this.shadowRoot.querySelector('.card'),
+      infoTile:    this.shadowRoot.getElementById('infoTile'),
+      entityIcon:  this.shadowRoot.getElementById('entityIcon'),
+      entityGlyph: this.shadowRoot.getElementById('entityGlyph'),
+      hdrTitle:    this.shadowRoot.getElementById('hdrTitle'),
+      hdrSub:      this.shadowRoot.getElementById('hdrSub'),
+      headerDots:  this.shadowRoot.getElementById('headerDots'),
+      adaptiveWrap:this.shadowRoot.getElementById('adaptiveWrap'),
+      adaptiveBtn: this.shadowRoot.getElementById('adaptiveBtn'),
+      manualBadge: this.shadowRoot.getElementById('manualBadge'),
+      allOffBtn:   this.shadowRoot.getElementById('allOffBtn'),
+      lightGrid:   this.shadowRoot.getElementById('lightGrid'),
+    };
+  }
+
+  _buildGrid() {
+    const grid = this.$.lightGrid;
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    // Set CSS custom properties
+    grid.style.setProperty('--cols', this._config.columns);
+    grid.style.setProperty('--scroll-rows', this._config.scroll_rows);
+
+    for (const zone of this._resolvedZones) {
+      const tile = document.createElement('div');
+      tile.className = 'l-tile off';
+      tile.dataset.entity = zone.entity;
+      tile.dataset.brightness = '0';
+      tile.setAttribute('role', 'slider');
+      tile.setAttribute('aria-label', this._zoneName(zone));
+      tile.setAttribute('aria-valuemin', '0');
+      tile.setAttribute('aria-valuemax', '100');
+      tile.setAttribute('aria-valuenow', '0');
+      tile.setAttribute('tabindex', '0');
+
+      tile.innerHTML = `
+        <div class="manual-dot"></div>
+        <div class="tile-icon-wrap">
+          <span class="icon icon-20">${this._zoneIcon(zone)}</span>
+        </div>
+        <div class="zone-name">${this._zoneName(zone)}</div>
+        <div class="zone-val">Off</div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:0%"></div>
+        </div>
+      `;
+
+      grid.appendChild(tile);
+    }
+
+    // Cache tile refs for fast updates
+    this._tiles = {};
+    grid.querySelectorAll('.l-tile').forEach(tile => {
+      this._tiles[tile.dataset.entity] = {
+        el:     tile,
+        icon:   tile.querySelector('.tile-icon-wrap .icon'),
+        iconW:  tile.querySelector('.tile-icon-wrap'),
+        name:   tile.querySelector('.zone-name'),
+        val:    tile.querySelector('.zone-val'),
+        fill:   tile.querySelector('.progress-fill'),
+      };
+    });
+
+    // Build pagination dots for scroll mode
+    this._buildDots();
+  }
+
+  _buildDots() {
+    const dots = this.$.headerDots;
+    dots.innerHTML = '';
+    if (this._config.layout !== 'scroll') return;
+
+    const totalTiles = this._resolvedZones.length;
+    const rows = this._config.scroll_rows;
+    const tilesPerPage = rows * 3;
+    const pages = Math.max(1, Math.ceil(totalTiles / tilesPerPage));
+
+    for (let i = 0; i < pages; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'dot' + (i === 0 ? ' active' : '');
+      dots.appendChild(dot);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════
+     LISTENERS
+     ═══════════════════════════════════════════════════ */
+
+  _setupListeners() {
+    // Info tile – fires hass-more-info (Design Language §11.2)
+    this.$.infoTile.addEventListener('click', () => {
+      const entityId = this._config.primary_entity ||
+                       (this._config.entities.length > 0 ? this._config.entities[0] : '') ||
+                       (this._resolvedZones.length > 0 ? this._resolvedZones[0].entity : '');
+      if (!entityId) return;
+      this.dispatchEvent(new CustomEvent('hass-more-info', {
+        bubbles: true,
+        composed: true,
+        detail: { entityId },
+      }));
+    });
+
+    // All Off button
+    this.$.allOffBtn.addEventListener('click', () => this._allOff());
+
+    // Adaptive toggle
+    this.$.adaptiveBtn.addEventListener('click', () => this._toggleAdaptive());
+
+    // Tile pointer down (delegated)
+    this.$.lightGrid.addEventListener('pointerdown', (e) => {
+      const tile = e.target.closest('.l-tile');
+      if (!tile) return;
+      e.preventDefault();
+      tile.setPointerCapture(e.pointerId);
+
+      this._dragState = {
+        entity:      tile.dataset.entity,
+        startX:      e.clientX,
+        startBright: parseInt(tile.dataset.brightness) || 0,
+        tileEl:      tile,
+        moved:       false,
+        pointerId:   e.pointerId,
+      };
+    });
+
+    // Keyboard on tiles (Design Language §11.3)
+    this.$.lightGrid.addEventListener('keydown', (e) => {
+      const tile = e.target.closest('.l-tile');
+      if (!tile) return;
+      const entity = tile.dataset.entity;
+      const step = e.shiftKey ? 10 : 5;
+
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        this._setBrightness(entity, Math.min(100, this._getBrightness(entity) + step));
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        this._setBrightness(entity, Math.max(0, this._getBrightness(entity) - step));
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this._toggleLight(entity);
+      }
+    });
+
+    // Scroll sync for pagination dots
+    if (this._config.layout === 'scroll') {
+      this.$.lightGrid.addEventListener('scroll', () => {
+        const grid = this.$.lightGrid;
+        const dots = this.$.headerDots.querySelectorAll('.dot');
+        if (!dots.length) return;
+        const scrollMax = grid.scrollWidth - grid.clientWidth;
+        if (scrollMax <= 0) return;
+        const pct = grid.scrollLeft / scrollMax;
+        const idx = Math.round(pct * (dots.length - 1));
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      });
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════
+     POINTER HANDLERS – Horizontal drag-to-dim
+     4px threshold before drag activates (Design Language §7.3)
+     ═══════════════════════════════════════════════════ */
+
+  _onPointerMove(e) {
+    if (!this._dragState) return;
+    const ds = this._dragState;
+    const dx = e.clientX - ds.startX;
+
+    // 4px threshold (Design Language §7.3, Absolute Rule #11)
+    if (!ds.moved && Math.abs(dx) < 4) return;
+
+    if (!ds.moved) {
+      ds.moved = true;
+      ds.tileEl.classList.add('sliding');
+      document.body.style.cursor = 'grabbing';
+      // In scroll mode, disable grid scroll while dragging
+      if (this._config.layout === 'scroll') {
+        this.$.lightGrid.style.overflowX = 'hidden';
+      }
+    }
+
+    // Map horizontal movement to brightness change
+    const width = ds.tileEl.offsetWidth;
+    const change = (dx / width) * 100;
+    const newBrt = Math.round(Math.max(0, Math.min(100, ds.startBright + change)));
+
+    // Optimistic UI update (no transition during drag)
+    const refs = this._tiles[ds.entity];
+    if (!refs) return;
+
+    refs.fill.style.transition = 'none';
+    refs.fill.style.width = newBrt + '%';
+    refs.val.textContent = newBrt > 0 ? newBrt + '%' : 'Off';
+
+    if (newBrt > 0) {
+      refs.el.classList.remove('off');
+      refs.el.classList.add('on');
+    } else {
+      refs.el.classList.remove('on');
+      refs.el.classList.add('off');
+    }
+
+    refs.el.dataset.brightness = newBrt;
+    refs.el.setAttribute('aria-valuenow', newBrt);
+    refs.el.setAttribute('aria-valuetext', newBrt > 0 ? newBrt + ' percent' : 'Off');
+    ds.currentBright = newBrt;
+  }
+
+  _onPointerUp(e) {
+    if (!this._dragState) return;
+    const ds = this._dragState;
+    const refs = this._tiles[ds.entity];
+
+    if (refs) {
+      refs.el.classList.remove('sliding');
+      refs.fill.style.transition = '';
+    }
+
+    // Reset cursor
+    document.body.style.cursor = '';
+
+    // Restore scroll in scroll mode
+    if (this._config.layout === 'scroll') {
+      this.$.lightGrid.style.overflowX = 'auto';
+    }
+
+    if (ds.moved && ds.currentBright !== undefined) {
+      // Drag completed – set brightness
+      if (ds.currentBright === 0) {
+        this._callService('light', 'turn_off', { entity_id: ds.entity });
+      } else {
+        this._callService('light', 'turn_on', {
+          entity_id: ds.entity,
+          brightness_pct: ds.currentBright,
+        });
+      }
+      this._setCooldown(ds.entity);
+    } else {
+      // Tap – toggle on/off
+      const current = parseInt(refs?.el.dataset.brightness) || 0;
+      if (current > 0) {
+        this._callService('light', 'turn_off', { entity_id: ds.entity });
+        if (refs) this._updateTileUI(refs, 0);
+      } else {
+        this._callService('light', 'turn_on', {
+          entity_id: ds.entity,
+          brightness_pct: 100,
+        });
+        if (refs) this._updateTileUI(refs, 100);
+      }
+      this._setCooldown(ds.entity);
+    }
+
+    this._dragState = null;
+  }
+
+  /* ═══════════════════════════════════════════════════
+     STATE HELPERS
+     ═══════════════════════════════════════════════════ */
+
+  _getEntity(id) { return this._hass ? this._hass.states[id] : null; }
+
+  _getBrightness(id) {
+    const e = this._getEntity(id);
+    if (!e || e.state !== 'on') return 0;
+    const b = e.attributes.brightness;
+    return b != null ? Math.round((b / 255) * 100) : 100;
+  }
+
+  _friendlyName(id) {
+    const e = this._getEntity(id);
+    if (e && e.attributes.friendly_name) return e.attributes.friendly_name;
+    const raw = id.split('.').pop().replace(/_/g, ' ');
+    return raw.replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  _zoneName(zone) {
+    if (zone.name) return zone.name;
+    return this._friendlyName(zone.entity);
+  }
+
+  _zoneIcon(zone) {
+    if (zone.icon) return zone.icon;
+    return this._entityIcon(zone.entity);
+  }
+
+  _entityIcon(id) {
+    const e = this._getEntity(id);
+    if (e && e.attributes.icon) {
+      const map = {
+        'mdi:ceiling-light':       'light',
+        'mdi:lamp':                'table_lamp',
+        'mdi:floor-lamp':          'floor_lamp',
+        'mdi:floor-lamp-outline':  'floor_lamp',
+        'mdi:desk-lamp':           'table_lamp',
+        'mdi:lightbulb':           'lightbulb',
+        'mdi:lightbulb-group':     'light_group',
+        'mdi:led-strip':           'highlight',
+        'mdi:light-recessed':      'fluorescent',
+        'mdi:wall-sconce':         'wall_lamp',
+        'mdi:wall-sconce-round-variant': 'wall_lamp',
+        'mdi:chandelier':          'light_group',
+        'mdi:track-light':         'highlight',
+        'mdi:outdoor-lamp':        'deck',
+        'mdi:heat-wave':           'highlight',
+      };
+      if (map[e.attributes.icon]) return map[e.attributes.icon];
+    }
+    return 'lightbulb';
+  }
+
+  /* ── Manual Control Detection ───────────────────── */
+
+  _getManuallyControlled() {
+    const ae = this._config.adaptive_entity;
+    if (!ae) return [];
+    const entity = this._getEntity(ae);
+    if (!entity || !entity.attributes) return [];
+    return entity.attributes.manual_control || [];
+  }
+
+  /* ═══════════════════════════════════════════════════
+     SERVICE CALLS
+     ═══════════════════════════════════════════════════ */
+
+  _callService(domain, service, data) {
+    if (!this._hass) return;
+    this._hass.callService(domain, service, data);
+  }
+
+  _setCooldown(id) {
+    this._serviceCooldown[id] = true;
+    clearTimeout(this._cooldownTimers[id]);
+    this._cooldownTimers[id] = setTimeout(() => {
+      this._serviceCooldown[id] = false;
+    }, 1500);
+  }
+
+  _toggleLight(id) {
+    this._callService('light', 'toggle', { entity_id: id });
+    this._setCooldown(id);
+  }
+
+  _setBrightness(id, pct) {
+    if (pct === 0) {
+      this._callService('light', 'turn_off', { entity_id: id });
+    } else {
+      this._callService('light', 'turn_on', { entity_id: id, brightness_pct: pct });
+    }
+    this._setCooldown(id);
+    const refs = this._tiles[id];
+    if (refs) this._updateTileUI(refs, pct);
+  }
+
+  _allOff() {
+    for (const zone of this._resolvedZones) {
+      this._callService('light', 'turn_off', { entity_id: zone.entity });
+      this._setCooldown(zone.entity);
+      const refs = this._tiles[zone.entity];
+      if (refs) this._updateTileUI(refs, 0);
+    }
+  }
+
+  _toggleAdaptive() {
+    const ae = this._config.adaptive_entity;
+    if (!ae) return;
+    const entity = this._getEntity(ae);
+    if (!entity) return;
+    const domain = ae.split('.')[0];
+    if (domain === 'switch' || domain === 'input_boolean') {
+      this._callService('homeassistant', 'toggle', { entity_id: ae });
+    } else if (domain === 'automation') {
+      this._callService('automation', 'toggle', { entity_id: ae });
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════
+     TILE UI HELPER
+     ═══════════════════════════════════════════════════ */
+
+  _updateTileUI(refs, brt) {
+    refs.el.dataset.brightness = brt;
+    refs.fill.style.width = brt + '%';
+    refs.val.textContent = brt > 0 ? brt + '%' : 'Off';
+    refs.el.classList.toggle('on',  brt > 0);
+    refs.el.classList.toggle('off', brt <= 0);
+    refs.el.setAttribute('aria-valuenow', brt);
+    refs.el.setAttribute('aria-valuetext', brt > 0 ? brt + ' percent' : 'Off');
+  }
+
+  /* ═══════════════════════════════════════════════════
+     FULL STATE UPDATE
+     ═══════════════════════════════════════════════════ */
+
+  _updateAll() {
+    if (!this._hass || !this._rendered) return;
+
+    const manualList = this._getManuallyControlled();
+    let onCount = 0;
+    let totalCount = this._resolvedZones.length;
+    let totalBrightness = 0;
+
+    for (const zone of this._resolvedZones) {
+      if (this._serviceCooldown[zone.entity]) continue;
+
+      const entity = this._getEntity(zone.entity);
+      const refs   = this._tiles[zone.entity];
+      if (!refs) continue;
+
+      const isOn  = entity && entity.state === 'on';
+      const bright = this._getBrightness(zone.entity);
+
+      this._updateTileUI(refs, isOn ? bright : 0);
+
+      // Update name from zone config or entity
+      refs.name.textContent = this._zoneName(zone);
+
+      // Manual dot
+      const isManual = manualList.includes(zone.entity);
+      refs.el.dataset.manual = isManual ? 'true' : 'false';
+
+      if (isOn) {
+        onCount++;
+        totalBrightness += bright;
+      }
+    }
+
+    // ── Card-level state attributes ──
+    const anyOn = onCount > 0;
+    this.$.card.dataset.anyOn = anyOn ? 'true' : 'false';
+    this.$.card.dataset.allOff = (onCount === 0 && totalCount > 0) ? 'true' : 'false';
+
+    // ── Header icon state (Principle #7: outlined off, filled on) ──
+    if (anyOn) {
+      this.$.entityGlyph.classList.add('filled');
+      this.$.entityIcon.style.color = '';
+    } else {
+      this.$.entityGlyph.classList.remove('filled');
+      this.$.entityIcon.style.color = '';
+    }
+
+    // ── Title ──
+    this.$.hdrTitle.textContent = this._config.name;
+
+    // ── Subtitle (Design Language §5.4) ──
+    if (this._config.subtitle) {
+      this.$.hdrSub.innerHTML = this._config.subtitle;
+    } else {
+      const avgBrt = onCount > 0 ? Math.round(totalBrightness / onCount) : 0;
+      const ae = this._config.adaptive_entity;
+      const aeEntity = ae ? this._getEntity(ae) : null;
+      const aeOn = aeEntity && aeEntity.state === 'on';
+      const manualCount = manualList.length;
+
+      let parts = [];
+
+      if (onCount === 0) {
+        parts.push('All off');
+      } else if (onCount === totalCount) {
+        parts.push(`<span class="amber-ic">All on</span> \u00b7 ${avgBrt}%`);
+      } else {
+        parts.push(`<span class="amber-ic">${onCount} on</span> \u00b7 ${avgBrt}%`);
+      }
+
+      if (aeOn && manualCount > 0) {
+        parts.push(`<span class="green-ic">Adaptive</span> \u00b7 ${manualCount} manual`);
+      } else if (aeOn) {
+        parts.push('<span class="green-ic">Adaptive</span>');
+      }
+
+      this.$.hdrSub.innerHTML = parts.join(' \u00b7 ');
+    }
+
+    // ── Adaptive toggle ──
+    const ae = this._config.adaptive_entity;
+    if (ae) {
+      this.$.adaptiveBtn.classList.remove('hidden');
+      const aeEntity = this._getEntity(ae);
+      const aeOn = aeEntity && aeEntity.state === 'on';
+      this.$.adaptiveBtn.classList.toggle('on', aeOn);
+      this.$.adaptiveBtn.setAttribute('aria-pressed', aeOn ? 'true' : 'false');
+
+      // Manual count badge
+      const manualCount = manualList.length;
+      this.$.adaptiveBtn.classList.toggle('has-manual', manualCount > 0);
+      this.$.manualBadge.textContent = manualCount;
+    } else {
+      this.$.adaptiveBtn.classList.add('hidden');
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Registration
+   ═══════════════════════════════════════════════════════════════ */
+
+customElements.define('tunet-lighting-card', TunetLightingCard);
+
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type:             'tunet-lighting-card',
+  name:             'Tunet Lighting Card',
+  description:      'Glassmorphism lighting controller – drag-to-dim, floating pill, adaptive toggle, grid/scroll layout, rich zone config',
+  preview:          true,
+  documentationURL: 'https://github.com/tunet/tunet-lighting-card',
+});
+
+console.info(
+  `%c TUNET-LIGHTING %c v${LIGHTING_CARD_VERSION} `,
+  'color: #fff; background: #D4850A; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;',
+  'color: #D4850A; background: #fff3e0; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;'
+);

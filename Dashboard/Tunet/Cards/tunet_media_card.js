@@ -1281,3 +1281,4 @@ console.info(
   'color: #fff; background: #34C759; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;',
   'color: #34C759; background: #e8f8ed; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;'
 );
+  

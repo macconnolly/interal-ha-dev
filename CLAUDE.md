@@ -1,6 +1,33 @@
-# OAL (Optimized Adaptive Lighting) - v13 Production Architecture
+# Project CLAUDE.md
 
 **This file EXTENDS Global CLAUDE.md. The phase protocol is defined there.**
+
+---
+
+## CURRENT WORK: Tunet Dashboard Card Suite
+
+**Read `01_START_HERE.md` in the repo root for full session context, entity inventory, and card-by-card state.**
+
+All current dashboard work lives in `Dashboard/Tunet/`. Key files:
+
+| What | File | Why it matters |
+|------|------|----------------|
+| **Design spec** | `Dashboard/Tunet/Mockups/design_language.md` (v8.0) | THE canonical rulebook. Every token, every rule. |
+| **Gold standard** | `Dashboard/Tunet/Cards/tunet_climate_card.js` (1513 lines) | Match this quality. |
+| **Mockups** | `Dashboard/Tunet/Mockups/tunet-new-cards-v3.html` | Visual target for status/action/lighting cards |
+| **Config** | `Dashboard/Tunet/tunet-overview-config.yaml` | Current dashboard card definitions |
+| **OUTDATED** | `Dashboard/Tunet/tunet-design-system.md` (v2.1) | SUPERSEDED by design_language.md v8.0 |
+
+### Refinement queue (one card at a time)
+1. Status card (`tunet_status_card.js`) — first priority
+2. Actions card, Lighting card, Rooms card
+
+### User preference
+User likes the dark blue glass variant `rgba(30,41,59,0.65)` in dark mode. design_language.md v8.0 specifies neutral gray `rgba(44,44,46,0.72)`. Present both for comparison when refining dark mode.
+
+---
+
+# OAL (Optimized Adaptive Lighting) - v13 Production Architecture
 
 Global gates required for any OAL work:
 - First output must be the Global Context Loaded block

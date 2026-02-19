@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tunet Premium – Advanced Sonos Controller</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════
+       CORE DESIGN TOKENS
+       ═══════════════════════════════════════════ */
+    :root {
+      --bg: #f2f2f7;
+      --card-bg: #ffffff;
+      --parent-bg: rgba(255, 255, 255, 0.7);
+      --text-main: #1c1c1e;
+      --text-sub: #8e8e93;
+      --amber: #d4850a;
+      --amber-light: rgba(212, 133, 10, 0.08);
+      --amber-border: rgba(212, 133, 10, 0.22);
+      --blue: #007aff;
+      --blue-light: rgba(0, 122, 255, 0.08);
+      --blue-border: rgba(0, 122, 255, 0.25);
+      --gray-ghost: rgba(0, 0, 0, 0.035);
+      --shadow: 0 4px 12px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.08);
+      --shadow-active: 0 20px 45px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.06);
+      --radius-parent: 36px;
+      --radius: 24px;
+      --radius-pill: 99px;
+    }
+
+    html.dark {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --parent-bg: rgba(30, 41, 59, 0.55);
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --amber: #fbbf24;
+      --blue: #38bdf8;
+      --blue-light: rgba(56, 189, 248, 0.12);
+      --blue-border: rgba(56, 189, 248, 0.3);
+      --gray-ghost: rgba(255, 255, 255, 0.04);
+      --shadow: 0 4px 15px rgba(0,0,0,0.3);
+      --shadow-active: 0 24px 60px rgba(0,0,0,0.6);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      background-color: var(--bg);
+      font-family: 'DM Sans', sans-serif;
+      margin: 0;
+      padding: 16px 0 48px 0;
+      color: var(--text-main);
+      transition: background-color 0.4s ease;
+      overflow-x: hidden;
+    }
+
+    .dashboard {
+      width: 100%;
+      max-width: 500px; 
+      margin: 0 auto;
+      display: flex; flex-direction: column; gap: 24px;
+    }
+
+    .section-container {
+      background: var(--parent-bg);
+      backdrop-filter: blur(30px);
+      border-radius: var(--radius-parent);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 24px 0 16px 0;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+      display: flex; flex-direction: column;
+      margin: 0 12px;
+    }
+
+    /* ═══════════════════════════════════════════
+       SONOS MASTER CONTROLLER
+       ═══════════════════════════════════════════ */
+    .sonos-card {
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Top: Speaker Selection & Source */
+    .sonos-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .speaker-selector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card-bg);
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      border: 1px solid rgba(0,0,0,0.02);
+    }
+    .speaker-selector .icon { color: var(--blue); font-size: 20px; }
+    .speaker-name { font-weight: 700; font-size: 14px; }
+    .chevron { font-size: 18px; color: var(--text-sub); }
+
+    /* Middle: Now Playing Detail */
+    .now-playing {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .album-art-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .album-art {
+      width: 84px; height: 84px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #1e293b, #334155);
+      display: grid; place-items: center;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+    .album-art .music-icon { color: white; font-size: 32px; opacity: 0.8; }
+
+    .track-meta { flex: 1; min-width: 0; }
+    .track-title { 
+      font-size: 18px; font-weight: 700; display: block; 
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+      margin-bottom: 2px;
+    }
+    .artist-name { font-size: 14px; font-weight: 500; color: var(--text-sub); }
+
+    /* Interaction: Bottom Volume Slider [Tunet Styled] */
+    .sonos-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .playback-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+    }
+
+    .ctrl-icon { font-size: 28px; color: var(--text-main); cursor: pointer; opacity: 0.8; transition: 0.2s; }
+    .ctrl-icon:active { transform: scale(0.9); }
+    .play-pause-btn {
+      width: 54px; height: 54px;
+      background: var(--blue);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      color: white;
+      box-shadow: 0 8px 16px rgba(0,122,255,0.25);
+    }
+    .play-pause-btn .icon { font-size: 32px; font-variation-settings: 'FILL' 1; }
+
+    /* Multi-Room Grouping System */
+    .group-manager {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--gray-ghost);
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(0,0,0,0.02);
+    }
+
+    .group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+    }
+    .group-label { font-size: 11px; font-weight: 800; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.8px; }
+    
+    .room-pills {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 2px;
+    }
+    .room-pills::-webkit-scrollbar { display: none; }
+
+    .room-chip {
+      flex: 0 0 auto;
+      background: var(--card-bg);
+      padding: 8px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: var(--shadow);
+      border: 1.5px solid transparent;
+      color: var(--text-sub);
+      transition: all 0.2s ease;
+    }
+    .room-chip.grouped {
+      background: var(--blue-light);
+      border-color: var(--blue-border);
+      color: var(--blue);
+    }
+    .room-chip .indicator { width: 6px; height: 6px; border-radius: 50%; background: #ccc; }
+    .room-chip.grouped .indicator { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
+
+    /* Volume Slider - Floating Radius Style */
+    .volume-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .volume-track {
+      flex: 1; height: 6px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 99px;
+      position: relative;
+      overflow: hidden;
+    }
+    .volume-fill {
+      position: absolute; left: 0; top: 0; bottom: 0;
+      width: 65%; background: var(--blue); border-radius: 99px;
+    }
+    .vol-icon { font-size: 20px; color: var(--text-sub); }
+
+    html.dark .speaker-selector { background: var(--card-bg); border-color: rgba(255,255,255,0.05); }
+    html.dark .group-manager { background: rgba(255,255,255,0.02); }
+
+  </style>
+</head>
+<body>
+
+<div class="dashboard">
+  
+  <!-- Sonos Multi-Room Card -->
+  <div class="section-container">
+    <div class="sonos-card">
+      
+      <!-- Top Bar: Speaker Navigation -->
+      <div class="sonos-header">
+        <div class="speaker-selector">
+          <span class="material-symbols-rounded icon filled">speaker_group</span>
+          <span class="speaker-name">Living Room Sonos</span>
+          <span class="material-symbols-rounded chevron">expand_more</span>
+        </div>
+        <div class="header-right">
+          <span class="material-symbols-rounded ctrl-icon" style="font-size:20px">shuffle</span>
+        </div>
+      </div>
+
+      <!-- Now Playing Section -->
+      <div class="now-playing">
+        <div class="album-art-wrap">
+          <div class="album-art">
+             <!-- Placeholder for Album Art -->
+             <span class="material-symbols-rounded music-icon">album</span>
+          </div>
+        </div>
+        <div class="track-meta">
+          <span class="track-title">Get Along</span>
+          <span class="artist-name">Kenny Chesney</span>
+        </div>
+      </div>
+
+      <!-- Main Controls -->
+      <div class="sonos-controls">
+        <div class="volume-row">
+          <span class="material-symbols-rounded vol-icon">volume_down</span>
+          <div class="volume-track">
+            <div class="volume-fill"></div>
+          </div>
+          <span class="material-symbols-rounded vol-icon">volume_up</span>
+        </div>
+
+        <div class="playback-row">
+          <span class="material-symbols-rounded ctrl-icon">skip_previous</span>
+          <div class="play-pause-btn">
+            <span class="material-symbols-rounded icon">pause</span>
+          </div>
+          <span class="material-symbols-rounded ctrl-icon">skip_next</span>
+        </div>
+      </div>
+
+      <!-- Multi-Room Grouping Panel -->
+      <div class="group-manager">
+        <div class="group-header">
+          <span class="group-label">Sync with Rooms</span>
+          <span class="material-symbols-rounded" style="font-size:16px; color: var(--blue)">link</span>
+        </div>
+        <div class="room-pills">
+          <div class="room-chip grouped">
+            <div class="indicator"></div>
+            Living
+          </div>
+          <div class="room-chip grouped">
+            <div class="indicator"></div>
+            Kitchen
+          </div>
+          <div class="room-chip">
+            <div class="indicator"></div>
+            Bedroom
+          </div>
+          <div class="room-chip">
+            <div class="indicator"></div>
+            Office
+          </div>
+          <div class="room-chip">
+            <div class="indicator"></div>
+            Bath
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

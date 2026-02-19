@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tunet Dashboard – Overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS – LIGHT (v2.1 Design System)
+       ═══════════════════════════════════════════════════════════════ */
+    :root {
+      --bg1:#c2dde6; --bg2:#a8c8d8; --bg3:#7ba8be; --bg4:#5b8aa0;
+
+      --glass: rgba(255,255,255, 0.55);
+      --glass-border: rgba(255,255,255, 0.45);
+      --parent-bg: rgba(255,255,255, 0.35);
+
+      --shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+      --shadow-up: 0 1px 3px rgba(0,0,0,0.10), 0 12px 40px rgba(0,0,0,0.12);
+      --shadow-section: 0 8px 40px rgba(0,0,0,0.10);
+      --inset: inset 0 0 0 0.5px rgba(0,0,0, 0.06);
+
+      --text: #1C1C1E;
+      --text-sub: rgba(28,28,30, 0.55);
+      --text-muted: #8E8E93;
+
+      --amber: #D4850A;
+      --amber-fill: rgba(212,133,10, 0.10);
+      --amber-border: rgba(212,133,10, 0.22);
+      --blue: #007AFF;
+      --blue-fill: rgba(0,122,255, 0.09);
+      --blue-border: rgba(0,122,255, 0.18);
+      --green: #34C759;
+      --green-fill: rgba(52,199,89, 0.12);
+      --green-border: rgba(52,199,89, 0.15);
+      --purple: #AF52DE;
+      --purple-fill: rgba(175,82,222, 0.10);
+      --purple-border: rgba(175,82,222, 0.18);
+      --red: #FF3B30;
+      --red-fill: rgba(255,59,48, 0.10);
+      --red-border: rgba(255,59,48, 0.22);
+
+      --track-bg: rgba(28,28,30, 0.055);
+      --track-h: 44px;
+      --thumb-bg: #fff;
+      --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+      --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
+
+      --r-section: 38px;
+      --r-card: 24px;
+      --r-tile: 16px;
+      --r-pill: 999px;
+      --r-track: 14px;
+
+      --ctrl-bg: rgba(255,255,255, 0.52);
+      --ctrl-border: rgba(0,0,0, 0.05);
+      --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+
+      --chip-bg: rgba(255,255,255, 0.48);
+      --chip-border: rgba(0,0,0, 0.05);
+      --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
+
+      --dd-bg: rgba(255,255,255, 0.84);
+      --dd-border: rgba(255,255,255, 0.60);
+      --divider: rgba(28,28,30, 0.07);
+
+      --toggle-off: rgba(28,28,30, 0.10);
+      --toggle-on: rgba(52,199,89, 0.28);
+      --toggle-knob: rgba(255,255,255, 0.96);
+
+      --tile-bg: rgba(255,255,255, 0.92);
+      --tile-bg-off: rgba(28,28,30, 0.04);
+      --gray-ghost: rgba(0, 0, 0, 0.035);
+      --border-ghost: transparent;
+
+      color-scheme: light;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS – DARK (Blue Variant)
+       ═══════════════════════════════════════════════════════════════ */
+    html.dark {
+      --bg1:#152a33; --bg2:#162438; --bg3:#1a1f3a; --bg4:#141428;
+
+      --glass: rgba(255,255,255, 0.06);
+      --glass-border: rgba(255,255,255, 0.10);
+      --parent-bg: rgba(255,255,255, 0.04);
+
+      --shadow: 0 1px 2px rgba(0,0,0,0.20), 0 4px 12px rgba(0,0,0,0.10);
+      --shadow-up: 0 1px 3px rgba(0,0,0,0.28), 0 12px 40px rgba(0,0,0,0.30);
+      --shadow-section: 0 8px 40px rgba(0,0,0,0.25);
+      --inset: inset 0 0 0 0.5px rgba(255,255,255, 0.08);
+
+      --text: #F5F5F7;
+      --text-sub: rgba(245,245,247, 0.55);
+      --text-muted: rgba(245,245,247, 0.35);
+
+      --amber: #F0A030;
+      --amber-fill: rgba(240,160,48, 0.14);
+      --amber-border: rgba(240,160,48, 0.28);
+      --blue: #0A84FF;
+      --blue-fill: rgba(10,132,255, 0.14);
+      --blue-border: rgba(10,132,255, 0.24);
+      --green: #30D158;
+      --green-fill: rgba(48,209,88, 0.14);
+      --green-border: rgba(48,209,88, 0.20);
+      --purple: #BF5AF2;
+      --purple-fill: rgba(191,90,242, 0.14);
+      --purple-border: rgba(191,90,242, 0.22);
+      --red: #FF453A;
+      --red-fill: rgba(255,69,58, 0.14);
+      --red-border: rgba(255,69,58, 0.25);
+
+      --track-bg: rgba(255,255,255, 0.08);
+      --thumb-bg: rgba(255,255,255, 0.92);
+      --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
+      --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
+
+      --ctrl-bg: rgba(255,255,255, 0.07);
+      --ctrl-border: rgba(255,255,255, 0.10);
+      --ctrl-sh: 0 1px 2px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.12);
+
+      --chip-bg: rgba(255,255,255, 0.08);
+      --chip-border: rgba(255,255,255, 0.10);
+      --chip-sh: 0 1px 3px rgba(0,0,0,0.15);
+
+      --dd-bg: rgba(30,36,50, 0.92);
+      --dd-border: rgba(255,255,255, 0.10);
+      --divider: rgba(255,255,255, 0.08);
+
+      --toggle-off: rgba(255,255,255, 0.12);
+      --toggle-on: rgba(48,209,88, 0.35);
+      --toggle-knob: rgba(255,255,255, 0.92);
+
+      --tile-bg: rgba(255,255,255, 0.08);
+      --tile-bg-off: rgba(255,255,255, 0.04);
+      --gray-ghost: rgba(255, 255, 255, 0.05);
+      --border-ghost: rgba(255, 255, 255, 0.08);
+
+      color-scheme: dark;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       BASE & PAGE BACKGROUND
+       ═══════════════════════════════════════════════════════════════ */
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:"DM Sans",system-ui,-apple-system,sans-serif;
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .page{
+      min-height:100%;display:flex;flex-direction:column;
+      align-items:center;justify-content:flex-start;
+      padding:32px 16px;gap:20px;
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(255,255,255,0.55),transparent 55%),
+        radial-gradient(ellipse 900px 700px at 80% 15%,rgba(255,255,255,0.35),transparent 60%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    .page::before{
+      content:"";position:fixed;inset:-60px;
+      background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));
+      filter:blur(28px) saturate(1.05);z-index:-2;
+    }
+    html.dark .page{
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(40,100,130,0.15),transparent 55%),
+        radial-gradient(ellipse 800px 600px at 80% 85%,rgba(60,50,120,0.12),transparent 55%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    html.dark .page::before{background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));filter:blur(28px)}
+
+    /* ═══════════════════════════════════════════════════════════════
+       ICONS
+       ═══════════════════════════════════════════════════════════════ */
+    .icon{
+      font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;
+      display:inline-flex;align-items:center;justify-content:center;line-height:1;
+      text-transform:none;letter-spacing:normal;white-space:nowrap;direction:ltr;
+      vertical-align:middle;flex-shrink:0;-webkit-font-smoothing:antialiased;
+      font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+    }
+    .icon.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .icon-28{font-size:28px;width:28px;height:28px}
+    .icon-24{font-size:24px;width:24px;height:24px}
+    .icon-20{font-size:20px;width:20px;height:20px}
+    .icon-18{font-size:18px;width:18px;height:18px}
+    .icon-16{font-size:16px;width:16px;height:16px}
+    .icon-14{font-size:14px;width:14px;height:14px}
+
+    /* ═══════════════════════════════════════════════════════════════
+       THEME TOGGLE
+       ═══════════════════════════════════════════════════════════════ */
+    .theme-toggle{
+      display:flex;gap:4px;padding:4px;border-radius:var(--r-pill);
+      background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--glass-border);box-shadow:var(--shadow);
+    }
+    .theme-btn{
+      padding:8px 16px;border:none;border-radius:var(--r-pill);
+      background:transparent;color:var(--text-muted);
+      font-family:inherit;font-size:13px;font-weight:600;
+      cursor:pointer;transition:all 180ms ease;
+      display:flex;align-items:center;gap:6px;
+    }
+    .theme-btn.active{background:rgba(255,255,255,0.45);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,0.06)}
+    html.dark .theme-btn.active{background:rgba(255,255,255,0.10)}
+
+    /* ═══════════════════════════════════════════════════════════════
+       SECTION CONTAINER (Parent Group – living_card_mockup style)
+       ═══════════════════════════════════════════════════════════════ */
+    .section-container{
+      background:var(--parent-bg);
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border-radius:var(--r-section);
+      border:1px solid rgba(255,255,255,0.08);
+      padding:20px;
+      box-shadow:var(--shadow-section);
+      display:flex;flex-direction:column;gap:16px;
+      width:100%;max-width:100%;
+    }
+    .section-container::before{
+      content:"";position:absolute;inset:0;border-radius:var(--r-section);
+      padding:1px;pointer-events:none;z-index:0;
+      background:linear-gradient(160deg,rgba(255,255,255,0.40),rgba(255,255,255,0.06) 40%,rgba(255,255,255,0.01) 60%,rgba(255,255,255,0.14));
+      -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+    }
+    html.dark .section-container::before{
+      background:linear-gradient(160deg,rgba(255,255,255,0.10),rgba(255,255,255,0.02) 40%,rgba(255,255,255,0.005) 60%,rgba(255,255,255,0.06));
+    }
+    .section-container{position:relative}
+    .section-header{display:flex;align-items:center;justify-content:space-between;padding:0 4px}
+    .section-title{font-size:16px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+    .section-title .icon{color:var(--amber)}
+    .section-action{
+      font-size:13px;font-weight:700;color:var(--amber);
+      background:var(--amber-fill);padding:6px 14px;border-radius:99px;
+      cursor:pointer;border:1px solid var(--amber-border);transition:all .15s;
+    }
+    .section-action:hover{box-shadow:var(--shadow-up)}
+
+    /* ═══════════════════════════════════════════════════════════════
+       LAYOUT GRID (layout-card style)
+       ═══════════════════════════════════════════════════════════════ */
+    .layout-grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:20px;
+      width:100%;max-width:860px;
+    }
+    .layout-grid > .room-stack{grid-column:1 / -1}
+    @media(min-width:520px){
+      .layout-grid{grid-template-columns:repeat(2,1fr)}
+      .layout-grid > .room-stack{grid-column:1 / -1}
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       CARD (universal glass shell)
+       ═══════════════════════════════════════════════════════════════ */
+    .card{
+      position:relative;max-width:100%;
+      border-radius:var(--r-card);background:var(--glass);
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--ctrl-border);
+      box-shadow:var(--shadow),var(--inset);
+      padding:20px;display:flex;flex-direction:column;gap:0;
+      transition:background .3s,border-color .3s,box-shadow .3s,opacity .3s;
+    }
+    .card::before{
+      content:"";position:absolute;inset:0;border-radius:var(--r-card);
+      padding:1px;pointer-events:none;z-index:0;
+      background:linear-gradient(160deg,rgba(255,255,255,0.50),rgba(255,255,255,0.08) 40%,rgba(255,255,255,0.02) 60%,rgba(255,255,255,0.20));
+      -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+    }
+    html.dark .card::before{
+      background:linear-gradient(160deg,rgba(255,255,255,0.14),rgba(255,255,255,0.03) 40%,rgba(255,255,255,0.01) 60%,rgba(255,255,255,0.08));
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HOME STATUS GRID
+       ═══════════════════════════════════════════════════════════════ */
+    .status-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .s-tile{
+      background:var(--tile-bg);border-radius:var(--r-tile);
+      box-shadow:var(--shadow);padding:14px 8px 10px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:4px;cursor:pointer;transition:all .15s ease;position:relative;overflow:hidden;
+    }
+    .s-tile:hover{box-shadow:var(--shadow-up)}
+    .s-tile:active{transform:scale(.97)}
+    .s-tile .tile-icon{width:28px;height:28px;display:grid;place-items:center;margin-bottom:2px}
+    .s-tile[data-accent="amber"] .tile-icon{color:var(--amber)}
+    .s-tile[data-accent="amber"] .tile-icon .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .s-tile[data-accent="blue"] .tile-icon{color:var(--blue)}
+    .s-tile[data-accent="blue"] .tile-icon .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .s-tile[data-accent="green"] .tile-icon{color:var(--green)}
+    .s-tile[data-accent="green"] .tile-icon .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .s-tile[data-accent="muted"] .tile-icon{color:var(--text-muted)}
+    .s-tile .tile-val{
+      font-size:18px;font-weight:700;letter-spacing:-.2px;line-height:1;
+      color:var(--text);font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap;
+    }
+    .s-tile .tile-label{
+      font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+      color:var(--text-muted);line-height:1;text-align:center;white-space:nowrap;
+      overflow:hidden;text-overflow:ellipsis;max-width:100%;
+    }
+    .tile-deg{font-size:0.6em;vertical-align:baseline;position:relative;top:-0.18em;margin-left:-1px}
+    .status-dot{width:6px;height:6px;border-radius:999px;position:absolute;top:10px;right:10px}
+    .status-dot.active{background:var(--green)}
+    .status-dot.manual{background:var(--amber)}
+
+    /* ═══════════════════════════════════════════════════════════════
+       LIGHTING CARD
+       ═══════════════════════════════════════════════════════════════ */
+    .light-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+    .light-hdr-icon{
+      width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+      border:1px solid transparent;background:transparent;transition:all .2s ease;color:var(--text-muted);
+    }
+    .light-hdr-icon.on{background:var(--amber-fill);color:var(--amber);border-color:var(--amber-border)}
+    .light-hdr-title{font-weight:700;font-size:14px;color:var(--text-sub);letter-spacing:.1px}
+    .light-hdr-spacer{flex:1}
+    .adaptive-pill{
+      display:flex;align-items:center;gap:5px;padding:7px 8px 7px 10px;border-radius:var(--r-pill);
+      border:1px solid var(--ctrl-border);background:var(--ctrl-bg);box-shadow:var(--ctrl-sh);
+      font-family:inherit;font-size:12px;font-weight:600;color:var(--text-sub);cursor:pointer;
+      transition:all .15s ease;letter-spacing:.2px;
+    }
+    .adaptive-pill:hover{box-shadow:var(--shadow)}
+    .adaptive-pill.on{background:var(--amber-fill);color:var(--amber);border-color:var(--amber-border)}
+    .adaptive-pill .chevron{transition:transform .2s ease}
+    .light-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .l-tile{
+      border-radius:var(--r-tile);box-shadow:var(--shadow);display:flex;flex-direction:column;
+      align-items:center;cursor:pointer;transition:background .2s,border-color .2s,box-shadow .15s;
+      position:relative;overflow:hidden;user-select:none;touch-action:pan-y;border:1px solid transparent;
+    }
+    .l-tile.off{background:var(--tile-bg-off);border-color:var(--ctrl-border)}
+    .l-tile.on{background:var(--tile-bg);border-color:var(--amber-border)}
+    .l-tile:hover{box-shadow:var(--shadow-up)}
+    .l-tile.sliding{box-shadow:var(--shadow-up)}
+    .l-tile .tile-content{
+      position:relative;z-index:1;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;width:100%;padding:14px 8px 10px;gap:6px;
+    }
+    .l-tile .zone-icon-wrap{
+      width:44px;height:44px;border-radius:10px;display:grid;place-items:center;
+      transition:all .2s ease;border:1px solid transparent;
+    }
+    .l-tile.off .zone-icon-wrap{background:var(--track-bg);color:var(--text-muted)}
+    .l-tile.on .zone-icon-wrap{background:var(--amber-fill);border-color:var(--amber-border);color:var(--amber)}
+    .l-tile.on .zone-icon-wrap .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .l-tile .zone-name{font-size:13px;font-weight:600;color:var(--text);letter-spacing:.1px;line-height:1}
+    .l-tile.off .zone-name{color:var(--text-sub)}
+    .l-tile .zone-val{font-size:12px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.2px}
+    .l-tile.off .zone-val{color:var(--text-muted)}
+    .l-tile.on .zone-val{color:var(--amber)}
+    .l-tile .zone-bar{width:100%;height:4px;background:var(--track-bg);position:relative;margin-top:auto;flex-shrink:0}
+    .l-tile .zone-bar-fill{position:absolute;top:0;left:0;bottom:0;transition:width .15s ease;border-radius:0}
+    .l-tile.sliding .zone-bar-fill{transition:none}
+    .l-tile.off .zone-bar-fill{background:var(--text-muted);opacity:0.15}
+    .l-tile.on .zone-bar-fill{background:var(--amber);opacity:0.65}
+
+    /* Sliding State – scale + floating pill (living_card_mockup pattern) */
+    .l-tile.sliding{
+      transform:scale(1.05);box-shadow:var(--shadow-up);z-index:100;
+      border-color:var(--amber) !important;
+    }
+    .l-tile.sliding .zone-val{
+      position:absolute;top:0;left:50%;transform:translate(-50%,-50%);
+      color:var(--amber);font-weight:700;font-size:15px;
+      background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      padding:6px 20px;border-radius:999px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:101;
+      border:1px solid rgba(255,255,255,0.15);white-space:nowrap;
+    }
+    html.dark .l-tile.sliding .zone-val{
+      background:var(--glass);border-color:rgba(255,255,255,0.10);
+    }
+    .l-tile.sliding .zone-bar{height:6px}
+
+    /* ═══════════════════════════════════════════════════════════════
+       CLIMATE CARD
+       ═══════════════════════════════════════════════════════════════ */
+    .climate-hdr{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+    .info-tile{
+      display:flex;align-items:center;gap:8px;padding:6px 10px 6px 6px;min-height:42px;
+      border-radius:10px;border:1px solid var(--ctrl-border);background:var(--ctrl-bg);
+      box-shadow:var(--ctrl-sh);cursor:pointer;transition:all .15s ease;min-width:0;
+    }
+    .info-tile:hover{box-shadow:var(--shadow)}
+    .info-tile:active{transform:scale(.98)}
+    .entity-icon{
+      width:24px;height:24px;border-radius:6px;display:grid;place-items:center;
+      flex-shrink:0;transition:all .2s ease;color:var(--text-muted);
+    }
+    .hdr-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+    .hdr-title{
+      font-weight:700;font-size:13px;color:var(--text-sub);letter-spacing:0.1px;line-height:1.15;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .hdr-sub{
+      font-size:10.5px;font-weight:600;color:var(--text-muted);letter-spacing:0.1px;line-height:1.15;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .hdr-sub .heat-ic{color:var(--amber)}
+    .hdr-sub .cool-ic{color:var(--blue)}
+    .hdr-sub .green-ic{color:var(--green)}
+    .hdr-spacer{flex:1}
+
+    /* Mode selector */
+    .dd-wrap{position:relative}
+    .mode-btn{
+      display:flex;align-items:center;gap:4px;min-height:42px;padding:0 10px;
+      border-radius:10px;border:1px solid var(--ctrl-border);background:var(--ctrl-bg);
+      box-shadow:var(--ctrl-sh);font-family:inherit;font-size:12px;font-weight:600;
+      color:var(--text-sub);letter-spacing:.2px;cursor:pointer;transition:all .15s ease;
+    }
+    .mode-btn:hover{box-shadow:var(--shadow)}
+    .mode-btn:active{transform:scale(.97)}
+    .mode-btn .chevron{transition:transform .2s ease}
+    .mode-btn[aria-expanded="true"] .chevron{transform:rotate(180deg)}
+
+    /* Climate body */
+    .climate-body{display:flex;flex-direction:column;gap:14px}
+    .temp-row{display:flex;align-items:flex-end;gap:24px;padding:0 4px}
+    .temp-group{display:flex;flex-direction:column;gap:2px}
+    .t-label{font-size:10.5px;font-weight:600;letter-spacing:.3px;color:var(--text-muted)}
+    .t-label.indoor{color:var(--text-sub)}
+    .t-val{font-size:42px;font-weight:700;line-height:1;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;color:var(--text)}
+    .t-val.heat{font-size:26px;color:var(--amber);letter-spacing:-0.8px}
+    .t-val.cool{font-size:26px;color:var(--blue);letter-spacing:-0.8px}
+    .deg{font-size:0.6em;position:relative;top:-0.18em;margin-left:-1px}
+
+    /* Slider zone */
+    .slider-zone{position:relative;height:var(--track-h);border-radius:var(--r-track)}
+    .slider-track{
+      position:absolute;inset:0;border-radius:var(--r-track);
+      background:var(--track-bg);overflow:hidden;
+    }
+    .fill-heat{
+      position:absolute;top:0;bottom:0;left:0;
+      border-radius:var(--r-track) 0 0 var(--r-track);
+      background:rgba(212,133,10,0.28);
+    }
+    html.dark .fill-heat{background:rgba(232,150,30,0.30)}
+    .fill-cool{
+      position:absolute;top:0;bottom:0;right:0;
+      border-radius:0 var(--r-track) var(--r-track) 0;
+      background:rgba(0,122,255,0.26);
+    }
+    html.dark .fill-cool{background:rgba(10,132,255,0.28)}
+
+    /* Thumbs */
+    .thumb-wrap{position:absolute;top:0;bottom:0;z-index:2}
+    .thumb-stroke{position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-1px);border-radius:999px}
+    .thumb-disc{
+      position:absolute;top:50%;left:50%;width:26px;height:26px;
+      transform:translate(-50%,-50%);border-radius:999px;
+      background:var(--thumb-bg);box-shadow:var(--thumb-sh);
+      transition:box-shadow .15s,transform .15s;
+    }
+    .thumb-dot{
+      position:absolute;top:50%;left:50%;width:8px;height:8px;
+      transform:translate(-50%,-50%);border-radius:999px;
+      box-shadow:inset 0 0 0 0.5px rgba(0,0,0,0.08);
+    }
+    .thumb-heat .thumb-stroke{background:var(--amber)}
+    .thumb-heat .thumb-dot{background:var(--amber)}
+    .thumb-cool .thumb-stroke{background:var(--blue)}
+    .thumb-cool .thumb-dot{background:var(--blue)}
+
+    /* Current marker */
+    .cur-marker{position:absolute;bottom:-2px;z-index:1;display:flex;flex-direction:column;align-items:center}
+    .cur-tick{width:2px;height:8px;background:var(--text);border-radius:1px;opacity:0.4}
+    .cur-label{font-size:9px;font-weight:700;color:var(--text-sub);font-variant-numeric:tabular-nums;margin-top:2px}
+
+    /* Fan button */
+    .fan-btn{
+      width:42px;height:42px;border-radius:10px;display:grid;place-items:center;
+      border:1px solid var(--ctrl-border);background:var(--ctrl-bg);
+      box-shadow:var(--ctrl-sh);cursor:pointer;transition:all .15s;color:var(--text-muted);
+    }
+    .fan-btn:hover{box-shadow:var(--shadow)}
+    .fan-btn:active{transform:scale(.95)}
+    .fan-btn.on{background:var(--green-fill);border-color:var(--green-border);color:var(--green)}
+    .fan-btn.on .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+
+    /* Eco checkbox */
+    .eco-opt{justify-content:space-between !important}
+    .eco-check{
+      width:18px;height:18px;border-radius:999px;border:1.5px solid var(--text-muted);
+      display:grid;place-items:center;transition:all .15s;flex-shrink:0;
+    }
+    .eco-check .icon{color:#fff;opacity:0;transition:opacity .1s;font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 14}
+    .eco-opt.active .eco-check{background:var(--green);border-color:var(--green)}
+    .eco-opt.active .eco-check .icon{opacity:1}
+
+    /* Scale marks */
+    .scale-row{display:flex;justify-content:space-between;padding:4px 2px 0}
+    .scale-mark{font-size:11px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums}
+    .scale-mark.mid{opacity:0.6}
+
+    /* ═══════════════════════════════════════════════════════════════
+       MEDIA CARD (Sonos)
+       ═══════════════════════════════════════════════════════════════ */
+    .card[data-state="playing"]{border-color:rgba(52,199,89,0.14)}
+    html.dark .card[data-state="playing"]{border-color:rgba(48,209,88,0.16)}
+    .card[data-state="paused"]{opacity:0.85}
+    .card[data-state="idle"]{opacity:0.65}
+    .card[data-state="playing"] .info-tile{background:var(--green-fill);border-color:var(--green-border)}
+    .card[data-state="playing"] .entity-icon{color:var(--green)}
+    .card[data-state="playing"] .entity-icon .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+
+    .media-hdr{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+
+    /* Speaker selector */
+    .speaker-wrap{position:relative}
+    .speaker-btn{
+      display:flex;align-items:center;gap:4px;min-height:42px;padding:0 10px;
+      border-radius:10px;border:1px solid var(--ctrl-border);background:var(--ctrl-bg);
+      box-shadow:var(--ctrl-sh);font-family:inherit;font-size:12px;font-weight:600;
+      color:var(--text-sub);letter-spacing:.2px;cursor:pointer;transition:all .15s ease;
+    }
+    .speaker-btn:hover{box-shadow:var(--shadow)}
+    .speaker-btn:active{transform:scale(.97)}
+    .speaker-btn .chevron{transition:transform .2s ease}
+    .speaker-btn[aria-expanded="true"] .chevron{transform:rotate(180deg)}
+
+    /* Media row */
+    .media-body{position:relative;overflow:hidden}
+    .media-row{display:flex;align-items:center;gap:14px;transition:opacity .2s,transform .2s}
+    .media-row.hidden{opacity:0;transform:translateY(4px);pointer-events:none;position:absolute;inset:0}
+    .album-art{
+      width:56px;height:56px;flex-shrink:0;border-radius:10px;overflow:hidden;
+      background:var(--track-bg);box-shadow:var(--ctrl-sh);display:grid;place-items:center;position:relative;
+    }
+    .album-art img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+    .album-art .icon{color:var(--text-muted)}
+    .card[data-state="playing"] .album-art{box-shadow:var(--shadow)}
+    .track-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+    .track-name{font-size:15px;font-weight:700;color:var(--text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .track-artist{font-size:13px;font-weight:600;color:var(--text-sub);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .progress-wrap{display:flex;align-items:center;gap:6px;margin-top:4px}
+    .progress-time{font-size:10px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums;letter-spacing:.3px;flex-shrink:0;min-width:28px}
+    .progress-time.right{text-align:right}
+    .progress-track{flex:1;height:3px;border-radius:999px;background:var(--track-bg);position:relative;overflow:hidden}
+    .progress-fill{position:absolute;top:0;left:0;bottom:0;border-radius:999px;background:rgba(52,199,89,0.50);transition:width .5s linear}
+    html.dark .progress-fill{background:rgba(48,209,88,0.50)}
+
+    /* Transport buttons */
+    .transport{display:flex;align-items:center;gap:4px;flex-shrink:0}
+    .t-btn{
+      width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+      cursor:pointer;transition:all .15s ease;border:none;background:transparent;color:var(--text-sub);
+    }
+    .t-btn:hover{background:var(--track-bg)}
+    .t-btn:active{transform:scale(.90)}
+    .t-btn.play{
+      width:42px;height:42px;background:var(--ctrl-bg);
+      border:1px solid var(--ctrl-border);box-shadow:var(--ctrl-sh);color:var(--text);
+    }
+    .t-btn.play:hover{box-shadow:var(--shadow)}
+    .card[data-state="playing"] .t-btn.play{background:var(--green-fill);border-color:var(--green-border);color:var(--green)}
+    .card[data-state="playing"] .t-btn.play .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .vol-btn{
+      width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+      cursor:pointer;transition:all .15s;border:none;background:transparent;color:var(--text-muted);
+    }
+    .vol-btn:hover{background:var(--track-bg)}
+    .vol-btn:active{transform:scale(.90)}
+
+    /* Volume row */
+    .vol-row{display:flex;align-items:center;gap:12px;transition:opacity .2s,transform .2s}
+    .vol-row.hidden{opacity:0;transform:translateY(-4px);pointer-events:none;position:absolute;inset:0}
+    .vol-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;cursor:pointer;color:var(--green);transition:all .15s}
+    .vol-icon:hover{background:var(--track-bg)}
+    .vol-icon:active{transform:scale(.90)}
+    .vol-icon .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .vol-slider-wrap{flex:1;display:flex;align-items:center;position:relative}
+    .vol-track{
+      width:100%;height:44px;border-radius:var(--r-track);background:var(--track-bg);
+      position:relative;cursor:pointer;touch-action:none;overflow:hidden;
+    }
+    .vol-fill{position:absolute;top:0;left:0;bottom:0;border-radius:var(--r-track) 0 0 var(--r-track);background:rgba(52,199,89,0.26);pointer-events:none;transition:width 60ms ease}
+    html.dark .vol-fill{background:rgba(48,209,88,0.28)}
+    .vol-thumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:26px;height:26px;pointer-events:none;z-index:2;transition:left 60ms ease}
+    .vol-thumb-disc{width:26px;height:26px;border-radius:999px;background:var(--thumb-bg);box-shadow:var(--thumb-sh);position:absolute;inset:0;transition:box-shadow .15s,transform .15s}
+    .vol-thumb-dot{width:8px;height:8px;border-radius:999px;background:var(--green);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:inset 0 0 0 0.5px rgba(0,0,0,0.08)}
+    .vol-stroke{position:absolute;top:0;bottom:0;left:0;width:2px;transform:translateX(-1px);background:var(--green);border-radius:999px;pointer-events:none;z-index:1;opacity:1}
+    .vol-track.dragging .vol-thumb-disc{box-shadow:var(--thumb-sh-a);transform:scale(1.08)}
+    .vol-track.dragging .vol-fill,.vol-track.dragging .vol-thumb,.vol-track.dragging .vol-stroke{transition:none}
+    .vol-pct{font-size:14px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-0.2px;min-width:42px;text-align:right;flex-shrink:0}
+    .vol-close{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;cursor:pointer;color:var(--text-muted);transition:all .15s}
+    .vol-close:hover{background:var(--track-bg)}
+    .vol-close:active{transform:scale(.90)}
+
+    /* ═══════════════════════════════════════════════════════════════
+       DROPDOWN MENU (shared for speaker, mode, etc.)
+       ═══════════════════════════════════════════════════════════════ */
+    .dd-menu{
+      position:absolute;top:calc(100% + 6px);right:0;
+      min-width:220px;padding:5px;border-radius:var(--r-tile);
+      background:var(--dd-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--dd-border);box-shadow:var(--shadow-up);z-index:10;
+      display:none;flex-direction:column;gap:1px;
+    }
+    .dd-menu.open{display:flex;animation:menuIn .14s ease forwards}
+    @keyframes menuIn{from{opacity:0;transform:translateY(-4px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .dd-option{
+      padding:9px 12px;border-radius:11px;font-size:13px;font-weight:600;color:var(--text);
+      display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .1s;user-select:none;
+    }
+    .dd-option:hover{background:var(--track-bg)}
+    .dd-option:active{transform:scale(.97)}
+    .dd-option.selected{font-weight:700;color:var(--green);background:var(--green-fill)}
+    .dd-option.selected .spk-icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .spk-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .spk-now-playing{font-size:10.5px;font-weight:500;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+    .dd-option.selected .spk-now-playing{color:var(--green);opacity:0.7}
+    .spk-text{display:flex;flex-direction:column;flex:1;min-width:0}
+
+    /* Group checkbox */
+    .grp-check{
+      width:20px;height:20px;border-radius:999px;flex-shrink:0;
+      border:1.5px solid var(--text-muted);display:grid;place-items:center;
+      transition:all .15s ease;cursor:pointer;position:relative;z-index:2;
+    }
+    .grp-check:hover{border-color:var(--green)}
+    .grp-check.in-group{background:var(--green);border-color:var(--green)}
+    .grp-check .icon{color:#fff;opacity:0;transition:opacity .1s;font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 14}
+    .grp-check.in-group .icon{opacity:1}
+
+    /* Action options */
+    .dd-option.action{color:var(--text-sub)}
+    .dd-option.action:hover{color:var(--text)}
+    .dd-option.action .icon{color:var(--green)}
+    .dd-divider{height:1px;background:var(--divider);margin:3px 8px}
+
+    /* ═══════════════════════════════════════════════════════════════
+       ROOM OVERVIEW CAPSULES
+       ═══════════════════════════════════════════════════════════════ */
+    .room-list{display:flex;flex-direction:column;gap:10px}
+    .room-card{
+      min-height:72px;border-radius:var(--r-card);background:var(--glass);
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--ctrl-border);box-shadow:var(--shadow),var(--inset);
+      display:flex;align-items:center;padding:0 14px;gap:12px;
+      cursor:pointer;transition:all .15s;position:relative;overflow:hidden;
+    }
+    .room-card::before{
+      content:"";position:absolute;inset:0;border-radius:var(--r-card);padding:1px;pointer-events:none;z-index:0;
+      background:linear-gradient(160deg,rgba(255,255,255,0.50),rgba(255,255,255,0.08) 40%,rgba(255,255,255,0.02) 60%,rgba(255,255,255,0.20));
+      -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+    }
+    html.dark .room-card::before{
+      background:linear-gradient(160deg,rgba(255,255,255,0.14),rgba(255,255,255,0.03) 40%,rgba(255,255,255,0.01) 60%,rgba(255,255,255,0.08));
+    }
+    .room-card:hover{box-shadow:var(--shadow-up),var(--inset)}
+    .room-card.active{border-color:var(--amber-border)}
+    .room-icon{
+      width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;
+      transition:all .2s;border:1px solid transparent;
+    }
+    .room-card:not(.active) .room-icon{background:var(--gray-ghost);color:var(--text-muted)}
+    .room-card.active .room-icon{background:var(--amber-fill);color:var(--amber);border-color:var(--amber-border)}
+    .room-card.active .room-icon .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .room-info{flex:1;min-width:0}
+    .room-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.2}
+    .room-status{font-size:11.5px;font-weight:600;color:var(--text-muted);line-height:1.2;margin-top:2px}
+    .room-status .amber-txt{color:var(--amber)}
+    .room-controls{display:flex;align-items:center;gap:6px}
+    .room-orb{
+      width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+      flex-shrink:0;cursor:pointer;transition:all .15s;border:1px solid transparent;
+      background:var(--gray-ghost);color:var(--text-muted);
+    }
+    .room-orb:hover{background:var(--track-bg)}
+    .room-orb:active{transform:scale(.92)}
+    .room-orb.on{background:var(--amber-fill);color:var(--amber);border-color:var(--amber-border)}
+    .room-orb.on .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .room-toggle{
+      width:44px;height:24px;border-radius:12px;background:var(--toggle-off);
+      position:relative;cursor:pointer;transition:background .15s;flex-shrink:0;
+    }
+    .room-toggle.on{background:var(--toggle-on)}
+    .room-toggle-knob{
+      width:20px;height:20px;border-radius:999px;background:var(--toggle-knob);
+      box-shadow:0 1px 2px rgba(0,0,0,0.10),0 2px 6px rgba(0,0,0,0.06);
+      position:absolute;top:2px;left:2px;transition:transform .15s ease;
+    }
+    .room-toggle.on .room-toggle-knob{transform:translateX(20px)}
+    .room-chevron{color:var(--text-muted);flex-shrink:0;cursor:pointer}
+
+    /* ═══════════════════════════════════════════════════════════════
+       WEATHER CARD
+       ═══════════════════════════════════════════════════════════════ */
+    .weather-hdr{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+    .weather-body{display:flex;flex-direction:column;gap:14px}
+    .weather-main{display:flex;align-items:flex-start;gap:20px;padding:0 4px}
+    .weather-current{display:flex;flex-direction:column;gap:2px}
+    .weather-temp{font-size:42px;font-weight:700;line-height:1;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;color:var(--text)}
+    .weather-desc{font-size:13px;font-weight:600;color:var(--text-sub);margin-top:4px}
+    .weather-details{display:flex;flex-direction:column;gap:6px;padding-top:6px}
+    .weather-detail{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-sub)}
+    .weather-detail .icon{color:var(--blue)}
+    .weather-detail .val{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+    .weather-forecast{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+    .forecast-tile{
+      display:flex;flex-direction:column;align-items:center;gap:4px;
+      padding:10px 4px 8px;border-radius:12px;background:var(--ctrl-bg);
+      border:1px solid var(--ctrl-border);transition:all .15s;
+    }
+    .forecast-tile:first-child{background:var(--blue-fill);border-color:var(--blue-border)}
+    .forecast-day{font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--text-muted)}
+    .forecast-tile:first-child .forecast-day{color:var(--blue)}
+    .forecast-icon{color:var(--text-sub)}
+    .forecast-tile:first-child .forecast-icon{color:var(--blue)}
+    .forecast-temps{display:flex;flex-direction:column;align-items:center;gap:1px}
+    .forecast-hi{font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+    .forecast-lo{font-size:11px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums}
+
+    /* ═══════════════════════════════════════════════════════════════
+       QUICK SCENES
+       ═══════════════════════════════════════════════════════════════ */
+    .scene-row{display:flex;gap:8px;flex-wrap:wrap}
+    .scene-chip{
+      display:flex;align-items:center;gap:6px;padding:10px 16px;
+      border-radius:var(--r-pill);background:var(--glass);
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--glass-border);box-shadow:var(--shadow);
+      font-family:inherit;font-size:13px;font-weight:600;color:var(--text);
+      cursor:pointer;transition:all .15s ease;white-space:nowrap;
+    }
+    .scene-chip:hover{box-shadow:var(--shadow-up)}
+    .scene-chip:active{transform:scale(.96)}
+    .scene-chip .icon{font-size:16px}
+    .scene-chip[data-accent="amber"] .icon{color:var(--amber)}
+    .scene-chip[data-accent="blue"] .icon{color:var(--blue)}
+    .scene-chip[data-accent="purple"] .icon{color:var(--purple)}
+    .scene-chip[data-accent="red"] .icon{color:var(--red)}
+    .scene-chip[data-accent="green"] .icon{color:var(--green)}
+    .scene-chip.active{background:var(--amber-fill);border-color:var(--amber-border);color:var(--amber)}
+    .scene-chip.active .icon{color:var(--amber)}
+
+    /* ═══════════════════════════════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════════════════════════════ */
+    @media(max-width:440px){
+      .card{padding:16px}
+      .section-container{padding:16px;border-radius:28px}
+      .status-grid{grid-template-columns:repeat(2,1fr)}
+      .s-tile .tile-val{font-size:16px}
+      .light-grid{grid-template-columns:repeat(2,1fr)}
+      .weather-forecast{grid-template-columns:repeat(3,1fr)}
+      .album-art{width:48px;height:48px}
+      .track-name{font-size:14px}
+      .transport{gap:2px}
+      .t-btn{width:34px;height:34px}
+      .t-btn.play{width:38px;height:38px}
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       REDUCED MOTION
+       ═══════════════════════════════════════════════════════════════ */
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{
+        animation-duration:0.01ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <!-- Theme toggle -->
+    <div class="theme-toggle">
+      <button class="theme-btn active" data-theme="light" onclick="setTheme('light')">
+        <span class="icon icon-16">light_mode</span> Light
+      </button>
+      <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">
+        <span class="icon icon-16">dark_mode</span> Dark
+      </button>
+    </div>
+
+    <!-- Quick Scenes -->
+    <div class="scene-row" style="max-width:860px;width:100%">
+      <button class="scene-chip" data-accent="amber" onclick="runScene('allon',this)">
+        <span class="icon filled">lightbulb</span> All On
+      </button>
+      <button class="scene-chip" data-accent="red" onclick="runScene('alloff',this)">
+        <span class="icon">power_settings_new</span> All Off
+      </button>
+      <button class="scene-chip" data-accent="purple" onclick="runScene('bed',this)">
+        <span class="icon">bedtime</span> Ready for Bed
+      </button>
+      <button class="scene-chip" data-accent="blue" onclick="runScene('movie',this)">
+        <span class="icon">movie</span> Movie Night
+      </button>
+      <button class="scene-chip" data-accent="green" onclick="runScene('away',this)">
+        <span class="icon">directions_walk</span> Away
+      </button>
+    </div>
+
+    <div class="layout-grid">
+
+      <!-- ═══════════════════════════════════════════════════
+           HOME STATUS – Section Container
+           ═══════════════════════════════════════════════════ -->
+      <div class="section-container" style="grid-column:1/-1">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="icon filled" style="color:var(--blue)">home</span>
+            Home Status
+          </div>
+        </div>
+        <div class="status-grid">
+          <div class="s-tile" data-accent="amber">
+            <div class="status-dot active"></div>
+            <div class="tile-icon"><span class="icon icon-28">thermostat</span></div>
+            <span class="tile-val">73<span class="tile-deg">&deg;</span>F</span>
+            <span class="tile-label">Inside</span>
+          </div>
+          <div class="s-tile" data-accent="blue">
+            <div class="tile-icon"><span class="icon icon-28">thermostat</span></div>
+            <span class="tile-val">45<span class="tile-deg">&deg;</span>F</span>
+            <span class="tile-label">Outside</span>
+          </div>
+          <div class="s-tile" data-accent="blue">
+            <div class="tile-icon"><span class="icon icon-28">water_drop</span></div>
+            <span class="tile-val">27<span class="tile-deg">%</span></span>
+            <span class="tile-label">Humidity</span>
+          </div>
+          <div class="s-tile" data-accent="green">
+            <div class="status-dot active"></div>
+            <div class="tile-icon"><span class="icon icon-28">shield_with_house</span></div>
+            <span class="tile-val">OK</span>
+            <span class="tile-label">Security</span>
+          </div>
+          <div class="s-tile" data-accent="amber">
+            <div class="tile-icon"><span class="icon icon-28">lightbulb</span></div>
+            <span class="tile-val">6</span>
+            <span class="tile-label">Lights On</span>
+          </div>
+          <div class="s-tile" data-accent="green">
+            <div class="tile-icon"><span class="icon icon-28">speaker_group</span></div>
+            <span class="tile-val">3</span>
+            <span class="tile-label">Speakers</span>
+          </div>
+          <div class="s-tile" data-accent="muted">
+            <div class="tile-icon"><span class="icon icon-28">bolt</span></div>
+            <span class="tile-val">2.4<span class="tile-deg">kW</span></span>
+            <span class="tile-label">Power</span>
+          </div>
+          <div class="s-tile" data-accent="muted">
+            <div class="tile-icon"><span class="icon icon-28">door_front</span></div>
+            <span class="tile-val">0</span>
+            <span class="tile-label">Doors Open</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           LIGHTING – Section Container
+           ═══════════════════════════════════════════════════ -->
+      <div class="section-container">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="icon filled">lightbulb</span>
+            Lighting
+          </div>
+          <div class="section-action" onclick="allLightsOff()">All Off</div>
+        </div>
+        <div class="card">
+          <div class="light-hdr">
+            <div class="light-hdr-icon on"><span class="icon icon-18 filled">auto_awesome</span></div>
+            <span class="light-hdr-title">Living Room</span>
+            <div class="light-hdr-spacer"></div>
+            <button class="adaptive-pill on">
+              <span class="icon icon-14 filled">auto_awesome</span> Adaptive
+              <span class="icon icon-14 chevron">expand_more</span>
+            </button>
+          </div>
+          <div class="light-grid" id="lightGrid">
+            <!-- Generated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           CLIMATE – Section Container
+           ═══════════════════════════════════════════════════ -->
+      <div class="section-container">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="icon filled" style="color:var(--amber)">thermostat</span>
+            Climate
+          </div>
+        </div>
+        <div class="card" id="climateCard" data-action="heating" style="border-color:rgba(212,133,10,0.14)">
+          <div class="climate-hdr">
+            <div class="info-tile" data-action="heating" style="background:var(--amber-fill);border-color:var(--amber-border)">
+              <div class="entity-icon" style="color:var(--amber)">
+                <span class="icon icon-18 filled">thermostat</span>
+              </div>
+              <div class="hdr-text">
+                <span class="hdr-title">Climate</span>
+                <span class="hdr-sub">27% &middot; <span class="heat-ic">Heating</span> &middot; <span class="green-ic">Fan</span></span>
+              </div>
+            </div>
+            <div class="hdr-spacer"></div>
+            <button class="fan-btn on" onclick="toggleFan(this)" title="Fan">
+              <span class="icon icon-16 filled">mode_fan</span>
+            </button>
+            <div class="dd-wrap">
+              <button class="mode-btn" data-action="heating" onclick="toggleMenu(this)" aria-expanded="false">
+                <span class="icon icon-16">device_thermostat</span>
+                <span class="mode-label">Heat / Cool</span>
+                <span class="icon icon-14 chevron">expand_more</span>
+              </button>
+              <div class="dd-menu">
+                <div class="dd-option selected" onclick="selectMode(this,'Heat / Cool')"><span class="icon icon-18" style="color:var(--purple)">device_thermostat</span> Heat / Cool</div>
+                <div class="dd-option" onclick="selectMode(this,'Heat')"><span class="icon icon-18" style="color:var(--amber)">local_fire_department</span> Heat</div>
+                <div class="dd-option" onclick="selectMode(this,'Cool')"><span class="icon icon-18" style="color:var(--blue)">ac_unit</span> Cool</div>
+                <div class="dd-option" onclick="selectMode(this,'Off')"><span class="icon icon-18">power_settings_new</span> Off</div>
+                <div class="dd-divider"></div>
+                <div class="dd-option eco-opt" onclick="toggleEco(this)">
+                  <span class="icon icon-18" style="color:var(--green)">eco</span> Eco
+                  <span class="eco-check"><span class="icon icon-14">check</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="climate-body">
+            <div class="temp-row" style="justify-content:space-between">
+              <div class="temp-group">
+                <span class="t-label indoor">Indoor</span>
+                <span class="t-val" style="font-size:48px">73<span class="deg">&deg;</span></span>
+              </div>
+              <div style="display:flex;gap:16px;align-items:flex-end">
+                <div class="temp-group" style="text-align:right">
+                  <span class="t-label">Heat</span>
+                  <span class="t-val heat">74<span class="deg">&deg;</span></span>
+                </div>
+                <div class="temp-group" style="text-align:right">
+                  <span class="t-label">Cool</span>
+                  <span class="t-val cool">77<span class="deg">&deg;</span></span>
+                </div>
+              </div>
+            </div>
+            <div class="slider-zone">
+              <div class="slider-track">
+                <div class="fill-heat" style="width:70%"></div>
+                <div class="fill-cool" style="width:15%"></div>
+              </div>
+              <div class="thumb-wrap thumb-heat" style="left:70%">
+                <div class="thumb-stroke"></div>
+                <div class="thumb-disc"></div>
+                <div class="thumb-dot"></div>
+              </div>
+              <div class="thumb-wrap thumb-cool" style="left:85%">
+                <div class="thumb-stroke"></div>
+                <div class="thumb-disc"></div>
+                <div class="thumb-dot"></div>
+              </div>
+              <div class="cur-marker" style="left:65%">
+                <div class="cur-tick"></div>
+                <div class="cur-label">73&deg;</div>
+              </div>
+            </div>
+            <div class="scale-row">
+              <span class="scale-mark">60&deg;</span>
+              <span class="scale-mark mid">75&deg;</span>
+              <span class="scale-mark">90&deg;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           WEATHER – Section Container
+           ═══════════════════════════════════════════════════ -->
+      <div class="section-container">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="icon filled" style="color:var(--blue)">partly_cloudy_day</span>
+            Weather
+          </div>
+        </div>
+        <div class="card" style="border-color:var(--blue-border)">
+          <div class="weather-hdr">
+            <div class="info-tile" style="background:var(--blue-fill);border-color:var(--blue-border)">
+              <div class="entity-icon" style="color:var(--blue)">
+                <span class="icon icon-18 filled">cloud</span>
+              </div>
+              <div class="hdr-text">
+                <span class="hdr-title">Weather</span>
+                <span class="hdr-sub">Updated 5 min ago</span>
+              </div>
+            </div>
+            <div class="hdr-spacer"></div>
+            <div class="dd-wrap">
+              <button class="mode-btn" onclick="toggleMenu(this)" aria-expanded="false">
+                <span class="icon icon-16">location_on</span>
+                Home
+                <span class="icon icon-14 chevron">expand_more</span>
+              </button>
+              <div class="dd-menu">
+                <div class="dd-option selected"><span class="icon icon-18" style="color:var(--blue)">home</span> Home</div>
+                <div class="dd-option"><span class="icon icon-18" style="color:var(--text-muted)">apartment</span> Office</div>
+              </div>
+            </div>
+          </div>
+          <div class="weather-body">
+            <div class="weather-main">
+              <div class="weather-current">
+                <span class="weather-temp">45<span class="deg">&deg;</span></span>
+                <span class="weather-desc">Partly Cloudy</span>
+              </div>
+              <div class="weather-details">
+                <div class="weather-detail">
+                  <span class="icon icon-16">air</span>
+                  Wind <span class="val">8 mph NW</span>
+                </div>
+                <div class="weather-detail">
+                  <span class="icon icon-16">water_drop</span>
+                  Humidity <span class="val">27%</span>
+                </div>
+                <div class="weather-detail">
+                  <span class="icon icon-16">visibility</span>
+                  UV Index <span class="val">3 Low</span>
+                </div>
+              </div>
+            </div>
+            <div class="weather-forecast">
+              <div class="forecast-tile">
+                <span class="forecast-day">Now</span>
+                <span class="icon icon-20 forecast-icon">partly_cloudy_day</span>
+                <div class="forecast-temps">
+                  <span class="forecast-hi">45&deg;</span>
+                </div>
+              </div>
+              <div class="forecast-tile">
+                <span class="forecast-day">Thu</span>
+                <span class="icon icon-20 forecast-icon">cloud</span>
+                <div class="forecast-temps">
+                  <span class="forecast-hi">48&deg;</span>
+                  <span class="forecast-lo">32&deg;</span>
+                </div>
+              </div>
+              <div class="forecast-tile">
+                <span class="forecast-day">Fri</span>
+                <span class="icon icon-20 forecast-icon">rainy</span>
+                <div class="forecast-temps">
+                  <span class="forecast-hi">42&deg;</span>
+                  <span class="forecast-lo">28&deg;</span>
+                </div>
+              </div>
+              <div class="forecast-tile">
+                <span class="forecast-day">Sat</span>
+                <span class="icon icon-20 forecast-icon">sunny</span>
+                <div class="forecast-temps">
+                  <span class="forecast-hi">52&deg;</span>
+                  <span class="forecast-lo">34&deg;</span>
+                </div>
+              </div>
+              <div class="forecast-tile">
+                <span class="forecast-day">Sun</span>
+                <span class="icon icon-20 forecast-icon">partly_cloudy_day</span>
+                <div class="forecast-temps">
+                  <span class="forecast-hi">50&deg;</span>
+                  <span class="forecast-lo">36&deg;</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           MEDIA – Section Container (Sonos)
+           ═══════════════════════════════════════════════════ -->
+      <div class="section-container" style="grid-column:1/-1">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="icon filled" style="color:var(--green)">speaker_group</span>
+            Media
+          </div>
+        </div>
+        <div class="card" data-state="playing" id="sonosCard">
+          <div class="media-hdr">
+            <div class="info-tile">
+              <div class="entity-icon"><span class="icon icon-18">speaker_group</span></div>
+              <div class="hdr-text">
+                <span class="hdr-title">Sonos</span>
+                <span class="hdr-sub"><span class="green-ic">Playing</span> &middot; 3 grouped</span>
+              </div>
+            </div>
+            <div class="hdr-spacer"></div>
+            <div class="speaker-wrap">
+              <button class="speaker-btn" onclick="toggleMenu(this)" aria-expanded="false">
+                <span class="icon icon-16">speaker</span>
+                <span class="spk-label">Living Room</span>
+                <span class="icon icon-14 chevron">expand_more</span>
+              </button>
+              <div class="dd-menu">
+                <div class="dd-option selected" onclick="selectSpeaker(this,'Living Room')">
+                  <span class="icon icon-18 spk-icon">speaker</span>
+                  <span class="spk-text">
+                    <span class="spk-name">Living Room</span>
+                    <span class="spk-now-playing">Simple &ndash; Florida Georgia Line</span>
+                  </span>
+                  <div class="grp-check in-group" onclick="event.stopPropagation();toggleGroupCheck(this)">
+                    <span class="icon icon-14">check</span>
+                  </div>
+                </div>
+                <div class="dd-option" onclick="selectSpeaker(this,'Kitchen')">
+                  <span class="icon icon-18 spk-icon">speaker</span>
+                  <span class="spk-text">
+                    <span class="spk-name">Kitchen</span>
+                    <span class="spk-now-playing">Simple &ndash; Florida Georgia Line</span>
+                  </span>
+                  <div class="grp-check in-group" onclick="event.stopPropagation();toggleGroupCheck(this)">
+                    <span class="icon icon-14">check</span>
+                  </div>
+                </div>
+                <div class="dd-option" onclick="selectSpeaker(this,'Bedroom')">
+                  <span class="icon icon-18 spk-icon">speaker</span>
+                  <span class="spk-text">
+                    <span class="spk-name">Bedroom</span>
+                    <span class="spk-now-playing">Simple &ndash; Florida Georgia Line</span>
+                  </span>
+                  <div class="grp-check in-group" onclick="event.stopPropagation();toggleGroupCheck(this)">
+                    <span class="icon icon-14">check</span>
+                  </div>
+                </div>
+                <div class="dd-option" onclick="selectSpeaker(this,'Dining')">
+                  <span class="icon icon-18 spk-icon">speaker</span>
+                  <span class="spk-text">
+                    <span class="spk-name">Dining</span>
+                    <span class="spk-now-playing">Not playing</span>
+                  </span>
+                  <div class="grp-check" onclick="event.stopPropagation();toggleGroupCheck(this)">
+                    <span class="icon icon-14">check</span>
+                  </div>
+                </div>
+                <div class="dd-option" onclick="selectSpeaker(this,'Bathroom')">
+                  <span class="icon icon-18 spk-icon">speaker</span>
+                  <span class="spk-text">
+                    <span class="spk-name">Bathroom</span>
+                    <span class="spk-now-playing">Not playing</span>
+                  </span>
+                  <div class="grp-check" onclick="event.stopPropagation();toggleGroupCheck(this)">
+                    <span class="icon icon-14">check</span>
+                  </div>
+                </div>
+                <div class="dd-divider"></div>
+                <div class="dd-option action" onclick="groupAll(this)">
+                  <span class="icon icon-18">link</span> Group All
+                </div>
+                <div class="dd-option action" onclick="ungroupAll(this)">
+                  <span class="icon icon-18">link_off</span> Ungroup All
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="media-body">
+            <div class="media-row" data-view="track">
+              <div class="album-art">
+                <span class="icon icon-24">music_note</span>
+                <img src="https://i.scdn.co/image/ab67616d00001e025aa1eea25a1204990c498970" alt="" onerror="this.remove()">
+              </div>
+              <div class="track-info">
+                <span class="track-name">Simple</span>
+                <span class="track-artist">Florida Georgia Line</span>
+                <div class="progress-wrap">
+                  <span class="progress-time">1:42</span>
+                  <div class="progress-track"><div class="progress-fill" style="width:38%"></div></div>
+                  <span class="progress-time right">4:28</span>
+                </div>
+              </div>
+              <div class="transport">
+                <button class="t-btn" title="Previous"><span class="icon icon-20">skip_previous</span></button>
+                <button class="t-btn play" title="Pause" onclick="togglePlay(this)"><span class="icon icon-20">pause</span></button>
+                <button class="t-btn" title="Next"><span class="icon icon-20">skip_next</span></button>
+                <button class="vol-btn" title="Volume" onclick="showVolume(this)"><span class="icon icon-18">volume_up</span></button>
+              </div>
+            </div>
+
+            <div class="vol-row hidden" data-view="volume">
+              <div class="vol-icon" title="Mute" onclick="toggleMute(this)">
+                <span class="icon icon-20">volume_up</span>
+              </div>
+              <div class="vol-slider-wrap">
+                <div class="vol-track" data-vol="65">
+                  <div class="vol-fill" style="width:65%"></div>
+                  <div class="vol-stroke" style="left:65%"></div>
+                  <div class="vol-thumb" style="left:65%">
+                    <div class="vol-thumb-disc"></div>
+                    <div class="vol-thumb-dot"></div>
+                  </div>
+                </div>
+              </div>
+              <span class="vol-pct">65%</span>
+              <div class="vol-close" title="Back to track" onclick="hideVolume(this)">
+                <span class="icon icon-18">close</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           ROOMS – Section Container
+           ═══════════════════════════════════════════════════ -->
+      <div class="section-container room-stack" style="grid-column:1/-1">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="icon filled" style="color:var(--amber)">meeting_room</span>
+            Rooms
+          </div>
+        </div>
+        <div class="room-list">
+          <!-- Living Room: Spots, Ceiling, Lamp -->
+          <div class="room-card active" data-room="living" data-lights="3" data-total="3" data-brt="75" data-temp="72">
+            <div class="room-icon"><span class="icon icon-24">weekend</span></div>
+            <div class="room-info">
+              <div class="room-name">Living Room</div>
+              <div class="room-status"><span class="amber-txt">On</span> &middot; 75% &middot; 72&deg;F</div>
+            </div>
+            <div class="room-controls">
+              <div class="room-orb on" onclick="event.stopPropagation();toggleOrb(this)" title="Spots">
+                <span class="icon icon-16">highlight</span>
+              </div>
+              <div class="room-orb on" onclick="event.stopPropagation();toggleOrb(this)" title="Ceiling">
+                <span class="icon icon-16">light</span>
+              </div>
+              <div class="room-orb on" onclick="event.stopPropagation();toggleOrb(this)" title="Lamp">
+                <span class="icon icon-16">table_lamp</span>
+              </div>
+              <div class="room-toggle on" onclick="event.stopPropagation();toggleRoomSwitch(this)">
+                <div class="room-toggle-knob"></div>
+              </div>
+            </div>
+            <span class="icon icon-18 room-chevron">chevron_right</span>
+          </div>
+          <!-- Kitchen: Counter, Pendants, Under-cab -->
+          <div class="room-card active" data-room="kitchen" data-lights="3" data-total="4" data-brt="80" data-temp="71">
+            <div class="room-icon"><span class="icon icon-24">refrigerator</span></div>
+            <div class="room-info">
+              <div class="room-name">Kitchen</div>
+              <div class="room-status"><span class="amber-txt">3 of 4 on</span> &middot; 80% &middot; 71&deg;F</div>
+            </div>
+            <div class="room-controls">
+              <div class="room-orb on" onclick="event.stopPropagation();toggleOrb(this)" title="Counter">
+                <span class="icon icon-16">countertops</span>
+              </div>
+              <div class="room-orb on" onclick="event.stopPropagation();toggleOrb(this)" title="Pendants">
+                <span class="icon icon-16">light</span>
+              </div>
+              <div class="room-orb" onclick="event.stopPropagation();toggleOrb(this)" title="Under-cab">
+                <span class="icon icon-16">shelf_auto</span>
+              </div>
+              <div class="room-toggle on" onclick="event.stopPropagation();toggleRoomSwitch(this)">
+                <div class="room-toggle-knob"></div>
+              </div>
+            </div>
+            <span class="icon icon-18 room-chevron">chevron_right</span>
+          </div>
+          <!-- Dining Room: Chandelier, Columns -->
+          <div class="room-card active" data-room="dining" data-lights="8" data-total="10" data-brt="80" data-temp="71">
+            <div class="room-icon"><span class="icon icon-24">restaurant</span></div>
+            <div class="room-info">
+              <div class="room-name">Dining Room</div>
+              <div class="room-status"><span class="amber-txt">8 of 10 on</span> &middot; 80% &middot; 71&deg;F</div>
+            </div>
+            <div class="room-controls">
+              <div class="room-orb on" onclick="event.stopPropagation();toggleOrb(this)" title="Chandelier">
+                <span class="icon icon-16">chandelier</span>
+              </div>
+              <div class="room-orb on" onclick="event.stopPropagation();toggleOrb(this)" title="Columns">
+                <span class="icon icon-16">view_column</span>
+              </div>
+              <div class="room-toggle on" onclick="event.stopPropagation();toggleRoomSwitch(this)">
+                <div class="room-toggle-knob"></div>
+              </div>
+            </div>
+            <span class="icon icon-18 room-chevron">chevron_right</span>
+          </div>
+          <!-- Bedroom: Bed Light -->
+          <div class="room-card active" data-room="bedroom" data-lights="1" data-total="1" data-brt="75" data-temp="72">
+            <div class="room-icon"><span class="icon icon-24">bedroom_parent</span></div>
+            <div class="room-info">
+              <div class="room-name">Bedroom</div>
+              <div class="room-status"><span class="amber-txt">On</span> &middot; 75% &middot; 72&deg;F</div>
+            </div>
+            <div class="room-controls">
+              <div class="room-orb on" onclick="event.stopPropagation();toggleOrb(this)" title="Bed Light">
+                <span class="icon icon-16">bed</span>
+              </div>
+              <div class="room-toggle on" onclick="event.stopPropagation();toggleRoomSwitch(this)">
+                <div class="room-toggle-knob"></div>
+              </div>
+            </div>
+            <span class="icon icon-18 room-chevron">chevron_right</span>
+          </div>
+          <!-- Office: Desk, Overhead, Bias -->
+          <div class="room-card active" data-room="office" data-lights="2" data-total="3" data-brt="65" data-temp="70">
+            <div class="room-icon"><span class="icon icon-24">laptop_mac</span></div>
+            <div class="room-info">
+              <div class="room-name">Office</div>
+              <div class="room-status"><span class="amber-txt">2 of 3 on</span> &middot; 65% &middot; 70&deg;F</div>
+            </div>
+            <div class="room-controls">
+              <div class="room-orb on" onclick="event.stopPropagation();toggleOrb(this)" title="Desk">
+                <span class="icon icon-16">desk_lamp</span>
+              </div>
+              <div class="room-orb on" onclick="event.stopPropagation();toggleOrb(this)" title="Overhead">
+                <span class="icon icon-16">light</span>
+              </div>
+              <div class="room-orb" onclick="event.stopPropagation();toggleOrb(this)" title="Bias">
+                <span class="icon icon-16">tv</span>
+              </div>
+              <div class="room-toggle on" onclick="event.stopPropagation();toggleRoomSwitch(this)">
+                <div class="room-toggle-knob"></div>
+              </div>
+            </div>
+            <span class="icon icon-18 room-chevron">chevron_right</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /layout-grid -->
+  </div><!-- /page -->
+
+  <script>
+    /* ═══════════════════════════════════════════════════
+       THEME
+       ═══════════════════════════════════════════════════ */
+    function setTheme(t){
+      document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelector(`[data-theme="${t}"]`).classList.add('active');
+      if(t==='dark'){
+        document.documentElement.classList.add('dark');
+        document.documentElement.style.colorScheme='dark';
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.style.colorScheme='light';
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════
+       LIGHTING GRID
+       ═══════════════════════════════════════════════════ */
+    const zones = [
+      {name:'Living',icon:'table_lamp',level:30},
+      {name:'Kitchen',icon:'countertops',level:0},
+      {name:'Bedroom',icon:'bed',level:83},
+      {name:'Spots',icon:'highlight',level:43},
+      {name:'Ceiling',icon:'light',level:0},
+      {name:'Columns',icon:'view_column',level:93}
+    ];
+    const lightGrid = document.getElementById('lightGrid');
+    zones.forEach(z => {
+      const tile = document.createElement('div');
+      tile.className = `l-tile ${z.level > 0 ? 'on' : 'off'}`;
+      tile.dataset.brightness = z.level;
+      tile.innerHTML = `
+        <div class="tile-content">
+          <div class="zone-icon-wrap"><span class="icon icon-24">${z.icon}</span></div>
+          <span class="zone-name">${z.name}</span>
+          <span class="zone-val">${z.level > 0 ? z.level+'%' : 'Off'}</span>
+        </div>
+        <div class="zone-bar"><div class="zone-bar-fill" style="width:${z.level}%"></div></div>`;
+      setupLightDrag(tile);
+      lightGrid.appendChild(tile);
+    });
+
+    function setupLightDrag(tile){
+      let startX=0,startBrt=0,isDragging=false;
+      tile.addEventListener('pointerdown',e=>{
+        startX=e.clientX;startBrt=parseInt(tile.dataset.brightness);
+        tile.setPointerCapture(e.pointerId);
+      });
+      tile.addEventListener('pointermove',e=>{
+        if(!e.buttons)return;
+        const dx=e.clientX-startX;
+        if(!isDragging&&Math.abs(dx)>4){isDragging=true;tile.classList.add('sliding')}
+        if(isDragging){
+          const change=(dx/tile.offsetWidth)*100;
+          updateLightTile(tile,Math.round(Math.max(0,Math.min(100,startBrt+change))));
+        }
+      });
+      tile.addEventListener('pointerup',()=>{
+        if(!isDragging){
+          const cur=parseInt(tile.dataset.brightness);
+          updateLightTile(tile,cur>0?0:100);
+        }
+        tile.classList.remove('sliding');isDragging=false;
+      });
+    }
+    function updateLightTile(tile,brt){
+      tile.dataset.brightness=brt;
+      tile.querySelector('.zone-bar-fill').style.width=brt+'%';
+      tile.querySelector('.zone-val').textContent=brt>0?brt+'%':'Off';
+      tile.classList.toggle('on',brt>0);tile.classList.toggle('off',brt===0);
+    }
+    function allLightsOff(){
+      document.querySelectorAll('.l-tile').forEach(t=>updateLightTile(t,0));
+    }
+
+    /* ═══════════════════════════════════════════════════
+       DROPDOWN MENUS
+       ═══════════════════════════════════════════════════ */
+    function toggleMenu(btn){
+      const menu=btn.nextElementSibling;
+      if(!menu)return;
+      const isOpen=menu.classList.contains('open');
+      closeAllMenus();
+      if(!isOpen){menu.classList.add('open');btn.setAttribute('aria-expanded','true')}
+    }
+    function closeAllMenus(){
+      document.querySelectorAll('.dd-menu').forEach(m=>m.classList.remove('open'));
+      document.querySelectorAll('[aria-expanded]').forEach(b=>b.setAttribute('aria-expanded','false'));
+    }
+    document.addEventListener('click',e=>{
+      if(!e.target.closest('.dd-wrap')&&!e.target.closest('.speaker-wrap'))closeAllMenus();
+    });
+
+    /* ═══════════════════════════════════════════════════
+       CLIMATE MODE
+       ═══════════════════════════════════════════════════ */
+    function selectMode(opt,name){
+      const menu=opt.closest('.dd-menu');
+      menu.querySelectorAll('.dd-option').forEach(o=>o.classList.remove('selected'));
+      opt.classList.add('selected');
+      const wrap=opt.closest('.dd-wrap');
+      const btn=wrap.querySelector('.mode-btn');
+      const textSpan=btn.childNodes;
+      // Update button text
+      btn.querySelector('.icon:first-child').nextSibling.textContent=` ${name} `;
+      closeAllMenus();
+    }
+
+    /* ═══════════════════════════════════════════════════
+       SONOS CONTROLS
+       ═══════════════════════════════════════════════════ */
+    function togglePlay(btn){
+      const card=btn.closest('.card');
+      const st=card.dataset.state;
+      const icon=btn.querySelector('.icon');
+      const sub=card.querySelector('.hdr-sub');
+      if(st==='playing'){
+        card.dataset.state='paused';icon.textContent='play_arrow';
+        sub.innerHTML='Paused &middot; 3 grouped';
+      } else {
+        card.dataset.state='playing';icon.textContent='pause';
+        sub.innerHTML='<span class="green-ic">Playing</span> &middot; 3 grouped';
+      }
+    }
+    function showVolume(btn){
+      const body=btn.closest('.media-body');
+      body.querySelector('[data-view="track"]').classList.add('hidden');
+      body.querySelector('[data-view="volume"]').classList.remove('hidden');
+    }
+    function hideVolume(btn){
+      const body=btn.closest('.media-body');
+      body.querySelector('[data-view="volume"]').classList.add('hidden');
+      body.querySelector('[data-view="track"]').classList.remove('hidden');
+    }
+
+    /* Speaker selection & grouping */
+    function selectSpeaker(opt,name){
+      const menu=opt.closest('.dd-menu');
+      menu.querySelectorAll('.dd-option:not(.action)').forEach(o=>o.classList.remove('selected'));
+      opt.classList.add('selected');
+      opt.closest('.speaker-wrap').querySelector('.spk-label').textContent=name;
+      closeAllMenus();
+    }
+    function toggleGroupCheck(el){
+      el.classList.toggle('in-group');
+      const menu=el.closest('.dd-menu');if(!menu)return;
+      const count=menu.querySelectorAll('.grp-check.in-group').length;
+      const card=el.closest('.card');
+      const sub=card.querySelector('.hdr-sub');
+      const isPlaying=card.dataset.state==='playing';
+      if(count>1){
+        sub.innerHTML=isPlaying
+          ?`<span class="green-ic">Playing</span> &middot; ${count} grouped`
+          :`Paused &middot; ${count} grouped`;
+      } else {
+        const name=card.querySelector('.spk-label')?.textContent||'Solo';
+        sub.innerHTML=isPlaying
+          ?`<span class="green-ic">Playing</span> &middot; ${name}`
+          :`Paused &middot; ${name}`;
+      }
+    }
+    function groupAll(opt){
+      const menu=opt.closest('.dd-menu');
+      menu.querySelectorAll('.grp-check').forEach(c=>c.classList.add('in-group'));
+      const count=menu.querySelectorAll('.grp-check.in-group').length;
+      const card=opt.closest('.card');const sub=card.querySelector('.hdr-sub');
+      sub.innerHTML=card.dataset.state==='playing'
+        ?`<span class="green-ic">Playing</span> &middot; ${count} grouped`
+        :`Paused &middot; ${count} grouped`;
+      closeAllMenus();
+    }
+    function ungroupAll(opt){
+      const menu=opt.closest('.dd-menu');
+      menu.querySelectorAll('.grp-check').forEach(c=>c.classList.remove('in-group'));
+      const selected=menu.querySelector('.dd-option.selected .grp-check');
+      if(selected)selected.classList.add('in-group');
+      const card=opt.closest('.card');const sub=card.querySelector('.hdr-sub');
+      const name=card.querySelector('.spk-label')?.textContent||'';
+      sub.innerHTML=card.dataset.state==='playing'
+        ?`<span class="green-ic">Playing</span> &middot; ${name}`
+        :`Paused &middot; ${name}`;
+      closeAllMenus();
+    }
+    function toggleMute(el){
+      const volRow=el.closest('.vol-row');
+      const track=volRow.querySelector('.vol-track');
+      const icon=el.querySelector('.icon');
+      const pct=volRow.querySelector('.vol-pct');
+      if(parseInt(track.dataset.vol)>0){
+        track._prevVol=track.dataset.vol;track.dataset.vol=0;
+        track.querySelector('.vol-fill').style.width='0%';
+        const stroke=track.querySelector('.vol-stroke');stroke.style.left='0%';stroke.style.opacity='0';
+        track.querySelector('.vol-thumb').style.left='0%';
+        pct.textContent='0%';icon.textContent='volume_off';
+      } else {
+        const prev=track._prevVol||50;track.dataset.vol=prev;
+        track.querySelector('.vol-fill').style.width=prev+'%';
+        const stroke=track.querySelector('.vol-stroke');stroke.style.left=prev+'%';stroke.style.opacity='1';
+        track.querySelector('.vol-thumb').style.left=prev+'%';
+        pct.textContent=prev+'%';icon.textContent=prev<40?'volume_down':'volume_up';
+      }
+    }
+
+    /* Volume slider drag */
+    document.querySelectorAll('.vol-track').forEach(track=>{
+      let dragging=false;
+      const setVol=e=>{
+        const rect=track.getBoundingClientRect();
+        const x=(e.clientX||e.touches?.[0]?.clientX||0)-rect.left;
+        const pct=Math.max(0,Math.min(100,Math.round(x/rect.width*100)));
+        track.dataset.vol=pct;
+        track.querySelector('.vol-fill').style.width=pct+'%';
+        const stroke=track.querySelector('.vol-stroke');stroke.style.left=pct+'%';stroke.style.opacity=pct===0?'0':'1';
+        track.querySelector('.vol-thumb').style.left=pct+'%';
+        const wrap=track.closest('.vol-row');
+        if(wrap)wrap.querySelector('.vol-pct').textContent=pct+'%';
+        const volIcon=wrap?.querySelector('.vol-icon .icon');
+        if(volIcon){
+          if(pct===0)volIcon.textContent='volume_off';
+          else if(pct<40)volIcon.textContent='volume_down';
+          else volIcon.textContent='volume_up';
+        }
+      };
+      track.addEventListener('pointerdown',e=>{dragging=true;track.classList.add('dragging');track.setPointerCapture(e.pointerId);track.style.touchAction='none';setVol(e)});
+      track.addEventListener('pointermove',e=>{if(dragging)setVol(e)});
+      track.addEventListener('pointerup',()=>{dragging=false;track.classList.remove('dragging');track.style.touchAction=''});
+      track.addEventListener('pointercancel',()=>{dragging=false;track.classList.remove('dragging');track.style.touchAction=''});
+    });
+
+    /* ═══════════════════════════════════════════════════
+       QUICK SCENES
+       ═══════════════════════════════════════════════════ */
+    function runScene(id,chip){
+      document.querySelectorAll('.scene-chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      setTimeout(()=>chip.classList.remove('active'),1200);
+    }
+
+    /* ═══════════════════════════════════════════════════
+       CLIMATE EXTRAS
+       ═══════════════════════════════════════════════════ */
+    function toggleFan(btn){
+      btn.classList.toggle('on');
+    }
+    function toggleEco(opt){
+      opt.classList.toggle('active');
+    }
+
+    /* ═══════════════════════════════════════════════════
+       ROOM CONTROLS
+       ═══════════════════════════════════════════════════ */
+    function toggleRoomSwitch(toggle){
+      toggle.classList.toggle('on');
+      const card=toggle.closest('.room-card');
+      const isOn=toggle.classList.contains('on');
+      card.classList.toggle('active',isOn);
+      /* Toggle all orbs with the room switch */
+      card.querySelectorAll('.room-orb').forEach(o=>{
+        if(isOn) o.classList.add('on');
+        else o.classList.remove('on');
+      });
+      updateRoomStatus(card,isOn);
+    }
+    function toggleOrb(el){
+      el.classList.toggle('on');
+      const card=el.closest('.room-card');
+      const onCount=card.querySelectorAll('.room-orb.on').length;
+      const totalOrbs=card.querySelectorAll('.room-orb').length;
+      const toggle=card.querySelector('.room-toggle');
+      if(onCount===0){
+        toggle.classList.remove('on');card.classList.remove('active');
+        card.querySelector('.room-status').innerHTML='All off';
+      } else {
+        toggle.classList.add('on');card.classList.add('active');
+        const temp=card.dataset.temp||'--';
+        const brt=card.dataset.brt||'0';
+        let txt=onCount===totalOrbs?'On':`${onCount} of ${totalOrbs} on`;
+        card.querySelector('.room-status').innerHTML=`<span class="amber-txt">${txt}</span> &middot; ${brt}% &middot; ${temp}&deg;F`;
+      }
+    }
+    function updateRoomStatus(card,isOn){
+      const status=card.querySelector('.room-status');
+      if(!isOn){status.innerHTML='All off';return}
+      const orbs=card.querySelectorAll('.room-orb');
+      const onCount=card.querySelectorAll('.room-orb.on').length;
+      const brt=card.dataset.brt||'0';
+      const temp=card.dataset.temp||'--';
+      let txt=onCount===orbs.length?'On':`${onCount} of ${orbs.length} on`;
+      status.innerHTML=`<span class="amber-txt">${txt}</span> &middot; ${brt}% &middot; ${temp}&deg;F`;
+    }
+  </script>
+</body>
+</html>

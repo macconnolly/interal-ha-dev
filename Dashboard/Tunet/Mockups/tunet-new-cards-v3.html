@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tunet Cards V3 – Scenes, Actions, Status, Lighting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════
+       TOKENS — LIGHT
+       ═══════════════════════════════════════════ */
+    :root {
+      --bg1:#d9ccbc; --bg2:#c8c0b4; --bg3:#a8a199; --bg4:#838990;
+      --glass:rgba(255,255,255,0.68); --glass-border:rgba(255,255,255,0.45);
+      --shadow:0 1px 3px rgba(0,0,0,0.10),0 8px 32px rgba(0,0,0,0.10);
+      --shadow-up:0 1px 4px rgba(0,0,0,0.10),0 12px 36px rgba(0,0,0,0.12);
+      --inset:inset 0 0 0 0.5px rgba(0,0,0,0.06);
+      --text:#1C1C1E; --text-sub:rgba(28,28,30,0.55); --text-muted:#8E8E93;
+      --amber:#D4850A; --amber-fill:rgba(212,133,10,0.10); --amber-border:rgba(212,133,10,0.22);
+      --blue:#007AFF; --blue-fill:rgba(0,122,255,0.09); --blue-border:rgba(0,122,255,0.18);
+      --green:#34C759; --green-fill:rgba(52,199,89,0.12); --green-border:rgba(52,199,89,0.15);
+      --purple:#AF52DE; --purple-fill:rgba(175,82,222,0.10); --purple-border:rgba(175,82,222,0.18);
+      --track-bg:rgba(28,28,30,0.055);
+      --thumb-bg:#fff;
+      --r-card:24px; --r-tile:16px; --r-pill:999px; --r-track:4px;
+      --ctrl-bg:rgba(255,255,255,0.52); --ctrl-border:rgba(0,0,0,0.05);
+      --ctrl-sh:0 1px 2px rgba(0,0,0,0.05),0 2px 8px rgba(0,0,0,0.04);
+      --chip-bg:rgba(255,255,255,0.48); --chip-border:rgba(0,0,0,0.05);
+      --chip-sh:0 1px 3px rgba(0,0,0,0.04);
+      --dd-bg:rgba(255,255,255,0.84); --dd-border:rgba(255,255,255,0.60);
+      --divider:rgba(28,28,30,0.07);
+      --tile-bg:rgba(255,255,255,0.92);
+      --tile-bg-off:rgba(28,28,30,0.04);
+      color-scheme:light;
+    }
+
+    /* ═══════════════════════════════════════════
+       TOKENS — DARK
+       ═══════════════════════════════════════════ */
+    html.dark {
+      --bg1:#1c3038; --bg2:#1e2640; --bg3:#242244; --bg4:#1a1a30;
+      --glass:rgba(44,44,46,0.72); --glass-border:rgba(255,255,255,0.08);
+      --shadow:0 1px 3px rgba(0,0,0,0.30),0 8px 28px rgba(0,0,0,0.28);
+      --shadow-up:0 1px 4px rgba(0,0,0,0.35),0 12px 36px rgba(0,0,0,0.35);
+      --inset:inset 0 0 0 0.5px rgba(255,255,255,0.06);
+      --text:#F5F5F7; --text-sub:rgba(245,245,247,0.50); --text-muted:rgba(245,245,247,0.35);
+      --amber:#E8961E; --amber-fill:rgba(232,150,30,0.14); --amber-border:rgba(232,150,30,0.25);
+      --blue:#0A84FF; --blue-fill:rgba(10,132,255,0.13); --blue-border:rgba(10,132,255,0.22);
+      --green:#30D158; --green-fill:rgba(48,209,88,0.14); --green-border:rgba(48,209,88,0.18);
+      --purple:#BF5AF2; --purple-fill:rgba(191,90,242,0.14); --purple-border:rgba(191,90,242,0.22);
+      --track-bg:rgba(255,255,255,0.06);
+      --thumb-bg:#F5F5F7;
+      --ctrl-bg:rgba(255,255,255,0.08); --ctrl-border:rgba(255,255,255,0.08);
+      --ctrl-sh:0 1px 2px rgba(0,0,0,0.25),0 2px 8px rgba(0,0,0,0.15);
+      --chip-bg:rgba(58,58,60,0.50); --chip-border:rgba(255,255,255,0.06);
+      --chip-sh:0 1px 3px rgba(0,0,0,0.18);
+      --dd-bg:rgba(58,58,60,0.88); --dd-border:rgba(255,255,255,0.08);
+      --divider:rgba(255,255,255,0.06);
+      --tile-bg:rgba(44,44,46,0.90);
+      --tile-bg-off:rgba(255,255,255,0.04);
+      color-scheme:dark;
+    }
+
+    /* ═══════════════════════════════════════════
+       BASE
+       ═══════════════════════════════════════════ */
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:"DM Sans",system-ui,-apple-system,sans-serif;
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .page{
+      min-height:100%;display:flex;flex-direction:column;
+      align-items:center;justify-content:flex-start;
+      padding:32px 16px;gap:20px;
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(255,255,255,0.55),transparent 55%),
+        radial-gradient(ellipse 900px 700px at 80% 15%,rgba(255,255,255,0.35),transparent 60%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    .page::before{
+      content:"";position:fixed;inset:-60px;
+      background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));
+      filter:blur(28px) saturate(1.05);z-index:-2;
+    }
+    html.dark .page{
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(255,255,255,0.02),transparent 55%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    html.dark .page::before{background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));filter:blur(28px)}
+
+    /* ═══════════════════════════════════════════
+       ICONS
+       ═══════════════════════════════════════════ */
+    .icon{
+      font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;
+      display:inline-flex;align-items:center;justify-content:center;line-height:1;
+      text-transform:none;letter-spacing:normal;white-space:nowrap;direction:ltr;
+      vertical-align:middle;flex-shrink:0;-webkit-font-smoothing:antialiased;
+      font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+    }
+    .icon.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .icon-28{font-size:28px;width:28px;height:28px}
+    .icon-24{font-size:24px;width:24px;height:24px}
+    .icon-20{font-size:20px;width:20px;height:20px}
+    .icon-18{font-size:18px;width:18px;height:18px}
+    .icon-16{font-size:16px;width:16px;height:16px}
+    .icon-14{font-size:14px;width:14px;height:14px}
+
+    /* ═══════════════════════════════════════════
+       THEME TOGGLE
+       ═══════════════════════════════════════════ */
+    .theme-toggle{
+      display:flex;gap:4px;padding:4px;border-radius:var(--r-pill);
+      background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--glass-border);box-shadow:var(--shadow);
+    }
+    .theme-btn{
+      padding:8px 16px;border:none;border-radius:var(--r-pill);
+      background:transparent;color:var(--text-muted);
+      font-family:inherit;font-size:13px;font-weight:600;
+      cursor:pointer;transition:all 180ms ease;
+      display:flex;align-items:center;gap:6px;
+    }
+    .theme-btn.active{background:var(--chip-bg);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,0.06)}
+
+    /* ═══════════════════════════════════════════
+       CARD (universal shell)
+       ═══════════════════════════════════════════ */
+    .card{
+      position:relative;width:400px;max-width:100%;
+      border-radius:var(--r-card);background:var(--glass);
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--ctrl-border);
+      box-shadow:var(--shadow),var(--inset);
+      padding:20px;display:flex;flex-direction:column;gap:0;
+      transition:background .3s,border-color .3s,box-shadow .3s,opacity .3s;
+    }
+    .card::before{
+      content:"";position:absolute;inset:0;border-radius:var(--r-card);
+      padding:1px;pointer-events:none;z-index:0;
+      background:linear-gradient(160deg,rgba(255,255,255,0.50),rgba(255,255,255,0.08) 40%,rgba(255,255,255,0.02) 60%,rgba(255,255,255,0.20));
+      -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+    }
+    html.dark .card::before{
+      background:linear-gradient(160deg,rgba(255,255,255,0.14),rgba(255,255,255,0.03) 40%,rgba(255,255,255,0.01) 60%,rgba(255,255,255,0.08));
+    }
+
+    /* ═══════════════════════════════════════════
+       1. SCENE CHIPS — single row, glass pills
+       ═══════════════════════════════════════════ */
+    .scene-row{
+      display:flex;gap:8px;width:400px;max-width:100%;
+    }
+    .scene-chip{
+      flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+      padding:10px 6px;
+      border-radius:var(--r-pill);
+      background:var(--glass);
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--ctrl-border);
+      box-shadow:var(--shadow),var(--inset);
+      font-family:inherit;font-size:12px;font-weight:600;
+      color:var(--text-sub);letter-spacing:.2px;
+      cursor:pointer;transition:all .15s ease;
+      user-select:none;white-space:nowrap;
+      position:relative;overflow:hidden;
+    }
+    .scene-chip::before{
+      content:"";position:absolute;inset:0;border-radius:var(--r-pill);
+      padding:1px;pointer-events:none;z-index:0;
+      background:linear-gradient(160deg,rgba(255,255,255,0.50),rgba(255,255,255,0.08) 40%,rgba(255,255,255,0.02) 60%,rgba(255,255,255,0.20));
+      -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+    }
+    html.dark .scene-chip::before{
+      background:linear-gradient(160deg,rgba(255,255,255,0.14),rgba(255,255,255,0.03) 40%,rgba(255,255,255,0.01) 60%,rgba(255,255,255,0.08));
+    }
+    .scene-chip:hover{box-shadow:var(--shadow-up),var(--inset)}
+    .scene-chip:active{transform:scale(.97)}
+    .scene-chip .icon{color:var(--amber)}
+    .scene-chip.active{
+      background:var(--amber-fill);border-color:var(--amber-border);
+      color:var(--amber);font-weight:700;
+    }
+    .scene-chip.active .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+
+    /* ═══════════════════════════════════════════
+       2. QUICK ACTIONS — single row inside card
+       ═══════════════════════════════════════════ */
+    .actions-row{display:flex;gap:8px}
+    .action-chip{
+      flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+      padding:10px 4px;
+      border-radius:var(--r-tile);
+      background:var(--tile-bg);box-shadow:var(--shadow);
+      font-family:inherit;font-size:11px;font-weight:600;
+      color:var(--text-sub);letter-spacing:.1px;
+      cursor:pointer;transition:all .15s ease;
+      user-select:none;white-space:nowrap;
+      border:1px solid transparent;
+    }
+    .action-chip:hover{box-shadow:var(--shadow-up)}
+    .action-chip:active{transform:scale(.96)}
+    .action-chip .icon{color:var(--text-muted)}
+    .action-chip.active{border-color:var(--amber-border);color:var(--amber);font-weight:700}
+    .action-chip.active .icon{color:var(--amber);font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .action-chip[data-accent="blue"].active{border-color:var(--blue-border);color:var(--blue)}
+    .action-chip[data-accent="blue"].active .icon{color:var(--blue)}
+    .action-chip[data-accent="purple"].active{border-color:var(--purple-border);color:var(--purple)}
+    .action-chip[data-accent="purple"].active .icon{color:var(--purple)}
+
+    /* ═══════════════════════════════════════════
+       3. HOME STATUS — 2×4 grid, auto-height tiles
+       ═══════════════════════════════════════════ */
+    .status-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:10px;
+    }
+    .s-tile{
+      background:var(--tile-bg);
+      border-radius:var(--r-tile);
+      box-shadow:var(--shadow);
+      padding:14px 8px 10px;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      gap:4px;
+      cursor:pointer;
+      transition:all .15s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .s-tile:hover{box-shadow:var(--shadow-up)}
+    .s-tile:active{transform:scale(.97)}
+    .s-tile .tile-icon{
+      width:28px;height:28px;display:grid;place-items:center;
+      margin-bottom:2px;
+    }
+    .s-tile[data-accent="amber"] .tile-icon{color:var(--amber)}
+    .s-tile[data-accent="amber"] .tile-icon .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .s-tile[data-accent="blue"] .tile-icon{color:var(--blue)}
+    .s-tile[data-accent="blue"] .tile-icon .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .s-tile[data-accent="green"] .tile-icon{color:var(--green)}
+    .s-tile[data-accent="green"] .tile-icon .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .s-tile[data-accent="muted"] .tile-icon{color:var(--text-muted)}
+    .s-tile .tile-val{
+      font-size:18px;font-weight:700;letter-spacing:-.2px;
+      line-height:1;color:var(--text);font-variant-numeric:tabular-nums;
+      text-align:center;white-space:nowrap;
+    }
+    .s-tile .tile-label{
+      font-size:9px;font-weight:600;letter-spacing:.5px;
+      text-transform:uppercase;color:var(--text-muted);line-height:1;
+      text-align:center;white-space:nowrap;
+      overflow:hidden;text-overflow:ellipsis;max-width:100%;
+    }
+    .tile-deg{font-size:0.6em;vertical-align:baseline;position:relative;top:-0.18em;margin-left:-1px}
+    .status-dot{
+      width:6px;height:6px;border-radius:999px;
+      position:absolute;top:10px;right:10px;
+    }
+    .status-dot.active{background:var(--green)}
+    .status-dot.manual{background:var(--amber)}
+
+    /* ═══════════════════════════════════════════
+       4. LIGHTING — header + 3×2 zone grid
+       ═══════════════════════════════════════════ */
+    .light-hdr{
+      display:flex;align-items:center;gap:10px;margin-bottom:16px;
+    }
+    .light-hdr-icon{
+      width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+      border:1px solid transparent;background:transparent;
+      transition:all .2s ease;color:var(--text-muted);
+    }
+    .light-hdr-icon.on{background:var(--amber-fill);color:var(--amber);border-color:var(--amber-border)}
+    .light-hdr-title{font-weight:700;font-size:14px;color:var(--text-sub);letter-spacing:.1px}
+    .light-hdr-spacer{flex:1}
+    .adaptive-pill{
+      display:flex;align-items:center;gap:5px;
+      padding:7px 8px 7px 10px;border-radius:var(--r-pill);
+      border:1px solid var(--ctrl-border);background:var(--ctrl-bg);
+      box-shadow:var(--ctrl-sh);font-family:inherit;font-size:12px;
+      font-weight:600;color:var(--text-sub);cursor:pointer;
+      transition:all .15s ease;letter-spacing:.2px;
+    }
+    .adaptive-pill:hover{box-shadow:var(--shadow)}
+    .adaptive-pill:active{transform:scale(.97)}
+    .adaptive-pill.on{background:var(--amber-fill);color:var(--amber);border-color:var(--amber-border)}
+    .adaptive-pill .chevron{transition:transform .2s ease}
+
+    .light-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+
+    /* ── Zone tile ── */
+    .l-tile{
+      border-radius:var(--r-tile);
+      box-shadow:var(--shadow);
+      display:flex;flex-direction:column;
+      align-items:center;
+      cursor:pointer;
+      transition:background .2s ease,border-color .2s ease,box-shadow .15s ease;
+      position:relative;
+      overflow:hidden;
+      user-select:none;
+      touch-action:pan-y;
+      border:1px solid transparent;
+    }
+    /* OFF: muted bg, neutral border */
+    .l-tile.off{
+      background:var(--tile-bg-off);
+      border-color:var(--ctrl-border);
+    }
+    /* ON: white bg, amber accent border (like climate card heating border) */
+    .l-tile.on{
+      background:var(--tile-bg);
+      border-color:var(--amber-border);
+    }
+    .l-tile:hover{box-shadow:var(--shadow-up)}
+    .l-tile.sliding{box-shadow:var(--shadow-up)}
+
+    /* Content */
+    .l-tile .tile-content{
+      position:relative;z-index:1;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      width:100%;
+      padding:14px 8px 10px;
+      gap:6px;
+    }
+
+    /* Icon container — 44px squircle, 10px radius (design language §3.8) */
+    .l-tile .zone-icon-wrap{
+      width:44px;height:44px;
+      border-radius:10px;
+      display:grid;place-items:center;
+      transition:all .2s ease;
+      border:1px solid transparent;
+    }
+    /* OFF: muted container */
+    .l-tile.off .zone-icon-wrap{
+      background:var(--track-bg);
+      color:var(--text-muted);
+    }
+    /* ON: amber accent container (fill + border, matching accent architecture §2.3) */
+    .l-tile.on .zone-icon-wrap{
+      background:var(--amber-fill);
+      border-color:var(--amber-border);
+      color:var(--amber);
+    }
+    .l-tile.on .zone-icon-wrap .icon{
+      font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;
+    }
+
+    .l-tile .zone-name{
+      font-size:13px;font-weight:600;color:var(--text);
+      letter-spacing:.1px;line-height:1;
+    }
+    .l-tile.off .zone-name{color:var(--text-sub)}
+
+    .l-tile .zone-val{
+      font-size:12px;font-weight:600;line-height:1;
+      font-variant-numeric:tabular-nums;letter-spacing:.2px;
+    }
+    .l-tile.off .zone-val{color:var(--text-muted)}
+    .l-tile.on .zone-val{color:var(--amber)}
+
+    /* Bottom brightness bar — the slider visual indicator */
+    .l-tile .zone-bar{
+      width:100%;height:4px;
+      background:var(--track-bg);
+      position:relative;
+      margin-top:auto;
+      flex-shrink:0;
+    }
+    .l-tile .zone-bar-fill{
+      position:absolute;top:0;left:0;bottom:0;
+      transition:width .15s ease;
+      border-radius:0;
+    }
+    .l-tile.sliding .zone-bar-fill{transition:none}
+    .l-tile.off .zone-bar-fill{
+      background:var(--text-muted);opacity:0.15;
+    }
+    .l-tile.on .zone-bar-fill{
+      background:var(--amber);opacity:0.65;
+    }
+
+    /* ═══════════════════════════════════════════
+       REDUCED MOTION
+       ═══════════════════════════════════════════ */
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{
+        animation-duration:0.01ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:0.01ms !important;
+      }
+    }
+
+    /* ═══════════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════════ */
+    @media(max-width:440px){
+      .card{padding:16px}
+      .s-tile .tile-val{font-size:16px}
+      .scene-chip{font-size:11px;padding:9px 4px;gap:4px}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <!-- Theme toggle -->
+    <div class="theme-toggle">
+      <button class="theme-btn active" data-theme="light" onclick="setTheme('light')">
+        <span class="icon icon-16">light_mode</span> Light
+      </button>
+      <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">
+        <span class="icon icon-16">dark_mode</span> Dark
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         1. SCENE CHIPS
+         ═══════════════════════════════════════ -->
+    <div class="scene-row">
+      <button class="scene-chip active" onclick="setScene(this)">
+        <span class="icon icon-18 filled">wb_sunny</span> Morning
+      </button>
+      <button class="scene-chip" onclick="setScene(this)">
+        <span class="icon icon-18">light_mode</span> Day
+      </button>
+      <button class="scene-chip" onclick="setScene(this)">
+        <span class="icon icon-18">wb_twilight</span> Evening
+      </button>
+      <button class="scene-chip" onclick="setScene(this)">
+        <span class="icon icon-18">bed</span> Sleep
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         2. QUICK ACTIONS
+         ═══════════════════════════════════════ -->
+    <div class="card">
+      <div class="actions-row">
+        <button class="action-chip active" onclick="toggleAction(this)">
+          <span class="icon icon-18">lightbulb</span> All On
+        </button>
+        <button class="action-chip" data-accent="blue" onclick="toggleAction(this)">
+          <span class="icon icon-18">auto_awesome</span> Pause
+        </button>
+        <button class="action-chip" data-accent="purple" onclick="toggleAction(this)">
+          <span class="icon icon-18">bed</span> Bedtime
+        </button>
+        <button class="action-chip" onclick="toggleAction(this)">
+          <span class="icon icon-18">power_settings_new</span> All Off
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         3. HOME STATUS — 2×4 grid
+         ═══════════════════════════════════════ -->
+    <div class="card">
+      <div class="status-grid">
+        <!-- Row 1: System -->
+        <div class="s-tile" data-accent="amber">
+          <div class="tile-icon"><span class="icon icon-24">auto_awesome</span></div>
+          <span class="status-dot active"></span>
+          <span class="tile-val">On</span>
+          <span class="tile-label">Adaptive</span>
+        </div>
+        <div class="s-tile" data-accent="amber">
+          <div class="tile-icon"><span class="icon icon-24">pan_tool</span></div>
+          <span class="status-dot manual"></span>
+          <span class="tile-val">14:32</span>
+          <span class="tile-label">Manual</span>
+        </div>
+        <div class="s-tile" data-accent="amber">
+          <div class="tile-icon"><span class="icon icon-24">bolt</span></div>
+          <span class="tile-val">19</span>
+          <span class="tile-label">Boost</span>
+        </div>
+        <div class="s-tile" data-accent="muted">
+          <div class="tile-icon"><span class="icon icon-24">tune</span></div>
+          <span class="tile-val">Mode</span>
+          <span class="tile-label">Adaptive ▾</span>
+        </div>
+
+        <!-- Row 2: Environment -->
+        <div class="s-tile" data-accent="blue">
+          <div class="tile-icon"><span class="icon icon-24">partly_cloudy_day</span></div>
+          <span class="tile-val">Cloudy</span>
+          <span class="tile-label">Weather</span>
+        </div>
+        <div class="s-tile" data-accent="blue">
+          <div class="tile-icon"><span class="icon icon-24">thermostat</span></div>
+          <span class="tile-val">37<span class="tile-deg">°</span>F</span>
+          <span class="tile-label">Outside</span>
+        </div>
+        <div class="s-tile" data-accent="blue">
+          <div class="tile-icon"><span class="icon icon-24">water_drop</span></div>
+          <span class="tile-val">42%</span>
+          <span class="tile-label">Humidity</span>
+        </div>
+        <div class="s-tile" data-accent="amber">
+          <div class="tile-icon"><span class="icon icon-24">home</span></div>
+          <span class="tile-val">73<span class="tile-deg">°</span>F</span>
+          <span class="tile-label">Inside</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         4. LIGHTING — 3×2 zones
+         ═══════════════════════════════════════ -->
+    <div class="card">
+      <div class="light-hdr">
+        <div class="light-hdr-icon on">
+          <span class="icon icon-20 filled">lightbulb</span>
+        </div>
+        <span class="light-hdr-title">Lighting</span>
+        <div class="light-hdr-spacer"></div>
+        <button class="adaptive-pill on" onclick="this.classList.toggle('on')">
+          <span class="icon icon-16 filled">auto_awesome</span>
+          <span>Adaptive</span>
+          <span class="icon icon-14 chevron">expand_more</span>
+        </button>
+      </div>
+
+      <div class="light-grid" id="lightGrid">
+        <div class="l-tile on" data-brightness="75">
+          <div class="tile-content">
+            <div class="zone-icon-wrap"><span class="icon icon-24">table_lamp</span></div>
+            <span class="zone-name">Living</span>
+            <span class="zone-val">75%</span>
+          </div>
+          <div class="zone-bar"><div class="zone-bar-fill" style="width:75%"></div></div>
+        </div>
+
+        <div class="l-tile on" data-brightness="76">
+          <div class="tile-content">
+            <div class="zone-icon-wrap"><span class="icon icon-24">countertops</span></div>
+            <span class="zone-name">Kitchen</span>
+            <span class="zone-val">76%</span>
+          </div>
+          <div class="zone-bar"><div class="zone-bar-fill" style="width:76%"></div></div>
+        </div>
+
+        <div class="l-tile on" data-brightness="74">
+          <div class="tile-content">
+            <div class="zone-icon-wrap"><span class="icon icon-24">bed</span></div>
+            <span class="zone-name">Bed</span>
+            <span class="zone-val">74%</span>
+          </div>
+          <div class="zone-bar"><div class="zone-bar-fill" style="width:74%"></div></div>
+        </div>
+
+        <div class="l-tile on" data-brightness="65">
+          <div class="tile-content">
+            <div class="zone-icon-wrap"><span class="icon icon-24">highlight</span></div>
+            <span class="zone-name">Spots</span>
+            <span class="zone-val">65%</span>
+          </div>
+          <div class="zone-bar"><div class="zone-bar-fill" style="width:65%"></div></div>
+        </div>
+
+        <div class="l-tile off" data-brightness="0">
+          <div class="tile-content">
+            <div class="zone-icon-wrap"><span class="icon icon-24">light</span></div>
+            <span class="zone-name">Ceiling</span>
+            <span class="zone-val">Off</span>
+          </div>
+          <div class="zone-bar"><div class="zone-bar-fill" style="width:0%"></div></div>
+        </div>
+
+        <div class="l-tile on" data-brightness="93">
+          <div class="tile-content">
+            <div class="zone-icon-wrap"><span class="icon icon-24">view_column</span></div>
+            <span class="zone-name">Columns</span>
+            <span class="zone-val">93%</span>
+          </div>
+          <div class="zone-bar"><div class="zone-bar-fill" style="width:93%"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ═══════════ Theme ═══════════ */
+    function setTheme(t){
+      document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelector(`[data-theme="${t}"]`).classList.add('active');
+      if(t==='dark'){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark'}
+      else{document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light'}
+    }
+
+    /* ═══════════ Scenes — radio ═══════════ */
+    function setScene(el){
+      document.querySelectorAll('.scene-chip').forEach(c=>{c.classList.remove('active');c.querySelector('.icon').classList.remove('filled')});
+      el.classList.add('active');
+      el.querySelector('.icon').classList.add('filled');
+    }
+
+    /* ═══════════ Quick Actions — toggle ═══════════ */
+    function toggleAction(el){
+      el.classList.toggle('active');
+      const ic=el.querySelector('.icon');
+      el.classList.contains('active')?ic.classList.add('filled'):ic.classList.remove('filled');
+    }
+
+    /* ═══════════════════════════════════════
+       LIGHTING TILE — horizontal slider
+       ═══════════════════════════════════════ */
+    const grid = document.getElementById('lightGrid');
+    let activeTile = null, startX = 0, startBrt = 0, dragging = false;
+    const THRESHOLD = 4;
+
+    grid.addEventListener('pointerdown', e => {
+      const tile = e.target.closest('.l-tile');
+      if (!tile) return;
+      e.preventDefault();
+      activeTile = tile;
+      startX = e.clientX;
+      startBrt = parseInt(tile.dataset.brightness) || 0;
+      dragging = false;
+      tile.setPointerCapture(e.pointerId);
+    });
+
+    grid.addEventListener('pointermove', e => {
+      if (!activeTile) return;
+      const dx = e.clientX - startX;
+      if (!dragging && Math.abs(dx) < THRESHOLD) return;
+      if (!dragging) {
+        dragging = true;
+        activeTile.classList.add('sliding');
+      }
+      const w = activeTile.offsetWidth;
+      const pct = Math.round(Math.max(0, Math.min(100, startBrt + (dx / w) * 100)));
+      activeTile.dataset.brightness = pct;
+      syncTile(activeTile, pct);
+    });
+
+    grid.addEventListener('pointerup', e => {
+      if (!activeTile) return;
+      if (!dragging) {
+        // Tap → toggle
+        const b = parseInt(activeTile.dataset.brightness) || 0;
+        const next = b > 0 ? 0 : 100;
+        activeTile.dataset.brightness = next;
+        syncTile(activeTile, next);
+      }
+      activeTile.classList.remove('sliding');
+      activeTile = null;
+      dragging = false;
+    });
+
+    grid.addEventListener('pointercancel', () => {
+      if (activeTile) activeTile.classList.remove('sliding');
+      activeTile = null; dragging = false;
+    });
+
+    function syncTile(tile, brt) {
+      const on = brt > 0;
+      const bar = tile.querySelector('.zone-bar-fill');
+      const val = tile.querySelector('.zone-val');
+      const ic  = tile.querySelector('.zone-icon-wrap .icon');
+
+      bar.style.width = brt + '%';
+      val.textContent = on ? brt + '%' : 'Off';
+
+      tile.classList.toggle('on', on);
+      tile.classList.toggle('off', !on);
+      on ? ic.classList.add('filled') : ic.classList.remove('filled');
+    }
+  </script>
+</body>
+</html>

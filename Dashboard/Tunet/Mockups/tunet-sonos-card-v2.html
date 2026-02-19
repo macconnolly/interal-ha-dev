@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tunet Sonos Card v2 – Overview Player</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════
+       TOKENS — LIGHT
+       ═══════════════════════════════════════════ */
+    :root {
+      --bg1:#bcccd3; --bg2:#b4c4c8; --bg3:#99a8a1; --bg4:#839088;
+      --glass:rgba(255,255,255,0.68); --glass-border:rgba(255,255,255,0.45);
+      --shadow:0 1px 3px rgba(0,0,0,0.10),0 8px 32px rgba(0,0,0,0.10);
+      --shadow-up:0 1px 4px rgba(0,0,0,0.10),0 12px 36px rgba(0,0,0,0.12);
+      --inset:inset 0 0 0 0.5px rgba(0,0,0,0.06);
+      --text:#1C1C1E; --text-sub:rgba(28,28,30,0.55); --text-muted:#8E8E93;
+      --green:#34C759; --green-fill:rgba(52,199,89,0.12); --green-border:rgba(52,199,89,0.15);
+      --track-bg:rgba(28,28,30,0.055);
+      --r-card:24px; --r-tile:16px; --r-pill:999px; --r-track:4px;
+      --ctrl-bg:rgba(255,255,255,0.52); --ctrl-border:rgba(0,0,0,0.05);
+      --ctrl-sh:0 1px 2px rgba(0,0,0,0.05),0 2px 8px rgba(0,0,0,0.04);
+      --dd-bg:rgba(255,255,255,0.84); --dd-border:rgba(255,255,255,0.60);
+      --divider:rgba(28,28,30,0.07);
+      --thumb-bg:#fff;
+      --thumb-sh:0 1px 2px rgba(0,0,0,0.12),0 4px 12px rgba(0,0,0,0.06);
+      --thumb-sh-a:0 2px 4px rgba(0,0,0,0.16),0 8px 20px rgba(0,0,0,0.10);
+      color-scheme:light;
+    }
+
+    /* ═══════════════════════════════════════════
+       TOKENS — DARK
+       ═══════════════════════════════════════════ */
+    html.dark {
+      --bg1:#1c3038; --bg2:#1e2e40; --bg3:#223844; --bg4:#1a2e30;
+      --glass:rgba(44,44,46,0.72); --glass-border:rgba(255,255,255,0.08);
+      --shadow:0 1px 3px rgba(0,0,0,0.30),0 8px 28px rgba(0,0,0,0.28);
+      --shadow-up:0 1px 4px rgba(0,0,0,0.35),0 12px 36px rgba(0,0,0,0.35);
+      --inset:inset 0 0 0 0.5px rgba(255,255,255,0.06);
+      --text:#F5F5F7; --text-sub:rgba(245,245,247,0.50); --text-muted:rgba(245,245,247,0.35);
+      --green:#30D158; --green-fill:rgba(48,209,88,0.14); --green-border:rgba(48,209,88,0.18);
+      --track-bg:rgba(255,255,255,0.06);
+      --ctrl-bg:rgba(255,255,255,0.08); --ctrl-border:rgba(255,255,255,0.08);
+      --ctrl-sh:0 1px 2px rgba(0,0,0,0.25),0 2px 8px rgba(0,0,0,0.15);
+      --dd-bg:rgba(58,58,60,0.88); --dd-border:rgba(255,255,255,0.08);
+      --divider:rgba(255,255,255,0.06);
+      --thumb-bg:#F5F5F7;
+      --thumb-sh:0 1px 2px rgba(0,0,0,0.35),0 4px 12px rgba(0,0,0,0.18);
+      --thumb-sh-a:0 2px 4px rgba(0,0,0,0.40),0 8px 20px rgba(0,0,0,0.25);
+      color-scheme:dark;
+    }
+
+    /* ═══════════════════════════════════════════
+       BASE
+       ═══════════════════════════════════════════ */
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:"DM Sans",system-ui,-apple-system,sans-serif;
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .page{
+      min-height:100%;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      padding:32px 16px;gap:20px;
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(255,255,255,0.45),transparent 55%),
+        radial-gradient(ellipse 900px 700px at 80% 15%,rgba(255,255,255,0.25),transparent 60%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    .page::before{
+      content:"";position:fixed;inset:-60px;
+      background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));
+      filter:blur(28px) saturate(1.05);z-index:-2;
+    }
+    html.dark .page{
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(255,255,255,0.02),transparent 55%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    html.dark .page::before{background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));filter:blur(28px)}
+
+    /* ═══════════════════════════════════════════
+       ICONS
+       ═══════════════════════════════════════════ */
+    .icon{
+      font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;
+      display:inline-flex;align-items:center;justify-content:center;line-height:1;
+      text-transform:none;letter-spacing:normal;white-space:nowrap;direction:ltr;
+      vertical-align:middle;flex-shrink:0;-webkit-font-smoothing:antialiased;
+      font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+    }
+    .icon.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .icon-24{font-size:24px;width:24px;height:24px}
+    .icon-20{font-size:20px;width:20px;height:20px}
+    .icon-18{font-size:18px;width:18px;height:18px}
+    .icon-16{font-size:16px;width:16px;height:16px}
+    .icon-14{font-size:14px;width:14px;height:14px}
+
+    /* ═══════════════════════════════════════════
+       THEME TOGGLE
+       ═══════════════════════════════════════════ */
+    .theme-toggle{
+      display:flex;gap:4px;padding:4px;border-radius:var(--r-pill);
+      background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--glass-border);box-shadow:var(--shadow);
+    }
+    .theme-btn{
+      padding:8px 16px;border:none;border-radius:var(--r-pill);
+      background:transparent;color:var(--text-muted);
+      font-family:inherit;font-size:13px;font-weight:600;
+      cursor:pointer;transition:all 180ms ease;
+      display:flex;align-items:center;gap:6px;
+    }
+    .theme-btn.active{background:rgba(255,255,255,0.45);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,0.06)}
+    html.dark .theme-btn.active{background:rgba(255,255,255,0.10)}
+
+    /* ═══════════════════════════════════════════
+       CARD SHELL
+       ═══════════════════════════════════════════ */
+    .card{
+      position:relative;width:400px;max-width:100%;
+      border-radius:var(--r-card);background:var(--glass);
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--ctrl-border);
+      box-shadow:var(--shadow),var(--inset);
+      padding:20px;display:flex;flex-direction:column;gap:0;
+      transition:background .3s,border-color .3s,box-shadow .3s,opacity .3s;
+    }
+    .card::before{
+      content:"";position:absolute;inset:0;border-radius:var(--r-card);
+      padding:1px;pointer-events:none;z-index:0;
+      background:linear-gradient(160deg,rgba(255,255,255,0.50),rgba(255,255,255,0.08) 40%,rgba(255,255,255,0.02) 60%,rgba(255,255,255,0.20));
+      -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+    }
+    html.dark .card::before{
+      background:linear-gradient(160deg,rgba(255,255,255,0.14),rgba(255,255,255,0.03) 40%,rgba(255,255,255,0.01) 60%,rgba(255,255,255,0.08));
+    }
+    .card[data-state="playing"]{border-color:rgba(52,199,89,0.14)}
+    html.dark .card[data-state="playing"]{border-color:rgba(48,209,88,0.16)}
+    .card[data-state="paused"]{opacity:0.85}
+    .card[data-state="idle"]{opacity:0.65}
+
+    /* ═══════════════════════════════════════════
+       HEADER
+       ═══════════════════════════════════════════ */
+    .media-hdr{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+
+    .info-tile{
+      display:flex;align-items:center;gap:8px;
+      padding:6px 10px 6px 6px;min-height:42px;
+      border-radius:10px;border:1px solid var(--ctrl-border);
+      background:var(--ctrl-bg);box-shadow:var(--ctrl-sh);
+      cursor:pointer;transition:all .15s ease;min-width:0;
+    }
+    .info-tile:hover{box-shadow:var(--shadow)}
+    .info-tile:active{transform:scale(.98)}
+    .card[data-state="playing"] .info-tile{background:var(--green-fill);border-color:var(--green-border)}
+
+    .entity-icon{
+      width:24px;height:24px;border-radius:6px;
+      display:grid;place-items:center;flex-shrink:0;
+      transition:all .2s ease;color:var(--text-muted);
+    }
+    .card[data-state="playing"] .entity-icon{color:var(--green)}
+    .card[data-state="playing"] .entity-icon .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+
+    .hdr-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+    .hdr-title{
+      font-weight:700;font-size:13px;color:var(--text-sub);
+      letter-spacing:0.1px;line-height:1.15;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .hdr-sub{
+      font-size:10.5px;font-weight:600;color:var(--text-muted);
+      letter-spacing:0.1px;line-height:1.15;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .hdr-sub .green-ic{color:var(--green)}
+
+    .hdr-spacer{flex:1}
+
+    /* Speaker selector */
+    .speaker-wrap{position:relative}
+    .speaker-btn{
+      display:flex;align-items:center;gap:4px;
+      min-height:42px;padding:0 10px;
+      border-radius:10px;
+      border:1px solid var(--ctrl-border);
+      background:var(--ctrl-bg);box-shadow:var(--ctrl-sh);
+      font-family:inherit;font-size:12px;font-weight:600;
+      color:var(--text-sub);letter-spacing:.2px;
+      cursor:pointer;transition:all .15s ease;
+    }
+    .speaker-btn:hover{box-shadow:var(--shadow)}
+    .speaker-btn:active{transform:scale(.97)}
+    .speaker-btn .chevron{transition:transform .2s ease}
+    .speaker-btn[aria-expanded="true"] .chevron{transform:rotate(180deg)}
+
+    /* ═══════════════════════════════════════════
+       MEDIA ROW — art + info + transport
+       ═══════════════════════════════════════════ */
+    .media-body{position:relative;overflow:hidden}
+
+    .media-row{
+      display:flex;align-items:center;gap:14px;
+      transition:opacity .2s ease, transform .2s ease;
+    }
+    .media-row.hidden{
+      opacity:0;transform:translateY(4px);
+      pointer-events:none;position:absolute;inset:0;
+    }
+
+    /* Album art */
+    .album-art{
+      width:56px;height:56px;flex-shrink:0;
+      border-radius:10px;overflow:hidden;
+      background:var(--track-bg);
+      box-shadow:var(--ctrl-sh);
+      display:grid;place-items:center;
+      position:relative;
+    }
+    .album-art img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+    .album-art .icon{color:var(--text-muted)}
+    .card[data-state="playing"] .album-art{box-shadow:var(--shadow)}
+
+    /* Track info */
+    .track-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+    .track-name{
+      font-size:15px;font-weight:700;color:var(--text);line-height:1.15;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .track-artist{
+      font-size:13px;font-weight:600;color:var(--text-sub);line-height:1.15;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    /* Progress bar */
+    .progress-wrap{display:flex;align-items:center;gap:6px;margin-top:4px}
+    .progress-time{
+      font-size:10px;font-weight:600;color:var(--text-muted);
+      font-variant-numeric:tabular-nums;letter-spacing:.3px;
+      flex-shrink:0;min-width:28px;
+    }
+    .progress-time.right{text-align:right}
+    .progress-track{flex:1;height:3px;border-radius:999px;background:var(--track-bg);position:relative;overflow:hidden}
+    .progress-fill{
+      position:absolute;top:0;left:0;bottom:0;border-radius:999px;
+      background:rgba(52,199,89,0.50);transition:width .5s linear;
+    }
+    html.dark .progress-fill{background:rgba(48,209,88,0.50)}
+
+    /* Transport buttons */
+    .transport{display:flex;align-items:center;gap:4px;flex-shrink:0}
+    .t-btn{
+      width:38px;height:38px;border-radius:10px;
+      display:grid;place-items:center;
+      cursor:pointer;transition:all .15s ease;
+      border:none;background:transparent;color:var(--text-sub);
+    }
+    .t-btn:hover{background:var(--track-bg)}
+    .t-btn:active{transform:scale(.90)}
+
+    .t-btn.play{
+      width:42px;height:42px;
+      background:var(--ctrl-bg);
+      border:1px solid var(--ctrl-border);
+      box-shadow:var(--ctrl-sh);color:var(--text);
+    }
+    .t-btn.play:hover{box-shadow:var(--shadow)}
+    .card[data-state="playing"] .t-btn.play{
+      background:var(--green-fill);border-color:var(--green-border);color:var(--green);
+    }
+    .card[data-state="playing"] .t-btn.play .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+
+    .vol-btn{
+      width:38px;height:38px;border-radius:10px;
+      display:grid;place-items:center;
+      cursor:pointer;transition:all .15s ease;
+      border:none;background:transparent;color:var(--text-muted);
+    }
+    .vol-btn:hover{background:var(--track-bg)}
+    .vol-btn:active{transform:scale(.90)}
+
+    /* ═══════════════════════════════════════════
+       VOLUME SLIDER ROW (replaces media row)
+       ═══════════════════════════════════════════ */
+    .vol-row{
+      display:flex;align-items:center;gap:12px;
+      transition:opacity .2s ease, transform .2s ease;
+    }
+    .vol-row.hidden{
+      opacity:0;transform:translateY(-4px);
+      pointer-events:none;position:absolute;inset:0;
+    }
+
+    .vol-icon{
+      width:38px;height:38px;border-radius:10px;
+      display:grid;place-items:center;flex-shrink:0;
+      cursor:pointer;color:var(--green);
+      transition:all .15s ease;
+    }
+    .vol-icon:hover{background:var(--track-bg)}
+    .vol-icon:active{transform:scale(.90)}
+    .vol-icon .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+
+    .vol-slider-wrap{flex:1;display:flex;align-items:center;position:relative}
+
+    .vol-track{
+      width:100%;height:44px;border-radius:var(--r-track);
+      background:var(--track-bg);position:relative;
+      cursor:pointer;touch-action:none;
+      overflow:hidden;
+    }
+    .vol-fill{
+      position:absolute;top:0;left:0;bottom:0;
+      border-radius:var(--r-track) 0 0 var(--r-track);
+      background:rgba(52,199,89,0.26);
+      pointer-events:none;
+      transition:width 60ms ease;
+    }
+    html.dark .vol-fill{background:rgba(48,209,88,0.28)}
+
+    /* Thumb + stroke sit on vol-slider-wrap so overflow:hidden doesn't clip them */
+    .vol-thumb{
+      position:absolute;top:50%;
+      transform:translate(-50%,-50%);
+      width:26px;height:26px;
+      pointer-events:none;z-index:2;
+      transition:left 60ms ease;
+    }
+    .vol-thumb-disc{
+      width:26px;height:26px;border-radius:999px;
+      background:var(--thumb-bg);
+      box-shadow:var(--thumb-sh);
+      position:absolute;inset:0;
+      transition:box-shadow .15s ease, transform .15s ease;
+    }
+    .vol-thumb-dot{
+      width:8px;height:8px;border-radius:999px;
+      background:var(--green);
+      position:absolute;top:50%;left:50%;
+      transform:translate(-50%,-50%);
+      box-shadow:inset 0 0 0 0.5px rgba(0,0,0,0.08);
+    }
+    .vol-stroke{
+      position:absolute;top:0;bottom:0;
+      left:0;width:2px;
+      transform:translateX(-1px);
+      background:var(--green);border-radius:999px;
+      pointer-events:none;z-index:1;
+      opacity:1;
+    }
+    .vol-track[data-vol="0"] .vol-stroke{
+      opacity:0;
+    }
+
+    /* Dragging state */
+    .vol-track.dragging .vol-thumb-disc{
+      box-shadow:var(--thumb-sh-a);transform:scale(1.08);
+    }
+    .vol-track.dragging .vol-fill,
+    .vol-track.dragging .vol-thumb,
+    .vol-track.dragging .vol-stroke{transition:none}
+
+    .vol-pct{
+      font-size:14px;font-weight:700;color:var(--text);
+      font-variant-numeric:tabular-nums;letter-spacing:-0.2px;
+      min-width:42px;text-align:right;flex-shrink:0;
+    }
+
+    /* Close volume (X button) */
+    .vol-close{
+      width:38px;height:38px;border-radius:10px;
+      display:grid;place-items:center;flex-shrink:0;
+      cursor:pointer;color:var(--text-muted);
+      transition:all .15s ease;
+    }
+    .vol-close:hover{background:var(--track-bg)}
+    .vol-close:active{transform:scale(.90)}
+
+    /* ═══════════════════════════════════════════
+       DROPDOWN MENU (§7.1)
+       ═══════════════════════════════════════════ */
+    .dd-menu{
+      position:absolute;top:calc(100% + 6px);right:0;
+      min-width:220px;padding:5px;
+      border-radius:var(--r-tile);
+      background:var(--dd-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--dd-border);
+      box-shadow:var(--shadow-up);z-index:10;
+      display:none;flex-direction:column;gap:1px;
+    }
+    .dd-menu.open{display:flex;animation:menuIn .14s ease forwards}
+    @keyframes menuIn{
+      from{opacity:0;transform:translateY(-4px) scale(.97)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+
+    /* Speaker option row: [icon] [name] [spacer] [group checkbox] */
+    .dd-option{
+      padding:9px 12px;border-radius:11px;
+      font-size:13px;font-weight:600;color:var(--text);
+      display:flex;align-items:center;gap:8px;
+      cursor:pointer;transition:background .1s;
+      user-select:none;
+    }
+    .dd-option:hover{background:var(--track-bg)}
+    .dd-option:active{transform:scale(.97)}
+
+    /* Selected speaker (currently controlling) */
+    .dd-option.selected{font-weight:700;color:var(--green);background:var(--green-fill)}
+    .dd-option.selected .spk-icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+
+    .spk-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    /* Subtitle under speaker name — shows what's playing */
+    .spk-now-playing{
+      font-size:10.5px;font-weight:500;color:var(--text-muted);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      margin-top:1px;
+    }
+    .dd-option.selected .spk-now-playing{color:var(--green);opacity:0.7}
+
+    .spk-text{display:flex;flex-direction:column;flex:1;min-width:0}
+
+    /* Group checkbox */
+    .grp-check{
+      width:20px;height:20px;border-radius:999px;flex-shrink:0;
+      border:1.5px solid var(--text-muted);
+      display:grid;place-items:center;
+      transition:all .15s ease;
+      cursor:pointer;
+      position:relative;z-index:2;
+    }
+    .grp-check:hover{border-color:var(--green)}
+    .grp-check.in-group{
+      background:var(--green);border-color:var(--green);
+    }
+    .grp-check .icon{
+      color:#fff;opacity:0;transition:opacity .1s;
+      font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 14;
+    }
+    .grp-check.in-group .icon{opacity:1}
+
+    /* Action options */
+    .dd-option.action{color:var(--text-sub)}
+    .dd-option.action:hover{color:var(--text)}
+    .dd-option.action .icon{color:var(--green)}
+
+    .dd-divider{height:1px;background:var(--divider);margin:3px 8px}
+
+    /* ═══════════════════════════════════════════
+       REDUCED MOTION
+       ═══════════════════════════════════════════ */
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{
+        animation-duration:0.01ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:0.01ms !important;
+      }
+    }
+
+    /* ═══════════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════════ */
+    @media(max-width:440px){
+      .card{padding:16px}
+      .album-art{width:48px;height:48px}
+      .track-name{font-size:14px}
+      .transport{gap:2px}
+      .t-btn{width:34px;height:34px}
+      .t-btn.play{width:38px;height:38px}
+    }
+
+    /* label under cards */
+    .card-label{
+      font-size:11px;font-weight:600;color:var(--text-muted);
+      letter-spacing:0.4px;text-transform:uppercase;text-align:center;
+      margin-top:-8px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Theme toggle -->
+    <div class="theme-toggle">
+      <button class="theme-btn active" data-theme="light" onclick="setTheme('light')">
+        <span class="icon icon-16">light_mode</span> Light
+      </button>
+      <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">
+        <span class="icon icon-16">dark_mode</span> Dark
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         SONOS CARD — Playing State
+         ═══════════════════════════════════════ -->
+    <div class="card" data-state="playing" id="sonosPlaying">
+      <div class="media-hdr">
+        <div class="info-tile" title="Open entity details">
+          <div class="entity-icon">
+            <span class="icon icon-18">speaker_group</span>
+          </div>
+          <div class="hdr-text">
+            <span class="hdr-title">Sonos</span>
+            <span class="hdr-sub"><span class="green-ic">Playing</span> · 3 grouped</span>
+          </div>
+        </div>
+        <div class="hdr-spacer"></div>
+        <div class="speaker-wrap">
+          <button class="speaker-btn" onclick="toggleMenu(this)" aria-expanded="false">
+            <span class="icon icon-16">speaker</span>
+            <span class="spk-label">Living Room</span>
+            <span class="icon icon-14 chevron">expand_more</span>
+          </button>
+          <div class="dd-menu">
+            <div class="dd-option selected" onclick="selectSpeaker(this,'Living Room')">
+              <span class="icon icon-18 spk-icon">speaker</span>
+              <span class="spk-text">
+                <span class="spk-name">Living Room</span>
+                <span class="spk-now-playing">Simple – Florida Georgia Line</span>
+              </span>
+              <div class="grp-check in-group" onclick="event.stopPropagation();toggleGroupCheck(this)">
+                <span class="icon icon-14">check</span>
+              </div>
+            </div>
+            <div class="dd-option" onclick="selectSpeaker(this,'Kitchen')">
+              <span class="icon icon-18 spk-icon">speaker</span>
+              <span class="spk-text">
+                <span class="spk-name">Kitchen</span>
+                <span class="spk-now-playing">Simple – Florida Georgia Line</span>
+              </span>
+              <div class="grp-check in-group" onclick="event.stopPropagation();toggleGroupCheck(this)">
+                <span class="icon icon-14">check</span>
+              </div>
+            </div>
+            <div class="dd-option" onclick="selectSpeaker(this,'Bedroom')">
+              <span class="icon icon-18 spk-icon">speaker</span>
+              <span class="spk-text">
+                <span class="spk-name">Bedroom</span>
+                <span class="spk-now-playing">Simple – Florida Georgia Line</span>
+              </span>
+              <div class="grp-check in-group" onclick="event.stopPropagation();toggleGroupCheck(this)">
+                <span class="icon icon-14">check</span>
+              </div>
+            </div>
+            <div class="dd-option" onclick="selectSpeaker(this,'Dining')">
+              <span class="icon icon-18 spk-icon">speaker</span>
+              <span class="spk-text">
+                <span class="spk-name">Dining</span>
+                <span class="spk-now-playing">Not playing</span>
+              </span>
+              <div class="grp-check" onclick="event.stopPropagation();toggleGroupCheck(this)">
+                <span class="icon icon-14">check</span>
+              </div>
+            </div>
+            <div class="dd-option" onclick="selectSpeaker(this,'Bathroom')">
+              <span class="icon icon-18 spk-icon">speaker</span>
+              <span class="spk-text">
+                <span class="spk-name">Bathroom</span>
+                <span class="spk-now-playing">Not playing</span>
+              </span>
+              <div class="grp-check" onclick="event.stopPropagation();toggleGroupCheck(this)">
+                <span class="icon icon-14">check</span>
+              </div>
+            </div>
+            <div class="dd-divider"></div>
+            <div class="dd-option action" onclick="groupAll(this)">
+              <span class="icon icon-18">link</span>
+              Group All
+            </div>
+            <div class="dd-option action" onclick="ungroupAll(this)">
+              <span class="icon icon-18">link_off</span>
+              Ungroup All
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Media body — swappable between track view and volume -->
+      <div class="media-body">
+        <!-- TRACK VIEW -->
+        <div class="media-row" data-view="track">
+          <div class="album-art">
+            <span class="icon icon-24">music_note</span>
+            <img src="https://i.scdn.co/image/ab67616d00001e025aa1eea25a1204990c498970" alt="" onerror="this.remove()">
+          </div>
+          <div class="track-info">
+            <span class="track-name">Simple</span>
+            <span class="track-artist">Florida Georgia Line</span>
+            <div class="progress-wrap">
+              <span class="progress-time">1:42</span>
+              <div class="progress-track"><div class="progress-fill" style="width:38%"></div></div>
+              <span class="progress-time right">4:28</span>
+            </div>
+          </div>
+          <div class="transport">
+            <button class="t-btn" title="Previous"><span class="icon icon-20">skip_previous</span></button>
+            <button class="t-btn play" title="Pause" onclick="togglePlay(this)"><span class="icon icon-20">pause</span></button>
+            <button class="t-btn" title="Next"><span class="icon icon-20">skip_next</span></button>
+            <button class="vol-btn" title="Volume" onclick="showVolume(this)"><span class="icon icon-18">volume_up</span></button>
+          </div>
+        </div>
+
+        <!-- VOLUME VIEW (hidden by default) -->
+        <div class="vol-row hidden" data-view="volume">
+          <div class="vol-icon" title="Mute" onclick="toggleMute(this)">
+            <span class="icon icon-20">volume_up</span>
+          </div>
+          <div class="vol-slider-wrap">
+            <div class="vol-track" data-vol="65">
+              <div class="vol-fill" style="width:65%"></div>
+              <div class="vol-stroke" style="left:65%"></div>
+              <div class="vol-thumb" style="left:65%">
+                <div class="vol-thumb-disc"></div>
+                <div class="vol-thumb-dot"></div>
+              </div>
+            </div>
+          </div>
+          <span class="vol-pct">65%</span>
+          <div class="vol-close" title="Back to track" onclick="hideVolume(this)">
+            <span class="icon icon-18">close</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <span class="card-label">Playing — with volume slider shown below</span>
+
+    <!-- ═══════════════════════════════════════
+         SONOS CARD — Volume View demo
+         ═══════════════════════════════════════ -->
+    <div class="card" data-state="playing">
+      <div class="media-hdr">
+        <div class="info-tile">
+          <div class="entity-icon"><span class="icon icon-18">speaker_group</span></div>
+          <div class="hdr-text">
+            <span class="hdr-title">Sonos</span>
+            <span class="hdr-sub"><span class="green-ic">Playing</span> · 3 grouped</span>
+          </div>
+        </div>
+        <div class="hdr-spacer"></div>
+        <div class="speaker-wrap">
+          <button class="speaker-btn" onclick="toggleMenu(this)" aria-expanded="false">
+            <span class="icon icon-16">speaker</span>
+            <span class="spk-label">Living Room</span>
+            <span class="icon icon-14 chevron">expand_more</span>
+          </button>
+        </div>
+      </div>
+      <div class="media-body">
+        <div class="media-row hidden" data-view="track">
+          <div class="album-art">
+            <span class="icon icon-24">music_note</span>
+            <img src="https://i.scdn.co/image/ab67616d00001e025aa1eea25a1204990c498970" alt="" onerror="this.remove()">
+          </div>
+          <div class="track-info">
+            <span class="track-name">Simple</span>
+            <span class="track-artist">Florida Georgia Line</span>
+            <div class="progress-wrap">
+              <span class="progress-time">1:42</span>
+              <div class="progress-track"><div class="progress-fill" style="width:38%"></div></div>
+              <span class="progress-time right">4:28</span>
+            </div>
+          </div>
+          <div class="transport">
+            <button class="t-btn"><span class="icon icon-20">skip_previous</span></button>
+            <button class="t-btn play" onclick="togglePlay(this)"><span class="icon icon-20">pause</span></button>
+            <button class="t-btn"><span class="icon icon-20">skip_next</span></button>
+            <button class="vol-btn" onclick="showVolume(this)"><span class="icon icon-18">volume_up</span></button>
+          </div>
+        </div>
+        <div class="vol-row" data-view="volume">
+          <div class="vol-icon" onclick="toggleMute(this)"><span class="icon icon-20">volume_up</span></div>
+          <div class="vol-slider-wrap">
+            <div class="vol-track" data-vol="65">
+              <div class="vol-fill" style="width:65%"></div>
+              <div class="vol-stroke" style="left:65%"></div>
+              <div class="vol-thumb" style="left:65%">
+                <div class="vol-thumb-disc"></div>
+                <div class="vol-thumb-dot"></div>
+              </div>
+            </div>
+          </div>
+          <span class="vol-pct">65%</span>
+          <div class="vol-close" onclick="hideVolume(this)"><span class="icon icon-18">close</span></div>
+        </div>
+      </div>
+    </div>
+    <span class="card-label">Playing — volume slider active</span>
+
+    <!-- ═══════════════════════════════════════
+         SONOS CARD — Paused
+         ═══════════════════════════════════════ -->
+    <div class="card" data-state="paused">
+      <div class="media-hdr">
+        <div class="info-tile">
+          <div class="entity-icon"><span class="icon icon-18">speaker_group</span></div>
+          <div class="hdr-text">
+            <span class="hdr-title">Sonos</span>
+            <span class="hdr-sub">Paused · Living Room</span>
+          </div>
+        </div>
+        <div class="hdr-spacer"></div>
+        <div class="speaker-wrap">
+          <button class="speaker-btn" aria-expanded="false">
+            <span class="icon icon-16">speaker</span>
+            <span class="spk-label">Living Room</span>
+            <span class="icon icon-14 chevron">expand_more</span>
+          </button>
+        </div>
+      </div>
+      <div class="media-body">
+        <div class="media-row" data-view="track">
+          <div class="album-art">
+            <span class="icon icon-24">music_note</span>
+            <img src="https://i.scdn.co/image/ab67616d00001e025aa1eea25a1204990c498970" alt="" onerror="this.remove()">
+          </div>
+          <div class="track-info">
+            <span class="track-name">Simple</span>
+            <span class="track-artist">Florida Georgia Line</span>
+            <div class="progress-wrap">
+              <span class="progress-time">1:42</span>
+              <div class="progress-track"><div class="progress-fill" style="width:38%"></div></div>
+              <span class="progress-time right">4:28</span>
+            </div>
+          </div>
+          <div class="transport">
+            <button class="t-btn"><span class="icon icon-20">skip_previous</span></button>
+            <button class="t-btn play"><span class="icon icon-20">play_arrow</span></button>
+            <button class="t-btn"><span class="icon icon-20">skip_next</span></button>
+            <button class="vol-btn" onclick="showVolume(this)"><span class="icon icon-18">volume_up</span></button>
+          </div>
+        </div>
+        <div class="vol-row hidden" data-view="volume">
+          <div class="vol-icon"><span class="icon icon-20">volume_up</span></div>
+          <div class="vol-slider-wrap">
+            <div class="vol-track" data-vol="45">
+              <div class="vol-fill" style="width:45%"></div>
+              <div class="vol-stroke" style="left:45%"></div>
+              <div class="vol-thumb" style="left:45%"><div class="vol-thumb-disc"></div><div class="vol-thumb-dot"></div></div>
+            </div>
+          </div>
+          <span class="vol-pct">45%</span>
+          <div class="vol-close" onclick="hideVolume(this)"><span class="icon icon-18">close</span></div>
+        </div>
+      </div>
+    </div>
+    <span class="card-label">Paused</span>
+
+    <!-- ═══════════════════════════════════════
+         SONOS CARD — Idle
+         ═══════════════════════════════════════ -->
+    <div class="card" data-state="idle">
+      <div class="media-hdr">
+        <div class="info-tile">
+          <div class="entity-icon"><span class="icon icon-18">speaker_group</span></div>
+          <div class="hdr-text">
+            <span class="hdr-title">Sonos</span>
+            <span class="hdr-sub">Idle</span>
+          </div>
+        </div>
+        <div class="hdr-spacer"></div>
+        <div class="speaker-wrap">
+          <button class="speaker-btn" aria-expanded="false">
+            <span class="icon icon-16">speaker</span>
+            <span class="spk-label">Living Room</span>
+            <span class="icon icon-14 chevron">expand_more</span>
+          </button>
+        </div>
+      </div>
+      <div class="media-body">
+        <div class="media-row" data-view="track">
+          <div class="album-art"><span class="icon icon-24">music_note</span></div>
+          <div class="track-info">
+            <span class="track-name" style="color:var(--text-muted)">Nothing playing</span>
+            <span class="track-artist">Select a source to play</span>
+          </div>
+          <div class="transport">
+            <button class="t-btn"><span class="icon icon-20">skip_previous</span></button>
+            <button class="t-btn play"><span class="icon icon-20">play_arrow</span></button>
+            <button class="t-btn"><span class="icon icon-20">skip_next</span></button>
+            <button class="vol-btn"><span class="icon icon-18">volume_up</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <span class="card-label">Idle</span>
+
+  </div>
+
+  <script>
+    /* ═══════════ Theme ═══════════ */
+    function setTheme(t){
+      document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelector(`[data-theme="${t}"]`).classList.add('active');
+      if(t==='dark'){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark'}
+      else{document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light'}
+    }
+
+    /* ═══════════ Play / Pause ═══════════ */
+    function togglePlay(btn){
+      const card = btn.closest('.card');
+      const st = card.dataset.state;
+      const icon = btn.querySelector('.icon');
+      const sub = card.querySelector('.hdr-sub');
+      if(st === 'playing'){
+        card.dataset.state = 'paused';
+        icon.textContent = 'play_arrow';
+        sub.innerHTML = 'Paused · 3 grouped';
+      } else {
+        card.dataset.state = 'playing';
+        icon.textContent = 'pause';
+        sub.innerHTML = '<span class="green-ic">Playing</span> · 3 grouped';
+      }
+    }
+
+    /* ═══════════ Volume swap ═══════════ */
+    function showVolume(btn){
+      const body = btn.closest('.media-body');
+      const trackRow = body.querySelector('[data-view="track"]');
+      const volRow = body.querySelector('[data-view="volume"]');
+      trackRow.classList.add('hidden');
+      volRow.classList.remove('hidden');
+    }
+    function hideVolume(btn){
+      const body = btn.closest('.media-body');
+      const trackRow = body.querySelector('[data-view="track"]');
+      const volRow = body.querySelector('[data-view="volume"]');
+      volRow.classList.add('hidden');
+      trackRow.classList.remove('hidden');
+    }
+
+    /* ═══════════ Volume slider drag ═══════════ */
+    document.querySelectorAll('.vol-track').forEach(track => {
+      let dragging = false;
+      const setVol = (e) => {
+        const rect = track.getBoundingClientRect();
+        const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left;
+        const pct = Math.max(0, Math.min(100, Math.round(x / rect.width * 100)));
+        track.dataset.vol = pct;
+        track.querySelector('.vol-fill').style.width = pct + '%';
+        const stroke = track.querySelector('.vol-stroke');
+        stroke.style.left = pct + '%';
+        stroke.style.opacity = pct === 0 ? '0' : '1';
+        track.querySelector('.vol-thumb').style.left = pct + '%';
+        const wrap = track.closest('.vol-row');
+        if(wrap) wrap.querySelector('.vol-pct').textContent = pct + '%';
+        // Update speaker icon
+        const volIcon = wrap?.querySelector('.vol-icon .icon');
+        if(volIcon){
+          if(pct === 0) volIcon.textContent = 'volume_off';
+          else if(pct < 40) volIcon.textContent = 'volume_down';
+          else volIcon.textContent = 'volume_up';
+        }
+      };
+      track.addEventListener('pointerdown', e => {
+        dragging = true;
+        track.classList.add('dragging');
+        track.setPointerCapture(e.pointerId);
+        track.style.touchAction = 'none';
+        setVol(e);
+      });
+      track.addEventListener('pointermove', e => { if(dragging) setVol(e) });
+      track.addEventListener('pointerup', () => {
+        dragging = false;
+        track.classList.remove('dragging');
+        track.style.touchAction = '';
+      });
+      track.addEventListener('pointercancel', () => {
+        dragging = false;
+        track.classList.remove('dragging');
+        track.style.touchAction = '';
+      });
+    });
+
+    /* ═══════════ Speaker dropdown ═══════════ */
+    function toggleMenu(btn){
+      const menu = btn.nextElementSibling;
+      if(!menu) return;
+      const isOpen = menu.classList.contains('open');
+      closeAllMenus();
+      if(!isOpen){
+        menu.classList.add('open');
+        btn.setAttribute('aria-expanded','true');
+      }
+    }
+    function closeAllMenus(){
+      document.querySelectorAll('.dd-menu').forEach(m=>m.classList.remove('open'));
+      document.querySelectorAll('.speaker-btn').forEach(b=>b.setAttribute('aria-expanded','false'));
+    }
+
+    function selectSpeaker(opt, name){
+      const menu = opt.closest('.dd-menu');
+      menu.querySelectorAll('.dd-option:not(.action)').forEach(o=>o.classList.remove('selected'));
+      opt.classList.add('selected');
+      const wrap = opt.closest('.speaker-wrap');
+      wrap.querySelector('.spk-label').textContent = name;
+      closeAllMenus();
+    }
+
+    function toggleGroupCheck(el){
+      el.classList.toggle('in-group');
+      // Update group count in subtitle
+      const menu = el.closest('.dd-menu');
+      if(!menu) return;
+      const count = menu.querySelectorAll('.grp-check.in-group').length;
+      const card = el.closest('.card');
+      const sub = card.querySelector('.hdr-sub');
+      const isPlaying = card.dataset.state === 'playing';
+      if(count > 1){
+        sub.innerHTML = isPlaying
+          ? `<span class="green-ic">Playing</span> · ${count} grouped`
+          : `Paused · ${count} grouped`;
+      } else {
+        sub.innerHTML = isPlaying
+          ? `<span class="green-ic">Playing</span> · ${card.querySelector('.spk-label')?.textContent || 'Solo'}`
+          : `Paused · ${card.querySelector('.spk-label')?.textContent || 'Solo'}`;
+      }
+    }
+
+    function groupAll(opt){
+      const menu = opt.closest('.dd-menu');
+      menu.querySelectorAll('.grp-check').forEach(c=>c.classList.add('in-group'));
+      const count = menu.querySelectorAll('.grp-check.in-group').length;
+      const card = opt.closest('.card');
+      const sub = card.querySelector('.hdr-sub');
+      sub.innerHTML = card.dataset.state === 'playing'
+        ? `<span class="green-ic">Playing</span> · ${count} grouped`
+        : `Paused · ${count} grouped`;
+      closeAllMenus();
+    }
+
+    function ungroupAll(opt){
+      const menu = opt.closest('.dd-menu');
+      menu.querySelectorAll('.grp-check').forEach(c=>c.classList.remove('in-group'));
+      // Keep selected speaker in group
+      const selected = menu.querySelector('.dd-option.selected .grp-check');
+      if(selected) selected.classList.add('in-group');
+      const card = opt.closest('.card');
+      const sub = card.querySelector('.hdr-sub');
+      const name = card.querySelector('.spk-label')?.textContent || '';
+      sub.innerHTML = card.dataset.state === 'playing'
+        ? `<span class="green-ic">Playing</span> · ${name}`
+        : `Paused · ${name}`;
+      closeAllMenus();
+    }
+
+    function toggleMute(el){
+      const volRow = el.closest('.vol-row');
+      const track = volRow.querySelector('.vol-track');
+      const icon = el.querySelector('.icon');
+      const pct = volRow.querySelector('.vol-pct');
+      if(parseInt(track.dataset.vol) > 0){
+        track._prevVol = track.dataset.vol;
+        track.dataset.vol = 0;
+        track.querySelector('.vol-fill').style.width = '0%';
+        const stroke = track.querySelector('.vol-stroke');
+        stroke.style.left = '0%';
+        stroke.style.opacity = '0';
+        track.querySelector('.vol-thumb').style.left = '0%';
+        pct.textContent = '0%';
+        icon.textContent = 'volume_off';
+      } else {
+        const prev = track._prevVol || 50;
+        track.dataset.vol = prev;
+        track.querySelector('.vol-fill').style.width = prev + '%';
+        const stroke = track.querySelector('.vol-stroke');
+        stroke.style.left = prev + '%';
+        stroke.style.opacity = prev === 0 ? '0' : '1';
+        track.querySelector('.vol-thumb').style.left = prev + '%';
+        pct.textContent = prev + '%';
+        icon.textContent = prev < 40 ? 'volume_down' : 'volume_up';
+      }
+    }
+
+    /* Close menus on outside click */
+    document.addEventListener('click', e => {
+      if(!e.target.closest('.speaker-wrap')) closeAllMenus();
+    });
+  </script>
+</body>
+</html>

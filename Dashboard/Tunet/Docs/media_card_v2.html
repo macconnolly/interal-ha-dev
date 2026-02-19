@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tunet Sonos Card – Overview Player</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════
+       TOKENS — LIGHT
+       ═══════════════════════════════════════════ */
+    :root {
+      --bg1:#bcccd3; --bg2:#b4c4c8; --bg3:#99a8a1; --bg4:#839088;
+      --glass:rgba(255,255,255,0.68); --glass-border:rgba(255,255,255,0.45);
+      --shadow:0 1px 3px rgba(0,0,0,0.10),0 8px 32px rgba(0,0,0,0.10);
+      --shadow-up:0 1px 4px rgba(0,0,0,0.10),0 12px 36px rgba(0,0,0,0.12);
+      --inset:inset 0 0 0 0.5px rgba(0,0,0,0.06);
+      --text:#1C1C1E; --text-sub:rgba(28,28,30,0.55); --text-muted:#8E8E93;
+      --amber:#D4850A; --amber-fill:rgba(212,133,10,0.10); --amber-border:rgba(212,133,10,0.22);
+      --blue:#007AFF; --blue-fill:rgba(0,122,255,0.09); --blue-border:rgba(0,122,255,0.18);
+      --green:#34C759; --green-fill:rgba(52,199,89,0.12); --green-border:rgba(52,199,89,0.15);
+      --purple:#AF52DE; --purple-fill:rgba(175,82,222,0.10); --purple-border:rgba(175,82,222,0.18);
+      --track-bg:rgba(28,28,30,0.055);
+      --r-card:24px; --r-tile:16px; --r-pill:999px; --r-track:4px;
+      --ctrl-bg:rgba(255,255,255,0.52); --ctrl-border:rgba(0,0,0,0.05);
+      --ctrl-sh:0 1px 2px rgba(0,0,0,0.05),0 2px 8px rgba(0,0,0,0.04);
+      --dd-bg:rgba(255,255,255,0.84); --dd-border:rgba(255,255,255,0.60);
+      --divider:rgba(28,28,30,0.07);
+      --tile-bg:rgba(255,255,255,0.92);
+      color-scheme:light;
+    }
+
+    /* ═══════════════════════════════════════════
+       TOKENS — DARK
+       ═══════════════════════════════════════════ */
+    html.dark {
+      --bg1:#1c3038; --bg2:#1e2e40; --bg3:#223844; --bg4:#1a2e30;
+      --glass:rgba(44,44,46,0.72); --glass-border:rgba(255,255,255,0.08);
+      --shadow:0 1px 3px rgba(0,0,0,0.30),0 8px 28px rgba(0,0,0,0.28);
+      --shadow-up:0 1px 4px rgba(0,0,0,0.35),0 12px 36px rgba(0,0,0,0.35);
+      --inset:inset 0 0 0 0.5px rgba(255,255,255,0.06);
+      --text:#F5F5F7; --text-sub:rgba(245,245,247,0.50); --text-muted:rgba(245,245,247,0.35);
+      --amber:#E8961E; --amber-fill:rgba(232,150,30,0.14); --amber-border:rgba(232,150,30,0.25);
+      --blue:#0A84FF; --blue-fill:rgba(10,132,255,0.13); --blue-border:rgba(10,132,255,0.22);
+      --green:#30D158; --green-fill:rgba(48,209,88,0.14); --green-border:rgba(48,209,88,0.18);
+      --purple:#BF5AF2; --purple-fill:rgba(191,90,242,0.14); --purple-border:rgba(191,90,242,0.22);
+      --track-bg:rgba(255,255,255,0.06);
+      --ctrl-bg:rgba(255,255,255,0.08); --ctrl-border:rgba(255,255,255,0.08);
+      --ctrl-sh:0 1px 2px rgba(0,0,0,0.25),0 2px 8px rgba(0,0,0,0.15);
+      --dd-bg:rgba(58,58,60,0.88); --dd-border:rgba(255,255,255,0.08);
+      --divider:rgba(255,255,255,0.06);
+      --tile-bg:rgba(44,44,46,0.90);
+      color-scheme:dark;
+    }
+
+    /* ═══════════════════════════════════════════
+       BASE
+       ═══════════════════════════════════════════ */
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:"DM Sans",system-ui,-apple-system,sans-serif;
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .page{
+      min-height:100%;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      padding:32px 16px;gap:20px;
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(255,255,255,0.45),transparent 55%),
+        radial-gradient(ellipse 900px 700px at 80% 15%,rgba(255,255,255,0.25),transparent 60%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    .page::before{
+      content:"";position:fixed;inset:-60px;
+      background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));
+      filter:blur(28px) saturate(1.05);z-index:-2;
+    }
+    html.dark .page{
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%,rgba(255,255,255,0.02),transparent 55%),
+        linear-gradient(140deg,var(--bg1),var(--bg2) 35%,var(--bg3) 65%,var(--bg4));
+    }
+    html.dark .page::before{background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));filter:blur(28px)}
+
+    /* ═══════════════════════════════════════════
+       ICONS
+       ═══════════════════════════════════════════ */
+    .icon{
+      font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;
+      display:inline-flex;align-items:center;justify-content:center;line-height:1;
+      text-transform:none;letter-spacing:normal;white-space:nowrap;direction:ltr;
+      vertical-align:middle;flex-shrink:0;-webkit-font-smoothing:antialiased;
+      font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+    }
+    .icon.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+    .icon-24{font-size:24px;width:24px;height:24px}
+    .icon-20{font-size:20px;width:20px;height:20px}
+    .icon-18{font-size:18px;width:18px;height:18px}
+    .icon-16{font-size:16px;width:16px;height:16px}
+    .icon-14{font-size:14px;width:14px;height:14px}
+
+    /* ═══════════════════════════════════════════
+       THEME TOGGLE
+       ═══════════════════════════════════════════ */
+    .theme-toggle{
+      display:flex;gap:4px;padding:4px;border-radius:var(--r-pill);
+      background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--glass-border);box-shadow:var(--shadow);
+    }
+    .theme-btn{
+      padding:8px 16px;border:none;border-radius:var(--r-pill);
+      background:transparent;color:var(--text-muted);
+      font-family:inherit;font-size:13px;font-weight:600;
+      cursor:pointer;transition:all 180ms ease;
+      display:flex;align-items:center;gap:6px;
+    }
+    .theme-btn.active{background:rgba(255,255,255,0.45);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,0.06)}
+    html.dark .theme-btn.active{background:rgba(255,255,255,0.10)}
+
+    /* ═══════════════════════════════════════════
+       CARD (universal shell)
+       ═══════════════════════════════════════════ */
+    .card{
+      position:relative;width:400px;max-width:100%;
+      border-radius:var(--r-card);background:var(--glass);
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--ctrl-border);
+      box-shadow:var(--shadow),var(--inset);
+      padding:20px;display:flex;flex-direction:column;gap:0;
+      transition:background .3s,border-color .3s,box-shadow .3s,opacity .3s;
+    }
+    .card::before{
+      content:"";position:absolute;inset:0;border-radius:var(--r-card);
+      padding:1px;pointer-events:none;z-index:0;
+      background:linear-gradient(160deg,rgba(255,255,255,0.50),rgba(255,255,255,0.08) 40%,rgba(255,255,255,0.02) 60%,rgba(255,255,255,0.20));
+      -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+    }
+    html.dark .card::before{
+      background:linear-gradient(160deg,rgba(255,255,255,0.14),rgba(255,255,255,0.03) 40%,rgba(255,255,255,0.01) 60%,rgba(255,255,255,0.08));
+    }
+
+    /* Card active border tint (subtle green when playing — Principle #1 exception) */
+    .card[data-state="playing"]{
+      border-color:rgba(52,199,89,0.14);
+    }
+    html.dark .card[data-state="playing"]{
+      border-color:rgba(48,209,88,0.16);
+    }
+
+    /* ═══════════════════════════════════════════
+       HEADER — Info tile + Group btn + Speaker selector
+       ═══════════════════════════════════════════ */
+    .media-hdr{
+      display:flex;align-items:center;gap:8px;
+      margin-bottom:16px;
+    }
+
+    /* Info tile — tappable entity identifier (§5.2) */
+    .info-tile{
+      display:flex;align-items:center;gap:8px;
+      padding:6px 10px 6px 6px;
+      min-height:42px;
+      border-radius:10px;
+      border:1px solid var(--ctrl-border);
+      background:var(--ctrl-bg);
+      box-shadow:var(--ctrl-sh);
+      cursor:pointer;
+      transition:all .15s ease;
+      min-width:0;
+    }
+    .info-tile:hover{box-shadow:var(--shadow)}
+    .info-tile:active{transform:scale(.98)}
+
+    /* Info tile — active when playing */
+    .card[data-state="playing"] .info-tile{
+      background:var(--green-fill);
+      border-color:var(--green-border);
+    }
+
+    /* Entity icon inside info tile */
+    .entity-icon{
+      width:24px;height:24px;border-radius:6px;
+      display:grid;place-items:center;flex-shrink:0;
+      transition:all .2s ease;color:var(--text-muted);
+    }
+    .card[data-state="playing"] .entity-icon{color:var(--green)}
+    .card[data-state="playing"] .entity-icon .icon{
+      font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;
+    }
+
+    /* Title + subtitle */
+    .hdr-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+    .hdr-title{
+      font-weight:700;font-size:13px;color:var(--text-sub);
+      letter-spacing:0.1px;line-height:1.15;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .hdr-sub{
+      font-size:10.5px;font-weight:600;color:var(--text-muted);
+      letter-spacing:0.1px;line-height:1.15;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .hdr-sub .green-ic{color:var(--green)}
+
+    .hdr-spacer{flex:1}
+
+    /* Group toggle (42×42 squircle, §5.6) */
+    .group-btn{
+      width:42px;min-height:42px;
+      border-radius:10px;display:grid;place-items:center;
+      cursor:pointer;transition:all .15s ease;
+      border:1px solid var(--ctrl-border);
+      background:var(--ctrl-bg);box-shadow:var(--ctrl-sh);
+      color:var(--text-muted);position:relative;
+    }
+    .group-btn:hover{box-shadow:var(--shadow)}
+    .group-btn:active{transform:scale(.94)}
+    .group-btn.on{
+      background:var(--green-fill);color:var(--green);
+      border-color:var(--green-border);
+    }
+    .group-btn.on .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+
+    /* Group count badge */
+    .group-badge{
+      position:absolute;top:-4px;right:-4px;
+      min-width:16px;height:16px;padding:0 4px;
+      border-radius:999px;background:var(--green);
+      color:#fff;font-size:10px;font-weight:700;
+      display:grid;place-items:center;
+      line-height:1;
+      box-shadow:0 1px 3px rgba(0,0,0,0.15);
+    }
+    .group-btn:not(.on) .group-badge{display:none}
+
+    /* Speaker selector (§5.7) */
+    .speaker-wrap{position:relative}
+    .speaker-btn{
+      display:flex;align-items:center;gap:4px;
+      min-height:42px;padding:0 8px;
+      border-radius:10px;
+      border:1px solid var(--ctrl-border);
+      background:var(--ctrl-bg);box-shadow:var(--ctrl-sh);
+      font-family:inherit;font-size:12px;font-weight:600;
+      color:var(--text-sub);letter-spacing:.2px;
+      cursor:pointer;transition:all .15s ease;
+    }
+    .speaker-btn:hover{box-shadow:var(--shadow)}
+    .speaker-btn:active{transform:scale(.97)}
+    .speaker-btn .chevron{transition:transform .2s ease}
+    .speaker-btn[aria-expanded="true"] .chevron{transform:rotate(180deg)}
+
+    /* ═══════════════════════════════════════════
+       MEDIA ROW — art + info + transport
+       ═══════════════════════════════════════════ */
+    .media-row{
+      display:flex;align-items:center;gap:14px;
+    }
+
+    /* Album art */
+    .album-art{
+      width:56px;height:56px;flex-shrink:0;
+      border-radius:10px;overflow:hidden;
+      background:var(--track-bg);
+      box-shadow:var(--ctrl-sh);
+      display:grid;place-items:center;
+      position:relative;
+    }
+    .album-art img{
+      width:100%;height:100%;object-fit:cover;
+      position:absolute;inset:0;
+    }
+    .album-art .icon{color:var(--text-muted)}
+    .card[data-state="playing"] .album-art{
+      box-shadow:var(--shadow);
+    }
+
+    /* Track info */
+    .track-info{
+      flex:1;min-width:0;
+      display:flex;flex-direction:column;gap:3px;
+    }
+    .track-name{
+      font-size:15px;font-weight:700;color:var(--text);
+      line-height:1.15;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .track-artist{
+      font-size:13px;font-weight:600;color:var(--text-sub);
+      line-height:1.15;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    /* Progress bar */
+    .progress-wrap{
+      display:flex;align-items:center;gap:6px;
+      margin-top:4px;
+    }
+    .progress-time{
+      font-size:10px;font-weight:600;color:var(--text-muted);
+      font-variant-numeric:tabular-nums;letter-spacing:.3px;
+      flex-shrink:0;min-width:28px;
+    }
+    .progress-time.right{text-align:right}
+    .progress-track{
+      flex:1;height:3px;border-radius:999px;
+      background:var(--track-bg);position:relative;
+      overflow:hidden;
+    }
+    .progress-fill{
+      position:absolute;top:0;left:0;bottom:0;
+      border-radius:999px;
+      background:rgba(52,199,89,0.50);
+      transition:width .5s linear;
+    }
+    html.dark .progress-fill{background:rgba(48,209,88,0.50)}
+
+    /* Transport buttons */
+    .transport{
+      display:flex;align-items:center;gap:6px;
+      flex-shrink:0;
+    }
+    .t-btn{
+      width:38px;height:38px;border-radius:10px;
+      display:grid;place-items:center;
+      cursor:pointer;transition:all .15s ease;
+      border:none;background:transparent;
+      color:var(--text-sub);
+    }
+    .t-btn:hover{background:var(--track-bg)}
+    .t-btn:active{transform:scale(.90)}
+
+    /* Play/pause — larger, accent surface */
+    .t-btn.play{
+      width:42px;height:42px;
+      background:var(--ctrl-bg);
+      border:1px solid var(--ctrl-border);
+      box-shadow:var(--ctrl-sh);
+      color:var(--text);
+    }
+    .t-btn.play:hover{box-shadow:var(--shadow)}
+    .card[data-state="playing"] .t-btn.play{
+      background:var(--green-fill);
+      border-color:var(--green-border);
+      color:var(--green);
+    }
+    .card[data-state="playing"] .t-btn.play .icon{
+      font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;
+    }
+
+    /* Volume button */
+    .vol-btn{
+      width:38px;height:38px;border-radius:10px;
+      display:grid;place-items:center;
+      cursor:pointer;transition:all .15s ease;
+      border:none;background:transparent;
+      color:var(--text-muted);
+    }
+    .vol-btn:hover{background:var(--track-bg)}
+    .vol-btn:active{transform:scale(.90)}
+
+    /* ═══════════════════════════════════════════
+       DROPDOWN MENU (§7.1)
+       ═══════════════════════════════════════════ */
+    .dd-menu{
+      position:absolute;top:calc(100% + 6px);right:0;
+      min-width:200px;padding:5px;
+      border-radius:var(--r-tile);
+      background:var(--dd-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--dd-border);
+      box-shadow:var(--shadow-up);z-index:10;
+      display:none;flex-direction:column;gap:1px;
+    }
+    .dd-menu.open{
+      display:flex;
+      animation:menuIn .14s ease forwards;
+    }
+    @keyframes menuIn{
+      from{opacity:0;transform:translateY(-4px) scale(.97)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+
+    .dd-option{
+      padding:9px 12px;border-radius:11px;
+      font-size:13px;font-weight:600;color:var(--text);
+      display:flex;align-items:center;gap:8px;
+      cursor:pointer;transition:background .1s;
+      user-select:none;
+    }
+    .dd-option:hover{background:var(--track-bg)}
+    .dd-option:active{transform:scale(.97)}
+
+    /* Speaker option states */
+    .dd-option .spk-status{
+      margin-left:auto;display:flex;align-items:center;gap:4px;
+    }
+    .dd-option .spk-dot{
+      width:6px;height:6px;border-radius:999px;
+      background:var(--green);flex-shrink:0;
+    }
+    .dd-option.selected{
+      font-weight:700;color:var(--green);
+      background:var(--green-fill);
+    }
+    .dd-option.grouped .spk-dot{display:block}
+    .dd-option:not(.grouped) .spk-dot{display:none}
+    .dd-option.selected .icon{
+      font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;
+    }
+
+    /* Action options (Group All, Ungroup All) */
+    .dd-option.action{color:var(--text-sub)}
+    .dd-option.action:hover{color:var(--text)}
+    .dd-option.action .icon{color:var(--green)}
+
+    .dd-divider{
+      height:1px;background:var(--divider);margin:3px 8px;
+    }
+
+    /* ═══════════════════════════════════════════
+       IDLE / PAUSED STATE
+       ═══════════════════════════════════════════ */
+    .card[data-state="paused"]{opacity:0.85}
+    .card[data-state="idle"]{opacity:0.65}
+
+    /* ═══════════════════════════════════════════
+       REDUCED MOTION
+       ═══════════════════════════════════════════ */
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{
+        animation-duration:0.01ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:0.01ms !important;
+      }
+    }
+
+    /* ═══════════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════════ */
+    @media(max-width:440px){
+      .card{padding:16px}
+      .album-art{width:48px;height:48px}
+      .track-name{font-size:14px}
+      .transport{gap:4px}
+      .t-btn{width:34px;height:34px}
+      .t-btn.play{width:38px;height:38px}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Theme toggle -->
+    <div class="theme-toggle">
+      <button class="theme-btn active" data-theme="light" onclick="setTheme('light')">
+        <span class="icon icon-16">light_mode</span> Light
+      </button>
+      <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">
+        <span class="icon icon-16">dark_mode</span> Dark
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         SONOS CARD — Playing State
+         ═══════════════════════════════════════ -->
+    <div class="card" data-state="playing" id="sonosCard">
+
+      <!-- HEADER: info tile + group btn + speaker selector -->
+      <div class="media-hdr">
+        <div class="info-tile" title="Open entity details">
+          <div class="entity-icon">
+            <span class="icon icon-18">speaker_group</span>
+          </div>
+          <div class="hdr-text">
+            <span class="hdr-title">Sonos</span>
+            <span class="hdr-sub"><span class="green-ic">Playing</span> · 3 grouped</span>
+          </div>
+        </div>
+
+        <div class="hdr-spacer"></div>
+
+        <!-- Group toggle -->
+        <div class="group-btn on" onclick="toggleGroup(this)" title="Toggle group">
+          <span class="icon icon-18">device_hub</span>
+          <span class="group-badge">3</span>
+        </div>
+
+        <!-- Speaker selector -->
+        <div class="speaker-wrap">
+          <button class="speaker-btn" onclick="toggleSpeakerMenu(this)" aria-expanded="false">
+            <span class="icon icon-16">speaker</span>
+            <span>Living</span>
+            <span class="icon icon-14 chevron">expand_more</span>
+          </button>
+
+          <div class="dd-menu" id="speakerMenu">
+            <div class="dd-option selected grouped" onclick="selectSpeaker(this, 'Living Room')">
+              <span class="icon icon-18">speaker</span>
+              Living Room
+              <span class="spk-status">
+                <span class="spk-dot"></span>
+                <span class="icon icon-14 filled" style="color:var(--green)">check</span>
+              </span>
+            </div>
+            <div class="dd-option grouped" onclick="selectSpeaker(this, 'Kitchen')">
+              <span class="icon icon-18">speaker</span>
+              Kitchen
+              <span class="spk-status"><span class="spk-dot"></span></span>
+            </div>
+            <div class="dd-option grouped" onclick="selectSpeaker(this, 'Bedroom')">
+              <span class="icon icon-18">speaker</span>
+              Bedroom
+              <span class="spk-status"><span class="spk-dot"></span></span>
+            </div>
+            <div class="dd-option" onclick="selectSpeaker(this, 'Dining')">
+              <span class="icon icon-18">speaker</span>
+              Dining
+              <span class="spk-status"><span class="spk-dot"></span></span>
+            </div>
+            <div class="dd-option" onclick="selectSpeaker(this, 'Bathroom')">
+              <span class="icon icon-18">speaker</span>
+              Bathroom
+              <span class="spk-status"><span class="spk-dot"></span></span>
+            </div>
+            <div class="dd-divider"></div>
+            <div class="dd-option action" onclick="groupAll()">
+              <span class="icon icon-18">link</span>
+              Group All
+            </div>
+            <div class="dd-option action" onclick="ungroupAll()">
+              <span class="icon icon-18">link_off</span>
+              Ungroup All
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEDIA ROW: art + track info + transport -->
+      <div class="media-row">
+        <div class="album-art">
+          <span class="icon icon-24">music_note</span>
+          <img src="https://i.scdn.co/image/ab67616d00001e025aa1eea25a1204990c498970" alt="Album art" onerror="this.remove()">
+        </div>
+
+        <div class="track-info">
+          <span class="track-name">Simple</span>
+          <span class="track-artist">Florida Georgia Line</span>
+          <div class="progress-wrap">
+            <span class="progress-time">1:42</span>
+            <div class="progress-track">
+              <div class="progress-fill" style="width:38%"></div>
+            </div>
+            <span class="progress-time right">4:28</span>
+          </div>
+        </div>
+
+        <div class="transport">
+          <button class="t-btn" title="Previous"><span class="icon icon-20">skip_previous</span></button>
+          <button class="t-btn play" title="Pause" onclick="togglePlay()"><span class="icon icon-20">pause</span></button>
+          <button class="t-btn" title="Next"><span class="icon icon-20">skip_next</span></button>
+          <button class="vol-btn" title="Volume"><span class="icon icon-18">volume_up</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         SONOS CARD — Paused State
+         ═══════════════════════════════════════ -->
+    <div class="card" data-state="paused">
+      <div class="media-hdr">
+        <div class="info-tile">
+          <div class="entity-icon">
+            <span class="icon icon-18">speaker_group</span>
+          </div>
+          <div class="hdr-text">
+            <span class="hdr-title">Sonos</span>
+            <span class="hdr-sub">Paused · Living Room</span>
+          </div>
+        </div>
+        <div class="hdr-spacer"></div>
+        <div class="group-btn">
+          <span class="icon icon-18">device_hub</span>
+          <span class="group-badge">1</span>
+        </div>
+        <div class="speaker-wrap">
+          <button class="speaker-btn" aria-expanded="false">
+            <span class="icon icon-16">speaker</span>
+            <span>Living</span>
+            <span class="icon icon-14 chevron">expand_more</span>
+          </button>
+        </div>
+      </div>
+      <div class="media-row">
+        <div class="album-art">
+          <span class="icon icon-24">music_note</span>
+          <img src="https://i.scdn.co/image/ab67616d00001e025aa1eea25a1204990c498970" alt="Album art" onerror="this.remove()">
+        </div>
+        <div class="track-info">
+          <span class="track-name">Simple</span>
+          <span class="track-artist">Florida Georgia Line</span>
+          <div class="progress-wrap">
+            <span class="progress-time">1:42</span>
+            <div class="progress-track">
+              <div class="progress-fill" style="width:38%"></div>
+            </div>
+            <span class="progress-time right">4:28</span>
+          </div>
+        </div>
+        <div class="transport">
+          <button class="t-btn" title="Previous"><span class="icon icon-20">skip_previous</span></button>
+          <button class="t-btn play" title="Play"><span class="icon icon-20">play_arrow</span></button>
+          <button class="t-btn" title="Next"><span class="icon icon-20">skip_next</span></button>
+          <button class="vol-btn" title="Volume"><span class="icon icon-18">volume_up</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         SONOS CARD — Idle State
+         ═══════════════════════════════════════ -->
+    <div class="card" data-state="idle">
+      <div class="media-hdr">
+        <div class="info-tile">
+          <div class="entity-icon">
+            <span class="icon icon-18">speaker_group</span>
+          </div>
+          <div class="hdr-text">
+            <span class="hdr-title">Sonos</span>
+            <span class="hdr-sub">Idle · Living Room</span>
+          </div>
+        </div>
+        <div class="hdr-spacer"></div>
+        <div class="group-btn">
+          <span class="icon icon-18">device_hub</span>
+          <span class="group-badge">1</span>
+        </div>
+        <div class="speaker-wrap">
+          <button class="speaker-btn" aria-expanded="false">
+            <span class="icon icon-16">speaker</span>
+            <span>Living</span>
+            <span class="icon icon-14 chevron">expand_more</span>
+          </button>
+        </div>
+      </div>
+      <div class="media-row">
+        <div class="album-art">
+          <span class="icon icon-24">music_note</span>
+        </div>
+        <div class="track-info">
+          <span class="track-name" style="color:var(--text-muted)">Nothing playing</span>
+          <span class="track-artist">Select a source to play</span>
+        </div>
+        <div class="transport">
+          <button class="t-btn" title="Previous"><span class="icon icon-20">skip_previous</span></button>
+          <button class="t-btn play" title="Play"><span class="icon icon-20">play_arrow</span></button>
+          <button class="t-btn" title="Next"><span class="icon icon-20">skip_next</span></button>
+          <button class="vol-btn" title="Volume"><span class="icon icon-18">volume_up</span></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ═══════════ Theme ═══════════ */
+    function setTheme(t){
+      document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelector(`[data-theme="${t}"]`).classList.add('active');
+      if(t==='dark'){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark'}
+      else{document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light'}
+    }
+
+    /* ═══════════ Play / Pause toggle ═══════════ */
+    function togglePlay(){
+      const card = document.getElementById('sonosCard');
+      const st = card.dataset.state;
+      const playBtn = card.querySelector('.t-btn.play .icon');
+      const sub = card.querySelector('.hdr-sub');
+      if(st === 'playing'){
+        card.dataset.state = 'paused';
+        playBtn.textContent = 'play_arrow';
+        sub.innerHTML = 'Paused · 3 grouped';
+      } else {
+        card.dataset.state = 'playing';
+        playBtn.textContent = 'pause';
+        sub.innerHTML = '<span class="green-ic">Playing</span> · 3 grouped';
+      }
+    }
+
+    /* ═══════════ Group toggle ═══════════ */
+    function toggleGroup(el){
+      el.classList.toggle('on');
+      // Update badge count for demo
+      const badge = el.querySelector('.group-badge');
+      if(el.classList.contains('on')){
+        badge.textContent = '3';
+      }
+    }
+
+    /* ═══════════ Speaker dropdown ═══════════ */
+    function toggleSpeakerMenu(btn){
+      const menu = btn.nextElementSibling;
+      const isOpen = menu.classList.contains('open');
+      // Close all open menus
+      document.querySelectorAll('.dd-menu').forEach(m=>m.classList.remove('open'));
+      document.querySelectorAll('.speaker-btn').forEach(b=>b.setAttribute('aria-expanded','false'));
+      if(!isOpen){
+        menu.classList.add('open');
+        btn.setAttribute('aria-expanded','true');
+      }
+    }
+
+    function selectSpeaker(opt, name){
+      const menu = opt.closest('.dd-menu');
+      const wrap = opt.closest('.speaker-wrap');
+      // Update selected state
+      menu.querySelectorAll('.dd-option:not(.action)').forEach(o=>o.classList.remove('selected'));
+      opt.classList.add('selected');
+      // Update button label
+      const short = name.split(' ')[0]; // "Living Room" → "Living"
+      wrap.querySelector('.speaker-btn span:not(.icon)').textContent = short;
+      // Close menu
+      menu.classList.remove('open');
+      wrap.querySelector('.speaker-btn').setAttribute('aria-expanded','false');
+    }
+
+    function groupAll(){
+      const menu = document.getElementById('speakerMenu');
+      menu.querySelectorAll('.dd-option:not(.action)').forEach(o=>o.classList.add('grouped'));
+      const badge = document.querySelector('#sonosCard .group-badge');
+      badge.textContent = '5';
+      menu.classList.remove('open');
+      menu.previousElementSibling.setAttribute('aria-expanded','false');
+    }
+
+    function ungroupAll(){
+      const menu = document.getElementById('speakerMenu');
+      menu.querySelectorAll('.dd-option:not(.action)').forEach(o=>o.classList.remove('grouped'));
+      // Keep selected one as grouped
+      menu.querySelector('.dd-option.selected')?.classList.add('grouped');
+      const badge = document.querySelector('#sonosCard .group-badge');
+      badge.textContent = '1';
+      const grp = document.querySelector('#sonosCard .group-btn');
+      grp.classList.remove('on');
+      menu.classList.remove('open');
+      menu.previousElementSibling.setAttribute('aria-expanded','false');
+    }
+
+    /* Close menu on outside click */
+    document.addEventListener('click', e => {
+      if(!e.target.closest('.speaker-wrap')){
+        document.querySelectorAll('.dd-menu').forEach(m=>m.classList.remove('open'));
+        document.querySelectorAll('.speaker-btn').forEach(b=>b.setAttribute('aria-expanded','false'));
+      }
+    });
+  </script>
+</body>
+</html>

@@ -10,9 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
 
   <style>
-    /* ═══════════════════════════════════════════
-       TOKENS — LIGHT
-       ═══════════════════════════════════════════ */
+    /* ===================================================
+       TOKENS - LIGHT
+       =================================================== */
     :root {
       --bg1:#d9ccbc; --bg2:#c8c0b4; --bg3:#a8a199; --bg4:#838990;
       --glass:rgba(255,255,255,0.68); --glass-border:rgba(255,255,255,0.45);
@@ -24,6 +24,7 @@
       --blue:#007AFF; --blue-fill:rgba(0,122,255,0.09); --blue-border:rgba(0,122,255,0.18);
       --green:#34C759; --green-fill:rgba(52,199,89,0.12); --green-border:rgba(52,199,89,0.15);
       --purple:#AF52DE; --purple-fill:rgba(175,82,222,0.10); --purple-border:rgba(175,82,222,0.18);
+      --red:#FF3B30; --red-glow:rgba(255,59,48,0.5);
       --track-bg:rgba(28,28,30,0.055);
       --thumb-bg:#fff;
       --r-card:24px; --r-tile:16px; --r-pill:999px; --r-track:4px;
@@ -31,16 +32,16 @@
       --ctrl-sh:0 1px 2px rgba(0,0,0,0.05),0 2px 8px rgba(0,0,0,0.04);
       --chip-bg:rgba(255,255,255,0.48); --chip-border:rgba(0,0,0,0.05);
       --chip-sh:0 1px 3px rgba(0,0,0,0.04);
-      --dd-bg:rgba(255,255,255,0.84); --dd-border:rgba(255,255,255,0.60);
+      --dd-bg:rgba(255,255,255,0.92); --dd-border:rgba(255,255,255,0.60);
       --divider:rgba(28,28,30,0.07);
       --tile-bg:rgba(255,255,255,0.92);
       --tile-bg-off:rgba(28,28,30,0.04);
       color-scheme:light;
     }
 
-    /* ═══════════════════════════════════════════
-       TOKENS — DARK
-       ═══════════════════════════════════════════ */
+    /* ===================================================
+       TOKENS - DARK
+       =================================================== */
     html.dark {
       --bg1:#1c3038; --bg2:#1e2640; --bg3:#242244; --bg4:#1a1a30;
       --glass:rgba(44,44,46,0.72); --glass-border:rgba(255,255,255,0.08);
@@ -48,26 +49,27 @@
       --shadow-up:0 1px 4px rgba(0,0,0,0.35),0 12px 36px rgba(0,0,0,0.35);
       --inset:inset 0 0 0 0.5px rgba(255,255,255,0.06);
       --text:#F5F5F7; --text-sub:rgba(245,245,247,0.50); --text-muted:rgba(245,245,247,0.35);
-      --amber:#E8961E; --amber-fill:rgba(232,150,30,0.14); --amber-border:rgba(232,150,30,0.25);
+      --amber:#F0A030; --amber-fill:rgba(240,160,48,0.14); --amber-border:rgba(240,160,48,0.28);
       --blue:#0A84FF; --blue-fill:rgba(10,132,255,0.13); --blue-border:rgba(10,132,255,0.22);
       --green:#30D158; --green-fill:rgba(48,209,88,0.14); --green-border:rgba(48,209,88,0.18);
       --purple:#BF5AF2; --purple-fill:rgba(191,90,242,0.14); --purple-border:rgba(191,90,242,0.22);
+      --red:#FF453A; --red-glow:rgba(255,69,58,0.5);
       --track-bg:rgba(255,255,255,0.06);
       --thumb-bg:#F5F5F7;
       --ctrl-bg:rgba(255,255,255,0.08); --ctrl-border:rgba(255,255,255,0.08);
       --ctrl-sh:0 1px 2px rgba(0,0,0,0.25),0 2px 8px rgba(0,0,0,0.15);
       --chip-bg:rgba(58,58,60,0.50); --chip-border:rgba(255,255,255,0.06);
       --chip-sh:0 1px 3px rgba(0,0,0,0.18);
-      --dd-bg:rgba(58,58,60,0.88); --dd-border:rgba(255,255,255,0.08);
+      --dd-bg:rgba(58,58,60,0.92); --dd-border:rgba(255,255,255,0.08);
       --divider:rgba(255,255,255,0.06);
       --tile-bg:rgba(44,44,46,0.90);
       --tile-bg-off:rgba(255,255,255,0.04);
       color-scheme:dark;
     }
 
-    /* ═══════════════════════════════════════════
+    /* ===================================================
        BASE
-       ═══════════════════════════════════════════ */
+       =================================================== */
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
     body{
@@ -97,9 +99,9 @@
     }
     html.dark .page::before{background:linear-gradient(160deg,var(--bg1),var(--bg3),var(--bg4));filter:blur(28px)}
 
-    /* ═══════════════════════════════════════════
+    /* ===================================================
        ICONS
-       ═══════════════════════════════════════════ */
+       =================================================== */
     .icon{
       font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;
       display:inline-flex;align-items:center;justify-content:center;line-height:1;
@@ -115,9 +117,9 @@
     .icon-16{font-size:16px;width:16px;height:16px}
     .icon-14{font-size:14px;width:14px;height:14px}
 
-    /* ═══════════════════════════════════════════
+    /* ===================================================
        THEME TOGGLE
-       ═══════════════════════════════════════════ */
+       =================================================== */
     .theme-toggle{
       display:flex;gap:4px;padding:4px;border-radius:var(--r-pill);
       background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
@@ -132,9 +134,9 @@
     }
     .theme-btn.active{background:var(--chip-bg);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,0.06)}
 
-    /* ═══════════════════════════════════════════
+    /* ===================================================
        CARD (universal shell)
-       ═══════════════════════════════════════════ */
+       =================================================== */
     .card{
       position:relative;width:400px;max-width:100%;
       border-radius:var(--r-card);background:var(--glass);
@@ -155,9 +157,9 @@
       background:linear-gradient(160deg,rgba(255,255,255,0.14),rgba(255,255,255,0.03) 40%,rgba(255,255,255,0.01) 60%,rgba(255,255,255,0.08));
     }
 
-    /* ═══════════════════════════════════════════
-       1. SCENE CHIPS — single row, glass pills
-       ═══════════════════════════════════════════ */
+    /* ===================================================
+       1. SCENE CHIPS - single row, glass pills
+       =================================================== */
     .scene-row{
       display:flex;gap:8px;width:400px;max-width:100%;
     }
@@ -194,9 +196,9 @@
     }
     .scene-chip.active .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
 
-    /* ═══════════════════════════════════════════
-       2. QUICK ACTIONS — single row inside card
-       ═══════════════════════════════════════════ */
+    /* ===================================================
+       2. QUICK ACTIONS - single row inside card
+       =================================================== */
     .actions-row{display:flex;gap:8px}
     .action-chip{
       flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
@@ -208,6 +210,7 @@
       cursor:pointer;transition:all .15s ease;
       user-select:none;white-space:nowrap;
       border:1px solid transparent;
+      -webkit-tap-highlight-color:transparent;
     }
     .action-chip:hover{box-shadow:var(--shadow-up)}
     .action-chip:active{transform:scale(.96)}
@@ -219,9 +222,9 @@
     .action-chip[data-accent="purple"].active{border-color:var(--purple-border);color:var(--purple)}
     .action-chip[data-accent="purple"].active .icon{color:var(--purple)}
 
-    /* ═══════════════════════════════════════════
-       3. HOME STATUS — 2×4 grid, auto-height tiles
-       ═══════════════════════════════════════════ */
+    /* ===================================================
+       3. HOME STATUS - 2x4 grid with tile types
+       =================================================== */
     .status-grid{
       display:grid;
       grid-template-columns:repeat(4,1fr);
@@ -238,7 +241,7 @@
       cursor:pointer;
       transition:all .15s ease;
       position:relative;
-      overflow:hidden;
+      overflow:visible;
     }
     .s-tile:hover{box-shadow:var(--shadow-up)}
     .s-tile:active{transform:scale(.97)}
@@ -265,16 +268,77 @@
       overflow:hidden;text-overflow:ellipsis;max-width:100%;
     }
     .tile-deg{font-size:0.6em;vertical-align:baseline;position:relative;top:-0.18em;margin-left:-1px}
+
+    /* Status dot (indicator tiles) */
     .status-dot{
       width:6px;height:6px;border-radius:999px;
       position:absolute;top:10px;right:10px;
     }
-    .status-dot.active{background:var(--green)}
-    .status-dot.manual{background:var(--amber)}
+    .status-dot.green{background:var(--green)}
+    .status-dot.amber{background:var(--amber)}
+    .status-dot.blue{background:var(--blue)}
+    .status-dot.red{background:var(--red)}
+    .status-dot.muted{background:var(--text-muted)}
 
-    /* ═══════════════════════════════════════════
-       4. LIGHTING — header + 3×2 zone grid
-       ═══════════════════════════════════════════ */
+    /* Timer tile - monospace digits */
+    .s-tile[data-type="timer"] .tile-val{
+      font-variant-numeric:tabular-nums;
+      letter-spacing:.5px;
+    }
+
+    /* Conditional visibility */
+    .s-tile.tile-hidden{display:none !important}
+
+    /* Dropdown tile */
+    .tile-dd-val{
+      display:flex;align-items:center;gap:2px;
+      font-size:18px;font-weight:700;letter-spacing:-.2px;
+      line-height:1;color:var(--text);
+      cursor:pointer;
+    }
+    .tile-dd-val .chevron{
+      font-size:12px;width:12px;height:12px;
+      transition:transform .2s ease;
+      color:var(--text-muted);
+    }
+    .tile-dd-val.open .chevron{transform:rotate(180deg)}
+
+    /* Dropdown menu */
+    .tile-dd-menu{
+      display:none;
+      position:absolute;
+      top:calc(100% + 4px);left:50%;transform:translateX(-50%);
+      min-width:120px;max-width:160px;
+      padding:5px;
+      background:var(--dd-bg);
+      backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
+      border:1px solid var(--dd-border);
+      border-radius:var(--r-tile);
+      box-shadow:var(--shadow-up);
+      z-index:200;
+      max-height:200px;overflow-y:auto;
+    }
+    .tile-dd-menu.open{
+      display:flex;flex-direction:column;gap:1px;
+      animation:ddMenuIn 140ms ease;
+    }
+    @keyframes ddMenuIn{
+      from{opacity:0;transform:translateX(-50%) translateY(-4px) scale(.97)}
+      to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+    }
+    .tile-dd-opt{
+      padding:8px 10px;border-radius:11px;
+      font-size:12px;font-weight:600;
+      color:var(--text-sub);cursor:pointer;
+      transition:background .1s;white-space:nowrap;
+      text-align:center;
+    }
+    .tile-dd-opt:hover{background:var(--track-bg)}
+    .tile-dd-opt.selected{color:var(--amber);font-weight:700}
+
+    /* ===================================================
+       4. LIGHTING - header + grid + v2 features
+       =================================================== */
     .light-hdr{
       display:flex;align-items:center;gap:10px;margin-bottom:16px;
     }
@@ -286,22 +350,37 @@
     .light-hdr-icon.on{background:var(--amber-fill);color:var(--amber);border-color:var(--amber-border)}
     .light-hdr-title{font-weight:700;font-size:14px;color:var(--text-sub);letter-spacing:.1px}
     .light-hdr-spacer{flex:1}
+
+    /* All Off button (v2) */
+    .all-off-btn{
+      display:flex;align-items:center;gap:4px;
+      padding:7px 12px;border-radius:var(--r-pill);
+      border:1px solid var(--amber-border);background:var(--amber-fill);
+      color:var(--amber);font-family:inherit;font-size:12px;font-weight:700;
+      cursor:pointer;transition:all .15s ease;white-space:nowrap;
+      box-shadow:var(--ctrl-sh);
+    }
+    .all-off-btn:hover{box-shadow:var(--shadow)}
+    .all-off-btn:active{transform:scale(.96);opacity:0.8}
+    .all-off-btn .icon{font-size:14px;width:14px;height:14px}
+
+    /* Adaptive pill (v2 - no chevron, toggle behavior) */
     .adaptive-pill{
       display:flex;align-items:center;gap:5px;
-      padding:7px 8px 7px 10px;border-radius:var(--r-pill);
+      padding:7px 10px;border-radius:var(--r-pill);
       border:1px solid var(--ctrl-border);background:var(--ctrl-bg);
       box-shadow:var(--ctrl-sh);font-family:inherit;font-size:12px;
       font-weight:600;color:var(--text-sub);cursor:pointer;
       transition:all .15s ease;letter-spacing:.2px;
+      -webkit-tap-highlight-color:transparent;user-select:none;
     }
     .adaptive-pill:hover{box-shadow:var(--shadow)}
     .adaptive-pill:active{transform:scale(.97)}
     .adaptive-pill.on{background:var(--amber-fill);color:var(--amber);border-color:var(--amber-border)}
-    .adaptive-pill .chevron{transition:transform .2s ease}
 
     .light-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 
-    /* ── Zone tile ── */
+    /* Zone tile */
     .l-tile{
       border-radius:var(--r-tile);
       box-shadow:var(--shadow);
@@ -315,56 +394,27 @@
       touch-action:pan-y;
       border:1px solid transparent;
     }
-    /* OFF: muted bg, neutral border */
-    .l-tile.off{
-      background:var(--tile-bg-off);
-      border-color:var(--ctrl-border);
-    }
-    /* ON: white bg, amber accent border (like climate card heating border) */
-    .l-tile.on{
-      background:var(--tile-bg);
-      border-color:var(--amber-border);
-    }
+    .l-tile.off{background:var(--tile-bg-off);border-color:var(--ctrl-border)}
+    .l-tile.on{background:var(--tile-bg);border-color:var(--amber-border)}
     .l-tile:hover{box-shadow:var(--shadow-up)}
     .l-tile.sliding{box-shadow:var(--shadow-up)}
 
-    /* Content */
     .l-tile .tile-content{
       position:relative;z-index:1;
       display:flex;flex-direction:column;
       align-items:center;justify-content:center;
-      width:100%;
-      padding:14px 8px 10px;
-      gap:6px;
+      width:100%;padding:14px 8px 10px;gap:6px;
     }
-
-    /* Icon container — 44px squircle, 10px radius (design language §3.8) */
     .l-tile .zone-icon-wrap{
-      width:44px;height:44px;
-      border-radius:10px;
+      width:44px;height:44px;border-radius:10px;
       display:grid;place-items:center;
-      transition:all .2s ease;
-      border:1px solid transparent;
+      transition:all .2s ease;border:1px solid transparent;
     }
-    /* OFF: muted container */
-    .l-tile.off .zone-icon-wrap{
-      background:var(--track-bg);
-      color:var(--text-muted);
-    }
-    /* ON: amber accent container (fill + border, matching accent architecture §2.3) */
-    .l-tile.on .zone-icon-wrap{
-      background:var(--amber-fill);
-      border-color:var(--amber-border);
-      color:var(--amber);
-    }
-    .l-tile.on .zone-icon-wrap .icon{
-      font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;
-    }
+    .l-tile.off .zone-icon-wrap{background:var(--track-bg);color:var(--text-muted)}
+    .l-tile.on .zone-icon-wrap{background:var(--amber-fill);border-color:var(--amber-border);color:var(--amber)}
+    .l-tile.on .zone-icon-wrap .icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
 
-    .l-tile .zone-name{
-      font-size:13px;font-weight:600;color:var(--text);
-      letter-spacing:.1px;line-height:1;
-    }
+    .l-tile .zone-name{font-size:13px;font-weight:600;color:var(--text);letter-spacing:.1px;line-height:1}
     .l-tile.off .zone-name{color:var(--text-sub)}
 
     .l-tile .zone-val{
@@ -374,30 +424,44 @@
     .l-tile.off .zone-val{color:var(--text-muted)}
     .l-tile.on .zone-val{color:var(--amber)}
 
-    /* Bottom brightness bar — the slider visual indicator */
     .l-tile .zone-bar{
-      width:100%;height:4px;
-      background:var(--track-bg);
-      position:relative;
-      margin-top:auto;
-      flex-shrink:0;
+      width:100%;height:4px;background:var(--track-bg);
+      position:relative;margin-top:auto;flex-shrink:0;
     }
     .l-tile .zone-bar-fill{
-      position:absolute;top:0;left:0;bottom:0;
-      transition:width .15s ease;
-      border-radius:0;
+      position:absolute;top:0;left:0;bottom:0;transition:width .15s ease;
     }
     .l-tile.sliding .zone-bar-fill{transition:none}
-    .l-tile.off .zone-bar-fill{
-      background:var(--text-muted);opacity:0.15;
-    }
-    .l-tile.on .zone-bar-fill{
-      background:var(--amber);opacity:0.65;
-    }
+    .l-tile.off .zone-bar-fill{background:var(--text-muted);opacity:0.15}
+    .l-tile.on .zone-bar-fill{background:var(--amber);opacity:0.65}
 
-    /* ═══════════════════════════════════════════
+    /* Manual override red dot (v2) */
+    .manual-dot{
+      position:absolute;top:8px;right:8px;
+      width:8px;height:8px;
+      background:var(--red);border-radius:50%;
+      display:none;
+      box-shadow:0 0 8px var(--red-glow);
+      z-index:2;
+    }
+    .l-tile[data-manual="true"] .manual-dot{display:block}
+
+    /* Sliding state */
+    .l-tile.sliding{transform:scale(1.05);box-shadow:var(--shadow-up);z-index:100;border-color:var(--amber) !important}
+    .l-tile.sliding .zone-val{
+      position:absolute;top:0;left:50%;transform:translate(-50%,-50%);
+      color:var(--amber);font-weight:700;font-size:15px;
+      background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      padding:6px 20px;border-radius:999px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:101;
+      border:1px solid rgba(255,255,255,0.15);white-space:nowrap;
+    }
+    html.dark .l-tile.sliding .zone-val{background:var(--glass);border-color:rgba(255,255,255,0.10)}
+    .l-tile.sliding .zone-bar{height:6px}
+
+    /* ===================================================
        REDUCED MOTION
-       ═══════════════════════════════════════════ */
+       =================================================== */
     @media(prefers-reduced-motion:reduce){
       *,*::before,*::after{
         animation-duration:0.01ms !important;
@@ -406,13 +470,15 @@
       }
     }
 
-    /* ═══════════════════════════════════════════
+    /* ===================================================
        RESPONSIVE
-       ═══════════════════════════════════════════ */
+       =================================================== */
     @media(max-width:440px){
       .card{padding:16px}
       .s-tile .tile-val{font-size:16px}
       .scene-chip{font-size:11px;padding:9px 4px;gap:4px}
+      .light-grid{grid-template-columns:repeat(2,1fr)}
+      .status-grid{grid-template-columns:repeat(2,1fr)}
     }
   </style>
 </head>
@@ -429,9 +495,9 @@
       </button>
     </div>
 
-    <!-- ═══════════════════════════════════════
+    <!-- ===================================================
          1. SCENE CHIPS
-         ═══════════════════════════════════════ -->
+         =================================================== -->
     <div class="scene-row">
       <button class="scene-chip active" onclick="setScene(this)">
         <span class="icon icon-18 filled">wb_sunny</span> Morning
@@ -447,134 +513,161 @@
       </button>
     </div>
 
-    <!-- ═══════════════════════════════════════
-         2. QUICK ACTIONS
-         ═══════════════════════════════════════ -->
+    <!-- ===================================================
+         2. QUICK ACTIONS (v1.0.0)
+         =================================================== -->
     <div class="card">
       <div class="actions-row">
-        <button class="action-chip active" onclick="toggleAction(this)">
+        <button class="action-chip active" data-action="allon" onclick="toggleAction(this)">
           <span class="icon icon-18">lightbulb</span> All On
         </button>
-        <button class="action-chip" data-accent="blue" onclick="toggleAction(this)">
+        <button class="action-chip" data-accent="blue" data-action="pause" onclick="toggleAction(this)">
           <span class="icon icon-18">auto_awesome</span> Pause
         </button>
-        <button class="action-chip" data-accent="purple" onclick="toggleAction(this)">
-          <span class="icon icon-18">bed</span> Bedtime
+        <button class="action-chip" data-accent="purple" data-action="sleep" onclick="toggleAction(this)">
+          <span class="icon icon-18">bed</span> Sleep
         </button>
-        <button class="action-chip" onclick="toggleAction(this)">
+        <button class="action-chip" data-action="alloff" onclick="toggleAction(this)">
           <span class="icon icon-18">power_settings_new</span> All Off
         </button>
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════
-         3. HOME STATUS — 2×4 grid
-         ═══════════════════════════════════════ -->
-    <div class="card">
+    <!-- ===================================================
+         3. HOME STATUS v2.0.0
+         4 tile types: indicator, timer, value, dropdown
+         =================================================== -->
+    <div class="card" id="statusCard">
       <div class="status-grid">
-        <!-- Row 1: System -->
-        <div class="s-tile" data-accent="amber">
+        <!-- Row 1: OAL System -->
+
+        <!-- INDICATOR tile: state + dynamic colored dot -->
+        <div class="s-tile" data-accent="amber" data-type="indicator">
           <div class="tile-icon"><span class="icon icon-24">auto_awesome</span></div>
-          <span class="status-dot active"></span>
-          <span class="tile-val">On</span>
-          <span class="tile-label">Adaptive</span>
+          <span class="status-dot green" id="statusDot"></span>
+          <span class="tile-val">Active</span>
+          <span class="tile-label">Status</span>
         </div>
-        <div class="s-tile" data-accent="amber">
+
+        <!-- TIMER tile: real-time countdown, conditionally visible -->
+        <div class="s-tile" data-accent="amber" data-type="timer" id="timerTile">
           <div class="tile-icon"><span class="icon icon-24">pan_tool</span></div>
-          <span class="status-dot manual"></span>
-          <span class="tile-val">14:32</span>
+          <span class="status-dot amber"></span>
+          <span class="tile-val" id="timerVal">14:32</span>
           <span class="tile-label">Manual</span>
         </div>
-        <div class="s-tile" data-accent="amber">
+
+        <!-- VALUE tile: reads entity attribute -->
+        <div class="s-tile" data-accent="amber" data-type="value">
           <div class="tile-icon"><span class="icon icon-24">bolt</span></div>
-          <span class="tile-val">19</span>
+          <span class="tile-val">+19</span>
           <span class="tile-label">Boost</span>
         </div>
-        <div class="s-tile" data-accent="muted">
+
+        <!-- DROPDOWN tile: inline selector -->
+        <div class="s-tile" data-accent="muted" data-type="dropdown" id="ddTile">
           <div class="tile-icon"><span class="icon icon-24">tune</span></div>
-          <span class="tile-val">Mode</span>
-          <span class="tile-label">Adaptive ▾</span>
+          <div class="tile-dd-val" id="ddVal" onclick="toggleDropdown(event)">
+            <span id="ddText">Adaptive</span>
+            <span class="icon chevron" style="font-size:12px;width:12px;height:12px">expand_more</span>
+          </div>
+          <span class="tile-label">Mode</span>
+          <!-- Inline dropdown menu -->
+          <div class="tile-dd-menu" id="ddMenu">
+            <div class="tile-dd-opt selected" onclick="selectOption(this,'Adaptive')">Adaptive</div>
+            <div class="tile-dd-opt" onclick="selectOption(this,'Baseline')">Baseline</div>
+            <div class="tile-dd-opt" onclick="selectOption(this,'Manual')">Manual</div>
+            <div class="tile-dd-opt" onclick="selectOption(this,'Sleep')">Sleep</div>
+            <div class="tile-dd-opt" onclick="selectOption(this,'Movie')">Movie</div>
+          </div>
         </div>
 
         <!-- Row 2: Environment -->
-        <div class="s-tile" data-accent="blue">
+        <div class="s-tile" data-accent="blue" data-type="value">
           <div class="tile-icon"><span class="icon icon-24">partly_cloudy_day</span></div>
           <span class="tile-val">Cloudy</span>
           <span class="tile-label">Weather</span>
         </div>
-        <div class="s-tile" data-accent="blue">
+        <div class="s-tile" data-accent="blue" data-type="value">
           <div class="tile-icon"><span class="icon icon-24">thermostat</span></div>
-          <span class="tile-val">37<span class="tile-deg">°</span>F</span>
+          <span class="tile-val">37<span class="tile-deg">&deg;</span>F</span>
           <span class="tile-label">Outside</span>
         </div>
-        <div class="s-tile" data-accent="blue">
+        <div class="s-tile" data-accent="blue" data-type="value">
           <div class="tile-icon"><span class="icon icon-24">water_drop</span></div>
           <span class="tile-val">42%</span>
           <span class="tile-label">Humidity</span>
         </div>
-        <div class="s-tile" data-accent="amber">
+        <div class="s-tile" data-accent="amber" data-type="value">
           <div class="tile-icon"><span class="icon icon-24">home</span></div>
-          <span class="tile-val">73<span class="tile-deg">°</span>F</span>
+          <span class="tile-val">73<span class="tile-deg">&deg;</span>F</span>
           <span class="tile-label">Inside</span>
         </div>
       </div>
     </div>
-
-    <!-- ═══════════════════════════════════════
-         4. LIGHTING — 3×2 zones
-         ═══════════════════════════════════════ -->
+    <!-- ===================================================
+         4. LIGHTING v2.0.0
+         Auto-expanded from light group, manual dots, All Off
+         =================================================== -->
     <div class="card">
       <div class="light-hdr">
         <div class="light-hdr-icon on">
-          <span class="icon icon-20 filled">lightbulb</span>
+          <span class="icon icon-20 filled">auto_awesome</span>
         </div>
         <span class="light-hdr-title">Lighting</span>
         <div class="light-hdr-spacer"></div>
-        <button class="adaptive-pill on" onclick="this.classList.toggle('on')">
+        <button class="all-off-btn" id="allOffBtn" onclick="allLightsOff()">
+          <span class="icon">power_settings_new</span> All Off
+        </button>
+        <button class="adaptive-pill on" id="adaptivePill" onclick="toggleAdaptive(this)">
           <span class="icon icon-16 filled">auto_awesome</span>
           <span>Adaptive</span>
-          <span class="icon icon-14 chevron">expand_more</span>
         </button>
       </div>
 
       <div class="light-grid" id="lightGrid">
-        <div class="l-tile on" data-brightness="75">
+        <div class="l-tile on" data-brightness="75" data-manual="false">
+          <div class="manual-dot"></div>
           <div class="tile-content">
             <div class="zone-icon-wrap"><span class="icon icon-24">table_lamp</span></div>
-            <span class="zone-name">Living</span>
+            <span class="zone-name">Couch</span>
             <span class="zone-val">75%</span>
           </div>
           <div class="zone-bar"><div class="zone-bar-fill" style="width:75%"></div></div>
         </div>
 
-        <div class="l-tile on" data-brightness="76">
+        <div class="l-tile on" data-brightness="72" data-manual="true">
+          <div class="manual-dot"></div>
           <div class="tile-content">
-            <div class="zone-icon-wrap"><span class="icon icon-24">countertops</span></div>
-            <span class="zone-name">Kitchen</span>
-            <span class="zone-val">76%</span>
+            <div class="zone-icon-wrap"><span class="icon icon-24">floor_lamp</span></div>
+            <span class="zone-name">Floor</span>
+            <span class="zone-val">72%</span>
           </div>
-          <div class="zone-bar"><div class="zone-bar-fill" style="width:76%"></div></div>
+          <div class="zone-bar"><div class="zone-bar-fill" style="width:72%"></div></div>
         </div>
 
-        <div class="l-tile on" data-brightness="74">
+        <div class="l-tile on" data-brightness="68" data-manual="false">
+          <div class="manual-dot"></div>
           <div class="tile-content">
-            <div class="zone-icon-wrap"><span class="icon icon-24">bed</span></div>
-            <span class="zone-name">Bed</span>
-            <span class="zone-val">74%</span>
+            <div class="zone-icon-wrap"><span class="icon icon-24">lightbulb</span></div>
+            <span class="zone-name">Credenza</span>
+            <span class="zone-val">68%</span>
           </div>
-          <div class="zone-bar"><div class="zone-bar-fill" style="width:74%"></div></div>
+          <div class="zone-bar"><div class="zone-bar-fill" style="width:68%"></div></div>
         </div>
 
-        <div class="l-tile on" data-brightness="65">
+        <div class="l-tile on" data-brightness="60" data-manual="true">
+          <div class="manual-dot"></div>
           <div class="tile-content">
             <div class="zone-icon-wrap"><span class="icon icon-24">highlight</span></div>
-            <span class="zone-name">Spots</span>
-            <span class="zone-val">65%</span>
+            <span class="zone-name">Corner</span>
+            <span class="zone-val">60%</span>
           </div>
-          <div class="zone-bar"><div class="zone-bar-fill" style="width:65%"></div></div>
+          <div class="zone-bar"><div class="zone-bar-fill" style="width:60%"></div></div>
         </div>
 
-        <div class="l-tile off" data-brightness="0">
+        <div class="l-tile off" data-brightness="0" data-manual="false">
+          <div class="manual-dot"></div>
           <div class="tile-content">
             <div class="zone-icon-wrap"><span class="icon icon-24">light</span></div>
             <span class="zone-name">Ceiling</span>
@@ -583,7 +676,8 @@
           <div class="zone-bar"><div class="zone-bar-fill" style="width:0%"></div></div>
         </div>
 
-        <div class="l-tile on" data-brightness="93">
+        <div class="l-tile on" data-brightness="93" data-manual="false">
+          <div class="manual-dot"></div>
           <div class="tile-content">
             <div class="zone-icon-wrap"><span class="icon icon-24">view_column</span></div>
             <span class="zone-name">Columns</span>
@@ -597,7 +691,7 @@
   </div>
 
   <script>
-    /* ═══════════ Theme ═══════════ */
+    /* =========== Theme =========== */
     function setTheme(t){
       document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));
       document.querySelector(`[data-theme="${t}"]`).classList.add('active');
@@ -605,23 +699,117 @@
       else{document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light'}
     }
 
-    /* ═══════════ Scenes — radio ═══════════ */
+    /* =========== Scenes - radio =========== */
     function setScene(el){
       document.querySelectorAll('.scene-chip').forEach(c=>{c.classList.remove('active');c.querySelector('.icon').classList.remove('filled')});
       el.classList.add('active');
       el.querySelector('.icon').classList.add('filled');
     }
 
-    /* ═══════════ Quick Actions — toggle ═══════════ */
+    /* =========== Quick Actions - state-aware toggle =========== */
     function toggleAction(el){
       el.classList.toggle('active');
       const ic=el.querySelector('.icon');
       el.classList.contains('active')?ic.classList.add('filled'):ic.classList.remove('filled');
     }
 
-    /* ═══════════════════════════════════════
-       LIGHTING TILE — horizontal slider
-       ═══════════════════════════════════════ */
+    /* =========== Status Card v2 - Timer =========== */
+    let timerSeconds = 14 * 60 + 32; // 14:32
+    let timerInterval = null;
+
+    function startTimer(){
+      if(timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(()=>{
+        timerSeconds--;
+        if(timerSeconds <= 0){
+          timerSeconds = 0;
+          clearInterval(timerInterval);
+          timerInterval = null;
+          // Hide timer tile when it hits 0 (conditional visibility)
+          document.getElementById('timerTile').classList.add('tile-hidden');
+        }
+        const m = Math.floor(timerSeconds / 60);
+        const s = timerSeconds % 60;
+        document.getElementById('timerVal').textContent =
+          m + ':' + String(s).padStart(2,'0');
+      }, 1000);
+    }
+    startTimer();
+
+    // Click timer tile to toggle visibility (demo conditional visibility)
+    document.getElementById('timerTile').addEventListener('click', function(e){
+      if(e.target.closest('.tile-dd-menu')) return;
+      if(this.classList.contains('tile-hidden')){
+        this.classList.remove('tile-hidden');
+        timerSeconds = 14 * 60 + 32;
+        startTimer();
+      } else {
+        this.classList.add('tile-hidden');
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    });
+
+    /* =========== Status Card v2 - Dropdown =========== */
+    function toggleDropdown(e){
+      e.stopPropagation();
+      const menu = document.getElementById('ddMenu');
+      const val = document.getElementById('ddVal');
+      const isOpen = menu.classList.contains('open');
+      closeAllDropdowns();
+      if(!isOpen){
+        menu.classList.add('open');
+        val.classList.add('open');
+      }
+    }
+
+    function selectOption(optEl, value){
+      document.getElementById('ddText').textContent = value;
+      // Update selected state
+      document.querySelectorAll('#ddMenu .tile-dd-opt').forEach(o=>o.classList.remove('selected'));
+      optEl.classList.add('selected');
+      // Update indicator dot based on mode
+      const dot = document.getElementById('statusDot');
+      if(value === 'Adaptive') { dot.className = 'status-dot green'; }
+      else if(value === 'Manual') { dot.className = 'status-dot amber'; }
+      else if(value === 'Sleep') { dot.className = 'status-dot blue'; }
+      else if(value === 'Movie') { dot.className = 'status-dot purple'; dot.style.background = 'var(--purple)'; }
+      else { dot.className = 'status-dot green'; }
+      closeAllDropdowns();
+    }
+
+    function closeAllDropdowns(){
+      document.querySelectorAll('.tile-dd-menu').forEach(m=>m.classList.remove('open'));
+      document.querySelectorAll('.tile-dd-val').forEach(v=>v.classList.remove('open'));
+    }
+
+    // Outside click dismiss
+    document.addEventListener('click', function(e){
+      if(!e.target.closest('#ddTile')){
+        closeAllDropdowns();
+      }
+    });
+
+    /* =========== Lighting v2 - Adaptive Pill Toggle =========== */
+    function toggleAdaptive(el){
+      el.classList.toggle('on');
+      const ic = el.querySelector('.icon');
+      el.classList.contains('on') ? ic.classList.add('filled') : ic.classList.remove('filled');
+      // Update header icon to match
+      const hdrIcon = document.querySelector('.light-hdr-icon');
+      el.classList.contains('on') ? hdrIcon.classList.add('on') : hdrIcon.classList.remove('on');
+    }
+
+    /* =========== Lighting v2 - All Off =========== */
+    function allLightsOff(){
+      document.querySelectorAll('#lightGrid .l-tile').forEach(tile=>{
+        tile.dataset.brightness = '0';
+        tile.dataset.manual = 'false';
+        syncTile(tile, 0);
+      });
+    }
+
+    /* =========== Lighting - Swipe to Dim =========== */
     const grid = document.getElementById('lightGrid');
     let activeTile = null, startX = 0, startBrt = 0, dragging = false;
     const THRESHOLD = 4;
@@ -654,7 +842,6 @@
     grid.addEventListener('pointerup', e => {
       if (!activeTile) return;
       if (!dragging) {
-        // Tap → toggle
         const b = parseInt(activeTile.dataset.brightness) || 0;
         const next = b > 0 ? 0 : 100;
         activeTile.dataset.brightness = next;

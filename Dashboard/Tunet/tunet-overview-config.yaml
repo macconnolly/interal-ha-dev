@@ -1,0 +1,159 @@
+# ═══════════════════════════════════════════════════════════════
+# Tunet Overview Dashboard — Card Configurations
+# ═══════════════════════════════════════════════════════════════
+#
+# Three cards composing the overview summary:
+#   1. Quick Actions (OAL control chips)
+#   2. Hero / Lighting (all-lights swipe-to-dim grid)
+#   3. Rooms (room capsules with orb toggles + navigation)
+#
+# Copy each card block into HA's UI card editor (YAML mode).
+# All entity_ids verified against live HA state 2026-02-19.
+# ═══════════════════════════════════════════════════════════════
+
+
+# ─── 1. QUICK ACTIONS ─────────────────────────────────────────
+# Zero-config: 4 hardcoded OAL chips (All On, Pause, Sleep, All Off)
+# Entity refs (hardcoded in JS):
+#   - light.all_adaptive_lights  (All On / All Off)
+#   - input_boolean.oal_system_paused  (Pause toggle)
+#   - input_select.oal_active_configuration  (Sleep toggle)
+
+- type: custom:tunet-actions-card
+
+
+# ─── 2. HERO / LIGHTING ──────────────────────────────────────
+# All 16 OAL-controlled lights via group auto-expansion.
+# Adaptive pill toggles main_living AL switch.
+# light_overrides provide clean short names + zone-appropriate icons.
+
+- type: custom:tunet-lighting-card
+  name: Lighting
+  adaptive_entity: switch.adaptive_lighting_main_living
+  light_group: light.all_adaptive_lights
+  light_overrides:
+    light.entryway_lamp:
+      name: Entry
+      icon: door_front
+    light.living_room_floor_lamp:
+      name: Floor Lamp
+      icon: floor_lamp
+    light.office_desk_lamp:
+      name: Office
+      icon: desk_lamp
+    light.living_room_corner_accent:
+      name: Corner
+      icon: lightbulb
+    light.living_room_couch_lamp:
+      name: Couch
+      icon: table_lamp
+    light.living_room_credenza_light:
+      name: Credenza
+      icon: shelf_auto
+    light.kitchen_island_pendants:
+      name: Island
+      icon: light
+    light.kitchen_counter_cabinet_underlights:
+      name: Counter
+      icon: countertops
+    light.master_presence:
+      name: Bedroom
+      icon: bed
+    light.master_bedroom_corner_accent_govee:
+      name: Bed Accent
+      icon: nightlight
+    light.dining_room_spot_lights:
+      name: Dining Spots
+      icon: highlight
+    light.living_room_spot_lights:
+      name: Spots
+      icon: highlight
+    light.kitchen_main_lights:
+      name: Kitchen
+      icon: light
+    light.living_room_hallway_lights:
+      name: Hallway
+      icon: light
+    light.living_column_strip_light_matter:
+      name: Living Column
+      icon: view_column
+    light.dining_column_strip_light_matter:
+      name: Dining Column
+      icon: view_column
+
+
+# ─── 3. ROOMS ────────────────────────────────────────────────
+# 5 rooms matching the overview mockup.
+# Temperature sensors: Nest (living/dining), Zigbee (bedroom).
+# No temp sensors exist for kitchen or office.
+# navigate_path placeholders — create subviews to match.
+
+- type: custom:tunet-rooms-card
+  name: Rooms
+  rooms:
+    - name: Living Room
+      icon: weekend
+      temperature_entity: sensor.dining_room_temperature
+      navigate_path: /lovelace-tunet/living-room
+      lights:
+        - entity: light.living_room_couch_lamp
+          icon: table_lamp
+          name: Couch
+        - entity: light.living_room_floor_lamp
+          icon: floor_lamp
+          name: Floor
+        - entity: light.living_room_spot_lights
+          icon: highlight
+          name: Spots
+        - entity: light.living_room_credenza_light
+          icon: shelf_auto
+          name: Credenza
+
+    - name: Kitchen
+      icon: countertops
+      navigate_path: /lovelace-tunet/kitchen
+      lights:
+        - entity: light.kitchen_island_pendants
+          icon: light
+          name: Pendants
+        - entity: light.kitchen_main_lights
+          icon: countertops
+          name: Main
+        - entity: light.kitchen_counter_cabinet_underlights
+          icon: shelf_auto
+          name: Under-cab
+
+    - name: Dining Room
+      icon: restaurant
+      temperature_entity: sensor.dining_room_temperature
+      navigate_path: /lovelace-tunet/dining
+      lights:
+        - entity: light.dining_room_spot_lights
+          icon: highlight
+          name: Spots
+        - entity: light.column_lights
+          icon: view_column
+          name: Columns
+
+    - name: Bedroom
+      icon: bedroom_parent
+      temperature_entity: sensor.bedroom_temp_humidity_sensor_temperature
+      navigate_path: /lovelace-tunet/bedroom
+      lights:
+        - entity: light.master_presence
+          icon: bed
+          name: Main
+        - entity: light.master_bedroom_corner_accent_govee
+          icon: nightlight
+          name: Accent
+        - entity: light.master_bedroom_table_lamps
+          icon: table_lamp
+          name: Table Lamps
+
+    - name: Office
+      icon: laptop_mac
+      navigate_path: /lovelace-tunet/office
+      lights:
+        - entity: light.office_desk_lamp
+          icon: desk_lamp
+          name: Desk

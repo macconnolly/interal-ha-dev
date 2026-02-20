@@ -25,15 +25,19 @@ const ROOMS_STYLES = `
     --amber-fill: rgba(212,133,10,0.10);
     --amber-border: rgba(212,133,10,0.22);
     --green: #34C759;
-    --green-fill: rgba(52,199,89,0.10);
+    --green-fill: rgba(52,199,89,0.12);
     --track-bg: rgba(28,28,30,0.055);
     --gray-ghost: rgba(28,28,30,0.04);
+    --toggle-off: rgba(28,28,30,0.10);
+    --toggle-on: rgba(52,199,89,0.28);
+    --toggle-knob: rgba(255,255,255,0.96);
     --r-card: 24px;
     --r-section: 38px;
     --r-tile: 16px;
     --parent-bg: rgba(255,255,255,0.35);
     --shadow-section: 0 8px 40px rgba(0,0,0,0.10);
     --ctrl-border: rgba(0,0,0,0.05);
+    color-scheme: light;
     display: block;
   }
   :host(.dark) {
@@ -55,6 +59,10 @@ const ROOMS_STYLES = `
     --track-bg: rgba(255,255,255,0.06);
     --gray-ghost: rgba(255,255,255,0.04);
     --ctrl-border: rgba(255,255,255,0.08);
+    --toggle-off: rgba(255,255,255,0.12);
+    --toggle-on: rgba(48,209,88,0.35);
+    --toggle-knob: rgba(255,255,255,0.92);
+    color-scheme: dark;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -79,9 +87,9 @@ const ROOMS_STYLES = `
     background: var(--parent-bg);
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     border-radius: var(--r-section);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--ctrl-border);
     padding: 20px;
-    box-shadow: var(--shadow-section);
+    box-shadow: var(--shadow-section), var(--inset);
     display: flex; flex-direction: column; gap: 16px;
     width: 100%;
   }
@@ -119,7 +127,11 @@ const ROOMS_STYLES = `
   .section-action:hover { color: var(--text-sub); }
 
   /* -- Room List -- */
-  .room-list { display: flex; flex-direction: column; gap: 10px; }
+  .room-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
 
   /* -- Room Capsule -- */
   .room-card {
@@ -172,10 +184,32 @@ const ROOMS_STYLES = `
   .room-orb.on { background: var(--amber-fill); color: var(--amber); border-color: var(--amber-border); }
   .room-orb.on .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
 
+  /* -- Room Toggle -- */
+  .room-toggle {
+    width: 44px; height: 24px; border-radius: 12px;
+    background: var(--toggle-off);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .room-toggle.on { background: var(--toggle-on); }
+  .room-toggle-knob {
+    width: 20px; height: 20px; border-radius: 999px;
+    background: var(--toggle-knob);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+    position: absolute; top: 2px; left: 2px;
+    transition: transform 0.15s ease;
+  }
+  .room-toggle.on .room-toggle-knob { transform: translateX(20px); }
+
   .room-chevron { color: var(--text-muted); flex-shrink: 0; cursor: pointer; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+  @media (max-width: 760px) {
+    .room-list { grid-template-columns: 1fr; }
   }
   @media (max-width: 440px) {
     .room-card { padding: 0 10px; min-height: 66px; gap: 10px; }
@@ -217,6 +251,7 @@ class TunetRoomsCard extends HTMLElement {
     this._hass = null;
     this._rendered = false;
     this._serviceCooldown = {};
+    this._cooldownTimers = {};
     TunetRoomsCard._injectFonts();
   }
 
@@ -291,7 +326,17 @@ class TunetRoomsCard extends HTMLElement {
     }
     this._config = {
       name: config.name || 'Rooms',
-      rooms: config.rooms,
+      rooms: config.rooms.map((room) => ({
+        name: room.name || 'Room',
+        icon: room.icon || 'home',
+        temperature_entity: room.temperature_entity || '',
+        navigate_path: room.navigate_path || '',
+        lights: (room.lights || []).map((light) => ({
+          entity: light.entity || '',
+          icon: light.icon || 'lightbulb',
+          name: light.name || '',
+        })),
+      })),
     };
     if (this._rendered) {
       this._buildRooms();
@@ -325,7 +370,13 @@ class TunetRoomsCard extends HTMLElement {
 
   getCardSize() { return (this._config.rooms || []).length * 2; }
   connectedCallback() {}
-  disconnectedCallback() {}
+  disconnectedCallback() {
+    for (const timer of Object.values(this._cooldownTimers)) {
+      clearTimeout(timer);
+    }
+    this._cooldownTimers = {};
+    this._serviceCooldown = {};
+  }
 
   _render() {
     const style = document.createElement('style');
@@ -372,6 +423,9 @@ class TunetRoomsCard extends HTMLElement {
         </div>
         <div class="room-controls">
           ${orbsHtml}
+          <div class="room-toggle">
+            <div class="room-toggle-knob"></div>
+          </div>
         </div>
         <span class="icon room-chevron" style="font-size:18px">chevron_right</span>
       `;
@@ -382,12 +436,29 @@ class TunetRoomsCard extends HTMLElement {
           e.stopPropagation();
           const entityId = orb.dataset.entity;
           if (!entityId || !this._hass) return;
-          this._hass.callService('light', 'toggle', { entity_id: entityId });
+          const before = orb.classList.contains('on');
+          orb.classList.toggle('on', !before);
+          const maybePromise = this._hass.callService('light', 'toggle', { entity_id: entityId });
+          if (maybePromise && typeof maybePromise.catch === 'function') {
+            maybePromise.catch(() => orb.classList.toggle('on', before));
+          }
           this._serviceCooldown[entityId] = true;
-          setTimeout(() => { this._serviceCooldown[entityId] = false; }, 1500);
-          // Optimistic
-          orb.classList.toggle('on');
+          clearTimeout(this._cooldownTimers[entityId]);
+          this._cooldownTimers[entityId] = setTimeout(() => {
+            this._serviceCooldown[entityId] = false;
+          }, 1500);
         });
+      });
+
+      const toggle = card.querySelector('.room-toggle');
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!this._hass) return;
+        const entities = (roomCfg.lights || []).map((light) => light.entity).filter(Boolean);
+        if (!entities.length) return;
+        const anyOn = entities.some((entityId) => this._hass.states[entityId]?.state === 'on');
+        const service = anyOn ? 'turn_off' : 'turn_on';
+        this._hass.callService('light', service, { entity_id: entities });
       });
 
       // Card click -> navigate or more-info
@@ -396,6 +467,12 @@ class TunetRoomsCard extends HTMLElement {
           history.pushState(null, '', roomCfg.navigate_path);
           const event = new Event('location-changed');
           window.dispatchEvent(event);
+        } else if ((roomCfg.lights || []).length && roomCfg.lights[0].entity) {
+          this.dispatchEvent(new CustomEvent('hass-more-info', {
+            bubbles: true,
+            composed: true,
+            detail: { entityId: roomCfg.lights[0].entity },
+          }));
         }
       });
 
@@ -406,6 +483,7 @@ class TunetRoomsCard extends HTMLElement {
         cfg: roomCfg,
         statusEl: card.querySelector('.room-status'),
         orbEls: Array.from(card.querySelectorAll('.room-orb')),
+        toggleEl: card.querySelector('.room-toggle'),
       });
     }
   }
@@ -441,6 +519,7 @@ class TunetRoomsCard extends HTMLElement {
       // Room active state
       const anyOn = onCount > 0;
       ref.el.classList.toggle('active', anyOn);
+      if (ref.toggleEl) ref.toggleEl.classList.toggle('on', anyOn);
 
       // Status text
       let statusParts = [];
@@ -475,15 +554,19 @@ class TunetRoomsCard extends HTMLElement {
    Registration
    =============================================================== */
 
-customElements.define('tunet-rooms-card', TunetRoomsCard);
+if (!customElements.get('tunet-rooms-card')) {
+  customElements.define('tunet-rooms-card', TunetRoomsCard);
+}
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-rooms-card',
-  name: 'Tunet Rooms Card',
-  description: 'Glassmorphism room overview with per-room light group orbs',
-  preview: true,
-  documentationURL: 'https://github.com/tunet/tunet-rooms-card',
-});
+if (!window.customCards.some((card) => card.type === 'tunet-rooms-card')) {
+  window.customCards.push({
+    type: 'tunet-rooms-card',
+    name: 'Tunet Rooms Card',
+    description: 'Glassmorphism room overview with per-room light group orbs',
+    preview: true,
+    documentationURL: 'https://github.com/tunet/tunet-rooms-card',
+  });
+}
 
 console.info(
   `%c TUNET-ROOMS-CARD %c v${ROOMS_CARD_VERSION} `,

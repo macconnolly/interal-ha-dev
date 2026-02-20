@@ -28,6 +28,8 @@ const STYLES = `
     --blue-fill: rgba(0,122,255,0.09);
     --blue-border: rgba(0,122,255,0.18);
     --green: #34C759;
+    --green-fill: rgba(52,199,89,0.12);
+    --green-border: rgba(52,199,89,0.15);
     --track-bg: rgba(28,28,30,0.055);
     --track-h: 44px;
     --thumb-bg: #fff;
@@ -43,6 +45,10 @@ const STYLES = `
     --dd-bg: rgba(255,255,255,0.84);
     --dd-border: rgba(255,255,255,0.60);
     --divider: rgba(28,28,30,0.07);
+    --r-section: 38px;
+    --section-bg: rgba(255,255,255,0.35);
+    --section-shadow: 0 8px 40px rgba(0,0,0,0.10);
+    color-scheme: light;
     display: block;
   }
 
@@ -63,6 +69,8 @@ const STYLES = `
     --blue-fill: rgba(10,132,255,0.13);
     --blue-border: rgba(10,132,255,0.22);
     --green: #30D158;
+    --green-fill: rgba(48,209,88,0.14);
+    --green-border: rgba(48,209,88,0.18);
     --track-bg: rgba(255,255,255,0.06);
     --thumb-bg: #F5F5F7;
     --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
@@ -73,6 +81,9 @@ const STYLES = `
     --dd-bg: rgba(58,58,60,0.88);
     --dd-border: rgba(255,255,255,0.08);
     --divider: rgba(255,255,255,0.06);
+    --section-bg: rgba(255,255,255,0.05);
+    --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
+    color-scheme: dark;
   }
 
   /* -- Reset -- */
@@ -131,6 +142,15 @@ const STYLES = `
   .card[data-action="cooling"] { border-color: rgba(0,122,255,0.14); }
   :host(.dark) .card[data-action="heating"] { border-color: rgba(232,150,30,0.14); }
   :host(.dark) .card[data-action="cooling"] { border-color: rgba(10,132,255,0.12); }
+
+  /* Optional section-container surface variant */
+  :host([surface="section"]) .card {
+    --r-card: var(--r-section);
+    background: var(--section-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: var(--section-shadow), var(--inset);
+  }
 
   /* Glass stroke */
   .card::before {
@@ -258,15 +278,11 @@ const STYLES = `
   .fan-btn:hover { box-shadow: var(--shadow); }
   .fan-btn:active { transform: scale(.94); }
   .fan-btn.on {
-    background: rgba(52,199,89,0.12);
+    background: var(--green-fill);
     color: var(--green);
-    border-color: rgba(52,199,89,0.15);
+    border-color: var(--green-border);
   }
   .fan-btn.on .icon { animation: fan-spin 1.8s linear infinite; }
-  :host(.dark) .fan-btn.on {
-    background: rgba(48,209,88,0.14);
-    border-color: rgba(48,209,88,0.18);
-  }
   /* Fan inherits action color when system is actively heating/cooling */
   .fan-btn.on[data-action="heating"] {
     background: var(--amber-fill);
@@ -782,6 +798,10 @@ class TunetClimateCard extends HTMLElement {
           selector: { text: {} },
         },
         {
+          name: 'surface',
+          selector: { select: { options: ['card', 'section'] } },
+        },
+        {
           name: '',
           type: 'grid',
           schema: [
@@ -801,6 +821,7 @@ class TunetClimateCard extends HTMLElement {
           entity: 'Climate Entity',
           humidity_entity: 'Humidity Sensor',
           name: 'Card Name',
+          surface: 'Surface Style',
           display_min: 'Scale Min',
           display_max: 'Scale Max',
         };
@@ -826,7 +847,15 @@ class TunetClimateCard extends HTMLElement {
       name: config.name || 'Climate',
       display_min: config.display_min != null ? Number(config.display_min) : null,
       display_max: config.display_max != null ? Number(config.display_max) : null,
+      surface: config.surface === 'section' ? 'section' : 'card',
     };
+
+    if (this._config.surface === 'section') {
+      this.setAttribute('surface', 'section');
+    } else {
+      this.removeAttribute('surface');
+    }
+
     if (this._rendered) this._updateAll();
   }
 
@@ -877,6 +906,12 @@ class TunetClimateCard extends HTMLElement {
     document.removeEventListener('touchmove', this._onTouchMove);
     document.removeEventListener('touchend', this._onTouchEnd);
     document.removeEventListener('click', this._onDocClick);
+    clearTimeout(this._debounceTimer);
+    clearTimeout(this._cooldownTimer);
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
   }
 
   /* -- Render -- */
@@ -1494,17 +1529,21 @@ class TunetClimateCard extends HTMLElement {
    Registration
    =============================================================== */
 
-customElements.define('tunet-climate-card', TunetClimateCard);
+if (!customElements.get('tunet-climate-card')) {
+  customElements.define('tunet-climate-card', TunetClimateCard);
+}
 
 // Register with HA card picker
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-climate-card',
-  name: 'Tunet Climate Card',
-  description: 'Glassmorphism climate controller with dual-range slider',
-  preview: true,
-  documentationURL: 'https://github.com/tunet/tunet-climate-card',
-});
+if (!window.customCards.some((card) => card.type === 'tunet-climate-card')) {
+  window.customCards.push({
+    type: 'tunet-climate-card',
+    name: 'Tunet Climate Card',
+    description: 'Glassmorphism climate controller with dual-range slider',
+    preview: true,
+    documentationURL: 'https://github.com/tunet/tunet-climate-card',
+  });
+}
 
 console.info(
   `%c TUNET-CLIMATE-CARD %c v${CARD_VERSION} `,

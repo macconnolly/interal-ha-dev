@@ -24,6 +24,8 @@ const SENSOR_CARD_VERSION = '1.0.0';
 const SENSOR_STYLES = `
   /* ── Tokens: Light ───────────────────────────── */
   :host {
+    --glass: rgba(255,255,255,0.68);
+    --glass-border: rgba(255,255,255,0.45);
     --bg: #f4f4f9;
     --tile-bg: rgba(255,255,255,0.92);
     --parent-bg: rgba(255,255,255,0.35);
@@ -48,30 +50,35 @@ const SENSOR_STYLES = `
     --track-bg: rgba(28,28,30,0.055);
     --gray-ghost: rgba(0,0,0,0.035);
     --border-ghost: transparent;
-    --ctrl-bg: rgba(255,255,255,0.75);
+    --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.06);
-    --shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
-    --shadow-up: 0 1px 3px rgba(0,0,0,0.10), 0 12px 40px rgba(0,0,0,0.12);
+    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
+    --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
+    --r-card: 24px;
     --shadow-section: 0 8px 40px rgba(0,0,0,0.10);
     --r-section: 38px;
     --r-tile: 16px;
     --r-icon: 16px;
     --r-pill: 999px;
     --divider: rgba(0,0,0,0.06);
+    color-scheme: light;
     display: block;
   }
 
   /* ── Tokens: Dark ────────────────────────────── */
   :host(.dark) {
+    --glass: rgba(44,44,46,0.72);
+    --glass-border: rgba(255,255,255,0.08);
     --bg: #0f172a;
-    --tile-bg: rgba(255,255,255,0.08);
+    --tile-bg: rgba(44,44,46,0.90);
     --parent-bg: rgba(255,255,255,0.05);
     --text: #F5F5F7;
-    --text-sub: rgba(245,245,247,0.55);
+    --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
-    --amber: #F0A030;
-    --amber-fill: rgba(240,160,48,0.14);
-    --amber-border: rgba(240,160,48,0.28);
+    --amber: #E8961E;
+    --amber-fill: rgba(232,150,30,0.14);
+    --amber-border: rgba(232,150,30,0.25);
     --blue: #0A84FF;
     --blue-fill: rgba(10,132,255,0.14);
     --blue-border: rgba(10,132,255,0.24);
@@ -87,12 +94,14 @@ const SENSOR_STYLES = `
     --track-bg: rgba(255,255,255,0.08);
     --gray-ghost: rgba(255,255,255,0.04);
     --border-ghost: rgba(255,255,255,0.05);
-    --ctrl-bg: rgba(255,255,255,0.06);
+    --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
-    --shadow: 0 1px 2px rgba(0,0,0,0.20), 0 4px 12px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 3px rgba(0,0,0,0.28), 0 12px 40px rgba(0,0,0,0.30);
+    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
+    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
     --shadow-section: 0 8px 40px rgba(0,0,0,0.25);
     --divider: rgba(255,255,255,0.06);
+    color-scheme: dark;
   }
 
   /* ── Reset ───────────────────────────────────── */
@@ -213,6 +222,10 @@ const SENSOR_STYLES = `
   }
   .sensor-row:active {
     transform: scale(0.99);
+  }
+  .sensor-row:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
   }
   .sensor-row[data-interaction="none"] { cursor: default; }
   .sensor-row[data-interaction="none"]:hover { background: transparent; }
@@ -740,7 +753,14 @@ class TunetSensorCard extends HTMLElement {
       row.className = 'sensor-row';
       row.dataset.accent = sensorCfg.accent || 'muted';
       row.dataset.entity = sensorCfg.entity || '';
-      row.dataset.interaction = (sensorCfg.interaction && sensorCfg.interaction.type) || 'more_info';
+      const interactionType = (sensorCfg.interaction && sensorCfg.interaction.type) || 'more_info';
+      row.dataset.interaction = interactionType;
+      if (interactionType !== 'none') {
+        row.setAttribute('role', 'button');
+        row.setAttribute('tabindex', '0');
+      } else {
+        row.setAttribute('tabindex', '-1');
+      }
 
       const sparkHtml = this._config.show_sparkline ? `
         <div class="sensor-spark" id="spark-${this._rowRefs.length}">
@@ -789,10 +809,8 @@ class TunetSensorCard extends HTMLElement {
   /* ── Listeners ────────────────────────────────── */
 
   _setupListeners() {
-    this.$.sensorList.addEventListener('click', (e) => {
-      const row = e.target.closest('.sensor-row');
+    const activateRow = (row) => {
       if (!row) return;
-
       const idx = [...this.$.sensorList.children].indexOf(row);
       if (idx < 0 || idx >= this._rowRefs.length) return;
       const ref = this._rowRefs[idx];
@@ -826,6 +844,20 @@ class TunetSensorCard extends HTMLElement {
         default:
           break;
       }
+    };
+
+    this.$.sensorList.addEventListener('click', (e) => {
+      const row = e.target.closest('.sensor-row');
+      if (!row) return;
+      activateRow(row);
+    });
+
+    this.$.sensorList.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const row = e.target.closest('.sensor-row');
+      if (!row || row.dataset.interaction === 'none') return;
+      e.preventDefault();
+      activateRow(row);
     });
   }
 
@@ -986,15 +1018,19 @@ class TunetSensorCard extends HTMLElement {
    Registration
    ═══════════════════════════════════════════════════════════════ */
 
-customElements.define('tunet-sensor-card', TunetSensorCard);
+if (!customElements.get('tunet-sensor-card')) {
+  customElements.define('tunet-sensor-card', TunetSensorCard);
+}
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-sensor-card',
-  name: 'Tunet Sensor Card',
-  description: 'Glassmorphism environment sensor panel - row-based readings, sparklines, trend arrows, threshold styling, min/max ranges',
-  preview: true,
-  documentationURL: 'https://github.com/tunet/tunet-sensor-card',
-});
+if (!window.customCards.some((card) => card.type === 'tunet-sensor-card')) {
+  window.customCards.push({
+    type: 'tunet-sensor-card',
+    name: 'Tunet Sensor Card',
+    description: 'Glassmorphism environment sensor panel - row-based readings, sparklines, trend arrows, threshold styling, min/max ranges',
+    preview: true,
+    documentationURL: 'https://github.com/tunet/tunet-sensor-card',
+  });
+}
 
 console.info(
   `%c TUNET-SENSOR-CARD %c v${SENSOR_CARD_VERSION} `,

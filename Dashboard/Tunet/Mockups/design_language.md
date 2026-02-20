@@ -7,6 +7,53 @@ Typeface: DM Sans (Google Fonts)
 Icon library: Material Symbols Rounded (Google Fonts, variable font)
 Target: 400px card width, responsive to 320px minimum
 
+### 2026-02-20 Implementation Addendum (v8.1)
+
+This addendum is normative and captures the approved migration decisions for the Tunet card suite.
+
+#### Card implementation decisions
+
+1. `tunet-lighting-card`: use `tunet_flex_lighting.js` behavior as the production implementation
+2. `tunet-rooms-card`: use alt visual shell with original room-level controls restored
+3. `tunet-scenes-card`: use alt horizontal interaction model with semantic button controls
+4. `tunet-climate-card`: keep original as baseline and add optional `surface: section`
+
+#### Section-container standard (final)
+
+All section-container variants must use the same shell values:
+
+- Radius: `38px` (`--r-section`)
+- Background: `--parent-bg` (or `--section-bg` for cards that define it)
+- Backdrop blur: `blur(20px)`
+- Border: `1px solid var(--ctrl-border)` (never hardcoded rgba border)
+- Elevation: `box-shadow: var(--shadow-section), var(--inset)` (inset ring is mandatory)
+- Glass stroke gradient angle: `160deg`
+
+#### Migration-critical compatibility rules
+
+1. Custom element registration must be idempotent:
+   - `if (!customElements.get('tag-name')) { customElements.define(...) }`
+2. Card picker registration must be deduplicated:
+   - Only push when `window.customCards.some(card => card.type === '...')` is false
+3. Flex lighting must accept both schemas:
+   - New: `entities` + `zones`
+   - Legacy: `light_group` + `light_overrides` (internally normalized)
+4. Scroll layouts must report fixed/visible-row card sizes, not total item count
+
+#### Ambiguous step clarification: “Remove last sync date”
+
+When a status/sensor layout includes a “Last Sync” tile/row, remove the entire config object from the YAML array instead of hiding it via CSS.
+
+```yaml
+tiles:
+  # remove this object entirely
+  # - type: value
+  #   label: Last Sync
+  #   entity: sensor.some_last_sync
+```
+
+Do not leave dead placeholders or hidden rows. This keeps masonry size, keyboard tab order, and semantics correct.
+
 ---
 
 ## 0. How to Use This Document

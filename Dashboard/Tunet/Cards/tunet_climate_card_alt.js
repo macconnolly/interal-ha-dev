@@ -46,6 +46,7 @@ const STYLES = `
     --dd-bg: rgba(255,255,255,0.84);
     --dd-border: rgba(255,255,255,0.60);
     --divider: rgba(28,28,30,0.07);
+    color-scheme: light;
     display: block;
   }
 
@@ -78,6 +79,7 @@ const STYLES = `
     --dd-bg: rgba(58,58,60,0.88);
     --dd-border: rgba(255,255,255,0.08);
     --divider: rgba(255,255,255,0.06);
+    color-scheme: dark;
   }
 
   /* -- Reset -- */
@@ -123,8 +125,8 @@ const STYLES = `
     background: var(--parent-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: var(--shadow-section);
+    border: 1px solid var(--ctrl-border);
+    box-shadow: var(--shadow-section), var(--inset);
     padding: 20px 20px 14px;
     display: flex;
     flex-direction: column;
@@ -1499,17 +1501,21 @@ class TunetClimateCard extends HTMLElement {
    Registration
    =============================================================== */
 
-customElements.define('tunet-climate-card', TunetClimateCard);
+if (!customElements.get('tunet-climate-card')) {
+  customElements.define('tunet-climate-card', TunetClimateCard);
+}
 
 // Register with HA card picker
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-climate-card',
-  name: 'Tunet Climate Card',
-  description: 'Glassmorphism climate controller with dual-range slider',
-  preview: true,
-  documentationURL: 'https://github.com/tunet/tunet-climate-card',
-});
+if (!window.customCards.some((card) => card.type === 'tunet-climate-card')) {
+  window.customCards.push({
+    type: 'tunet-climate-card',
+    name: 'Tunet Climate Card',
+    description: 'Glassmorphism climate controller with dual-range slider',
+    preview: true,
+    documentationURL: 'https://github.com/tunet/tunet-climate-card',
+  });
+}
 
 console.info(
   `%c TUNET-CLIMATE-CARD %c v${CARD_VERSION} `,

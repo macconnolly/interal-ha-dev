@@ -23,61 +23,66 @@
 
 
 # ─── 2. HERO / LIGHTING ──────────────────────────────────────
-# All 16 OAL-controlled lights via group auto-expansion.
-# Adaptive pill toggles main_living AL switch.
-# light_overrides provide clean short names + zone-appropriate icons.
+# Flex lighting schema:
+# - entities: list of light entities/groups (groups auto-expand)
+# - zones: optional per-entity name/icon overrides
+# NOTE: legacy light_group/light_overrides keys are not used.
 
 - type: custom:tunet-lighting-card
   name: Lighting
+  surface: section
+  layout: grid
+  columns: 3
   adaptive_entity: switch.adaptive_lighting_main_living
-  light_group: light.all_adaptive_lights
-  light_overrides:
-    light.entryway_lamp:
+  entities:
+    - light.all_adaptive_lights
+  zones:
+    - entity: light.entryway_lamp
       name: Entry
       icon: door_front
-    light.living_room_floor_lamp:
+    - entity: light.living_room_floor_lamp
       name: Floor Lamp
       icon: floor_lamp
-    light.office_desk_lamp:
+    - entity: light.office_desk_lamp
       name: Office
       icon: desk_lamp
-    light.living_room_corner_accent:
+    - entity: light.living_room_corner_accent
       name: Corner
       icon: lightbulb
-    light.living_room_couch_lamp:
+    - entity: light.living_room_couch_lamp
       name: Couch
       icon: table_lamp
-    light.living_room_credenza_light:
+    - entity: light.living_room_credenza_light
       name: Credenza
       icon: shelf_auto
-    light.kitchen_island_pendants:
+    - entity: light.kitchen_island_pendants
       name: Island
       icon: light
-    light.kitchen_counter_cabinet_underlights:
+    - entity: light.kitchen_counter_cabinet_underlights
       name: Counter
       icon: countertops
-    light.master_presence:
+    - entity: light.master_presence
       name: Bedroom
       icon: bed
-    light.master_bedroom_corner_accent_govee:
+    - entity: light.master_bedroom_corner_accent_govee
       name: Bed Accent
       icon: nightlight
-    light.dining_room_spot_lights:
+    - entity: light.dining_room_spot_lights
       name: Dining Spots
       icon: highlight
-    light.living_room_spot_lights:
+    - entity: light.living_room_spot_lights
       name: Spots
       icon: highlight
-    light.kitchen_main_lights:
+    - entity: light.kitchen_main_lights
       name: Kitchen
       icon: light
-    light.living_room_hallway_lights:
+    - entity: light.living_room_hallway_lights
       name: Hallway
       icon: light
-    light.living_column_strip_light_matter:
+    - entity: light.living_column_strip_light_matter
       name: Living Column
       icon: view_column
-    light.dining_column_strip_light_matter:
+    - entity: light.dining_column_strip_light_matter
       name: Dining Column
       icon: view_column
 

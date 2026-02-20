@@ -1,13 +1,62 @@
-# Tunet Design System: Prescriptive Rulebook
+# Tunet Design System: Implementation Companion (v8.1 Sync)
 
-A comprehensive specification for every surface, component, control, icon, and state in the Tunet Home Assistant dashboard. Synthesized from the highest-fidelity mockups (V3, Sonos V2, Living Card), the production climate card implementation, and iterative refinement.
+This file is now the implementation companion to `Dashboard/Tunet/Mockups/design_language.md` (v8.x canonical spec).  
+All token values, principles, and component rules are inherited from the canonical file.  
+If any value in this document conflicts with `design_language.md`, the canonical file wins.
 
-Version 2.1 – February 2026
+Version 8.1 – February 20, 2026
 Platform: Home Assistant OS via Tailscale
 Rendering: Chromium WebView (HA Companion + Desktop)
 Typeface: DM Sans (Google Fonts)
 Icon Set: Material Symbols Rounded (Google Fonts, variable font)
 Target Width: 400px cards, responsive to 320px minimum
+
+---
+
+## 0. Migration Directives (Authoritative)
+
+### 0.1 Card rollout decisions
+
+1. Lighting: ship flex lighting implementation (`tunet_flex_lighting.js` behavior)
+2. Rooms: ship rooms alt visual shell with original room-level toggle behavior restored
+3. Scenes: ship scenes alt horizontal shell with semantic `<button>` interaction and fixed masonry size
+4. Climate: keep original climate card as baseline and support `surface: section` as an option
+
+### 0.2 Section-container standard
+
+Every section-container variant must use:
+
+- `border-radius: 38px`
+- `background: var(--parent-bg)` or `var(--section-bg)` (tokenized only)
+- `backdrop-filter: blur(20px)` with `-webkit-backdrop-filter`
+- `border: 1px solid var(--ctrl-border)` (no hardcoded rgba border)
+- `box-shadow: var(--shadow-section), var(--inset)` (inset ring required)
+
+### 0.3 Registration and schema safety
+
+1. Guard all custom element defines with `customElements.get(...)`
+2. Guard `window.customCards.push(...)` to avoid duplicate entries
+3. Flex lighting must support both schemas:
+   - Preferred: `entities` + `zones`
+   - Legacy: `light_group` + `light_overrides` (auto-normalized)
+4. Numeric layout config must be finite-checked before writing CSS vars
+
+### 0.4 Ambiguous plan step clarification
+
+“Remove last sync date” means deleting the corresponding tile/row config object from YAML, not hiding it in CSS or leaving a dead placeholder.
+
+```yaml
+# Remove this entire object from tiles/sensors arrays
+- type: value
+  label: Last Sync
+  entity: sensor.some_last_sync
+```
+
+---
+
+## 0.5 Legacy Archive
+
+The remaining sections are retained for historical context. Use them only when they do not conflict with the canonical v8.x design language and the directives above.
 
 ---
 

@@ -17,6 +17,7 @@ const SCENES_STYLES = `
     --glass-border: rgba(255,255,255,0.45);
     --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
+    --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
     --text: #1C1C1E;
     --text-sub: rgba(28,28,30,0.55);
     --text-muted: #8E8E93;
@@ -27,11 +28,11 @@ const SCENES_STYLES = `
     --blue-fill: rgba(0,122,255,0.09);
     --blue-border: rgba(0,122,255,0.18);
     --green: #34C759;
-    --green-fill: rgba(52,199,89,0.10);
-    --green-border: rgba(52,199,89,0.22);
+    --green-fill: rgba(52,199,89,0.12);
+    --green-border: rgba(52,199,89,0.15);
     --purple: #AF52DE;
     --purple-fill: rgba(175,82,222,0.10);
-    --purple-border: rgba(175,82,222,0.22);
+    --purple-border: rgba(175,82,222,0.18);
     --red: #FF3B30;
     --red-fill: rgba(255,59,48,0.10);
     --red-border: rgba(255,59,48,0.22);
@@ -45,6 +46,7 @@ const SCENES_STYLES = `
     --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.05);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+    color-scheme: light;
     display: block;
   }
   :host(.dark) {
@@ -52,6 +54,7 @@ const SCENES_STYLES = `
     --glass-border: rgba(255,255,255,0.08);
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
+    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
     --text: #F5F5F7;
     --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
@@ -63,10 +66,10 @@ const SCENES_STYLES = `
     --blue-border: rgba(10,132,255,0.22);
     --green: #30D158;
     --green-fill: rgba(48,209,88,0.14);
-    --green-border: rgba(48,209,88,0.25);
+    --green-border: rgba(48,209,88,0.18);
     --purple: #BF5AF2;
     --purple-fill: rgba(191,90,242,0.14);
-    --purple-border: rgba(191,90,242,0.25);
+    --purple-border: rgba(191,90,242,0.22);
     --red: #FF453A;
     --red-fill: rgba(255,69,58,0.14);
     --red-border: rgba(255,69,58,0.25);
@@ -76,6 +79,7 @@ const SCENES_STYLES = `
     --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+    color-scheme: dark;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -97,8 +101,8 @@ const SCENES_STYLES = `
   .card {
     position: relative; width: 100%; border-radius: var(--r-section);
     background: var(--parent-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    box-shadow: var(--shadow-section); padding: 20px 20px 16px;
-    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: var(--shadow-section), var(--inset); padding: 20px 20px 16px;
+    border: 1px solid var(--ctrl-border);
   }
   .card::before {
     content: ''; position: absolute; inset: 0; border-radius: var(--r-section);
@@ -118,10 +122,11 @@ const SCENES_STYLES = `
   .hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
   .hdr-icon {
     width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
-    background: var(--amber-fill); color: var(--amber); border: 1px solid var(--amber-border);
+    background: var(--ctrl-bg); color: var(--text-muted); border: 1px solid var(--ctrl-border);
+    box-shadow: var(--ctrl-sh);
     flex-shrink: 0;
   }
-  .hdr-title { font-weight: 700; font-size: 14px; color: var(--text-sub); letter-spacing: 0.1px; }
+  .hdr-title { font-weight: 700; font-size: 13px; color: var(--text-sub); letter-spacing: 0.1px; }
 
   /* -- Scene Grid – Horizontal Pill Scroll -- */
   .scene-grid {
@@ -149,6 +154,10 @@ const SCENES_STYLES = `
   }
   .scene-tile:hover { box-shadow: var(--shadow-up); }
   .scene-tile:active { transform: scale(0.96); }
+  .scene-tile:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+  }
 
   .scene-icon-wrap {
     width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
@@ -161,7 +170,7 @@ const SCENES_STYLES = `
   .scene-tile[data-accent="green"] .scene-icon-wrap { background: var(--green-fill); color: var(--green); border-color: var(--green-border); }
   .scene-tile[data-accent="purple"] .scene-icon-wrap { background: var(--purple-fill); color: var(--purple); border-color: var(--purple-border); }
   .scene-tile[data-accent="red"] .scene-icon-wrap { background: var(--red-fill); color: var(--red); border-color: var(--red-border); }
-  .scene-tile[data-accent] .scene-icon-wrap .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .scene-tile.active .scene-icon-wrap .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
 
   .scene-name {
     font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: 0.1px;
@@ -267,14 +276,26 @@ class TunetScenesCard extends HTMLElement {
     return {
       schema: [
         { name: 'name', selector: { text: {} } },
-        { name: 'columns', selector: { number: { min: 2, max: 4, step: 1, mode: 'box' } } },
-        /*
-         * Scenes are configured via YAML as an array.
-         * Future: use HA 2026.x sub-form repeater.
-         */
+        {
+          name: 'scenes',
+          type: 'expandable',
+          title: 'Scenes',
+          schema: [
+            { name: 'entity', required: true, selector: { entity: { domain: ['scene', 'script', 'automation'] } } },
+            { name: 'name', selector: { text: {} } },
+            { name: 'icon', selector: { icon: {} } },
+            { name: 'accent', selector: { select: { options: ['amber', 'blue', 'green', 'purple', 'red'] } } },
+          ],
+        },
       ],
       computeLabel: (schema) => {
-        const labels = { name: 'Card Name', columns: 'Grid Columns' };
+        const labels = {
+          name: 'Card Name',
+          scenes: 'Scenes',
+          entity: 'Entity',
+          icon: 'Icon',
+          accent: 'Accent Color',
+        };
         return labels[schema.name] || schema.name;
       },
     };
@@ -283,7 +304,6 @@ class TunetScenesCard extends HTMLElement {
   static getStubConfig() {
     return {
       name: 'Scenes',
-      columns: 3,
       scenes: [
         { entity: '', name: 'All On', icon: 'lightbulb', accent: 'amber' },
         { entity: '', name: 'All Off', icon: 'power_settings_new', accent: 'muted' },
@@ -301,8 +321,12 @@ class TunetScenesCard extends HTMLElement {
     }
     this._config = {
       name: config.name || 'Scenes',
-      columns: config.columns != null ? Math.max(2, Math.min(4, Number(config.columns))) : 3,
-      scenes: config.scenes,
+      scenes: (config.scenes || []).map((scene) => ({
+        entity: scene.entity || '',
+        name: scene.name || '',
+        icon: scene.icon || 'auto_awesome',
+        accent: scene.accent || 'amber',
+      })),
     };
     if (this._rendered) {
       this._buildGrid();
@@ -326,8 +350,7 @@ class TunetScenesCard extends HTMLElement {
   }
 
   getCardSize() {
-    const rows = Math.ceil((this._config.scenes || []).length / (this._config.columns || 3));
-    return 1 + rows * 2;
+    return 2;
   }
 
   connectedCallback() {}
@@ -350,12 +373,12 @@ class TunetScenesCard extends HTMLElement {
   _buildGrid() {
     const grid = this.$.sceneGrid;
     grid.innerHTML = '';
-    grid.style.setProperty('--cols', this._config.columns);
 
     this._tileEls = [];
 
     for (const sceneCfg of this._config.scenes) {
-      const tile = document.createElement('div');
+      const tile = document.createElement('button');
+      tile.type = 'button';
       tile.className = 'scene-tile';
       tile.dataset.accent = sceneCfg.accent || '';
       tile.dataset.entity = sceneCfg.entity || '';
@@ -408,15 +431,19 @@ class TunetScenesCard extends HTMLElement {
    Registration
    =============================================================== */
 
-customElements.define('tunet-scenes-card', TunetScenesCard);
+if (!customElements.get('tunet-scenes-card')) {
+  customElements.define('tunet-scenes-card', TunetScenesCard);
+}
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-scenes-card',
-  name: 'Tunet Scenes Card',
-  description: 'Glassmorphism scene activation card with configurable tiles',
-  preview: true,
-  documentationURL: 'https://github.com/tunet/tunet-scenes-card',
-});
+if (!window.customCards.some((card) => card.type === 'tunet-scenes-card')) {
+  window.customCards.push({
+    type: 'tunet-scenes-card',
+    name: 'Tunet Scenes Card',
+    description: 'Glassmorphism scene activation card with configurable tiles',
+    preview: true,
+    documentationURL: 'https://github.com/tunet/tunet-scenes-card',
+  });
+}
 
 console.info(
   `%c TUNET-SCENES-CARD %c v${SCENES_CARD_VERSION} `,

@@ -263,15 +263,19 @@ class TunetScenesCard extends HTMLElement {
   }
 }
 
-customElements.define('tunet-scenes-card', TunetScenesCard);
+if (!customElements.get('tunet-scenes-card')) {
+  customElements.define('tunet-scenes-card', TunetScenesCard);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-scenes-card',
-  name: 'Tunet Scenes Card',
-  description: 'Quick scene activation chips with glassmorphism design',
-  preview: true,
-});
+if (!window.customCards.some((card) => card.type === 'tunet-scenes-card')) {
+  window.customCards.push({
+    type: 'tunet-scenes-card',
+    name: 'Tunet Scenes Card',
+    description: 'Quick scene activation chips with glassmorphism design',
+    preview: true,
+  });
+}
 
 console.info(
   `%c TUNET-SCENES-CARD %c v${TUNET_SCENES_VERSION} `,

@@ -101,6 +101,7 @@ const TUNET_MEDIA_STYLES = `
     box-shadow: var(--shadow), var(--inset);
     padding: 20px;
     display: flex; flex-direction: column; gap: 0;
+    overflow: visible;
     transition: background .3s, border-color .3s, box-shadow .3s, opacity .3s;
   }
   .card[data-state="playing"] { border-color: rgba(52,199,89,0.14); }
@@ -179,7 +180,7 @@ const TUNET_MEDIA_STYLES = `
   .tv-badge.visible { display: inline-flex; }
 
   /* -- Speaker Selector -- */
-  .speaker-wrap { position: relative; }
+  .speaker-wrap { position: relative; z-index: 40; }
   .speaker-btn {
     display: flex; align-items: center; gap: 4px;
     min-height: 42px; padding: 0 10px;
@@ -200,7 +201,7 @@ const TUNET_MEDIA_STYLES = `
     min-width: 220px; padding: 5px; border-radius: var(--r-tile);
     background: var(--dd-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--dd-border); box-shadow: var(--shadow-up);
-    z-index: 10; display: none; flex-direction: column; gap: 1px;
+    z-index: 1200; display: none; flex-direction: column; gap: 1px;
   }
   .dd-menu.open { display: flex; animation: menuIn .14s ease forwards; }
   @keyframes menuIn {

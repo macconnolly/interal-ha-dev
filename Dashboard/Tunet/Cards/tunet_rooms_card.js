@@ -458,15 +458,19 @@ class TunetRoomsCard extends HTMLElement {
   }
 }
 
-customElements.define('tunet-rooms-card', TunetRoomsCard);
+if (!customElements.get('tunet-rooms-card')) {
+  customElements.define('tunet-rooms-card', TunetRoomsCard);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-rooms-card',
-  name: 'Tunet Rooms Card',
-  description: 'Room overview capsules with light orb toggles',
-  preview: true,
-});
+if (!window.customCards.some((card) => card.type === 'tunet-rooms-card')) {
+  window.customCards.push({
+    type: 'tunet-rooms-card',
+    name: 'Tunet Rooms Card',
+    description: 'Room overview capsules with light orb toggles',
+    preview: true,
+  });
+}
 
 console.info(
   `%c TUNET-ROOMS-CARD %c v${TUNET_ROOMS_VERSION} `,

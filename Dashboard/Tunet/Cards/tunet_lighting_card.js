@@ -668,15 +668,19 @@ class TunetLightingCard extends HTMLElement {
   }
 }
 
-customElements.define('tunet-lighting-card', TunetLightingCard);
+if (!customElements.get('tunet-lighting-card')) {
+  customElements.define('tunet-lighting-card', TunetLightingCard);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-lighting-card',
-  name: 'Tunet Lighting Card',
-  description: 'Light zone tiles with swipe-to-dim, group expansion, and manual override detection',
-  preview: true,
-});
+if (!window.customCards.some((card) => card.type === 'tunet-lighting-card')) {
+  window.customCards.push({
+    type: 'tunet-lighting-card',
+    name: 'Tunet Lighting Card',
+    description: 'Light zone tiles with swipe-to-dim, group expansion, and manual override detection',
+    preview: true,
+  });
+}
 
 console.info(
   `%c TUNET-LIGHTING-CARD %c v${TUNET_LIGHTING_VERSION} `,

@@ -10,8 +10,8 @@ const TUNET_STATUS_STYLES = `
   :host {
     --glass: rgba(255,255,255,0.55);
     --glass-border: rgba(255,255,255,0.45);
-    --shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
-    --shadow-up: 0 1px 3px rgba(0,0,0,0.10), 0 12px 40px rgba(0,0,0,0.12);
+    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
     --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
     --text: #1C1C1E;
     --text-sub: rgba(28,28,30,0.55);
@@ -33,21 +33,22 @@ const TUNET_STATUS_STYLES = `
     --ctrl-border: rgba(0,0,0,0.05);
     --dd-bg: rgba(255,255,255,0.92);
     --dd-border: rgba(255,255,255,0.60);
+    color-scheme: light;
     display: block;
   }
 
   :host(.dark) {
     --glass: rgba(255,255,255,0.06);
     --glass-border: rgba(255,255,255,0.10);
-    --shadow: 0 1px 2px rgba(0,0,0,0.20), 0 4px 12px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 3px rgba(0,0,0,0.28), 0 12px 40px rgba(0,0,0,0.30);
+    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
     --inset: inset 0 0 0 0.5px rgba(255,255,255,0.08);
     --text: #F5F5F7;
-    --text-sub: rgba(245,245,247,0.55);
+    --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
-    --amber: #F0A030;
-    --amber-fill: rgba(240,160,48,0.14);
-    --amber-border: rgba(240,160,48,0.28);
+    --amber: #E8961E;
+    --amber-fill: rgba(232,150,30,0.14);
+    --amber-border: rgba(232,150,30,0.25);
     --blue: #0A84FF;
     --blue-fill: rgba(10,132,255,0.14);
     --blue-border: rgba(10,132,255,0.24);
@@ -55,11 +56,12 @@ const TUNET_STATUS_STYLES = `
     --green-fill: rgba(48,209,88,0.14);
     --green-border: rgba(48,209,88,0.20);
     --red: #FF453A;
-    --tile-bg: rgba(255,255,255,0.08);
+    --tile-bg: rgba(44,44,46,0.90);
     --track-bg: rgba(255,255,255,0.06);
-    --ctrl-border: rgba(255,255,255,0.10);
+    --ctrl-border: rgba(255,255,255,0.08);
     --dd-bg: rgba(58,58,60,0.92);
     --dd-border: rgba(255,255,255,0.08);
+    color-scheme: dark;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -132,6 +134,10 @@ const TUNET_STATUS_STYLES = `
   }
   .tile:hover { box-shadow: var(--shadow-up); }
   .tile:active { transform: scale(.97); }
+  .tile:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+  }
 
   .tile-icon {
     width: 28px; height: 28px;
@@ -459,7 +465,7 @@ class TunetStatusCard extends HTMLElement {
             <span class="tile-val" id="val-${i}">--</span>
             <span class="tile-label">${tile.label}</span>
           `;
-          el.addEventListener('click', () => this._fireMoreInfo(tile.entity));
+          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity));
           break;
 
         case 'timer':
@@ -468,7 +474,7 @@ class TunetStatusCard extends HTMLElement {
             <span class="tile-val" id="val-${i}">--:--</span>
             <span class="tile-label">${tile.label}</span>
           `;
-          el.addEventListener('click', () => this._fireMoreInfo(tile.entity));
+          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity));
           break;
 
         case 'dropdown':
@@ -481,10 +487,12 @@ class TunetStatusCard extends HTMLElement {
             <span class="tile-label">${tile.label}</span>
             <div class="tile-dd-menu" id="ddmenu-${i}"></div>
           `;
-          el.addEventListener('click', (e) => {
+          this._bindTileAction(el, (e) => {
             e.stopPropagation();
             this._toggleDropdown(i);
           });
+          el.setAttribute('aria-haspopup', 'listbox');
+          el.setAttribute('aria-expanded', 'false');
           break;
 
         case 'value':
@@ -499,7 +507,7 @@ class TunetStatusCard extends HTMLElement {
             <span class="tile-val" id="val-${i}">--</span>
             <span class="tile-label">${tile.label}</span>
           `;
-          el.addEventListener('click', () => this._fireMoreInfo(tile.entity));
+          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity));
           break;
         }
       }
@@ -527,6 +535,17 @@ class TunetStatusCard extends HTMLElement {
       bubbles: true, composed: true,
       detail: { entityId },
     }));
+  }
+
+  _bindTileAction(el, handler) {
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('role', 'button');
+    el.addEventListener('click', handler);
+    el.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      handler(e);
+    });
   }
 
   // ── Conditional Visibility ──
@@ -737,6 +756,7 @@ class TunetStatusCard extends HTMLElement {
     if (!isOpen) {
       tile.ddMenuEl.classList.add('open');
       tile.ddValEl.setAttribute('aria-expanded', 'true');
+      tile.el.setAttribute('aria-expanded', 'true');
       this._openDropdown = index;
 
       // Overflow check: flip above if menu overflows card
@@ -762,6 +782,7 @@ class TunetStatusCard extends HTMLElement {
       if (tile.ddValEl) {
         tile.ddValEl.setAttribute('aria-expanded', 'false');
       }
+      tile.el.setAttribute('aria-expanded', 'false');
     }
     this._openDropdown = null;
   }
@@ -785,15 +806,19 @@ class TunetStatusCard extends HTMLElement {
   }
 }
 
-customElements.define('tunet-status-card', TunetStatusCard);
+if (!customElements.get('tunet-status-card')) {
+  customElements.define('tunet-status-card', TunetStatusCard);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-status-card',
-  name: 'Tunet Status Card',
-  description: 'Home status grid with typed tiles and glassmorphism design',
-  preview: true,
-});
+if (!window.customCards.some((card) => card.type === 'tunet-status-card')) {
+  window.customCards.push({
+    type: 'tunet-status-card',
+    name: 'Tunet Status Card',
+    description: 'Home status grid with typed tiles and glassmorphism design',
+    preview: true,
+  });
+}
 
 console.info(
   `%c TUNET-STATUS-CARD %c v${TUNET_STATUS_VERSION} `,

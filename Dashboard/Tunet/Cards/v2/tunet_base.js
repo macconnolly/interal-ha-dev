@@ -23,13 +23,13 @@ export const TOKENS = `
     --glass-border: rgba(255,255,255, 0.45);
 
     /* Shadows (two-layer: contact + ambient) */
-    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
+    --shadow: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --shadow-up: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     --inset: inset 0 0 0 0.5px rgba(0,0,0, 0.06);
 
     /* Text */
     --text: #1C1C1E;
-    --text-sub: rgba(28,28,30, 0.55);
+    --text-sub: #8E8E93;
     --text-muted: #8E8E93;
 
     /* Accent: Amber */
@@ -58,7 +58,7 @@ export const TOKENS = `
     --red-border: rgba(255,59,48, 0.22);
 
     /* Track / Slider */
-    --track-bg: rgba(28,28,30, 0.055);
+    --track-bg: rgba(0,0,0, 0.06);
     --track-h: 44px;
 
     /* Thumb */
@@ -98,11 +98,11 @@ export const TOKENS = `
     /* Tile Surfaces */
     --tile-bg: rgba(255,255,255, 0.92);
     --tile-bg-off: rgba(28,28,30, 0.04);
-    --gray-ghost: rgba(0, 0, 0, 0.035);
+    --gray-ghost: rgba(0, 0, 0, 0.03);
     --border-ghost: transparent;
 
     /* Section Container */
-    --section-bg: rgba(255,255,255, 0.35);
+    --section-bg: rgba(255,255,255, 0.45);
     --section-shadow: 0 8px 40px rgba(0,0,0,0.10);
 
     color-scheme: light;
@@ -110,20 +110,20 @@ export const TOKENS = `
   }
 
   :host(.dark) {
-    --glass: rgba(44,44,46, 0.72);
-    --glass-border: rgba(255,255,255, 0.08);
+    --glass: rgba(30,41,59, 0.72);
+    --glass-border: rgba(255,255,255, 0.10);
 
-    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
+    --shadow: 0 4px 20px rgba(0,0,0,0.30), 0 1px 3px rgba(0,0,0,0.50);
+    --shadow-up: 0 20px 40px rgba(0,0,0,0.60), 0 4px 15px rgba(0,0,0,0.40);
     --inset: inset 0 0 0 0.5px rgba(255,255,255, 0.06);
 
-    --text: #F5F5F7;
-    --text-sub: rgba(245,245,247, 0.50);
-    --text-muted: rgba(245,245,247, 0.35);
+    --text: #F8FAFC;
+    --text-sub: rgba(248,250,252, 0.65);
+    --text-muted: rgba(248,250,252, 0.45);
 
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30, 0.14);
-    --amber-border: rgba(232,150,30, 0.25);
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36, 0.12);
+    --amber-border: rgba(251,191,36, 0.25);
 
     --blue: #0A84FF;
     --blue-fill: rgba(10,132,255, 0.13);
@@ -163,13 +163,13 @@ export const TOKENS = `
     --toggle-on: rgba(48,209,88, 0.30);
     --toggle-knob: rgba(255,255,255, 0.92);
 
-    --tile-bg: rgba(44,44,46, 0.90);
+    --tile-bg: rgba(30,41,59, 0.92);
     --tile-bg-off: rgba(255,255,255, 0.04);
-    --gray-ghost: rgba(255, 255, 255, 0.05);
-    --border-ghost: rgba(255, 255, 255, 0.08);
+    --gray-ghost: rgba(255,255,255, 0.04);
+    --border-ghost: rgba(255,255,255, 0.05);
 
-    --section-bg: rgba(255,255,255, 0.05);
-    --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
+    --section-bg: rgba(30,41,59, 0.60);
+    --section-shadow: 0 8px 40px rgba(0,0,0,0.35);
 
     color-scheme: dark;
   }
@@ -189,7 +189,7 @@ export const TOKENS_MIDNIGHT = `
 
     --text: #F8FAFC;
     --text-sub: rgba(248,250,252, 0.65);
-    --text-muted: rgba(248,250,252, 0.40);
+    --text-muted: rgba(248,250,252, 0.45);
 
     --amber: #fbbf24;
     --amber-fill: rgba(251,191,36, 0.12);
@@ -204,7 +204,7 @@ export const TOKENS_MIDNIGHT = `
 
     --track-bg: rgba(255,255,255, 0.08);
     --shadow: 0 4px 20px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.5);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.40), 0 20px 40px rgba(0,0,0,0.35);
+    --shadow-up: 0 20px 40px rgba(0,0,0,0.60), 0 4px 15px rgba(0,0,0,0.40);
   }
 `;
 
@@ -324,7 +324,7 @@ export const SECTION_SURFACE = `
     padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 16px;
   }
 `;
 

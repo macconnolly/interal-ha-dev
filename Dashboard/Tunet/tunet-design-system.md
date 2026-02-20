@@ -1,10 +1,10 @@
-# Tunet Design System: Implementation Companion (v8.1 Sync)
+# Tunet Design System: Implementation Companion (v8.2 Sync)
 
 This file is now the implementation companion to `Dashboard/Tunet/Mockups/design_language.md` (v8.x canonical spec).  
 All token values, principles, and component rules are inherited from the canonical file.  
 If any value in this document conflicts with `design_language.md`, the canonical file wins.
 
-Version 8.1 – February 20, 2026
+Version 8.2 – February 20, 2026
 Platform: Home Assistant OS via Tailscale
 Rendering: Chromium WebView (HA Companion + Desktop)
 Typeface: DM Sans (Google Fonts)
@@ -15,12 +15,13 @@ Target Width: 400px cards, responsive to 320px minimum
 
 ## 0. Migration Directives (Authoritative)
 
-### 0.1 Card rollout decisions
+### 0.1 Card rollout decisions (final parity lock)
 
-1. Lighting: ship flex lighting implementation (`tunet_flex_lighting.js` behavior)
-2. Rooms: ship rooms alt visual shell with original room-level toggle behavior restored
-3. Scenes: ship scenes alt horizontal shell with semantic `<button>` interaction and fixed masonry size
-4. Climate: keep original climate card as baseline and support `surface: section` as an option
+1. Lighting: `tunet_lighting_card.js` is canonical and retains flex superset behavior.
+2. Rooms: `tunet_rooms_card.js` is canonical with orb-first interactions and no row master toggle in overview baseline.
+3. Scenes: `tunet_scenes_card.js` remains available but is not part of default overview composition.
+4. Climate: `tunet_climate_card.js` remains baseline; section surface is a variant option, not the default.
+5. Status, actions, weather, media are canonicalized to single production files under `Dashboard/Tunet/Cards/`.
 
 ### 0.2 Section-container standard
 
@@ -41,7 +42,15 @@ Every section-container variant must use:
    - Legacy: `light_group` + `light_overrides` (auto-normalized)
 4. Numeric layout config must be finite-checked before writing CSS vars
 
-### 0.4 Ambiguous plan step clarification
+### 0.4 Interaction parity requirements
+
+1. All interactive controls must have deterministic tap semantics (`more-info`, `navigate`, `call-service`, `url`, `none`).
+2. Scene controls must be semantic buttons.
+3. Non-button interactive containers require keyboard support (`tabindex`, role, Enter/Space, `:focus-visible`).
+4. Pointer/touch drag controls must implement threshold + axis lock + cancel-safe cleanup.
+5. Dropdown/overlay layers (for media/speaker selectors) must stack above subsequent cards.
+
+### 0.5 Ambiguous plan step clarification
 
 “Remove last sync date” means deleting the corresponding tile/row config object from YAML, not hiding it in CSS or leaving a dead placeholder.
 
@@ -54,7 +63,7 @@ Every section-container variant must use:
 
 ---
 
-## 0.5 Legacy Archive
+## 0.6 Legacy Archive
 
 The remaining sections are retained for historical context. Use them only when they do not conflict with the canonical v8.x design language and the directives above.
 
@@ -961,4 +970,85 @@ Before shipping any card or dashboard view, verify every item:
 
 **Sonos:** Speaker dropdown includes per-speaker group checkmarks (20px circles), Group All / Ungroup All actions below divider, now-playing subtitle per speaker.
 
-**Room Cards:** 44px icon container, 14px/700 room name, 11px status line, 34px quick controls, 44×22px toggle, chevron nav, accent when lights on, 88px height, 2-column grid.
+**Room Cards:** 44px icon container, 14px/700 room name, 11px status line, orb-first quick controls, chevron/nav semantics, accent when lights on, 88px height, 2-column grid desktop / 1-column mobile.
+
+---
+
+## 16. Dashboard Finalization Contract (2026-02)
+
+This section defines the implementation contract used to complete the Tunet Overview dashboard.
+
+### 16.1 Architecture Rules
+
+- One production file per custom card type.
+- Archived alts are reference-only and must not be loaded in Lovelace.
+- Every card registration must be idempotent via `customElements.get(...)` guard.
+
+### 16.2 Canonical Overview Layout
+
+The Overview is composed in this order:
+
+1. Top mode strip (`custom:tunet-actions-card`, compact mode selector)
+2. Home Status (4x2)
+3. Lighting Hero (top 5 zones)
+4. Environment row (`custom:tunet-climate-card` + `custom:tunet-weather-card`)
+5. Media (`custom:tunet-media-card`)
+6. Rooms (`custom:tunet-rooms-card`)
+
+### 16.3 Card Ownership
+
+- Lighting: `tunet_lighting_card.js` is canonical.
+- Rooms: `tunet_rooms_card.js` is canonical (no room-level toggle switch).
+- Status: `tunet_status_card.js` owns typed tiles and tap actions.
+- Actions: `tunet_actions_card.js` owns mode-strip interactions.
+- Weather: `tunet_weather_card.js` owns current + forecast behavior.
+- Media: `tunet_media_card.js` owns playback and speaker/group flows.
+- Scenes: `tunet_scenes_card.js` is retained for non-overview scene-focused views.
+
+### 16.4 Conditional and Action Semantics
+
+- Dashboard-level conditional wrappers and explicit tile `show_when` rules are the primary visibility mechanism.
+- Tiles may define `tap_action` for deterministic behavior (`more-info`, `navigate`, `call-service`, `url`, `none`).
+- Media tile behavior should open popup via `call-service` when browser_mod is present.
+
+### 16.5 Token and Icon Governance
+
+- Dark amber token standard is `#E8961E`.
+- Invalid icon ligatures must normalize to safe values before render.
+- Any unrecognized icon must fall back to `lightbulb`.
+
+### 16.6 Deployment Hygiene
+
+- Remove duplicate legacy resource URLs before rollout.
+- Version-bump all `/local/tunet/*.js` resources in one atomic update.
+- Validate with hard refresh and console-clean requirement.
+
+### 16.7 Lighting Schema and Sizing Guarantees
+
+- Lighting card must accept both schemas:
+  - preferred `entities` + `zones`
+  - legacy `light_group` + `light_overrides` (normalized internally)
+- Numeric config (`columns`, `rows`, `scroll_rows`) must be finite-checked before CSS variable writes.
+- Grid mode must prevent runaway tile growth and container overflow.
+- Scroll mode card size must be based on visible rows, not total zone count.
+- Hero width is container-driven (`width: 100%`), never hard-capped.
+
+### 16.8 Interaction Consistency Rules
+
+- Info headers use tappable 42px control surfaces with `hass-more-info` behavior.
+- Tap actions are explicitly configured and never inferred implicitly.
+- Keyboard interaction parity is mandatory for non-native control containers.
+- Focus visibility is mandatory across scene/status/sensor interactive elements.
+- Drag controls must be stable on both iOS touch and desktop pointer devices.
+
+### 16.9 Icon System Hardening
+
+- Normalize deprecated icon aliases before render.
+- Reject unknown ligatures and fall back to safe domain defaults.
+- Keep card-local icon maps synchronized to prevent per-card drift.
+
+### 16.10 Overview Composition Constraints
+
+- Overview uses curated hero scope (primary zones), not full inventory auto-expansion.
+- Scenes card is not included in overview baseline unless explicitly requested for that view.
+- Environment row is mandatory and includes both climate and forecast-capable weather.

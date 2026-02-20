@@ -7,6 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #6669 | 10:08 PM | 🔵 | Tunet Sonos Card v2 HTML Mockup Architecture Analyzed | ~649 |
 | #6617 | 9:39 PM | 🔵 | Tunet Overview Dashboard Mockup Contains Media Card Reference Design | ~283 |
 | #6609 | 9:38 PM | 🔵 | Tunet Design System v2.1 Token Reference | ~355 |
 

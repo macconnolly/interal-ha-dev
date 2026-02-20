@@ -42,9 +42,9 @@ const TUNET_SCENES_STYLES = `
     --text: #F5F5F7;
     --text-sub: rgba(245,245,247,0.55);
     --text-muted: rgba(245,245,247,0.35);
-    --amber: #F0A030;
-    --amber-fill: rgba(240,160,48,0.14);
-    --amber-border: rgba(240,160,48,0.28);
+    --amber: #E8961E;
+    --amber-fill: rgba(232,150,30,0.14);
+    --amber-border: rgba(232,150,30,0.25);
     --blue: #0A84FF;
     --blue-fill: rgba(10,132,255,0.14);
     --blue-border: rgba(10,132,255,0.24);
@@ -107,6 +107,10 @@ const TUNET_SCENES_STYLES = `
   }
   .scene-chip:hover { box-shadow: var(--shadow-up); }
   .scene-chip:active { transform: scale(.96); }
+  .scene-chip:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+  }
   .scene-chip .icon { font-size: 16px; width: 16px; height: 16px; }
 
   .scene-chip[data-accent="amber"] .icon { color: var(--amber); }

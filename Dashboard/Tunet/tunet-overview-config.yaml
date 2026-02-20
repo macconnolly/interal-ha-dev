@@ -1,149 +1,252 @@
 # ═══════════════════════════════════════════════════════════════
-# Tunet Overview Dashboard — Card Configurations
+# Tunet Overview Dashboard — Final Composition Contract
 # ═══════════════════════════════════════════════════════════════
+# Order:
+#   1) Top Mode Strip (compact)
+#   2) Home Status (4x2)
+#   3) Lighting Hero (Top 5 zones)
+#   4) Environment Row (Climate + Weather)
+#   5) Media
+#   6) Rooms
 #
-# Three cards composing the overview summary:
-#   1. Quick Actions (OAL control chips)
-#   2. Hero / Lighting (all-lights swipe-to-dim grid)
-#   3. Rooms (room capsules with orb toggles + navigation)
-#
-# Copy each card block into HA's UI card editor (YAML mode).
-# All entity_ids verified against live HA state 2026-02-19.
+# Notes:
+# - This file is card-YAML for the overview page composition.
+# - Uses custom:layout-card for side-by-side environment row.
+# - Status tiles support tap_action and advanced show_when operators.
 # ═══════════════════════════════════════════════════════════════
 
-
-# ─── 1. QUICK ACTIONS ─────────────────────────────────────────
-# Zero-config: 4 hardcoded OAL chips (All On, Pause, Sleep, All Off)
-# Entity refs (hardcoded in JS):
-#   - light.all_adaptive_lights  (All On / All Off)
-#   - input_boolean.oal_system_paused  (Pause toggle)
-#   - input_select.oal_active_configuration  (Sleep toggle)
-
+# ─── 1. TOP MODE STRIP ────────────────────────────────────────
 - type: custom:tunet-actions-card
+  variant: mode_strip
+  compact: true
+  mode_entity: input_select.oal_active_configuration
+  actions:
+    - name: Morning
+      icon: sunny
+      accent: amber
+      service: input_select.select_option
+      service_data:
+        entity_id: input_select.oal_active_configuration
+        option: Morning
+      state_entity: input_select.oal_active_configuration
+      active_when: Morning
 
+    - name: Day
+      icon: wb_sunny
+      accent: amber
+      service: input_select.select_option
+      service_data:
+        entity_id: input_select.oal_active_configuration
+        option: Adaptive
+      state_entity: input_select.oal_active_configuration
+      active_when: Adaptive
 
-# ─── 2. HERO / LIGHTING ──────────────────────────────────────
-# Flex lighting schema:
-# - entities: list of light entities/groups (groups auto-expand)
-# - zones: optional per-entity name/icon overrides
-# NOTE: legacy light_group/light_overrides keys are not used.
+    - name: Evening
+      icon: bedtime
+      accent: amber
+      service: input_select.select_option
+      service_data:
+        entity_id: input_select.oal_active_configuration
+        option: Evening
+      state_entity: input_select.oal_active_configuration
+      active_when: Evening
 
+    - name: Sleep
+      icon: bed
+      accent: amber
+      service: input_select.select_option
+      service_data:
+        entity_id: input_select.oal_active_configuration
+        option: Sleep
+      state_entity: input_select.oal_active_configuration
+      active_when: Sleep
+
+# ─── 2. HOME STATUS (4x2) ─────────────────────────────────────
+- type: custom:tunet-status-card
+  name: Home Status
+  columns: 4
+  tiles:
+    # Row 1
+    - type: indicator
+      entity: switch.adaptive_lighting_main_living
+      icon: sunny
+      label: Adaptive
+      accent: amber
+      format: state
+      dot_rules:
+        - match: 'on'
+          dot: green
+        - match: '*'
+          dot: muted
+      tap_action:
+        action: navigate
+        navigation_path: /tunet-overview/lights
+
+    - type: indicator
+      entity: sensor.oal_system_status
+      icon: front_hand
+      label: Manual
+      accent: amber
+      format: state
+      show_when:
+        entity: sensor.oal_system_status
+        operator: contains
+        state: Manual
+      tap_action:
+        action: call-service
+        service: script.turn_on
+        service_data:
+          entity_id: script.oal_reset_manual_control
+
+    - type: value
+      entity: sensor.oal_global_brightness_offset
+      icon: bolt
+      label: Boost
+      accent: amber
+      format: integer
+
+    - type: dropdown
+      entity: input_select.oal_active_configuration
+      icon: tune
+      label: Mode
+      accent: muted
+
+    # Row 2 (fixed)
+    - type: value
+      entity: weather.home
+      icon: partly_cloudy_day
+      label: Weather
+      accent: blue
+      format: state
+
+    - type: value
+      entity: weather.home
+      icon: thermostat
+      label: Outside
+      accent: blue
+      attribute: temperature
+      unit: °F
+      format: integer
+
+    - type: value
+      entity: weather.home
+      icon: water_drop
+      label: Humidity
+      accent: blue
+      attribute: humidity
+      unit: '%'
+      format: integer
+
+    - type: value
+      entity: sensor.dining_room_temperature
+      icon: home
+      label: Inside
+      accent: amber
+      unit: °F
+      format: integer
+
+# ─── 3. LIGHTING HERO (TOP 5 ZONES) ───────────────────────────
 - type: custom:tunet-lighting-card
   name: Lighting
   surface: section
-  layout: grid
+  layout: scroll
+  scroll_rows: 1
+  tile_size: compact
   columns: 3
   adaptive_entity: switch.adaptive_lighting_main_living
-  entities:
-    - light.all_adaptive_lights
+  primary_entity: sensor.oal_system_status
   zones:
-    - entity: light.entryway_lamp
-      name: Entry
-      icon: door_front
-    - entity: light.living_room_floor_lamp
-      name: Floor Lamp
-      icon: floor_lamp
-    - entity: light.office_desk_lamp
-      name: Office
-      icon: desk_lamp
-    - entity: light.living_room_corner_accent
-      name: Corner
+    - entity: light.living_room_lights
+      name: Living
       icon: lightbulb
-    - entity: light.living_room_couch_lamp
-      name: Couch
-      icon: table_lamp
-    - entity: light.living_room_credenza_light
-      name: Credenza
-      icon: shelf_auto
     - entity: light.kitchen_island_pendants
       name: Island
-      icon: light
-    - entity: light.kitchen_counter_cabinet_underlights
-      name: Counter
-      icon: countertops
+      icon: kitchen
     - entity: light.master_presence
-      name: Bedroom
+      name: Bed
       icon: bed
-    - entity: light.master_bedroom_corner_accent_govee
-      name: Bed Accent
-      icon: nightlight
-    - entity: light.dining_room_spot_lights
-      name: Dining Spots
-      icon: highlight
-    - entity: light.living_room_spot_lights
+    - entity: light.accent_spots_lights
       name: Spots
       icon: highlight
-    - entity: light.kitchen_main_lights
-      name: Kitchen
-      icon: light
-    - entity: light.living_room_hallway_lights
-      name: Hallway
-      icon: light
-    - entity: light.living_column_strip_light_matter
-      name: Living Column
-      icon: view_column
-    - entity: light.dining_column_strip_light_matter
-      name: Dining Column
+    - entity: light.all_column_lights
+      name: Columns
       icon: view_column
 
+# ─── 4. ENVIRONMENT ROW ───────────────────────────────────────
+- type: custom:layout-card
+  layout_type: custom:grid-layout
+  layout:
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))
+    grid-gap: 12px
+  cards:
+    - type: custom:tunet-climate-card
+      entity: climate.dining_room
+      name: Climate
 
-# ─── 3. ROOMS ────────────────────────────────────────────────
-# 5 rooms matching the overview mockup.
-# Temperature sensors: Nest (living/dining), Zigbee (bedroom).
-# No temp sensors exist for kitchen or office.
-# navigate_path placeholders — create subviews to match.
+    - type: custom:tunet-weather-card
+      entity: weather.home
+      name: Environment
+      forecast_days: 5
+      show_last_updated: false
 
+# ─── 5. MEDIA ─────────────────────────────────────────────────
+- type: custom:tunet-media-card
+  entity: media_player.living_room
+  name: Sonos
+  show_progress: true
+
+# ─── 6. ROOMS ─────────────────────────────────────────────────
 - type: custom:tunet-rooms-card
   name: Rooms
   rooms:
     - name: Living Room
       icon: weekend
       temperature_entity: sensor.dining_room_temperature
-      navigate_path: /lovelace-tunet/living-room
+      navigate_path: /tunet-overview/living-room
       lights:
         - entity: light.living_room_couch_lamp
-          icon: table_lamp
+          icon: lamp
           name: Couch
         - entity: light.living_room_floor_lamp
-          icon: floor_lamp
+          icon: lamp
           name: Floor
         - entity: light.living_room_spot_lights
           icon: highlight
           name: Spots
         - entity: light.living_room_credenza_light
-          icon: shelf_auto
+          icon: shelves
           name: Credenza
 
     - name: Kitchen
-      icon: countertops
-      navigate_path: /lovelace-tunet/kitchen
+      icon: kitchen
+      navigate_path: /tunet-overview/kitchen
       lights:
         - entity: light.kitchen_island_pendants
           icon: light
           name: Pendants
         - entity: light.kitchen_main_lights
-          icon: countertops
+          icon: kitchen
           name: Main
         - entity: light.kitchen_counter_cabinet_underlights
-          icon: shelf_auto
+          icon: shelves
           name: Under-cab
 
     - name: Dining Room
       icon: restaurant
       temperature_entity: sensor.dining_room_temperature
-      navigate_path: /lovelace-tunet/dining
+      navigate_path: /tunet-overview/dining
       lights:
         - entity: light.dining_room_spot_lights
           icon: highlight
           name: Spots
-        - entity: light.column_lights
+        - entity: light.all_column_lights
           icon: view_column
           name: Columns
 
     - name: Bedroom
-      icon: bedroom_parent
+      icon: bed
       temperature_entity: sensor.bedroom_temp_humidity_sensor_temperature
-      navigate_path: /lovelace-tunet/bedroom
+      navigate_path: /tunet-overview/bedroom
       lights:
         - entity: light.master_presence
           icon: bed
@@ -152,13 +255,13 @@
           icon: nightlight
           name: Accent
         - entity: light.master_bedroom_table_lamps
-          icon: table_lamp
+          icon: lamp
           name: Table Lamps
 
     - name: Office
-      icon: laptop_mac
-      navigate_path: /lovelace-tunet/office
+      icon: desktop_windows
+      navigate_path: /tunet-overview/office
       lights:
         - entity: light.office_desk_lamp
-          icon: desk_lamp
+          icon: desk
           name: Desk

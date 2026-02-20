@@ -8,7 +8,7 @@ const TUNET_STATUS_VERSION = '2.0.0';
 
 const TUNET_STATUS_STYLES = `
   :host {
-    --glass: rgba(255,255,255,0.55);
+    --glass: rgba(255,255,255,0.68);
     --glass-border: rgba(255,255,255,0.45);
     --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
@@ -38,11 +38,11 @@ const TUNET_STATUS_STYLES = `
   }
 
   :host(.dark) {
-    --glass: rgba(255,255,255,0.06);
-    --glass-border: rgba(255,255,255,0.10);
+    --glass: rgba(44,44,46,0.72);
+    --glass-border: rgba(255,255,255,0.08);
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
-    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.08);
+    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
     --text: #F5F5F7;
     --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
@@ -343,6 +343,7 @@ class TunetStatusCard extends HTMLElement {
           label: t.label || '',
           accent: t.accent || 'muted',
           show_when: t.show_when || null,
+          tap_action: t.tap_action || null,
         };
 
         if (type === 'indicator') {
@@ -465,7 +466,7 @@ class TunetStatusCard extends HTMLElement {
             <span class="tile-val" id="val-${i}">--</span>
             <span class="tile-label">${tile.label}</span>
           `;
-          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity));
+          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
           break;
 
         case 'timer':
@@ -474,7 +475,7 @@ class TunetStatusCard extends HTMLElement {
             <span class="tile-val" id="val-${i}">--:--</span>
             <span class="tile-label">${tile.label}</span>
           `;
-          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity));
+          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
           break;
 
         case 'dropdown':
@@ -490,7 +491,7 @@ class TunetStatusCard extends HTMLElement {
           this._bindTileAction(el, (e) => {
             e.stopPropagation();
             this._toggleDropdown(i);
-          });
+          }, tile);
           el.setAttribute('aria-haspopup', 'listbox');
           el.setAttribute('aria-expanded', 'false');
           break;
@@ -507,7 +508,7 @@ class TunetStatusCard extends HTMLElement {
             <span class="tile-val" id="val-${i}">--</span>
             <span class="tile-label">${tile.label}</span>
           `;
-          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity));
+          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
           break;
         }
       }
@@ -537,14 +538,21 @@ class TunetStatusCard extends HTMLElement {
     }));
   }
 
-  _bindTileAction(el, handler) {
+  _bindTileAction(el, handler, tileConfig) {
     el.setAttribute('tabindex', '0');
     el.setAttribute('role', 'button');
-    el.addEventListener('click', handler);
+    const activate = (e) => {
+      if (tileConfig && tileConfig.tap_action) {
+        this._handleTapAction(tileConfig.tap_action, tileConfig.entity);
+        return;
+      }
+      handler(e);
+    };
+    el.addEventListener('click', activate);
     el.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault();
-      handler(e);
+      activate(e);
     });
   }
 
@@ -559,14 +567,76 @@ class TunetStatusCard extends HTMLElement {
         el.classList.remove('tile-hidden');
         continue;
       }
-
       const watchEntity = this._hass.states[config.show_when.entity];
-      if (!watchEntity || watchEntity.state !== config.show_when.state) {
-        el.classList.add('tile-hidden');
-      } else {
-        el.classList.remove('tile-hidden');
-      }
+      const visible = this._matchesShowWhen(watchEntity, config.show_when);
+      el.classList.toggle('tile-hidden', !visible);
     }
+  }
+
+  _matchesShowWhen(entity, condition) {
+    if (!condition) return true;
+    if (!entity) return false;
+
+    const operator = condition.operator || 'equals';
+    const expected = condition.state;
+    const sourceValue = condition.attribute
+      ? entity.attributes?.[condition.attribute]
+      : entity.state;
+    const actual = String(sourceValue ?? '');
+    const target = String(expected ?? '');
+
+    switch (operator) {
+      case 'contains':
+        return actual.includes(target);
+      case 'not_contains':
+        return !actual.includes(target);
+      case 'not_equals':
+        return actual !== target;
+      case 'gt':
+        return Number(actual) > Number(target);
+      case 'lt':
+        return Number(actual) < Number(target);
+      case 'equals':
+      default:
+        return actual === target;
+    }
+  }
+
+  _handleTapAction(tapAction, defaultEntityId) {
+    if (!tapAction || !this._hass) return;
+    const action = tapAction.action || 'more-info';
+
+    if (action === 'none') return;
+
+    if (action === 'more-info') {
+      this._fireMoreInfo(tapAction.entity || defaultEntityId);
+      return;
+    }
+
+    if (action === 'navigate') {
+      const path = tapAction.navigation_path;
+      if (!path) return;
+      window.history.pushState(null, '', path);
+      window.dispatchEvent(new Event('location-changed'));
+      return;
+    }
+
+    if (action === 'url') {
+      if (!tapAction.url_path) return;
+      window.open(tapAction.url_path, tapAction.new_tab ? '_blank' : '_self');
+      return;
+    }
+
+    if (action === 'call-service') {
+      const service = tapAction.service || '';
+      const [domain, serviceName] = service.split('.');
+      if (!domain || !serviceName) return;
+      this._hass.callService(domain, serviceName, tapAction.service_data || {});
+      return;
+    }
+
+    // Fallback to more-info for unknown action type.
+    this._fireMoreInfo(tapAction.entity || defaultEntityId);
   }
 
   // ── Value Updates ──

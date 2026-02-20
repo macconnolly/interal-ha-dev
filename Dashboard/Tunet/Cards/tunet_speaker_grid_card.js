@@ -817,16 +817,20 @@ class TunetSpeakerGridCard extends HTMLElement {
    Registration
    =============================================================== */
 
-customElements.define('tunet-speaker-grid-card', TunetSpeakerGridCard);
+if (!customElements.get('tunet-speaker-grid-card')) {
+  customElements.define('tunet-speaker-grid-card', TunetSpeakerGridCard);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-speaker-grid-card',
-  name: 'Tunet Speaker Grid Card',
-  description: 'Sonos speaker grid with volume control and group management',
-  preview: true,
-  documentationURL: 'https://github.com/tunet/tunet-speaker-grid-card',
-});
+if (!window.customCards.some((card) => card.type === 'tunet-speaker-grid-card')) {
+  window.customCards.push({
+    type: 'tunet-speaker-grid-card',
+    name: 'Tunet Speaker Grid Card',
+    description: 'Sonos speaker grid with volume control and group management',
+    preview: true,
+    documentationURL: 'https://github.com/tunet/tunet-speaker-grid-card',
+  });
+}
 
 console.info(
   `%c TUNET-SPEAKER-GRID %c v${TUNET_SPEAKER_GRID_VERSION} `,

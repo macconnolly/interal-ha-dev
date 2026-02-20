@@ -494,6 +494,12 @@ const LIGHTING_STYLES = `
     outline: 2px solid var(--blue);
     outline-offset: 3px;
   }
+  .selector-btn.active {
+    border-color: var(--amber-border);
+    color: var(--amber);
+    background: var(--amber-fill);
+    font-weight: 700;
+  }
 
   /* ═══════════════════════════════════════════════════
      TILE GRID (Design Language §3.5)
@@ -1624,6 +1630,7 @@ class TunetLightingCard extends HTMLElement {
     const anyOn = onCount > 0;
     this.$.card.dataset.anyOn = anyOn ? 'true' : 'false';
     this.$.card.dataset.allOff = (onCount === 0 && totalCount > 0) ? 'true' : 'false';
+    this.$.allOffBtn.classList.toggle('active', anyOn);
 
     // ── Header icon state (Principle #7: outlined off, filled on) ──
     if (anyOn) {

@@ -8,10 +8,10 @@ const TUNET_WEATHER_VERSION = '1.0.0';
 
 const TUNET_WEATHER_STYLES = `
   :host {
-    --glass: rgba(255,255,255,0.55);
+    --glass: rgba(255,255,255,0.68);
     --glass-border: rgba(255,255,255,0.45);
-    --shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
-    --shadow-up: 0 1px 3px rgba(0,0,0,0.10), 0 12px 40px rgba(0,0,0,0.12);
+    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
     --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
     --text: #1C1C1E;
     --text-sub: rgba(28,28,30,0.55);
@@ -24,24 +24,26 @@ const TUNET_WEATHER_STYLES = `
     --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.05);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+    color-scheme: light;
     display: block;
   }
 
   :host(.dark) {
-    --glass: rgba(255,255,255,0.06);
-    --glass-border: rgba(255,255,255,0.10);
-    --shadow: 0 1px 2px rgba(0,0,0,0.20), 0 4px 12px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 3px rgba(0,0,0,0.28), 0 12px 40px rgba(0,0,0,0.30);
-    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.08);
+    --glass: rgba(44,44,46,0.72);
+    --glass-border: rgba(255,255,255,0.08);
+    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
+    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
     --text: #F5F5F7;
     --text-sub: rgba(245,245,247,0.55);
     --text-muted: rgba(245,245,247,0.35);
     --blue: #0A84FF;
     --blue-fill: rgba(10,132,255,0.14);
     --blue-border: rgba(10,132,255,0.24);
-    --ctrl-bg: rgba(255,255,255,0.07);
-    --ctrl-border: rgba(255,255,255,0.10);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.12);
+    --ctrl-bg: rgba(255,255,255,0.08);
+    --ctrl-border: rgba(255,255,255,0.08);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+    color-scheme: dark;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -69,7 +71,7 @@ const TUNET_WEATHER_STYLES = `
     border-radius: var(--r-card);
     background: var(--glass);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--blue-border);
+    border: 1px solid var(--ctrl-border);
     box-shadow: var(--shadow), var(--inset);
     padding: 20px;
     display: flex; flex-direction: column; gap: 0;
@@ -126,7 +128,7 @@ const TUNET_WEATHER_STYLES = `
   .weather-detail .val { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
   /* Forecast */
-  .forecast { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .forecast { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
   .fc-tile {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     padding: 10px 4px 8px; border-radius: 12px;
@@ -214,9 +216,15 @@ class TunetWeatherCard extends HTMLElement {
         { name: 'entity', required: true, selector: { entity: { domain: 'weather' } } },
         { name: 'name', selector: { text: {} } },
         { name: 'forecast_days', selector: { number: { min: 1, max: 7, step: 1, mode: 'box' } } },
+        { name: 'show_last_updated', selector: { boolean: {} } },
       ],
       computeLabel: (s) => {
-        const labels = { entity: 'Weather Entity', name: 'Card Name', forecast_days: 'Forecast Days' };
+        const labels = {
+          entity: 'Weather Entity',
+          name: 'Card Name',
+          forecast_days: 'Forecast Days',
+          show_last_updated: 'Show Last Updated',
+        };
         return labels[s.name] || s.name;
       },
     };
@@ -232,6 +240,7 @@ class TunetWeatherCard extends HTMLElement {
       entity: config.entity,
       name: config.name || 'Weather',
       forecast_days: config.forecast_days || 5,
+      show_last_updated: config.show_last_updated !== false,
     };
     if (this._rendered) this._updateAll();
   }
@@ -373,9 +382,11 @@ class TunetWeatherCard extends HTMLElement {
 
     // Header subtitle
     const lastUpdate = entity.last_updated;
-    if (lastUpdate) {
+    if (this._config.show_last_updated && lastUpdate) {
       const mins = Math.round((Date.now() - new Date(lastUpdate).getTime()) / 60000);
       this.$.hdrSub.textContent = mins < 1 ? 'Just updated' : `Updated ${mins} min ago`;
+    } else {
+      this.$.hdrSub.textContent = '';
     }
 
     // Details
@@ -431,15 +442,19 @@ class TunetWeatherCard extends HTMLElement {
   }
 }
 
-customElements.define('tunet-weather-card', TunetWeatherCard);
+if (!customElements.get('tunet-weather-card')) {
+  customElements.define('tunet-weather-card', TunetWeatherCard);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-weather-card',
-  name: 'Tunet Weather Card',
-  description: 'Weather conditions and forecast with glassmorphism design',
-  preview: true,
-});
+if (!window.customCards.some((card) => card.type === 'tunet-weather-card')) {
+  window.customCards.push({
+    type: 'tunet-weather-card',
+    name: 'Tunet Weather Card',
+    description: 'Weather conditions and forecast with glassmorphism design',
+    preview: true,
+  });
+}
 
 console.info(
   `%c TUNET-WEATHER-CARD %c v${TUNET_WEATHER_VERSION} `,

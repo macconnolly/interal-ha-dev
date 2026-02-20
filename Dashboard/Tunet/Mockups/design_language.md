@@ -1,48 +1,110 @@
 A unified visual language for every card, tile, control, and surface on the Custom Home Assistant dashboard. This document is card-agnostic. It defines the system; individual card specs reference it.
 
-Version 8.0 – February 2026
+Version 8.2 – February 2026
 Platform: Home Assistant OS via Tailscale
 Rendering: Chromium WebView (HA Companion + Desktop)
 Typeface: DM Sans (Google Fonts)
 Icon library: Material Symbols Rounded (Google Fonts, variable font)
 Target: 400px card width, responsive to 320px minimum
 
-### 2026-02-20 Implementation Addendum (v8.1)
+### 2026-02-20 Parity Lock (v8.2, Normative)
 
-This addendum is normative and captures the approved migration decisions for the Tunet card suite.
+This block is authoritative for Tunet implementation and interaction behavior.  
+If any older section conflicts, this block wins.
 
-#### Card implementation decisions
+#### Canonical card ownership
 
-1. `tunet-lighting-card`: use `tunet_flex_lighting.js` behavior as the production implementation
-2. `tunet-rooms-card`: use alt visual shell with original room-level controls restored
-3. `tunet-scenes-card`: use alt horizontal interaction model with semantic button controls
-4. `tunet-climate-card`: keep original as baseline and add optional `surface: section`
+Only one production implementation per custom element type:
 
-#### Section-container standard (final)
+1. `custom:tunet-lighting-card` -> `Dashboard/Tunet/Cards/tunet_lighting_card.js`
+2. `custom:tunet-rooms-card` -> `Dashboard/Tunet/Cards/tunet_rooms_card.js`
+3. `custom:tunet-climate-card` -> `Dashboard/Tunet/Cards/tunet_climate_card.js`
+4. `custom:tunet-status-card` -> `Dashboard/Tunet/Cards/tunet_status_card.js`
+5. `custom:tunet-actions-card` -> `Dashboard/Tunet/Cards/tunet_actions_card.js`
+6. `custom:tunet-weather-card` -> `Dashboard/Tunet/Cards/tunet_weather_card.js`
+7. `custom:tunet-media-card` -> `Dashboard/Tunet/Cards/tunet_media_card.js`
 
-All section-container variants must use the same shell values:
+Alt implementations are archive/reference-only and must not be loaded in Lovelace resources.
 
-- Radius: `38px` (`--r-section`)
-- Background: `--parent-bg` (or `--section-bg` for cards that define it)
-- Backdrop blur: `blur(20px)`
-- Border: `1px solid var(--ctrl-border)` (never hardcoded rgba border)
-- Elevation: `box-shadow: var(--shadow-section), var(--inset)` (inset ring is mandatory)
-- Glass stroke gradient angle: `160deg`
+#### Overview composition contract
 
-#### Migration-critical compatibility rules
+Required order on overview:
+
+1. Compact mode strip
+2. Home status grid (4x2 target density)
+3. Lighting hero (curated primary zones only)
+4. Environment row (climate + weather)
+5. Media
+6. Rooms
+
+Standalone scenes card is not part of overview baseline.
+
+#### Surface parity contract
+
+Standard card surface (default):
+
+- `border-radius: var(--r-card)` (`24px`)
+- `background: var(--glass)`
+- `backdrop-filter: blur(24px)` and `-webkit-backdrop-filter: blur(24px)`
+- `border: 1px solid var(--ctrl-border)`
+- `box-shadow: var(--shadow), var(--inset)`
+
+Section-container surface (variant):
+
+- `border-radius: var(--r-section)` (`38px`)
+- `background: var(--parent-bg)` (or tokenized equivalent)
+- `backdrop-filter: blur(20px)` and `-webkit-backdrop-filter: blur(20px)`
+- `border: 1px solid var(--ctrl-border)` (never hardcoded rgba border)
+- `box-shadow: var(--shadow-section), var(--inset)` (inset ring required)
+
+#### Lighting hero functional contract
+
+`tunet_lighting_card.js` is the flex superset and must keep:
+
+- `layout: grid|scroll`
+- `columns`, `rows`, `scroll_rows`, `tile_size` (`compact|standard`, with `large` alias support)
+- finite-number sanitation for numeric layout config before writing CSS vars
+- backward-compat schema normalization:
+  - `entities` + `zones` (preferred)
+  - `light_group` + `light_overrides` (legacy)
+- container-driven width (`width: 100%`; no fixed width cap)
+- scroll-mode `getCardSize()` based on visible rows, not total entities
+- grid tiles bounded to prevent oversized/overflow rows
+
+#### Interaction and accessibility contract
+
+- Info tile taps fire `hass-more-info` with `bubbles: true, composed: true`.
+- Interactive non-button elements require keyboard semantics: `tabindex="0"`, role, Enter/Space handlers, and `:focus-visible`.
+- Scene pills must be semantic `<button type="button">`.
+- Tap outcomes are deterministic and explicit: `more-info`, `navigate`, `call-service`, `url`, or `none`.
+- Drag-to-dim supports pointer and touch with axis lock, threshold guard, and cancel-safe behavior.
+
+#### Rooms card contract
+
+- Rooms rows are two-column on desktop and single-column on narrow/mobile.
+- Room-level master toggle switch is excluded from this release baseline.
+- Per-light orb controls are primary interaction.
+- Row tap navigates when path exists; otherwise fallback is `hass-more-info`.
+
+#### Icon governance contract
+
+- Only valid Material Symbols Rounded ligatures are allowed.
+- Deprecated aliases must normalize before render (`shelf_auto`, `countertops`, `desk_lamp`, etc.).
+- Unknown icon values must fall back to a safe default (`lightbulb` unless domain-specific fallback exists).
+
+#### Reliability and registration contract
 
 1. Custom element registration must be idempotent:
    - `if (!customElements.get('tag-name')) { customElements.define(...) }`
 2. Card picker registration must be deduplicated:
-   - Only push when `window.customCards.some(card => card.type === '...')` is false
-3. Flex lighting must accept both schemas:
-   - New: `entities` + `zones`
-   - Legacy: `light_group` + `light_overrides` (internally normalized)
-4. Scroll layouts must report fixed/visible-row card sizes, not total item count
+   - push only if type is not already present in `window.customCards`
+3. Never load duplicate resource URLs for the same card type.
+4. Keep dark amber token at `#E8961E` across all cards.
 
 #### Ambiguous step clarification: “Remove last sync date”
 
-When a status/sensor layout includes a “Last Sync” tile/row, remove the entire config object from the YAML array instead of hiding it via CSS.
+When removing a “Last Sync” tile/row, delete the config object from YAML arrays.  
+Do not hide with CSS and do not leave placeholders.
 
 ```yaml
 tiles:
@@ -51,8 +113,6 @@ tiles:
   #   label: Last Sync
   #   entity: sensor.some_last_sync
 ```
-
-Do not leave dead placeholders or hidden rows. This keeps masonry size, keyboard tab order, and semantics correct.
 
 ---
 
@@ -1419,3 +1479,74 @@ Every shadow in the system, with both light (L) and dark (D) values.
 18. Info tile fires `hass-more-info` on tap - it is the primary entity interaction point
 19. Cards never define page backgrounds - they rely on `backdrop-filter` to sample from the HA dashboard
 20. Active-state CSS never needs `:host(.dark)` overrides - accent tokens resolve correctly in both modes
+
+---
+
+## 21. Tunet Overview Implementation Contract (2026-02)
+
+This section is normative for the Tunet Overview page. It resolves previous ambiguity between alt and legacy cards.
+
+### 21.1 Canonical Card Types
+
+Only one production implementation per custom element type:
+
+- `custom:tunet-lighting-card` -> `Dashboard/Tunet/Cards/tunet_lighting_card.js` (canonical)
+- `custom:tunet-rooms-card` -> `Dashboard/Tunet/Cards/tunet_rooms_card.js` (canonical)
+- `custom:tunet-climate-card` -> `Dashboard/Tunet/Cards/tunet_climate_card.js` (canonical)
+- `custom:tunet-status-card` -> `Dashboard/Tunet/Cards/tunet_status_card.js` (canonical)
+- `custom:tunet-actions-card` -> `Dashboard/Tunet/Cards/tunet_actions_card.js` (canonical)
+- `custom:tunet-weather-card` -> `Dashboard/Tunet/Cards/tunet_weather_card.js` (canonical)
+- `custom:tunet-media-card` -> `Dashboard/Tunet/Cards/tunet_media_card.js` (canonical)
+- `custom:tunet-scenes-card` -> `Dashboard/Tunet/Cards/tunet_scenes_card.js` (available, not in overview baseline)
+
+Alt and duplicate implementations are archived and must not be loaded as Lovelace resources.
+
+### 21.2 Overview Composition
+
+Required order:
+
+1. Compact top mode strip (Morning / Day / Evening / Sleep)
+2. Home Status (4 columns x 2 rows)
+3. Lighting Hero (curated top 5 zones)
+4. Environment row (Climate + Weather forecast)
+5. Media
+6. Rooms
+
+Standalone scenes card is not part of the overview baseline.
+
+### 21.3 Hero Lighting Scope
+
+The hero card on Overview is intentionally curated for primary zones. It must not auto-expand full house groups in this context. Full-light control lives on dedicated light views.
+
+Lighting card guarantees for overview and detail views:
+
+- Supports both config schemas (`entities`/`zones` and legacy `light_group`/`light_overrides`).
+- Sanitizes non-finite numeric layout values before applying CSS vars.
+- Reports scroll layout card size by visible rows, not total item count.
+- Prevents oversized grid tiles from overflowing section containers.
+
+### 21.4 Conditional UI Policy
+
+Conditional visibility belongs to dashboard composition (YAML-level condition wrappers) and explicit tile `show_when` rules, not implicit card hiding.
+
+Interactive semantics are explicit:
+
+- Every tap target maps to a declared action class (`more-info`, `navigate`, `call-service`, `url`, `none`).
+- Scene/status/sensor interactions must include keyboard parity when native button semantics are not used.
+
+### 21.5 Icon Validity Policy
+
+If a configured Material Symbols ligature is invalid/unknown, cards must fall back to `lightbulb` (or nearest safe domain icon). Deprecated aliases (`shelf_auto`, `countertops`, `desk_lamp`, etc.) must be normalized.
+
+Rooms icon/set policy in this release:
+
+- Room rows use orb-first controls.
+- Row-level master toggle switch is excluded from overview baseline behavior.
+- Desktop target density is two-column rooms; mobile collapses to one column.
+
+### 21.6 Reliability Guardrails
+
+- Always guard custom element registration with `customElements.get(...)`.
+- Never load duplicate resources for the same custom element type.
+- Keep light and dark accent tokens synchronized with this spec (`--amber` dark = `#E8961E`).
+- Media/speaker dropdown overlays must stack above following cards (z-index contract, no clipping behind lower sections).

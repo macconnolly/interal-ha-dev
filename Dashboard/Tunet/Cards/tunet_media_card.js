@@ -1266,16 +1266,20 @@ class TunetMediaCard extends HTMLElement {
    Registration
    =============================================================== */
 
-customElements.define('tunet-media-card', TunetMediaCard);
+if (!customElements.get('tunet-media-card')) {
+  customElements.define('tunet-media-card', TunetMediaCard);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'tunet-media-card',
-  name: 'Tunet Media Card',
-  description: 'Glassmorphism Sonos player with transport, volume, and speaker grouping',
-  preview: true,
-  documentationURL: 'https://github.com/tunet/tunet-media-card',
-});
+if (!window.customCards.some((card) => card.type === 'tunet-media-card')) {
+  window.customCards.push({
+    type: 'tunet-media-card',
+    name: 'Tunet Media Card',
+    description: 'Glassmorphism Sonos player with transport, volume, and speaker grouping',
+    preview: true,
+    documentationURL: 'https://github.com/tunet/tunet-media-card',
+  });
+}
 
 console.info(
   `%c TUNET-MEDIA-CARD %c v${TUNET_MEDIA_VERSION} `,

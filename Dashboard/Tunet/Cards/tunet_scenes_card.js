@@ -49,6 +49,7 @@ const TUNET_SCENES_STYLES = `
     --glass-border: rgba(255,255,255,0.45);
     --shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
     --shadow-up: 0 1px 3px rgba(0,0,0,0.10), 0 12px 40px rgba(0,0,0,0.12);
+    --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
     --text: #1C1C1E;
     --text-sub: rgba(28,28,30,0.55);
     --text-muted: #8E8E93;
@@ -67,7 +68,29 @@ const TUNET_SCENES_STYLES = `
     --red: #FF3B30;
     --red-fill: rgba(255,59,48,0.10);
     --red-border: rgba(255,59,48,0.22);
+    --track-bg: rgba(28,28,30,0.055);
+    --track-h: 44px;
+    --thumb-bg: #fff;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
+    --r-card: 24px;
+    --r-tile: 16px;
+    --r-track: 4px;
     --r-pill: 999px;
+    --ctrl-bg: rgba(255,255,255,0.52);
+    --ctrl-border: rgba(0,0,0,0.05);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+    --chip-bg: rgba(255,255,255,0.48);
+    --chip-border: rgba(0,0,0,0.05);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
+    --dd-bg: rgba(255,255,255,0.84);
+    --dd-border: rgba(255,255,255,0.60);
+    --divider: rgba(28,28,30,0.07);
+    --toggle-off: rgba(28,28,30,0.10);
+    --toggle-on: rgba(52,199,89,0.28);
+    --toggle-knob: rgba(255,255,255,0.96);
+    --tile-bg: rgba(255,255,255,0.92);
+    color-scheme: light;
     display: block;
   }
 
@@ -77,6 +100,7 @@ const TUNET_SCENES_STYLES = `
     --glass-border: rgba(255,255,255,0.08);
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
+    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
     --text: #F5F5F7;
     --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
@@ -95,6 +119,29 @@ const TUNET_SCENES_STYLES = `
     --red: #FF453A;
     --red-fill: rgba(255,69,58,0.14);
     --red-border: rgba(255,69,58,0.25);
+    --track-bg: rgba(255,255,255,0.06);
+    --track-h: 44px;
+    --thumb-bg: #F5F5F7;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
+    --r-card: 24px;
+    --r-tile: 16px;
+    --r-track: 4px;
+    --r-pill: 999px;
+    --ctrl-bg: rgba(255,255,255,0.08);
+    --ctrl-border: rgba(255,255,255,0.08);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+    --chip-bg: rgba(30,41,59,0.50);
+    --chip-border: rgba(255,255,255,0.06);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
+    --dd-bg: rgba(30,41,59,0.92);
+    --dd-border: rgba(255,255,255,0.08);
+    --divider: rgba(255,255,255,0.06);
+    --toggle-off: rgba(255,255,255,0.10);
+    --toggle-on: rgba(48,209,88,0.30);
+    --toggle-knob: rgba(255,255,255,0.92);
+    --tile-bg: rgba(30,41,59,0.90);
+    color-scheme: dark;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -193,8 +240,8 @@ class TunetScenesCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
     ];
     for (const cfg of links) {
       if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
@@ -273,8 +320,8 @@ class TunetScenesCard extends HTMLElement {
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     `;
     const tpl = document.createElement('template');
     tpl.innerHTML = fontLinks + '<div class="wrap"><div class="scene-row" id="row"></div></div>';

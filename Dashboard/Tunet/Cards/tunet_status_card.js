@@ -322,6 +322,8 @@ const TUNET_STATUS_STYLES = `
   .tile[data-accent="blue"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   .tile[data-accent="green"] .tile-icon { color: var(--green); }
   .tile[data-accent="green"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .tile[data-accent="red"] .tile-icon { color: var(--red); }
+  .tile[data-accent="red"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   .tile[data-accent="muted"] .tile-icon { color: var(--text-muted); }
 
   .tile-val {
@@ -344,6 +346,12 @@ const TUNET_STATUS_STYLES = `
     letter-spacing: .55px;
   }
   .tile-deg { font-size: 0.6em; vertical-align: baseline; position: relative; top: -0.18em; margin-left: -1px; }
+  .tile-secondary {
+    font-size: 9px; font-weight: 500; color: var(--text-sub); line-height: 1;
+    text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%; margin-top: -1px;
+  }
+  .tile-secondary:empty { display: none; }
 
   /* Status dots */
   .status-dot {
@@ -590,6 +598,10 @@ class TunetStatusCard extends HTMLElement {
           base.unit = t.unit || '';
           base.format = t.format || 'state';
           base.attribute = t.attribute || '';
+          base.secondary = t.secondary ? {
+            entity: t.secondary.entity || t.entity,
+            attribute: t.secondary.attribute || '',
+          } : null;
           // Backward compat: convert old status_dot string to dot_rules
           if (t.status_dot && !t.dot_rules) {
             base.dot_rules = [{ match: '*', dot: t.status_dot }];
@@ -626,6 +638,7 @@ class TunetStatusCard extends HTMLElement {
     for (const t of this._config.tiles) {
       if (t.entity) relevantEntities.add(t.entity);
       if (t.show_when && t.show_when.entity) relevantEntities.add(t.show_when.entity);
+      if (t.secondary && t.secondary.entity) relevantEntities.add(t.secondary.entity);
     }
 
     const changed = [...relevantEntities].some(eid =>
@@ -749,10 +762,12 @@ class TunetStatusCard extends HTMLElement {
           if (tile.dot_rules && tile.dot_rules.length > 0) {
             dotHTML = `<div class="status-dot" id="dot-${i}"></div>`;
           }
+          const secHTML = tile.secondary ? `<span class="tile-secondary" id="sec-${i}"></span>` : '';
           el.innerHTML = `
             ${dotHTML}
             <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${h(tile.icon)}</span></div>
             <span class="tile-val" id="val-${i}">--</span>
+            ${secHTML}
             <span class="tile-label">${h(tile.label)}</span>
           `;
           this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
@@ -793,6 +808,7 @@ class TunetStatusCard extends HTMLElement {
         index: i,
         valEl: el.querySelector(`#val-${i}`),
         dotEl: el.querySelector(`#dot-${i}`),
+        secEl: el.querySelector(`#sec-${i}`),
         ddMenuEl: tile.type === 'dropdown' ? el.querySelector(`#ddmenu-${i}`) : null,
         ddValEl: tile.type === 'dropdown' ? el.querySelector(`#ddval-${i}`) : null,
       });
@@ -918,7 +934,7 @@ class TunetStatusCard extends HTMLElement {
     if (!this._hass || !this._tileEls) return;
 
     for (const tile of this._tileEls) {
-      const { config, valEl, dotEl, ddMenuEl, ddValEl, index } = tile;
+      const { config, valEl, dotEl, secEl, ddMenuEl, ddValEl, index } = tile;
       if (!config.entity) { if (valEl) valEl.textContent = '--'; continue; }
 
       const entity = this._hass.states[config.entity];
@@ -936,13 +952,13 @@ class TunetStatusCard extends HTMLElement {
           break;
         case 'value':
         default:
-          this._updateValueTile(valEl, dotEl, entity, config);
+          this._updateValueTile(valEl, dotEl, secEl, entity, config);
           break;
       }
     }
   }
 
-  _updateValueTile(valEl, dotEl, entity, config) {
+  _updateValueTile(valEl, dotEl, secEl, entity, config) {
     let val = config.attribute
       ? (entity.attributes[config.attribute] != null ? entity.attributes[config.attribute] : '?')
       : entity.state;
@@ -955,6 +971,19 @@ class TunetStatusCard extends HTMLElement {
 
     if (dotEl && config.dot_rules) {
       this._applyDotRules(dotEl, entity.state, config.dot_rules);
+    }
+
+    if (secEl && config.secondary) {
+      const secEntity = this._hass.states[config.secondary.entity];
+      if (secEntity && config.secondary.attribute) {
+        let secVal = secEntity.attributes[config.secondary.attribute];
+        if (Array.isArray(secVal)) {
+          secVal = secVal.map(m => (m && m.name) || String(m)).join(', ');
+        }
+        secEl.textContent = secVal != null ? String(secVal) : '';
+      } else {
+        secEl.textContent = '';
+      }
     }
   }
 

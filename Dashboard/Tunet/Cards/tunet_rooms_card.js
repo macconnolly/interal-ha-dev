@@ -107,6 +107,7 @@ const ROOM_ICON_FALLBACKS = new Set([
 function normalizeIcon(icon) {
   return window.TunetCardFoundation.normalizeIcon(icon, {
     aliases: ICON_ALIASES,
+    allow: ROOM_ICON_FALLBACKS,
     fallback: 'lightbulb',
   });
 }
@@ -128,16 +129,41 @@ const ROOMS_STYLES = `
     --amber: #D4850A;
     --amber-fill: rgba(212,133,10,0.10);
     --amber-border: rgba(212,133,10,0.22);
+    --blue: #007AFF;
+    --blue-fill: rgba(0,122,255,0.09);
+    --blue-border: rgba(0,122,255,0.18);
     --green: #34C759;
     --green-fill: rgba(52,199,89,0.12);
+    --green-border: rgba(52,199,89,0.15);
+    --purple: #AF52DE;
+    --purple-fill: rgba(175,82,222,0.10);
+    --purple-border: rgba(175,82,222,0.18);
     --track-bg: rgba(28,28,30,0.055);
+    --track-h: 44px;
+    --thumb-bg: #fff;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
     --gray-ghost: rgba(28,28,30,0.04);
     --r-card: 24px;
-    --r-section: 38px;
+    --r-section: 32px;
     --r-tile: 16px;
+    --r-track: 4px;
+    --r-pill: 999px;
     --parent-bg: rgba(255,255,255,0.35);
     --shadow-section: 0 8px 40px rgba(0,0,0,0.10);
+    --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.05);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+    --chip-bg: rgba(255,255,255,0.48);
+    --chip-border: rgba(0,0,0,0.05);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
+    --dd-bg: rgba(255,255,255,0.84);
+    --dd-border: rgba(255,255,255,0.60);
+    --divider: rgba(28,28,30,0.07);
+    --toggle-off: rgba(28,28,30,0.10);
+    --toggle-on: rgba(52,199,89,0.28);
+    --toggle-knob: rgba(255,255,255,0.96);
+    --tile-bg: rgba(255,255,255,0.92);
     color-scheme: light;
     display: block;
   }
@@ -154,13 +180,41 @@ const ROOMS_STYLES = `
     --amber: #fbbf24;
     --amber-fill: rgba(251,191,36,0.14);
     --amber-border: rgba(251,191,36,0.25);
+    --blue: #0A84FF;
+    --blue-fill: rgba(10,132,255,0.13);
+    --blue-border: rgba(10,132,255,0.22);
     --green: #30D158;
     --green-fill: rgba(48,209,88,0.14);
+    --green-border: rgba(48,209,88,0.18);
+    --purple: #BF5AF2;
+    --purple-fill: rgba(191,90,242,0.14);
+    --purple-border: rgba(191,90,242,0.22);
+    --track-bg: rgba(255,255,255,0.06);
+    --track-h: 44px;
+    --thumb-bg: #F5F5F7;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
+    --gray-ghost: rgba(255,255,255,0.04);
+    --r-card: 24px;
+    --r-section: 32px;
+    --r-tile: 16px;
+    --r-track: 4px;
+    --r-pill: 999px;
     --parent-bg: rgba(30,41,59,0.60);
     --shadow-section: 0 8px 40px rgba(0,0,0,0.25);
-    --track-bg: rgba(255,255,255,0.06);
-    --gray-ghost: rgba(255,255,255,0.04);
+    --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+    --chip-bg: rgba(30,41,59,0.50);
+    --chip-border: rgba(255,255,255,0.06);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
+    --dd-bg: rgba(30,41,59,0.92);
+    --dd-border: rgba(255,255,255,0.08);
+    --divider: rgba(255,255,255,0.06);
+    --toggle-off: rgba(255,255,255,0.10);
+    --toggle-on: rgba(48,209,88,0.30);
+    --toggle-knob: rgba(255,255,255,0.92);
+    --tile-bg: rgba(30,41,59,0.90);
     color-scheme: dark;
   }
 
@@ -234,20 +288,22 @@ const ROOMS_STYLES = `
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+    /* Keep 2x2 cards tall enough so summary labels don't overlap controls. */
+    grid-auto-rows: minmax(132px, auto);
   }
 
   /* -- Room Capsule -- */
   .room-card {
-    min-height: 108px; border-radius: var(--r-card);
+    min-height: 132px; border-radius: var(--r-card);
     background: var(--glass); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--ctrl-border);
     box-shadow: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08), var(--inset);
     display: grid;
     grid-template-columns: auto 1fr auto;
-    grid-template-rows: auto auto;
+    grid-template-rows: minmax(44px, auto) minmax(52px, auto);
     align-items: center;
-    padding: 10px 14px;
-    row-gap: 8px;
+    padding: 12px 14px;
+    row-gap: 10px;
     column-gap: 12px;
     cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden;
   }
@@ -279,6 +335,7 @@ const ROOMS_STYLES = `
     min-width: 0;
     grid-column: 2;
     grid-row: 1;
+    align-self: start;
   }
   .room-name { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.2; }
   .room-status {
@@ -291,7 +348,9 @@ const ROOMS_STYLES = `
     grid-column: 1 / -1;
     grid-row: 2;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    align-self: end;
     gap: 8px;
     min-height: 34px;
   }
@@ -392,7 +451,14 @@ const ROOMS_STYLES = `
     .room-list { grid-template-columns: 1fr; }
   }
   @media (max-width: 440px) {
-    .room-card { padding: 10px; min-height: 102px; row-gap: 6px; column-gap: 8px; }
+    .room-list { grid-auto-rows: minmax(116px, auto); }
+    .room-card {
+      padding: 10px;
+      min-height: 116px;
+      grid-template-rows: minmax(40px, auto) minmax(46px, auto);
+      row-gap: 8px;
+      column-gap: 8px;
+    }
     .room-icon { width: 38px; height: 38px; }
     .room-orb { width: 30px; height: 30px; }
     .room-slider-wrap { padding: 5px 7px; }
@@ -407,8 +473,8 @@ const ROOMS_TEMPLATE = `
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
   <div class="card-wrap">
     <div class="section-container">
@@ -444,8 +510,8 @@ class TunetRoomsCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
     ];
     for (const cfg of links) {
       if (document.querySelector(`link[href="${cfg.href}"]`)) continue;

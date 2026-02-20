@@ -101,11 +101,37 @@ const TUNET_WEATHER_STYLES = `
     --blue: #007AFF;
     --blue-fill: rgba(0,122,255,0.09);
     --blue-border: rgba(0,122,255,0.18);
+    --green: #34C759;
+    --green-fill: rgba(52,199,89,0.12);
+    --green-border: rgba(52,199,89,0.15);
+    --purple: #AF52DE;
+    --purple-fill: rgba(175,82,222,0.10);
+    --purple-border: rgba(175,82,222,0.18);
+    --amber: #D4850A;
+    --amber-fill: rgba(212,133,10,0.10);
+    --amber-border: rgba(212,133,10,0.22);
+    --track-bg: rgba(28,28,30,0.055);
+    --track-h: 44px;
+    --thumb-bg: #fff;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
     --r-card: 24px;
     --r-tile: 16px;
+    --r-pill: 999px;
+    --r-track: 4px;
     --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.05);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+    --chip-bg: rgba(255,255,255,0.48);
+    --chip-border: rgba(0,0,0,0.05);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
+    --dd-bg: rgba(255,255,255,0.84);
+    --dd-border: rgba(255,255,255,0.60);
+    --divider: rgba(28,28,30,0.07);
+    --toggle-off: rgba(28,28,30,0.10);
+    --toggle-on: rgba(52,199,89,0.28);
+    --toggle-knob: rgba(255,255,255,0.96);
+    --tile-bg: rgba(255,255,255,0.92);
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     color-scheme: light;
@@ -125,9 +151,32 @@ const TUNET_WEATHER_STYLES = `
     --blue: #0A84FF;
     --blue-fill: rgba(10,132,255,0.13);
     --blue-border: rgba(10,132,255,0.22);
+    --green: #30D158;
+    --green-fill: rgba(48,209,88,0.14);
+    --green-border: rgba(48,209,88,0.18);
+    --purple: #BF5AF2;
+    --purple-fill: rgba(191,90,242,0.14);
+    --purple-border: rgba(191,90,242,0.22);
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36,0.14);
+    --amber-border: rgba(251,191,36,0.25);
+    --track-bg: rgba(255,255,255,0.06);
+    --thumb-bg: #F5F5F7;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
     --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+    --chip-bg: rgba(30,41,59,0.50);
+    --chip-border: rgba(255,255,255,0.06);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
+    --dd-bg: rgba(30,41,59,0.92);
+    --dd-border: rgba(255,255,255,0.08);
+    --divider: rgba(255,255,255,0.06);
+    --toggle-off: rgba(255,255,255,0.10);
+    --toggle-on: rgba(48,209,88,0.30);
+    --toggle-knob: rgba(255,255,255,0.92);
+    --tile-bg: rgba(30,41,59,0.90);
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     color-scheme: dark;
@@ -292,8 +341,8 @@ class TunetWeatherCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
     ];
     for (const cfg of links) {
       if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
@@ -373,8 +422,8 @@ class TunetWeatherCard extends HTMLElement {
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     `;
 
     const tpl = document.createElement('template');
@@ -431,7 +480,7 @@ class TunetWeatherCard extends HTMLElement {
     try {
       const result = await this._hass.callWS({
         type: 'weather/get_forecasts',
-        entity_ids: [this._config.entity],
+        entity_id: this._config.entity,
         forecast_type: 'daily',
       });
       const forecast = result

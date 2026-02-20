@@ -23,12 +23,13 @@
  *   columns:          2-5          Grid columns (default: 3)
  *   rows:             'auto'|2-6   Max visible rows in grid (default: auto)
  *   scroll_rows:      1-3          Rows in scroll mode (default: 2)
- *   tile_size:        'compact'|'standard'  Tile aspect ratio (default: standard)
+ *   tile_size:        'compact'|'standard'|'large'  Tile density preset (default: standard)
  *   surface:          'card'|'section'  Surface architecture (default: card)
+ *   expand_groups:    boolean      Expand group entities into member lights (default: true)
  * ──────────────────────────────────────────────────────────────
  */
 
-const LIGHTING_CARD_VERSION = '3.0.0';
+const LIGHTING_CARD_VERSION = '3.1.0';
 
 /* ═══════════════════════════════════════════════════════════════
    CSS – Complete token system from Design Language v8.0
@@ -82,14 +83,18 @@ const LIGHTING_STYLES = `
 
     /* Radii */
     --r-card: 24px;
-    --r-section: 38px;
+    --r-section: 32px;
     --r-tile: 16px;
     --r-pill: 999px;
     --r-track: 4px;
 
     /* Section Surface */
-    --section-bg: rgba(255,255,255, 0.35);
+    --section-bg: rgba(255,255,255, 0.45);
     --section-shadow: 0 8px 40px rgba(0,0,0,0.10);
+
+    /* Tile physics */
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
 
     /* Controls (header controls, pills, buttons) */
     --ctrl-bg: rgba(255,255,255, 0.52);
@@ -122,20 +127,20 @@ const LIGHTING_STYLES = `
 
   /* ── Tokens: Dark (Design Language §2.2) ───────── */
   :host(.dark) {
-    --glass: rgba(44,44,46, 0.72);
-    --glass-border: rgba(255,255,255, 0.08);
+    --glass: rgba(30,41,59, 0.72);
+    --glass-border: rgba(255,255,255, 0.10);
 
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
     --inset: inset 0 0 0 0.5px rgba(255,255,255, 0.06);
 
-    --text: #F5F5F7;
-    --text-sub: rgba(245,245,247, 0.50);
-    --text-muted: rgba(245,245,247, 0.35);
+    --text: #F8FAFC;
+    --text-sub: rgba(248,250,252, 0.65);
+    --text-muted: rgba(248,250,252, 0.45);
 
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30, 0.14);
-    --amber-border: rgba(232,150,30, 0.25);
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36, 0.18);
+    --amber-border: rgba(251,191,36, 0.32);
 
     --blue: #0A84FF;
     --blue-fill: rgba(10,132,255, 0.13);
@@ -170,10 +175,13 @@ const LIGHTING_STYLES = `
     --toggle-on: rgba(48,209,88, 0.30);
     --toggle-knob: rgba(255,255,255, 0.92);
 
-    --tile-bg: rgba(44,44,46, 0.90);
+    --tile-bg: rgba(30,41,59, 0.92);
 
-    --section-bg: rgba(255,255,255, 0.05);
-    --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
+    --section-bg: rgba(30,41,59, 0.60);
+    --section-shadow: 0 8px 40px rgba(0,0,0,0.35);
+
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.24), 0 1px 2px rgba(0,0,0,0.36);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.40), 0 4px 12px rgba(0,0,0,0.28);
 
     color-scheme: dark;
   }
@@ -263,7 +271,7 @@ const LIGHTING_STYLES = `
     border-color: rgba(212,133,10, 0.14);
   }
   :host(.dark) .card[data-any-on="true"] {
-    border-color: rgba(232,150,30, 0.16);
+    border-color: rgba(251,191,36, 0.22);
   }
   .card[data-all-off="true"] {
     opacity: 0.55;
@@ -279,12 +287,12 @@ const LIGHTING_STYLES = `
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--ctrl-border);
-    box-shadow: var(--section-shadow), var(--inset);
+    box-shadow: var(--section-shadow);
   }
   :host(.dark[surface="section"]) .card {
     background: var(--section-bg);
     border-color: var(--ctrl-border);
-    box-shadow: var(--section-shadow), var(--inset);
+    box-shadow: var(--section-shadow);
   }
   :host([surface="section"]) .card::before {
     border-radius: var(--r-section);
@@ -543,7 +551,7 @@ const LIGHTING_STYLES = `
   .l-tile {
     background: var(--tile-bg);
     border-radius: var(--r-tile);
-    box-shadow: var(--shadow);
+    box-shadow: var(--tile-shadow-rest);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -614,8 +622,8 @@ const LIGHTING_STYLES = `
     border: 1px solid var(--amber-border);
   }
   .l-tile.on .zone-val { color: var(--amber); }
-  .l-tile.on .progress-fill { background: rgba(212,133,10, 0.85); }
-  :host(.dark) .l-tile.on .progress-fill { background: rgba(232,150,30, 0.85); }
+  .l-tile.on .progress-fill { background: rgba(212,133,10, 0.90); }
+  :host(.dark) .l-tile.on .progress-fill { background: rgba(251,191,36, 0.90); }
   .l-tile.on .tile-icon-wrap .icon {
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
@@ -623,7 +631,7 @@ const LIGHTING_STYLES = `
   /* ── Sliding State (drag active) ─────────────────── */
   .l-tile.sliding {
     transform: scale(1.05);
-    box-shadow: var(--shadow-up);
+    box-shadow: var(--tile-shadow-lift);
     z-index: 100;
     border-color: var(--amber) !important;
     transition: none;
@@ -642,7 +650,7 @@ const LIGHTING_STYLES = `
     background: var(--tile-bg);
     padding: 5px 16px;
     border-radius: var(--r-pill);
-    box-shadow: var(--shadow-up);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     z-index: 101;
     border: 1px solid var(--ctrl-border);
     opacity: 1;
@@ -663,9 +671,9 @@ const LIGHTING_STYLES = `
   }
 
   .zone-name {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: normal;
+    letter-spacing: 0.1px;
     color: var(--text);
     text-align: center;
     white-space: nowrap;
@@ -677,9 +685,9 @@ const LIGHTING_STYLES = `
   }
 
   .zone-val {
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: normal;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1px;
     transition: color .2s;
     font-variant-numeric: tabular-nums;
   }
@@ -714,6 +722,7 @@ const LIGHTING_STYLES = `
     background: #FF3B30;
     border-radius: 50%;
     display: none;
+    box-shadow: 0 0 12px rgba(255,82,82,0.6);
   }
   .l-tile[data-manual="true"] .manual-dot { display: block; }
 

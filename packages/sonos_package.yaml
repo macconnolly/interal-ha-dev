@@ -896,6 +896,54 @@ template:
             none
           {% endif %}
 
+    # ------------------------------------------------------------------
+    # Sonos Active Group Coordinator
+    # Stable grouping source for UI (works even when nothing is playing)
+    # ------------------------------------------------------------------
+    - name: "Sonos Active Group Coordinator"
+      unique_id: sonos_active_group_coordinator
+      icon: mdi:speaker-multiple
+      state: >
+        {% set speakers = [
+          'media_player.living_room',
+          'media_player.kitchen',
+          'media_player.bedroom',
+          'media_player.bath',
+          'media_player.dining_room'
+        ] %}
+        {% set ns = namespace(best='none', size=0) %}
+        {% for speaker in speakers %}
+          {% if states(speaker) not in ['unknown', 'unavailable'] %}
+            {% set members = state_attr(speaker, 'group_members') | default([speaker], true) %}
+            {% set coord = members[0] if (members | length) > 0 else speaker %}
+            {% set size = members | length %}
+            {% if size > ns.size %}
+              {% set ns.best = coord %}
+              {% set ns.size = size %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {% if ns.best in ['none', 'unknown', 'unavailable', ''] %}
+          media_player.living_room
+        {% else %}
+          {{ ns.best }}
+        {% endif %}
+      attributes:
+        group_members: >
+          {% set coord = this.state %}
+          {% if coord in ['none', 'unknown', 'unavailable', ''] %}
+            []
+          {% else %}
+            {{ state_attr(coord, 'group_members') | default([coord], true) }}
+          {% endif %}
+        grouped_count: >
+          {% set coord = this.state %}
+          {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
+          {{ members | length }}
+        is_playing_group: >
+          {% set coord = this.state %}
+          {{ states(coord) == 'playing' if coord not in ['none', 'unknown', 'unavailable', ''] else false }}
+
     - name: "Sonos Living Room Group Label"
       unique_id: sonos_living_room_group_label
       icon: mdi:account-multiple-outline
@@ -1024,6 +1072,71 @@ template:
           false
         {% else %}
           {% set members = state_attr(main_group, 'group_members') or [] %}
+          {{ target in members }}
+        {% endif %}
+
+    - name: "Sonos Living Room In Active Group"
+      unique_id: sonos_living_room_in_active_group
+      icon: mdi:speaker
+      state: >
+        {% set target = 'media_player.living_room' %}
+        {% set active_group = states('sensor.sonos_active_group_coordinator') %}
+        {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
+          false
+        {% else %}
+          {% set members = state_attr(active_group, 'group_members') | default([], true) %}
+          {{ target in members }}
+        {% endif %}
+
+    - name: "Sonos Dining Room In Active Group"
+      unique_id: sonos_dining_room_in_active_group
+      icon: mdi:speaker
+      state: >
+        {% set target = 'media_player.dining_room' %}
+        {% set active_group = states('sensor.sonos_active_group_coordinator') %}
+        {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
+          false
+        {% else %}
+          {% set members = state_attr(active_group, 'group_members') | default([], true) %}
+          {{ target in members }}
+        {% endif %}
+
+    - name: "Sonos Kitchen In Active Group"
+      unique_id: sonos_kitchen_in_active_group
+      icon: mdi:speaker
+      state: >
+        {% set target = 'media_player.kitchen' %}
+        {% set active_group = states('sensor.sonos_active_group_coordinator') %}
+        {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
+          false
+        {% else %}
+          {% set members = state_attr(active_group, 'group_members') | default([], true) %}
+          {{ target in members }}
+        {% endif %}
+
+    - name: "Sonos Bath In Active Group"
+      unique_id: sonos_bath_in_active_group
+      icon: mdi:speaker
+      state: >
+        {% set target = 'media_player.bath' %}
+        {% set active_group = states('sensor.sonos_active_group_coordinator') %}
+        {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
+          false
+        {% else %}
+          {% set members = state_attr(active_group, 'group_members') | default([], true) %}
+          {{ target in members }}
+        {% endif %}
+
+    - name: "Sonos Bedroom In Active Group"
+      unique_id: sonos_bedroom_in_active_group
+      icon: mdi:speaker
+      state: >
+        {% set target = 'media_player.bedroom' %}
+        {% set active_group = states('sensor.sonos_active_group_coordinator') %}
+        {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
+          false
+        {% else %}
+          {% set members = state_attr(active_group, 'group_members') | default([], true) %}
           {{ target in members }}
         {% endif %}
 

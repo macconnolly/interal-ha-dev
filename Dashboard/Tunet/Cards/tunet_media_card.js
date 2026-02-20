@@ -180,7 +180,7 @@ const TUNET_MEDIA_STYLES = `
   .tv-badge.visible { display: inline-flex; }
 
   /* -- Speaker Selector -- */
-  .speaker-wrap { position: relative; z-index: 40; }
+  .speaker-wrap { position: relative; z-index: 4000; }
   .speaker-btn {
     display: flex; align-items: center; gap: 4px;
     min-height: 42px; padding: 0 10px;
@@ -197,11 +197,11 @@ const TUNET_MEDIA_STYLES = `
 
   /* -- Dropdown Menu -- */
   .dd-menu {
-    position: absolute; top: calc(100% + 6px); right: 0;
+    position: fixed; top: 0; left: 0;
     min-width: 220px; padding: 5px; border-radius: var(--r-tile);
     background: var(--dd-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--dd-border); box-shadow: var(--shadow-up);
-    z-index: 1200; display: none; flex-direction: column; gap: 1px;
+    z-index: 2147483000; display: none; flex-direction: column; gap: 1px;
   }
   .dd-menu.open { display: flex; animation: menuIn .14s ease forwards; }
   @keyframes menuIn {
@@ -557,6 +557,7 @@ class TunetMediaCard extends HTMLElement {
 
     TunetMediaCard._injectFonts();
     this._onDocClick = this._onDocClick.bind(this);
+    this._onViewportChange = this._onViewportChange.bind(this);
   }
 
   /* -- Font Injection (once globally) -- */
@@ -605,6 +606,10 @@ class TunetMediaCard extends HTMLElement {
               selector: { entity: { domain: 'sensor' } },
             },
             {
+              name: 'active_group_sensor',
+              selector: { entity: { domain: 'sensor' } },
+            },
+            {
               name: 'playing_status_sensor',
               selector: { entity: { domain: 'sensor' } },
             },
@@ -620,6 +625,7 @@ class TunetMediaCard extends HTMLElement {
           entity: 'Media Player Entity',
           name: 'Card Name',
           coordinator_sensor: 'Coordinator Sensor',
+          active_group_sensor: 'Active Group Sensor',
           playing_status_sensor: 'Playing Status Sensor',
           show_progress: 'Show Progress Bar',
         };
@@ -633,6 +639,7 @@ class TunetMediaCard extends HTMLElement {
       entity: '',
       name: 'Sonos',
       coordinator_sensor: 'sensor.sonos_smart_coordinator',
+      active_group_sensor: 'sensor.sonos_active_group_coordinator',
       playing_status_sensor: 'sensor.sonos_playing_status',
       speakers: [],
     };
@@ -647,6 +654,7 @@ class TunetMediaCard extends HTMLElement {
       name: config.name || 'Sonos',
       speakers: config.speakers || [],
       coordinator_sensor: config.coordinator_sensor || 'sensor.sonos_smart_coordinator',
+      active_group_sensor: config.active_group_sensor || 'sensor.sonos_active_group_coordinator',
       playing_status_sensor: config.playing_status_sensor || 'sensor.sonos_playing_status',
       show_progress: config.show_progress !== false,
     };
@@ -688,11 +696,13 @@ class TunetMediaCard extends HTMLElement {
       const watchList = [
         this._config.entity,
         this._config.coordinator_sensor,
+        this._config.active_group_sensor,
         this._config.playing_status_sensor,
       ];
       for (const spk of this._cachedSpeakers) {
         watchList.push(spk.entity);
-        watchList.push(this._binarySensorFor(spk.entity));
+        watchList.push(this._binarySensorFor(spk.entity, true));
+        watchList.push(this._binarySensorFor(spk.entity, false));
       }
       for (const eid of watchList) {
         if (eid && oldHass.states[eid] !== hass.states[eid]) {
@@ -713,18 +723,24 @@ class TunetMediaCard extends HTMLElement {
 
   connectedCallback() {
     document.addEventListener('click', this._onDocClick);
+    window.addEventListener('resize', this._onViewportChange, { passive: true });
+    window.addEventListener('scroll', this._onViewportChange, { passive: true });
   }
 
   disconnectedCallback() {
     document.removeEventListener('click', this._onDocClick);
+    window.removeEventListener('resize', this._onViewportChange);
+    window.removeEventListener('scroll', this._onViewportChange);
     this._stopProgress();
   }
 
   /* -- Helpers -- */
 
-  _binarySensorFor(entityId) {
+  _binarySensorFor(entityId, active = true) {
     const room = entityId.replace('media_player.', '');
-    return `binary_sensor.sonos_${room}_in_playing_group`;
+    return active
+      ? `binary_sensor.sonos_${room}_in_active_group`
+      : `binary_sensor.sonos_${room}_in_playing_group`;
   }
 
   get _coordinator() {
@@ -757,8 +773,36 @@ class TunetMediaCard extends HTMLElement {
     this._hass.callService('script', name, data);
   }
 
+  _activeGroupMembers() {
+    if (!this._hass) return [];
+    const sensor = this._hass.states[this._config.active_group_sensor];
+    if (!sensor) return [];
+    const fromAttr = sensor.attributes && sensor.attributes.group_members;
+    if (Array.isArray(fromAttr)) return fromAttr;
+    if (typeof fromAttr === 'string') {
+      try {
+        const parsed = JSON.parse(fromAttr);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (_) {
+        // Best-effort parse only; ignore invalid content.
+      }
+    }
+    return [];
+  }
+
+  _isSpeakerInActiveGroup(entityId) {
+    const activeMembers = this._activeGroupMembers();
+    if (activeMembers.length > 0) return activeMembers.includes(entityId);
+
+    if (!this._hass) return false;
+    const activeBinary = this._hass.states[this._binarySensorFor(entityId, true)];
+    if (activeBinary) return activeBinary.state === 'on';
+    const legacyBinary = this._hass.states[this._binarySensorFor(entityId, false)];
+    return !!legacyBinary && legacyBinary.state === 'on';
+  }
+
   /**
-   * Auto-detect speakers from binary_sensor.sonos_*_in_playing_group entities,
+   * Auto-detect speakers from binary_sensor.sonos_*_in_active_group entities,
    * or use configured speakers array if provided.
    */
   _getEffectiveSpeakers() {
@@ -766,16 +810,19 @@ class TunetMediaCard extends HTMLElement {
     if (this._config.speakers && this._config.speakers.length > 0) {
       return this._config.speakers;
     }
-    // Auto-detect from binary sensors
+    // Auto-detect from active-group binary sensors (fallback to legacy playing-group)
     if (!this._hass) return [];
     const speakers = [];
+    const seen = new Set();
     for (const entityId of Object.keys(this._hass.states)) {
-      const match = entityId.match(/^binary_sensor\.sonos_(.+)_in_playing_group$/);
+      const match = entityId.match(/^binary_sensor\.sonos_(.+)_in_(active|playing)_group$/);
       if (match) {
         const room = match[1];
         const playerEntity = `media_player.${room}`;
+        if (seen.has(playerEntity)) continue;
         const playerState = this._hass.states[playerEntity];
         if (playerState) {
+          seen.add(playerEntity);
           speakers.push({
             entity: playerEntity,
             name: playerState.attributes.friendly_name || room.replace(/_/g, ' '),
@@ -788,14 +835,10 @@ class TunetMediaCard extends HTMLElement {
   }
 
   _getGroupedCount() {
+    const members = this._activeGroupMembers();
+    if (members.length > 0) return members.length;
     const speakers = this._cachedSpeakers || [];
-    if (!this._hass) return 0;
-    let count = 0;
-    for (const spk of speakers) {
-      const bs = this._hass.states[this._binarySensorFor(spk.entity)];
-      if (bs && bs.state === 'on') count++;
-    }
-    return count;
+    return speakers.filter((spk) => this._isSpeakerInActiveGroup(spk.entity)).length;
   }
 
   /* -- Rendering -- */
@@ -894,11 +937,13 @@ class TunetMediaCard extends HTMLElement {
     // Speaker dropdown toggle
     $.spkBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const menu = $.spkMenu;
-      const isOpen = menu.classList.contains('open');
-      menu.classList.toggle('open', !isOpen);
-      $.spkBtn.setAttribute('aria-expanded', String(!isOpen));
-      if (!isOpen) this._buildSpeakerMenu();
+      const isOpen = $.spkMenu.classList.contains('open');
+      if (isOpen) {
+        this._closeSpeakerMenu();
+      } else {
+        this._buildSpeakerMenu();
+        this._openSpeakerMenu();
+      }
     });
   }
 
@@ -963,9 +1008,52 @@ class TunetMediaCard extends HTMLElement {
     if (!this.$.spkMenu.classList.contains('open')) return;
     const path = e.composedPath();
     if (!path.includes(this.shadowRoot.querySelector('.speaker-wrap'))) {
-      this.$.spkMenu.classList.remove('open');
-      this.$.spkBtn.setAttribute('aria-expanded', 'false');
+      this._closeSpeakerMenu();
     }
+  }
+
+  _onViewportChange() {
+    if (!this.$ || !this.$.spkMenu || !this.$.spkMenu.classList.contains('open')) return;
+    this._positionSpeakerMenu();
+  }
+
+  _openSpeakerMenu() {
+    if (!this.$ || !this.$.spkMenu || !this.$.spkBtn) return;
+    this.$.spkMenu.classList.add('open');
+    this.$.spkBtn.setAttribute('aria-expanded', 'true');
+    this._positionSpeakerMenu();
+  }
+
+  _closeSpeakerMenu() {
+    if (!this.$ || !this.$.spkMenu || !this.$.spkBtn) return;
+    this.$.spkMenu.classList.remove('open');
+    this.$.spkBtn.setAttribute('aria-expanded', 'false');
+    this.$.spkMenu.style.left = '';
+    this.$.spkMenu.style.top = '';
+  }
+
+  _positionSpeakerMenu() {
+    const { spkBtn, spkMenu } = this.$ || {};
+    if (!spkBtn || !spkMenu) return;
+
+    const btnRect = spkBtn.getBoundingClientRect();
+    const menuRect = spkMenu.getBoundingClientRect();
+    const menuWidth = Math.max(menuRect.width || 220, 220);
+    const menuHeight = Math.max(menuRect.height || 260, 200);
+    const pad = 8;
+
+    let left = btnRect.right - menuWidth;
+    if (left < pad) left = pad;
+    const maxLeft = Math.max(pad, window.innerWidth - menuWidth - pad);
+    if (left > maxLeft) left = maxLeft;
+
+    let top = btnRect.bottom + 6;
+    if (top + menuHeight > window.innerHeight - pad) {
+      top = Math.max(pad, btnRect.top - menuHeight - 6);
+    }
+
+    spkMenu.style.left = `${Math.round(left)}px`;
+    spkMenu.style.top = `${Math.round(top)}px`;
   }
 
   /* -- Speaker Dropdown Menu (dual-purpose: select + group) -- */
@@ -982,8 +1070,7 @@ class TunetMediaCard extends HTMLElement {
       if (!entity) continue;
 
       const isActive = spk.entity === this._activeEntity;
-      const binarySensor = this._hass.states[this._binarySensorFor(spk.entity)];
-      const inGroup = binarySensor && binarySensor.state === 'on';
+      const inGroup = this._isSpeakerInActiveGroup(spk.entity);
 
       // Now-playing subtitle
       const nowPlaying = entity.attributes.media_title
@@ -1032,8 +1119,7 @@ class TunetMediaCard extends HTMLElement {
       opt.addEventListener('click', (e) => {
         e.stopPropagation();
         this._activeEntity = spk.entity;
-        $.spkMenu.classList.remove('open');
-        $.spkBtn.setAttribute('aria-expanded', 'false');
+        this._closeSpeakerMenu();
         this._updateAll();
       });
 
@@ -1057,8 +1143,7 @@ class TunetMediaCard extends HTMLElement {
       groupAllBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         this._callScript('sonos_group_all_to_playing');
-        $.spkMenu.classList.remove('open');
-        $.spkBtn.setAttribute('aria-expanded', 'false');
+        this._closeSpeakerMenu();
       });
       $.spkMenu.appendChild(groupAllBtn);
 
@@ -1073,8 +1158,7 @@ class TunetMediaCard extends HTMLElement {
       ungroupBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         this._callScript('sonos_ungroup_all');
-        $.spkMenu.classList.remove('open');
-        $.spkBtn.setAttribute('aria-expanded', 'false');
+        this._closeSpeakerMenu();
       });
       $.spkMenu.appendChild(ungroupBtn);
     }
@@ -1133,7 +1217,10 @@ class TunetMediaCard extends HTMLElement {
       }
     } else {
       const stateNames = { idle: 'Idle', off: 'Off', unavailable: 'Unavailable' };
-      $.hdrSub.textContent = stateNames[state] || state;
+      const stateLabel = stateNames[state] || state;
+      $.hdrSub.textContent = groupedCount > 1
+        ? `${stateLabel} · ${groupedCount} grouped`
+        : stateLabel;
     }
 
     // TV badge

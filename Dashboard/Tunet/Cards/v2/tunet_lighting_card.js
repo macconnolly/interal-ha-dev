@@ -37,6 +37,8 @@ import {
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
 } from './tunet_base.js';
+import './tunet_info_tile.js';
+import './tunet_control_button.js';
 
 const CARD_VERSION = '3.3.0';
 
@@ -55,30 +57,18 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Lighting-specific token overrides ──────── */
   :host {
-    /* Track radius: narrow progress bars (base: 14px) */
-    --r-track: 4px;
-
-    /* Tile physics (not in base tokens) */
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-
-    /* Section bg: slightly more opaque than base 0.35 */
-    --section-bg: rgba(255,255,255, 0.45);
+    /* Mockup parity geometry */
+    --r-track: 999px;
+    --r-tile: 22px;
   }
 
   :host(.dark) {
-    /* Solid navy tile bg (overrides TOKENS_MIDNIGHT rgba(255,255,255, 0.08)) */
-    --tile-bg: rgba(30,41,59, 0.92);
-
     /* Warmer amber accent (overrides TOKENS_MIDNIGHT 0.12/0.25) */
     --amber-fill: rgba(251,191,36, 0.18);
     --amber-border: rgba(251,191,36, 0.32);
 
     /* Slightly brighter muted text (overrides TOKENS_MIDNIGHT 0.40) */
     --text-muted: rgba(248,250,252, 0.45);
-
-    /* Deeper section shadow (overrides standard dark 0.25) */
-    --section-shadow: 0 8px 40px rgba(0,0,0,0.35);
   }
 
   /* ── Card surface overrides ─────────────────── */
@@ -140,84 +130,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     margin-bottom: 16px;
   }
 
-  /* Info Tile (§5.2) – tappable entity identifier */
-  .info-tile {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px 6px 6px;
-    min-height: 42px;
-    box-sizing: border-box;
-    border-radius: 10px;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    cursor: pointer;
-    transition: all .15s ease;
+  .hdr tunet-info-tile {
+    flex: 0 1 auto;
     min-width: 0;
   }
-  .info-tile:hover { box-shadow: var(--shadow); }
-  .info-tile:active { transform: scale(.98); }
-  .info-tile:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
-  }
-
-  /* Info tile active state (any light on) */
-  .card[data-any-on="true"] .info-tile {
-    background: var(--amber-fill);
-    border-color: var(--amber-border);
-  }
-
-  /* Entity Icon (§5.3) */
-  .entity-icon {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    transition: all .2s ease;
-    color: var(--text-muted);
-  }
-  .card[data-any-on="true"] .entity-icon {
-    color: var(--amber);
-  }
-  .card[data-any-on="true"] .hdr-title {
-    color: var(--text);
-  }
-
-  /* Title & Subtitle (§5.4) */
-  .hdr-text {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    min-width: 0;
-  }
-  .hdr-title {
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--text-sub);
-    letter-spacing: 0.1px;
-    line-height: 1.15;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .hdr-sub {
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--text-muted);
-    letter-spacing: 0.1px;
-    line-height: 1.15;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .hdr-sub .amber-ic    { color: var(--amber); }
-  .hdr-sub .adaptive-ic { color: var(--text-muted); }
-  .card[data-any-on="true"] .hdr-sub .adaptive-ic { color: var(--text); }
-  .hdr-sub .red-ic      { color: var(--red); }
 
   /* Spacer (§5.5) */
   .hdr-spacer { flex: 1; }
@@ -249,35 +165,14 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
 
   /* ── Toggle Button (§5.6) – Adaptive lighting ────── */
-  .toggle-btn {
+  .toggle-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+  .toggle-wrap[hidden] { display: none !important; }
+  #adaptiveBtn {
     width: 42px;
-    min-height: 42px;
-    box-sizing: border-box;
-    border-radius: 10px;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    transition: all .15s ease;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    color: var(--text-muted);
   }
-  .toggle-btn:hover { box-shadow: var(--shadow); }
-  .toggle-btn:active { transform: scale(.94); }
-  .toggle-btn:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
-  }
-  .toggle-btn.on {
-    background: var(--amber-fill);
-    color: var(--amber);
-    border-color: var(--amber-border);
-  }
-  .toggle-btn.on .icon {
-    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  }
-  .toggle-btn.hidden { display: none; }
 
   /* Manual count badge on adaptive toggle */
   .manual-badge {
@@ -297,41 +192,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: none;
     letter-spacing: 0.3px;
   }
-  .toggle-btn.has-manual .manual-badge { display: inline-flex; }
-  .toggle-wrap { position: relative; }
+  .toggle-wrap.has-manual .manual-badge { display: inline-flex; }
 
   /* ── Selector Button (§5.7) – All Off ────────────── */
-  .selector-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-height: 42px;
-    box-sizing: border-box;
-    padding: 0 8px;
-    border-radius: 10px;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-sub);
-    letter-spacing: 0.2px;
-    cursor: pointer;
-    transition: all .15s ease;
-  }
-  .selector-btn:hover { box-shadow: var(--shadow); }
-  .selector-btn:active { transform: scale(.97); }
-  .selector-btn:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
-  }
-  .selector-btn.active {
-    border-color: var(--amber-border);
-    color: var(--amber);
-    background: var(--amber-fill);
-    font-weight: 700;
-  }
+  #allOffBtn { flex: 0 0 auto; }
 
   /* ═══════════════════════════════════════════════════
      TILE GRID (Design Language §3.5)
@@ -377,7 +241,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   .l-tile {
     background: var(--tile-bg);
     border-radius: var(--r-tile);
-    box-shadow: var(--tile-shadow-rest);
+    box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -386,15 +250,15 @@ ${CARD_SURFACE_GLASS_STROKE}
     cursor: pointer;
     user-select: none;
     touch-action: none;
-    border: 1px solid transparent;
+    border: 1px solid var(--border-ghost);
     overflow: visible;
     min-height: 0;
     height: 100%;
     transition:
-      transform .2s cubic-bezier(0.34, 1.56, 0.64, 1),
-      box-shadow .2s ease,
-      border-color .2s ease,
-      background-color .3s ease;
+      transform var(--motion-ui) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      background-color var(--motion-surface) var(--ease-standard);
   }
 
   /* Compact tile variant */
@@ -413,14 +277,14 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* Focus visible on tiles */
   .l-tile:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
   }
 
   /* ── Off State ───────────────────────────────────── */
   .l-tile.off { opacity: 1; }
   .l-tile.off .tile-icon-wrap {
-    background: var(--track-bg);
+    background: var(--gray-ghost);
     color: var(--text-muted);
     border: 1px solid transparent;
   }
@@ -459,8 +323,8 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Sliding State (drag active) ─────────────────── */
   .l-tile.sliding {
-    transform: scale(1.05);
-    box-shadow: var(--tile-shadow-lift);
+    transform: scale(var(--drag-scale));
+    box-shadow: var(--shadow-up);
     z-index: 100;
     border-color: var(--amber) !important;
     transition: none;
@@ -474,14 +338,14 @@ ${CARD_SURFACE_GLASS_STROKE}
     transform: translate(-50%, -50%);
     color: var(--amber);
     font-weight: 700;
-    font-size: 13px;
+    font-size: 15px;
     letter-spacing: 0.2px;
     background: var(--tile-bg);
-    padding: 5px 16px;
+    padding: 6px 20px;
     border-radius: var(--r-pill);
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     z-index: 101;
-    border: 1px solid var(--ctrl-border);
+    border: 1px solid rgba(255,255,255,0.1);
     opacity: 1;
     white-space: nowrap;
   }
@@ -551,7 +415,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     background: var(--red);
     border-radius: 50%;
     display: none;
-    box-shadow: 0 0 12px rgba(255,82,82,0.6);
+    box-shadow: var(--glow-manual);
   }
   .l-tile[data-manual="true"] .manual-dot { display: block; }
 
@@ -566,10 +430,10 @@ ${REDUCED_MOTION}
   @media (max-width: 440px) {
     .card {
       padding: 16px;
-      --r-track: 8px;
+      --r-track: 999px;
     }
     .light-grid { gap: 8px; }
-    .l-tile { min-height: 96px; }
+    .l-tile { min-height: 88px; }
 
     :host([layout="scroll"]) .light-grid {
       grid-auto-columns: calc(44% - 6px);
@@ -596,16 +460,7 @@ const LIGHTING_TEMPLATE = `
       <div class="hdr">
 
         <!-- Info Tile (§5.2) -->
-        <div class="info-tile" id="infoTile" tabindex="0"
-             role="button" aria-label="Show lighting details">
-          <div class="entity-icon" id="entityIcon">
-            <span class="icon icon-18" id="entityGlyph">lightbulb</span>
-          </div>
-          <div class="hdr-text">
-            <div class="hdr-title" id="hdrTitle">Lighting</div>
-            <div class="hdr-sub" id="hdrSub">All off</div>
-          </div>
-        </div>
+        <tunet-info-tile id="infoTile"></tunet-info-tile>
 
         <!-- Spacer -->
         <div class="hdr-spacer"></div>
@@ -615,19 +470,12 @@ const LIGHTING_TEMPLATE = `
 
         <!-- Adaptive Lighting Toggle (§5.6) -->
         <div class="toggle-wrap" id="adaptiveWrap">
-          <button class="toggle-btn hidden" id="adaptiveBtn"
-                  aria-label="Toggle adaptive lighting">
-            <span class="icon icon-18">auto_awesome</span>
-          </button>
+          <tunet-control-button id="adaptiveBtn"></tunet-control-button>
           <span class="manual-badge" id="manualBadge">0</span>
         </div>
 
         <!-- All Off Button (§5.7) -->
-        <button class="selector-btn" id="allOffBtn"
-                aria-label="Turn all lights off">
-          <span class="icon icon-16">power_settings_new</span>
-          <span>All Off</span>
-        </button>
+        <tunet-control-button id="allOffBtn"></tunet-control-button>
 
       </div>
 
@@ -973,10 +821,6 @@ class TunetLightingCard extends HTMLElement {
     this.$ = {
       card:        this.shadowRoot.querySelector('.card'),
       infoTile:    this.shadowRoot.getElementById('infoTile'),
-      entityIcon:  this.shadowRoot.getElementById('entityIcon'),
-      entityGlyph: this.shadowRoot.getElementById('entityGlyph'),
-      hdrTitle:    this.shadowRoot.getElementById('hdrTitle'),
-      hdrSub:      this.shadowRoot.getElementById('hdrSub'),
       headerDots:  this.shadowRoot.getElementById('headerDots'),
       adaptiveWrap:this.shadowRoot.getElementById('adaptiveWrap'),
       adaptiveBtn: this.shadowRoot.getElementById('adaptiveBtn'),
@@ -998,8 +842,8 @@ class TunetLightingCard extends HTMLElement {
     grid.style.setProperty('--cols', this._config.columns);
     grid.style.setProperty('--scroll-rows', this._config.scroll_rows);
     const rowHeight = this._config.tile_size === 'compact'
-      ? '106px'
-      : (this._config.tile_size === 'large' ? '142px' : '124px');
+      ? '96px'
+      : (this._config.tile_size === 'large' ? '136px' : '116px');
     grid.style.setProperty('--grid-row', rowHeight);
 
     for (const zone of this._resolvedZones) {
@@ -1068,19 +912,6 @@ class TunetLightingCard extends HTMLElement {
      ═══════════════════════════════════════════════════ */
 
   _setupListeners() {
-    // Info tile – fires hass-more-info (Design Language §11.2)
-    this.$.infoTile.addEventListener('click', () => {
-      const entityId = this._config.primary_entity ||
-                       (this._config.entities.length > 0 ? this._config.entities[0] : '') ||
-                       (this._resolvedZones.length > 0 ? this._resolvedZones[0].entity : '');
-      if (!entityId) return;
-      this.dispatchEvent(new CustomEvent('hass-more-info', {
-        bubbles: true,
-        composed: true,
-        detail: { entityId },
-      }));
-    });
-
     // All Off button
     this.$.allOffBtn.addEventListener('click', () => this._allOff());
 
@@ -1519,64 +1350,87 @@ class TunetLightingCard extends HTMLElement {
     const anyOn = onCount > 0;
     this.$.card.dataset.anyOn = anyOn ? 'true' : 'false';
     this.$.card.dataset.allOff = (onCount === 0 && totalCount > 0) ? 'true' : 'false';
-    this.$.allOffBtn.classList.toggle('active', anyOn);
-
-    // ── Header icon state (Principle #7: outlined off, filled on) ──
-    if (anyOn) {
-      this.$.entityGlyph.classList.add('filled');
-      this.$.entityIcon.style.color = '';
-    } else {
-      this.$.entityGlyph.classList.remove('filled');
-      this.$.entityIcon.style.color = '';
-    }
-
-    // ── Title ──
-    this.$.hdrTitle.textContent = this._config.name;
 
     // ── Subtitle (Design Language §5.4) ──
+    const ae = this._config.adaptive_entity;
+    const aeEntity = ae ? this._getEntity(ae) : null;
+    const aeOn = Boolean(aeEntity && aeEntity.state === 'on');
+    const manualCount = manualList.length;
+    let subtitleText = this._config.subtitle || '';
+
     if (this._config.subtitle) {
-      this.$.hdrSub.innerHTML = this._config.subtitle;
+      subtitleText = this._config.subtitle;
     } else {
       const avgBrt = onCount > 0 ? Math.round(totalBrightness / onCount) : 0;
-      const ae = this._config.adaptive_entity;
-      const aeEntity = ae ? this._getEntity(ae) : null;
-      const aeOn = aeEntity && aeEntity.state === 'on';
-      const manualCount = manualList.length;
-
-      let parts = [];
+      const parts = [];
 
       if (onCount === 0) {
         parts.push('All off');
       } else if (onCount === totalCount) {
-        parts.push(`<span class="amber-ic">All on</span> \u00b7 ${avgBrt}%`);
+        parts.push(`All on \u00b7 ${avgBrt}%`);
       } else {
-        parts.push(`<span class="amber-ic">${onCount} on</span> \u00b7 ${avgBrt}%`);
+        parts.push(`${onCount} on \u00b7 ${avgBrt}%`);
       }
 
       if (aeOn && manualCount > 0) {
-        parts.push(`<span class="adaptive-ic">Adaptive</span> \u00b7 <span class="red-ic">${manualCount} manual</span>`);
+        parts.push(`Adaptive \u00b7 ${manualCount} manual`);
       } else if (aeOn) {
-        parts.push('<span class="adaptive-ic">Adaptive</span>');
+        parts.push('Adaptive');
       }
 
-      this.$.hdrSub.innerHTML = parts.join(' \u00b7 ');
+      subtitleText = parts.join(' \u00b7 ');
     }
 
-    // ── Adaptive toggle ──
-    const ae = this._config.adaptive_entity;
-    if (ae) {
-      this.$.adaptiveBtn.classList.remove('hidden');
-      const aeEntity = this._getEntity(ae);
-      const aeOn = aeEntity && aeEntity.state === 'on';
-      this.$.adaptiveBtn.classList.toggle('on', aeOn);
-      this.$.adaptiveBtn.setAttribute('aria-pressed', aeOn ? 'true' : 'false');
+    const infoEntity = this._config.primary_entity ||
+      (this._config.entities.length > 0 ? this._config.entities[0] : '') ||
+      (this._resolvedZones.length > 0 ? this._resolvedZones[0].entity : '');
 
-      // Manual count badge
-      const manualCount = manualList.length;
-      this.$.adaptiveBtn.classList.toggle('has-manual', manualCount > 0);
-      this.$.manualBadge.textContent = manualCount;
+    this.$.infoTile.hass = this._hass;
+    this.$.infoTile.setConfig({
+      entity: infoEntity,
+      title: this._config.name,
+      subtitle: subtitleText,
+      icon: 'lightbulb',
+      accent: 'amber',
+      active: anyOn,
+      disabled: !infoEntity,
+      tap_action: infoEntity ? { action: 'more-info', entity: infoEntity } : { action: 'none' },
+      hold_action: { action: 'none' },
+      double_tap_action: { action: 'none' },
+    });
+
+    this.$.allOffBtn.hass = this._hass;
+    this.$.allOffBtn.setConfig({
+      icon: 'power_settings_new',
+      label: 'All Off',
+      accent: 'amber',
+      active: anyOn,
+      disabled: totalCount === 0,
+      tap_action: { action: 'none' },
+      hold_action: { action: 'none' },
+      double_tap_action: { action: 'none' },
+    });
+
+    // ── Adaptive toggle ──
+    if (ae) {
+      this.$.adaptiveWrap.hidden = false;
+      this.$.adaptiveWrap.classList.toggle('has-manual', manualCount > 0);
+      this.$.manualBadge.textContent = String(manualCount);
+      this.$.adaptiveBtn.hass = this._hass;
+      this.$.adaptiveBtn.setConfig({
+        entity: ae,
+        icon: 'auto_awesome',
+        label: '',
+        accent: 'amber',
+        active: aeOn,
+        disabled: !aeEntity,
+        tap_action: { action: 'none' },
+        hold_action: { action: 'none' },
+        double_tap_action: { action: 'none' },
+      });
     } else {
-      this.$.adaptiveBtn.classList.add('hidden');
+      this.$.adaptiveWrap.hidden = true;
+      this.$.adaptiveWrap.classList.remove('has-manual');
     }
   }
 }

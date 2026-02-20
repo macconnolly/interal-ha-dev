@@ -4,7 +4,7 @@
  * Version 2.0.0
  */
 
-const TUNET_ACTIONS_VERSION = '2.0.0';
+const TUNET_ACTIONS_VERSION = '2.1.0';
 
 const DEFAULT_ACTIONS = [
   {
@@ -50,51 +50,49 @@ const DEFAULT_ACTIONS = [
 
 const DEFAULT_MODE_ACTIONS = [
   {
-    name: 'Morning',
-    icon: 'sunny',
+    name: 'All On',
+    icon: 'lightbulb',
     accent: 'amber',
-    service: 'input_select.select_option',
+    service: 'light.turn_on',
     service_data: {
-      entity_id: 'input_select.oal_active_configuration',
-      option: 'Morning',
+      entity_id: 'light.all_adaptive_lights',
     },
-    state_entity: 'input_select.oal_active_configuration',
-    active_when: 'Morning',
+    state_entity: 'light.all_adaptive_lights',
+    active_when: 'on',
   },
   {
-    name: 'Day',
-    icon: 'wb_sunny',
+    name: 'All Off',
+    icon: 'power_settings_new',
     accent: 'amber',
-    service: 'input_select.select_option',
+    service: 'light.turn_off',
     service_data: {
-      entity_id: 'input_select.oal_active_configuration',
-      option: 'Adaptive',
+      entity_id: 'light.all_adaptive_lights',
     },
-    state_entity: 'input_select.oal_active_configuration',
-    active_when: 'Adaptive',
+    state_entity: 'light.all_adaptive_lights',
+    active_when: 'off',
   },
   {
-    name: 'Evening',
+    name: 'Bedtime',
     icon: 'bedtime',
     accent: 'amber',
     service: 'input_select.select_option',
     service_data: {
-      entity_id: 'input_select.oal_active_configuration',
-      option: 'Evening',
+      entity_id: '__MODE_ENTITY__',
+      option: 'Dim Ambient',
     },
-    state_entity: 'input_select.oal_active_configuration',
-    active_when: 'Evening',
+    state_entity: '__MODE_ENTITY__',
+    active_when: 'Dim Ambient',
   },
   {
-    name: 'Sleep',
+    name: 'Sleep Mode',
     icon: 'bed',
     accent: 'amber',
     service: 'input_select.select_option',
     service_data: {
-      entity_id: 'input_select.oal_active_configuration',
+      entity_id: '__MODE_ENTITY__',
       option: 'Sleep',
     },
-    state_entity: 'input_select.oal_active_configuration',
+    state_entity: '__MODE_ENTITY__',
     active_when: 'Sleep',
   },
 ];
@@ -138,6 +136,8 @@ const TUNET_ACTIONS_STYLES = `
     --r-tile: 16px;
     --ctrl-border: rgba(0,0,0,0.05);
     --tile-bg: rgba(255,255,255,0.92);
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     display: block;
   }
 
@@ -161,6 +161,8 @@ const TUNET_ACTIONS_STYLES = `
     --purple-border: rgba(191,90,242,0.22);
     --ctrl-border: rgba(255,255,255,0.08);
     --tile-bg: rgba(44,44,46,0.90);
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -229,7 +231,7 @@ const TUNET_ACTIONS_STYLES = `
     padding: 10px 4px;
     border-radius: var(--r-tile);
     background: var(--tile-bg);
-    box-shadow: var(--shadow);
+    box-shadow: var(--tile-shadow-rest);
     font-family: inherit;
     font-size: 11px;
     font-weight: 600;
@@ -242,7 +244,7 @@ const TUNET_ACTIONS_STYLES = `
     border: 1px solid transparent;
     -webkit-tap-highlight-color: transparent;
   }
-  .action-chip:hover { box-shadow: var(--shadow-up); }
+  .action-chip:hover { box-shadow: var(--tile-shadow-lift); }
   .action-chip:active { transform: scale(.96); }
   .action-chip:focus-visible {
     outline: 2px solid var(--blue);
@@ -347,11 +349,12 @@ class TunetActionsCard extends HTMLElement {
     const sourceActions = Array.isArray(config.actions) && config.actions.length > 0
       ? config.actions
       : (variant === 'mode_strip'
-        ? DEFAULT_MODE_ACTIONS.map((a) => ({
-            ...a,
-            state_entity: modeEntity,
-            service_data: { ...a.service_data, entity_id: modeEntity },
-          }))
+        ? DEFAULT_MODE_ACTIONS.map((a) => {
+            const next = { ...a, service_data: { ...(a.service_data || {}) } };
+            if (next.state_entity === '__MODE_ENTITY__') next.state_entity = modeEntity;
+            if (next.service_data.entity_id === '__MODE_ENTITY__') next.service_data.entity_id = modeEntity;
+            return next;
+          })
         : DEFAULT_ACTIONS);
 
     this._config = {

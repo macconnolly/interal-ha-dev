@@ -1,10 +1,10 @@
-# Tunet Design System: Implementation Companion (v8.2 Sync)
+# Tunet Design System: Implementation Companion (v8.3 Sync)
 
 This file is now the implementation companion to `Dashboard/Tunet/Mockups/design_language.md` (v8.x canonical spec).  
 All token values, principles, and component rules are inherited from the canonical file.  
 If any value in this document conflicts with `design_language.md`, the canonical file wins.
 
-Version 8.2 – February 20, 2026
+Version 8.3 – February 20, 2026
 Platform: Home Assistant OS via Tailscale
 Rendering: Chromium WebView (HA Companion + Desktop)
 Typeface: DM Sans (Google Fonts)
@@ -17,21 +17,24 @@ Target Width: 400px cards, responsive to 320px minimum
 
 ### 0.1 Card rollout decisions (final parity lock)
 
-1. Lighting: `tunet_lighting_card.js` is canonical and retains flex superset behavior.
-2. Rooms: `tunet_rooms_card.js` is canonical with orb-first interactions and no row master toggle in overview baseline.
+1. Lighting: `tunet_lighting_card.js` is canonical and retains flex superset behavior (`grid|scroll`, `rows|columns|scroll_rows`, `tile_size` including `large`, `expand_groups`).
+2. Rooms: `tunet_rooms_card.js` is canonical with icon-level room toggle and orb sub-button slider expansion when brightness is supported.
 3. Scenes: `tunet_scenes_card.js` remains available but is not part of default overview composition.
 4. Climate: `tunet_climate_card.js` remains baseline; section surface is a variant option, not the default.
 5. Status, actions, weather, media are canonicalized to single production files under `Dashboard/Tunet/Cards/`.
+6. Overview top strip is fixed quick actions: All On, All Off, Bedtime, Sleep Mode.
+7. OAL mode selector remains in Home Status dropdown tile.
+8. Dark-mode baseline for Tunet cards uses midnight surfaces (`#0f172a` context, `#1e293b` card base, dark amber interactions around `#fbbf24`).
 
 ### 0.2 Section-container standard
 
 Every section-container variant must use:
 
-- `border-radius: 38px`
-- `background: var(--parent-bg)` or `var(--section-bg)` (tokenized only)
+- `border-radius: 32px`
+- `background: rgba(255,255,255,0.45)` (light) / `rgba(30,41,59,0.60)` (dark)
 - `backdrop-filter: blur(20px)` with `-webkit-backdrop-filter`
 - `border: 1px solid var(--ctrl-border)` (no hardcoded rgba border)
-- `box-shadow: var(--shadow-section), var(--inset)` (inset ring required)
+- `box-shadow: var(--shadow-section)` where light-mode baseline is `0 8px 40px rgba(0,0,0,0.10)`
 
 ### 0.3 Registration and schema safety
 
@@ -49,6 +52,10 @@ Every section-container variant must use:
 3. Non-button interactive containers require keyboard support (`tabindex`, role, Enter/Space, `:focus-visible`).
 4. Pointer/touch drag controls must implement threshold + axis lock + cancel-safe cleanup.
 5. Dropdown/overlay layers (for media/speaker selectors) must stack above subsequent cards.
+6. Tile lift physics baseline for tile-based cards:
+   - Rest: `0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08)`
+   - Sliding/lifted: `0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)`
+7. Off tiles remain `opacity: 1`; convey off state via ghost/muted content and hidden progress fill, not global opacity fade.
 
 ### 0.5 Ambiguous plan step clarification
 
@@ -80,7 +87,7 @@ Material:     rgba(255, 255, 255, 0.55)  (Light)
               rgba(44, 44, 46, 0.60)      (Dark – neutral)
               rgba(30, 41, 59, 0.65)      (Dark – blue variant)
 Backdrop:     blur(24px) Gaussian, always.
-Radius:       24px (standard card), 38px (section container / parent group)
+Radius:       24px (standard card), 32px (section container / parent group)
 Padding:      20px standard, 16px mobile (≤440px)
 Width:        400px base, 100% max-width
 ```
@@ -124,12 +131,11 @@ The 160deg angle simulates a directional light source catching the top-left beve
 When multiple cards or tiles belong to a logical section (e.g., "Lighting," "Climate"), they are wrapped in a section container.
 
 ```
-Background:   rgba(255, 255, 255, 0.35)  (Light – more transparent than card)
-              rgba(30, 41, 59, 0.45)      (Dark – blue variant)
-              rgba(44, 44, 46, 0.40)      (Dark – neutral)
+Background:   rgba(255, 255, 255, 0.45)  (Light)
+              rgba(30, 41, 59, 0.60)      (Dark – midnight variant)
 Backdrop:     blur(20px)
-Radius:       38px (parent – NOT 24px)
-Border:       1px solid rgba(255, 255, 255, 0.08)
+Radius:       32px (parent – NOT 24px)
+Border:       1px solid var(--ctrl-border)
 Shadow:       0 8px 40px rgba(0,0,0,0.10) (Light)
               0 8px 40px rgba(0,0,0,0.30) (Dark)
 Padding:      20px, gap: 16px between children
@@ -153,34 +159,18 @@ Every accent hex must generate three functional tints:
 
 ### 1.4 Elevation & Shadow Physics (Three-Layer Materialization)
 
-Tunet uses a physics-based "Materialization" model where shadows communicate the power state of an element.
+Tunet uses a deterministic two-state tile physics model for all tile interactions.
 
 **Light Mode:**
 
 | State       | Layers | Values |
 |-------------|--------|--------|
-| OFF (Rest)  | 2      | `0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04)` |
-| Hover       | 2      | `0 1px 3px rgba(0,0,0,0.10), 0 12px 40px rgba(0,0,0,0.12)` |
-| ON (Active) | 3      | Contact: `0 1px 3px rgba(0,0,0,0.10)` + Ambient: `0 12px 40px rgba(0,0,0,0.12)` + Glow: `0 20px 40px -12px rgba(accent, 0.25)` |
+| Rest        | 2      | `0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08)` |
+| Sliding/Lifted | 2   | `0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)` |
 
-**Dark Mode:** 3× opacity on contact and ambient layers. Glow layer opacity stays at 0.25 but uses the dark-mode accent color.
+Dark mode keeps the same tile shadow geometry for consistency with the approved mockup physics.
 
-```
-OFF:    0 1px 2px rgba(0,0,0,0.24), 0 4px 12px rgba(0,0,0,0.12)
-Hover:  0 1px 3px rgba(0,0,0,0.30), 0 12px 40px rgba(0,0,0,0.35)
-ON:     Contact + Ambient + 0 20px 40px -12px rgba(accent, 0.25)
-```
-
-**The `-12px` spread on the Glow layer is mandatory.** It keeps the light "tucked" beneath the object rather than creating a flat neon outline. This is the "Remarkable Leak" effect.
-
-**Materialization transform:** Active cards receive `translateY(-1px)` lift + `opacity: 1.0`. Resting cards sit at `translateY(0)` + `opacity: 0.55` (the "Ghost" standard for OFF state).
-
-| State    | Opacity |
-|----------|---------|
-| OFF      | 0.55    |
-| Idle     | 0.65    |
-| Paused   | 0.85    |
-| Active   | 1.0     |
+Tile off-state does not reduce global tile opacity. Keep `opacity: 1` and express off-state with ghost icon wraps, muted text, and hidden progress fill.
 
 ### 1.5 Page Background (The Canvas)
 
@@ -232,7 +222,7 @@ Inner corner radii = outer corner radii − gap between parent and child. Never 
 
 | Parent               | Parent radius | Gap   | Child              | Child radius |
 |----------------------|---------------|-------|--------------------|--------------|
-| Section container    | 38px          | 20px  | Card               | 24px         |
+| Section container    | 32px          | 20px  | Card               | 24px         |
 | Card (24px)          | 24px          | 20px  | Track / slider     | 14px         |
 | Card (24px)          | 24px          | ~12px | Internal tile/orb  | 12px         |
 | Dropdown (16px)      | 16px          | 5px   | Menu option        | 11px         |
@@ -354,7 +344,7 @@ Every color, shadow, radius, and spacing value is a CSS custom property.
   --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
 
   /* Radii */
-  --r-section: 38px;
+  --r-section: 32px;
   --r-card: 24px;
   --r-tile: 16px;
   --r-pill: 999px;
@@ -908,7 +898,7 @@ Production cards extend `HTMLElement` with `attachShadow({mode: 'open'})`. All C
 
 ### 13.3 Layout Card Integration
 
-Dashboard-level responsiveness uses HA's `layout-card` pattern: CSS grid columns controlled by media queries at the layout level, NOT within individual cards.
+Dashboard-level responsiveness should prefer native Lovelace composition (`grid`, `horizontal-stack`, `vertical-stack`) before custom layout plugins.
 
 ```css
 .layout-grid {
@@ -960,7 +950,7 @@ Before shipping any card or dashboard view, verify every item:
 
 **Typography:** Max two sizes per zone, weight hierarchy 700/600/500, negative spacing on large text, positive spacing on small text, tabular-nums on dynamic numbers, DM Sans with antialiasing.
 
-**Concentricity:** Section 38px → card 24px → track 14px → tile 12px → button 10px. Menu option 11px within 16px dropdown.
+**Concentricity:** Section 32px → card 24px → track 14px → tile 12px → button 10px. Menu option 11px within 16px dropdown.
 
 **Tokens:** All colors from system, slider fills raw rgba, both light/dark defined, single accent per card when possible.
 
@@ -988,7 +978,7 @@ This section defines the implementation contract used to complete the Tunet Over
 
 The Overview is composed in this order:
 
-1. Top mode strip (`custom:tunet-actions-card`, compact mode selector)
+1. Top quick-actions strip (`custom:tunet-actions-card`: All On, All Off, Bedtime, Sleep Mode)
 2. Home Status (4x2)
 3. Lighting Hero (top 5 zones)
 4. Environment row (`custom:tunet-climate-card` + `custom:tunet-weather-card`)

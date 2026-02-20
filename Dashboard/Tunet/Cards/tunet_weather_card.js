@@ -4,7 +4,7 @@
  * Version 1.0.0
  */
 
-const TUNET_WEATHER_VERSION = '1.0.0';
+const TUNET_WEATHER_VERSION = '1.1.0';
 
 const TUNET_WEATHER_STYLES = `
   :host {
@@ -24,6 +24,8 @@ const TUNET_WEATHER_STYLES = `
     --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.05);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     color-scheme: light;
     display: block;
   }
@@ -43,6 +45,8 @@ const TUNET_WEATHER_STYLES = `
     --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     color-scheme: dark;
   }
 
@@ -133,8 +137,10 @@ const TUNET_WEATHER_STYLES = `
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     padding: 10px 4px 8px; border-radius: 12px;
     background: var(--ctrl-bg); border: 1px solid var(--ctrl-border);
+    box-shadow: var(--tile-shadow-rest);
     transition: all .15s;
   }
+  .fc-tile:hover { box-shadow: var(--tile-shadow-lift); }
   .fc-tile.now { background: var(--blue-fill); border-color: var(--blue-border); }
   .fc-day {
     font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
@@ -335,24 +341,31 @@ class TunetWeatherCard extends HTMLElement {
     if (!this._hass || !this._config.entity) return;
     try {
       const result = await this._hass.callWS({
-        type: 'weather/subscribe_forecast',
+        type: 'weather/get_forecasts',
+        entity_ids: [this._config.entity],
         forecast_type: 'daily',
-        entity_id: this._config.entity,
       });
-      // The subscribe returns initial data, but we also need to handle
-      // the case where it's a one-shot response
-      if (result && result.forecast) {
-        this._forecast = result.forecast;
+      const forecast = result
+        && result[this._config.entity]
+        && Array.isArray(result[this._config.entity].forecast)
+        ? result[this._config.entity].forecast
+        : [];
+      if (forecast.length > 0) {
+        this._forecast = forecast;
         this._renderForecast();
+        return;
       }
     } catch {
-      // Fallback: try the older attribute-based forecast
+      // Fall through to attribute fallback.
+    }
+
+    try {
       const entity = this._hass.states[this._config.entity];
       if (entity && entity.attributes.forecast) {
         this._forecast = entity.attributes.forecast;
         this._renderForecast();
       }
-    }
+    } catch (_) {}
   }
 
   _updateAll() {
@@ -397,6 +410,9 @@ class TunetWeatherCard extends HTMLElement {
     }
     if (a.humidity != null) {
       details.push({ icon: 'water_drop', label: 'Humidity', value: `${Math.round(a.humidity)}%` });
+    }
+    if (a.uv_index != null) {
+      details.push({ icon: 'wb_sunny', label: 'UV', value: String(Math.round(a.uv_index)) });
     }
     if (a.pressure != null) {
       details.push({ icon: 'speed', label: 'Pressure', value: `${Math.round(a.pressure)} hPa` });

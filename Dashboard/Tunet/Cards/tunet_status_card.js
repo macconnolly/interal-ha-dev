@@ -4,7 +4,24 @@
  * Version 2.0.0
  */
 
-const TUNET_STATUS_VERSION = '2.0.0';
+const TUNET_STATUS_VERSION = '2.1.0';
+
+const STATUS_ICON_ALIASES = {
+  shelf_auto: 'shelves',
+  countertops: 'kitchen',
+  desk_lamp: 'desk',
+  floor_lamp: 'lamp',
+  table_lamp: 'lamp',
+  light_group: 'lightbulb',
+};
+
+function normalizeStatusIcon(icon) {
+  if (!icon) return 'info';
+  const raw = String(icon).replace(/^mdi:/, '').trim();
+  const resolved = STATUS_ICON_ALIASES[raw] || raw;
+  if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return 'info';
+  return resolved;
+}
 
 const TUNET_STATUS_STYLES = `
   :host {
@@ -27,6 +44,9 @@ const TUNET_STATUS_STYLES = `
     --green-border: rgba(52,199,89,0.15);
     --red: #FF3B30;
     --tile-bg: rgba(255,255,255,0.92);
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
+    --tile-row-h: 132px;
     --track-bg: rgba(28,28,30,0.055);
     --r-card: 24px;
     --r-tile: 16px;
@@ -57,6 +77,8 @@ const TUNET_STATUS_STYLES = `
     --green-border: rgba(48,209,88,0.20);
     --red: #FF453A;
     --tile-bg: rgba(44,44,46,0.90);
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     --track-bg: rgba(255,255,255,0.06);
     --ctrl-border: rgba(255,255,255,0.08);
     --dd-bg: rgba(58,58,60,0.92);
@@ -117,13 +139,15 @@ const TUNET_STATUS_STYLES = `
   .grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(var(--tile-row-h), var(--tile-row-h));
+    align-items: stretch;
     gap: 10px;
   }
 
   .tile {
     background: var(--tile-bg);
     border-radius: var(--r-tile);
-    box-shadow: var(--shadow);
+    box-shadow: var(--tile-shadow-rest);
     padding: 14px 8px 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 4px;
@@ -131,8 +155,10 @@ const TUNET_STATUS_STYLES = `
     transition: all .15s ease;
     position: relative;
     overflow: visible;
+    min-height: var(--tile-row-h);
+    height: 100%;
   }
-  .tile:hover { box-shadow: var(--shadow-up); }
+  .tile:hover { box-shadow: var(--tile-shadow-lift); }
   .tile:active { transform: scale(.97); }
   .tile:focus-visible {
     outline: 2px solid var(--blue);
@@ -176,7 +202,35 @@ const TUNET_STATUS_STYLES = `
   .status-dot.muted { background: var(--text-muted); opacity: 0.5; display: block; }
 
   /* Conditional visibility */
-  .tile.tile-hidden { display: none !important; }
+  .tile.tile-hidden {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .tile-aux {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid var(--ctrl-border);
+    background: var(--ctrl-bg);
+    box-shadow: var(--ctrl-sh);
+    color: var(--text-sub);
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    z-index: 2;
+  }
+  .tile-aux:hover { box-shadow: var(--tile-shadow-rest); }
+  .tile-aux:active { transform: scale(0.97); }
+  .tile.has-aux { padding-top: 26px; }
 
   /* Timer tile — monospace countdown */
   .tile[data-type="timer"] .tile-val {
@@ -262,6 +316,8 @@ const TUNET_STATUS_STYLES = `
   @media (max-width: 440px) {
     .card { padding: 16px; }
     .grid { grid-template-columns: repeat(2, 1fr); }
+    .tile { min-height: 116px; }
+    :host { --tile-row-h: 116px; }
     .tile-val { font-size: 16px; }
   }
 
@@ -339,11 +395,12 @@ class TunetStatusCard extends HTMLElement {
         const base = {
           type,
           entity: t.entity || '',
-          icon: t.icon || 'info',
+          icon: normalizeStatusIcon(t.icon || 'info'),
           label: t.label || '',
           accent: t.accent || 'muted',
           show_when: t.show_when || null,
           tap_action: t.tap_action || null,
+          aux_action: t.aux_action || null,
         };
 
         if (type === 'indicator') {
@@ -511,6 +568,23 @@ class TunetStatusCard extends HTMLElement {
           this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
           break;
         }
+      }
+
+      if (tile.aux_action) {
+        const auxBtn = document.createElement('button');
+        auxBtn.type = 'button';
+        auxBtn.className = 'tile-aux';
+        const auxIcon = tile.aux_action.icon ? normalizeStatusIcon(tile.aux_action.icon) : '';
+        const auxLabel = tile.aux_action.label || 'Action';
+        auxBtn.innerHTML = auxIcon
+          ? `<span class="icon" style="font-size:12px;width:12px;height:12px">${auxIcon}</span><span>${auxLabel}</span>`
+          : `<span>${auxLabel}</span>`;
+        auxBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this._handleTapAction(tile.aux_action, tile.entity);
+        });
+        el.appendChild(auxBtn);
+        el.classList.add('has-aux');
       }
 
       this._gridEl.appendChild(el);

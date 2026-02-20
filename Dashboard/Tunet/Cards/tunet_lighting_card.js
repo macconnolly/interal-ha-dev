@@ -23,12 +23,13 @@
  *   columns:          2-5          Grid columns (default: 3)
  *   rows:             'auto'|2-6   Max visible rows in grid (default: auto)
  *   scroll_rows:      1-3          Rows in scroll mode (default: 2)
- *   tile_size:        'compact'|'standard'  Tile aspect ratio (default: standard)
+ *   tile_size:        'compact'|'standard'|'large'  Tile density preset (default: standard)
  *   surface:          'card'|'section'  Surface architecture (default: card)
+ *   expand_groups:    boolean      Expand group entities into member lights (default: true)
  * ──────────────────────────────────────────────────────────────
  */
 
-const LIGHTING_CARD_VERSION = '3.0.0';
+const LIGHTING_CARD_VERSION = '3.1.0';
 
 /* ═══════════════════════════════════════════════════════════════
    CSS – Complete token system from Design Language v8.0
@@ -82,14 +83,18 @@ const LIGHTING_STYLES = `
 
     /* Radii */
     --r-card: 24px;
-    --r-section: 38px;
+    --r-section: 32px;
     --r-tile: 16px;
     --r-pill: 999px;
     --r-track: 4px;
 
     /* Section Surface */
-    --section-bg: rgba(255,255,255, 0.35);
+    --section-bg: rgba(255,255,255, 0.45);
     --section-shadow: 0 8px 40px rgba(0,0,0,0.10);
+
+    /* Tile physics */
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
 
     /* Controls (header controls, pills, buttons) */
     --ctrl-bg: rgba(255,255,255, 0.52);
@@ -122,20 +127,20 @@ const LIGHTING_STYLES = `
 
   /* ── Tokens: Dark (Design Language §2.2) ───────── */
   :host(.dark) {
-    --glass: rgba(44,44,46, 0.72);
-    --glass-border: rgba(255,255,255, 0.08);
+    --glass: rgba(30,41,59, 0.72);
+    --glass-border: rgba(255,255,255, 0.10);
 
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
     --inset: inset 0 0 0 0.5px rgba(255,255,255, 0.06);
 
-    --text: #F5F5F7;
-    --text-sub: rgba(245,245,247, 0.50);
-    --text-muted: rgba(245,245,247, 0.35);
+    --text: #F8FAFC;
+    --text-sub: rgba(248,250,252, 0.65);
+    --text-muted: rgba(248,250,252, 0.45);
 
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30, 0.14);
-    --amber-border: rgba(232,150,30, 0.25);
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36, 0.18);
+    --amber-border: rgba(251,191,36, 0.32);
 
     --blue: #0A84FF;
     --blue-fill: rgba(10,132,255, 0.13);
@@ -170,10 +175,13 @@ const LIGHTING_STYLES = `
     --toggle-on: rgba(48,209,88, 0.30);
     --toggle-knob: rgba(255,255,255, 0.92);
 
-    --tile-bg: rgba(44,44,46, 0.90);
+    --tile-bg: rgba(30,41,59, 0.92);
 
-    --section-bg: rgba(255,255,255, 0.05);
-    --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
+    --section-bg: rgba(30,41,59, 0.60);
+    --section-shadow: 0 8px 40px rgba(0,0,0,0.35);
+
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
 
     color-scheme: dark;
   }
@@ -263,12 +271,8 @@ const LIGHTING_STYLES = `
     border-color: rgba(212,133,10, 0.14);
   }
   :host(.dark) .card[data-any-on="true"] {
-    border-color: rgba(232,150,30, 0.16);
+    border-color: rgba(251,191,36, 0.22);
   }
-  .card[data-all-off="true"] {
-    opacity: 0.55;
-  }
-
   /* ═══════════════════════════════════════════════════
      SECTION SURFACE (alternative container mode)
      surface: 'section' config option
@@ -279,12 +283,12 @@ const LIGHTING_STYLES = `
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--ctrl-border);
-    box-shadow: var(--section-shadow), var(--inset);
+    box-shadow: var(--section-shadow);
   }
   :host(.dark[surface="section"]) .card {
     background: var(--section-bg);
     border-color: var(--ctrl-border);
-    box-shadow: var(--section-shadow), var(--inset);
+    box-shadow: var(--section-shadow);
   }
   :host([surface="section"]) .card::before {
     border-radius: var(--r-section);
@@ -513,6 +517,7 @@ const LIGHTING_STYLES = `
     gap: 10px;
     width: 100%;
     min-width: 0;
+    overflow-y: visible;
   }
 
   /* Max rows constraint (grid mode) */
@@ -528,6 +533,7 @@ const LIGHTING_STYLES = `
     grid-auto-flow: column;
     grid-auto-columns: calc(32% - 10px);
     overflow-x: auto;
+    overflow-y: visible;
     scroll-snap-type: x mandatory;
     scroll-padding-left: 4px;
     row-gap: 14px;
@@ -543,7 +549,7 @@ const LIGHTING_STYLES = `
   .l-tile {
     background: var(--tile-bg);
     border-radius: var(--r-tile);
-    box-shadow: var(--shadow);
+    box-shadow: var(--tile-shadow-rest);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -566,6 +572,9 @@ const LIGHTING_STYLES = `
   /* Compact tile variant */
   :host([tile-size="compact"]) .l-tile {
     padding: 8px 6px 16px;
+  }
+  :host([tile-size="large"]) .l-tile {
+    padding: 12px 10px 18px;
   }
 
   /* Scroll layout tile additions */
@@ -614,8 +623,8 @@ const LIGHTING_STYLES = `
     border: 1px solid var(--amber-border);
   }
   .l-tile.on .zone-val { color: var(--amber); }
-  .l-tile.on .progress-fill { background: rgba(212,133,10, 0.85); }
-  :host(.dark) .l-tile.on .progress-fill { background: rgba(232,150,30, 0.85); }
+  .l-tile.on .progress-fill { background: rgba(212,133,10, 0.90); }
+  :host(.dark) .l-tile.on .progress-fill { background: rgba(251,191,36, 0.90); }
   .l-tile.on .tile-icon-wrap .icon {
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
@@ -623,7 +632,7 @@ const LIGHTING_STYLES = `
   /* ── Sliding State (drag active) ─────────────────── */
   .l-tile.sliding {
     transform: scale(1.05);
-    box-shadow: var(--shadow-up);
+    box-shadow: var(--tile-shadow-lift);
     z-index: 100;
     border-color: var(--amber) !important;
     transition: none;
@@ -642,7 +651,7 @@ const LIGHTING_STYLES = `
     background: var(--tile-bg);
     padding: 5px 16px;
     border-radius: var(--r-pill);
-    box-shadow: var(--shadow-up);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     z-index: 101;
     border: 1px solid var(--ctrl-border);
     opacity: 1;
@@ -663,9 +672,9 @@ const LIGHTING_STYLES = `
   }
 
   .zone-name {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: normal;
+    letter-spacing: 0.1px;
     color: var(--text);
     text-align: center;
     white-space: nowrap;
@@ -677,9 +686,9 @@ const LIGHTING_STYLES = `
   }
 
   .zone-val {
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: normal;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1px;
     transition: color .2s;
     font-variant-numeric: tabular-nums;
   }
@@ -714,6 +723,7 @@ const LIGHTING_STYLES = `
     background: #FF3B30;
     border-radius: 50%;
     display: none;
+    box-shadow: 0 0 12px rgba(255,82,82,0.6);
   }
   .l-tile[data-manual="true"] .manual-dot { display: block; }
 
@@ -822,9 +832,6 @@ class TunetLightingCard extends HTMLElement {
     this._resolvedZones = [];  // [{entity, name, icon}, ...]
     this._tiles = {};
     this._dragState = null;
-    this._dragThresholdPx = 6;
-    this._dragAxisBiasPx = 3;
-    this._touchDragGain = 1.35;
     this._serviceCooldown = {};
     this._cooldownTimers = {};
     this._adaptivePressTimer = null;
@@ -886,6 +893,7 @@ class TunetLightingCard extends HTMLElement {
           name: '', type: 'grid', schema: [
             { name: 'rows',        selector: { text: {} } },
             { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
+            { name: 'expand_groups', selector: { boolean: {} } },
           ],
         },
       ],
@@ -900,6 +908,7 @@ class TunetLightingCard extends HTMLElement {
         rows:            'Max Rows (auto or number)',
         scroll_rows:     'Scroll Rows',
         tile_size:       'Tile Size',
+        expand_groups:   'Expand Group Entities',
       }[s.name] || s.name),
     };
   }
@@ -951,7 +960,8 @@ class TunetLightingCard extends HTMLElement {
     const layout = config.layout === 'scroll' ? 'scroll' : 'grid';
     const surface = config.surface === 'section' ? 'section' : 'card';
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
-    const tileSize = tileSizeRaw === 'compact' ? 'compact' : 'standard';
+    const tileSize = tileSizeRaw === 'compact' ? 'compact' : (tileSizeRaw === 'large' ? 'large' : 'standard');
+    const expandGroups = config.expand_groups !== false;
     const rows = config.rows === 'auto' || config.rows == null
       ? null
       : (() => {
@@ -972,6 +982,7 @@ class TunetLightingCard extends HTMLElement {
       scroll_rows:     scrollRows,
       surface,
       tile_size:       tileSize,
+      expand_groups:   expandGroups,
       rows,
     };
 
@@ -988,11 +999,8 @@ class TunetLightingCard extends HTMLElement {
       this.removeAttribute('surface');
     }
 
-    if (tileSize === 'compact') {
-      this.setAttribute('tile-size', 'compact');
-    } else {
-      this.removeAttribute('tile-size');
-    }
+    if (tileSize === 'compact' || tileSize === 'large') this.setAttribute('tile-size', tileSize);
+    else this.removeAttribute('tile-size');
 
     if (rows) {
       this.setAttribute('data-max-rows', rows);
@@ -1073,7 +1081,7 @@ class TunetLightingCard extends HTMLElement {
       } else if (z && z.entity) {
         // Rich zone object – check if it's a group
         const entity = this._hass ? this._hass.states[z.entity] : null;
-        if (entity && entity.attributes && entity.attributes.entity_id &&
+        if (this._config.expand_groups && entity && entity.attributes && entity.attributes.entity_id &&
             Array.isArray(entity.attributes.entity_id)) {
           // Group – expand with optional name/icon overrides
           for (const memberId of entity.attributes.entity_id) {
@@ -1096,7 +1104,7 @@ class TunetLightingCard extends HTMLElement {
   _expandEntity(id, zones, seen) {
     if (seen.has(id)) return;
     const entity = this._hass ? this._hass.states[id] : null;
-    if (entity && entity.attributes && entity.attributes.entity_id &&
+    if (this._config.expand_groups && entity && entity.attributes && entity.attributes.entity_id &&
         Array.isArray(entity.attributes.entity_id)) {
       // It's a group – expand to individual members
       for (const memberId of entity.attributes.entity_id) {
@@ -1171,7 +1179,10 @@ class TunetLightingCard extends HTMLElement {
     // Set CSS custom properties
     grid.style.setProperty('--cols', this._config.columns);
     grid.style.setProperty('--scroll-rows', this._config.scroll_rows);
-    grid.style.setProperty('--grid-row', this._config.tile_size === 'compact' ? '106px' : '124px');
+    const rowHeight = this._config.tile_size === 'compact'
+      ? '106px'
+      : (this._config.tile_size === 'large' ? '142px' : '124px');
+    grid.style.setProperty('--grid-row', rowHeight);
 
     for (const zone of this._resolvedZones) {
       const tile = document.createElement('div');
@@ -1301,13 +1312,19 @@ class TunetLightingCard extends HTMLElement {
         // Some WebViews/Safari contexts can reject capture; fall back to document listeners.
       }
 
+      const pointerType = e.pointerType || 'mouse';
+      const isTouch = pointerType === 'touch';
+
       this._dragState = {
         entity:      tile.dataset.entity,
         startX:      e.clientX,
         startY:      e.clientY,
         startBright: parseInt(tile.dataset.brightness) || 0,
         tileEl:      tile,
-        pointerType: e.pointerType || 'mouse',
+        pointerType,
+        dragThreshold: isTouch ? 5 : 10,
+        axisBias: isTouch ? 2 : 5,
+        dragGain: isTouch ? 1.12 : 0.95,
         axisLocked:  false,
         ignoreTap:   false,
         moved:       false,
@@ -1365,10 +1382,10 @@ class TunetLightingCard extends HTMLElement {
     const absDy = Math.abs(dy);
 
     if (!ds.axisLocked) {
-      if (absDx < this._dragThresholdPx && absDy < this._dragThresholdPx) return;
+      if (absDx < ds.dragThreshold && absDy < ds.dragThreshold) return;
 
       // Vertical intent: don't treat as tap/toggle fallback.
-      if (absDy > absDx + this._dragAxisBiasPx) {
+      if (absDy > absDx + ds.axisBias) {
         ds.ignoreTap = true;
         this._dragState = null;
         return;
@@ -1377,25 +1394,22 @@ class TunetLightingCard extends HTMLElement {
       ds.axisLocked = true;
     }
 
-    if (!ds.moved && absDx < this._dragThresholdPx) return;
+    if (!ds.moved && absDx < ds.dragThreshold) return;
 
     if (!ds.moved) {
       ds.moved = true;
       ds.tileEl.classList.add('sliding');
       document.body.style.cursor = 'grabbing';
-      // In scroll mode, disable grid scroll while dragging
-      if (this._config.layout === 'scroll') {
-        this.$.lightGrid.style.overflowX = 'hidden';
-        this.$.lightGrid.style.scrollSnapType = 'none';
-      }
+      if (this._config.layout === 'scroll') this.$.lightGrid.style.scrollSnapType = 'none';
     }
 
     // Map horizontal movement to brightness change
     if (e.cancelable) e.preventDefault();
     const width = Math.max(ds.tileEl.offsetWidth, 1);
-    const dragRange = Math.max(width * 0.62, 100);
-    const gain = ds.pointerType === 'touch' ? this._touchDragGain : 1.15;
-    const change = (dx / dragRange) * 100 * gain;
+    const dragRange = ds.pointerType === 'touch'
+      ? Math.max(width * 0.82, 110)
+      : Math.max(width * 1.20, 185);
+    const change = (dx / dragRange) * 100 * ds.dragGain;
     const newBrt = Math.round(Math.max(0, Math.min(100, ds.startBright + change)));
     if (newBrt === ds.currentBright) return;
 
@@ -1454,11 +1468,8 @@ class TunetLightingCard extends HTMLElement {
     // Reset cursor
     document.body.style.cursor = '';
 
-    // Restore scroll in scroll mode
-    if (this._config.layout === 'scroll') {
-      this.$.lightGrid.style.overflowX = 'auto';
-      this.$.lightGrid.style.scrollSnapType = 'x mandatory';
-    }
+    // Restore scroll snapping in scroll mode
+    if (this._config.layout === 'scroll') this.$.lightGrid.style.scrollSnapType = 'x mandatory';
 
     if (commit) {
       // Drag completed – set brightness
@@ -1498,6 +1509,7 @@ class TunetLightingCard extends HTMLElement {
 
   _normalizeIcon(icon) {
     if (!icon) return 'lightbulb';
+    const raw = String(icon).replace(/^mdi:/, '').trim();
     const map = {
       light_group: 'lightbulb',
       shelf_auto: 'shelves',
@@ -1506,7 +1518,9 @@ class TunetLightingCard extends HTMLElement {
       table_lamp: 'lamp',
       floor_lamp: 'lamp',
     };
-    return map[icon] || icon;
+    const resolved = map[raw] || raw;
+    if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return 'lightbulb';
+    return resolved;
   }
 
   _zoneIcon(zone) {

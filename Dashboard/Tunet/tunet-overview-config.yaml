@@ -21,37 +21,35 @@
   compact: true
   mode_entity: input_select.oal_active_configuration
   actions:
-    - name: Morning
-      icon: sunny
+    - name: All On
+      icon: lightbulb
       accent: amber
-      service: input_select.select_option
+      service: light.turn_on
       service_data:
-        entity_id: input_select.oal_active_configuration
-        option: Morning
-      state_entity: input_select.oal_active_configuration
-      active_when: Morning
+        entity_id: light.all_adaptive_lights
+      state_entity: light.all_adaptive_lights
+      active_when: 'on'
 
-    - name: Day
-      icon: wb_sunny
+    - name: All Off
+      icon: power_settings_new
       accent: amber
-      service: input_select.select_option
+      service: light.turn_off
       service_data:
-        entity_id: input_select.oal_active_configuration
-        option: Adaptive
-      state_entity: input_select.oal_active_configuration
-      active_when: Adaptive
+        entity_id: light.all_adaptive_lights
+      state_entity: light.all_adaptive_lights
+      active_when: 'off'
 
-    - name: Evening
+    - name: Bedtime
       icon: bedtime
       accent: amber
       service: input_select.select_option
       service_data:
         entity_id: input_select.oal_active_configuration
-        option: Evening
+        option: Dim Ambient
       state_entity: input_select.oal_active_configuration
-      active_when: Evening
+      active_when: Dim Ambient
 
-    - name: Sleep
+    - name: Sleep Mode
       icon: bed
       accent: amber
       service: input_select.select_option
@@ -92,11 +90,15 @@
         entity: sensor.oal_system_status
         operator: contains
         state: Manual
-      tap_action:
+      aux_action:
+        label: Reset
+        icon: restart_alt
         action: call-service
         service: script.turn_on
         service_data:
           entity_id: script.oal_reset_manual_control
+      tap_action:
+        action: more-info
 
     - type: value
       entity: sensor.oal_global_brightness_offset
@@ -149,10 +151,11 @@
 - type: custom:tunet-lighting-card
   name: Lighting
   surface: section
-  layout: scroll
-  scroll_rows: 1
+  layout: grid
+  expand_groups: false
   tile_size: compact
   columns: 3
+  rows: 2
   adaptive_entity: switch.adaptive_lighting_main_living
   primary_entity: sensor.oal_system_status
   zones:
@@ -173,11 +176,9 @@
       icon: view_column
 
 # ─── 4. ENVIRONMENT ROW ───────────────────────────────────────
-- type: custom:layout-card
-  layout_type: custom:grid-layout
-  layout:
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))
-    grid-gap: 12px
+- type: grid
+  columns: 2
+  square: false
   cards:
     - type: custom:tunet-climate-card
       entity: climate.dining_room
@@ -214,7 +215,7 @@
           icon: highlight
           name: Spots
         - entity: light.living_room_credenza_light
-          icon: shelves
+          icon: light
           name: Credenza
 
     - name: Kitchen
@@ -228,7 +229,7 @@
           icon: kitchen
           name: Main
         - entity: light.kitchen_counter_cabinet_underlights
-          icon: shelves
+          icon: kitchen
           name: Under-cab
 
     - name: Dining Room

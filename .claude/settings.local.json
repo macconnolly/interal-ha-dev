@@ -75,7 +75,8 @@
       "Bash(git -C /home/mac/HA/implementation_10 branch --show-current)",
       "mcp__claude_ai_Core_memory__memory_search",
       "Bash(wc:*)",
-      "mcp__plugin_claude-mem_mcp-search____IMPORTANT"
+      "mcp__plugin_claude-mem_mcp-search____IMPORTANT",
+      "WebFetch(domain:developers.openai.com)"
     ],
     "deny": [],
     "ask": []

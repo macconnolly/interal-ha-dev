@@ -1,0 +1,7 @@
+# Project-scoped Codex config for HA implementation_10
+# Inherits from ~/.codex/config.toml, overrides only what's needed
+
+approval_policy = "on-request"
+
+[sandbox_workspace_write]
+network_access = true

@@ -2,7 +2,7 @@
  * Tunet Media Card v3
  * Sonos media player with transport, volume, and dual-purpose speaker dropdown
  * Dual-entity model: coordinator for media/transport, active entity for volume
- * Auto-detects speakers from binary_sensor.sonos_*_in_playing_group entities
+ * Auto-detects speakers from active-group or playing-group Sonos binaries
  * Version 3.0.0
  */
 

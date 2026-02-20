@@ -1,13 +1,13 @@
 A unified visual language for every card, tile, control, and surface on the Custom Home Assistant dashboard. This document is card-agnostic. It defines the system; individual card specs reference it.
 
-Version 8.2 – February 2026
+Version 8.3 – February 2026
 Platform: Home Assistant OS via Tailscale
 Rendering: Chromium WebView (HA Companion + Desktop)
 Typeface: DM Sans (Google Fonts)
 Icon library: Material Symbols Rounded (Google Fonts, variable font)
 Target: 400px card width, responsive to 320px minimum
 
-### 2026-02-20 Parity Lock (v8.2, Normative)
+### 2026-02-20 Parity Lock (v8.3, Normative)
 
 This block is authoritative for Tunet implementation and interaction behavior.  
 If any older section conflicts, this block wins.
@@ -30,7 +30,7 @@ Alt implementations are archive/reference-only and must not be loaded in Lovelac
 
 Required order on overview:
 
-1. Compact mode strip
+1. Compact quick-actions strip (All On / All Off / Bedtime / Sleep Mode)
 2. Home status grid (4x2 target density)
 3. Lighting hero (curated primary zones only)
 4. Environment row (climate + weather)
@@ -38,6 +38,8 @@ Required order on overview:
 6. Rooms
 
 Standalone scenes card is not part of overview baseline.
+OAL mode selection remains in Home Status as a dedicated dropdown tile (`input_select.oal_active_configuration`).
+Dark-mode visual baseline for Tunet cards is the midnight variant (`#0f172a` canvas context, `#1e293b` card surfaces, amber family anchored to `#fbbf24` in dark interactions).
 
 #### Surface parity contract
 
@@ -51,11 +53,11 @@ Standard card surface (default):
 
 Section-container surface (variant):
 
-- `border-radius: var(--r-section)` (`38px`)
-- `background: var(--parent-bg)` (or tokenized equivalent)
+- `border-radius: var(--r-section)` (`32px`)
+- `background: rgba(255,255,255,0.45)` light / `rgba(30,41,59,0.60)` dark
 - `backdrop-filter: blur(20px)` and `-webkit-backdrop-filter: blur(20px)`
 - `border: 1px solid var(--ctrl-border)` (never hardcoded rgba border)
-- `box-shadow: var(--shadow-section), var(--inset)` (inset ring required)
+- `box-shadow: var(--shadow-section)` where `--shadow-section` is `0 8px 40px rgba(0,0,0,0.10)` in light mode
 
 #### Lighting hero functional contract
 
@@ -63,6 +65,7 @@ Section-container surface (variant):
 
 - `layout: grid|scroll`
 - `columns`, `rows`, `scroll_rows`, `tile_size` (`compact|standard`, with `large` alias support)
+- `expand_groups` (`true` by default, `false` for curated hero zoning)
 - finite-number sanitation for numeric layout config before writing CSS vars
 - backward-compat schema normalization:
   - `entities` + `zones` (preferred)
@@ -70,6 +73,10 @@ Section-container surface (variant):
 - container-driven width (`width: 100%`; no fixed width cap)
 - scroll-mode `getCardSize()` based on visible rows, not total entities
 - grid tiles bounded to prevent oversized/overflow rows
+- tile rest/lift physics:
+  - rest: `0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08)`
+  - sliding/lifted: `0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)`
+- off tile state never uses global opacity fade (`opacity: 1` stays); off is conveyed via ghost icon-wrap + muted text + hidden progress
 
 #### Interaction and accessibility contract
 
@@ -82,8 +89,8 @@ Section-container surface (variant):
 #### Rooms card contract
 
 - Rooms rows are two-column on desktop and single-column on narrow/mobile.
-- Room-level master toggle switch is excluded from this release baseline.
-- Per-light orb controls are primary interaction.
+- Main room icon toggles all lights in the room.
+- Per-light sub buttons remain primary controls and can transition to an inline brightness slider on tap when brightness is supported.
 - Row tap navigates when path exists; otherwise fallback is `hass-more-info`.
 
 #### Icon governance contract
@@ -495,7 +502,7 @@ Accent tint opacity: 0.12 – 0.16 (barely visible)
 Applied via data attribute: card[data-action="heating"] { border-color: rgba(...) }
 ```
 
-**Off state:** `opacity: 0.55` on the entire card.
+**Off tile state:** Tile opacity remains `1`. Use ghost icon-wrap/background, muted text, and hidden progress fill to communicate off.
 
 ### 3.4 Control Surface (Shared by All Header Controls)
 
@@ -1044,7 +1051,7 @@ All three share identical idle treatment. All three accept the same accent tripl
 ### 8.4 Off-Mode Card State
 
 When the entity is off:
-- Card: `opacity: 0.55`
+- Tile: `opacity: 1` (off is conveyed by ghost/muted content, not global opacity fade)
 - Controls that don't apply: hidden via `display: none`
 - Track: `opacity: 0.35`
 
@@ -1505,7 +1512,7 @@ Alt and duplicate implementations are archived and must not be loaded as Lovelac
 
 Required order:
 
-1. Compact top mode strip (Morning / Day / Evening / Sleep)
+1. Compact top quick-actions strip (All On / All Off / Bedtime / Sleep Mode)
 2. Home Status (4 columns x 2 rows)
 3. Lighting Hero (curated top 5 zones)
 4. Environment row (Climate + Weather forecast)

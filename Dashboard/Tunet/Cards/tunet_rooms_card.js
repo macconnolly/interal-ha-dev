@@ -2,10 +2,10 @@
  * Tunet Rooms Card
  * Custom Home Assistant card with glassmorphism design
  * Room overview capsules with per-room light group orbs
- * Version 1.0.0
+ * Version 2.1.0
  */
 
-const ROOMS_CARD_VERSION = '2.0.0';
+const ROOMS_CARD_VERSION = '2.1.0';
 
 const ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -16,10 +16,19 @@ const ICON_ALIASES = {
   light_group: 'lightbulb',
 };
 
+const ROOM_ICON_FALLBACKS = new Set([
+  'home', 'weekend', 'kitchen', 'restaurant', 'bed', 'desk', 'desktop_windows',
+  'lightbulb', 'light', 'lamp', 'highlight', 'view_column', 'nightlight', 'shelves',
+  'chevron_right',
+]);
+
 function normalizeIcon(icon) {
   if (!icon) return 'lightbulb';
   const raw = String(icon).replace(/^mdi:/, '').trim();
-  return ICON_ALIASES[raw] || raw;
+  const resolved = ICON_ALIASES[raw] || raw;
+  if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return 'lightbulb';
+  if (ROOM_ICON_FALLBACKS.has(resolved)) return resolved;
+  return resolved;
 }
 
 /* ===============================================================
@@ -144,11 +153,17 @@ const ROOMS_STYLES = `
 
   /* -- Room Capsule -- */
   .room-card {
-    min-height: 72px; border-radius: var(--r-card);
+    min-height: 108px; border-radius: var(--r-card);
     background: var(--glass); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--ctrl-border);
-    box-shadow: var(--shadow), var(--inset);
-    display: flex; align-items: center; padding: 0 14px; gap: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08), var(--inset);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    padding: 10px 14px;
+    row-gap: 8px;
+    column-gap: 12px;
     cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden;
   }
   .room-card::before {
@@ -161,18 +176,25 @@ const ROOMS_STYLES = `
   :host(.dark) .room-card::before {
     background: linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.01) 60%, rgba(255,255,255,0.08));
   }
-  .room-card:hover { box-shadow: var(--shadow-up), var(--inset); }
+  .room-card:hover { box-shadow: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08), var(--inset); }
   .room-card.active { border-color: var(--amber-border); }
 
   .room-icon {
     width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
     flex-shrink: 0; transition: all 0.2s; border: 1px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
   }
   .room-card:not(.active) .room-icon { background: var(--gray-ghost); color: var(--text-muted); }
   .room-card.active .room-icon { background: var(--amber-fill); color: var(--amber); border-color: var(--amber-border); }
   .room-card.active .room-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
 
-  .room-info { flex: 1; min-width: 0; }
+  .room-info {
+    min-width: 0;
+    grid-column: 2;
+    grid-row: 1;
+  }
   .room-name { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.2; }
   .room-status {
     font-size: 11.5px; font-weight: 600; color: var(--text-muted); line-height: 1.2; margin-top: 2px;
@@ -180,20 +202,103 @@ const ROOMS_STYLES = `
   }
   .room-status .amber-txt { color: var(--amber); }
 
-  .room-controls { display: flex; align-items: center; gap: 6px; }
+  .room-controls {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+  }
+  .room-sub-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
 
   /* -- Light Group Orbs -- */
   .room-orb {
     width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
     flex-shrink: 0; cursor: pointer; transition: all 0.15s; border: 1px solid transparent;
     background: var(--gray-ghost); color: var(--text-muted);
+    padding: 0;
+    font: inherit;
   }
   .room-orb:hover { background: var(--track-bg); }
   .room-orb:active { transform: scale(0.92); }
   .room-orb.on { background: var(--amber-fill); color: var(--amber); border-color: var(--amber-border); }
   .room-orb.on .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .room-orb.expanded {
+    border-color: var(--amber-border);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
+    transform: scale(1.03);
+  }
 
-  .room-chevron { color: var(--text-muted); flex-shrink: 0; cursor: pointer; }
+  .room-slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    padding: 6px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--ctrl-border);
+    background: var(--track-bg);
+    box-shadow: var(--inset);
+  }
+  .room-slider-wrap.hidden { display: none; }
+  .room-slider-wrap .icon {
+    color: var(--amber);
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+  .room-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--track-bg);
+    outline: none;
+  }
+  .room-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid var(--amber-border);
+    background: var(--amber);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+    cursor: pointer;
+  }
+  .room-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid var(--amber-border);
+    background: var(--amber);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+    cursor: pointer;
+  }
+  .room-slider-val {
+    min-width: 34px;
+    text-align: right;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--amber);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .room-chevron {
+    color: var(--text-muted);
+    flex-shrink: 0;
+    cursor: pointer;
+    grid-column: 3;
+    grid-row: 1;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -202,9 +307,10 @@ const ROOMS_STYLES = `
     .room-list { grid-template-columns: 1fr; }
   }
   @media (max-width: 440px) {
-    .room-card { padding: 0 10px; min-height: 66px; gap: 10px; }
+    .room-card { padding: 10px; min-height: 102px; row-gap: 6px; column-gap: 8px; }
     .room-icon { width: 38px; height: 38px; }
     .room-orb { width: 30px; height: 30px; }
+    .room-slider-wrap { padding: 5px 7px; }
   }
 `;
 
@@ -269,9 +375,9 @@ class TunetRoomsCard extends HTMLElement {
    *   name: 'Living Room',
    *   icon: 'weekend',
    *   lights: [
-   *     { entity: 'light.spots', icon: 'highlight', name: 'Spots' },
-   *     { entity: 'light.ceiling', icon: 'light', name: 'Ceiling' },
-   *     { entity: 'light.lamp', icon: 'table_lamp', name: 'Lamp' },
+   *     { entity: 'light.spots', icon: 'highlight', name: 'Spots', sub_button: true },
+   *     { entity: 'light.ceiling', icon: 'light', name: 'Ceiling', sub_button: true },
+   *     { entity: 'light.lamp', icon: 'table_lamp', name: 'Lamp', sub_button: false },
    *   ],
    *   temperature_entity: 'sensor.living_room_temp',
    *   navigate_path: '/lovelace/living-room',
@@ -282,14 +388,17 @@ class TunetRoomsCard extends HTMLElement {
     return {
       schema: [
         { name: 'name', selector: { text: {} } },
-        /*
-         * Rooms are configured via YAML as an array.
-         * Each room has: name, icon, lights (array of {entity, icon, name}),
-         * temperature_entity, navigate_path.
-         */
+        { name: 'rooms', selector: { object: {} } },
+        { name: 'enable_sub_buttons', selector: { boolean: {} } },
+        { name: 'sub_slider_timeout_ms', selector: { number: { min: 1200, max: 8000, step: 100, mode: 'box' } } },
       ],
       computeLabel: (schema) => {
-        const labels = { name: 'Card Name' };
+        const labels = {
+          name: 'Card Name',
+          rooms: 'Rooms Config',
+          enable_sub_buttons: 'Enable Sub-Button Sliders',
+          sub_slider_timeout_ms: 'Sub-Slider Auto-Close (ms)',
+        };
         return labels[schema.name] || schema.name;
       },
     };
@@ -298,6 +407,8 @@ class TunetRoomsCard extends HTMLElement {
   static getStubConfig() {
     return {
       name: 'Rooms',
+      enable_sub_buttons: true,
+      sub_slider_timeout_ms: 3200,
       rooms: [
         {
           name: 'Living Room',
@@ -314,8 +425,14 @@ class TunetRoomsCard extends HTMLElement {
     if (!config.rooms || !Array.isArray(config.rooms) || config.rooms.length === 0) {
       throw new Error('Please define at least one room');
     }
+    const timeoutMsRaw = Number(config.sub_slider_timeout_ms);
+    const timeoutMs = Number.isFinite(timeoutMsRaw)
+      ? Math.max(1200, Math.min(8000, Math.round(timeoutMsRaw)))
+      : 3200;
     this._config = {
       name: config.name || 'Rooms',
+      enable_sub_buttons: config.enable_sub_buttons !== false,
+      sub_slider_timeout_ms: timeoutMs,
       rooms: config.rooms.map((room) => ({
         name: room.name || 'Room',
         icon: normalizeIcon(room.icon || 'home'),
@@ -325,6 +442,7 @@ class TunetRoomsCard extends HTMLElement {
           entity: light.entity || '',
           icon: normalizeIcon(light.icon || 'lightbulb'),
           name: light.name || '',
+          sub_button: light.sub_button !== false,
         })),
       })),
     };
@@ -361,12 +479,17 @@ class TunetRoomsCard extends HTMLElement {
   getCardSize() {
     const roomCount = (this._config.rooms || []).length;
     const rows = Math.ceil(roomCount / 2);
-    return Math.max(2, rows * 2);
+    return Math.max(2, rows * 3);
   }
   connectedCallback() {}
   disconnectedCallback() {
     for (const timer of Object.values(this._cooldownTimers)) {
       clearTimeout(timer);
+    }
+    if (Array.isArray(this._roomRefs)) {
+      for (const ref of this._roomRefs) {
+        clearTimeout(ref && ref.sliderTimer);
+      }
     }
     this._cooldownTimers = {};
     this._serviceCooldown = {};
@@ -385,63 +508,220 @@ class TunetRoomsCard extends HTMLElement {
     };
   }
 
+  _setEntityCooldown(entityId) {
+    this._serviceCooldown[entityId] = true;
+    clearTimeout(this._cooldownTimers[entityId]);
+    this._cooldownTimers[entityId] = setTimeout(() => {
+      this._serviceCooldown[entityId] = false;
+    }, 1500);
+  }
+
+  _supportsBrightness(entity) {
+    if (!entity || entity.state === 'unavailable') return false;
+    if (entity.attributes && entity.attributes.brightness != null) return true;
+    const modes = entity.attributes && entity.attributes.supported_color_modes;
+    if (!Array.isArray(modes)) return false;
+    return !modes.includes('onoff');
+  }
+
+  _brightnessPct(entity) {
+    if (!entity || entity.state !== 'on') return 0;
+    const b = entity.attributes && entity.attributes.brightness;
+    if (b == null) return 100;
+    return Math.max(1, Math.min(100, Math.round((Number(b) / 255) * 100)));
+  }
+
+  _closeSubSlider(ref) {
+    if (!ref || !ref.sliderWrap) return;
+    clearTimeout(ref.sliderTimer);
+    ref.sliderTimer = null;
+    ref.sliderEntity = '';
+    ref.sliderWrap.classList.add('hidden');
+    ref.sliderInput.dataset.entity = '';
+    ref.sliderValue.textContent = '--';
+    for (const orb of ref.orbEls) orb.classList.remove('expanded');
+  }
+
+  _openSubSlider(ref, entityId) {
+    if (!this._config.enable_sub_buttons) return false;
+    const entity = this._hass && this._hass.states[entityId];
+    if (!this._supportsBrightness(entity)) return false;
+
+    if (ref.sliderEntity === entityId && !ref.sliderWrap.classList.contains('hidden')) {
+      this._closeSubSlider(ref);
+      return true;
+    }
+
+    ref.sliderEntity = entityId;
+    ref.sliderWrap.classList.remove('hidden');
+    ref.sliderInput.dataset.entity = entityId;
+    const pct = this._brightnessPct(entity);
+    ref.sliderInput.value = String(pct);
+    ref.sliderValue.textContent = `${pct}%`;
+    for (const orb of ref.orbEls) {
+      orb.classList.toggle('expanded', orb.dataset.entity === entityId);
+    }
+
+    clearTimeout(ref.sliderTimer);
+    ref.sliderTimer = setTimeout(() => this._closeSubSlider(ref), this._config.sub_slider_timeout_ms || 3200);
+    return true;
+  }
+
+  _setRoomLightBrightness(ref, entityId, pct) {
+    if (!this._hass || !entityId) return;
+    const clamped = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+    this._setEntityCooldown(entityId);
+    const payload = clamped <= 0
+      ? this._hass.callService('light', 'turn_off', { entity_id: entityId })
+      : this._hass.callService('light', 'turn_on', { entity_id: entityId, brightness_pct: clamped });
+    if (payload && typeof payload.catch === 'function') {
+      payload.catch(() => this._updateAll());
+    }
+    if (ref && ref.sliderValue) {
+      ref.sliderValue.textContent = clamped <= 0 ? 'Off' : `${clamped}%`;
+      clearTimeout(ref.sliderTimer);
+      ref.sliderTimer = setTimeout(() => this._closeSubSlider(ref), this._config.sub_slider_timeout_ms || 3200);
+    }
+  }
+
+  _toggleRoomLight(ref, entityId, orb) {
+    if (!this._hass || !entityId) return;
+    const before = orb.classList.contains('on');
+    orb.classList.toggle('on', !before);
+    const maybePromise = this._hass.callService('light', 'toggle', { entity_id: entityId });
+    if (maybePromise && typeof maybePromise.catch === 'function') {
+      maybePromise.catch(() => {
+        orb.classList.toggle('on', before);
+        this._updateAll();
+      });
+    }
+    this._setEntityCooldown(entityId);
+  }
+
+  _toggleRoomGroup(ref) {
+    if (!this._hass || !ref || !ref.cfg) return;
+    const entityIds = (ref.cfg.lights || []).map((l) => l.entity).filter(Boolean);
+    if (!entityIds.length) return;
+
+    let anyOn = false;
+    for (const entityId of entityIds) {
+      const state = this._hass.states[entityId];
+      if (state && state.state === 'on') {
+        anyOn = true;
+        break;
+      }
+    }
+
+    const domain = 'light';
+    const service = anyOn ? 'turn_off' : 'turn_on';
+    for (const entityId of entityIds) {
+      this._setEntityCooldown(entityId);
+    }
+    const result = this._hass.callService(domain, service, { entity_id: entityIds });
+    if (result && typeof result.catch === 'function') {
+      result.catch(() => this._updateAll());
+    }
+  }
+
   _buildRooms() {
-    // Section title
     if (this.$.sectionTitle) {
       this.$.sectionTitle.textContent = this._config.name || 'Rooms';
     }
 
     const list = this.$.roomList;
+    if (Array.isArray(this._roomRefs)) {
+      for (const ref of this._roomRefs) clearTimeout(ref && ref.sliderTimer);
+    }
     list.innerHTML = '';
     this._roomRefs = [];
 
-    for (const roomCfg of this._config.rooms) {
+    this._config.rooms.forEach((roomCfg, roomIndex) => {
       const card = document.createElement('div');
       card.className = 'room-card';
 
-      // Build light orbs HTML
       let orbsHtml = '';
       for (const light of (roomCfg.lights || [])) {
+        if (!light.entity) continue;
         orbsHtml += `
-          <div class="room-orb" data-entity="${light.entity}" title="${light.name || ''}">
+          <button class="room-orb" type="button" data-entity="${light.entity}" title="${light.name || ''}">
             <span class="icon" style="font-size:16px">${normalizeIcon(light.icon || 'lightbulb')}</span>
-          </div>
+          </button>
         `;
       }
 
       card.innerHTML = `
-        <div class="room-icon"><span class="icon" style="font-size:24px">${normalizeIcon(roomCfg.icon || 'home')}</span></div>
+        <button class="room-icon" type="button" aria-label="Toggle ${roomCfg.name || 'room'} lights">
+          <span class="icon" style="font-size:24px">${normalizeIcon(roomCfg.icon || 'home')}</span>
+        </button>
         <div class="room-info">
           <div class="room-name">${roomCfg.name || 'Room'}</div>
           <div class="room-status">--</div>
         </div>
-        <div class="room-controls">
-          ${orbsHtml}
-        </div>
         <span class="icon room-chevron" style="font-size:18px">chevron_right</span>
+        <div class="room-controls">
+          <div class="room-sub-controls">${orbsHtml}</div>
+          <div class="room-slider-wrap hidden" id="room-slider-wrap-${roomIndex}">
+            <span class="icon">tune</span>
+            <input class="room-slider" type="range" min="0" max="100" step="1" value="50" data-entity="">
+            <span class="room-slider-val">--</span>
+          </div>
+        </div>
       `;
 
-      // Orb click handlers
-      card.querySelectorAll('.room-orb').forEach(orb => {
+      const statusEl = card.querySelector('.room-status');
+      const orbEls = Array.from(card.querySelectorAll('.room-orb'));
+      const sliderWrap = card.querySelector(`#room-slider-wrap-${roomIndex}`);
+      const sliderInput = sliderWrap.querySelector('.room-slider');
+      const sliderValue = sliderWrap.querySelector('.room-slider-val');
+      const roomIcon = card.querySelector('.room-icon');
+
+      const ref = {
+        el: card,
+        cfg: roomCfg,
+        statusEl,
+        orbEls,
+        sliderWrap,
+        sliderInput,
+        sliderValue,
+        sliderEntity: '',
+        sliderTimer: null,
+      };
+
+      roomIcon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._toggleRoomGroup(ref);
+      });
+
+      orbEls.forEach((orb) => {
         orb.addEventListener('click', (e) => {
           e.stopPropagation();
           const entityId = orb.dataset.entity;
           if (!entityId || !this._hass) return;
-          const before = orb.classList.contains('on');
-          orb.classList.toggle('on', !before);
-          const maybePromise = this._hass.callService('light', 'toggle', { entity_id: entityId });
-          if (maybePromise && typeof maybePromise.catch === 'function') {
-            maybePromise.catch(() => orb.classList.toggle('on', before));
-          }
-          this._serviceCooldown[entityId] = true;
-          clearTimeout(this._cooldownTimers[entityId]);
-          this._cooldownTimers[entityId] = setTimeout(() => {
-            this._serviceCooldown[entityId] = false;
-          }, 1500);
+          const entity = this._hass.states[entityId];
+          const lightCfg = (roomCfg.lights || []).find((l) => l.entity === entityId);
+          const allowSub = this._config.enable_sub_buttons && (!lightCfg || lightCfg.sub_button !== false);
+          if (allowSub && this._openSubSlider(ref, entityId)) return;
+          if (entity && entity.state === 'unavailable') return;
+          this._toggleRoomLight(ref, entityId, orb);
         });
       });
 
-      // Card click -> navigate or more-info
+      sliderInput.addEventListener('input', (e) => {
+        const entityId = sliderInput.dataset.entity;
+        if (!entityId) return;
+        const pct = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
+        sliderValue.textContent = pct <= 0 ? 'Off' : `${pct}%`;
+      });
+      sliderInput.addEventListener('pointerdown', (e) => e.stopPropagation());
+      sliderWrap.addEventListener('click', (e) => e.stopPropagation());
+
+      sliderInput.addEventListener('change', (e) => {
+        const entityId = sliderInput.dataset.entity;
+        if (!entityId) return;
+        const pct = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
+        this._setRoomLightBrightness(ref, entityId, pct);
+      });
+
       card.addEventListener('click', () => {
         if (roomCfg.navigate_path) {
           history.pushState(null, '', roomCfg.navigate_path);
@@ -457,14 +737,8 @@ class TunetRoomsCard extends HTMLElement {
       });
 
       list.appendChild(card);
-
-      this._roomRefs.push({
-        el: card,
-        cfg: roomCfg,
-        statusEl: card.querySelector('.room-status'),
-        orbEls: Array.from(card.querySelectorAll('.room-orb')),
-      });
-    }
+      this._roomRefs.push(ref);
+    });
   }
 
   _updateAll() {
@@ -480,11 +754,21 @@ class TunetRoomsCard extends HTMLElement {
       ref.orbEls.forEach((orb, i) => {
         const light = lights[i];
         if (!light || !light.entity) return;
-        if (this._serviceCooldown[light.entity]) return;
 
         const entity = this._hass.states[light.entity];
+        if (!entity || entity.state === 'unavailable') {
+          orb.classList.remove('on');
+          orb.disabled = true;
+          if (ref.sliderEntity === light.entity) this._closeSubSlider(ref);
+          return;
+        }
+
+        orb.disabled = false;
         const isOn = entity && entity.state === 'on';
-        orb.classList.toggle('on', isOn);
+        if (!this._serviceCooldown[light.entity]) {
+          orb.classList.toggle('on', isOn);
+        }
+
         if (isOn) {
           onCount++;
           const b = entity.attributes.brightness;
@@ -493,11 +777,24 @@ class TunetRoomsCard extends HTMLElement {
             brightCount++;
           }
         }
+
+        orb.dataset.dimmable = this._supportsBrightness(entity) ? 'true' : 'false';
       });
 
       // Room active state
       const anyOn = onCount > 0;
       ref.el.classList.toggle('active', anyOn);
+
+      if (ref.sliderEntity) {
+        const sliderEntity = this._hass.states[ref.sliderEntity];
+        if (!sliderEntity || sliderEntity.state === 'unavailable') {
+          this._closeSubSlider(ref);
+        } else {
+          const pct = this._brightnessPct(sliderEntity);
+          ref.sliderInput.value = String(pct);
+          ref.sliderValue.textContent = sliderEntity.state === 'on' ? `${pct}%` : 'Off';
+        }
+      }
 
       // Status text
       let statusParts = [];

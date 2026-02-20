@@ -7,6 +7,88 @@
 
 const ROOMS_CARD_VERSION = '2.1.0';
 
+if (!window.TunetCardFoundation) {
+  window.TunetCardFoundation = {
+    escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+    normalizeIcon(icon, options = {}) {
+      const fallback = options.fallback || 'lightbulb';
+      const aliases = options.aliases || {};
+      const allow = options.allow || null;
+      if (!icon) return fallback;
+      const raw = String(icon).replace(/^mdi:/, '').trim();
+      const resolved = aliases[raw] || raw;
+      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
+      if (allow && allow.size && !allow.has(resolved)) return fallback;
+      return resolved;
+    },
+    bindActivate(el, handler, options = {}) {
+      if (!el || typeof handler !== 'function') return () => {};
+      const role = options.role || 'button';
+      const tabindex = options.tabindex != null ? options.tabindex : 0;
+      if (!el.hasAttribute('role')) el.setAttribute('role', role);
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', String(tabindex));
+      const onClick = (e) => {
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      const onKey = (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      el.addEventListener('click', onClick);
+      el.addEventListener('keydown', onKey);
+      return () => {
+        el.removeEventListener('click', onClick);
+        el.removeEventListener('keydown', onKey);
+      };
+    },
+    async callServiceSafe(host, domain, service, data = {}, options = {}) {
+      const hass = host && host._hass ? host._hass : host;
+      if (!hass || !domain || !service) return false;
+      const pendingEl = options.pendingEl || null;
+      if (pendingEl) {
+        pendingEl.classList.add('is-pending');
+        if ('disabled' in pendingEl) pendingEl.disabled = true;
+      }
+      try {
+        const result = hass.callService(domain, service, data || {});
+        if (result && typeof result.then === 'function') await result;
+        return true;
+      } catch (error) {
+        console.error(`[Tunet] callService failed: ${domain}.${service}`, error);
+        if (typeof options.onError === 'function') options.onError(error);
+        if (host && typeof host.dispatchEvent === 'function') {
+          host.dispatchEvent(new CustomEvent('tunet-service-error', {
+            bubbles: true,
+            composed: true,
+            detail: {
+              domain,
+              service,
+              data,
+              error: String(error && error.message ? error.message : error),
+            },
+          }));
+        }
+        return false;
+      } finally {
+        if (pendingEl) {
+          pendingEl.classList.remove('is-pending');
+          if ('disabled' in pendingEl) pendingEl.disabled = false;
+        }
+      }
+    },
+  };
+}
+
 const ICON_ALIASES = {
   shelf_auto: 'shelves',
   countertops: 'kitchen',
@@ -23,12 +105,10 @@ const ROOM_ICON_FALLBACKS = new Set([
 ]);
 
 function normalizeIcon(icon) {
-  if (!icon) return 'lightbulb';
-  const raw = String(icon).replace(/^mdi:/, '').trim();
-  const resolved = ICON_ALIASES[raw] || raw;
-  if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return 'lightbulb';
-  if (ROOM_ICON_FALLBACKS.has(resolved)) return resolved;
-  return resolved;
+  return window.TunetCardFoundation.normalizeIcon(icon, {
+    aliases: ICON_ALIASES,
+    fallback: 'lightbulb',
+  });
 }
 
 /* ===============================================================
@@ -61,8 +141,9 @@ const ROOMS_STYLES = `
     color-scheme: light;
     display: block;
   }
+  /* Midnight Navy */
   :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
+    --glass: rgba(30,41,59,0.72);
     --glass-border: rgba(255,255,255,0.08);
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
@@ -70,12 +151,12 @@ const ROOMS_STYLES = `
     --text: #F5F5F7;
     --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30,0.14);
-    --amber-border: rgba(232,150,30,0.25);
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36,0.14);
+    --amber-border: rgba(251,191,36,0.25);
     --green: #30D158;
     --green-fill: rgba(48,209,88,0.14);
-    --parent-bg: rgba(255,255,255,0.05);
+    --parent-bg: rgba(30,41,59,0.60);
     --shadow-section: 0 8px 40px rgba(0,0,0,0.25);
     --track-bg: rgba(255,255,255,0.06);
     --gray-ghost: rgba(255,255,255,0.04);
@@ -577,12 +658,14 @@ class TunetRoomsCard extends HTMLElement {
     if (!this._hass || !entityId) return;
     const clamped = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
     this._setEntityCooldown(entityId);
-    const payload = clamped <= 0
-      ? this._hass.callService('light', 'turn_off', { entity_id: entityId })
-      : this._hass.callService('light', 'turn_on', { entity_id: entityId, brightness_pct: clamped });
-    if (payload && typeof payload.catch === 'function') {
-      payload.catch(() => this._updateAll());
-    }
+    const domain = 'light';
+    const service = clamped <= 0 ? 'turn_off' : 'turn_on';
+    const data = clamped <= 0
+      ? { entity_id: entityId }
+      : { entity_id: entityId, brightness_pct: clamped };
+    window.TunetCardFoundation.callServiceSafe(this, domain, service, data, {
+      onError: () => this._updateAll(),
+    });
     if (ref && ref.sliderValue) {
       ref.sliderValue.textContent = clamped <= 0 ? 'Off' : `${clamped}%`;
       clearTimeout(ref.sliderTimer);
@@ -594,13 +677,12 @@ class TunetRoomsCard extends HTMLElement {
     if (!this._hass || !entityId) return;
     const before = orb.classList.contains('on');
     orb.classList.toggle('on', !before);
-    const maybePromise = this._hass.callService('light', 'toggle', { entity_id: entityId });
-    if (maybePromise && typeof maybePromise.catch === 'function') {
-      maybePromise.catch(() => {
+    window.TunetCardFoundation.callServiceSafe(this, 'light', 'toggle', { entity_id: entityId }, {
+      onError: () => {
         orb.classList.toggle('on', before);
         this._updateAll();
-      });
-    }
+      },
+    });
     this._setEntityCooldown(entityId);
   }
 
@@ -623,10 +705,9 @@ class TunetRoomsCard extends HTMLElement {
     for (const entityId of entityIds) {
       this._setEntityCooldown(entityId);
     }
-    const result = this._hass.callService(domain, service, { entity_id: entityIds });
-    if (result && typeof result.catch === 'function') {
-      result.catch(() => this._updateAll());
-    }
+    window.TunetCardFoundation.callServiceSafe(this, domain, service, { entity_id: entityIds }, {
+      onError: () => this._updateAll(),
+    });
   }
 
   _buildRooms() {
@@ -642,6 +723,7 @@ class TunetRoomsCard extends HTMLElement {
     this._roomRefs = [];
 
     this._config.rooms.forEach((roomCfg, roomIndex) => {
+      const h = window.TunetCardFoundation.escapeHtml;
       const card = document.createElement('div');
       card.className = 'room-card';
 
@@ -649,18 +731,18 @@ class TunetRoomsCard extends HTMLElement {
       for (const light of (roomCfg.lights || [])) {
         if (!light.entity) continue;
         orbsHtml += `
-          <button class="room-orb" type="button" data-entity="${light.entity}" title="${light.name || ''}">
+          <button class="room-orb" type="button" data-entity="${h(light.entity)}" title="${h(light.name || '')}">
             <span class="icon" style="font-size:16px">${normalizeIcon(light.icon || 'lightbulb')}</span>
           </button>
         `;
       }
 
       card.innerHTML = `
-        <button class="room-icon" type="button" aria-label="Toggle ${roomCfg.name || 'room'} lights">
+        <button class="room-icon" type="button" aria-label="Toggle ${h(roomCfg.name || 'room')} lights">
           <span class="icon" style="font-size:24px">${normalizeIcon(roomCfg.icon || 'home')}</span>
         </button>
         <div class="room-info">
-          <div class="room-name">${roomCfg.name || 'Room'}</div>
+          <div class="room-name">${h(roomCfg.name || 'Room')}</div>
           <div class="room-status">--</div>
         </div>
         <span class="icon room-chevron" style="font-size:18px">chevron_right</span>
@@ -806,9 +888,9 @@ class TunetRoomsCard extends HTMLElement {
       let statusParts = [];
       if (anyOn) {
         if (onCount === lights.length) {
-          statusParts.push('<span class="amber-txt">On</span>');
+          statusParts.push('On');
         } else {
-          statusParts.push(`<span class="amber-txt">${onCount} of ${lights.length} on</span>`);
+          statusParts.push(`${onCount} of ${lights.length} on`);
         }
         if (brightCount > 0) {
           statusParts.push(Math.round(totalBright / brightCount) + '%');
@@ -826,7 +908,7 @@ class TunetRoomsCard extends HTMLElement {
         }
       }
 
-      ref.statusEl.innerHTML = statusParts.join(' \u00b7 ');
+      ref.statusEl.textContent = statusParts.join(' \u00b7 ');
     }
   }
 }

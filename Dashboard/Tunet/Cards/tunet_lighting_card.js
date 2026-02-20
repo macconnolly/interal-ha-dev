@@ -31,6 +31,88 @@
 
 const LIGHTING_CARD_VERSION = '3.1.0';
 
+if (!window.TunetCardFoundation) {
+  window.TunetCardFoundation = {
+    escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+    normalizeIcon(icon, options = {}) {
+      const fallback = options.fallback || 'lightbulb';
+      const aliases = options.aliases || {};
+      const allow = options.allow || null;
+      if (!icon) return fallback;
+      const raw = String(icon).replace(/^mdi:/, '').trim();
+      const resolved = aliases[raw] || raw;
+      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
+      if (allow && allow.size && !allow.has(resolved)) return fallback;
+      return resolved;
+    },
+    bindActivate(el, handler, options = {}) {
+      if (!el || typeof handler !== 'function') return () => {};
+      const role = options.role || 'button';
+      const tabindex = options.tabindex != null ? options.tabindex : 0;
+      if (!el.hasAttribute('role')) el.setAttribute('role', role);
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', String(tabindex));
+      const onClick = (e) => {
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      const onKey = (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      el.addEventListener('click', onClick);
+      el.addEventListener('keydown', onKey);
+      return () => {
+        el.removeEventListener('click', onClick);
+        el.removeEventListener('keydown', onKey);
+      };
+    },
+    async callServiceSafe(host, domain, service, data = {}, options = {}) {
+      const hass = host && host._hass ? host._hass : host;
+      if (!hass || !domain || !service) return false;
+      const pendingEl = options.pendingEl || null;
+      if (pendingEl) {
+        pendingEl.classList.add('is-pending');
+        if ('disabled' in pendingEl) pendingEl.disabled = true;
+      }
+      try {
+        const result = hass.callService(domain, service, data || {});
+        if (result && typeof result.then === 'function') await result;
+        return true;
+      } catch (error) {
+        console.error(`[Tunet] callService failed: ${domain}.${service}`, error);
+        if (typeof options.onError === 'function') options.onError(error);
+        if (host && typeof host.dispatchEvent === 'function') {
+          host.dispatchEvent(new CustomEvent('tunet-service-error', {
+            bubbles: true,
+            composed: true,
+            detail: {
+              domain,
+              service,
+              data,
+              error: String(error && error.message ? error.message : error),
+            },
+          }));
+        }
+        return false;
+      } finally {
+        if (pendingEl) {
+          pendingEl.classList.remove('is-pending');
+          if ('disabled' in pendingEl) pendingEl.disabled = false;
+        }
+      }
+    },
+  };
+}
+
 /* ═══════════════════════════════════════════════════════════════
    CSS – Complete token system from Design Language v8.0
    ═══════════════════════════════════════════════════════════════ */
@@ -125,22 +207,22 @@ const LIGHTING_STYLES = `
     display: block;
   }
 
-  /* ── Tokens: Dark (Design Language §2.2) ───────── */
+  /* ── Tokens: Dark (Midnight Navy) ──────────────── */
   :host(.dark) {
     --glass: rgba(30,41,59, 0.72);
-    --glass-border: rgba(255,255,255, 0.10);
+    --glass-border: rgba(255,255,255, 0.08);
 
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
     --inset: inset 0 0 0 0.5px rgba(255,255,255, 0.06);
 
-    --text: #F8FAFC;
-    --text-sub: rgba(248,250,252, 0.65);
-    --text-muted: rgba(248,250,252, 0.45);
+    --text: #F5F5F7;
+    --text-sub: rgba(245,245,247, 0.50);
+    --text-muted: rgba(245,245,247, 0.35);
 
     --amber: #fbbf24;
-    --amber-fill: rgba(251,191,36, 0.18);
-    --amber-border: rgba(251,191,36, 0.32);
+    --amber-fill: rgba(251,191,36, 0.14);
+    --amber-border: rgba(251,191,36, 0.25);
 
     --blue: #0A84FF;
     --blue-fill: rgba(10,132,255, 0.13);
@@ -163,11 +245,11 @@ const LIGHTING_STYLES = `
     --ctrl-border: rgba(255,255,255, 0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
 
-    --chip-bg: rgba(58,58,60, 0.50);
+    --chip-bg: rgba(30,41,59, 0.50);
     --chip-border: rgba(255,255,255, 0.06);
     --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
 
-    --dd-bg: rgba(58,58,60, 0.88);
+    --dd-bg: rgba(30,41,59, 0.92);
     --dd-border: rgba(255,255,255, 0.08);
     --divider: rgba(255,255,255, 0.06);
 
@@ -175,10 +257,10 @@ const LIGHTING_STYLES = `
     --toggle-on: rgba(48,209,88, 0.30);
     --toggle-knob: rgba(255,255,255, 0.92);
 
-    --tile-bg: rgba(30,41,59, 0.92);
+    --tile-bg: rgba(30,41,59, 0.90);
 
     --section-bg: rgba(30,41,59, 0.60);
-    --section-shadow: 0 8px 40px rgba(0,0,0,0.35);
+    --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
 
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
@@ -241,6 +323,7 @@ const LIGHTING_STYLES = `
     padding: 20px;
     display: flex;
     flex-direction: column;
+    overflow: visible;
     transition: background .3s, border-color .3s, box-shadow .3s, opacity .3s;
   }
 
@@ -1085,9 +1168,10 @@ class TunetLightingCard extends HTMLElement {
         // Simple string in zones array
         this._expandEntity(z, zones, seen);
       } else if (z && z.entity) {
-        // Rich zone object – check if it's a group
+        // Rich zone object – check per-zone expand override, then global
+        const shouldExpand = z.expand !== undefined ? z.expand !== false : this._config.expand_groups;
         const entity = this._hass ? this._hass.states[z.entity] : null;
-        if (this._config.expand_groups && entity && entity.attributes && entity.attributes.entity_id &&
+        if (shouldExpand && entity && entity.attributes && entity.attributes.entity_id &&
             Array.isArray(entity.attributes.entity_id)) {
           // Group – expand with optional name/icon overrides
           for (const memberId of entity.attributes.entity_id) {
@@ -1202,17 +1286,36 @@ class TunetLightingCard extends HTMLElement {
       tile.setAttribute('aria-valuenow', '0');
       tile.setAttribute('tabindex', '0');
 
-      tile.innerHTML = `
-        <div class="manual-dot"></div>
-        <div class="tile-icon-wrap">
-          <span class="icon icon-20">${this._zoneIcon(zone)}</span>
-        </div>
-        <div class="zone-name">${this._zoneName(zone)}</div>
-        <div class="zone-val">Off</div>
-        <div class="progress-track">
-          <div class="progress-fill" style="width:0%"></div>
-        </div>
-      `;
+      const manualDot = document.createElement('div');
+      manualDot.className = 'manual-dot';
+
+      const iconWrap = document.createElement('div');
+      iconWrap.className = 'tile-icon-wrap';
+      const icon = document.createElement('span');
+      icon.className = 'icon icon-20';
+      icon.textContent = this._zoneIcon(zone);
+      iconWrap.appendChild(icon);
+
+      const zoneName = document.createElement('div');
+      zoneName.className = 'zone-name';
+      zoneName.textContent = this._zoneName(zone);
+
+      const zoneVal = document.createElement('div');
+      zoneVal.className = 'zone-val';
+      zoneVal.textContent = 'Off';
+
+      const progressTrack = document.createElement('div');
+      progressTrack.className = 'progress-track';
+      const progressFill = document.createElement('div');
+      progressFill.className = 'progress-fill';
+      progressFill.style.width = '0%';
+      progressTrack.appendChild(progressFill);
+
+      tile.appendChild(manualDot);
+      tile.appendChild(iconWrap);
+      tile.appendChild(zoneName);
+      tile.appendChild(zoneVal);
+      tile.appendChild(progressTrack);
 
       grid.appendChild(tile);
     }
@@ -1257,7 +1360,7 @@ class TunetLightingCard extends HTMLElement {
 
   _setupListeners() {
     // Info tile – fires hass-more-info (Design Language §11.2)
-    this.$.infoTile.addEventListener('click', () => {
+    window.TunetCardFoundation.bindActivate(this.$.infoTile, () => {
       const entityId = this._config.primary_entity ||
                        (this._config.entities.length > 0 ? this._config.entities[0] : '') ||
                        (this._resolvedZones.length > 0 ? this._resolvedZones[0].entity : '');
@@ -1514,8 +1617,6 @@ class TunetLightingCard extends HTMLElement {
   }
 
   _normalizeIcon(icon) {
-    if (!icon) return 'lightbulb';
-    const raw = String(icon).replace(/^mdi:/, '').trim();
     const map = {
       light_group: 'lightbulb',
       shelf_auto: 'shelves',
@@ -1524,9 +1625,10 @@ class TunetLightingCard extends HTMLElement {
       table_lamp: 'lamp',
       floor_lamp: 'lamp',
     };
-    const resolved = map[raw] || raw;
-    if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return 'lightbulb';
-    return resolved;
+    return window.TunetCardFoundation.normalizeIcon(icon, {
+      aliases: map,
+      fallback: 'lightbulb',
+    });
   }
 
   _zoneIcon(zone) {
@@ -1573,15 +1675,10 @@ class TunetLightingCard extends HTMLElement {
      SERVICE CALLS
      ═══════════════════════════════════════════════════ */
 
-  _callService(domain, service, data) {
-    if (!this._hass) return Promise.resolve();
-    try {
-      const result = this._hass.callService(domain, service, data);
-      if (result && typeof result.then === 'function') return result;
-      return Promise.resolve(result);
-    } catch (error) {
-      return Promise.reject(error);
-    }
+  async _callService(domain, service, data) {
+    const ok = await window.TunetCardFoundation.callServiceSafe(this, domain, service, data);
+    if (!ok) throw new Error(`Service call failed: ${domain}.${service}`);
+    return ok;
   }
 
   _setCooldown(id) {
@@ -1723,7 +1820,7 @@ class TunetLightingCard extends HTMLElement {
 
     // ── Subtitle (Design Language §5.4) ──
     if (this._config.subtitle) {
-      this.$.hdrSub.innerHTML = this._config.subtitle;
+      this.$.hdrSub.textContent = this._config.subtitle;
     } else {
       const avgBrt = onCount > 0 ? Math.round(totalBrightness / onCount) : 0;
       const ae = this._config.adaptive_entity;
@@ -1736,18 +1833,18 @@ class TunetLightingCard extends HTMLElement {
       if (onCount === 0) {
         parts.push('All off');
       } else if (onCount === totalCount) {
-        parts.push(`<span class="amber-ic">All on</span> \u00b7 ${avgBrt}%`);
+        parts.push(`All on \u00b7 ${avgBrt}%`);
       } else {
-        parts.push(`<span class="amber-ic">${onCount} on</span> \u00b7 ${avgBrt}%`);
+        parts.push(`${onCount} on \u00b7 ${avgBrt}%`);
       }
 
       if (aeOn && manualCount > 0) {
-        parts.push(`<span class="green-ic">Adaptive</span> \u00b7 ${manualCount} manual`);
+        parts.push(`Adaptive \u00b7 ${manualCount} manual`);
       } else if (aeOn) {
-        parts.push('<span class="green-ic">Adaptive</span>');
+        parts.push('Adaptive');
       }
 
-      this.$.hdrSub.innerHTML = parts.join(' \u00b7 ');
+      this.$.hdrSub.textContent = parts.join(' \u00b7 ');
     }
 
     // ── Adaptive toggle ──

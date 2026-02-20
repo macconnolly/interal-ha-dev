@@ -6,6 +6,88 @@
 
 const TUNET_WEATHER_VERSION = '1.1.0';
 
+if (!window.TunetCardFoundation) {
+  window.TunetCardFoundation = {
+    escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+    normalizeIcon(icon, options = {}) {
+      const fallback = options.fallback || 'lightbulb';
+      const aliases = options.aliases || {};
+      const allow = options.allow || null;
+      if (!icon) return fallback;
+      const raw = String(icon).replace(/^mdi:/, '').trim();
+      const resolved = aliases[raw] || raw;
+      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
+      if (allow && allow.size && !allow.has(resolved)) return fallback;
+      return resolved;
+    },
+    bindActivate(el, handler, options = {}) {
+      if (!el || typeof handler !== 'function') return () => {};
+      const role = options.role || 'button';
+      const tabindex = options.tabindex != null ? options.tabindex : 0;
+      if (!el.hasAttribute('role')) el.setAttribute('role', role);
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', String(tabindex));
+      const onClick = (e) => {
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      const onKey = (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      el.addEventListener('click', onClick);
+      el.addEventListener('keydown', onKey);
+      return () => {
+        el.removeEventListener('click', onClick);
+        el.removeEventListener('keydown', onKey);
+      };
+    },
+    async callServiceSafe(host, domain, service, data = {}, options = {}) {
+      const hass = host && host._hass ? host._hass : host;
+      if (!hass || !domain || !service) return false;
+      const pendingEl = options.pendingEl || null;
+      if (pendingEl) {
+        pendingEl.classList.add('is-pending');
+        if ('disabled' in pendingEl) pendingEl.disabled = true;
+      }
+      try {
+        const result = hass.callService(domain, service, data || {});
+        if (result && typeof result.then === 'function') await result;
+        return true;
+      } catch (error) {
+        console.error(`[Tunet] callService failed: ${domain}.${service}`, error);
+        if (typeof options.onError === 'function') options.onError(error);
+        if (host && typeof host.dispatchEvent === 'function') {
+          host.dispatchEvent(new CustomEvent('tunet-service-error', {
+            bubbles: true,
+            composed: true,
+            detail: {
+              domain,
+              service,
+              data,
+              error: String(error && error.message ? error.message : error),
+            },
+          }));
+        }
+        return false;
+      } finally {
+        if (pendingEl) {
+          pendingEl.classList.remove('is-pending');
+          if ('disabled' in pendingEl) pendingEl.disabled = false;
+        }
+      }
+    },
+  };
+}
+
 const TUNET_WEATHER_STYLES = `
   :host {
     --glass: rgba(255,255,255,0.68);
@@ -30,18 +112,19 @@ const TUNET_WEATHER_STYLES = `
     display: block;
   }
 
+  /* Midnight Navy */
   :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
+    --glass: rgba(30,41,59,0.72);
     --glass-border: rgba(255,255,255,0.08);
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
     --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
     --text: #F5F5F7;
-    --text-sub: rgba(245,245,247,0.55);
+    --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
     --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255,0.14);
-    --blue-border: rgba(10,132,255,0.24);
+    --blue-fill: rgba(10,132,255,0.13);
+    --blue-border: rgba(10,132,255,0.22);
     --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
@@ -334,7 +417,7 @@ class TunetWeatherCard extends HTMLElement {
       forecast: this.shadowRoot.getElementById('forecast'),
     };
 
-    this.$.infoTile.addEventListener('click', () => {
+    window.TunetCardFoundation.bindActivate(this.$.infoTile, () => {
       if (!this._hass || !this._config.entity) return;
       this.dispatchEvent(new CustomEvent('hass-more-info', {
         bubbles: true, composed: true,
@@ -387,7 +470,7 @@ class TunetWeatherCard extends HTMLElement {
 
     // Current temp
     const temp = a.temperature != null ? Math.round(a.temperature) : '--';
-    this.$.curTemp.innerHTML = `${temp}<span class="deg">&deg;</span>`;
+    this.$.curTemp.textContent = `${temp}°`;
 
     // Condition description
     const condNames = {
@@ -424,12 +507,21 @@ class TunetWeatherCard extends HTMLElement {
       details.push({ icon: 'speed', label: 'Pressure', value: `${Math.round(a.pressure)} hPa` });
     }
 
-    this.$.details.innerHTML = details.map(d =>
-      `<div class="weather-detail">
-        <span class="icon">${d.icon}</span>
-        ${d.label} <span class="val">${d.value}</span>
-      </div>`
-    ).join('');
+    this.$.details.innerHTML = '';
+    for (const d of details) {
+      const detail = document.createElement('div');
+      detail.className = 'weather-detail';
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      icon.textContent = d.icon;
+      detail.appendChild(icon);
+      detail.appendChild(document.createTextNode(`${d.label} `));
+      const value = document.createElement('span');
+      value.className = 'val';
+      value.textContent = d.value;
+      detail.appendChild(value);
+      this.$.details.appendChild(detail);
+    }
 
     // Render forecast from cache
     if (this._forecast.length) this._renderForecast();
@@ -442,7 +534,9 @@ class TunetWeatherCard extends HTMLElement {
     this.$.forecast.innerHTML = days.map((fc, i) => {
       const dt = new Date(fc.datetime);
       const dayName = i === 0 ? 'Now' : DAY_NAMES[dt.getDay()];
-      const icon = CONDITION_ICONS[fc.condition] || 'cloud';
+      const icon = window.TunetCardFoundation.normalizeIcon(CONDITION_ICONS[fc.condition] || 'cloud', {
+        fallback: 'cloud',
+      });
       const hi = fc.temperature != null ? Math.round(fc.temperature) : '--';
       const lo = fc.templow != null ? Math.round(fc.templow) : null;
 

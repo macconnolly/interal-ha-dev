@@ -6,6 +6,66 @@
 
 const CARD_VERSION = '1.0.0';
 
+if (!window.TunetCardFoundation) {
+  window.TunetCardFoundation = {
+    escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+    normalizeIcon(icon, options = {}) {
+      const fallback = options.fallback || 'lightbulb';
+      const aliases = options.aliases || {};
+      const allow = options.allow || null;
+      if (!icon) return fallback;
+      const raw = String(icon).replace(/^mdi:/, '').trim();
+      const resolved = aliases[raw] || raw;
+      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
+      if (allow && allow.size && !allow.has(resolved)) return fallback;
+      return resolved;
+    },
+    bindActivate(el, handler, options = {}) {
+      if (!el || typeof handler !== 'function') return () => {};
+      const role = options.role || 'button';
+      const tabindex = options.tabindex != null ? options.tabindex : 0;
+      if (!el.hasAttribute('role')) el.setAttribute('role', role);
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', String(tabindex));
+      const onClick = (e) => {
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      const onKey = (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      el.addEventListener('click', onClick);
+      el.addEventListener('keydown', onKey);
+      return () => {
+        el.removeEventListener('click', onClick);
+        el.removeEventListener('keydown', onKey);
+      };
+    },
+    async callServiceSafe(host, domain, service, data = {}, options = {}) {
+      const hass = host && host._hass ? host._hass : host;
+      if (!hass || !domain || !service) return false;
+      try {
+        const result = hass.callService(domain, service, data || {});
+        if (result && typeof result.then === 'function') await result;
+        return true;
+      } catch (error) {
+        console.error(`[Tunet] callService failed: ${domain}.${service}`, error);
+        if (typeof options.onError === 'function') options.onError(error);
+        return false;
+      }
+    },
+  };
+}
+
 /* ===============================================================
    CSS - Complete token system + component styles
    =============================================================== */
@@ -52,9 +112,9 @@ const STYLES = `
     display: block;
   }
 
-  /* -- Tokens: Dark -- */
+  /* -- Tokens: Dark (Midnight Navy) -- */
   :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
+    --glass: rgba(30,41,59,0.72);
     --glass-border: rgba(255,255,255,0.08);
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
@@ -62,9 +122,9 @@ const STYLES = `
     --text: #F5F5F7;
     --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30,0.14);
-    --amber-border: rgba(232,150,30,0.25);
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36,0.14);
+    --amber-border: rgba(251,191,36,0.25);
     --blue: #0A84FF;
     --blue-fill: rgba(10,132,255,0.13);
     --blue-border: rgba(10,132,255,0.22);
@@ -78,10 +138,10 @@ const STYLES = `
     --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-    --dd-bg: rgba(58,58,60,0.88);
+    --dd-bg: rgba(30,41,59,0.92);
     --dd-border: rgba(255,255,255,0.08);
     --divider: rgba(255,255,255,0.06);
-    --section-bg: rgba(255,255,255,0.05);
+    --section-bg: rgba(30,41,59,0.60);
     --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
     color-scheme: dark;
   }
@@ -144,7 +204,7 @@ const STYLES = `
   .card[data-mode="off"] { opacity: .55; }
   .card[data-action="heating"] { border-color: rgba(212,133,10,0.16); }
   .card[data-action="cooling"] { border-color: rgba(0,122,255,0.14); }
-  :host(.dark) .card[data-action="heating"] { border-color: rgba(232,150,30,0.14); }
+  :host(.dark) .card[data-action="heating"] { border-color: rgba(251,191,36,0.14); }
   :host(.dark) .card[data-action="cooling"] { border-color: rgba(10,132,255,0.12); }
 
   /* Optional section-container surface variant */
@@ -470,7 +530,7 @@ const STYLES = `
     transition: width 60ms ease;
   }
   :host(.dark) .fill-h {
-    background: rgba(232,150,30,0.26);
+    background: rgba(251,191,36,0.26);
   }
   .fill-c {
     position: absolute; top: 0; bottom: 0; right: 0;
@@ -952,11 +1012,11 @@ class TunetClimateCard extends HTMLElement {
     const $ = this.$;
 
     // Header tile - open more_info
-    $.hdrTile.addEventListener('click', (e) => {
+    window.TunetCardFoundation.bindActivate($.hdrTile, (e) => {
       e.stopPropagation();
       const ev = new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: this._config.entity } });
       this.dispatchEvent(ev);
-    });
+    }, { stopPropagation: true });
 
     // Fan toggle
     $.fanBtn.addEventListener('click', (e) => {
@@ -1147,14 +1207,9 @@ class TunetClimateCard extends HTMLElement {
     });
 
     // Temperature values
-    const D = '<span class="deg">&deg;</span>';
-    $.curTemp.innerHTML = (s.cur != null ? s.cur : '--') + D;
-
-    if (s.heat != null) $.heatR.innerHTML = s.heat + D;
-    else $.heatR.innerHTML = '--' + D;
-
-    if (s.cool != null) $.coolR.innerHTML = s.cool + D;
-    else $.coolR.innerHTML = '--' + D;
+    this._setDegreeText($.curTemp, s.cur);
+    this._setDegreeText($.heatR, s.heat);
+    this._setDegreeText($.coolR, s.cool);
 
     // Header subtitle - humidity + action state
     this._updateSubtitle(s);
@@ -1211,41 +1266,50 @@ class TunetClimateCard extends HTMLElement {
     const actionNames = { heating: 'Heating', cooling: 'Cooling', idle: 'Idle', off: 'Off', drying: 'Drying' };
     const actionClass = { heating: 'heat-ic', cooling: 'cool-ic' };
 
-    let parts = [];
+    $.hdrSub.textContent = '';
 
     // Humidity
     if (s.humidity != null) {
-      parts.push(s.humidity + '% humidity');
+      $.hdrSub.appendChild(document.createTextNode(`${s.humidity}% humidity`));
     }
 
     // Build action + fan label
     const isActive = s.action === 'heating' || s.action === 'cooling';
+    let label = '';
+    let labelClass = '';
 
     if (isActive && s.fanOn) {
-      // Active HVAC + Fan: "Cooling · Fan" both in action color
-      const cls = actionClass[s.action];
-      let label = actionNames[s.action];
+      labelClass = actionClass[s.action];
+      label = actionNames[s.action];
       if (s.preset === 'eco') label += ' \u00b7 Eco';
-      parts.push('<span class="' + cls + '">' + label + ' \u00b7 Fan</span>');
+      label += ' \u00b7 Fan';
     } else if (isActive) {
-      // Active HVAC only
-      const cls = actionClass[s.action];
-      let label = actionNames[s.action];
+      labelClass = actionClass[s.action];
+      label = actionNames[s.action];
       if (s.preset === 'eco') label += ' \u00b7 Eco';
-      parts.push('<span class="' + cls + '">' + label + '</span>');
     } else if (s.fanOn) {
-      // Fan only (idle/off + fan)
-      let label = 'Fan';
+      labelClass = 'fan-ic';
+      label = 'Fan';
       if (s.preset === 'eco') label += ' \u00b7 Eco';
-      parts.push('<span class="fan-ic">' + label + '</span>');
     } else {
-      // Idle/Off
-      let label = actionNames[s.action] || 'Idle';
+      label = actionNames[s.action] || 'Idle';
       if (s.preset === 'eco' && s.action !== 'off') label += ' \u00b7 Eco';
-      parts.push(label);
     }
 
-    $.hdrSub.innerHTML = parts.join(' \u00b7 ');
+    if ($.hdrSub.textContent) $.hdrSub.appendChild(document.createTextNode(' \u00b7 '));
+    if (labelClass) {
+      const span = document.createElement('span');
+      span.className = labelClass;
+      span.textContent = label;
+      $.hdrSub.appendChild(span);
+    } else {
+      $.hdrSub.appendChild(document.createTextNode(label));
+    }
+  }
+
+  _setDegreeText(el, value) {
+    if (!el) return;
+    el.textContent = `${value != null ? value : '--'}\u00b0`;
   }
 
   _renderSlider() {
@@ -1356,12 +1420,11 @@ class TunetClimateCard extends HTMLElement {
     this._renderSlider();
 
     // Update displayed setpoint values
-    const D = '<span class="deg">&deg;</span>';
     if (this._drag === 'heat' && s.heat != null) {
-      this.$.heatR.innerHTML = s.heat + D;
+      this._setDegreeText(this.$.heatR, s.heat);
     }
     if (this._drag === 'cool' && s.cool != null) {
-      this.$.coolR.innerHTML = s.cool + D;
+      this._setDegreeText(this.$.coolR, s.cool);
     }
   }
 
@@ -1417,16 +1480,15 @@ class TunetClimateCard extends HTMLElement {
 
     if (changed) {
       this._renderSlider();
-      const D = '<span class="deg">&deg;</span>';
-      if (s.heat != null) this.$.heatR.innerHTML = s.heat + D;
-      if (s.cool != null) this.$.coolR.innerHTML = s.cool + D;
+      if (s.heat != null) this._setDegreeText(this.$.heatR, s.heat);
+      if (s.cool != null) this._setDegreeText(this.$.coolR, s.cool);
       this._debouncedSetTemperature();
     }
   }
 
   /* -- Service Calls -- */
 
-  _callSetTemperature() {
+  async _callSetTemperature() {
     const s = this._state;
     if (!s || !this._hass) return;
 
@@ -1441,7 +1503,7 @@ class TunetClimateCard extends HTMLElement {
       data.temperature = s.cool;
     }
 
-    this._hass.callService('climate', 'set_temperature', data);
+    await window.TunetCardFoundation.callServiceSafe(this, 'climate', 'set_temperature', data);
 
     // Block state bounce-back from resetting slider for 1.5s after service call
     this._serviceCooldown = true;
@@ -1468,7 +1530,7 @@ class TunetClimateCard extends HTMLElement {
       haMode = 'auto';
     }
 
-    this._hass.callService('climate', 'set_hvac_mode', {
+    window.TunetCardFoundation.callServiceSafe(this, 'climate', 'set_hvac_mode', {
       entity_id: this._config.entity,
       hvac_mode: haMode,
     });
@@ -1493,7 +1555,7 @@ class TunetClimateCard extends HTMLElement {
     clearTimeout(this._cooldownTimer);
     this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
 
-    this._hass.callService('climate', 'set_fan_mode', {
+    window.TunetCardFoundation.callServiceSafe(this, 'climate', 'set_fan_mode', {
       entity_id: this._config.entity,
       fan_mode: newMode,
     });
@@ -1505,7 +1567,7 @@ class TunetClimateCard extends HTMLElement {
     if (!s) return;
 
     const newPreset = s.preset === 'eco' ? 'none' : 'eco';
-    this._hass.callService('climate', 'set_preset_mode', {
+    window.TunetCardFoundation.callServiceSafe(this, 'climate', 'set_preset_mode', {
       entity_id: this._config.entity,
       preset_mode: newPreset,
     });

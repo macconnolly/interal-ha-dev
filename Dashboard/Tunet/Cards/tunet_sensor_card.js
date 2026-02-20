@@ -17,6 +17,30 @@
 
 const SENSOR_CARD_VERSION = '1.0.0';
 
+if (!window.TunetCardFoundation) {
+  window.TunetCardFoundation = {
+    escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+    normalizeIcon(icon, options = {}) {
+      const fallback = options.fallback || 'lightbulb';
+      const aliases = options.aliases || {};
+      const allow = options.allow || null;
+      if (!icon) return fallback;
+      const raw = String(icon).replace(/^mdi:/, '').trim();
+      const resolved = aliases[raw] || raw;
+      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
+      if (allow && allow.size && !allow.has(resolved)) return fallback;
+      return resolved;
+    },
+  };
+}
+
 /* ═══════════════════════════════════════════════════════════════
    CSS
    ═══════════════════════════════════════════════════════════════ */
@@ -66,32 +90,32 @@ const SENSOR_STYLES = `
     display: block;
   }
 
-  /* ── Tokens: Dark ────────────────────────────── */
+  /* ── Tokens: Dark (Midnight Navy) ────────────── */
   :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
+    --glass: rgba(30,41,59,0.72);
     --glass-border: rgba(255,255,255,0.08);
     --bg: #0f172a;
-    --tile-bg: rgba(44,44,46,0.90);
-    --parent-bg: rgba(255,255,255,0.05);
+    --tile-bg: rgba(30,41,59,0.90);
+    --parent-bg: rgba(30,41,59,0.60);
     --text: #F5F5F7;
     --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30,0.14);
-    --amber-border: rgba(232,150,30,0.25);
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36,0.14);
+    --amber-border: rgba(251,191,36,0.25);
     --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255,0.14);
-    --blue-border: rgba(10,132,255,0.24);
+    --blue-fill: rgba(10,132,255,0.13);
+    --blue-border: rgba(10,132,255,0.22);
     --green: #30D158;
     --green-fill: rgba(48,209,88,0.14);
-    --green-border: rgba(48,209,88,0.20);
+    --green-border: rgba(48,209,88,0.18);
     --red: #FF453A;
     --red-fill: rgba(255,69,58,0.14);
     --red-border: rgba(255,69,58,0.25);
     --purple: #BF5AF2;
     --purple-fill: rgba(191,90,242,0.14);
     --purple-border: rgba(191,90,242,0.22);
-    --track-bg: rgba(255,255,255,0.08);
+    --track-bg: rgba(255,255,255,0.06);
     --gray-ghost: rgba(255,255,255,0.04);
     --border-ghost: rgba(255,255,255,0.05);
     --ctrl-bg: rgba(255,255,255,0.08);
@@ -782,12 +806,16 @@ class TunetSensorCard extends HTMLElement {
         </div>
       ` : '';
 
+      const iconName = window.TunetCardFoundation.normalizeIcon(sensorCfg.icon || 'sensors', {
+        fallback: 'sensors',
+      });
+      const h = window.TunetCardFoundation.escapeHtml;
       row.innerHTML = `
         <div class="sensor-icon">
-          <span class="icon filled">${sensorCfg.icon || 'sensors'}</span>
+          <span class="icon filled">${h(iconName)}</span>
         </div>
         <div class="sensor-info">
-          <span class="sensor-label">${sensorCfg.label || sensorCfg.entity || ''}</span>
+          <span class="sensor-label">${h(sensorCfg.label || sensorCfg.entity || '')}</span>
           <span class="sensor-sub" id="sub-${this._rowRefs.length}"></span>
         </div>
         ${sparkHtml}
@@ -829,12 +857,6 @@ class TunetSensorCard extends HTMLElement {
             bubbles: true, composed: true,
             detail: { card: interaction.target_card || '', entity: cfg.entity },
           }));
-          if (cfg.entity) {
-            this.dispatchEvent(new CustomEvent('hass-more-info', {
-              bubbles: true, composed: true,
-              detail: { entityId: cfg.entity },
-            }));
-          }
           break;
 
         case 'more_info':

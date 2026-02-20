@@ -6,6 +6,43 @@
 
 const TUNET_SCENES_VERSION = '1.0.0';
 
+if (!window.TunetCardFoundation) {
+  window.TunetCardFoundation = {
+    escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+    normalizeIcon(icon, options = {}) {
+      const fallback = options.fallback || 'lightbulb';
+      const aliases = options.aliases || {};
+      const allow = options.allow || null;
+      if (!icon) return fallback;
+      const raw = String(icon).replace(/^mdi:/, '').trim();
+      const resolved = aliases[raw] || raw;
+      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
+      if (allow && allow.size && !allow.has(resolved)) return fallback;
+      return resolved;
+    },
+    async callServiceSafe(host, domain, service, data = {}, options = {}) {
+      const hass = host && host._hass ? host._hass : host;
+      if (!hass || !domain || !service) return false;
+      try {
+        const result = hass.callService(domain, service, data || {});
+        if (result && typeof result.then === 'function') await result;
+        return true;
+      } catch (error) {
+        console.error(`[Tunet] callService failed: ${domain}.${service}`, error);
+        if (typeof options.onError === 'function') options.onError(error);
+        return false;
+      }
+    },
+  };
+}
+
 const TUNET_SCENES_STYLES = `
   :host {
     --glass: rgba(255,255,255,0.55);
@@ -34,23 +71,24 @@ const TUNET_SCENES_STYLES = `
     display: block;
   }
 
+  /* Midnight Navy */
   :host(.dark) {
-    --glass: rgba(255,255,255,0.06);
-    --glass-border: rgba(255,255,255,0.10);
-    --shadow: 0 1px 2px rgba(0,0,0,0.20), 0 4px 12px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 3px rgba(0,0,0,0.28), 0 12px 40px rgba(0,0,0,0.30);
+    --glass: rgba(30,41,59,0.72);
+    --glass-border: rgba(255,255,255,0.08);
+    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
     --text: #F5F5F7;
-    --text-sub: rgba(245,245,247,0.55);
+    --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30,0.14);
-    --amber-border: rgba(232,150,30,0.25);
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36,0.14);
+    --amber-border: rgba(251,191,36,0.25);
     --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255,0.14);
-    --blue-border: rgba(10,132,255,0.24);
+    --blue-fill: rgba(10,132,255,0.13);
+    --blue-border: rgba(10,132,255,0.22);
     --green: #30D158;
     --green-fill: rgba(48,209,88,0.14);
-    --green-border: rgba(48,209,88,0.20);
+    --green-border: rgba(48,209,88,0.18);
     --purple: #BF5AF2;
     --purple-fill: rgba(191,90,242,0.14);
     --purple-border: rgba(191,90,242,0.22);
@@ -252,17 +290,23 @@ class TunetScenesCard extends HTMLElement {
 
     for (const scene of this._config.scenes) {
       const chip = document.createElement('button');
+      chip.type = 'button';
       chip.className = 'scene-chip';
       chip.dataset.accent = scene.accent;
 
-      // Map MDI icon names to Material Symbols names if needed
-      const iconName = (scene.icon || 'lightbulb').replace(/^mdi:/, '');
-      chip.innerHTML = `<span class="icon filled">${iconName}</span> ${scene.name || scene.entity}`;
+      const iconName = window.TunetCardFoundation.normalizeIcon(scene.icon || 'lightbulb', {
+        fallback: 'lightbulb',
+      });
+      const icon = document.createElement('span');
+      icon.className = 'icon filled';
+      icon.textContent = iconName;
+      chip.appendChild(icon);
+      chip.appendChild(document.createTextNode(` ${scene.name || scene.entity || 'Scene'}`));
 
       chip.addEventListener('click', () => {
         if (!this._hass || !scene.entity) return;
         const domain = scene.entity.split('.')[0];
-        this._hass.callService(domain, 'turn_on', { entity_id: scene.entity });
+        window.TunetCardFoundation.callServiceSafe(this, domain, 'turn_on', { entity_id: scene.entity });
 
         chip.classList.add('active');
         setTimeout(() => chip.classList.remove('active'), 1200);

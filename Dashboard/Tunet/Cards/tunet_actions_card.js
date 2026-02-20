@@ -6,6 +6,88 @@
 
 const TUNET_ACTIONS_VERSION = '2.1.0';
 
+if (!window.TunetCardFoundation) {
+  window.TunetCardFoundation = {
+    escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+    normalizeIcon(icon, options = {}) {
+      const fallback = options.fallback || 'lightbulb';
+      const aliases = options.aliases || {};
+      const allow = options.allow || null;
+      if (!icon) return fallback;
+      const raw = String(icon).replace(/^mdi:/, '').trim();
+      const resolved = aliases[raw] || raw;
+      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
+      if (allow && allow.size && !allow.has(resolved)) return fallback;
+      return resolved;
+    },
+    bindActivate(el, handler, options = {}) {
+      if (!el || typeof handler !== 'function') return () => {};
+      const role = options.role || 'button';
+      const tabindex = options.tabindex != null ? options.tabindex : 0;
+      if (!el.hasAttribute('role')) el.setAttribute('role', role);
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', String(tabindex));
+      const onClick = (e) => {
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      const onKey = (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      el.addEventListener('click', onClick);
+      el.addEventListener('keydown', onKey);
+      return () => {
+        el.removeEventListener('click', onClick);
+        el.removeEventListener('keydown', onKey);
+      };
+    },
+    async callServiceSafe(host, domain, service, data = {}, options = {}) {
+      const hass = host && host._hass ? host._hass : host;
+      if (!hass || !domain || !service) return false;
+      const pendingEl = options.pendingEl || null;
+      if (pendingEl) {
+        pendingEl.classList.add('is-pending');
+        if ('disabled' in pendingEl) pendingEl.disabled = true;
+      }
+      try {
+        const result = hass.callService(domain, service, data || {});
+        if (result && typeof result.then === 'function') await result;
+        return true;
+      } catch (error) {
+        console.error(`[Tunet] callService failed: ${domain}.${service}`, error);
+        if (typeof options.onError === 'function') options.onError(error);
+        if (host && typeof host.dispatchEvent === 'function') {
+          host.dispatchEvent(new CustomEvent('tunet-service-error', {
+            bubbles: true,
+            composed: true,
+            detail: {
+              domain,
+              service,
+              data,
+              error: String(error && error.message ? error.message : error),
+            },
+          }));
+        }
+        return false;
+      } finally {
+        if (pendingEl) {
+          pendingEl.classList.remove('is-pending');
+          if ('disabled' in pendingEl) pendingEl.disabled = false;
+        }
+      }
+    },
+  };
+}
+
 const DEFAULT_ACTIONS = [
   {
     name: 'All On',
@@ -17,27 +99,6 @@ const DEFAULT_ACTIONS = [
     active_when: 'on',
   },
   {
-    name: 'Pause',
-    icon: 'auto_awesome',
-    accent: 'blue',
-    service: 'input_boolean.toggle',
-    service_data: { entity_id: 'input_boolean.oal_system_paused' },
-    state_entity: 'input_boolean.oal_system_paused',
-    active_when: 'on',
-  },
-  {
-    name: 'Sleep',
-    icon: 'bed',
-    accent: 'purple',
-    service: 'input_select.select_option',
-    service_data: {
-      entity_id: 'input_select.oal_active_configuration',
-      option: 'Sleep',
-    },
-    state_entity: 'input_select.oal_active_configuration',
-    active_when: 'Sleep',
-  },
-  {
     name: 'All Off',
     icon: 'power_settings_new',
     accent: 'amber',
@@ -45,6 +106,30 @@ const DEFAULT_ACTIONS = [
     service_data: { entity_id: 'light.all_adaptive_lights' },
     state_entity: 'light.all_adaptive_lights',
     active_when: 'off',
+  },
+  {
+    name: 'Bedtime',
+    icon: 'bedtime',
+    accent: 'amber',
+    service: 'input_select.select_option',
+    service_data: {
+      entity_id: 'input_select.oal_active_configuration',
+      option: 'Dim Ambient',
+    },
+    state_entity: 'input_select.oal_active_configuration',
+    active_when: 'Dim Ambient',
+  },
+  {
+    name: 'Sleep Mode',
+    icon: 'bed',
+    accent: 'amber',
+    service: 'input_select.select_option',
+    service_data: {
+      entity_id: 'input_select.oal_active_configuration',
+      option: 'Sleep',
+    },
+    state_entity: 'input_select.oal_active_configuration',
+    active_when: 'Sleep',
   },
 ];
 
@@ -108,9 +193,10 @@ const ICON_ALIASES = {
 };
 
 function normalizeIcon(icon) {
-  if (!icon) return 'lightbulb';
-  const raw = String(icon).replace(/^mdi:/, '').trim();
-  return ICON_ALIASES[raw] || raw || 'lightbulb';
+  return window.TunetCardFoundation.normalizeIcon(icon, {
+    aliases: ICON_ALIASES,
+    fallback: 'lightbulb',
+  });
 }
 
 const TUNET_ACTIONS_STYLES = `
@@ -141,26 +227,27 @@ const TUNET_ACTIONS_STYLES = `
     display: block;
   }
 
+  /* Midnight Navy */
   :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
+    --glass: rgba(30,41,59,0.72);
     --glass-border: rgba(255,255,255,0.08);
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
     --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
     --text: #F5F5F7;
-    --text-sub: rgba(245,245,247,0.55);
+    --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30,0.14);
-    --amber-border: rgba(232,150,30,0.25);
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36,0.14);
+    --amber-border: rgba(251,191,36,0.25);
     --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255,0.14);
-    --blue-border: rgba(10,132,255,0.24);
+    --blue-fill: rgba(10,132,255,0.13);
+    --blue-border: rgba(10,132,255,0.22);
     --purple: #BF5AF2;
     --purple-fill: rgba(191,90,242,0.14);
     --purple-border: rgba(191,90,242,0.22);
     --ctrl-border: rgba(255,255,255,0.08);
-    --tile-bg: rgba(44,44,46,0.90);
+    --tile-bg: rgba(30,41,59,0.90);
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
   }
@@ -442,11 +529,16 @@ class TunetActionsCard extends HTMLElement {
 
     for (const action of this._config.actions) {
       const chip = document.createElement('button');
+      chip.type = 'button';
       chip.className = 'action-chip';
       chip.dataset.accent = action.accent;
 
       const iconName = normalizeIcon(action.icon || 'circle');
-      chip.innerHTML = `<span class="icon">${iconName}</span> ${action.name}`;
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      icon.textContent = iconName;
+      chip.appendChild(icon);
+      chip.appendChild(document.createTextNode(` ${action.name || ''}`));
 
       chip.addEventListener('click', () => this._callService(action));
 
@@ -489,12 +581,12 @@ class TunetActionsCard extends HTMLElement {
     }
   }
 
-  _callService(action) {
+  async _callService(action) {
     if (!this._hass || !action.service) return;
 
     const [domain, service] = action.service.split('.');
     const serviceData = { ...action.service_data };
-    this._hass.callService(domain, service, serviceData);
+    await window.TunetCardFoundation.callServiceSafe(this, domain, service, serviceData);
   }
 }
 

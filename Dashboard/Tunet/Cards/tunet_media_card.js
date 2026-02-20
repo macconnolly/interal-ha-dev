@@ -7,6 +7,100 @@
  */
 
 const TUNET_MEDIA_VERSION = '3.0.0';
+const MEDIA_SPEAKER_ICON_ALLOW = new Set([
+  'speaker',
+  'speaker_group',
+  'speaker_notes',
+  'volume_up',
+  'volume_down',
+  'music_note',
+  'podcasts',
+  'smart_display',
+  'tv',
+  'radio',
+]);
+
+if (!window.TunetCardFoundation) {
+  window.TunetCardFoundation = {
+    escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+    normalizeIcon(icon, options = {}) {
+      const fallback = options.fallback || 'lightbulb';
+      const aliases = options.aliases || {};
+      const allow = options.allow || null;
+      if (!icon) return fallback;
+      const raw = String(icon).replace(/^mdi:/, '').trim();
+      const resolved = aliases[raw] || raw;
+      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
+      if (allow && allow.size && !allow.has(resolved)) return fallback;
+      return resolved;
+    },
+    bindActivate(el, handler, options = {}) {
+      if (!el || typeof handler !== 'function') return () => {};
+      const role = options.role || 'button';
+      const tabindex = options.tabindex != null ? options.tabindex : 0;
+      if (!el.hasAttribute('role')) el.setAttribute('role', role);
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', String(tabindex));
+      const onClick = (e) => {
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      const onKey = (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      el.addEventListener('click', onClick);
+      el.addEventListener('keydown', onKey);
+      return () => {
+        el.removeEventListener('click', onClick);
+        el.removeEventListener('keydown', onKey);
+      };
+    },
+    async callServiceSafe(host, domain, service, data = {}, options = {}) {
+      const hass = host && host._hass ? host._hass : host;
+      if (!hass || !domain || !service) return false;
+      const pendingEl = options.pendingEl || null;
+      if (pendingEl) {
+        pendingEl.classList.add('is-pending');
+        if ('disabled' in pendingEl) pendingEl.disabled = true;
+      }
+      try {
+        const result = hass.callService(domain, service, data || {});
+        if (result && typeof result.then === 'function') await result;
+        return true;
+      } catch (error) {
+        console.error(`[Tunet] callService failed: ${domain}.${service}`, error);
+        if (typeof options.onError === 'function') options.onError(error);
+        if (host && typeof host.dispatchEvent === 'function') {
+          host.dispatchEvent(new CustomEvent('tunet-service-error', {
+            bubbles: true,
+            composed: true,
+            detail: {
+              domain,
+              service,
+              data,
+              error: String(error && error.message ? error.message : error),
+            },
+          }));
+        }
+        return false;
+      } finally {
+        if (pendingEl) {
+          pendingEl.classList.remove('is-pending');
+          if ('disabled' in pendingEl) pendingEl.disabled = false;
+        }
+      }
+    },
+  };
+}
 
 /* ===============================================================
    CSS — Tokens aligned to tunet-sonos-card-v2.html mockup
@@ -43,9 +137,9 @@ const TUNET_MEDIA_STYLES = `
     display: block;
   }
 
-  /* -- Tokens: Dark -- */
+  /* -- Tokens: Dark (Midnight Navy) -- */
   :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
+    --glass: rgba(30,41,59,0.72);
     --glass-border: rgba(255,255,255,0.08);
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
@@ -60,7 +154,7 @@ const TUNET_MEDIA_STYLES = `
     --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-    --dd-bg: rgba(58,58,60,0.88);
+    --dd-bg: rgba(30,41,59,0.92);
     --dd-border: rgba(255,255,255,0.08);
     --divider: rgba(255,255,255,0.06);
     --thumb-bg: #F5F5F7;
@@ -616,6 +710,10 @@ class TunetMediaCard extends HTMLElement {
               selector: { entity: { domain: 'sensor' } },
             },
             {
+              name: 'active_group_members_sensor',
+              selector: { entity: { domain: 'sensor' } },
+            },
+            {
               name: 'playing_status_sensor',
               selector: { entity: { domain: 'sensor' } },
             },
@@ -632,6 +730,7 @@ class TunetMediaCard extends HTMLElement {
           name: 'Card Name',
           coordinator_sensor: 'Coordinator Sensor',
           active_group_sensor: 'Active Group Sensor',
+          active_group_members_sensor: 'Active Group Members Sensor',
           playing_status_sensor: 'Playing Status Sensor',
           show_progress: 'Show Progress Bar',
         };
@@ -646,6 +745,7 @@ class TunetMediaCard extends HTMLElement {
       name: 'Sonos',
       coordinator_sensor: 'sensor.sonos_smart_coordinator',
       active_group_sensor: 'sensor.sonos_active_group_coordinator',
+      active_group_members_sensor: 'sensor.sonos_active_group_members',
       playing_status_sensor: 'sensor.sonos_playing_status',
       speakers: [],
     };
@@ -661,6 +761,7 @@ class TunetMediaCard extends HTMLElement {
       speakers: config.speakers || [],
       coordinator_sensor: config.coordinator_sensor || 'sensor.sonos_smart_coordinator',
       active_group_sensor: config.active_group_sensor || 'sensor.sonos_active_group_coordinator',
+      active_group_members_sensor: config.active_group_members_sensor || 'sensor.sonos_active_group_members',
       playing_status_sensor: config.playing_status_sensor || 'sensor.sonos_playing_status',
       show_progress: config.show_progress !== false,
     };
@@ -703,6 +804,7 @@ class TunetMediaCard extends HTMLElement {
         this._config.entity,
         this._config.coordinator_sensor,
         this._config.active_group_sensor,
+        this._config.active_group_members_sensor,
         this._config.playing_status_sensor,
       ];
       for (const spk of this._cachedSpeakers) {
@@ -766,34 +868,83 @@ class TunetMediaCard extends HTMLElement {
 
   _callTransport(service) {
     if (!this._hass) return;
-    this._hass.callService('media_player', service, { entity_id: this._coordinator });
+    window.TunetCardFoundation.callServiceSafe(this, 'media_player', service, { entity_id: this._coordinator });
   }
 
   _callService(service, data) {
-    if (!this._hass) return;
-    this._hass.callService('media_player', service, data);
+    if (!this._hass) return Promise.resolve(false);
+    return window.TunetCardFoundation.callServiceSafe(this, 'media_player', service, data);
   }
 
   _callScript(name, data = {}) {
-    if (!this._hass) return;
-    this._hass.callService('script', name, data);
+    if (!this._hass) return Promise.resolve(false);
+    return window.TunetCardFoundation.callServiceSafe(this, 'script', name, data);
+  }
+
+  _normalizeSpeakerIcon(icon) {
+    return window.TunetCardFoundation.normalizeIcon(icon, {
+      fallback: 'speaker',
+      allow: MEDIA_SPEAKER_ICON_ALLOW,
+      aliases: {
+        music: 'music_note',
+        speakers: 'speaker_group',
+      },
+    });
   }
 
   _activeGroupMembers() {
     if (!this._hass) return [];
-    const sensor = this._hass.states[this._config.active_group_sensor];
-    if (!sensor) return [];
-    const fromAttr = sensor.attributes && sensor.attributes.group_members;
-    if (Array.isArray(fromAttr)) return fromAttr;
-    if (typeof fromAttr === 'string') {
-      try {
-        const parsed = JSON.parse(fromAttr);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (_) {
-        // Best-effort parse only; ignore invalid content.
+    const parseMembers = (raw) => {
+      if (Array.isArray(raw)) return raw.filter((v) => typeof v === 'string' && v.startsWith('media_player.'));
+      if (typeof raw === 'string') {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed.filter((v) => typeof v === 'string' && v.startsWith('media_player.'));
+        } catch (_) {
+          // Best-effort parse only; ignore invalid content.
+        }
       }
+      return [];
+    };
+
+    // 1) Dedicated active-group-members sensor (new contract).
+    const membersSensor = this._hass.states[this._config.active_group_members_sensor];
+    if (membersSensor && membersSensor.attributes) {
+      const fromMembers = parseMembers(membersSensor.attributes.group_members || membersSensor.attributes.members);
+      if (fromMembers.length > 0) return fromMembers;
     }
-    return [];
+
+    // 2) Active-group coordinator sensor attributes.
+    const activeSensor = this._hass.states[this._config.active_group_sensor];
+    if (activeSensor && activeSensor.attributes) {
+      const fromActive = parseMembers(activeSensor.attributes.group_members || activeSensor.attributes.members);
+      if (fromActive.length > 0) return fromActive;
+    }
+
+    // 3) Smart coordinator attributes (secondary fallback path).
+    const smartSensor = this._hass.states[this._config.coordinator_sensor];
+    if (smartSensor && smartSensor.attributes) {
+      const fromSmart = parseMembers(smartSensor.attributes.group_members || smartSensor.attributes.members);
+      if (fromSmart.length > 0) return fromSmart;
+    }
+
+    // 4) Active-group binaries.
+    const speakers = this._cachedSpeakers || [];
+    const activeBinaryMembers = speakers
+      .map((spk) => spk.entity)
+      .filter((entityId) => {
+        const bs = this._hass.states[this._binarySensorFor(entityId, true)];
+        return bs && bs.state === 'on';
+      });
+    if (activeBinaryMembers.length > 0) return activeBinaryMembers;
+
+    // 5) Legacy playing-group binaries (last resort).
+    return speakers
+      .map((spk) => spk.entity)
+      .filter((entityId) => {
+        const bs = this._hass.states[this._binarySensorFor(entityId, false)];
+        return bs && bs.state === 'on';
+      });
   }
 
   _isSpeakerInActiveGroup(entityId) {
@@ -881,22 +1032,22 @@ class TunetMediaCard extends HTMLElement {
     const $ = this.$;
 
     // Info tile → more-info for coordinator
-    $.infoTile.addEventListener('click', (e) => {
+    window.TunetCardFoundation.bindActivate($.infoTile, (e) => {
       e.stopPropagation();
       this.dispatchEvent(new CustomEvent('hass-more-info', {
         bubbles: true, composed: true,
         detail: { entityId: this._coordinator },
       }));
-    });
+    }, { stopPropagation: true });
 
     // Album art → more-info for coordinator
-    $.albumArt.addEventListener('click', (e) => {
+    window.TunetCardFoundation.bindActivate($.albumArt, (e) => {
       e.stopPropagation();
       this.dispatchEvent(new CustomEvent('hass-more-info', {
         bubbles: true, composed: true,
         detail: { entityId: this._coordinator },
       }));
-    });
+    }, { stopPropagation: true });
     $.albumArt.style.cursor = 'pointer';
 
     // Transport → coordinator
@@ -1089,7 +1240,7 @@ class TunetMediaCard extends HTMLElement {
       const iconEl = document.createElement('span');
       iconEl.className = 'icon spk-icon';
       iconEl.style.fontSize = '18px';
-      iconEl.textContent = spk.icon || 'speaker';
+      iconEl.textContent = this._normalizeSpeakerIcon(spk.icon || 'speaker');
       opt.appendChild(iconEl);
 
       const textWrap = document.createElement('span');

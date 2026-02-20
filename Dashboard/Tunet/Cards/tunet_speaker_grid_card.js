@@ -6,6 +6,78 @@
  */
 
 const TUNET_SPEAKER_GRID_VERSION = '1.0.0';
+const SPEAKER_ICON_ALLOW = new Set([
+  'speaker',
+  'speaker_group',
+  'speaker_notes',
+  'volume_up',
+  'volume_down',
+  'music_note',
+  'podcasts',
+  'smart_display',
+  'tv',
+  'radio',
+]);
+
+if (!window.TunetCardFoundation) {
+  window.TunetCardFoundation = {
+    escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+    normalizeIcon(icon, options = {}) {
+      const fallback = options.fallback || 'lightbulb';
+      const aliases = options.aliases || {};
+      const allow = options.allow || null;
+      if (!icon) return fallback;
+      const raw = String(icon).replace(/^mdi:/, '').trim();
+      const resolved = aliases[raw] || raw;
+      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
+      if (allow && allow.size && !allow.has(resolved)) return fallback;
+      return resolved;
+    },
+    bindActivate(el, handler, options = {}) {
+      if (!el || typeof handler !== 'function') return () => {};
+      const role = options.role || 'button';
+      const tabindex = options.tabindex != null ? options.tabindex : 0;
+      if (!el.hasAttribute('role')) el.setAttribute('role', role);
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', String(tabindex));
+      const onClick = (e) => {
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      const onKey = (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      el.addEventListener('click', onClick);
+      el.addEventListener('keydown', onKey);
+      return () => {
+        el.removeEventListener('click', onClick);
+        el.removeEventListener('keydown', onKey);
+      };
+    },
+    async callServiceSafe(host, domain, service, data = {}, options = {}) {
+      const hass = host && host._hass ? host._hass : host;
+      if (!hass || !domain || !service) return false;
+      try {
+        const result = hass.callService(domain, service, data || {});
+        if (result && typeof result.then === 'function') await result;
+        return true;
+      } catch (error) {
+        console.error(`[Tunet] callService failed: ${domain}.${service}`, error);
+        if (typeof options.onError === 'function') options.onError(error);
+        return false;
+      }
+    },
+  };
+}
 
 /* ===============================================================
    CSS — Tokens aligned to tunet-design-system.md v2.1
@@ -39,9 +111,9 @@ const TUNET_SPEAKER_GRID_STYLES = `
     display: block;
   }
 
-  /* -- Tokens: Dark -- */
+  /* -- Tokens: Dark (Midnight Navy) -- */
   :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
+    --glass: rgba(30,41,59,0.72);
     --glass-border: rgba(255,255,255,0.08);
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
@@ -57,7 +129,7 @@ const TUNET_SPEAKER_GRID_STYLES = `
     --ctrl-border: rgba(255,255,255,0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
     --divider: rgba(255,255,255,0.06);
-    --tile-bg: rgba(44,44,46,0.90);
+    --tile-bg: rgba(30,41,59,0.90);
     --tile-bg-off: rgba(255,255,255,0.04);
     --gray-ghost: rgba(255,255,255,0.04);
   }
@@ -539,13 +611,24 @@ class TunetSpeakerGridCard extends HTMLElement {
   }
 
   _callScript(name, data = {}) {
-    if (!this._hass) return;
-    this._hass.callService('script', name, data);
+    if (!this._hass) return Promise.resolve(false);
+    return window.TunetCardFoundation.callServiceSafe(this, 'script', name, data);
   }
 
   _callService(domain, service, data) {
-    if (!this._hass) return;
-    this._hass.callService(domain, service, data);
+    if (!this._hass) return Promise.resolve(false);
+    return window.TunetCardFoundation.callServiceSafe(this, domain, service, data);
+  }
+
+  _normalizeSpeakerIcon(icon) {
+    return window.TunetCardFoundation.normalizeIcon(icon, {
+      fallback: 'speaker',
+      allow: SPEAKER_ICON_ALLOW,
+      aliases: {
+        music: 'music_note',
+        speakers: 'speaker_group',
+      },
+    });
   }
 
   _getEffectiveSpeakers() {
@@ -596,13 +679,13 @@ class TunetSpeakerGridCard extends HTMLElement {
     const $ = this.$;
 
     // Info tile → more-info
-    $.infoTile.addEventListener('click', (e) => {
+    window.TunetCardFoundation.bindActivate($.infoTile, (e) => {
       e.stopPropagation();
       this.dispatchEvent(new CustomEvent('hass-more-info', {
         bubbles: true, composed: true,
         detail: { entityId: this._config.entity },
       }));
-    });
+    }, { stopPropagation: true });
 
     // Group All
     $.groupAllBtn.addEventListener('click', (e) => {
@@ -644,7 +727,7 @@ class TunetSpeakerGridCard extends HTMLElement {
       const icon = document.createElement('span');
       icon.className = 'icon';
       icon.style.fontSize = '18px';
-      icon.textContent = spk.icon || 'speaker';
+      icon.textContent = this._normalizeSpeakerIcon(spk.icon || 'speaker');
       iconWrap.appendChild(icon);
       tile.appendChild(iconWrap);
 

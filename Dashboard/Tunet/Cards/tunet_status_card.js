@@ -6,6 +6,88 @@
 
 const TUNET_STATUS_VERSION = '2.1.0';
 
+if (!window.TunetCardFoundation) {
+  window.TunetCardFoundation = {
+    escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+    normalizeIcon(icon, options = {}) {
+      const fallback = options.fallback || 'lightbulb';
+      const aliases = options.aliases || {};
+      const allow = options.allow || null;
+      if (!icon) return fallback;
+      const raw = String(icon).replace(/^mdi:/, '').trim();
+      const resolved = aliases[raw] || raw;
+      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
+      if (allow && allow.size && !allow.has(resolved)) return fallback;
+      return resolved;
+    },
+    bindActivate(el, handler, options = {}) {
+      if (!el || typeof handler !== 'function') return () => {};
+      const role = options.role || 'button';
+      const tabindex = options.tabindex != null ? options.tabindex : 0;
+      if (!el.hasAttribute('role')) el.setAttribute('role', role);
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', String(tabindex));
+      const onClick = (e) => {
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      const onKey = (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (options.stopPropagation) e.stopPropagation();
+        handler(e);
+      };
+      el.addEventListener('click', onClick);
+      el.addEventListener('keydown', onKey);
+      return () => {
+        el.removeEventListener('click', onClick);
+        el.removeEventListener('keydown', onKey);
+      };
+    },
+    async callServiceSafe(host, domain, service, data = {}, options = {}) {
+      const hass = host && host._hass ? host._hass : host;
+      if (!hass || !domain || !service) return false;
+      const pendingEl = options.pendingEl || null;
+      if (pendingEl) {
+        pendingEl.classList.add('is-pending');
+        if ('disabled' in pendingEl) pendingEl.disabled = true;
+      }
+      try {
+        const result = hass.callService(domain, service, data || {});
+        if (result && typeof result.then === 'function') await result;
+        return true;
+      } catch (error) {
+        console.error(`[Tunet] callService failed: ${domain}.${service}`, error);
+        if (typeof options.onError === 'function') options.onError(error);
+        if (host && typeof host.dispatchEvent === 'function') {
+          host.dispatchEvent(new CustomEvent('tunet-service-error', {
+            bubbles: true,
+            composed: true,
+            detail: {
+              domain,
+              service,
+              data,
+              error: String(error && error.message ? error.message : error),
+            },
+          }));
+        }
+        return false;
+      } finally {
+        if (pendingEl) {
+          pendingEl.classList.remove('is-pending');
+          if ('disabled' in pendingEl) pendingEl.disabled = false;
+        }
+      }
+    },
+  };
+}
+
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
   countertops: 'kitchen',
@@ -16,11 +98,10 @@ const STATUS_ICON_ALIASES = {
 };
 
 function normalizeStatusIcon(icon) {
-  if (!icon) return 'info';
-  const raw = String(icon).replace(/^mdi:/, '').trim();
-  const resolved = STATUS_ICON_ALIASES[raw] || raw;
-  if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return 'info';
-  return resolved;
+  return window.TunetCardFoundation.normalizeIcon(icon, {
+    aliases: STATUS_ICON_ALIASES,
+    fallback: 'lightbulb',
+  });
 }
 
 const TUNET_STATUS_STYLES = `
@@ -50,15 +131,18 @@ const TUNET_STATUS_STYLES = `
     --track-bg: rgba(28,28,30,0.055);
     --r-card: 24px;
     --r-tile: 16px;
+    --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.05);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
     --dd-bg: rgba(255,255,255,0.92);
     --dd-border: rgba(255,255,255,0.60);
     color-scheme: light;
     display: block;
   }
 
+  /* Midnight Navy */
   :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
+    --glass: rgba(30,41,59,0.72);
     --glass-border: rgba(255,255,255,0.08);
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
@@ -66,22 +150,24 @@ const TUNET_STATUS_STYLES = `
     --text: #F5F5F7;
     --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30,0.14);
-    --amber-border: rgba(232,150,30,0.25);
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36,0.14);
+    --amber-border: rgba(251,191,36,0.25);
     --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255,0.14);
-    --blue-border: rgba(10,132,255,0.24);
+    --blue-fill: rgba(10,132,255,0.13);
+    --blue-border: rgba(10,132,255,0.22);
     --green: #30D158;
     --green-fill: rgba(48,209,88,0.14);
-    --green-border: rgba(48,209,88,0.20);
+    --green-border: rgba(48,209,88,0.18);
     --red: #FF453A;
-    --tile-bg: rgba(44,44,46,0.90);
+    --tile-bg: rgba(30,41,59,0.90);
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     --track-bg: rgba(255,255,255,0.06);
+    --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
-    --dd-bg: rgba(58,58,60,0.92);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+    --dd-bg: rgba(30,41,59,0.92);
     --dd-border: rgba(255,255,255,0.08);
     color-scheme: dark;
   }
@@ -514,6 +600,7 @@ class TunetStatusCard extends HTMLElement {
     this._titleEl.textContent = this._config.name;
     this._tileEls = [];
     this._clearAllTimers();
+    const h = window.TunetCardFoundation.escapeHtml;
 
     this._config.tiles.forEach((tile, i) => {
       const el = document.createElement('div');
@@ -525,30 +612,30 @@ class TunetStatusCard extends HTMLElement {
         case 'indicator':
           el.innerHTML = `
             <div class="status-dot" id="dot-${i}"></div>
-            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${h(tile.icon)}</span></div>
             <span class="tile-val" id="val-${i}">--</span>
-            <span class="tile-label">${tile.label}</span>
+            <span class="tile-label">${h(tile.label)}</span>
           `;
           this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
           break;
 
         case 'timer':
           el.innerHTML = `
-            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${h(tile.icon)}</span></div>
             <span class="tile-val" id="val-${i}">--:--</span>
-            <span class="tile-label">${tile.label}</span>
+            <span class="tile-label">${h(tile.label)}</span>
           `;
           this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
           break;
 
         case 'dropdown':
           el.innerHTML = `
-            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${h(tile.icon)}</span></div>
             <div class="tile-dd-val" id="ddval-${i}" aria-expanded="false">
               <span class="dd-text" id="val-${i}">--</span>
               <span class="icon chevron">expand_more</span>
             </div>
-            <span class="tile-label">${tile.label}</span>
+            <span class="tile-label">${h(tile.label)}</span>
             <div class="tile-dd-menu" id="ddmenu-${i}"></div>
           `;
           this._bindTileAction(el, (e) => {
@@ -567,9 +654,9 @@ class TunetStatusCard extends HTMLElement {
           }
           el.innerHTML = `
             ${dotHTML}
-            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${h(tile.icon)}</span></div>
             <span class="tile-val" id="val-${i}">--</span>
-            <span class="tile-label">${tile.label}</span>
+            <span class="tile-label">${h(tile.label)}</span>
           `;
           this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
           break;
@@ -582,9 +669,18 @@ class TunetStatusCard extends HTMLElement {
         auxBtn.className = 'tile-aux';
         const auxIcon = tile.aux_action.icon ? normalizeStatusIcon(tile.aux_action.icon) : '';
         const auxLabel = tile.aux_action.label || 'Action';
-        auxBtn.innerHTML = auxIcon
-          ? `<span class="icon" style="font-size:12px;width:12px;height:12px">${auxIcon}</span><span>${auxLabel}</span>`
-          : `<span>${auxLabel}</span>`;
+        if (auxIcon) {
+          const icon = document.createElement('span');
+          icon.className = 'icon';
+          icon.style.fontSize = '12px';
+          icon.style.width = '12px';
+          icon.style.height = '12px';
+          icon.textContent = auxIcon;
+          auxBtn.appendChild(icon);
+        }
+        const label = document.createElement('span');
+        label.textContent = auxLabel;
+        auxBtn.appendChild(label);
         auxBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           this._handleTapAction(tile.aux_action, tile.entity);
@@ -711,7 +807,7 @@ class TunetStatusCard extends HTMLElement {
       const service = tapAction.service || '';
       const [domain, serviceName] = service.split('.');
       if (!domain || !serviceName) return;
-      this._hass.callService(domain, serviceName, tapAction.service_data || {});
+      window.TunetCardFoundation.callServiceSafe(this, domain, serviceName, tapAction.service_data || {});
       return;
     }
 
@@ -778,10 +874,11 @@ class TunetStatusCard extends HTMLElement {
   }
 
   _renderValWithUnit(valEl, val, unit) {
+    const h = window.TunetCardFoundation.escapeHtml;
     if (unit === '°F' || unit === '°C' || unit === '°') {
-      valEl.innerHTML = `${val}<span class="tile-deg">&deg;</span>${unit === '°F' ? 'F' : unit === '°C' ? 'C' : ''}`;
+      valEl.innerHTML = `${h(val)}<span class="tile-deg">&deg;</span>${unit === '°F' ? 'F' : unit === '°C' ? 'C' : ''}`;
     } else if (unit) {
-      valEl.innerHTML = `${val}<span class="tile-deg">${unit}</span>`;
+      valEl.innerHTML = `${h(val)}<span class="tile-deg">${h(unit)}</span>`;
     } else {
       valEl.textContent = val;
     }
@@ -939,7 +1036,7 @@ class TunetStatusCard extends HTMLElement {
 
   _selectDropdownOption(entityId, option, tileIndex) {
     if (!this._hass) return;
-    this._hass.callService('input_select', 'select_option', {
+    window.TunetCardFoundation.callServiceSafe(this, 'input_select', 'select_option', {
       entity_id: entityId,
       option: option,
     });

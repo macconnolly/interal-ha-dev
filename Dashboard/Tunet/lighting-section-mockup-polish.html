@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<!-- saved from url=(0094)file:///C:/Users/Mac%20Connolly/OneDrive/Documents/Code/Design/Mockups/living_card_mockup.html -->
+<html lang="en" class=""><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tunet Smart Home – High Density View</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+  <link href="./lighting-section-mockup-polish_files/css2" rel="stylesheet">
+  <link href="./lighting-section-mockup-polish_files/css2(1)" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════
+       LIGHT THEME TOKENS
+       ═══════════════════════════════════════════ */
+    :root {
+      --bg: #f4f4f9;
+      --card-bg: #ffffff;
+      --parent-bg: rgba(255, 255, 255, 0.45);
+      --text-main: #1c1c1e;
+      --text-sub: #8e8e93;
+      --amber: #d4850a;
+      --amber-light: rgba(212, 133, 10, 0.08);
+      --amber-border: rgba(212, 133, 10, 0.22);
+      --gray-ghost: rgba(0, 0, 0, 0.03);
+      --shadow: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+      --shadow-active: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
+      --radius-parent: 32px;
+      --radius: 22px;
+      --radius-inner: 16px;
+      --track-bg: rgba(0,0,0,0.06);
+      --border-ghost: transparent;
+    }
+
+    /* ═══════════════════════════════════════════
+       SOFT DARK THEME TOKENS (Midnight Navy)
+       ═══════════════════════════════════════════ */
+    html.dark {
+      --bg: #0f172a; /* Softer than pure black */
+      --card-bg: #1e293b;
+      --parent-bg: rgba(30, 41, 59, 0.6);
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --amber: #fbbf24;
+      --amber-light: rgba(251, 191, 36, 0.12);
+      --amber-border: rgba(251, 191, 36, 0.25);
+      --gray-ghost: rgba(255, 255, 255, 0.04);
+      --shadow: 0 4px 20px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.5);
+      --shadow-active: 0 20px 40px rgba(0,0,0,0.6), 0 4px 15px rgba(0,0,0,0.4);
+      --track-bg: rgba(255,255,255,0.08);
+      --border-ghost: rgba(255, 255, 255, 0.05); /* Defines "Off" cards in Dark Mode */
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      background-color: var(--bg);
+      font-family: 'DM Sans', sans-serif;
+      margin: 0;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: var(--text-main);
+      transition: background-color 0.4s ease, color 0.4s ease;
+    }
+
+    .dashboard {
+      width: 100%;
+      max-width: 500px; 
+      display: flex; flex-direction: column; gap: 24px;
+    }
+
+    /* ═══════════════════════════════════════════
+       THEME SWITCHER
+       ═══════════════════════════════════════════ */
+    .theme-switcher {
+      align-self: flex-end;
+      background: var(--parent-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 4px;
+      border-radius: 99px;
+      display: flex;
+      gap: 4px;
+      box-shadow: var(--shadow);
+    }
+
+    .theme-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-sub);
+      padding: 6px 14px;
+      border-radius: 99px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .theme-btn.active {
+      background: var(--card-bg);
+      color: var(--text-main);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    header.main-header { padding: 0 8px; }
+    h1 { font-size: 28px; margin: 0; font-weight: 700; letter-spacing: -0.5px; }
+    .subtitle { color: var(--text-sub); margin: 4px 0 0; font-size: 15px; font-weight: 500; }
+
+    /* ═══════════════════════════════════════════
+       PARENT CONTAINER TILE
+       ═══════════════════════════════════════════ */
+    .section-container {
+      background: var(--parent-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: var(--radius-parent);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 20px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title .icon {
+      color: var(--amber);
+      font-size: 20px;
+    }
+
+    .section-action {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--amber);
+      background: var(--amber-light);
+      padding: 6px 14px;
+      border-radius: 99px;
+      cursor: pointer;
+    }
+
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    /* ═══════════════════════════════════════════
+       LIGHTING INDIVIDUAL TILES
+       ═══════════════════════════════════════════ */
+    .l-tile {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      aspect-ratio: 1 / 0.95; 
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      touch-action: none;
+      border: 1px solid var(--border-ghost);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s, border-color 0.2s, opacity 0.2s, background-color 0.3s;
+      overflow: visible; 
+    }
+
+    /* Off State (Improved visibility in Dark Mode) */
+    .l-tile.off { opacity: 1; } /* Reset opacity to use border/shadow instead */
+    .l-tile.off .icon-wrap { background: var(--gray-ghost); color: var(--text-sub); border: 1px solid transparent; }
+    .l-tile.off .name { color: var(--text-sub); }
+    .l-tile.off .val { color: var(--text-sub); opacity: 0.5; }
+
+    /* On State */
+    .l-tile.on { border-color: var(--amber-border); }
+    .l-tile.on .icon-wrap {
+      background: var(--amber-light);
+      color: var(--amber);
+      border: 1px solid var(--amber-border);
+    }
+    .l-tile.on .val { color: var(--amber); }
+
+    /* Sliding State (Polished shadows & scale) */
+    .l-tile.sliding {
+      transform: scale(1.05);
+      box-shadow: var(--shadow-active);
+      z-index: 100;
+      border-color: var(--amber);
+    }
+
+    /* Floating Pill Percentage */
+    .l-tile.sliding .val {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--amber);
+      font-weight: 700;
+      font-size: 15px;
+      background: var(--card-bg);
+      padding: 6px 20px;
+      border-radius: 99px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      z-index: 101;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .l-tile.sliding .progress-track { height: 6px; }
+
+    /* Card Content */
+    .icon-wrap {
+      width: 44px; height: 44px;
+      border-radius: var(--radius-inner);
+      display: grid; place-items: center;
+      margin-bottom: 6px;
+      transition: all 0.2s ease;
+    }
+    .icon { font-family: 'Material Symbols Rounded'; font-size: 24px; font-variation-settings: 'FILL' 0; }
+    .on .icon { font-variation-settings: 'FILL' 1; }
+
+    .name { 
+      font-size: 14px; 
+      font-weight: 600; 
+      margin-bottom: 1px; 
+      letter-spacing: 0.1px; 
+    }
+    .val { 
+      font-size: 13px; 
+      font-weight: 700; 
+      transition: color 0.2s; 
+    }
+
+    /* Bottom Slider Indicator */
+    .progress-track {
+      position: absolute;
+      bottom: 10px; 
+      left: 14px; 
+      right: 14px;
+      height: 4px;
+      background: var(--track-bg);
+      border-radius: 99px; 
+      overflow: hidden;
+      transition: height 0.2s ease;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--text-sub);
+      transition: width 0.1s ease-out;
+      border-radius: 99px;
+    }
+    .on .progress-fill { background: var(--amber); opacity: 0.9; }
+
+    /* Manual Override Dot */
+    .manual-dot {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 8px; height: 8px;
+      background: #ff5252;
+      border-radius: 50%;
+      display: none;
+      box-shadow: 0 0 12px rgba(255, 82, 82, 0.6);
+    }
+    .l-tile[data-manual="true"] .manual-dot { display: block; }
+
+    /* Mobile Overrides */
+    @media (max-width: 440px) {
+      .grid { gap: 8px; }
+      .section-container { padding: 16px; }
+      .l-tile { aspect-ratio: 1 / 1.05; } 
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard">
+  <!-- Theme Controls -->
+  <div class="theme-switcher">
+    <button class="theme-btn active" id="btn-light">
+      <span class="icon icon-18">light_mode</span> Light
+    </button>
+    <button class="theme-btn" id="btn-dark">
+      <span class="icon icon-18">dark_mode</span> Dark
+    </button>
+  </div>
+
+  <header class="main-header">
+    <h1>Tunet Home</h1>
+    <p class="subtitle">Home Control • Evening Mode</p>
+  </header>
+
+  <!-- Grouping Container Tile -->
+  <div class="section-container">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="icon filled">lightbulb</span>
+        Lighting
+      </div>
+      <div class="section-action" onclick="allOff()">All Off</div>
+    </div>
+
+    <div class="grid" id="lightGrid">
+      <!-- Tiles generated via JS -->
+    <div class="l-tile on" data-brightness="38" data-manual="true">
+      <div class="manual-dot"></div>
+      <div class="icon-wrap">
+        <span class="icon">table_lamp</span>
+      </div>
+      <div class="name">Living</div>
+      <div class="val">38%</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 38%;"></div>
+      </div>
+    </div><div class="l-tile off" data-brightness="0">
+      <div class="manual-dot"></div>
+      <div class="icon-wrap">
+        <span class="icon">countertops</span>
+      </div>
+      <div class="name">Kitchen</div>
+      <div class="val">Off</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 0%"></div>
+      </div>
+    </div><div class="l-tile on" data-brightness="53" data-manual="true">
+      <div class="manual-dot"></div>
+      <div class="icon-wrap">
+        <span class="icon">bed</span>
+      </div>
+      <div class="name">Bedroom</div>
+      <div class="val">53%</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 53%;"></div>
+      </div>
+    </div><div class="l-tile on" data-brightness="43">
+      <div class="manual-dot"></div>
+      <div class="icon-wrap">
+        <span class="icon">highlight</span>
+      </div>
+      <div class="name">Spots</div>
+      <div class="val">43%</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 43%"></div>
+      </div>
+    </div><div class="l-tile off" data-brightness="0">
+      <div class="manual-dot"></div>
+      <div class="icon-wrap">
+        <span class="icon">light</span>
+      </div>
+      <div class="name">Ceiling</div>
+      <div class="val">Off</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 0%"></div>
+      </div>
+    </div><div class="l-tile on" data-brightness="93">
+      <div class="manual-dot"></div>
+      <div class="icon-wrap">
+        <span class="icon">view_column</span>
+      </div>
+      <div class="name">Columns</div>
+      <div class="val">93%</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 93%"></div>
+      </div>
+    </div><div class="l-tile on" data-brightness="100" data-manual="true">
+      <div class="manual-dot"></div>
+      <div class="icon-wrap">
+        <span class="icon">door_sliding</span>
+      </div>
+      <div class="name">Hallway</div>
+      <div class="val">100%</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 100%;"></div>
+      </div>
+    </div><div class="l-tile on sliding" data-brightness="100">
+      <div class="manual-dot"></div>
+      <div class="icon-wrap">
+        <span class="icon">restaurant</span>
+      </div>
+      <div class="name">Dining</div>
+      <div class="val">100%</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 100%;"></div>
+      </div>
+    </div><div class="l-tile sliding on" data-brightness="100">
+      <div class="manual-dot"></div>
+      <div class="icon-wrap">
+        <span class="icon">laptop_mac</span>
+      </div>
+      <div class="name">Office</div>
+      <div class="val">100%</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 100%;"></div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<script>
+  /* ═══════════ Theme Logic ═══════════ */
+  const btnLight = document.getElementById('btn-light');
+  const btnDark = document.getElementById('btn-dark');
+
+  function toggleTheme(isDark) {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      btnDark.classList.add('active');
+      btnLight.classList.remove('active');
+    } else {
+      document.documentElement.classList.remove('dark');
+      btnLight.classList.add('active');
+      btnDark.classList.remove('active');
+    }
+  }
+
+  btnLight.addEventListener('click', () => toggleTheme(false));
+  btnDark.addEventListener('click', () => toggleTheme(true));
+
+  /* ═══════════ Tiles Generation ═══════════ */
+  const zones = [
+    { name: 'Living', icon: 'table_lamp', level: 30, manual: false },
+    { name: 'Kitchen', icon: 'countertops', level: 0, manual: false },
+    { name: 'Bedroom', icon: 'bed', level: 83, manual: true },
+    { name: 'Spots', icon: 'highlight', level: 43, manual: false },
+    { name: 'Ceiling', icon: 'light', level: 0, manual: false },
+    { name: 'Columns', icon: 'view_column', level: 93, manual: false },
+    { name: 'Hallway', icon: 'door_sliding', level: 12, manual: false },
+    { name: 'Dining', icon: 'restaurant', level: 55, manual: false },
+    { name: 'Office', icon: 'laptop_mac', level: 0, manual: false }
+  ];
+
+  const grid = document.getElementById('lightGrid');
+
+  function createTile(zone) {
+    const tile = document.createElement('div');
+    tile.className = `l-tile ${zone.level > 0 ? 'on' : 'off'}`;
+    tile.dataset.brightness = zone.level;
+    if (zone.manual) tile.dataset.manual = "true";
+
+    tile.innerHTML = `
+      <div class="manual-dot"></div>
+      <div class="icon-wrap">
+        <span class="icon">${zone.icon}</span>
+      </div>
+      <div class="name">${zone.name}</div>
+      <div class="val">${zone.level > 0 ? zone.level + '%' : 'Off'}</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: ${zone.level}%"></div>
+      </div>
+    `;
+
+    setupDragging(tile);
+    grid.appendChild(tile);
+  }
+
+  function setupDragging(tile) {
+    let startX = 0;
+    let startBrt = 0;
+    let isDragging = false;
+    const threshold = 6;
+
+    tile.addEventListener('pointerdown', (e) => {
+      startX = e.clientX;
+      startBrt = parseInt(tile.dataset.brightness);
+      tile.setPointerCapture(e.pointerId);
+    });
+
+    tile.addEventListener('pointermove', (e) => {
+      if (!e.buttons) return;
+      const dx = e.clientX - startX;
+
+      if (!isDragging && Math.abs(dx) > threshold) {
+        isDragging = true;
+        tile.classList.add('sliding');
+      }
+
+      if (isDragging) {
+        const width = tile.offsetWidth;
+        const change = (dx / width) * 100;
+        let newBrt = Math.round(Math.max(0, Math.min(100, startBrt + change)));
+        
+        updateTileUI(tile, newBrt);
+      }
+    });
+
+    tile.addEventListener('pointerup', (e) => {
+      if (!isDragging) {
+        const current = parseInt(tile.dataset.brightness);
+        updateTileUI(tile, current > 0 ? 0 : 100);
+      } else {
+        tile.dataset.manual = "true";
+      }
+      
+      tile.classList.remove('sliding');
+      isDragging = false;
+    });
+  }
+
+  function updateTileUI(tile, brt) {
+    tile.dataset.brightness = brt;
+    const fill = tile.querySelector('.progress-fill');
+    const val = tile.querySelector('.val');
+    
+    fill.style.width = brt + '%';
+    val.textContent = brt > 0 ? brt + '%' : 'Off';
+
+    if (brt > 0) {
+      tile.classList.add('on');
+      tile.classList.remove('off');
+    } else {
+      tile.classList.remove('on');
+      tile.classList.add('off');
+    }
+  }
+
+  function allOff() {
+    document.querySelectorAll('.l-tile').forEach(t => updateTileUI(t, 0));
+  }
+
+  zones.forEach(createTile);
+</script>
+
+
+</body></html>

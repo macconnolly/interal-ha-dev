@@ -1,145 +1,41 @@
 /**
- * Tunet Climate Card
+ * Tunet Climate Card (v2 – shared base module)
  * Custom Home Assistant card with glassmorphism design
- * Version 1.0.0
+ * Version 1.1.0
+ *
+ * Migration: Shared tokens, reset, icon base, card surface, glass stroke,
+ * and reduced motion extracted to tunet_base.js.
+ * Drift fixes: --r-section 38→32, glass stroke gradient aligned to spec,
+ * icon font-family Outlined removed (Rounded only).
  */
 
-const CARD_VERSION = '1.0.0';
+import {
+  TOKENS, RESET, BASE_FONT, ICON_BASE,
+  CARD_SURFACE, CARD_SURFACE_GLASS_STROKE,
+  REDUCED_MOTION, FONT_LINKS,
+  injectFonts, detectDarkMode, applyDarkClass,
+  registerCard, logCardVersion,
+} from './tunet_base.js';
+
+const CARD_VERSION = '1.1.0';
 
 /* ===============================================================
-   CSS - Complete token system + component styles
+   CSS – Base imports + card-specific styles
    =============================================================== */
 
 const STYLES = `
-  /* -- Tokens: Light -- */
-  :host {
-    --glass: rgba(255,255,255,0.68);
-    --glass-border: rgba(255,255,255,0.45);
-    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
-    --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
-    --text: #1C1C1E;
-    --text-sub: rgba(28,28,30,0.55);
-    --text-muted: #8E8E93;
-    --amber: #D4850A;
-    --amber-fill: rgba(212,133,10,0.10);
-    --amber-border: rgba(212,133,10,0.22);
-    --blue: #007AFF;
-    --blue-fill: rgba(0,122,255,0.09);
-    --blue-border: rgba(0,122,255,0.18);
-    --green: #34C759;
-    --green-fill: rgba(52,199,89,0.12);
-    --green-border: rgba(52,199,89,0.15);
-    --track-bg: rgba(28,28,30,0.055);
-    --track-h: 44px;
-    --thumb-bg: #fff;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
-    --r-card: 24px;
-    --r-tile: 16px;
-    --r-pill: 999px;
-    --r-track: 14px;
-    --ctrl-bg: rgba(255,255,255,0.52);
-    --ctrl-border: rgba(0,0,0,0.05);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
-    --dd-bg: rgba(255,255,255,0.84);
-    --dd-border: rgba(255,255,255,0.60);
-    --divider: rgba(28,28,30,0.07);
-    --r-section: 38px;
-    --section-bg: rgba(255,255,255,0.35);
-    --section-shadow: 0 8px 40px rgba(0,0,0,0.10);
-    color-scheme: light;
-    display: block;
-  }
+${TOKENS}
+${RESET}
+${BASE_FONT}
+${ICON_BASE}
+${CARD_SURFACE}
+${CARD_SURFACE_GLASS_STROKE}
 
-  /* -- Tokens: Dark -- */
-  :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
-    --glass-border: rgba(255,255,255,0.08);
-    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
-    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
-    --text: #F5F5F7;
-    --text-sub: rgba(245,245,247,0.50);
-    --text-muted: rgba(245,245,247,0.35);
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30,0.14);
-    --amber-border: rgba(232,150,30,0.25);
-    --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255,0.13);
-    --blue-border: rgba(10,132,255,0.22);
-    --green: #30D158;
-    --green-fill: rgba(48,209,88,0.14);
-    --green-border: rgba(48,209,88,0.18);
-    --track-bg: rgba(255,255,255,0.06);
-    --thumb-bg: #F5F5F7;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
-    --ctrl-bg: rgba(255,255,255,0.08);
-    --ctrl-border: rgba(255,255,255,0.08);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-    --dd-bg: rgba(58,58,60,0.88);
-    --dd-border: rgba(255,255,255,0.08);
-    --divider: rgba(255,255,255,0.06);
-    --section-bg: rgba(255,255,255,0.05);
-    --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
-    color-scheme: dark;
-  }
-
-  /* -- Reset -- */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  /* -- Base -- */
-  .card-wrap {
-    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* -- Icons: Material Symbols Rounded -- */
-  .icon {
-    font-family: 'Material Symbols Outlined', 'Material Symbols Rounded';
-    font-weight: normal;
-    font-style: normal;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    text-transform: none;
-    letter-spacing: normal;
-    white-space: nowrap;
-    direction: ltr;
-    vertical-align: middle;
-    flex-shrink: 0;
-    -webkit-font-smoothing: antialiased;
-    --ms-fill: 0;
-    --ms-wght: 100;
-    --ms-grad: 200;
-    --ms-opsz: 20;
-    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
-  }
-  .icon.filled { --ms-fill: 1; }
-  .icon-20 { font-size: 20px; }
-  .icon-18 { font-size: 18px; }
-  .icon-16 { font-size: 16px; }
-  .icon-14 { font-size: 14px; }
-
-  /* -- Card Surface -- */
+  /* ── Climate Card Surface Overrides ── */
   .card {
-    position: relative;
-    width: 100%;
-    border-radius: var(--r-card);
-    background: var(--glass);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--ctrl-border);
-    box-shadow: var(--shadow), var(--inset);
     padding: 20px 20px 14px;
-    display: flex;
-    flex-direction: column;
     gap: 0;
-    transition: background .3s, border-color .3s, box-shadow .3s, opacity .3s;
+    width: 100%;
   }
   .card[data-mode="off"] { opacity: .55; }
   .card[data-action="heating"] { border-color: rgba(212,133,10,0.16); }
@@ -154,32 +50,6 @@ const STYLES = `
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     box-shadow: var(--section-shadow), var(--inset);
-  }
-
-  /* Glass stroke */
-  .card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: var(--r-card);
-    padding: 1px;
-    background: linear-gradient(160deg,
-      rgba(255,255,255,0.50),
-      rgba(255,255,255,0.08) 40%,
-      rgba(255,255,255,0.02) 60%,
-      rgba(255,255,255,0.20));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-    z-index: 0;
-  }
-  :host(.dark) .card::before {
-    background: linear-gradient(160deg,
-      rgba(255,255,255,0.14),
-      rgba(255,255,255,0.03) 40%,
-      rgba(255,255,255,0.01) 60%,
-      rgba(255,255,255,0.08));
   }
 
   /* -- Header -- */
@@ -349,7 +219,7 @@ const STYLES = `
     color: var(--text-muted);
   }
 
-  /* -- Dropdown Menu -- */
+  /* -- Mode Dropdown Menu -- */
   .mode-menu {
     position: absolute;
     top: calc(100% + 6px);
@@ -610,14 +480,7 @@ const STYLES = `
     border-radius: var(--r-track);
   }
 
-  /* -- Accessibility -- */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
+${REDUCED_MOTION}
 
   /* -- Responsive -- */
   @media (max-width: 440px) {
@@ -631,11 +494,7 @@ const STYLES = `
    =============================================================== */
 
 const TEMPLATE = `
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward" rel="stylesheet">
+  ${FONT_LINKS}
 
   <div class="card-wrap">
     <div class="card" id="card" data-mode="heat_cool" data-action="idle">
@@ -754,8 +613,7 @@ class TunetClimateCard extends HTMLElement {
     this._rendered = false;
 
     // Inject fonts into document.head (once globally)
-    // Shadow DOM <link> tags don't reliably load fonts in all browsers
-    TunetClimateCard._injectFonts();
+    injectFonts();
 
     // Bound handlers for document-level listeners
     this._onMouseMove = this._onMouseMove.bind(this);
@@ -763,29 +621,6 @@ class TunetClimateCard extends HTMLElement {
     this._onTouchMove = this._onTouchMove.bind(this);
     this._onTouchEnd = this._onEndDrag.bind(this);
     this._onDocClick = this._onDocClick.bind(this);
-  }
-
-  static _injectFonts() {
-    if (TunetClimateCard._fontsInjected) return;
-    TunetClimateCard._fontsInjected = true;
-
-    const links = [
-      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward' },
-    ];
-
-    for (const cfg of links) {
-      // Skip if already present
-      if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
-      const link = document.createElement('link');
-      link.rel = cfg.rel;
-      link.href = cfg.href;
-      if (cfg.crossOrigin !== undefined) link.crossOrigin = cfg.crossOrigin;
-      document.head.appendChild(link);
-    }
   }
 
   /* -- Config -- */
@@ -880,10 +715,9 @@ class TunetClimateCard extends HTMLElement {
       this._rendered = true;
     }
 
-    // Detect dark mode
-    const isDark = !!(hass.themes && hass.themes.darkMode);
-    if (isDark) this.classList.add('dark');
-    else this.classList.remove('dark');
+    // Detect dark mode via shared utility
+    const isDark = detectDarkMode(hass);
+    applyDarkClass(this, isDark);
 
     // Only update if relevant entity changed
     const entity = this._config.entity;
@@ -1538,24 +1372,10 @@ class TunetClimateCard extends HTMLElement {
    Registration
    =============================================================== */
 
-if (!customElements.get('tunet-climate-card')) {
-  customElements.define('tunet-climate-card', TunetClimateCard);
-}
+registerCard('tunet-climate-card', TunetClimateCard, {
+  name: 'Tunet Climate Card',
+  description: 'Glassmorphism climate controller with dual-range slider',
+  documentationURL: 'https://github.com/tunet/tunet-climate-card',
+});
 
-// Register with HA card picker
-window.customCards = window.customCards || [];
-if (!window.customCards.some((card) => card.type === 'tunet-climate-card')) {
-  window.customCards.push({
-    type: 'tunet-climate-card',
-    name: 'Tunet Climate Card',
-    description: 'Glassmorphism climate controller with dual-range slider',
-    preview: true,
-    documentationURL: 'https://github.com/tunet/tunet-climate-card',
-  });
-}
-
-console.info(
-  `%c TUNET-CLIMATE-CARD %c v${CARD_VERSION} `,
-  'color: #fff; background: #D4850A; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;',
-  'color: #D4850A; background: #fff3e0; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;'
-);
+logCardVersion('TUNET-CLIMATE', CARD_VERSION, '#D4850A');

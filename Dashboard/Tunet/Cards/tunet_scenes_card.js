@@ -176,7 +176,7 @@ class TunetScenesCard extends HTMLElement {
           type: 'expandable',
           title: 'Scenes',
           schema: [
-            { name: 'entity', required: true, selector: { entity: { domain: ['scene', 'script'] } } },
+            { name: 'entity', required: true, selector: { entity: { filter: [{ domain: 'scene' }, { domain: 'script' }] } } },
             { name: 'name', selector: { text: {} } },
             { name: 'icon', selector: { icon: {} } },
             { name: 'accent', selector: { select: { options: ['amber', 'blue', 'green', 'purple', 'red'] } } },
@@ -221,7 +221,12 @@ class TunetScenesCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 1;
+    // Scenes is a flat chip row with no card shell, so it's compact
+    // But if chips wrap to multiple rows we need more space
+    const chipCount = (this._config.scenes || []).length;
+    // ~5 chips fit per row at standard width; each row ~50px
+    const rows = Math.max(1, Math.ceil(chipCount / 5));
+    return rows;
   }
 
   _render() {

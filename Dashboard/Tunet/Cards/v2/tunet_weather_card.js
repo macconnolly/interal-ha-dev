@@ -1,101 +1,50 @@
 /**
- * Tunet Weather Card
+ * Tunet Weather Card (v2 – ES Module)
  * Current conditions + forecast with glassmorphism design
- * Version 1.3.0
+ * Version 1.4.0
  */
 
-const TUNET_WEATHER_VERSION = '1.3.0';
+import {
+  TOKENS,
+  RESET,
+  BASE_FONT,
+  ICON_BASE,
+  CARD_SURFACE,
+  CARD_SURFACE_GLASS_STROKE,
+  REDUCED_MOTION,
+  FONT_LINKS,
+  injectFonts,
+  detectDarkMode,
+  applyDarkClass,
+  registerCard,
+  logCardVersion,
+} from './tunet_base.js';
 
-const TUNET_WEATHER_STYLES = `
+const CARD_VERSION = '1.4.0';
+
+// ═══════════════════════════════════════════════════════════
+// Card-specific CSS overrides
+// ═══════════════════════════════════════════════════════════
+
+const CARD_OVERRIDES = `
   :host {
-    --glass: rgba(255,255,255,0.68);
-    --glass-border: rgba(255,255,255,0.45);
-    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
-    --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
-    --text: #1C1C1E;
-    --text-sub: rgba(28,28,30,0.55);
-    --text-muted: #8E8E93;
-    --blue: #007AFF;
-    --blue-fill: rgba(0,122,255,0.09);
-    --blue-border: rgba(0,122,255,0.18);
-    --r-card: 24px;
-    --r-tile: 16px;
-    --ctrl-bg: rgba(255,255,255,0.52);
-    --ctrl-border: rgba(0,0,0,0.05);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-    color-scheme: light;
     display: block;
   }
-
-  :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
-    --glass-border: rgba(255,255,255,0.08);
-    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
-    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
-    --text: #F5F5F7;
-    --text-sub: rgba(245,245,247,0.55);
-    --text-muted: rgba(245,245,247,0.35);
-    --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255,0.14);
-    --blue-border: rgba(10,132,255,0.24);
-    --ctrl-bg: rgba(255,255,255,0.08);
-    --ctrl-border: rgba(255,255,255,0.08);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-    color-scheme: dark;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  .wrap {
-    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .icon {
-    font-family: 'Material Symbols Outlined', 'Material Symbols Rounded';
-    font-weight: normal; font-style: normal;
-    display: inline-flex; align-items: center; justify-content: center;
-    line-height: 1; text-transform: none; letter-spacing: normal;
-    white-space: nowrap; direction: ltr; vertical-align: middle; flex-shrink: 0;
-    -webkit-font-smoothing: antialiased;
-    --ms-fill: 0;
-    --ms-wght: 100;
-    --ms-grad: 200;
-    --ms-opsz: 20;
-    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
-  }
-  .icon.filled { --ms-fill: 1; }
-
-  /* Card */
   .card {
-    position: relative; width: 100%;
-    border-radius: var(--r-card);
-    background: var(--glass);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--ctrl-border);
-    box-shadow: var(--shadow), var(--inset);
-    padding: 20px;
-    display: flex; flex-direction: column; gap: 0;
+    width: 100%;
+    gap: 0;
+    overflow: visible;
     transition: background .3s, border-color .3s;
   }
-  .card::before {
-    content: ""; position: absolute; inset: 0;
-    border-radius: var(--r-card); padding: 1px; pointer-events: none; z-index: 0;
-    background: linear-gradient(160deg, rgba(255,255,255,0.50), rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.20));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
-  }
-  :host(.dark) .card::before {
-    background: linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.01) 60%, rgba(255,255,255,0.08));
-  }
+`;
 
+// ═══════════════════════════════════════════════════════════
+// Card-specific styles
+// ═══════════════════════════════════════════════════════════
+
+const CARD_STYLES = `
   /* Header */
   .hdr {
     display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
@@ -159,16 +108,28 @@ const TUNET_WEATHER_STYLES = `
     .card { padding: 16px; }
     .weather-forecast { grid-template-columns: repeat(3, 1fr); }
   }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
 `;
 
-// Map HA weather conditions to Material Symbols
+// ═══════════════════════════════════════════════════════════
+// Composite stylesheet
+// ═══════════════════════════════════════════════════════════
+
+const TUNET_WEATHER_STYLES = `
+  ${TOKENS}
+  ${RESET}
+  ${BASE_FONT}
+  ${ICON_BASE}
+  ${CARD_SURFACE}
+  ${CARD_SURFACE_GLASS_STROKE}
+  ${CARD_OVERRIDES}
+  ${CARD_STYLES}
+  ${REDUCED_MOTION}
+`;
+
+// ═══════════════════════════════════════════════════════════
+// Data maps
+// ═══════════════════════════════════════════════════════════
+
 const CONDITION_ICONS = {
   'clear-night': 'bedtime',
   'cloudy': 'cloud',
@@ -189,6 +150,10 @@ const CONDITION_ICONS = {
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// ═══════════════════════════════════════════════════════════
+// Card Class
+// ═══════════════════════════════════════════════════════════
+
 class TunetWeatherCard extends HTMLElement {
   constructor() {
     super();
@@ -198,30 +163,11 @@ class TunetWeatherCard extends HTMLElement {
     this._rendered = false;
     this._forecast = [];
     this._forecastUnsub = null;
-    TunetWeatherCard._injectFonts();
+    injectFonts();
   }
 
   disconnectedCallback() {
     this._unsubForecast();
-  }
-
-  static _injectFonts() {
-    if (TunetWeatherCard._fontsInjected) return;
-    TunetWeatherCard._fontsInjected = true;
-    const links = [
-      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward' },
-    ];
-    for (const cfg of links) {
-      if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
-      const link = document.createElement('link');
-      link.rel = cfg.rel; link.href = cfg.href;
-      if (cfg.crossOrigin !== undefined) link.crossOrigin = cfg.crossOrigin;
-      document.head.appendChild(link);
-    }
   }
 
   static getConfigForm() {
@@ -268,13 +214,11 @@ class TunetWeatherCard extends HTMLElement {
       this._rendered = true;
     }
 
-    const isDark = !!(hass.themes && hass.themes.darkMode);
-    if (isDark) this.classList.add('dark');
-    else this.classList.remove('dark');
+    const isDark = detectDarkMode(hass);
+    applyDarkClass(this, isDark);
 
     const entity = this._config.entity;
 
-    // Subscribe to forecast on first hass set or entity change
     if (!oldHass || (entity && (!this._forecastUnsub || this._subscribedEntity !== entity))) {
       this._subscribedEntity = entity;
       this._subscribeForecast();
@@ -286,8 +230,6 @@ class TunetWeatherCard extends HTMLElement {
   }
 
   getCardSize() {
-    // Header (1) + current conditions row (2) + forecast row (2) = 5
-    // Without forecast: Header (1) + current conditions (2) = 3
     const hasForecast = this._config.forecast_days > 0;
     return hasForecast ? 5 : 3;
   }
@@ -298,16 +240,8 @@ class TunetWeatherCard extends HTMLElement {
     this.shadowRoot.innerHTML = '';
     this.shadowRoot.appendChild(style);
 
-    const fontLinks = `
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward" rel="stylesheet">
-    `;
-
     const tpl = document.createElement('template');
-    tpl.innerHTML = fontLinks + `
+    tpl.innerHTML = FONT_LINKS + `
       <div class="wrap">
         <div class="card">
           <div class="hdr">
@@ -365,11 +299,9 @@ class TunetWeatherCard extends HTMLElement {
   async _subscribeForecast() {
     if (!this._hass || !this._config.entity) return;
 
-    // Unsubscribe from any previous subscription
     this._unsubForecast();
 
     try {
-      // HA 2024+ subscription-based forecast API
       this._forecastUnsub = await this._hass.connection.subscribeMessage(
         (msg) => {
           if (msg.forecast && Array.isArray(msg.forecast)) {
@@ -384,7 +316,6 @@ class TunetWeatherCard extends HTMLElement {
         }
       );
     } catch {
-      // Fallback: try the one-shot service call with return_response
       try {
         const result = await this._hass.callService('weather', 'get_forecasts', {
           type: 'daily',
@@ -399,7 +330,6 @@ class TunetWeatherCard extends HTMLElement {
         }
       } catch (_) {}
 
-      // Last resort: legacy attribute fallback
       try {
         const entity = this._hass.states[this._config.entity];
         if (entity && entity.attributes.forecast) {
@@ -421,11 +351,9 @@ class TunetWeatherCard extends HTMLElement {
     this.$.cardTitle.textContent = this._config.name;
     this.$.condIcon.textContent = CONDITION_ICONS[condition] || 'cloud';
 
-    // Current temp
     const temp = a.temperature != null ? Math.round(a.temperature) : '--';
     this.$.curTemp.innerHTML = `${temp}<span class="deg">&deg;</span>`;
 
-    // Condition description
     const condNames = {
       'clear-night': 'Clear Night', 'cloudy': 'Cloudy', 'fog': 'Foggy',
       'hail': 'Hail', 'lightning': 'Thunderstorm', 'lightning-rainy': 'Thunderstorm',
@@ -435,7 +363,6 @@ class TunetWeatherCard extends HTMLElement {
     };
     this.$.condDesc.textContent = condNames[condition] || condition;
 
-    // Header subtitle
     const lastUpdate = entity.last_updated;
     if (this._config.show_last_updated && lastUpdate) {
       const mins = Math.round((Date.now() - new Date(lastUpdate).getTime()) / 60000);
@@ -444,7 +371,6 @@ class TunetWeatherCard extends HTMLElement {
       this.$.hdrSub.textContent = '';
     }
 
-    // Details
     const details = [];
     if (a.wind_speed != null) {
       const dir = a.wind_bearing != null ? this._windDir(a.wind_bearing) : '';
@@ -467,7 +393,6 @@ class TunetWeatherCard extends HTMLElement {
       </div>`
     ).join('');
 
-    // Render forecast from cache
     if (this._forecast.length) this._renderForecast();
   }
 
@@ -500,22 +425,14 @@ class TunetWeatherCard extends HTMLElement {
   }
 }
 
-if (!customElements.get('tunet-weather-card')) {
-  customElements.define('tunet-weather-card', TunetWeatherCard);
-}
+// ═══════════════════════════════════════════════════════════
+// Registration
+// ═══════════════════════════════════════════════════════════
 
-window.customCards = window.customCards || [];
-if (!window.customCards.some((card) => card.type === 'tunet-weather-card')) {
-  window.customCards.push({
-    type: 'tunet-weather-card',
-    name: 'Tunet Weather Card',
-    description: 'Weather conditions and forecast with glassmorphism design',
-    preview: true,
-  });
-}
+registerCard('tunet-weather-card', TunetWeatherCard, {
+  name: 'Tunet Weather Card',
+  description: 'Weather conditions and forecast with glassmorphism design',
+  preview: true,
+});
 
-console.info(
-  `%c TUNET-WEATHER-CARD %c v${TUNET_WEATHER_VERSION} `,
-  'color: #fff; background: #007AFF; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;',
-  'color: #007AFF; background: #e0f0ff; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;'
-);
+logCardVersion('TUNET-WEATHER', CARD_VERSION, '#007AFF');

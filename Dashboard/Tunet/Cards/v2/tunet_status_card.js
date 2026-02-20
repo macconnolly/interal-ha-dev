@@ -1,10 +1,18 @@
 /**
- * Tunet Status Card
+ * Tunet Status Card  v2.3.0 (v2 migration)
  * Home status grid with typed tiles: indicator, timer, value, dropdown
- * Version 2.0.0
+ * Migrated to tunet_base.js shared module.
  */
 
-const TUNET_STATUS_VERSION = '2.2.0';
+import {
+  TOKENS, RESET, BASE_FONT, ICON_BASE,
+  CARD_SURFACE, CARD_SURFACE_GLASS_STROKE,
+  REDUCED_MOTION, FONT_LINKS,
+  injectFonts, detectDarkMode, applyDarkClass,
+  registerCard, logCardVersion,
+} from './tunet_base.js';
+
+const CARD_VERSION = '2.3.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -23,114 +31,41 @@ function normalizeStatusIcon(icon) {
   return resolved;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   CSS – Shared base + card-specific overrides
+   ═══════════════════════════════════════════════════════════════ */
+
 const TUNET_STATUS_STYLES = `
+${TOKENS}
+${RESET}
+${BASE_FONT}
+${ICON_BASE}
+${CARD_SURFACE}
+${CARD_SURFACE_GLASS_STROKE}
+
+  /* ── Status-specific token overrides ────────── */
   :host {
-    --glass: rgba(255,255,255,0.68);
-    --glass-border: rgba(255,255,255,0.45);
-    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
-    --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
-    --text: #1C1C1E;
-    --text-sub: rgba(28,28,30,0.55);
-    --text-muted: #8E8E93;
-    --amber: #D4850A;
-    --amber-fill: rgba(212,133,10,0.10);
-    --amber-border: rgba(212,133,10,0.22);
-    --blue: #007AFF;
-    --blue-fill: rgba(0,122,255,0.09);
-    --blue-border: rgba(0,122,255,0.18);
-    --green: #34C759;
-    --green-fill: rgba(52,199,89,0.12);
-    --green-border: rgba(52,199,89,0.15);
-    --red: #FF3B30;
-    --tile-bg: rgba(255,255,255,0.92);
+    /* Tile physics (not in base tokens) */
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     --tile-row-h: auto;
-    --track-bg: rgba(28,28,30,0.055);
-    --r-card: 24px;
-    --r-tile: 16px;
-    --ctrl-border: rgba(0,0,0,0.05);
+    /* Dropdown menu tokens */
     --dd-bg: rgba(255,255,255,0.92);
     --dd-border: rgba(255,255,255,0.60);
-    color-scheme: light;
-    display: block;
   }
 
   :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
-    --glass-border: rgba(255,255,255,0.08);
-    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
-    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
-    --text: #F5F5F7;
-    --text-sub: rgba(245,245,247,0.50);
-    --text-muted: rgba(245,245,247,0.35);
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30,0.14);
-    --amber-border: rgba(232,150,30,0.25);
-    --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255,0.14);
-    --blue-border: rgba(10,132,255,0.24);
-    --green: #30D158;
-    --green-fill: rgba(48,209,88,0.14);
-    --green-border: rgba(48,209,88,0.20);
-    --red: #FF453A;
-    --tile-bg: rgba(44,44,46,0.90);
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-    --track-bg: rgba(255,255,255,0.06);
-    --ctrl-border: rgba(255,255,255,0.08);
     --dd-bg: rgba(58,58,60,0.92);
     --dd-border: rgba(255,255,255,0.08);
-    color-scheme: dark;
   }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  .wrap {
-    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .icon {
-    font-family: 'Material Symbols Outlined', 'Material Symbols Rounded';
-    font-weight: normal; font-style: normal;
-    display: inline-flex; align-items: center; justify-content: center;
-    line-height: 1; text-transform: none; letter-spacing: normal;
-    white-space: nowrap; direction: ltr; vertical-align: middle; flex-shrink: 0;
-    -webkit-font-smoothing: antialiased;
-    --ms-fill: 0;
-    --ms-wght: 100;
-    --ms-grad: 200;
-    --ms-opsz: 20;
-    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
-  }
-  .icon.filled { --ms-fill: 1; }
-
+  /* ── Card surface overrides ─────────────────── */
   .card {
-    position: relative; width: 100%;
-    border-radius: var(--r-card);
-    background: var(--glass);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--ctrl-border);
-    box-shadow: var(--shadow), var(--inset);
-    padding: 20px;
-    display: flex; flex-direction: column; gap: 16px;
-    transition: background .3s, border-color .3s;
-  }
-  .card::before {
-    content: ""; position: absolute; inset: 0;
-    border-radius: var(--r-card); padding: 1px; pointer-events: none; z-index: 0;
-    background: linear-gradient(160deg, rgba(255,255,255,0.50), rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.20));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
-  }
-  :host(.dark) .card::before {
-    background: linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.01) 60%, rgba(255,255,255,0.08));
+    width: 100%;
+    gap: 16px;
   }
 
+  /* ── Header ──────────────────────────────────── */
   .hdr {
     display: flex; align-items: center; justify-content: space-between; padding: 0 4px;
   }
@@ -140,6 +75,7 @@ const TUNET_STATUS_STYLES = `
   }
   .hdr-title .icon { color: var(--blue); }
 
+  /* ── Tile Grid ───────────────────────────────── */
   .grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -148,6 +84,7 @@ const TUNET_STATUS_STYLES = `
     gap: 10px;
   }
 
+  /* ── Tile Surface ────────────────────────────── */
   .tile {
     background: var(--tile-bg);
     border-radius: var(--r-tile);
@@ -169,6 +106,7 @@ const TUNET_STATUS_STYLES = `
     outline-offset: 3px;
   }
 
+  /* ── Tile Icon Accents ───────────────────────── */
   .tile-icon {
     width: 28px; height: 28px;
     display: grid; place-items: center;
@@ -182,6 +120,7 @@ const TUNET_STATUS_STYLES = `
   .tile[data-accent="green"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   .tile[data-accent="muted"] .tile-icon { color: var(--text-muted); }
 
+  /* ── Tile Values & Labels ────────────────────── */
   .tile-val {
     font-size: 18px; font-weight: 700; letter-spacing: -.2px; line-height: 1;
     color: var(--text); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap;
@@ -193,7 +132,7 @@ const TUNET_STATUS_STYLES = `
   }
   .tile-deg { font-size: 0.6em; vertical-align: baseline; position: relative; top: -0.18em; margin-left: -1px; }
 
-  /* Status dots */
+  /* ── Status Dots ─────────────────────────────── */
   .status-dot {
     width: 6px; height: 6px; border-radius: 999px;
     position: absolute; top: 10px; right: 10px;
@@ -205,12 +144,13 @@ const TUNET_STATUS_STYLES = `
   .status-dot.blue { background: var(--blue); display: block; }
   .status-dot.muted { background: var(--text-muted); opacity: 0.5; display: block; }
 
-  /* Conditional visibility */
+  /* ── Conditional Visibility ──────────────────── */
   .tile.tile-hidden {
     visibility: hidden !important;
     pointer-events: none !important;
   }
 
+  /* ── Aux Action Button ───────────────────────── */
   .tile-aux {
     position: absolute;
     top: 8px;
@@ -236,12 +176,12 @@ const TUNET_STATUS_STYLES = `
   .tile-aux:active { transform: scale(0.97); }
   .tile.has-aux { padding-top: 26px; }
 
-  /* Timer tile — monospace countdown */
+  /* ── Timer Tile ──────────────────────────────── */
   .tile[data-type="timer"] .tile-val {
     letter-spacing: 0.5px;
   }
 
-  /* Dropdown tile */
+  /* ── Dropdown Tile ───────────────────────────── */
   .tile-dd-val {
     display: flex;
     align-items: center;
@@ -317,6 +257,7 @@ const TUNET_STATUS_STYLES = `
     color: var(--blue);
   }
 
+  /* ── Responsive ──────────────────────────────── */
   @media (max-width: 440px) {
     .card { padding: 16px; }
     .grid { grid-template-columns: repeat(2, 1fr); }
@@ -324,13 +265,12 @@ const TUNET_STATUS_STYLES = `
     .tile-val { font-size: 16px; }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
+${REDUCED_MOTION}
 `;
+
+/* ═══════════════════════════════════════════════════════════════
+   Card Class
+   ═══════════════════════════════════════════════════════════════ */
 
 class TunetStatusCard extends HTMLElement {
   constructor() {
@@ -342,7 +282,7 @@ class TunetStatusCard extends HTMLElement {
     this._timerIntervals = [];
     this._openDropdown = null;
     this._onDocClick = this._onDocClick.bind(this);
-    TunetStatusCard._injectFonts();
+    injectFonts();
   }
 
   connectedCallback() {
@@ -354,24 +294,9 @@ class TunetStatusCard extends HTMLElement {
     this._clearAllTimers();
   }
 
-  static _injectFonts() {
-    if (TunetStatusCard._fontsInjected) return;
-    TunetStatusCard._fontsInjected = true;
-    const links = [
-      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward' },
-    ];
-    for (const cfg of links) {
-      if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
-      const link = document.createElement('link');
-      link.rel = cfg.rel; link.href = cfg.href;
-      if (cfg.crossOrigin !== undefined) link.crossOrigin = cfg.crossOrigin;
-      document.head.appendChild(link);
-    }
-  }
+  /* ═══════════════════════════════════════════════════
+     CONFIG
+     ═══════════════════════════════════════════════════ */
 
   static getConfigForm() {
     return {
@@ -447,6 +372,10 @@ class TunetStatusCard extends HTMLElement {
     if (this._rendered) this._buildGrid();
   }
 
+  /* ═══════════════════════════════════════════════════
+     HA STATE
+     ═══════════════════════════════════════════════════ */
+
   set hass(hass) {
     const oldHass = this._hass;
     this._hass = hass;
@@ -456,9 +385,8 @@ class TunetStatusCard extends HTMLElement {
       this._rendered = true;
     }
 
-    const isDark = !!(hass.themes && hass.themes.darkMode);
-    if (isDark) this.classList.add('dark');
-    else this.classList.remove('dark');
+    const isDark = detectDarkMode(hass);
+    applyDarkClass(this, isDark);
 
     // Collect all entities that matter (tile entities + show_when entities)
     const relevantEntities = new Set();
@@ -483,6 +411,10 @@ class TunetStatusCard extends HTMLElement {
     return Math.max(2, rows + 1);
   }
 
+  /* ═══════════════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════════════ */
+
   _render() {
     const style = document.createElement('style');
     style.textContent = TUNET_STATUS_STYLES;
@@ -494,16 +426,8 @@ class TunetStatusCard extends HTMLElement {
     this._customStyleEl.textContent = this._config.custom_css || '';
     this.shadowRoot.appendChild(this._customStyleEl);
 
-    const fontLinks = `
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward" rel="stylesheet">
-    `;
-
     const tpl = document.createElement('template');
-    tpl.innerHTML = fontLinks + `
+    tpl.innerHTML = FONT_LINKS + `
       <div class="wrap">
         <div class="card">
           <div class="hdr">
@@ -991,22 +915,13 @@ class TunetStatusCard extends HTMLElement {
   }
 }
 
-if (!customElements.get('tunet-status-card')) {
-  customElements.define('tunet-status-card', TunetStatusCard);
-}
+/* ═══════════════════════════════════════════════════════════════
+   Registration
+   ═══════════════════════════════════════════════════════════════ */
 
-window.customCards = window.customCards || [];
-if (!window.customCards.some((card) => card.type === 'tunet-status-card')) {
-  window.customCards.push({
-    type: 'tunet-status-card',
-    name: 'Tunet Status Card',
-    description: 'Home status grid with typed tiles and glassmorphism design',
-    preview: true,
-  });
-}
+registerCard('tunet-status-card', TunetStatusCard, {
+  name: 'Tunet Status Card',
+  description: 'Home status grid with typed tiles and glassmorphism design',
+});
 
-console.info(
-  `%c TUNET-STATUS-CARD %c v${TUNET_STATUS_VERSION} `,
-  'color: #fff; background: #007AFF; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;',
-  'color: #007AFF; background: #e0f0ff; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;'
-);
+logCardVersion('TUNET-STATUS', CARD_VERSION, '#007AFF');

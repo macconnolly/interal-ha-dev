@@ -1,10 +1,30 @@
 /**
- * Tunet Actions Card
+ * Tunet Actions Card (v2 – ES Module)
  * Quick action chips with state reflection and glassmorphism design
- * Version 2.0.0
+ * Version 2.2.0
  */
 
-const TUNET_ACTIONS_VERSION = '2.1.0';
+import {
+  TOKENS,
+  RESET,
+  BASE_FONT,
+  ICON_BASE,
+  CARD_SURFACE,
+  CARD_SURFACE_GLASS_STROKE,
+  REDUCED_MOTION,
+  FONT_LINKS,
+  injectFonts,
+  detectDarkMode,
+  applyDarkClass,
+  registerCard,
+  logCardVersion,
+} from './tunet_base.js';
+
+const CARD_VERSION = '2.2.0';
+
+// ═══════════════════════════════════════════════════════════
+// Default action configs (card-specific)
+// ═══════════════════════════════════════════════════════════
 
 const DEFAULT_ACTIONS = [
   {
@@ -113,105 +133,30 @@ function normalizeIcon(icon) {
   return ICON_ALIASES[raw] || raw || 'lightbulb';
 }
 
-const TUNET_ACTIONS_STYLES = `
+// ═══════════════════════════════════════════════════════════
+// Card-specific CSS overrides
+// ═══════════════════════════════════════════════════════════
+
+const CARD_OVERRIDES = `
   :host {
-    --glass: rgba(255,255,255,0.68);
-    --glass-border: rgba(255,255,255,0.45);
-    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
-    --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
-    --text: #1C1C1E;
-    --text-sub: rgba(28,28,30,0.55);
-    --text-muted: #8E8E93;
-    --amber: #D4850A;
-    --amber-fill: rgba(212,133,10,0.10);
-    --amber-border: rgba(212,133,10,0.22);
-    --blue: #007AFF;
-    --blue-fill: rgba(0,122,255,0.09);
-    --blue-border: rgba(0,122,255,0.18);
-    --purple: #AF52DE;
-    --purple-fill: rgba(175,82,222,0.10);
-    --purple-border: rgba(175,82,222,0.18);
-    --r-card: 24px;
-    --r-tile: 16px;
-    --ctrl-border: rgba(0,0,0,0.05);
-    --tile-bg: rgba(255,255,255,0.92);
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     display: block;
   }
-
-  :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
-    --glass-border: rgba(255,255,255,0.08);
-    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
-    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
-    --text: #F5F5F7;
-    --text-sub: rgba(245,245,247,0.55);
-    --text-muted: rgba(245,245,247,0.35);
-    --amber: #E8961E;
-    --amber-fill: rgba(232,150,30,0.14);
-    --amber-border: rgba(232,150,30,0.25);
-    --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255,0.14);
-    --blue-border: rgba(10,132,255,0.24);
-    --purple: #BF5AF2;
-    --purple-fill: rgba(191,90,242,0.14);
-    --purple-border: rgba(191,90,242,0.22);
-    --ctrl-border: rgba(255,255,255,0.08);
-    --tile-bg: rgba(44,44,46,0.90);
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  .wrap {
-    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .icon {
-    font-family: 'Material Symbols Outlined', 'Material Symbols Rounded';
-    font-weight: normal; font-style: normal;
-    display: inline-flex; align-items: center; justify-content: center;
-    line-height: 1; text-transform: none; letter-spacing: normal;
-    white-space: nowrap; direction: ltr; vertical-align: middle; flex-shrink: 0;
-    -webkit-font-smoothing: antialiased;
-    --ms-fill: 0;
-    --ms-wght: 100;
-    --ms-grad: 200;
-    --ms-opsz: 20;
-    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
-  }
-  .icon.filled { --ms-fill: 1; }
-
-  /* Glass card shell */
   .card {
-    position: relative; width: 100%;
-    border-radius: var(--r-card);
-    background: var(--glass);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--ctrl-border);
-    box-shadow: var(--shadow), var(--inset);
-    padding: 20px;
-    display: flex; flex-direction: column; gap: 0;
+    width: 100%;
+    gap: 0;
+    overflow: visible;
     transition: background .3s, border-color .3s;
   }
   .card.compact { padding: 12px; border-radius: 20px; }
-  .card::before {
-    content: ""; position: absolute; inset: 0;
-    border-radius: var(--r-card); padding: 1px; pointer-events: none; z-index: 0;
-    background: linear-gradient(160deg, rgba(255,255,255,0.50), rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.20));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
-  }
-  :host(.dark) .card::before {
-    background: linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.01) 60%, rgba(255,255,255,0.08));
-  }
+`;
 
+// ═══════════════════════════════════════════════════════════
+// Card-specific styles
+// ═══════════════════════════════════════════════════════════
+
+const CARD_STYLES = `
   /* Action chip row */
   .actions-row {
     display: flex;
@@ -286,14 +231,27 @@ const TUNET_ACTIONS_STYLES = `
     .action-chip { font-size: 10px; padding: 9px 2px; gap: 4px; }
     .action-chip .icon { font-size: 16px; width: 16px; height: 16px; }
   }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
 `;
+
+// ═══════════════════════════════════════════════════════════
+// Composite stylesheet
+// ═══════════════════════════════════════════════════════════
+
+const TUNET_ACTIONS_STYLES = `
+  ${TOKENS}
+  ${RESET}
+  ${BASE_FONT}
+  ${ICON_BASE}
+  ${CARD_SURFACE}
+  ${CARD_SURFACE_GLASS_STROKE}
+  ${CARD_OVERRIDES}
+  ${CARD_STYLES}
+  ${REDUCED_MOTION}
+`;
+
+// ═══════════════════════════════════════════════════════════
+// Card Class
+// ═══════════════════════════════════════════════════════════
 
 class TunetActionsCard extends HTMLElement {
   constructor() {
@@ -303,27 +261,7 @@ class TunetActionsCard extends HTMLElement {
     this._hass = null;
     this._rendered = false;
     this._chipEls = [];
-    TunetActionsCard._injectFonts();
-  }
-
-  static _injectFonts() {
-    if (TunetActionsCard._fontsInjected) return;
-    TunetActionsCard._fontsInjected = true;
-    const links = [
-      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward' },
-    ];
-    for (const cfg of links) {
-      if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
-      const link = document.createElement('link');
-      link.rel = cfg.rel;
-      link.href = cfg.href;
-      if (cfg.crossOrigin !== undefined) link.crossOrigin = cfg.crossOrigin;
-      document.head.appendChild(link);
-    }
+    injectFonts();
   }
 
   static getConfigForm() {
@@ -393,9 +331,8 @@ class TunetActionsCard extends HTMLElement {
       this._rendered = true;
     }
 
-    const isDark = !!(hass.themes && hass.themes.darkMode);
-    if (isDark) this.classList.add('dark');
-    else this.classList.remove('dark');
+    const isDark = detectDarkMode(hass);
+    applyDarkClass(this, isDark);
 
     const changed = this._config.actions.some(a =>
       a.state_entity && (!oldHass || oldHass.states[a.state_entity] !== hass.states[a.state_entity])
@@ -404,8 +341,6 @@ class TunetActionsCard extends HTMLElement {
   }
 
   getCardSize() {
-    // Actions has a card shell with padding, so minimum 2
-    // Compact variant is shorter
     if (this._config.compact) return 2;
     const actionCount = (this._config.actions || []).length;
     const rows = Math.max(1, Math.ceil(actionCount / 4));
@@ -418,15 +353,8 @@ class TunetActionsCard extends HTMLElement {
     this.shadowRoot.innerHTML = '';
     this.shadowRoot.appendChild(style);
 
-    const fontLinks = `
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward" rel="stylesheet">
-    `;
     const tpl = document.createElement('template');
-    tpl.innerHTML = fontLinks + `
+    tpl.innerHTML = FONT_LINKS + `
       <div class="wrap">
         <div class="card${this._config.compact ? ' compact' : ''}">
           <div class="actions-row" id="row"></div>
@@ -503,22 +431,14 @@ class TunetActionsCard extends HTMLElement {
   }
 }
 
-if (!customElements.get('tunet-actions-card')) {
-  customElements.define('tunet-actions-card', TunetActionsCard);
-}
+// ═══════════════════════════════════════════════════════════
+// Registration
+// ═══════════════════════════════════════════════════════════
 
-window.customCards = window.customCards || [];
-if (!window.customCards.some((card) => card.type === 'tunet-actions-card')) {
-  window.customCards.push({
-    type: 'tunet-actions-card',
-    name: 'Tunet Actions Card',
-    description: 'Quick action chips with state reflection and glassmorphism design',
-    preview: true,
-  });
-}
+registerCard('tunet-actions-card', TunetActionsCard, {
+  name: 'Tunet Actions Card',
+  description: 'Quick action chips with state reflection and glassmorphism design',
+  preview: true,
+});
 
-console.info(
-  `%c TUNET-ACTIONS-CARD %c v${TUNET_ACTIONS_VERSION} `,
-  'color: #fff; background: #007AFF; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;',
-  'color: #007AFF; background: #e0f0ff; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;'
-);
+logCardVersion('TUNET-ACTIONS', CARD_VERSION, '#007AFF');

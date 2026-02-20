@@ -1,5 +1,5 @@
 /**
- * Tunet Speaker Grid Card
+ * Tunet Speaker Grid Card (v2 – ES Module)
  * Sonos speaker grid with per-speaker volume control and group management
  * Auto-detects speakers from binary_sensor.sonos_*_in_playing_group entities
  *
@@ -10,42 +10,33 @@
  *   Drag L/R   = volume control (200px = full range)
  *   Hold 500ms = open more-info dialog
  *
- * Version 3.0.0
+ * Version 3.1.0
  */
 
-const TUNET_SPEAKER_GRID_VERSION = '3.0.0';
+import {
+  TOKENS,
+  RESET,
+  BASE_FONT,
+  ICON_BASE,
+  CARD_SURFACE,
+  CARD_SURFACE_GLASS_STROKE,
+  REDUCED_MOTION,
+  FONT_LINKS,
+  injectFonts,
+  detectDarkMode,
+  applyDarkClass,
+  registerCard,
+  logCardVersion,
+} from './tunet_base.js';
 
-/* ===============================================================
-   CSS — Tokens aligned to design_language.md v8.x
-   Steel blue accent per user preference
-   =============================================================== */
+const CARD_VERSION = '3.1.0';
 
-const TUNET_SPEAKER_GRID_STYLES = `
-  /* ── Tokens: Light ─────────────────────────────── */
+// ═══════════════════════════════════════════════════════════
+// Card-specific CSS overrides
+// ═══════════════════════════════════════════════════════════
+
+const CARD_OVERRIDES = `
   :host {
-    --glass: rgba(255,255,255,0.68);
-    --glass-border: rgba(255,255,255,0.45);
-    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
-    --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
-    --text: #1C1C1E;
-    --text-sub: rgba(28,28,30,0.55);
-    --text-muted: #8E8E93;
-    --track-bg: rgba(28,28,30,0.055);
-    --r-card: 24px;
-    --r-tile: 14px;
-    --r-pill: 999px;
-    --r-track: 4px;
-    --ctrl-bg: rgba(255,255,255,0.52);
-    --ctrl-border: rgba(0,0,0,0.05);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
-    --divider: rgba(28,28,30,0.07);
-    --tile-bg: rgba(255,255,255,0.92);
-    --tile-bg-off: rgba(28,28,30,0.04);
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-    --gray-ghost: rgba(0,0,0,0.035);
-
     /* Steel Blue accent */
     --accent: #4682B4;
     --accent-fill: rgba(70,130,180,0.10);
@@ -53,97 +44,45 @@ const TUNET_SPEAKER_GRID_STYLES = `
     --accent-glow: rgba(70,130,180,0.45);
     --accent-vol-bar: rgba(70,130,180,0.80);
 
+    /* Card-specific tile tokens */
+    --tile-bg-off: rgba(28,28,30,0.04);
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
+    --divider: rgba(28,28,30,0.07);
+    --r-pill: 999px;
     --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
     display: block;
   }
-
-  /* ── Tokens: Dark ──────────────────────────────── */
   :host(.dark) {
-    --glass: rgba(44,44,46,0.72);
-    --glass-border: rgba(255,255,255,0.08);
-    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
-    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
-    --text: #F5F5F7;
-    --text-sub: rgba(245,245,247,0.50);
-    --text-muted: rgba(245,245,247,0.35);
-    --track-bg: rgba(255,255,255,0.06);
-    --ctrl-bg: rgba(255,255,255,0.08);
-    --ctrl-border: rgba(255,255,255,0.08);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-    --divider: rgba(255,255,255,0.06);
-    --tile-bg: rgba(44,44,46,0.90);
-    --tile-bg-off: rgba(255,255,255,0.04);
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.20), 0 1px 2px rgba(0,0,0,0.16);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.20);
-    --gray-ghost: rgba(255,255,255,0.04);
-
-    /* Steel Blue accent (dark mode) */
     --accent: #6BA3C7;
     --accent-fill: rgba(107,163,199,0.14);
     --accent-border: rgba(107,163,199,0.28);
     --accent-glow: rgba(107,163,199,0.50);
     --accent-vol-bar: rgba(107,163,199,0.85);
+
+    --tile-bg-off: rgba(255,255,255,0.04);
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.20), 0 1px 2px rgba(0,0,0,0.16);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.20);
+    --divider: rgba(255,255,255,0.06);
   }
 
-  /* ── Reset ──────────────────────────────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  /* ── Base ───────────────────────────────────────── */
-  .card-wrap {
-    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* ── Icons ──────────────────────────────────────── */
-  .icon {
-    font-family: 'Material Symbols Rounded';
-    font-weight: normal; font-style: normal;
-    display: inline-flex; align-items: center; justify-content: center;
-    line-height: 1; text-transform: none; letter-spacing: normal;
-    white-space: nowrap; direction: ltr; vertical-align: middle;
-    flex-shrink: 0; -webkit-font-smoothing: antialiased;
-    --ms-fill: 0;
-    --ms-wght: 100;
-    --ms-grad: 200;
-    --ms-opsz: 20;
-    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
-  }
-  .icon.filled { --ms-fill: 1; }
-  .icon-20 { font-size: 20px; --ms-opsz: 20; }
-  .icon-18 { font-size: 18px; --ms-opsz: 20; }
-
-  /* ── Card Shell ─────────────────────────────────── */
   .card {
-    position: relative; width: 100%;
-    border-radius: var(--r-card);
-    background: var(--glass);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--ctrl-border);
-    box-shadow: var(--shadow), var(--inset);
-    padding: 20px;
-    display: flex; flex-direction: column; gap: 0;
+    width: 100%;
+    gap: 0;
+    overflow: visible;
     transition: background .3s, border-color .3s, box-shadow .3s, opacity .3s;
   }
+`;
 
-  /* Glass stroke (XOR bevel) */
-  .card::before {
-    content: ""; position: absolute; inset: 0;
-    border-radius: var(--r-card); padding: 1px;
-    pointer-events: none; z-index: 0;
-    background: linear-gradient(160deg,
-      rgba(255,255,255,0.50), rgba(255,255,255,0.08) 40%,
-      rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.20));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
-  }
-  :host(.dark) .card::before {
-    background: linear-gradient(160deg,
-      rgba(255,255,255,0.14), rgba(255,255,255,0.03) 40%,
-      rgba(255,255,255,0.01) 60%, rgba(255,255,255,0.08));
-  }
+// ═══════════════════════════════════════════════════════════
+// Card-specific styles
+// ═══════════════════════════════════════════════════════════
+
+const CARD_STYLES = `
+  /* Icon size helpers */
+  .icon-20 { font-size: 20px; --ms-opsz: 20; }
+  .icon-18 { font-size: 18px; --ms-opsz: 20; }
 
   /* ── Header ─────────────────────────────────────── */
   .grid-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
@@ -214,16 +153,11 @@ const TUNET_SPEAKER_GRID_STYLES = `
   :host([tile-size="compact"]) .spk-tile { padding: 8px 10px 12px 8px; min-height: 56px; gap: 8px; }
   :host([tile-size="large"]) .spk-tile { padding: 12px 14px 16px 12px; min-height: 68px; }
 
-  /* Hover */
   .spk-tile:hover {
     box-shadow: var(--tile-shadow-lift);
     transform: translateY(-1px);
   }
-
-  /* Active press */
   .spk-tile:active { transform: scale(.98); }
-
-  /* Focus visible */
   .spk-tile:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
@@ -257,7 +191,6 @@ const TUNET_SPEAKER_GRID_STYLES = `
   }
   :host([tile-size="compact"]) .spk-name { font-size: 12px; }
 
-  /* Song name / state line - wraps up to 2 lines */
   .spk-meta {
     font-size: 11px; font-weight: 500; line-height: 1.3;
     display: -webkit-box;
@@ -404,15 +337,6 @@ const TUNET_SPEAKER_GRID_STYLES = `
   .action-btn:active { transform: scale(.97); }
   .action-btn .icon { color: var(--accent); }
 
-  /* ── Reduced Motion ────────────────────────────── */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
-
   /* ── Responsive ────────────────────────────────── */
   @media (max-width: 440px) {
     .card { padding: 16px; --r-card: 20px; }
@@ -428,15 +352,28 @@ const TUNET_SPEAKER_GRID_STYLES = `
   }
 `;
 
-/* ===============================================================
-   HTML Template
-   =============================================================== */
+// ═══════════════════════════════════════════════════════════
+// Composite stylesheet
+// ═══════════════════════════════════════════════════════════
+
+const TUNET_SPEAKER_GRID_STYLES = `
+  ${TOKENS}
+  ${RESET}
+  ${BASE_FONT}
+  ${ICON_BASE}
+  ${CARD_SURFACE}
+  ${CARD_SURFACE_GLASS_STROKE}
+  ${CARD_OVERRIDES}
+  ${CARD_STYLES}
+  ${REDUCED_MOTION}
+`;
+
+// ═══════════════════════════════════════════════════════════
+// HTML Template
+// ═══════════════════════════════════════════════════════════
 
 const TUNET_SPEAKER_GRID_TEMPLATE = `
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+  ${FONT_LINKS}
 
   <div class="card-wrap">
     <div class="card" id="card">
@@ -472,9 +409,9 @@ const TUNET_SPEAKER_GRID_TEMPLATE = `
   </div>
 `;
 
-/* ===============================================================
-   Card Class
-   =============================================================== */
+// ═══════════════════════════════════════════════════════════
+// Card Class
+// ═══════════════════════════════════════════════════════════
 
 class TunetSpeakerGridCard extends HTMLElement {
   constructor() {
@@ -486,7 +423,7 @@ class TunetSpeakerGridCard extends HTMLElement {
     this._cachedSpeakers = null;
     this._serviceCooldown = false;
     this._cooldownTimer = null;
-    this._tileRefs = new Map(); // entity -> { tile, iconWrap, nameEl, metaEl, volEl, volFill, dotEl, pill }
+    this._tileRefs = new Map();
 
     // Drag state
     this._dragEntity = null;
@@ -499,30 +436,7 @@ class TunetSpeakerGridCard extends HTMLElement {
     this._longPressTimer = null;
     this._longPressFired = false;
 
-    TunetSpeakerGridCard._injectFonts();
-  }
-
-  /* ── Font Injection (once globally) ─────────────── */
-
-  static _injectFonts() {
-    if (TunetSpeakerGridCard._fontsInjected) return;
-    TunetSpeakerGridCard._fontsInjected = true;
-
-    const links = [
-      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
-    ];
-
-    for (const cfg of links) {
-      if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
-      const link = document.createElement('link');
-      link.rel = cfg.rel;
-      link.href = cfg.href;
-      if (cfg.crossOrigin !== undefined) link.crossOrigin = cfg.crossOrigin;
-      document.head.appendChild(link);
-    }
+    injectFonts();
   }
 
   /* ── Config ─────────────────────────────────────── */
@@ -604,7 +518,6 @@ class TunetSpeakerGridCard extends HTMLElement {
       custom_css: config.custom_css || '',
     };
 
-    // Host attributes for CSS
     this.setAttribute('tile-size', tileSize);
 
     this._cachedSpeakers = null;
@@ -627,16 +540,14 @@ class TunetSpeakerGridCard extends HTMLElement {
       this._buildGrid();
     }
 
-    // Detect dark mode
-    this.classList.toggle('dark', !!(hass.themes && hass.themes.darkMode));
+    const isDark = detectDarkMode(hass);
+    applyDarkClass(this, isDark);
 
-    // Auto-detect speakers if not cached
     if (!this._cachedSpeakers || this._cachedSpeakers.length === 0) {
       this._cachedSpeakers = this._getEffectiveSpeakers();
       this._buildGrid();
     }
 
-    // Only update if relevant entities changed
     let changed = !oldHass;
     if (!changed) {
       const watchList = [this._config.entity, this._config.coordinator_sensor];
@@ -659,7 +570,7 @@ class TunetSpeakerGridCard extends HTMLElement {
     const speakers = this._cachedSpeakers || this._config.speakers || [];
     const cols = this._config.columns || 4;
     const rows = Math.max(1, Math.ceil(speakers.length / cols));
-    return 1 + rows; // 1 for header + rows of tiles
+    return 1 + rows;
   }
 
   /* ── Lifecycle ──────────────────────────────────── */
@@ -739,7 +650,6 @@ class TunetSpeakerGridCard extends HTMLElement {
     tpl.innerHTML = TUNET_SPEAKER_GRID_TEMPLATE;
     this.shadowRoot.appendChild(tpl.content.cloneNode(true));
 
-    // Cache DOM refs
     this.$ = {};
     const ids = ['card', 'infoTile', 'cardTitle', 'hdrSub', 'spkGrid', 'gridActions', 'groupAllBtn', 'ungroupBtn'];
     ids.forEach(id => {
@@ -750,7 +660,6 @@ class TunetSpeakerGridCard extends HTMLElement {
   _setupListeners() {
     const $ = this.$;
 
-    // Info tile -> more-info
     $.infoTile.addEventListener('click', (e) => {
       e.stopPropagation();
       this.dispatchEvent(new CustomEvent('hass-more-info', {
@@ -759,20 +668,18 @@ class TunetSpeakerGridCard extends HTMLElement {
       }));
     });
 
-    // Group All
     $.groupAllBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this._callScript('sonos_group_all_to_playing');
     });
 
-    // Ungroup All
     $.ungroupBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this._callScript('sonos_ungroup_all');
     });
   }
 
-  /* ── Build Speaker Grid (horizontal tiles) ──────── */
+  /* ── Build Speaker Grid ──────────────────────────── */
 
   _buildGrid() {
     const grid = this.$.spkGrid;
@@ -780,7 +687,6 @@ class TunetSpeakerGridCard extends HTMLElement {
     grid.innerHTML = '';
     this._tileRefs.clear();
 
-    // Refresh custom CSS on rebuild
     if (this._customStyleEl) this._customStyleEl.textContent = this._config.custom_css || '';
 
     const speakers = this._cachedSpeakers || [];
@@ -799,12 +705,10 @@ class TunetSpeakerGridCard extends HTMLElement {
       tile.setAttribute('aria-valuenow', '0');
       tile.dataset.entity = spk.entity;
 
-      // Group dot (top-right, hidden by default)
       const dotEl = document.createElement('div');
       dotEl.className = 'group-dot';
       tile.appendChild(dotEl);
 
-      // Icon wrap (left)
       const iconWrap = document.createElement('div');
       iconWrap.className = 'tile-icon-wrap';
       const icon = document.createElement('span');
@@ -813,7 +717,6 @@ class TunetSpeakerGridCard extends HTMLElement {
       iconWrap.appendChild(icon);
       tile.appendChild(iconWrap);
 
-      // Text stack (center): name + meta (song / state)
       const textWrap = document.createElement('div');
       textWrap.className = 'spk-text';
 
@@ -829,13 +732,11 @@ class TunetSpeakerGridCard extends HTMLElement {
 
       tile.appendChild(textWrap);
 
-      // Volume % (right)
       const volEl = document.createElement('div');
       volEl.className = 'spk-vol';
       volEl.textContent = '--';
       tile.appendChild(volEl);
 
-      // Volume bar (bottom inset)
       const volTrack = document.createElement('div');
       volTrack.className = 'vol-track';
       const volFill = document.createElement('div');
@@ -844,13 +745,11 @@ class TunetSpeakerGridCard extends HTMLElement {
       volTrack.appendChild(volFill);
       tile.appendChild(volTrack);
 
-      // Floating pill (hidden until drag)
       const pill = document.createElement('div');
       pill.className = 'vol-pill';
       pill.textContent = '0%';
       tile.appendChild(pill);
 
-      // Pointer events for drag + tap + long-press
       tile.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
         this._onTilePointerDown(spk.entity, e, tile);
@@ -860,7 +759,6 @@ class TunetSpeakerGridCard extends HTMLElement {
       this._tileRefs.set(spk.entity, { tile, iconWrap, nameEl, metaEl, volEl, volFill, dotEl, pill });
     }
 
-    // Show/hide group actions
     if (this.$.gridActions) {
       this.$.gridActions.style.display =
         (this._config.show_group_actions && speakers.length > 1) ? '' : 'none';
@@ -875,11 +773,9 @@ class TunetSpeakerGridCard extends HTMLElement {
     this._dragActive = false;
     this._longPressFired = false;
 
-    // Get current volume as starting point
     const playerState = this._hass && this._hass.states[entity];
     this._dragVol = playerState ? Math.round((playerState.attributes.volume_level || 0) * 100) : 0;
 
-    // Long-press timer (500ms)
     clearTimeout(this._longPressTimer);
     this._longPressTimer = setTimeout(() => {
       if (!this._dragActive && this._dragEntity === entity) {
@@ -909,7 +805,6 @@ class TunetSpeakerGridCard extends HTMLElement {
       document.body.style.cursor = 'grabbing';
     }
 
-    // Map horizontal drag to volume: 200px = full range
     const pct = Math.max(0, Math.min(100, this._dragVol + Math.round(dx / 2)));
 
     const refs = this._tileRefs.get(this._dragEntity);
@@ -920,7 +815,6 @@ class TunetSpeakerGridCard extends HTMLElement {
       refs.tile.setAttribute('aria-valuenow', String(pct));
     }
 
-    // Debounced service call
     clearTimeout(this._volDebounce);
     this._volDebounce = setTimeout(() => {
       this._callService('media_player', 'volume_set', {
@@ -945,7 +839,6 @@ class TunetSpeakerGridCard extends HTMLElement {
     }
     document.body.style.cursor = '';
 
-    // If not a drag and not a long-press -> tap -> toggle group
     if (!this._dragActive && !this._longPressFired) {
       this._callScript('sonos_toggle_group_membership', {
         target_speaker: entity,
@@ -966,23 +859,19 @@ class TunetSpeakerGridCard extends HTMLElement {
     const speakers = this._cachedSpeakers || [];
     $.cardTitle.textContent = this._config.name;
 
-    // Count grouped speakers
     let groupedCount = 0;
     for (const spk of speakers) {
       const bs = this._hass.states[this._binarySensorFor(spk.entity)];
       if (bs && bs.state === 'on') groupedCount++;
     }
 
-    // Header subtitle
     $.hdrSub.textContent = `${speakers.length} speakers \u00b7 ${groupedCount} grouped`;
 
-    // Determine playing status from coordinator or main entity
     const coordSensor = this._hass.states[this._config.coordinator_sensor];
     const mainEntity = this._hass.states[this._config.entity];
     const isPlaying = (mainEntity && mainEntity.state === 'playing') ||
                       (coordSensor && coordSensor.state && coordSensor.state !== 'idle' && coordSensor.state !== 'unknown');
 
-    // Update each tile
     for (const spk of speakers) {
       const refs = this._tileRefs.get(spk.entity);
       if (!refs) continue;
@@ -993,7 +882,6 @@ class TunetSpeakerGridCard extends HTMLElement {
       const speakerState = playerState ? playerState.state : 'idle';
       const isPaused = speakerState === 'paused';
 
-      // Toggle state classes
       refs.tile.className = 'spk-tile';
       if (inGroup) {
         refs.tile.classList.add('in-group');
@@ -1002,7 +890,6 @@ class TunetSpeakerGridCard extends HTMLElement {
         refs.tile.classList.add('idle');
       }
 
-      // Meta line: song name if playing, "Paused" if paused, "Not grouped" if idle
       if (inGroup && playerState) {
         if (isPaused) {
           refs.metaEl.textContent = 'Paused';
@@ -1019,7 +906,6 @@ class TunetSpeakerGridCard extends HTMLElement {
         refs.metaEl.textContent = 'Not grouped';
       }
 
-      // Volume
       if (playerState && !this._dragActive) {
         const vol = Math.round((playerState.attributes.volume_level || 0) * 100);
         refs.volEl.textContent = vol + '%';
@@ -1030,27 +916,15 @@ class TunetSpeakerGridCard extends HTMLElement {
   }
 }
 
-/* ===============================================================
-   Registration
-   =============================================================== */
+// ═══════════════════════════════════════════════════════════
+// Registration
+// ═══════════════════════════════════════════════════════════
 
-if (!customElements.get('tunet-speaker-grid-card')) {
-  customElements.define('tunet-speaker-grid-card', TunetSpeakerGridCard);
-}
+registerCard('tunet-speaker-grid-card', TunetSpeakerGridCard, {
+  name: 'Tunet Speaker Grid Card',
+  description: 'Sonos speaker grid with horizontal tiles, volume control, and group management',
+  preview: true,
+  documentationURL: 'https://github.com/tunet/tunet-speaker-grid-card',
+});
 
-window.customCards = window.customCards || [];
-if (!window.customCards.some((card) => card.type === 'tunet-speaker-grid-card')) {
-  window.customCards.push({
-    type: 'tunet-speaker-grid-card',
-    name: 'Tunet Speaker Grid Card',
-    description: 'Sonos speaker grid with horizontal tiles, volume control, and group management',
-    preview: true,
-    documentationURL: 'https://github.com/tunet/tunet-speaker-grid-card',
-  });
-}
-
-console.info(
-  `%c TUNET-SPEAKER-GRID %c v${TUNET_SPEAKER_GRID_VERSION} `,
-  'color: #fff; background: #4682B4; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;',
-  'color: #4682B4; background: #e8f0f7; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;'
-);
+logCardVersion('TUNET-SPEAKER-GRID', CARD_VERSION, '#4682B4');

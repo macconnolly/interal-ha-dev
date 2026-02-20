@@ -502,8 +502,6 @@ class TunetLightingCard extends HTMLElement {
     this._dragState = null;
     this._serviceCooldown = {};
     this._cooldownTimers = {};
-    this._adaptivePressTimer = null;
-    this._adaptiveLongPress = false;
 
     injectFonts();
 
@@ -791,8 +789,6 @@ class TunetLightingCard extends HTMLElement {
     document.removeEventListener('pointermove', this._onPointerMove);
     document.removeEventListener('pointerup',   this._onPointerUp);
     document.removeEventListener('pointercancel', this._onPointerCancel);
-    clearTimeout(this._adaptivePressTimer);
-    this._adaptivePressTimer = null;
     for (const timer of Object.values(this._cooldownTimers)) {
       clearTimeout(timer);
     }
@@ -912,41 +908,25 @@ class TunetLightingCard extends HTMLElement {
      ═══════════════════════════════════════════════════ */
 
   _setupListeners() {
-    // All Off button
-    this.$.allOffBtn.addEventListener('click', () => this._allOff());
-
-    // Adaptive toggle + long-press more-info
-    this.$.adaptiveBtn.addEventListener('pointerdown', () => {
-      clearTimeout(this._adaptivePressTimer);
-      this._adaptiveLongPress = false;
-      this._adaptivePressTimer = setTimeout(() => {
-        clearTimeout(this._adaptivePressTimer);
-        this._adaptivePressTimer = null;
-        const entityId = this._config.adaptive_entity;
-        if (!entityId) return;
-        this._adaptiveLongPress = true;
-        this.dispatchEvent(new CustomEvent('hass-more-info', {
-          bubbles: true,
-          composed: true,
-          detail: { entityId },
-        }));
-      }, 500);
+    // Header primitives are event-only emitters; composer handles dispatch.
+    this.$.infoTile.addEventListener('tunet:action', (e) => {
+      const action = e.detail?.action || {};
+      const entityId = action.entity || this._getInfoEntityId();
+      if (entityId) this._openMoreInfo(entityId);
     });
-    const clearAdaptivePress = () => {
-      clearTimeout(this._adaptivePressTimer);
-      this._adaptivePressTimer = null;
-    };
-    this.$.adaptiveBtn.addEventListener('pointerup', clearAdaptivePress);
-    this.$.adaptiveBtn.addEventListener('pointercancel', clearAdaptivePress);
-    this.$.adaptiveBtn.addEventListener('pointerleave', clearAdaptivePress);
-    this.$.adaptiveBtn.addEventListener('click', (e) => {
-      if (this._adaptiveLongPress) {
-        e.preventDefault();
-        e.stopPropagation();
-        this._adaptiveLongPress = false;
+
+    this.$.allOffBtn.addEventListener('tunet:action', (e) => {
+      if (e.detail?.trigger === 'tap') this._allOff();
+    });
+
+    this.$.adaptiveBtn.addEventListener('tunet:action', (e) => {
+      const trigger = e.detail?.trigger || 'tap';
+      if (trigger === 'hold') {
+        const entityId = e.detail?.action?.entity || this._config.adaptive_entity || '';
+        if (entityId) this._openMoreInfo(entityId);
         return;
       }
-      this._toggleAdaptive();
+      if (trigger === 'tap') this._toggleAdaptive();
     });
 
     // Tile pointer down (delegated)
@@ -1136,6 +1116,21 @@ class TunetLightingCard extends HTMLElement {
      ═══════════════════════════════════════════════════ */
 
   _getEntity(id) { return this._hass ? this._hass.states[id] : null; }
+
+  _getInfoEntityId() {
+    return this._config.primary_entity ||
+      (this._config.entities.length > 0 ? this._config.entities[0] : '') ||
+      (this._resolvedZones.length > 0 ? this._resolvedZones[0].entity : '');
+  }
+
+  _openMoreInfo(entityId) {
+    if (!entityId) return;
+    this.dispatchEvent(new CustomEvent('hass-more-info', {
+      bubbles: true,
+      composed: true,
+      detail: { entityId },
+    }));
+  }
 
   _getBrightness(id) {
     const e = this._getEntity(id);
@@ -1381,12 +1376,11 @@ class TunetLightingCard extends HTMLElement {
       subtitleText = parts.join(' \u00b7 ');
     }
 
-    const infoEntity = this._config.primary_entity ||
-      (this._config.entities.length > 0 ? this._config.entities[0] : '') ||
-      (this._resolvedZones.length > 0 ? this._resolvedZones[0].entity : '');
+    const infoEntity = this._getInfoEntityId();
 
     this.$.infoTile.hass = this._hass;
     this.$.infoTile.setConfig({
+      composer_managed: true,
       entity: infoEntity,
       title: this._config.name,
       subtitle: subtitleText,
@@ -1401,12 +1395,13 @@ class TunetLightingCard extends HTMLElement {
 
     this.$.allOffBtn.hass = this._hass;
     this.$.allOffBtn.setConfig({
+      composer_managed: true,
       icon: 'power_settings_new',
       label: 'All Off',
       accent: 'amber',
       active: anyOn,
       disabled: totalCount === 0,
-      tap_action: { action: 'none' },
+      tap_action: { action: 'all-off' },
       hold_action: { action: 'none' },
       double_tap_action: { action: 'none' },
     });
@@ -1418,14 +1413,15 @@ class TunetLightingCard extends HTMLElement {
       this.$.manualBadge.textContent = String(manualCount);
       this.$.adaptiveBtn.hass = this._hass;
       this.$.adaptiveBtn.setConfig({
+        composer_managed: true,
         entity: ae,
         icon: 'auto_awesome',
         label: '',
         accent: 'amber',
         active: aeOn,
         disabled: !aeEntity,
-        tap_action: { action: 'none' },
-        hold_action: { action: 'none' },
+        tap_action: { action: 'adaptive-toggle', entity: ae },
+        hold_action: { action: 'more-info', entity: ae },
         double_tap_action: { action: 'none' },
       });
     } else {

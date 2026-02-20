@@ -1,6 +1,8 @@
 /**
  * Tunet Control Button Primitive
  * Reusable action button with unified Tunet control surface.
+ * Event-only primitive: emits actions, never dispatches services directly.
+ * Standalone direct-dispatch usage is deprecated.
  * Version 1.0.0
  */
 
@@ -20,7 +22,6 @@ import {
 import {
   normalizeAction,
   evaluateShowWhen,
-  dispatchAction,
   normalizeTunetIcon,
 } from './tunet_runtime.js';
 
@@ -97,6 +98,8 @@ ${REDUCED_MOTION}
   .ctrl-btn[data-active="true"][data-accent="red"] .icon { color: var(--red); }
 `;
 
+let warnedControlStandalone = false;
+
 class TunetControlButton extends HTMLElement {
   constructor() {
     super();
@@ -109,6 +112,7 @@ class TunetControlButton extends HTMLElement {
       accent: 'amber',
       active: false,
       disabled: false,
+      composer_managed: false,
       entity: '',
       tap_action: { action: 'none' },
       hold_action: { action: 'none' },
@@ -143,6 +147,7 @@ class TunetControlButton extends HTMLElement {
     next.accent = String(next.accent || 'amber');
     next.active = Boolean(next.active);
     next.disabled = Boolean(next.disabled);
+    next.composer_managed = Boolean(next.composer_managed);
 
     next.tap_action = normalizeAction(next.tap_action || { action: 'none' }, next.entity || '');
     next.hold_action = normalizeAction(next.hold_action || { action: 'none' }, next.entity || '');
@@ -282,14 +287,19 @@ class TunetControlButton extends HTMLElement {
     }, 220);
   }
 
-  async _triggerAction(trigger, action) {
+  _triggerAction(trigger, action) {
     const normalized = normalizeAction(action, this._config.entity || '');
     if (normalized.action === 'none') return;
+
+    if (!this._config.composer_managed && !warnedControlStandalone) {
+      warnedControlStandalone = true;
+      console.warn('[tunet-control-button] standalone dispatch is deprecated; listen for "tunet:action" in a composer.');
+    }
 
     const evt = new CustomEvent('tunet:action', {
       bubbles: true,
       composed: true,
-      cancelable: true,
+      cancelable: false,
       detail: {
         source: 'tunet-control-button',
         trigger,
@@ -299,9 +309,6 @@ class TunetControlButton extends HTMLElement {
     });
 
     this.dispatchEvent(evt);
-    if (evt.defaultPrevented) return;
-
-    await dispatchAction(this._hass, this, normalized, this._config.entity || '');
   }
 }
 

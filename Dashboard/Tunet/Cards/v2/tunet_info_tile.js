@@ -1,6 +1,8 @@
 /**
  * Tunet Info Tile Primitive
  * Header info surface (icon + title + subtitle) with unified action semantics.
+ * Event-only primitive: emits actions, never dispatches services directly.
+ * Standalone direct-dispatch usage is deprecated.
  * Version 1.0.0
  */
 
@@ -20,7 +22,6 @@ import {
 import {
   normalizeAction,
   evaluateShowWhen,
-  dispatchAction,
   normalizeTunetIcon,
 } from './tunet_runtime.js';
 
@@ -143,6 +144,8 @@ ${REDUCED_MOTION}
   }
 `;
 
+let warnedInfoStandalone = false;
+
 class TunetInfoTile extends HTMLElement {
   constructor() {
     super();
@@ -157,6 +160,7 @@ class TunetInfoTile extends HTMLElement {
       accent: 'amber',
       active: false,
       disabled: false,
+      composer_managed: false,
       tap_action: null,
       hold_action: { action: 'none' },
       double_tap_action: { action: 'none' },
@@ -190,6 +194,7 @@ class TunetInfoTile extends HTMLElement {
     next.accent = String(next.accent || 'amber');
     next.active = Boolean(next.active);
     next.disabled = Boolean(next.disabled);
+    next.composer_managed = Boolean(next.composer_managed);
 
     const fallbackEntity = next.entity || '';
     const defaultTap = next.tap_action || (fallbackEntity ? { action: 'more-info', entity: fallbackEntity } : { action: 'none' });
@@ -337,14 +342,19 @@ class TunetInfoTile extends HTMLElement {
     }, 220);
   }
 
-  async _triggerAction(trigger, action) {
+  _triggerAction(trigger, action) {
     const normalized = normalizeAction(action, this._config.entity || '');
     if (normalized.action === 'none') return;
+
+    if (!this._config.composer_managed && !warnedInfoStandalone) {
+      warnedInfoStandalone = true;
+      console.warn('[tunet-info-tile] standalone dispatch is deprecated; listen for "tunet:action" in a composer.');
+    }
 
     const evt = new CustomEvent('tunet:action', {
       bubbles: true,
       composed: true,
-      cancelable: true,
+      cancelable: false,
       detail: {
         source: 'tunet-info-tile',
         trigger,
@@ -354,7 +364,6 @@ class TunetInfoTile extends HTMLElement {
     });
 
     this.dispatchEvent(evt);
-    if (evt.defaultPrevented) return;
 
     if (normalized.action === 'more-info') {
       this.dispatchEvent(new CustomEvent('tunet:request-more-info', {
@@ -366,8 +375,6 @@ class TunetInfoTile extends HTMLElement {
         },
       }));
     }
-
-    await dispatchAction(this._hass, this, normalized, this._config.entity || '');
   }
 }
 

@@ -76,7 +76,9 @@
       "mcp__claude_ai_Core_memory__memory_search",
       "Bash(wc:*)",
       "mcp__plugin_claude-mem_mcp-search____IMPORTANT",
-      "WebFetch(domain:developers.openai.com)"
+      "WebFetch(domain:developers.openai.com)",
+      "Bash(done)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

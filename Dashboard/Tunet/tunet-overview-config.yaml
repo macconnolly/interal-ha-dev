@@ -67,31 +67,28 @@
   tile_size: compact
   tiles:
     # Row 1
-    - type: indicator
-      entity: switch.adaptive_lighting_main_living
+    - type: value
+      entity: sensor.oal_system_status
       icon: sunny
       label: Adaptive
-      accent: amber
-      format: state
-      dot_rules:
-        - match: 'on'
-          dot: green
-        - match: '*'
-          dot: muted
+      accent: green
+      attribute: zones_adaptive
+      format: integer
       tap_action:
         action: navigate
         navigation_path: /tunet-overview/lights
 
-    - type: indicator
+    - type: value
       entity: sensor.oal_system_status
       icon: front_hand
       label: Manual
-      accent: amber
-      format: state
+      accent: red
+      attribute: active_zonal_overrides
+      format: integer
       show_when:
         entity: sensor.oal_system_status
-        operator: contains
-        state: Manual
+        operator: not_equals
+        state: Adaptive
       aux_action:
         label: Reset
         icon: restart_alt
@@ -108,6 +105,9 @@
       label: Boost
       accent: amber
       format: integer
+      secondary:
+        entity: sensor.oal_system_status
+        attribute: active_modifiers
 
     - type: dropdown
       entity: input_select.oal_active_configuration

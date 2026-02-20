@@ -1,13 +1,13 @@
 A unified visual language for every card, tile, control, and surface on the Custom Home Assistant dashboard. This document is card-agnostic. It defines the system; individual card specs reference it.
 
-Version 8.3 – February 2026
+Version 8.4 – February 2026
 Platform: Home Assistant OS via Tailscale
 Rendering: Chromium WebView (HA Companion + Desktop)
 Typeface: DM Sans (Google Fonts)
 Icon library: Material Symbols Rounded (Google Fonts, variable font)
 Target: 400px card width, responsive to 320px minimum
 
-### 2026-02-20 Parity Lock (v8.3, Normative)
+### 2026-02-20 Parity Lock (v8.4, Normative)
 
 This block is authoritative for Tunet implementation and interaction behavior.  
 If any older section conflicts, this block wins.
@@ -98,6 +98,27 @@ Section-container surface (variant):
 - Only valid Material Symbols Rounded ligatures are allowed.
 - Deprecated aliases must normalize before render (`shelf_auto`, `countertops`, `desk_lamp`, etc.).
 - Unknown icon values must fall back to a safe default (`lightbulb` unless domain-specific fallback exists).
+- Icon loading is a single-source contract:
+  - allowed: one shared Material Symbols Rounded variable-font URL
+  - forbidden: `Material Symbols Outlined` as a separate family
+  - forbidden: `icon_names=` filtered glyph bundles in production cards
+  - required URL (exact family axes):
+    - `https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap`
+- Icon state semantics are role-based and mandatory:
+  - control/interactive entity icons must map `off|idle -> FILL 0` and `on|active -> FILL 1`
+  - telemetry/data-only icons may remain always filled (`FILL 1`) because they communicate presence of data, not toggle state
+  - alert/severity icons may force `FILL 1` only when severity is active; otherwise default to `FILL 0`
+- Card-level compliance requirements (mandatory):
+  - `tunet_actions_card.js`: keep active-chip `.filled` toggling by `state_entity`
+  - `tunet_climate_card.js`: keep header/fan icon `filled` mapped to HVAC/fan action state
+  - `tunet_lighting_card.js`: keep entity/toggle icon fill mapped to on/off and active mode
+  - `tunet_rooms_card.js`: keep room/orb icon fill mapped to room on/off aggregate state
+  - `tunet_speaker_grid_card.js`: keep in-group speaker icon fill mapped to group membership state
+  - `tunet_media_card.js`: normalize to explicit class-based fill mapping for play/active speaker context (no accent-only implicit fill)
+  - `tunet_status_card.js`: replace accent-forced `FILL 1` with state-aware fill rules per tile type
+  - `tunet_scenes_card.js`: scene chips are action triggers (not persistent state); use `FILL 0` idle and temporary `FILL 1` only during active feedback pulse
+  - `tunet_weather_card.js`: weather condition icon is telemetry and may remain always filled
+  - `tunet_sensor_card.js`: sensor row icons are telemetry and may remain always filled
 
 #### Reliability and registration contract
 
@@ -106,7 +127,7 @@ Section-container surface (variant):
 2. Card picker registration must be deduplicated:
    - push only if type is not already present in `window.customCards`
 3. Never load duplicate resource URLs for the same card type.
-4. Keep dark amber token at `#E8961E` across all cards.
+4. Keep dark amber token at `#fbbf24` across all cards.
 
 #### Ambiguous step clarification: “Remove last sync date”
 
@@ -332,9 +353,9 @@ Cards do not define page backgrounds. They run on the HA dashboard and use `back
   --text-sub: rgba(245,245,247, 0.50);
   --text-muted: rgba(245,245,247, 0.35);
 
-  --amber: #E8961E;
-  --amber-fill: rgba(232,150,30, 0.14);
-  --amber-border: rgba(232,150,30, 0.25);
+  --amber: #fbbf24;
+  --amber-fill: rgba(251,191,36, 0.14);
+  --amber-border: rgba(251,191,36, 0.25);
 
   --blue: #0A84FF;
   --blue-fill: rgba(10,132,255, 0.13);
@@ -865,11 +886,18 @@ All icons use Material Symbols Rounded as a variable font loaded via Google Font
 }
 ```
 
-### 6.3 Font Link
+### 6.3 Font Link (System Contract)
 
 ```html
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 ```
+
+Loading rules:
+
+1. Load one shared Material Symbols Rounded URL per page/session
+2. Do not load `Material Symbols Outlined` as a second family
+3. Do not use `icon_names=` filtering for production dashboards; full ligature compatibility is preferred over micro-optimization
+4. Font URL must be identical across `_injectFonts()` and shadow template fallback to preserve browser deduplication
 
 ### 6.4 Size Scale
 
@@ -880,17 +908,34 @@ All icons use Material Symbols Rounded as a variable font loaded via Google Font
 | `.icon-16` | 16px | Mode button icon, context chips              |
 | `.icon-14` | 14px | Chevrons, checkmarks, inline indicators      |
 
-### 6.5 State Convention
+### 6.5 State Convention (Normative)
 
-| Entity state                 | FILL | Class     | When                                       |
-|------------------------------|------|-----------|--------------------------------------------|
-| Off / idle / inactive        | 0    | (none)    | Default for all toggleable icons           |
-| On / active / engaged        | 1    | `.filled` | Entity is actively doing something         |
-| Data display (non-toggle)    | 1    | `.filled` | Informational icons (humidity, sensor)     |
+| Icon role                         | Idle state | Active state | Enforcement rule |
+|-----------------------------------|------------|--------------|------------------|
+| Toggle/control icon               | FILL 0     | FILL 1       | Must map to live entity/control state |
+| Persistent entity state icon      | FILL 0     | FILL 1       | Must map `off|idle` vs `on|active` |
+| Telemetry/data-only icon          | FILL 1     | FILL 1       | Always filled permitted |
+| Trigger/action chip icon          | FILL 0     | FILL 1 pulse | Fill only during active feedback window |
+| Alert/severity icon               | FILL 0     | FILL 1       | Fill only when severity condition is true |
 
-Toggle `.filled` class in JS when state changes.
+Toggle `.filled` in JS when state changes. Do not hardcode `FILL 1` in accent CSS for components that represent interactive state.
 
 **Dynamic glyph swapping:** In some cards, the entity icon glyph itself changes based on the current action (not just the fill state). For example, a climate card might show `thermostat` when idle, `local_fire_department` when heating, and `ac_unit` when cooling. This is the exception to "never swap icon ligature names for state changes" - it applies when the icon represents what the system is *doing*, not just whether it's on or off.
+
+### 6.6 Card Compliance Matrix (v8.4)
+
+| Card | Current role classification | Required icon-state behavior |
+|------|------------------------------|------------------------------|
+| `tunet_actions_card.js` | Trigger/action chips + optional state entity | Keep state-entity-driven fill toggling |
+| `tunet_climate_card.js` | Persistent entity state + control toggles | Keep action/fan state-driven fill |
+| `tunet_lighting_card.js` | Persistent entity state + controls | Keep on/off and adaptive state-driven fill |
+| `tunet_rooms_card.js` | Aggregate room state + per-entity controls | Keep aggregate/child state-driven fill |
+| `tunet_speaker_grid_card.js` | Group membership state | Keep group-state-driven fill |
+| `tunet_media_card.js` | Playback + source/group context | Convert accent-only fill cases to explicit state-driven fill classes |
+| `tunet_status_card.js` | Mixed status tiles | Replace accent-forced fill with tile-state-aware fill logic |
+| `tunet_scenes_card.js` | Stateless triggers | Idle outline, temporary fill on action feedback only |
+| `tunet_weather_card.js` | Telemetry | Always-filled condition icon allowed |
+| `tunet_sensor_card.js` | Telemetry | Always-filled sensor icons allowed |
 
 ---
 
@@ -1555,5 +1600,5 @@ Rooms icon/set policy in this release:
 
 - Always guard custom element registration with `customElements.get(...)`.
 - Never load duplicate resources for the same custom element type.
-- Keep light and dark accent tokens synchronized with this spec (`--amber` dark = `#E8961E`).
+- Keep light and dark accent tokens synchronized with this spec (`--amber` dark = `#fbbf24`).
 - Media/speaker dropdown overlays must stack above following cards (z-index contract, no clipping behind lower sections).

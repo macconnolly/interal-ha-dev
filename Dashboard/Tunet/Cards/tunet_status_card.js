@@ -123,19 +123,37 @@ const TUNET_STATUS_STYLES = `
     --green: #34C759;
     --green-fill: rgba(52,199,89,0.12);
     --green-border: rgba(52,199,89,0.15);
+    --purple: #AF52DE;
+    --purple-fill: rgba(175,82,222,0.10);
+    --purple-border: rgba(175,82,222,0.18);
     --red: #FF3B30;
-    --tile-bg: rgba(255,255,255,0.92);
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-    --tile-row-h: 132px;
+    --red-fill: rgba(255,59,48,0.10);
+    --red-border: rgba(255,59,48,0.18);
     --track-bg: rgba(28,28,30,0.055);
+    --track-h: 44px;
+    --thumb-bg: #fff;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
     --r-card: 24px;
     --r-tile: 16px;
+    --r-pill: 999px;
+    --r-track: 4px;
     --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.05);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+    --chip-bg: rgba(255,255,255,0.48);
+    --chip-border: rgba(0,0,0,0.05);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
     --dd-bg: rgba(255,255,255,0.92);
     --dd-border: rgba(255,255,255,0.60);
+    --divider: rgba(28,28,30,0.07);
+    --toggle-off: rgba(28,28,30,0.10);
+    --toggle-on: rgba(52,199,89,0.28);
+    --toggle-knob: rgba(255,255,255,0.96);
+    --tile-bg: rgba(255,255,255,0.92);
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
+    --tile-row-h: 124px;
     color-scheme: light;
     display: block;
   }
@@ -159,17 +177,40 @@ const TUNET_STATUS_STYLES = `
     --green: #30D158;
     --green-fill: rgba(48,209,88,0.14);
     --green-border: rgba(48,209,88,0.18);
+    --purple: #BF5AF2;
+    --purple-fill: rgba(191,90,242,0.14);
+    --purple-border: rgba(191,90,242,0.22);
     --red: #FF453A;
-    --tile-bg: rgba(30,41,59,0.90);
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
+    --red-fill: rgba(255,69,58,0.13);
+    --red-border: rgba(255,69,58,0.22);
     --track-bg: rgba(255,255,255,0.06);
+    --thumb-bg: #F5F5F7;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
     --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+    --chip-bg: rgba(30,41,59,0.50);
+    --chip-border: rgba(255,255,255,0.06);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
     --dd-bg: rgba(30,41,59,0.92);
     --dd-border: rgba(255,255,255,0.08);
+    --divider: rgba(255,255,255,0.06);
+    --toggle-off: rgba(255,255,255,0.10);
+    --toggle-on: rgba(48,209,88,0.30);
+    --toggle-knob: rgba(255,255,255,0.92);
+    --tile-bg: rgba(30,41,59,0.90);
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     color-scheme: dark;
+  }
+
+  :host([tile-size="compact"]) {
+    --tile-row-h: 108px;
+  }
+
+  :host([tile-size="large"]) {
+    --tile-row-h: 142px;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -230,6 +271,7 @@ const TUNET_STATUS_STYLES = `
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-auto-rows: minmax(var(--tile-row-h), var(--tile-row-h));
+    grid-auto-flow: row dense;
     align-items: stretch;
     gap: 10px;
   }
@@ -248,6 +290,14 @@ const TUNET_STATUS_STYLES = `
     min-height: var(--tile-row-h);
     height: 100%;
   }
+  :host([tile-size="compact"]) .tile {
+    padding: 10px 8px 8px;
+    gap: 3px;
+  }
+  :host([tile-size="large"]) .tile {
+    padding: 16px 10px 12px;
+    gap: 6px;
+  }
   .tile:hover { box-shadow: var(--tile-shadow-lift); }
   .tile:active { transform: scale(.97); }
   .tile:focus-visible {
@@ -259,6 +309,12 @@ const TUNET_STATUS_STYLES = `
     width: 28px; height: 28px;
     display: grid; place-items: center;
     margin-bottom: 2px;
+  }
+  :host([tile-size="compact"]) .tile-icon {
+    width: 24px; height: 24px;
+  }
+  :host([tile-size="large"]) .tile-icon {
+    width: 30px; height: 30px;
   }
   .tile[data-accent="amber"] .tile-icon { color: var(--amber); }
   .tile[data-accent="amber"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
@@ -272,10 +328,20 @@ const TUNET_STATUS_STYLES = `
     font-size: 18px; font-weight: 700; letter-spacing: -.2px; line-height: 1;
     color: var(--text); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap;
   }
+  :host([tile-size="compact"]) .tile-val { font-size: 16px; }
+  :host([tile-size="large"]) .tile-val { font-size: 20px; }
   .tile-label {
     font-size: 9px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
     color: var(--text-muted); line-height: 1; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  }
+  :host([tile-size="compact"]) .tile-label {
+    font-size: 8.5px;
+    letter-spacing: .4px;
+  }
+  :host([tile-size="large"]) .tile-label {
+    font-size: 10px;
+    letter-spacing: .55px;
   }
   .tile-deg { font-size: 0.6em; vertical-align: baseline; position: relative; top: -0.18em; margin-left: -1px; }
 
@@ -293,8 +359,7 @@ const TUNET_STATUS_STYLES = `
 
   /* Conditional visibility */
   .tile.tile-hidden {
-    visibility: hidden !important;
-    pointer-events: none !important;
+    display: none !important;
   }
 
   .tile-aux {
@@ -402,13 +467,18 @@ const TUNET_STATUS_STYLES = `
     background: var(--blue-fill);
     color: var(--blue);
   }
+  .tile-dd-opt:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: -2px;
+    background: var(--track-bg);
+  }
 
   @media (max-width: 440px) {
     .card { padding: 16px; }
     .grid { grid-template-columns: repeat(2, 1fr); }
-    .tile { min-height: 116px; }
-    :host { --tile-row-h: 116px; }
-    .tile-val { font-size: 16px; }
+    :host { --tile-row-h: 108px; }
+    :host([tile-size="large"]) { --tile-row-h: 126px; }
+    .tile { min-height: var(--tile-row-h); }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -448,8 +518,8 @@ class TunetStatusCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
     ];
     for (const cfg of links) {
       if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
@@ -465,9 +535,16 @@ class TunetStatusCard extends HTMLElement {
       schema: [
         { name: 'name', selector: { text: {} } },
         { name: 'columns', selector: { number: { min: 2, max: 6, step: 1, mode: 'box' } } },
+        { name: 'tile_size', selector: { select: { options: ['compact', 'standard', 'large'] } } },
+        { name: 'custom_css', label: 'Custom CSS (injected into shadow DOM)', selector: { text: { multiline: true } } },
       ],
       computeLabel: (s) => {
-        const labels = { name: 'Card Title', columns: 'Columns' };
+        const labels = {
+          name: 'Card Title',
+          columns: 'Columns',
+          tile_size: 'Tile Size',
+          custom_css: 'Custom CSS (injected into shadow DOM)',
+        };
         return labels[s.name] || s.name;
       },
     };
@@ -478,9 +555,15 @@ class TunetStatusCard extends HTMLElement {
   }
 
   setConfig(config) {
+    const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
+    const tileSize = tileSizeRaw === 'regular'
+      ? 'standard'
+      : (tileSizeRaw === 'compact' || tileSizeRaw === 'large' ? tileSizeRaw : 'standard');
     this._config = {
       name: config.name || 'Home Status',
       columns: config.columns || 4,
+      tile_size: tileSize,
+      custom_css: config.custom_css || '',
       tiles: (config.tiles || []).map(t => {
         const type = t.type || 'value';
         const base = {
@@ -518,6 +601,10 @@ class TunetStatusCard extends HTMLElement {
         return base;
       }),
     };
+
+    if (tileSize === 'compact' || tileSize === 'large') this.setAttribute('tile-size', tileSize);
+    else this.removeAttribute('tile-size');
+
     if (this._rendered) this._buildGrid();
   }
 
@@ -567,8 +654,8 @@ class TunetStatusCard extends HTMLElement {
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     `;
 
     const tpl = document.createElement('template');
@@ -590,6 +677,16 @@ class TunetStatusCard extends HTMLElement {
     this._titleEl = this.shadowRoot.getElementById('title');
     this._gridEl = this.shadowRoot.getElementById('grid');
     this._gridEl.style.gridTemplateColumns = `repeat(${this._config.columns || 4}, 1fr)`;
+
+    if (this._config.custom_css) {
+      let customStyle = this.shadowRoot.querySelector('#tunet-custom-css');
+      if (!customStyle) {
+        customStyle = document.createElement('style');
+        customStyle.id = 'tunet-custom-css';
+        this.shadowRoot.querySelector('style').after(customStyle);
+      }
+      customStyle.textContent = this._config.custom_css;
+    }
 
     this._buildGrid();
   }
@@ -1015,6 +1112,43 @@ class TunetStatusCard extends HTMLElement {
           tile.ddMenuEl.style.bottom = 'calc(100% + 4px)';
         }
       });
+
+      // Arrow-key / Escape navigation inside the open menu
+      const onMenuKey = (e) => {
+        const opts = Array.from(tile.ddMenuEl.querySelectorAll('.tile-dd-opt'));
+        if (!opts.length) return;
+        const focused = tile.ddMenuEl.querySelector('.tile-dd-opt:focus');
+        const currentIdx = focused ? opts.indexOf(focused) : -1;
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          e.stopPropagation();
+          const next = currentIdx < opts.length - 1 ? currentIdx + 1 : 0;
+          opts[next].focus();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          e.stopPropagation();
+          const prev = currentIdx > 0 ? currentIdx - 1 : opts.length - 1;
+          opts[prev].focus();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          this._closeAllDropdowns();
+          tile.el.focus();
+        }
+      };
+
+      tile.ddMenuEl.addEventListener('keydown', onMenuKey);
+      // Store so _closeAllDropdowns can remove it
+      tile._ddMenuKeyHandler = onMenuKey;
+
+      // Focus the active option (or first) after the menu animates in
+      requestAnimationFrame(() => {
+        const opts = Array.from(tile.ddMenuEl.querySelectorAll('.tile-dd-opt'));
+        if (!opts.length) return;
+        const active = tile.ddMenuEl.querySelector('.tile-dd-opt.active');
+        (active || opts[0]).focus();
+      });
     }
   }
 
@@ -1025,6 +1159,10 @@ class TunetStatusCard extends HTMLElement {
         tile.ddMenuEl.classList.remove('open');
         tile.ddMenuEl.style.top = '';
         tile.ddMenuEl.style.bottom = '';
+        if (tile._ddMenuKeyHandler) {
+          tile.ddMenuEl.removeEventListener('keydown', tile._ddMenuKeyHandler);
+          tile._ddMenuKeyHandler = null;
+        }
       }
       if (tile.ddValEl) {
         tile.ddValEl.setAttribute('aria-expanded', 'false');

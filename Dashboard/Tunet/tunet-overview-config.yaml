@@ -2,7 +2,7 @@
 # Tunet Overview Dashboard — Final Composition Contract
 # ═══════════════════════════════════════════════════════════════
 # Order:
-#   1) Top Mode Strip (compact)
+#   1) Quick Actions Strip (compact)
 #   2) Home Status (4x2)
 #   3) Lighting Hero (Top 5 zones)
 #   4) Environment Row (Climate + Weather)
@@ -11,11 +11,12 @@
 #
 # Notes:
 # - This file is card-YAML for the overview page composition.
-# - Uses custom:layout-card for side-by-side environment row.
-# - Status tiles support tap_action and advanced show_when operators.
+# - Uses native HA grid card for side-by-side environment row.
+# - Status tiles support tap_action, show_when, and aux_action.
+# - No external layout-card dependency.
 # ═══════════════════════════════════════════════════════════════
 
-# ─── 1. TOP MODE STRIP ────────────────────────────────────────
+# ─── 1. QUICK ACTIONS ─────────────────────────────────────────
 - type: custom:tunet-actions-card
   variant: mode_strip
   compact: true
@@ -63,6 +64,7 @@
 - type: custom:tunet-status-card
   name: Home Status
   columns: 4
+  tile_size: compact
   tiles:
     # Row 1
     - type: indicator
@@ -96,7 +98,7 @@
         action: call-service
         service: script.turn_on
         service_data:
-          entity_id: script.oal_reset_manual_control
+          entity_id: script.oal_reset_soft
       tap_action:
         action: more-info
 
@@ -147,12 +149,13 @@
       unit: °F
       format: integer
 
-# ─── 3. LIGHTING HERO (TOP 5 ZONES) ───────────────────────────
+# ─── 3. LIGHTING HERO (3x2 CORE ZONES) ────────────────────────
 - type: custom:tunet-lighting-card
   name: Lighting
   surface: section
   layout: grid
   expand_groups: false
+  show_adaptive_toggle: false
   tile_size: compact
   columns: 3
   rows: 2
@@ -162,16 +165,19 @@
     - entity: light.living_room_lights
       name: Living
       icon: lightbulb
-    - entity: light.kitchen_island_pendants
-      name: Island
+    - entity: light.kitchen_island_lights
+      name: Kitchen
       icon: kitchen
-    - entity: light.master_presence
-      name: Bed
+    - entity: light.bedroom_primary_lights
+      name: Bedroom
       icon: bed
     - entity: light.accent_spots_lights
       name: Spots
       icon: highlight
-    - entity: light.all_column_lights
+    - entity: light.recessed_ceiling_lights
+      name: Ceiling
+      icon: light
+    - entity: light.column_lights
       name: Columns
       icon: view_column
 
@@ -189,6 +195,66 @@
       name: Environment
       forecast_days: 5
       show_last_updated: false
+
+# ─── 4b. ENVIRONMENT SENSORS ─────────────────────────────────
+- type: custom:tunet-sensor-card
+  title: Environment
+  icon: sensors
+  icon_color: blue
+  show_sparkline: true
+  show_trend: true
+  sensors:
+    - entity: sensor.dining_room_temperature
+      label: Living Room
+      icon: thermostat
+      accent: amber
+      unit: "°F"
+      precision: 0
+      thresholds:
+        - value: 80
+          condition: gte
+          style: error
+        - value: 75
+          condition: gte
+          style: warning
+      show_range: true
+    - entity: sensor.kitchen_humidity
+      label: Humidity
+      icon: water_drop
+      accent: blue
+      unit: "%"
+      precision: 0
+      thresholds:
+        - value: 60
+          condition: gte
+          style: warning
+        - value: 20
+          condition: lte
+          style: warning
+      show_range: true
+    - entity: weather.home
+      label: Outside
+      icon: device_thermostat
+      accent: blue
+      unit: "°F"
+      precision: 0
+      value_attribute: temperature
+      show_range: true
+    - entity: sensor.aqi
+      label: Air Quality
+      icon: air
+      accent: green
+      unit: AQI
+      thresholds:
+        - value: 150
+          condition: gte
+          style: error
+        - value: 100
+          condition: gte
+          style: warning
+        - value: 50
+          condition: lte
+          style: success
 
 # ─── 5. MEDIA ─────────────────────────────────────────────────
 - type: custom:tunet-media-card

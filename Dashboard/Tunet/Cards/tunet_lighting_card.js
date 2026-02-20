@@ -579,6 +579,9 @@ const LIGHTING_STYLES = `
     cursor: pointer;
     transition: all .15s ease;
   }
+  .selector-btn .icon {
+    font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 20;
+  }
   .selector-btn:hover { box-shadow: var(--shadow); }
   .selector-btn:active { transform: scale(.97); }
   .selector-btn:focus-visible {
@@ -590,6 +593,9 @@ const LIGHTING_STYLES = `
     color: var(--amber);
     background: var(--amber-fill);
     font-weight: 700;
+  }
+  .selector-btn.active .icon {
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
   }
 
   /* ═══════════════════════════════════════════════════
@@ -855,8 +861,8 @@ const LIGHTING_TEMPLATE = `
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
   <div class="card-wrap">
     <div class="card">
@@ -942,8 +948,8 @@ class TunetLightingCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
     ];
 
     for (const cfg of links) {
@@ -983,8 +989,10 @@ class TunetLightingCard extends HTMLElement {
             { name: 'rows',        selector: { text: {} } },
             { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
             { name: 'expand_groups', selector: { boolean: {} } },
+            { name: 'show_adaptive_toggle', selector: { boolean: {} } },
           ],
         },
+        { name: 'custom_css', label: 'Custom CSS (injected into shadow DOM)', selector: { text: { multiline: true } } },
       ],
       computeLabel: (s) => ({
         entities:        'Light Entities (groups auto-expand)',
@@ -998,6 +1006,8 @@ class TunetLightingCard extends HTMLElement {
         scroll_rows:     'Scroll Rows',
         tile_size:       'Tile Size',
         expand_groups:   'Expand Group Entities',
+        show_adaptive_toggle: 'Show Adaptive Toggle',
+        custom_css:      'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
     };
   }
@@ -1051,6 +1061,7 @@ class TunetLightingCard extends HTMLElement {
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
     const tileSize = tileSizeRaw === 'compact' ? 'compact' : (tileSizeRaw === 'large' ? 'large' : 'standard');
     const expandGroups = config.expand_groups !== false;
+    const showAdaptiveToggle = config.show_adaptive_toggle === true;
     const rows = config.rows === 'auto' || config.rows == null
       ? null
       : (() => {
@@ -1072,7 +1083,9 @@ class TunetLightingCard extends HTMLElement {
       surface,
       tile_size:       tileSize,
       expand_groups:   expandGroups,
+      show_adaptive_toggle: showAdaptiveToggle,
       rows,
+      custom_css:      config.custom_css || '',
     };
 
     // Host attributes for CSS layout switching
@@ -1244,6 +1257,16 @@ class TunetLightingCard extends HTMLElement {
     const tpl = document.createElement('template');
     tpl.innerHTML = LIGHTING_TEMPLATE;
     this.shadowRoot.appendChild(tpl.content.cloneNode(true));
+
+    if (this._config.custom_css) {
+      let customStyle = this.shadowRoot.querySelector('#tunet-custom-css');
+      if (!customStyle) {
+        customStyle = document.createElement('style');
+        customStyle.id = 'tunet-custom-css';
+        this.shadowRoot.querySelector('style').after(customStyle);
+      }
+      customStyle.textContent = this._config.custom_css;
+    }
 
     this.$ = {
       card:        this.shadowRoot.querySelector('.card'),
@@ -1671,6 +1694,19 @@ class TunetLightingCard extends HTMLElement {
     return entity.attributes.manual_control || [];
   }
 
+  _zoneMembers(id) {
+    const entity = this._getEntity(id);
+    const members = entity && entity.attributes ? entity.attributes.entity_id : null;
+    if (Array.isArray(members) && members.length > 0) return members;
+    return [id];
+  }
+
+  _isZoneManual(zoneEntity, manualSet) {
+    if (manualSet.has(zoneEntity)) return true;
+    const members = this._zoneMembers(zoneEntity);
+    return members.some((member) => manualSet.has(member));
+  }
+
   /* ═══════════════════════════════════════════════════
      SERVICE CALLS
      ═══════════════════════════════════════════════════ */
@@ -1755,6 +1791,7 @@ class TunetLightingCard extends HTMLElement {
     if (!this._hass || !this._rendered) return;
 
     const manualList = this._getManuallyControlled();
+    const manualSet = new Set(manualList);
     let onCount = 0;
     let totalCount = 0;
     let totalBrightness = 0;
@@ -1795,7 +1832,7 @@ class TunetLightingCard extends HTMLElement {
       refs.name.textContent = this._zoneName(zone);
 
       // Manual dot
-      const isManual = manualList.includes(zone.entity);
+      const isManual = this._isZoneManual(zone.entity, manualSet);
       refs.el.dataset.manual = isManual ? 'true' : 'false';
 
     }
@@ -1849,7 +1886,7 @@ class TunetLightingCard extends HTMLElement {
 
     // ── Adaptive toggle ──
     const ae = this._config.adaptive_entity;
-    if (ae) {
+    if (ae && this._config.show_adaptive_toggle) {
       this.$.adaptiveBtn.classList.remove('hidden');
       const aeEntity = this._getEntity(ae);
       const aeOn = aeEntity && aeEntity.state === 'on';

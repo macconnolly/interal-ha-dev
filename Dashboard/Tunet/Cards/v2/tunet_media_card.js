@@ -1,22 +1,26 @@
 /**
- * Tunet Media Card v3.1.0
+ * Tunet Media Card v3.2.0
  * Sonos media player with transport, volume, and dual-purpose speaker dropdown
  * Dual-entity model: coordinator for media/transport, active entity for volume
  * Auto-detects speakers from active-group or playing-group Sonos binaries
  *
- * v3.1.0 – Migrated to tunet_base.js shared module
+ * v3.2.0 – Composer migration to tunet-info-tile and tunet-speaker-tile primitives
  */
 
 import {
   TOKENS,
   RESET, BASE_FONT, ICON_BASE,
   CARD_SURFACE, CARD_SURFACE_GLASS_STROKE,
+  INFO_TILE_PATTERN, LABEL_BUTTON_PATTERN, GLASS_MENU_PATTERN,
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
 } from './tunet_base.js';
+import { dispatchAction } from './tunet_runtime.js';
+import './tunet_info_tile.js';
+import './tunet_speaker_tile.js';
 
-const CARD_VERSION = '3.1.0';
+const CARD_VERSION = '3.2.0';
 
 /* ===============================================================
    CSS — Card-specific overrides + unique styles
@@ -46,43 +50,9 @@ const CARD_OVERRIDES = `
 const CARD_STYLES = `
   /* -- Header -- */
   .media-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .media-hdr tunet-info-tile { min-width: 0; flex: 1 1 auto; }
 
-  .info-tile {
-    display: flex; align-items: center; gap: 8px;
-    padding: 6px 10px 6px 6px; min-height: 42px;
-    border-radius: 10px; border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg); box-shadow: var(--ctrl-sh);
-    cursor: pointer; transition: all .15s ease; min-width: 0;
-  }
-  .info-tile:hover { box-shadow: var(--shadow); }
-  .info-tile:active { transform: scale(.98); }
-  .card[data-state="playing"] .info-tile {
-    background: var(--green-fill); border-color: var(--green-border);
-  }
-
-  .entity-icon {
-    width: 24px; height: 24px; border-radius: 6px;
-    display: grid; place-items: center; flex-shrink: 0;
-    transition: all .2s ease; color: var(--text-muted);
-  }
-  .card[data-state="playing"] .entity-icon { color: var(--green); }
-  .card[data-state="playing"] .entity-icon .icon {
-    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  }
-
-  .hdr-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-  .hdr-title {
-    font-weight: 700; font-size: 13px; color: var(--text-sub);
-    letter-spacing: 0.1px; line-height: 1.15;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .hdr-sub {
-    font-size: 10.5px; font-weight: 600; color: var(--text-muted);
-    letter-spacing: 0.1px; line-height: 1.15;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .hdr-sub .green-ic { color: var(--green); }
-  .hdr-spacer { flex: 1; }
+  .hdr-spacer { flex: 0; }
 
   /* TV Badge */
   .tv-badge {
@@ -114,10 +84,19 @@ const CARD_STYLES = `
   /* -- Dropdown Menu (fixed positioning for viewport-aware placement) -- */
   .dd-menu {
     position: fixed; top: 0; left: 0;
-    min-width: 220px; padding: 5px; border-radius: var(--r-tile);
-    background: var(--dd-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--dd-border); box-shadow: var(--shadow-up);
-    z-index: 2147483000; display: none; flex-direction: column; gap: 1px;
+    min-width: 260px; max-width: 360px; max-height: min(70vh, 420px);
+    overflow-y: auto;
+    padding: 6px;
+    border-radius: var(--r-tile);
+    background: var(--dd-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--dd-border);
+    box-shadow: var(--shadow-up);
+    z-index: 2147483000;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
   }
   .dd-menu.open { display: flex; animation: menuIn .14s ease forwards; }
   @keyframes menuIn {
@@ -125,43 +104,9 @@ const CARD_STYLES = `
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
 
-  /* Speaker option row */
-  .dd-option {
-    padding: 9px 12px; border-radius: 11px;
-    font-size: 13px; font-weight: 600; color: var(--text);
-    display: flex; align-items: center; gap: 8px;
-    cursor: pointer; transition: background .1s;
-    user-select: none; border: none; background: transparent;
-    font-family: inherit;
+  .dd-menu tunet-speaker-tile {
+    display: block;
   }
-  .dd-option:hover { background: var(--track-bg); }
-  .dd-option:active { transform: scale(.97); }
-  .dd-option.selected { font-weight: 700; color: var(--green); background: var(--green-fill); }
-  .dd-option.selected .spk-icon {
-    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  }
-
-  .spk-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-  .spk-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .spk-now-playing {
-    font-size: 10.5px; font-weight: 500; color: var(--text-muted);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
-  }
-  .dd-option.selected .spk-now-playing { color: var(--green); opacity: 0.7; }
-
-  /* Group checkbox */
-  .grp-check {
-    width: 20px; height: 20px; border-radius: 999px; flex-shrink: 0;
-    border: 1.5px solid var(--text-muted); display: grid; place-items: center;
-    transition: all .15s ease; cursor: pointer; position: relative; z-index: 2;
-  }
-  .grp-check:hover { border-color: var(--green); }
-  .grp-check.in-group { background: var(--green); border-color: var(--green); }
-  .grp-check .icon {
-    color: #fff; opacity: 0; transition: opacity .1s;
-    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 14;
-  }
-  .grp-check.in-group .icon { opacity: 1; }
 
   /* Action options */
   .dd-option.action { color: var(--text-sub); }
@@ -348,7 +293,7 @@ const CARD_STYLES = `
    Composite style sheet
    =============================================================== */
 
-const TUNET_MEDIA_STYLES = `${TOKENS} ${RESET} ${BASE_FONT} ${ICON_BASE} ${CARD_SURFACE} ${CARD_SURFACE_GLASS_STROKE} ${CARD_OVERRIDES} ${CARD_STYLES} ${REDUCED_MOTION}`;
+const TUNET_MEDIA_STYLES = `${TOKENS} ${RESET} ${BASE_FONT} ${ICON_BASE} ${CARD_SURFACE} ${CARD_SURFACE_GLASS_STROKE} ${INFO_TILE_PATTERN} ${LABEL_BUTTON_PATTERN} ${GLASS_MENU_PATTERN} ${CARD_OVERRIDES} ${CARD_STYLES} ${REDUCED_MOTION}`;
 
 /* ===============================================================
    HTML Template
@@ -362,15 +307,7 @@ const TUNET_MEDIA_TEMPLATE = `
 
       <!-- Header -->
       <div class="media-hdr">
-        <div class="info-tile" id="infoTile" title="Open entity details">
-          <div class="entity-icon">
-            <span class="icon" style="font-size:18px">speaker_group</span>
-          </div>
-          <div class="hdr-text">
-            <span class="hdr-title" id="cardTitle">Sonos</span>
-            <span class="hdr-sub" id="hdrSub">Idle</span>
-          </div>
-        </div>
+        <tunet-info-tile id="infoTile"></tunet-info-tile>
         <div class="hdr-spacer"></div>
         <span class="tv-badge" id="tvBadge">
           <span class="icon" style="font-size:11px">tv</span> TV
@@ -721,6 +658,40 @@ class TunetMediaCard extends HTMLElement {
     return speakers.filter((spk) => this._isSpeakerInActiveGroup(spk.entity)).length;
   }
 
+  _headerSubtitle(state, groupedCount, activeEntity) {
+    const activeSpk = (this._cachedSpeakers || []).find((s) => s.entity === this._activeEntity);
+    const spkName = activeSpk ? activeSpk.name : (activeEntity?.attributes?.friendly_name || '');
+
+    if (state === 'playing') {
+      if (groupedCount > 1) return `Playing · ${groupedCount} grouped`;
+      return spkName ? `Playing · ${spkName}` : 'Playing';
+    }
+
+    if (state === 'paused') {
+      if (groupedCount > 1) return `Paused · ${groupedCount} grouped`;
+      return spkName ? `Paused · ${spkName}` : 'Paused';
+    }
+
+    const stateNames = { idle: 'Idle', off: 'Off', unavailable: 'Unavailable' };
+    const stateLabel = stateNames[state] || state;
+    return groupedCount > 1 ? `${stateLabel} · ${groupedCount} grouped` : stateLabel;
+  }
+
+  _syncInfoTile(entityId, state, subtitle) {
+    if (!this.$?.infoTile) return;
+    const accent = state === 'playing' ? 'green' : state === 'paused' ? 'blue' : 'none';
+    this.$.infoTile.setConfig({
+      entity: entityId || this._config.entity,
+      title: this._config.name,
+      subtitle: subtitle || 'Unavailable',
+      icon: this._isTvMode ? 'tv' : 'speaker_group',
+      accent,
+      tap_action: { action: 'more-info', entity_id: entityId || this._config.entity },
+      hold_action: { action: 'more-info', entity_id: entityId || this._config.entity },
+    });
+    this.$.infoTile.hass = this._hass;
+  }
+
   /* -- Rendering -- */
 
   _render() {
@@ -736,7 +707,7 @@ class TunetMediaCard extends HTMLElement {
     // Cache DOM refs
     this.$ = {};
     const ids = [
-      'card', 'infoTile', 'cardTitle', 'hdrSub', 'tvBadge',
+      'card', 'infoTile', 'tvBadge',
       'spkWrap', 'spkBtn', 'spkLabel', 'spkMenu',
       'trackRow', 'albumArt', 'trackName', 'trackArtist', 'progressWrap',
       'progCur', 'progFill', 'progDur',
@@ -747,6 +718,8 @@ class TunetMediaCard extends HTMLElement {
     ids.forEach(id => {
       this.$[id] = this.shadowRoot.getElementById(id);
     });
+
+    this._syncInfoTile(this._config.entity, 'idle', 'Idle');
   }
 
   /* -- Event Listeners -- */
@@ -754,13 +727,13 @@ class TunetMediaCard extends HTMLElement {
   _setupListeners() {
     const $ = this.$;
 
-    // Info tile -> more-info for coordinator
-    $.infoTile.addEventListener('click', (e) => {
+    // Info tile primitive actions route through runtime dispatcher.
+    $.infoTile.addEventListener('tunet:action', (e) => {
       e.stopPropagation();
-      this.dispatchEvent(new CustomEvent('hass-more-info', {
-        bubbles: true, composed: true,
-        detail: { entityId: this._coordinator },
-      }));
+      const action = e.detail?.action;
+      const entityId = e.detail?.entity_id || action?.entity_id || this._coordinator;
+      if (!action) return;
+      dispatchAction(this._hass, this, action, entityId).catch(() => this._updateAll());
     });
 
     // Album art -> more-info for coordinator
@@ -949,56 +922,60 @@ class TunetMediaCard extends HTMLElement {
 
       const isActive = spk.entity === this._activeEntity;
       const inGroup = this._isSpeakerInActiveGroup(spk.entity);
+      const volume = Math.round((entity.attributes.volume_level || 0) * 100);
 
       const nowPlaying = entity.attributes.media_title
         ? `${entity.attributes.media_title}${entity.attributes.media_artist ? ' \u2013 ' + entity.attributes.media_artist : ''}`
         : entity.state === 'playing' ? 'Playing' : 'Not playing';
 
-      const opt = document.createElement('button');
-      opt.className = `dd-option${isActive ? ' selected' : ''}`;
+      const tile = document.createElement('tunet-speaker-tile');
+      tile.setConfig({
+        entity: spk.entity,
+        name: spk.name || entity.attributes.friendly_name || spk.entity,
+        icon: spk.icon || 'speaker',
+        meta: nowPlaying,
+        state: entity.state || 'idle',
+        in_group: inGroup,
+        selected: isActive,
+        volume,
+        show_volume: true,
+        show_group_dot: true,
+        allow_group_toggle: true,
+        tap_action: { action: 'select-speaker', entity_id: spk.entity },
+        hold_action: { action: 'more-info', entity_id: spk.entity },
+      });
+      tile.hass = this._hass;
 
-      const iconEl = document.createElement('span');
-      iconEl.className = 'icon spk-icon';
-      iconEl.style.fontSize = '18px';
-      iconEl.textContent = spk.icon || 'speaker';
-      opt.appendChild(iconEl);
+      tile.addEventListener('tunet:action', (e) => {
+        e.stopPropagation();
+        const action = e.detail?.action || {};
+        if (action.action === 'select-speaker') {
+          this._activeEntity = spk.entity;
+          this._closeSpeakerMenu();
+          this._updateAll();
+          return;
+        }
+        dispatchAction(this._hass, this, action, spk.entity).catch(() => this._updateAll());
+      });
 
-      const textWrap = document.createElement('span');
-      textWrap.className = 'spk-text';
-      const nameEl = document.createElement('span');
-      nameEl.className = 'spk-name';
-      nameEl.textContent = spk.name || entity.attributes.friendly_name || spk.entity;
-      textWrap.appendChild(nameEl);
-      const nowEl = document.createElement('span');
-      nowEl.className = 'spk-now-playing';
-      nowEl.textContent = nowPlaying;
-      textWrap.appendChild(nowEl);
-      opt.appendChild(textWrap);
-
-      const check = document.createElement('div');
-      check.className = `grp-check${inGroup ? ' in-group' : ''}`;
-      const checkIcon = document.createElement('span');
-      checkIcon.className = 'icon';
-      checkIcon.style.fontSize = '14px';
-      checkIcon.textContent = 'check';
-      check.appendChild(checkIcon);
-      opt.appendChild(check);
-
-      check.addEventListener('click', (e) => {
+      tile.addEventListener('tunet:group-toggle', (e) => {
         e.stopPropagation();
         this._callScript('sonos_toggle_group_membership', {
           target_speaker: spk.entity,
         });
       });
 
-      opt.addEventListener('click', (e) => {
+      tile.addEventListener('tunet:value-commit', (e) => {
         e.stopPropagation();
-        this._activeEntity = spk.entity;
-        this._closeSpeakerMenu();
-        this._updateAll();
+        const next = Number(e.detail?.value);
+        if (!Number.isFinite(next)) return;
+        this._callService('volume_set', {
+          entity_id: spk.entity,
+          volume_level: Math.max(0, Math.min(100, next)) / 100,
+        });
       });
 
-      $.spkMenu.appendChild(opt);
+      $.spkMenu.appendChild(tile);
     }
 
     if (speakers.length > 1) {
@@ -1051,7 +1028,8 @@ class TunetMediaCard extends HTMLElement {
 
     if (!coordEntity && !activeEntity) {
       $.card.dataset.state = 'unavailable';
-      $.hdrSub.textContent = 'Unavailable';
+      this._syncInfoTile(this._config.entity, 'unavailable', 'Unavailable');
+      this._stopProgress();
       return;
     }
 
@@ -1059,40 +1037,11 @@ class TunetMediaCard extends HTMLElement {
     const state = source.state;
     const a = source.attributes;
     $.card.dataset.state = state;
-    $.cardTitle.textContent = this._config.name;
 
     // Header subtitle
     const groupedCount = this._getGroupedCount();
-    $.hdrSub.textContent = '';
-    if (state === 'playing') {
-      const playSpan = document.createElement('span');
-      playSpan.className = 'green-ic';
-      playSpan.textContent = 'Playing';
-      $.hdrSub.appendChild(playSpan);
-      if (groupedCount > 1) {
-        $.hdrSub.appendChild(document.createTextNode(` \u00b7 ${groupedCount} grouped`));
-      } else {
-        const activeSpk = (this._cachedSpeakers || []).find(s => s.entity === this._activeEntity);
-        const spkName = activeSpk ? activeSpk.name :
-          (activeEntity && activeEntity.attributes.friendly_name) || '';
-        if (spkName) $.hdrSub.appendChild(document.createTextNode(` \u00b7 ${spkName}`));
-      }
-    } else if (state === 'paused') {
-      if (groupedCount > 1) {
-        $.hdrSub.textContent = `Paused \u00b7 ${groupedCount} grouped`;
-      } else {
-        const activeSpk = (this._cachedSpeakers || []).find(s => s.entity === this._activeEntity);
-        const spkName = activeSpk ? activeSpk.name :
-          (activeEntity && activeEntity.attributes.friendly_name) || '';
-        $.hdrSub.textContent = spkName ? `Paused \u00b7 ${spkName}` : 'Paused';
-      }
-    } else {
-      const stateNames = { idle: 'Idle', off: 'Off', unavailable: 'Unavailable' };
-      const stateLabel = stateNames[state] || state;
-      $.hdrSub.textContent = groupedCount > 1
-        ? `${stateLabel} \u00b7 ${groupedCount} grouped`
-        : stateLabel;
-    }
+    const subtitle = this._headerSubtitle(state, groupedCount, activeEntity);
+    this._syncInfoTile(coordId || this._activeEntity || this._config.entity, state, subtitle);
 
     // TV badge
     if ($.tvBadge) {

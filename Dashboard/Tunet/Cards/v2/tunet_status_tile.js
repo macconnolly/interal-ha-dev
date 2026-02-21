@@ -217,11 +217,26 @@ ${REDUCED_MOTION}
 }
 
 .tile-dd-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 140px;
+  max-width: 200px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 20;
   display: none;
 }
 
 .tile-dd-menu.open {
   display: flex;
+}
+
+.tile-dd-opt.active {
+  font-weight: 700;
+  background: var(--blue-fill);
+  color: var(--blue);
 }
 
 .tile[data-type='alarm'] .tile-val {
@@ -314,6 +329,8 @@ class TunetStatusTile extends HTMLElement {
     this._hass = null;
     this._config = null;
     this._timerInterval = null;
+    this._menuOpen = false;
+    this._onDocClick = this._handleDocClick.bind(this);
   }
 
   setConfig(config) {
@@ -352,11 +369,13 @@ class TunetStatusTile extends HTMLElement {
     this._renderShell();
     if (!this._config) this.setConfig({});
     this._update();
+    document.addEventListener('click', this._onDocClick);
   }
 
   disconnectedCallback() {
     this._clearTimer();
     this._removeListeners();
+    document.removeEventListener('click', this._onDocClick);
   }
 
   _renderShell() {
@@ -454,8 +473,7 @@ class TunetStatusTile extends HTMLElement {
             data: { entity_id: cfg.entity, option: opt },
             entity_id: cfg.entity,
           }, 'dropdown_option');
-          menu.classList.remove('open');
-          this._els.dropdownValue.setAttribute('aria-expanded', 'false');
+          this._setMenuOpen(false);
         });
         menu.appendChild(btn);
       }
@@ -472,6 +490,7 @@ class TunetStatusTile extends HTMLElement {
     this.classList.toggle('tile-hidden', !show);
     this._els.tile.classList.toggle('tile-hidden', !show);
     if (!show) {
+      this._setMenuOpen(false);
       this._clearTimer();
       return;
     }
@@ -479,6 +498,7 @@ class TunetStatusTile extends HTMLElement {
     const entity = this._hass.states?.[this._config.entity];
     if (!entity) {
       this._setValue('?');
+      this._setMenuOpen(false);
       this._clearTimer();
       return;
     }
@@ -602,8 +622,8 @@ class TunetStatusTile extends HTMLElement {
 
   _handleTap(e) {
     if (this._config.type === 'dropdown') {
-      const open = this._els.menu.classList.toggle('open');
-      this._els.dropdownValue.setAttribute('aria-expanded', open ? 'true' : 'false');
+      e.stopPropagation();
+      this._setMenuOpen(!this._menuOpen);
       return;
     }
 
@@ -620,6 +640,10 @@ class TunetStatusTile extends HTMLElement {
   _handleKeyDown(e) {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
+    if (this._config.type === 'dropdown') {
+      this._setMenuOpen(!this._menuOpen);
+      return;
+    }
     this._emitAction(this._config.tap_action, 'keyboard');
   }
 
@@ -647,6 +671,56 @@ class TunetStatusTile extends HTMLElement {
         trigger,
       },
     }));
+  }
+
+  _setMenuOpen(open) {
+    if (this._config.type !== 'dropdown') return;
+    this._menuOpen = !!open;
+    this._els.menu.classList.toggle('open', this._menuOpen);
+    this._els.dropdownValue.setAttribute('aria-expanded', this._menuOpen ? 'true' : 'false');
+    this._els.tile.setAttribute('aria-expanded', this._menuOpen ? 'true' : 'false');
+
+    if (this._menuOpen) {
+      requestAnimationFrame(() => this._positionDropdownMenu());
+    } else {
+      this._els.menu.style.top = '';
+      this._els.menu.style.bottom = '';
+      this._els.menu.style.maxHeight = '';
+    }
+  }
+
+  _positionDropdownMenu() {
+    const tileRect = this._els.tile.getBoundingClientRect();
+    const menuRect = this._els.menu.getBoundingClientRect();
+    const viewH = window.innerHeight;
+    const spaceBelow = viewH - tileRect.bottom - 8;
+    const spaceAbove = tileRect.top - 8;
+    const menuH = menuRect.height;
+
+    this._els.menu.style.top = 'calc(100% + 4px)';
+    this._els.menu.style.bottom = 'auto';
+    this._els.menu.style.maxHeight = '240px';
+
+    if (menuH > spaceBelow && spaceAbove > spaceBelow) {
+      this._els.menu.style.top = 'auto';
+      this._els.menu.style.bottom = 'calc(100% + 4px)';
+      if (menuH > spaceAbove) {
+        this._els.menu.style.maxHeight = `${Math.max(120, spaceAbove - 8)}px`;
+      }
+      return;
+    }
+
+    if (menuH > spaceBelow) {
+      this._els.menu.style.maxHeight = `${Math.max(120, spaceBelow - 8)}px`;
+    }
+  }
+
+  _handleDocClick(event) {
+    if (!this._menuOpen || this._config.type !== 'dropdown') return;
+    const path = event.composedPath();
+    if (!path.includes(this._els.tile)) {
+      this._setMenuOpen(false);
+    }
   }
 }
 

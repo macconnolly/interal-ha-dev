@@ -1,7 +1,6 @@
 /**
- * Tunet Actions Card (v2 – ES Module)
- * Quick action chips with state reflection and glassmorphism design
- * Version 2.2.0
+ * Tunet Actions Card (v2 – composer)
+ * Renders tunet-action-chip primitives and routes actions through runtime dispatch.
  */
 
 import {
@@ -19,12 +18,10 @@ import {
   registerCard,
   logCardVersion,
 } from './tunet_base.js';
+import { dispatchAction } from './tunet_runtime.js';
+import './tunet_action_chip.js';
 
-const CARD_VERSION = '2.2.0';
-
-// ═══════════════════════════════════════════════════════════
-// Default action configs (card-specific)
-// ═══════════════════════════════════════════════════════════
+const CARD_VERSION = '2.4.0';
 
 const DEFAULT_ACTIONS = [
   {
@@ -74,9 +71,7 @@ const DEFAULT_MODE_ACTIONS = [
     icon: 'lightbulb',
     accent: 'amber',
     service: 'light.turn_on',
-    service_data: {
-      entity_id: 'light.all_adaptive_lights',
-    },
+    service_data: { entity_id: 'light.all_adaptive_lights' },
     state_entity: 'light.all_adaptive_lights',
     active_when: 'on',
   },
@@ -85,9 +80,7 @@ const DEFAULT_MODE_ACTIONS = [
     icon: 'power_settings_new',
     accent: 'amber',
     service: 'light.turn_off',
-    service_data: {
-      entity_id: 'light.all_adaptive_lights',
-    },
+    service_data: { entity_id: 'light.all_adaptive_lights' },
     state_entity: 'light.all_adaptive_lights',
     active_when: 'off',
   },
@@ -96,10 +89,7 @@ const DEFAULT_MODE_ACTIONS = [
     icon: 'bedtime',
     accent: 'amber',
     service: 'input_select.select_option',
-    service_data: {
-      entity_id: '__MODE_ENTITY__',
-      option: 'Dim Ambient',
-    },
+    service_data: { entity_id: '__MODE_ENTITY__', option: 'Dim Ambient' },
     state_entity: '__MODE_ENTITY__',
     active_when: 'Dim Ambient',
   },
@@ -108,150 +98,63 @@ const DEFAULT_MODE_ACTIONS = [
     icon: 'bed',
     accent: 'amber',
     service: 'input_select.select_option',
-    service_data: {
-      entity_id: '__MODE_ENTITY__',
-      option: 'Sleep',
-    },
+    service_data: { entity_id: '__MODE_ENTITY__', option: 'Sleep' },
     state_entity: '__MODE_ENTITY__',
     active_when: 'Sleep',
   },
 ];
 
-const ICON_ALIASES = {
-  day: 'wb_sunny',
-  nightlight: 'bedtime',
-  floor_lamp: 'lamp',
-  table_lamp: 'lamp',
-  desk_lamp: 'desk',
-  shelf_auto: 'shelves',
-  countertops: 'kitchen',
-};
+const STYLES = `
+${TOKENS}
+${RESET}
+${BASE_FONT}
+${ICON_BASE}
+${CARD_SURFACE}
+${CARD_SURFACE_GLASS_STROKE}
+${REDUCED_MOTION}
 
-function normalizeIcon(icon) {
-  if (!icon) return 'lightbulb';
-  const raw = String(icon).replace(/^mdi:/, '').trim();
-  return ICON_ALIASES[raw] || raw || 'lightbulb';
+:host {
+  display: block;
+  font-size: 16px;
 }
 
-// ═══════════════════════════════════════════════════════════
-// Card-specific CSS overrides
-// ═══════════════════════════════════════════════════════════
+.card {
+  width: 100%;
+  gap: 0;
+  overflow: visible;
+  transition: background var(--motion-surface) var(--ease-standard), border-color var(--motion-surface) var(--ease-standard);
+}
 
-const CARD_OVERRIDES = `
+.card.compact {
+  padding: 0.625em;
+  border-radius: 1.25em;
+}
+
+.actions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375em;
+}
+
+.actions-row.mode-strip tunet-action-chip {
+  min-width: 0;
+}
+
+.actions-row tunet-action-chip {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 440px) {
   :host {
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-    display: block;
+    font-size: 15px;
   }
-  .card {
-    width: 100%;
-    gap: 0;
-    overflow: visible;
-    transition: background .3s, border-color .3s;
+
+  .card.compact {
+    padding: 0.5em;
   }
-  .card.compact { padding: 12px; border-radius: 20px; }
+}
 `;
-
-// ═══════════════════════════════════════════════════════════
-// Card-specific styles
-// ═══════════════════════════════════════════════════════════
-
-const CARD_STYLES = `
-  /* Action chip row */
-  .actions-row {
-    display: flex;
-    gap: 8px;
-  }
-  .actions-row.mode-strip .action-chip {
-    padding: 12px 6px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 700;
-    min-height: 52px;
-  }
-
-  /* Individual action chip */
-  .action-chip {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 4px;
-    border-radius: var(--r-tile);
-    background: var(--tile-bg);
-    box-shadow: var(--tile-shadow-rest);
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-sub);
-    letter-spacing: .1px;
-    cursor: pointer;
-    transition: all .15s ease;
-    user-select: none;
-    white-space: nowrap;
-    border: 1px solid transparent;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .action-chip:hover { box-shadow: var(--tile-shadow-lift); }
-  .action-chip:active { transform: scale(.96); }
-  .action-chip:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
-  }
-  .action-chip .icon { font-size: 18px; width: 18px; height: 18px; color: var(--text-muted); }
-
-  /* Active state: default (amber) */
-  .action-chip.active {
-    border-color: var(--amber-border);
-    color: var(--amber);
-    font-weight: 700;
-  }
-  .action-chip.active .icon {
-    color: var(--amber);
-    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  }
-
-  /* Active state: blue accent */
-  .action-chip[data-accent="blue"].active {
-    border-color: var(--blue-border);
-    color: var(--blue);
-  }
-  .action-chip[data-accent="blue"].active .icon { color: var(--blue); }
-
-  /* Active state: purple accent */
-  .action-chip[data-accent="purple"].active {
-    border-color: var(--purple-border);
-    color: var(--purple);
-  }
-  .action-chip[data-accent="purple"].active .icon { color: var(--purple); }
-
-  @media (max-width: 440px) {
-    .card { padding: 16px; }
-    .action-chip { font-size: 10px; padding: 9px 2px; gap: 4px; }
-    .action-chip .icon { font-size: 16px; width: 16px; height: 16px; }
-  }
-`;
-
-// ═══════════════════════════════════════════════════════════
-// Composite stylesheet
-// ═══════════════════════════════════════════════════════════
-
-const TUNET_ACTIONS_STYLES = `
-  ${TOKENS}
-  ${RESET}
-  ${BASE_FONT}
-  ${ICON_BASE}
-  ${CARD_SURFACE}
-  ${CARD_SURFACE_GLASS_STROKE}
-  ${CARD_OVERRIDES}
-  ${CARD_STYLES}
-  ${REDUCED_MOTION}
-`;
-
-// ═══════════════════════════════════════════════════════════
-// Card Class
-// ═══════════════════════════════════════════════════════════
 
 class TunetActionsCard extends HTMLElement {
   constructor() {
@@ -259,8 +162,8 @@ class TunetActionsCard extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._config = {};
     this._hass = null;
+    this._chips = [];
     this._rendered = false;
-    this._chipEls = [];
     injectFonts();
   }
 
@@ -289,6 +192,7 @@ class TunetActionsCard extends HTMLElement {
   setConfig(config) {
     const variant = config.variant === 'mode_strip' ? 'mode_strip' : 'default';
     const modeEntity = config.mode_entity || 'input_select.oal_active_configuration';
+
     const sourceActions = Array.isArray(config.actions) && config.actions.length > 0
       ? config.actions
       : (variant === 'mode_strip'
@@ -308,17 +212,26 @@ class TunetActionsCard extends HTMLElement {
         name: a.name || '',
         icon: a.icon || 'circle',
         accent: a.accent || 'amber',
-        service: a.service || '',
-        service_data: a.service_data || {},
         state_entity: a.state_entity || '',
         active_when: a.active_when || 'on',
         active_when_operator: a.active_when_operator || 'equals',
+        show_when: a.show_when || null,
+        tap_action: a.tap_action || {
+          action: 'call-service',
+          service: a.service || '',
+          service_data: { ...(a.service_data || {}) },
+          entity_id: a.state_entity || a.service_data?.entity_id || '',
+        },
+        hold_action: a.hold_action || null,
+        double_tap_action: a.double_tap_action || null,
       })),
     };
+
     if (this._rendered) {
       const card = this.shadowRoot.querySelector('.card');
       if (card) card.classList.toggle('compact', !!this._config.compact);
       this._buildChips();
+      this._update();
     }
   }
 
@@ -331,12 +244,13 @@ class TunetActionsCard extends HTMLElement {
       this._rendered = true;
     }
 
-    const isDark = detectDarkMode(hass);
-    applyDarkClass(this, isDark);
+    applyDarkClass(this, detectDarkMode(hass));
 
-    const changed = this._config.actions.some(a =>
-      a.state_entity && (!oldHass || oldHass.states[a.state_entity] !== hass.states[a.state_entity])
-    );
+    const changed = this._config.actions?.some((action) => {
+      if (!action.state_entity) return false;
+      return !oldHass || oldHass.states[action.state_entity] !== hass.states[action.state_entity];
+    });
+
     if (changed || !oldHass) this._update();
   }
 
@@ -349,95 +263,68 @@ class TunetActionsCard extends HTMLElement {
 
   _render() {
     const style = document.createElement('style');
-    style.textContent = TUNET_ACTIONS_STYLES;
+    style.textContent = STYLES;
     this.shadowRoot.innerHTML = '';
     this.shadowRoot.appendChild(style);
 
-    const tpl = document.createElement('template');
-    tpl.innerHTML = FONT_LINKS + `
+    const template = document.createElement('template');
+    template.innerHTML = `${FONT_LINKS}
       <div class="wrap">
         <div class="card${this._config.compact ? ' compact' : ''}">
           <div class="actions-row" id="row"></div>
         </div>
-      </div>
-    `;
-    this.shadowRoot.appendChild(tpl.content.cloneNode(true));
+      </div>`;
+    this.shadowRoot.appendChild(template.content.cloneNode(true));
 
     this._row = this.shadowRoot.getElementById('row');
+    this._row.addEventListener('tunet:action', (e) => {
+      const action = e.detail?.action;
+      const entityId = e.detail?.entity_id || action?.entity_id || '';
+      if (!action) return;
+      dispatchAction(this._hass, this, action, entityId).catch(() => this._update());
+    });
+
     this._buildChips();
   }
 
   _buildChips() {
     if (!this._row) return;
+
     this._row.innerHTML = '';
     this._row.classList.toggle('mode-strip', this._config.variant === 'mode_strip');
-    this._chipEls = [];
+    this._chips = [];
 
-    for (const action of this._config.actions) {
-      const chip = document.createElement('button');
-      chip.className = 'action-chip';
-      chip.dataset.accent = action.accent;
-
-      const iconName = normalizeIcon(action.icon || 'circle');
-      chip.innerHTML = `<span class="icon">${iconName}</span> ${action.name}`;
-
-      chip.addEventListener('click', () => this._callService(action));
-
+    for (const action of this._config.actions || []) {
+      const chip = document.createElement('tunet-action-chip');
+      chip.setConfig({
+        icon: action.icon,
+        label: action.name,
+        accent: action.accent,
+        state_entity: action.state_entity,
+        active_when: action.active_when,
+        active_when_operator: action.active_when_operator,
+        show_when: action.show_when,
+        tap_action: action.tap_action,
+        hold_action: action.hold_action,
+        double_tap_action: action.double_tap_action,
+      });
+      if (this._hass) chip.hass = this._hass;
       this._row.appendChild(chip);
-      this._chipEls.push({ el: chip, action });
+      this._chips.push(chip);
     }
-
-    this._update();
   }
 
   _update() {
-    if (!this._hass || !this._chipEls) return;
-
-    for (const { el, action } of this._chipEls) {
-      if (!action.state_entity) {
-        el.classList.remove('active');
-        continue;
-      }
-
-      const entity = this._hass.states[action.state_entity];
-      if (!entity) {
-        el.classList.remove('active');
-        continue;
-      }
-
-      const stateValue = String(entity.state ?? '');
-      const expected = String(action.active_when ?? '');
-      let isActive;
-      if (action.active_when_operator === 'contains') {
-        isActive = stateValue.includes(expected);
-      } else if (action.active_when_operator === 'not_equals') {
-        isActive = stateValue !== expected;
-      } else {
-        isActive = stateValue === expected;
-      }
-      el.classList.toggle('active', isActive);
-
-      const iconEl = el.querySelector('.icon');
-      if (iconEl) iconEl.classList.toggle('filled', isActive);
+    if (!this._hass) return;
+    for (const chip of this._chips) {
+      chip.hass = this._hass;
     }
-  }
-
-  _callService(action) {
-    if (!this._hass || !action.service) return;
-
-    const [domain, service] = action.service.split('.');
-    const serviceData = { ...action.service_data };
-    this._hass.callService(domain, service, serviceData);
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// Registration
-// ═══════════════════════════════════════════════════════════
-
 registerCard('tunet-actions-card', TunetActionsCard, {
   name: 'Tunet Actions Card',
-  description: 'Quick action chips with state reflection and glassmorphism design',
+  description: 'Quick action chips composed from tunet-action-chip primitives',
   preview: true,
 });
 

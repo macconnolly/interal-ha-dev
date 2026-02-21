@@ -33,6 +33,7 @@ import {
   TOKENS, TOKENS_MIDNIGHT,
   RESET, BASE_FONT, ICON_BASE,
   CARD_SURFACE, CARD_SURFACE_GLASS_STROKE,
+  INFO_TILE_PATTERN, ICON_BUTTON_PATTERN, LABEL_BUTTON_PATTERN,
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
@@ -54,6 +55,9 @@ ${BASE_FONT}
 ${ICON_BASE}
 ${CARD_SURFACE}
 ${CARD_SURFACE_GLASS_STROKE}
+${INFO_TILE_PATTERN}
+${ICON_BUTTON_PATTERN}
+${LABEL_BUTTON_PATTERN}
 
   /* ── Lighting-specific token overrides ──────── */
   :host {
@@ -123,53 +127,12 @@ ${CARD_SURFACE_GLASS_STROKE}
      HEADER (Design Language §5)
      Info tile + spacer + toggles + selector
      ═══════════════════════════════════════════════════ */
-  .hdr {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-
-  /* Info Tile (§5.2) – tappable entity identifier */
-  .info-tile {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px 6px 6px;
-    min-height: 42px;
-    box-sizing: border-box;
-    border-radius: 10px;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    cursor: pointer;
-    transition: all .15s ease;
-    min-width: 0;
-  }
-  .info-tile:hover { box-shadow: var(--shadow); }
-  .info-tile:active { transform: scale(.98); }
-  .info-tile:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
-  }
-
   /* Info tile active state (any light on) */
   .card[data-any-on="true"] .info-tile {
     background: var(--amber-fill);
     border-color: var(--amber-border);
   }
 
-  /* Entity Icon (§5.3) */
-  .entity-icon {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    transition: all .2s ease;
-    color: var(--text-muted);
-  }
   .card[data-any-on="true"] .entity-icon {
     color: var(--amber);
   }
@@ -178,39 +141,10 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
 
   /* Title & Subtitle (§5.4) */
-  .hdr-text {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    min-width: 0;
-  }
-  .hdr-title {
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--text-sub);
-    letter-spacing: 0.1px;
-    line-height: 1.15;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .hdr-sub {
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--text-muted);
-    letter-spacing: 0.1px;
-    line-height: 1.15;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
   .hdr-sub .amber-ic    { color: var(--amber); }
   .hdr-sub .adaptive-ic { color: var(--text-muted); }
   .card[data-any-on="true"] .hdr-sub .adaptive-ic { color: var(--text); }
   .hdr-sub .red-ic      { color: var(--red); }
-
-  /* Spacer (§5.5) */
-  .hdr-spacer { flex: 1; }
 
   /* ── Pagination Dots (scroll mode) ───────────────── */
   .header-dots {
@@ -239,26 +173,6 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
 
   /* ── Toggle Button (§5.6) – Adaptive lighting ────── */
-  .toggle-btn {
-    width: 42px;
-    min-height: 42px;
-    box-sizing: border-box;
-    border-radius: 10px;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    transition: all .15s ease;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    color: var(--text-muted);
-  }
-  .toggle-btn:hover { box-shadow: var(--shadow); }
-  .toggle-btn:active { transform: scale(.94); }
-  .toggle-btn:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
-  }
   .toggle-btn.on {
     background: var(--amber-fill);
     color: var(--amber);
@@ -291,31 +205,6 @@ ${CARD_SURFACE_GLASS_STROKE}
   .toggle-wrap { position: relative; }
 
   /* ── Selector Button (§5.7) – All Off ────────────── */
-  .selector-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-height: 42px;
-    box-sizing: border-box;
-    padding: 0 8px;
-    border-radius: 10px;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-sub);
-    letter-spacing: 0.2px;
-    cursor: pointer;
-    transition: all .15s ease;
-  }
-  .selector-btn:hover { box-shadow: var(--shadow); }
-  .selector-btn:active { transform: scale(.97); }
-  .selector-btn:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
-  }
   .selector-btn.active {
     border-color: var(--amber-border);
     color: var(--amber);

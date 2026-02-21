@@ -12,6 +12,7 @@
 import {
   TOKENS, RESET, BASE_FONT, ICON_BASE,
   CARD_SURFACE, CARD_SURFACE_GLASS_STROKE,
+  INFO_TILE_PATTERN, ICON_BUTTON_PATTERN, LABEL_BUTTON_PATTERN, GLASS_MENU_PATTERN,
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
@@ -31,6 +32,10 @@ ${BASE_FONT}
 ${ICON_BASE}
 ${CARD_SURFACE}
 ${CARD_SURFACE_GLASS_STROKE}
+${INFO_TILE_PATTERN}
+${ICON_BUTTON_PATTERN}
+${LABEL_BUTTON_PATTERN}
+${GLASS_MENU_PATTERN}
 
   /* ── Climate Card Surface Overrides ── */
   .card {
@@ -54,29 +59,6 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
 
   /* -- Header -- */
-  .hdr {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-  .hdr-tile {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px 6px 6px;
-    min-height: 42px;
-    box-sizing: border-box;
-    border-radius: 10px;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    cursor: pointer;
-    transition: all .15s ease;
-    min-width: 0;
-  }
-  .hdr-tile:hover { box-shadow: var(--shadow); }
-  .hdr-tile:active { transform: scale(.98); }
   /* Info tile accent states - driven by hvac_action */
   .hdr-tile[data-action="heating"] {
     background: var(--amber-fill);
@@ -86,75 +68,26 @@ ${CARD_SURFACE_GLASS_STROKE}
     background: var(--blue-fill);
     border-color: var(--blue-border);
   }
-  .hdr-icon {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    border: 1px solid transparent;
-    background: transparent;
-    transition: all .2s ease;
-    color: var(--text-muted);
-  }
   .hdr-icon[data-a="heating"] {
     color: var(--amber);
   }
   .hdr-icon[data-a="cooling"] {
     color: var(--blue);
   }
-  .hdr-text {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    min-width: 0;
-  }
-  .hdr-title {
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--text);
-    letter-spacing: .1px;
-    line-height: 1.15;
-  }
+  .hdr-title { color: var(--text); }
   .card[data-mode="off"] .hdr-title {
     color: var(--text-sub);
   }
   .hdr-sub {
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--text-muted);
-    letter-spacing: .1px;
-    line-height: 1.15;
     display: flex;
     align-items: center;
     gap: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   .hdr-sub .heat-ic { color: var(--amber); }
   .hdr-sub .cool-ic { color: var(--blue); }
   .hdr-sub .fan-ic { color: var(--green); }
-  .hdr-spacer { flex: 1; }
 
   /* -- Fan Button -- */
-  .fan-btn {
-    width: 42px;
-    min-height: 42px;
-    box-sizing: border-box;
-    border-radius: 10px;
-    display: grid;
-    place-items: center;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all .15s ease;
-  }
-  .fan-btn:hover { box-shadow: var(--shadow); }
-  .fan-btn:active { transform: scale(.94); }
   .fan-btn.on {
     background: var(--green-fill);
     color: var(--green);
@@ -179,27 +112,6 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* -- Mode Button (matches icon button language) -- */
   .mode-wrap { position: relative; }
-  .mode-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-height: 42px;
-    box-sizing: border-box;
-    padding: 0 8px 0 8px;
-    border-radius: 10px;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-sub);
-    cursor: pointer;
-    transition: all .15s ease;
-    letter-spacing: .2px;
-  }
-  .mode-btn:hover { box-shadow: var(--shadow); }
-  .mode-btn:active { transform: scale(.97); }
   .mode-btn .mode-icon { font-size: 16px; width: 16px; height: 16px; }
   .mode-btn .chevron { transition: transform .2s ease; font-size: 14px; width: 14px; height: 14px; }
   .mode-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
@@ -222,48 +134,11 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* -- Mode Dropdown Menu -- */
   .mode-menu {
-    position: absolute;
     top: calc(100% + 6px);
     right: 0;
     min-width: 160px;
-    padding: 5px;
-    border-radius: var(--r-tile);
-    background: var(--dd-bg);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--dd-border);
-    box-shadow: var(--shadow-up);
-    z-index: 10;
-    display: none;
-    flex-direction: column;
-    gap: 1px;
   }
-  .mode-menu.open {
-    display: flex;
-    animation: menuIn .14s ease forwards;
-  }
-  @keyframes menuIn {
-    from { opacity: 0; transform: translateY(-4px) scale(.97); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  .mode-opt {
-    padding: 9px 12px;
-    border-radius: 11px;
-    border: none;
-    background: transparent;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    text-align: left;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: background .1s;
-  }
-  .mode-opt:hover { background: var(--track-bg); }
-  .mode-opt:active { transform: scale(.97); }
+  .mode-opt { gap: 8px; }
   .mode-opt.active { font-weight: 700; }
   .mode-opt.active[data-m="heat_cool"],
   .mode-opt.active[data-m="heat"] { background: var(--amber-fill); color: var(--amber); }

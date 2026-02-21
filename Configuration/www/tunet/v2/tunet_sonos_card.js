@@ -1,21 +1,21 @@
 /**
- * Tunet Sonos Card v1.0.0
+ * Tunet Sonos Card v1.1.0
  * Unified Sonos media player + speaker tiles in one card
  * Replaces: tunet_media_card.js + tunet_speaker_grid_card.js
  *
  * Layout:
  *   Compact player header (album art + track info + transport + source dropdown)
- *   Horizontal-scroll speaker tiles with drag-to-volume
+ *   Horizontal-scroll speaker tiles composed from tunet-speaker-tile
  *
  * Interactions:
  *   Tile tap        = toggle group membership
- *   Tile drag L/R   = volume control (floating pill)
+ *   Tile drag L/R   = volume control (speaker tile primitive)
  *   Tile hold 500ms = open more-info dialog
  *   Source dropdown  = switch which Sonos entity to control
  *   Transport        = play/pause/prev/next on coordinator
  *   Volume button    = show volume overlay for active entity
  *
- * Version 1.0.0
+ * Version 1.1.0
  */
 
 import {
@@ -26,8 +26,10 @@ import {
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion, clamp,
 } from './tunet_base.js';
+import { dispatchAction } from './tunet_runtime.js';
+import './tunet_speaker_tile.js';
 
-const CARD_VERSION = '1.0.0';
+const CARD_VERSION = '1.1.0';
 
 /* ===============================================================
    CSS - Card-specific overrides
@@ -39,18 +41,6 @@ const CARD_OVERRIDES = `
     --sonos-blue: #007AFF;
     --sonos-blue-fill: rgba(0,122,255, 0.09);
     --sonos-blue-border: rgba(0,122,255, 0.14);
-    --sonos-blue-glow: rgba(0,122,255, 0.25);
-
-    /* Green for playing */
-    --sonos-green: var(--green);
-    --sonos-green-fill: var(--green-fill);
-    --sonos-green-border: var(--green-border);
-
-    /* Tile shadows */
-    --tile-shadow: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-
-    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     display: block;
   }
 
@@ -58,10 +48,6 @@ const CARD_OVERRIDES = `
     --sonos-blue: #0A84FF;
     --sonos-blue-fill: rgba(10,132,255, 0.13);
     --sonos-blue-border: rgba(10,132,255, 0.18);
-    --sonos-blue-glow: rgba(10,132,255, 0.35);
-
-    --tile-shadow: 0 4px 12px rgba(0,0,0,0.20), 0 1px 2px rgba(0,0,0,0.30);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.20);
   }
 
   .card {
@@ -226,135 +212,24 @@ const SPEAKER_TILE_STYLES = `
   }
   .speakers-scroll::-webkit-scrollbar { display: none; }
 
-  /* Individual speaker tile - landscape */
-  .speaker-tile {
+  .speakers-scroll tunet-speaker-tile {
     scroll-snap-align: start;
-    flex-shrink: 0;
-    width: 150px;
-    background: var(--tile-bg);
-    border-radius: var(--r-tile);
-    box-shadow: var(--tile-shadow);
-    border: 1.5px solid var(--border-ghost);
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-    align-items: center;
-    column-gap: 8px;
-    row-gap: 1px;
-    padding: 10px 12px 16px;
-    position: relative;
-    cursor: pointer;
-    user-select: none;
-    touch-action: pan-y;
-    transition:
-      transform .3s var(--spring),
-      box-shadow .3s ease,
-      border-color .2s ease,
-      background-color .3s ease;
-  }
-  .speaker-tile:hover { box-shadow: var(--tile-shadow-lift); }
-
-  /* Grouped (active) state */
-  .speaker-tile.grouped { border-color: var(--sonos-blue-border); }
-
-  /* Sliding (drag-to-volume active) */
-  .speaker-tile.sliding {
-    transform: scale(1.06);
-    box-shadow: var(--tile-shadow-lift);
-    border-color: var(--sonos-blue);
-    z-index: 100;
-  }
-
-  /* Floating volume pill */
-  .spk-floating-pill {
-    position: absolute;
-    top: -10px; left: 50%;
-    transform: translate(-50%, -100%);
-    background: var(--tile-bg);
-    color: var(--sonos-blue);
-    padding: 5px 14px;
-    border-radius: var(--r-pill);
-    font-size: 13px;
-    font-weight: 800;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.14);
-    white-space: nowrap;
-    z-index: 101;
-    border: 1px solid var(--border-ghost);
-    opacity: 0; pointer-events: none;
-    transition: opacity .15s ease;
-    font-variant-numeric: tabular-nums;
-  }
-  :host(.dark) .spk-floating-pill { border-color: rgba(255,255,255,0.08); }
-  .speaker-tile.sliding .spk-floating-pill { opacity: 1; }
-
-  /* Grouped dot indicator */
-  .group-dot {
-    position: absolute; top: 8px; right: 8px;
-    width: 7px; height: 7px;
-    background: var(--sonos-blue);
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity .2s ease;
-    box-shadow: 0 0 8px var(--sonos-blue-glow);
-  }
-  .speaker-tile.grouped .group-dot { opacity: 1; }
-
-  /* Speaker icon wrap - spans both rows, sits on the left */
-  .spk-icon-wrap {
-    grid-row: 1 / 3;
-    width: 34px; height: 34px;
-    border-radius: 9px;
-    display: grid; place-items: center;
-    transition: all .2s ease;
-    background: var(--gray-ghost);
-    color: var(--text-sub);
-  }
-  .spk-icon-wrap .icon { font-size: 20px; }
-  .speaker-tile.grouped .spk-icon-wrap {
-    background: var(--sonos-blue-fill);
-    color: var(--sonos-blue);
-  }
-  .speaker-tile.grouped .spk-icon-wrap .icon {
-    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  }
-
-  /* Speaker name - top row, right of icon */
-  .spk-name {
-    font-size: 13px; font-weight: 600; color: var(--text);
-    line-height: 1.2; text-align: left;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    align-self: end;
-  }
-
-  /* Volume value - bottom row, right of icon */
-  .spk-vol {
-    font-size: 11px; font-weight: 700;
-    color: var(--sonos-blue);
-    line-height: 1;
-    text-align: left;
-    align-self: start;
-    font-variant-numeric: tabular-nums;
-    transition: color .2s ease;
-  }
-  .speaker-tile:not(.grouped) .spk-vol {
-    color: var(--text-muted);
-  }
-
-  /* Volume bar */
-  .spk-vol-track {
-    position: absolute; bottom: 7px; left: 12px; right: 12px;
-    height: 3px; background: var(--track-bg);
-    border-radius: var(--r-pill);
-    overflow: hidden;
-  }
-  .spk-vol-fill {
-    height: 100%; border-radius: var(--r-pill);
-    background: var(--sonos-blue);
-    opacity: 0.6;
-    transition: width .1s linear;
-  }
-  .speaker-tile:not(.grouped) .spk-vol-fill {
-    opacity: 0.2;
+    flex: 0 0 150px;
+    min-width: 0;
+    --amber: var(--sonos-blue);
+    --amber-fill: var(--sonos-blue-fill);
+    --amber-border: var(--sonos-blue-border);
+    --green: var(--sonos-blue);
+    --green-fill: var(--sonos-blue-fill);
+    --green-border: var(--sonos-blue-border);
+    --spk-min-height: 72px;
+    --spk-padding: 10px 12px 16px 10px;
+    --spk-gap: 8px;
+    --spk-icon-size: 34px;
+    --spk-icon-radius: 9px;
+    --spk-name-size: 13px;
+    --spk-meta-size: 10px;
+    --spk-volume-size: 11px;
   }
 `;
 
@@ -419,22 +294,17 @@ const RESPONSIVE_STYLES = `
     .t-btn { width: 32px; height: 32px; }
     .t-btn .icon { font-size: 18px; }
 
-    /* Tiles become near-square on mobile */
-    .speaker-tile {
-      width: 100px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 10px 8px 16px;
-      gap: 3px;
+    .speakers-scroll tunet-speaker-tile {
+      flex-basis: 120px;
+      --spk-min-height: 64px;
+      --spk-padding: 8px 10px 14px 8px;
+      --spk-gap: 6px;
+      --spk-icon-size: 32px;
+      --spk-icon-radius: 8px;
+      --spk-name-size: 12px;
+      --spk-meta-size: 10px;
+      --spk-volume-size: 10px;
     }
-    .spk-icon-wrap {
-      grid-row: unset;
-      width: 32px; height: 32px; border-radius: 8px;
-    }
-    .spk-icon-wrap .icon { font-size: 18px; }
-    .spk-name { font-size: 12px; text-align: center; align-self: unset; }
-    .spk-vol { font-size: 10px; text-align: center; align-self: unset; }
-    .spk-vol-track { left: 10px; right: 10px; bottom: 6px; }
   }
 `;
 
@@ -523,10 +393,6 @@ const TUNET_SONOS_TEMPLATE = `
    Constants
    =============================================================== */
 
-const DRAG_THRESHOLD = 6;
-const DRAG_SCALE = 1.2; // px per 1% volume
-const LONG_PRESS_MS = 500;
-
 /* ===============================================================
    Card Class
    =============================================================== */
@@ -542,17 +408,6 @@ class TunetSonosCard extends HTMLElement {
     this._cachedSpeakers = null;
     this._tileRefs = new Map();
 
-    // Drag state
-    this._dragEntity = null;
-    this._dragStartX = 0;
-    this._dragActive = false;
-    this._dragVol = 0;
-    this._volDebounce = null;
-
-    // Long-press state
-    this._longPressTimer = null;
-    this._longPressFired = false;
-
     // Volume overlay state
     this._volDragging = false;
     this._volOverlayDebounce = null;
@@ -561,8 +416,6 @@ class TunetSonosCard extends HTMLElement {
 
     injectFonts();
     this._onDocClick = this._onDocClick.bind(this);
-    this._onPointerMove = this._onPointerMove.bind(this);
-    this._onPointerUp = this._onPointerUp.bind(this);
     this._onViewportChange = this._onViewportChange.bind(this);
   }
 
@@ -695,22 +548,14 @@ class TunetSonosCard extends HTMLElement {
 
   connectedCallback() {
     document.addEventListener('click', this._onDocClick);
-    document.addEventListener('pointermove', this._onPointerMove);
-    document.addEventListener('pointerup', this._onPointerUp);
-    document.addEventListener('pointercancel', this._onPointerUp);
     window.addEventListener('resize', this._onViewportChange, { passive: true });
     window.addEventListener('scroll', this._onViewportChange, { passive: true });
   }
 
   disconnectedCallback() {
     document.removeEventListener('click', this._onDocClick);
-    document.removeEventListener('pointermove', this._onPointerMove);
-    document.removeEventListener('pointerup', this._onPointerUp);
-    document.removeEventListener('pointercancel', this._onPointerUp);
     window.removeEventListener('resize', this._onViewportChange);
     window.removeEventListener('scroll', this._onViewportChange);
-    clearTimeout(this._longPressTimer);
-    clearTimeout(this._volDebounce);
     clearTimeout(this._volOverlayDebounce);
     clearTimeout(this._cooldownTimer);
   }
@@ -1067,138 +912,60 @@ class TunetSonosCard extends HTMLElement {
 
     const speakers = this._cachedSpeakers || [];
     for (const spk of speakers) {
-      const tile = document.createElement('div');
-      tile.className = 'speaker-tile';
+      const tile = document.createElement('tunet-speaker-tile');
       tile.dataset.entity = spk.entity;
+      tile.setConfig({
+        entity: spk.entity,
+        name: spk.name || spk.entity,
+        icon: spk.icon || 'speaker',
+        meta: this._getSpeakerStateLabel(spk.entity),
+        state: 'idle',
+        in_group: false,
+        selected: false,
+        volume: 0,
+        show_volume: true,
+        show_group_dot: true,
+        allow_group_toggle: true,
+        hold_ms: 500,
+        tap_action: {
+          action: 'call-service',
+          service: 'script.sonos_toggle_group_membership',
+          data: { target_speaker: spk.entity },
+        },
+        hold_action: { action: 'more-info', entity_id: spk.entity },
+      });
+      tile.hass = this._hass;
 
-      // Group dot
-      const dot = document.createElement('div');
-      dot.className = 'group-dot';
-      tile.appendChild(dot);
-
-      // Floating pill
-      const pill = document.createElement('div');
-      pill.className = 'spk-floating-pill';
-      pill.textContent = '0%';
-      tile.appendChild(pill);
-
-      // Icon wrap
-      const iconWrap = document.createElement('div');
-      iconWrap.className = 'spk-icon-wrap';
-      const icon = document.createElement('span');
-      icon.className = 'icon';
-      icon.style.fontSize = '20px';
-      icon.textContent = spk.icon || 'speaker';
-      iconWrap.appendChild(icon);
-      tile.appendChild(iconWrap);
-
-      // Name
-      const nameEl = document.createElement('div');
-      nameEl.className = 'spk-name';
-      nameEl.textContent = spk.name || spk.entity;
-      tile.appendChild(nameEl);
-
-      // Volume label
-      const volEl = document.createElement('div');
-      volEl.className = 'spk-vol';
-      volEl.textContent = '0%';
-      tile.appendChild(volEl);
-
-      // Volume track
-      const volTrack = document.createElement('div');
-      volTrack.className = 'spk-vol-track';
-      const volFill = document.createElement('div');
-      volFill.className = 'spk-vol-fill';
-      volFill.style.width = '0%';
-      volTrack.appendChild(volFill);
-      tile.appendChild(volTrack);
-
-      // Pointer events for drag-to-volume / tap-to-group
-      tile.addEventListener('pointerdown', (e) => {
+      tile.addEventListener('tunet:action', (e) => {
         e.stopPropagation();
-        this._onTilePointerDown(spk.entity, e, tile);
+        const action = e.detail?.action || null;
+        if (!action) return;
+        dispatchAction(this._hass, this, action, spk.entity).catch(() => this._updateAll());
+      });
+
+      tile.addEventListener('tunet:group-toggle', (e) => {
+        e.stopPropagation();
+        this._callScript('sonos_toggle_group_membership', {
+          target_speaker: spk.entity,
+        });
+      });
+
+      tile.addEventListener('tunet:value-commit', (e) => {
+        e.stopPropagation();
+        const next = Number(e.detail?.value);
+        if (!Number.isFinite(next)) return;
+        this._callService('media_player', 'volume_set', {
+          entity_id: spk.entity,
+          volume_level: clamp(Math.round(next), 0, 100) / 100,
+        });
+        this._serviceCooldown = true;
+        clearTimeout(this._cooldownTimer);
+        this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
       });
 
       scroll.appendChild(tile);
-      this._tileRefs.set(spk.entity, { tile, iconWrap, icon, nameEl, volEl, volFill, pill });
+      this._tileRefs.set(spk.entity, tile);
     }
-  }
-
-  /* ── Tile Pointer Handling ───────────────────────── */
-
-  _onTilePointerDown(entity, e, tile) {
-    this._dragEntity = entity;
-    this._dragStartX = e.clientX;
-    this._dragActive = false;
-    this._longPressFired = false;
-
-    const playerState = this._hass && this._hass.states[entity];
-    this._dragVol = playerState ? Math.round((playerState.attributes.volume_level || 0) * 100) : 0;
-
-    clearTimeout(this._longPressTimer);
-    this._longPressTimer = setTimeout(() => {
-      if (!this._dragActive && this._dragEntity === entity) {
-        this._longPressFired = true;
-        this.dispatchEvent(new CustomEvent('hass-more-info', {
-          bubbles: true, composed: true,
-          detail: { entityId: entity },
-        }));
-        this._dragEntity = null;
-      }
-    }, LONG_PRESS_MS);
-  }
-
-  _onPointerMove(e) {
-    if (!this._dragEntity) return;
-    const dx = e.clientX - this._dragStartX;
-
-    if (!this._dragActive) {
-      if (Math.abs(dx) < DRAG_THRESHOLD) return;
-      this._dragActive = true;
-      clearTimeout(this._longPressTimer);
-
-      const refs = this._tileRefs.get(this._dragEntity);
-      if (refs) refs.tile.classList.add('sliding');
-    }
-
-    const newVol = clamp(Math.round(this._dragVol + (dx / DRAG_SCALE)), 0, 100);
-    const refs = this._tileRefs.get(this._dragEntity);
-    if (refs) {
-      refs.volEl.textContent = newVol + '%';
-      refs.pill.textContent = newVol + '%';
-      refs.volFill.style.width = newVol + '%';
-    }
-
-    clearTimeout(this._volDebounce);
-    this._volDebounce = setTimeout(() => {
-      this._callService('media_player', 'volume_set', {
-        entity_id: this._dragEntity,
-        volume_level: newVol / 100,
-      });
-      this._serviceCooldown = true;
-      clearTimeout(this._cooldownTimer);
-      this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
-    }, 200);
-  }
-
-  _onPointerUp() {
-    if (!this._dragEntity) return;
-    clearTimeout(this._longPressTimer);
-
-    const entity = this._dragEntity;
-    const refs = this._tileRefs.get(entity);
-
-    if (refs) refs.tile.classList.remove('sliding');
-
-    if (!this._dragActive && !this._longPressFired) {
-      // Tap: toggle group membership
-      this._callScript('sonos_toggle_group_membership', {
-        target_speaker: entity,
-      });
-    }
-
-    this._dragEntity = null;
-    this._dragActive = false;
   }
 
   /* ── Full Update ─────────────────────────────────── */
@@ -1289,29 +1056,36 @@ class TunetSonosCard extends HTMLElement {
   _updateTiles() {
     const speakers = this._cachedSpeakers || [];
     for (const spk of speakers) {
-      const refs = this._tileRefs.get(spk.entity);
-      if (!refs) continue;
+      const tile = this._tileRefs.get(spk.entity);
+      if (!tile) continue;
 
       const inGroup = this._isSpeakerInActiveGroup(spk.entity);
       const playerState = this._hass.states[spk.entity];
+      const speakerState = playerState ? playerState.state : 'idle';
+      const volume = playerState ? Math.round((playerState.attributes.volume_level || 0) * 100) : 0;
+      const meta = this._getSpeakerStateLabel(spk.entity);
 
-      // Toggle grouped class
-      refs.tile.classList.toggle('grouped', inGroup);
-
-      // Icon fill
-      if (inGroup) {
-        refs.icon.classList.add('filled');
-      } else {
-        refs.icon.classList.remove('filled');
-      }
-
-      // Volume from entity state (only if not dragging this tile)
-      if (playerState && this._dragEntity !== spk.entity) {
-        const vol = Math.round((playerState.attributes.volume_level || 0) * 100);
-        refs.volEl.textContent = vol + '%';
-        refs.volFill.style.width = vol + '%';
-        refs.pill.textContent = vol + '%';
-      }
+      tile.setConfig({
+        entity: spk.entity,
+        name: spk.name || spk.entity,
+        icon: spk.icon || 'speaker',
+        meta,
+        state: speakerState,
+        in_group: inGroup,
+        selected: this._activeEntity === spk.entity,
+        volume,
+        show_volume: true,
+        show_group_dot: true,
+        allow_group_toggle: true,
+        hold_ms: 500,
+        tap_action: {
+          action: 'call-service',
+          service: 'script.sonos_toggle_group_membership',
+          data: { target_speaker: spk.entity },
+        },
+        hold_action: { action: 'more-info', entity_id: spk.entity },
+      });
+      tile.hass = this._hass;
     }
   }
 }

@@ -1,6 +1,6 @@
 A unified visual language for every card, tile, control, and surface on the Custom Home Assistant dashboard. This document is card-agnostic. It defines the system; individual card specs reference it.
 
-Version 8.0 – February 2026
+Version 9.0 – February 2026
 Platform: Home Assistant OS via Tailscale
 Rendering: Chromium WebView (HA Companion + Desktop)
 Typeface: DM Sans (Google Fonts)
@@ -22,8 +22,10 @@ When building any new card or component:
 5. Add content using §4 (Typography), §6 (Icons), §7 (Controls)
 6. Wire states per §8 (State System) and §9 (Unified Accent System)
 7. Add motion per §10 (Animation)
-8. Wire editor per §13 (Editor Pattern)
-9. Verify per §14 (Checklist)
+8. Look up component patterns in §20 (Component Catalog) for card-specific content specs
+9. Follow layout rules in §21 (Layout Patterns) for page-level arrangement
+10. Wire editor per §13 (Editor Pattern)
+11. Verify per §14 (Checklist)
 
 **If a value exists as a token, use the token. If this document specifies a measurement, use that measurement. Never improvise.**
 
@@ -49,12 +51,14 @@ Same rule applies to tiles within a card: every tile in a grid gets the same sha
 
 Inner corner radii = outer corner radii − gap between parent and child. Never use arbitrary radii.
 
-| Parent            | Parent radius | Gap    | Child             | Child radius | Math        |
-|-------------------|---------------|--------|-------------------|--------------|-------------|
-| Card              | 24px          | 20px   | Track / inner zone| 4px          | 24 − 20 = 4 |
-| Card (responsive) | 24px          | 16px   | Track (responsive)| 8px          | 24 − 16 = 8 |
-| Dropdown menu     | 16px          | 5px    | Menu option       | 11px         | 16 − 5 = 11 |
-| Card              | 24px          | ~10px  | Tile              | 16px         | ≈24 − 10    |
+| Parent              | Parent radius | Gap    | Child             | Child radius | Math        |
+|---------------------|---------------|--------|-------------------|--------------|-------------|
+| Section container   | 38px          | 20px   | Card              | 24px         | ≈38 − 14   |
+| Section (responsive)| 28px          | 16px   | Card              | 24px         | ≈28 − 8    |
+| Card                | 24px          | 20px   | Track / inner zone| 4px          | 24 − 20 = 4 |
+| Card (responsive)   | 24px          | 16px   | Track (responsive)| 8px          | 24 − 16 = 8 |
+| Dropdown menu       | 16px          | 5px    | Menu option       | 11px         | 16 − 5 = 11 |
+| Card                | 24px          | ~10px  | Tile              | 16px         | ≈24 − 10    |
 
 Floating elements (header controls, icon containers, buttons) at 42px size use 10px radius – this is their own squircle proportion, not derived from a parent.
 
@@ -159,6 +163,12 @@ Cards do not define page backgrounds. They run on the HA dashboard and use `back
   --purple-fill: rgba(175,82,222, 0.10);
   --purple-border: rgba(175,82,222, 0.18);
 
+  /* -- Accent: Red (error, alert, manual override) -- */
+  --red: #FF3B30;
+  --red-fill: rgba(255,59,48, 0.10);
+  --red-border: rgba(255,59,48, 0.22);
+  --red-glow: rgba(255,59,48, 0.40);
+
   /* -- Track / Slider -- */
   --track-bg: rgba(28,28,30, 0.055);
   --track-h: 44px;
@@ -169,6 +179,7 @@ Cards do not define page backgrounds. They run on the HA dashboard and use `back
   --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
 
   /* -- Radii -- */
+  --r-section: 38px;
   --r-card: 24px;
   --r-tile: 16px;
   --r-pill: 999px;
@@ -198,6 +209,12 @@ Cards do not define page backgrounds. They run on the HA dashboard and use `back
 
   /* -- Tile Surfaces -- */
   --tile-bg: rgba(255,255,255, 0.92);
+  --tile-bg-off: rgba(28,28,30, 0.04);
+  --gray-ghost: rgba(0,0,0, 0.035);
+
+  /* -- Section Container -- */
+  --parent-bg: rgba(255,255,255, 0.35);
+  --shadow-section: 0 8px 40px rgba(0,0,0, 0.10);
 
   color-scheme: light;
 }
@@ -234,6 +251,11 @@ Cards do not define page backgrounds. They run on the HA dashboard and use `back
   --purple-fill: rgba(191,90,242, 0.14);
   --purple-border: rgba(191,90,242, 0.22);
 
+  --red: #FF453A;
+  --red-fill: rgba(255,69,58, 0.14);
+  --red-border: rgba(255,69,58, 0.25);
+  --red-glow: rgba(255,69,58, 0.45);
+
   --track-bg: rgba(255,255,255, 0.06);
   --thumb-bg: #F5F5F7;
   --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
@@ -257,6 +279,11 @@ Cards do not define page backgrounds. They run on the HA dashboard and use `back
   --toggle-knob: rgba(255,255,255, 0.92);
 
   --tile-bg: rgba(44,44,46, 0.90);
+  --tile-bg-off: rgba(255,255,255, 0.04);
+  --gray-ghost: rgba(255,255,255, 0.05);
+
+  --parent-bg: rgba(255,255,255, 0.04);
+  --shadow-section: 0 8px 40px rgba(0,0,0, 0.25);
 
   color-scheme: dark;
 }
@@ -276,23 +303,31 @@ These three values are always used together. When an element activates, it gets 
 
 **To add a new accent:** Follow the same pattern. Pick a base hex, derive `-fill` at 0.10 light / 0.14 dark, derive `-border` at 0.20 light / 0.22 dark. Increase base brightness ~15% for the dark variant.
 
+**Red accent `-glow` token:** The red accent includes an additional `-glow` derivative (0.40 light / 0.45 dark) used exclusively for `box-shadow` glow effects on small alert indicators like the manual override dot. No other accent currently requires a `-glow` variant.
+
 **Why rgba for fills and borders?** Opacity-based tints adapt to the underlying glass surface. A fixed hex fill looks wrong when the surface behind it shifts color. Rgba tints blend with the backdrop, maintaining the frosted-glass illusion.
 
 ### 2.4 Accent Assignment Convention
 
 Each card type uses a primary accent. Most cards use a single accent. Cards with multiple modes (like climate) may use up to three, but each accent is strictly confined to its function – never mixed in the same visual row.
 
-| Domain         | Primary       | Secondary     | Tertiary      |
-|----------------|---------------|---------------|---------------|
-| Heat / warming | `--amber`     |               |               |
-| Cool / AC      | `--blue`      |               |               |
-| Lighting       | `--amber`     |               |               |
-| Fan / eco      | `--green`     |               |               |
-| Media (Sonos)  | `--green`     |               |               |
-| Media (Apple)  | `--blue`      |               |               |
-| Media (Samsung)| `--purple`    |               |               |
-| Security       | `--blue`      |               |               |
-| Climate (dual) | `--amber`     | `--blue`      | `--green`     |
+| Domain              | Primary       | Secondary     | Tertiary      |
+|---------------------|---------------|---------------|---------------|
+| Heat / warming      | `--amber`     |               |               |
+| Cool / AC           | `--blue`      |               |               |
+| Lighting            | `--amber`     |               |               |
+| Fan / eco           | `--green`     |               |               |
+| Media (Sonos)       | `--green`     |               |               |
+| Media (Apple)       | `--blue`      |               |               |
+| Media (Samsung)     | `--purple`    |               |               |
+| Security            | `--blue`      |               |               |
+| Climate (dual)      | `--amber`     | `--blue`      | `--green`     |
+| Error / alert       | `--red`       |               |               |
+| Manual override     | `--red`       |               |               |
+| Weather / outdoors  | `--blue`      |               |               |
+| Scenes              | per-chip      |               |               |
+| Actions             | per-chip      |               |               |
+| Rooms               | `--amber`     |               |               |
 
 ### 2.5 Text Color Rules
 
@@ -448,16 +483,104 @@ box-shadow: var(--chip-sh)
 border-radius: var(--r-pill)             → 999px (capsule)
 ```
 
-### 3.8 Surface Hierarchy Summary
+### 3.8 Section Container Surface
 
-| Surface          | Background     | Blur  | Shadow        | Radius   |
-|------------------|----------------|-------|---------------|----------|
-| Card             | `--glass`      | 24px  | `--shadow`    | 24px     |
-| Tile (in card)   | `--tile-bg`    | none  | `--shadow`    | 16px     |
-| Dropdown         | `--dd-bg`      | 24px  | `--shadow-up` | 16px     |
-| Chip             | `--chip-bg`    | none  | `--chip-sh`   | 999px    |
-| Header controls  | `--ctrl-bg`    | none  | `--ctrl-sh`   | 10px     |
-| Icon container   | transparent    | none  | none          | 6px      |
+An optional parent wrapper that groups related cards into a visual section on the dashboard page.
+
+```
+position: relative
+background: var(--parent-bg)          → rgba(255,255,255,0.35) light / rgba(255,255,255,0.04) dark
+backdrop-filter: blur(20px)
+-webkit-backdrop-filter: blur(20px)
+border-radius: var(--r-section)       → 38px (28px at ≤440px)
+border: 1px solid rgba(255,255,255, 0.08)
+box-shadow: var(--shadow-section)
+padding: 20px (16px at ≤440px)
+display: flex, flex-direction: column, gap: 16px
+width: 100%, max-width: 100%
+```
+
+**Glass stroke `::before`:**
+```
+Light:
+  linear-gradient(160deg,
+    rgba(255,255,255, 0.40),
+    rgba(255,255,255, 0.06) 40%,
+    rgba(255,255,255, 0.01) 60%,
+    rgba(255,255,255, 0.14))
+
+Dark:
+  linear-gradient(160deg,
+    rgba(255,255,255, 0.10),
+    rgba(255,255,255, 0.02) 40%,
+    rgba(255,255,255, 0.005) 60%,
+    rgba(255,255,255, 0.06))
+```
+
+Uses the same XOR mask technique as the card `::before` (§3.2), but with the section radius.
+
+**Section header (optional):**
+```
+.section-header:
+  display: flex, align-items: center, justify-content: space-between
+  padding: 0 4px
+
+.section-title:
+  font-size: 16px, font-weight: 700, color: var(--text)
+  display: flex, align-items: center, gap: 8px
+  Icon color: accent (typically var(--amber))
+
+.section-action (optional pill button):
+  font-size: 13px, font-weight: 700, color: var(--amber)
+  background: var(--amber-fill), border: 1px solid var(--amber-border)
+  padding: 6px 14px, border-radius: 99px
+  Hover: box-shadow: var(--shadow-up)
+```
+
+### 3.9 Tile Off State
+
+When a tile's entity is off, the tile swaps from `--tile-bg` to `--tile-bg-off`. This visually recedes the tile without changing its shape, shadow, or position in the grid.
+
+```
+background: var(--tile-bg-off)       → rgba(28,28,30,0.04) light / rgba(255,255,255,0.04) dark
+border: 1px solid var(--ctrl-border) → structural border remains visible
+```
+
+Content inside an off-state tile shifts to muted colors:
+- Icon: `color: var(--text-muted)`, FILL 0 (outlined)
+- Icon container: `background: var(--track-bg)`, no accent border
+- Labels: `color: var(--text-sub)`
+- Values: `color: var(--text-muted)`
+
+### 3.10 Floating Overlay Surface
+
+Used for drag feedback pills (e.g., brightness value during swipe-to-dim) and tooltips.
+
+```
+background: var(--glass)
+backdrop-filter: blur(20px)
+-webkit-backdrop-filter: blur(20px)
+border: 1px solid rgba(255,255,255, 0.15) light / rgba(255,255,255, 0.10) dark
+border-radius: var(--r-pill)
+box-shadow: 0 10px 30px rgba(0,0,0, 0.30)
+padding: 6px 20px
+pointer-events: none
+z-index: 101
+```
+
+### 3.11 Surface Hierarchy Summary
+
+| Surface            | Background       | Blur  | Shadow            | Radius   |
+|--------------------|------------------|-------|-------------------|----------|
+| Section container  | `--parent-bg`    | 20px  | `--shadow-section`| 38px     |
+| Card               | `--glass`        | 24px  | `--shadow`        | 24px     |
+| Tile (on)          | `--tile-bg`      | none  | `--shadow`        | 16px     |
+| Tile (off)         | `--tile-bg-off`  | none  | `--shadow`        | 16px     |
+| Dropdown           | `--dd-bg`        | 24px  | `--shadow-up`     | 16px     |
+| Chip               | `--chip-bg`      | none  | `--chip-sh`       | 999px    |
+| Header controls    | `--ctrl-bg`      | none  | `--ctrl-sh`       | 10px     |
+| Floating overlay   | `--glass`        | 20px  | custom            | 999px    |
+| Icon container     | transparent      | none  | none              | 6px      |
 ---
 
 ## 4. Typography
@@ -898,6 +1021,205 @@ Knob:
   Two-layer shadow (contact + ambient)
 ```
 
+### 7.5 Swipe-to-Dim (Tile Drag Interaction)
+
+The most complex interaction pattern. Used on lighting zone tiles for brightness control.
+
+**Pointer interaction sequence:**
+
+1. `pointerdown` on tile: Record `startX` and `startBrightness`, call `el.setPointerCapture(e.pointerId)`
+2. `pointermove`: Calculate `dx = e.clientX - startX`
+3. **If `|dx| < 4px`:** Still in "tap" zone; no visual change
+4. **If `|dx| >= 4px`:** Enter "sliding" state:
+   - Add `.sliding` class to tile
+   - Tile: `transform: scale(1.05)`, `box-shadow: var(--shadow-up)`, `z-index: 100`
+   - Border: `border-color: var(--amber)` (hard override)
+   - Brightness bar expands: `height: 4px → 6px`
+   - Floating value pill appears (see §3.10 for surface spec)
+   - Pill text: accent-colored brightness percentage, `font-size: 15px`, `font-weight: 700`
+   - Pill position: `position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%)`
+   - Map horizontal movement to brightness: `clamp(0, startBrt + (dx / tileWidth) * 100, 100)`
+   - Bar fill `transition: none` during drag (instant tracking)
+   - Debounce service call at **300ms** during drag
+5. `pointerup`:
+   - **If never exceeded threshold:** Treat as tap → toggle light on/off
+   - **If was dragging:** Commit final brightness, debounce at **1500ms** for final service call
+   - Remove `.sliding` class, release pointer capture
+   - Restore bar fill transition
+
+**Service call pattern:**
+```javascript
+// During drag (300ms debounce)
+clearTimeout(this._dragDebounce);
+this._dragDebounce = setTimeout(() => {
+  this._hass.callService('light', 'turn_on', {
+    entity_id: entity, brightness_pct: value
+  });
+}, 300);
+
+// On release (1500ms debounce for final commit)
+clearTimeout(this._releaseDebounce);
+this._releaseDebounce = setTimeout(() => {
+  this._hass.callService('light', 'turn_on', {
+    entity_id: entity, brightness_pct: value
+  });
+}, 1500);
+```
+
+### 7.6 Tap-to-Toggle (Tile Interaction)
+
+When a tile represents a toggleable entity and the user taps without dragging:
+- `pointerdown` → `pointerup` with `|dx| < 4px` movement = tap
+- Tap calls the appropriate toggle service (e.g., `light.toggle`)
+- Distinguished from drag by the 4px movement threshold
+
+### 7.7 Long-Press (More-Info Dispatch)
+
+Used on adaptive pill buttons and other elements that need dual-action tap/hold.
+
+```
+pointerdown: Start 500ms timer
+pointermove: Cancel if pointer leaves element
+pointerup before 500ms: Treat as tap (primary action)
+pointerup after 500ms: Fire hass-more-info event
+pointercancel / pointerleave: Cancel timer, prevent context menu
+```
+
+**Visual feedback:** After 200ms of holding, apply `transform: scale(.98)` as a subtle cue.
+
+### 7.8 Transport Controls (Media)
+
+Play/pause/skip buttons for media cards.
+
+**Layout:**
+```
+display: flex, align-items: center, gap: 4px
+```
+
+**Skip button (previous/next):**
+```
+width: 38px, height: 38px
+border-radius: 10px
+background: transparent, border: none
+color: var(--text-sub)
+Hover: background: var(--track-bg)
+Press: transform: scale(.90)
+```
+
+**Play/pause button (hero):**
+```
+width: 42px, height: 42px
+border-radius: 10px
+background: var(--ctrl-bg)
+border: 1px solid var(--ctrl-border)
+box-shadow: var(--ctrl-sh)
+color: var(--text)
+Hover: box-shadow: var(--shadow)
+
+Playing state:
+  background: var(--green-fill)
+  border-color: var(--green-border)
+  color: var(--green)
+  Icon: FILL 1
+```
+
+**Volume toggle button:**
+```
+width: 38px, height: 38px
+border-radius: 10px
+background: transparent, border: none
+color: var(--text-muted)
+Hover: background: var(--track-bg)
+Press: transform: scale(.90)
+```
+
+**Responsive (≤440px):**
+```
+gap: 2px
+Skip buttons: 34×34px
+Play button: 38×38px
+```
+
+### 7.9 Progress Bar (Media Playback)
+
+A read-only (or scrubbable) indicator for media playback position.
+
+```
+Track:
+  height: 3px
+  border-radius: var(--r-pill)
+  background: var(--track-bg)
+  position: relative, overflow: hidden
+
+Fill:
+  position: absolute, top: 0, left: 0, bottom: 0
+  border-radius: var(--r-pill)
+  background: rgba(52,199,89, 0.50) light / rgba(48,209,88, 0.50) dark
+  transition: width 0.5s linear  (smooth tracking during playback)
+```
+
+**Time labels:**
+```
+Container: display: flex, align-items: center, gap: 6px, margin-top: 4px
+Time text: font-size: 10px, font-weight: 600, color: var(--text-muted)
+  font-variant-numeric: tabular-nums, letter-spacing: .3px
+  min-width: 28px, flex-shrink: 0
+Right label: text-align: right
+```
+
+### 7.10 Service Call Debouncing
+
+All service calls during continuous interactions must be debounced to prevent API flooding.
+
+| Interaction type          | Debounce interval | When             |
+|---------------------------|-------------------|------------------|
+| Drag-to-dim (during drag) | 300ms            | Each move event  |
+| Drag-to-dim (on release)  | 1500ms           | Final commit     |
+| Volume slider (drag)      | 200ms            | Each move event  |
+| Volume slider (release)   | 1500ms           | Final commit     |
+| Button tap                | None             | Immediate        |
+
+After a service call, some cards apply a **cooldown period** (e.g., 1500ms for volume) during which incoming entity state updates are ignored to prevent slider "bounce-back" from stale HA state.
+
+### 7.11 Tile-Level Dropdown (Center-Anchored)
+
+A dropdown menu anchored to the center of a tile rather than right-aligned to a trigger button. Used in status tile dropdown variant.
+
+```
+position: absolute
+top: calc(100% + 4px)
+left: 50%, transform: translateX(-50%)
+min-width: 120px, max-width: 160px
+padding: 5px
+background: var(--dd-bg)
+backdrop-filter: blur(40px)
+border: 1px solid var(--dd-border)
+border-radius: var(--r-tile)
+box-shadow: var(--shadow-up)
+z-index: 200
+max-height: 200px, overflow-y: auto
+```
+
+**Open animation:**
+```css
+@keyframes ddMenuIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-4px) scale(.97) }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1) }
+}
+/* Duration: 140ms ease */
+```
+
+**Option:**
+```
+padding: 8px 10px, border-radius: 11px
+font-size: 12px, font-weight: 600, color: var(--text-sub)
+text-align: center, white-space: nowrap
+Hover: background: var(--track-bg)
+Selected: color: var(--amber), font-weight: 700
+```
+
+**Overflow flip:** If the dropdown would extend beyond the card's bottom edge, flip to `bottom: calc(100% + 4px)` instead of `top`.
+
 ---
 
 ## 8. State System
@@ -934,14 +1256,34 @@ The icon itself may change glyph by action (see §6.5).
 
 All three share identical idle treatment. All three accept the same accent triplet when active. This uniformity is what makes the header row feel cohesive.
 
-### 8.4 Off-Mode Card State
+### 8.4 Entity State Opacity
 
-When the entity is off:
-- Card: `opacity: 0.55`
+Cards and tiles use graduated opacity to communicate entity state. More active states are more visually present.
+
+| Entity state | Card opacity | Use case                    |
+|--------------|-------------|-----------------------------|
+| Active       | 1.0         | Heating, playing, lights on |
+| Paused       | 0.85        | Media paused                |
+| Idle         | 0.65        | System idle, standby        |
+| Off          | 0.55        | Entity off or unavailable   |
+
+Additional off-state rules:
 - Controls that don't apply: hidden via `display: none`
 - Track: `opacity: 0.35`
 
-### 8.5 Accent-Based Menu Highlighting
+### 8.5 Tile-Level State Encoding
+
+Tiles use classes and data attributes to encode state. CSS rules then drive visual changes.
+
+| State class / attr         | Visual effect                                              |
+|----------------------------|------------------------------------------------------------|
+| `.on`                      | `--tile-bg` background, accent border, accent icon + value |
+| `.off`                     | `--tile-bg-off` background, muted icon + value             |
+| `.sliding`                 | `scale(1.05)`, elevated shadow, floating pill visible      |
+| `[data-manual="true"]`     | Red override dot visible (8px, positioned top-right)       |
+| `.tile-hidden`             | `display: none !important` – removed from layout           |
+
+### 8.6 Accent-Based Menu Highlighting
 
 Active dropdown options receive their accent treatment:
 - Heat-related: `var(--amber-fill)` bg + `var(--amber)` text
@@ -1017,6 +1359,12 @@ This override creates visual unity across the header row - when everything is bl
 | Menu entrance    | `from` state    | 0.97  | Subtle scale-up on appear       |
 | Slider thumb     | `.dragging`     | 1.08  | Clear "grabbed" state           |
 | Tile (grabbed)   | `.dragging`     | 1.05  | Lifted feel                     |
+| Status tile      | `:active` press | 0.97  | Subtle press feedback           |
+| Scene chip       | `:active` press | 0.96  | Press feedback on pill          |
+| Action chip      | `:active` press | 0.96  | Press feedback on action        |
+| Room orb         | `:active` press | 0.92  | Strong press on small target    |
+| Transport skip   | `:active` press | 0.90  | Strong press feedback           |
+| Long-press hold  | after 200ms     | 0.98  | Subtle "holding" cue            |
 
 ### 10.3 Animation Keyframes
 
@@ -1036,6 +1384,40 @@ This override creates visual unity across the header row - when everything is bl
   to   { transform: rotate(360deg) }
 }
 /* Duration: 1.8s linear infinite */
+```
+
+**Tile-level dropdown entrance (center-anchored):**
+```css
+@keyframes ddMenuIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-4px) scale(.97) }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1) }
+}
+/* Duration: 140ms ease */
+```
+
+**Active flash (momentary feedback for scene activation):**
+```css
+/* Applied via JS: add .active class, then remove after timeout */
+.scene-chip.active {
+  background: var(--{accent}-fill);
+  border-color: var(--{accent}-border);
+  color: var(--{accent});
+  transition: all .15s ease;  /* instant activate */
+}
+/* After 1200ms, JS removes .active → chip transitions back to idle */
+```
+
+**View switch crossfade (media transport ↔ volume):**
+```css
+.media-row {
+  transition: opacity .2s, transform .2s;
+}
+.media-row.hidden {
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  position: absolute; inset: 0;
+}
 ```
 
 ### 10.4 Reduced Motion
@@ -1072,6 +1454,13 @@ All motion stops. State changes remain functional (instant).
 - Dropdowns: `aria-expanded` on trigger, toggled by JS
 - Toggle buttons: `aria-pressed` or toggle state communicated via `aria-label`
 - Info tile: fires `hass-more-info` CustomEvent with `{ bubbles: true, composed: true, detail: { entityId } }`
+- Scene chips: `role="button"`, `aria-label` with scene name
+- Action chips: `role="button"`, `aria-pressed` for persistent active state
+- Lighting tiles: `aria-label` with zone name + brightness; drag-to-dim needs `aria-valuemin="0"`, `aria-valuemax="100"`
+- Status dots: `aria-label` describing the status (color alone is insufficient)
+- Timer tiles: `aria-live="polite"` for countdown updates
+- Room capsules: `role="button"`, `aria-label` with room name + status
+- Speaker group checkboxes: `aria-checked` for in-group state
 
 ### 11.3 Keyboard Navigation
 
@@ -1232,12 +1621,32 @@ Before shipping any card, verify every item.
 - [ ] Press feedback (scale) on all tappable elements
 - [ ] Keyboard support on all focusable controls
 - [ ] `focus-visible` outline: 2px solid var(--blue), 3px offset
+- [ ] Drag interactions use `setPointerCapture` (§7.5)
+- [ ] Service calls debounced per §7.10
+- [ ] Long-press wired where applicable (§7.7)
+
+### Component-Specific (if applicable)
+- [ ] Scene chips: momentary 1200ms active flash, not persistent toggle (§20.1)
+- [ ] Action chips: persistent state from entity, per-chip accent (§20.2)
+- [ ] Status tiles: 4-column grid (2 at ≤440px), typed variants correct (§20.3)
+- [ ] Status dots: paired with text label for accessibility (§20.3.1)
+- [ ] Timer tiles: 1s interval, auto-hide on expire (§20.3.2)
+- [ ] Lighting tiles: swipe-to-dim + tap-to-toggle dual behavior (§20.4)
+- [ ] Manual override dot: visible only when `[data-manual="true"]` (§20.4)
+- [ ] Floating pill: appears only during drag, `pointer-events: none` (§3.10)
+- [ ] Media: graduated opacity by entity state (§8.4)
+- [ ] Media: view switching crossfade between track/volume (§20.5.4)
+- [ ] Media: volume cooldown prevents bounce-back (§20.5.5)
+- [ ] Room cards: orb toggles + room toggle + chevron navigation (§20.6)
+- [ ] Weather: forecast "Today" tile highlighted with blue accent (§20.7.3)
+- [ ] Sensor: threshold styling matches configured rules (§20.8.4)
 
 ### Responsive
 - [ ] `max-width: 100%` on card
 - [ ] Padding reduces at ≤440px
 - [ ] Track radius adjusts concentrically
 - [ ] Large numerals reduce size at ≤440px
+- [ ] Grids collapse columns per §21.3 breakpoint table
 
 ### Dark Mode
 - [ ] All token overrides defined in `:host(.dark)`
@@ -1256,32 +1665,52 @@ Before shipping any card, verify every item.
 
 ## 15. Z-Index Convention
 
-| Layer          | Z-index | Usage                                     |
-|----------------|---------|-------------------------------------------|
-| Glass stroke   | 0       | Card `::before` pseudo-element            |
-| Content        | auto    | Normal flow card content                  |
-| Slider stroke  | 1       | Thumb accent line (behind disc)           |
-| Slider disc    | 2       | Thumb white circle, markers               |
-| Slider dot     | 3       | Thumb center dot, touch target            |
-| Dropdown       | 10      | Menu overlays                             |
-| Toast/modal    | 20      | Reserved for future overlays              |
+| Layer              | Z-index | Usage                                     |
+|--------------------|---------|-------------------------------------------|
+| Glass stroke       | 0       | Card `::before` pseudo-element            |
+| Content            | auto    | Normal flow card content                  |
+| Tile content       | 1       | `.tile-content` (above bar fill)          |
+| Slider stroke      | 1       | Thumb accent line (behind disc)           |
+| Manual override dot| 2       | Red dot on lighting tiles                 |
+| Slider disc        | 2       | Thumb white circle, markers               |
+| Slider dot         | 3       | Thumb center dot, touch target            |
+| Dropdown (card)    | 10      | Menu overlays inside card                 |
+| Sliding tile       | 100     | Tile during drag (above siblings)         |
+| Floating pill      | 101     | Brightness pill during drag               |
+| Tile dropdown      | 200     | Center-anchored tile menu                 |
 
 ---
 
 ## 16. Spacing Constants
 
-| Between                      | Gap    |
-|------------------------------|--------|
-| Header → content zone        | 16px   |
-| Content zone → slider/control| 20px   |
-| Scale padding-top            | 4px    |
-| Scale tick-to-number gap     | 1px    |
-| Header flex items            | 8px    |
-| Setpoint groups (side by side)| 16px  |
-| Card stack (in page layout)  | 20px   |
-| Tile grid gap                | 10px   |
-| Dropdown menu gap from trigger| 6px   |
-| Menu option internal gap (icon→text) | 8px |
+| Between                              | Gap    |
+|--------------------------------------|--------|
+| Header → content zone               | 16px   |
+| Content zone → slider/control        | 20px   |
+| Scale padding-top                    | 4px    |
+| Scale tick-to-number gap             | 1px    |
+| Header flex items                    | 8px    |
+| Setpoint groups (side by side)       | 16px   |
+| Card stack (in page layout)          | 20px   |
+| Tile grid gap                        | 10px   |
+| Dropdown menu gap from trigger       | 6px    |
+| Tile dropdown gap from tile          | 4px    |
+| Menu option internal gap (icon→text) | 8px    |
+| Scene chip row gap                   | 8px    |
+| Action chip row gap                  | 8px    |
+| Status tile grid gap                 | 10px   |
+| Light zone grid gap                  | 10px   |
+| Room card list gap                   | 10px   |
+| Forecast tile grid gap               | 8px    |
+| Transport button gap                 | 4px    |
+| Speaker group chip gap               | 6px    |
+| Media row internal gap               | 14px   |
+| Room controls gap                    | 6px    |
+| Section container internal gap       | 16px   |
+| Section container padding            | 20px   |
+| Brightness bar margin-top            | auto (flex) |
+| Progress bar margin-top              | 4px    |
+| Floating pill offset                 | translate(-50%, -50%) from tile top |
 
 ---
 
@@ -1372,3 +1801,811 @@ Every shadow in the system, with both light (L) and dark (D) values.
 18. Info tile fires `hass-more-info` on tap - it is the primary entity interaction point
 19. Cards never define page backgrounds - they rely on `backdrop-filter` to sample from the HA dashboard
 20. Active-state CSS never needs `:host(.dark)` overrides - accent tokens resolve correctly in both modes
+21. Every card must copy token values exactly from §2 – never invent modified values. Token drift across cards breaks visual uniformity
+22. Service calls during drag interactions must be debounced per §7.10
+23. `setPointerCapture` on all drag interactions to maintain tracking when pointer leaves element
+
+---
+
+## 20. Component Catalog
+
+Card-content patterns that build on the shared shell (§3–§9). Each component references tokens and controls from earlier sections.
+
+### 20.1 Scene Chip
+
+A standalone pill-shaped button for activating HA scenes or scripts. NOT the same as the informational chip in §3.7 – scene chips are interactive action triggers with icons.
+
+**Container:**
+```
+display: flex, align-items: center, justify-content: center, gap: 6px
+padding: 10px 16px (overview) / 10px 6px (v3 equal-width variant)
+border-radius: var(--r-pill)
+background: var(--glass)
+backdrop-filter: blur(24px), -webkit-backdrop-filter: blur(24px)
+border: 1px solid var(--ctrl-border)
+box-shadow: var(--shadow), var(--inset)
+font-family: inherit, font-size: 12px, font-weight: 600
+color: var(--text-sub), letter-spacing: .2px
+cursor: pointer, transition: all .15s ease
+user-select: none, white-space: nowrap
+position: relative, overflow: hidden
+```
+
+**Glass stroke `::before`:** Same XOR mask technique as card (§3.2), using `--r-pill`.
+
+**Icon:** `.icon-18`, accent-colored via `[data-accent]` attribute. Each chip can have its own accent (`amber`, `blue`, `purple`, `red`, `green`).
+
+**Layout variants:**
+- **Flex-wrap row (overview):** `display: flex; gap: 8px; flex-wrap: wrap`. Each chip auto-sizes.
+- **Equal-width row (v3):** `display: flex; gap: 8px`. Each chip `flex: 1`.
+
+**States:**
+
+| State               | Background                  | Border                  | Text / Icon             | Behavior          |
+|----------------------|-----------------------------|-------------------------|-------------------------|--------------------|
+| Idle                 | `var(--glass)`              | `var(--ctrl-border)`    | `--text-sub` / accent icon | –                |
+| Hover                | (no change)                 | (no change)             | (no change)             | `box-shadow: var(--shadow-up), var(--inset)` |
+| Press                | (no change)                 | (no change)             | (no change)             | `transform: scale(.97)` |
+| Active (momentary)   | `var(--{accent}-fill)`      | `var(--{accent}-border)`| `var(--{accent})` / FILL 1 | 1200ms flash, then fades back |
+
+**Behavior:**
+- Tap calls `scene.turn_on` or `script.turn_on` (domain auto-detected from entity)
+- Active state is a **momentary flash** (1200ms), NOT a persistent toggle
+- JS: add `.active` class + `.filled` on icon → setTimeout 1200ms → remove both
+- Radio group behavior (optional): When one chip activates in a mutually exclusive group, remove `.active` from siblings first
+
+### 20.2 Action Chip (In-Card)
+
+Action chips inside a card shell. Distinguished from scene chips by: tile-level surface (not glass), persistent state reflection from entities, and per-chip accent support.
+
+**Container:**
+```
+flex: 1
+display: flex, align-items: center, justify-content: center, gap: 6px
+padding: 10px 4px
+border-radius: var(--r-tile)
+background: var(--tile-bg)
+box-shadow: var(--shadow)
+font-family: inherit, font-size: 11px, font-weight: 600
+color: var(--text-sub), letter-spacing: .1px
+cursor: pointer, transition: all .15s ease
+user-select: none, white-space: nowrap
+border: 1px solid transparent
+```
+
+**Icon:** `.icon-18`, `color: var(--text-muted)` when idle.
+
+**Layout:** Flex row inside card, `gap: 8px`. Each chip `flex: 1` (equal width).
+
+**States:**
+
+| State   | Border                      | Text / Icon              | Icon FILL |
+|---------|-----------------------------|--------------------------|-----------|
+| Idle    | `transparent`               | `--text-sub` / `--text-muted` | 0         |
+| Active  | `var(--{accent}-border)`    | `var(--{accent})`        | 1         |
+| Hover   | (no change)                 | (no change)              | –         |
+| Press   | (no change)                 | (no change)              | –         |
+
+Hover: `box-shadow: var(--shadow-up)`
+Press: `transform: scale(.96)`
+
+**Per-chip accent:** `data-accent` attribute on each chip (`amber` default, `blue`, `purple`). CSS selectors: `.action-chip[data-accent="blue"].active { ... }`.
+
+**Active state is persistent:** Driven by `state_entity` matching `active_when` value in config. JS polls entity state, not tap feedback.
+
+**Tap behavior:** Calls configured `service` with `service_data`. Special case: Sleep action toggles (if already active, switches back to previous state).
+
+**Responsive (≤440px):**
+```
+font-size: 10px
+.icon: 16px
+gap: 4px
+```
+
+### 20.3 Status Tile System
+
+A grid of small tiles showing system status information, with four typed variants.
+
+**Grid layout:**
+```
+display: grid
+grid-template-columns: repeat(4, 1fr)
+gap: 10px
+```
+
+**Responsive (≤440px):** `grid-template-columns: repeat(2, 1fr)`
+
+**Base tile:**
+```
+background: var(--tile-bg)
+border-radius: var(--r-tile)
+box-shadow: var(--shadow)
+padding: 14px 8px 10px
+display: flex, flex-direction: column, align-items: center, justify-content: center
+gap: 4px
+cursor: pointer
+transition: all .15s ease
+position: relative, overflow: visible
+```
+
+Hover: `box-shadow: var(--shadow-up)`
+Press: `transform: scale(.97)`
+
+**Tile icon:**
+```
+width: 28px, height: 28px
+display: grid, place-items: center
+margin-bottom: 2px
+```
+
+Icon color driven by `[data-accent]` on the tile:
+- `[data-accent="amber"]` → `color: var(--amber)`, FILL 1
+- `[data-accent="blue"]` → `color: var(--blue)`, FILL 1
+- `[data-accent="green"]` → `color: var(--green)`, FILL 1
+- `[data-accent="muted"]` → `color: var(--text-muted)`, FILL 0
+
+**Value text:**
+```
+font-size: 18px (16px at ≤440px), font-weight: 700
+letter-spacing: -.2px, line-height: 1
+color: var(--text)
+font-variant-numeric: tabular-nums
+text-align: center, white-space: nowrap
+```
+
+**Label text:**
+```
+font-size: 9px, font-weight: 600
+letter-spacing: .5px, text-transform: uppercase
+color: var(--text-muted), line-height: 1
+text-align: center, white-space: nowrap
+overflow: hidden, text-overflow: ellipsis, max-width: 100%
+```
+
+**Degree symbol:** Uses §4.5 pattern: `font-size: 0.6em; position: relative; top: -0.18em; margin-left: -1px`.
+
+#### 20.3.1 Status Dot
+
+A 6px indicator dot positioned at the top-right corner of a tile.
+
+```
+width: 6px, height: 6px
+border-radius: 999px
+position: absolute, top: 10px, right: 10px
+```
+
+| Class    | Color           | Meaning         |
+|----------|-----------------|-----------------|
+| `.green` | `var(--green)`  | Active / healthy|
+| `.amber` | `var(--amber)`  | Warning / manual|
+| `.blue`  | `var(--blue)`   | Info / standby  |
+| `.red`   | `var(--red)`    | Error / alert   |
+| `.muted` | `var(--text-muted)` | Disabled    |
+
+Color alone is insufficient for accessibility – always pair with a text label or `aria-label`.
+
+#### 20.3.2 Tile Types
+
+**Indicator tile** (`data-type="indicator"`): Icon + value + label + optional status dot. Tap fires `hass-more-info`. Value and dot driven by entity state.
+
+**Value tile** (default): Icon + value + label. Same as indicator but without status dot. Value formatted from entity state or attribute, with optional unit.
+
+**Timer tile** (`data-type="timer"`): Icon + countdown + label + status dot.
+- Value format: `M:SS` (under 60 min) or `H:MM:SS`
+- `letter-spacing: .5px` on timer value (wider for monospaced feel)
+- Update interval: 1 second (JS `setInterval`)
+- Computes real remaining time: `snapshot_seconds - Math.floor((Date.now() - last_updated) / 1000)`
+- When `remaining <= 0`: tile gets `.tile-hidden` class (removed from layout)
+
+**Dropdown tile** (`data-type="dropdown"`): Icon + inline selector + label.
+- Value replaced by `.tile-dd-val` container with text + chevron
+- Chevron: `.icon` 12px, `color: var(--text-muted)`, rotates 180° when `.open`
+- Opens center-anchored dropdown (§7.11)
+- Option selection calls `input_select.select_option` service
+
+#### 20.3.3 Conditional Visibility
+
+Any tile can be conditionally hidden via `show_when` config:
+```
+.tile-hidden { display: none !important }
+```
+JS evaluates `show_when.entity` state against `show_when.state` value. No `show_when` = always visible.
+
+### 20.4 Lighting Zone Tile
+
+A tile representing a single lighting zone with tap-to-toggle and swipe-to-dim.
+
+**Grid layout:**
+```
+display: grid
+grid-template-columns: repeat(3, 1fr)
+gap: 10px
+```
+
+**Responsive (≤440px):** `grid-template-columns: repeat(2, 1fr)`
+
+**Tile container:**
+```
+border-radius: var(--r-tile)
+box-shadow: var(--shadow)
+display: flex, flex-direction: column, align-items: center
+cursor: pointer
+transition: background .2s ease, border-color .2s ease, box-shadow .15s ease
+position: relative, overflow: hidden
+user-select: none
+touch-action: pan-y
+border: 1px solid transparent
+```
+
+**On state:** `background: var(--tile-bg); border-color: var(--amber-border)`
+**Off state:** `background: var(--tile-bg-off); border-color: var(--ctrl-border)`
+Hover: `box-shadow: var(--shadow-up)`
+
+**Tile content area:**
+```
+position: relative, z-index: 1
+display: flex, flex-direction: column, align-items: center, justify-content: center
+width: 100%, padding: 14px 8px 10px, gap: 6px
+```
+
+**Zone icon wrap:**
+```
+width: 44px, height: 44px, border-radius: 10px
+display: grid, place-items: center
+transition: all .2s ease
+border: 1px solid transparent
+```
+
+Off: `background: var(--track-bg); color: var(--text-muted)`
+On: `background: var(--amber-fill); border-color: var(--amber-border); color: var(--amber); icon FILL 1`
+
+**Zone name:** `font-size: 13px, font-weight: 600, color: var(--text)` (off: `--text-sub`), `letter-spacing: .1px, line-height: 1`
+
+**Zone value:** `font-size: 12px, font-weight: 600, line-height: 1, font-variant-numeric: tabular-nums, letter-spacing: .2px`. Off: `color: var(--text-muted)`, text "Off". On: `color: var(--amber)`, text "{pct}%".
+
+**Brightness bar:**
+```
+width: 100%, height: 4px (6px during drag)
+background: var(--track-bg)
+position: relative
+margin-top: auto, flex-shrink: 0
+```
+
+Bar fill:
+- Off: `background: var(--text-muted); opacity: 0.15`
+- On: `background: var(--amber); opacity: 0.65`
+- Width = brightness percentage
+- `transition: width .15s ease` (disabled during drag: `transition: none`)
+
+**Manual override dot:**
+```
+position: absolute, top: 8px, right: 8px
+width: 8px, height: 8px
+background: var(--red)
+border-radius: 50%
+display: none
+box-shadow: 0 0 8px var(--red-glow)
+z-index: 2
+```
+
+Visible when `[data-manual="true"]`: `display: block`. Detected by scanning Adaptive Lighting switch `manual_control` attributes.
+
+**Sliding state (drag active):**
+```
+.l-tile.sliding:
+  transform: scale(1.05)
+  box-shadow: var(--shadow-up)
+  z-index: 100
+  border-color: var(--amber) !important
+
+.l-tile.sliding .zone-val:
+  (becomes floating pill – see §3.10)
+  position: absolute, top: 0, left: 50%
+  transform: translate(-50%, -50%)
+  color: var(--amber), font-weight: 700, font-size: 15px
+  background: var(--glass)
+  backdrop-filter: blur(20px)
+  padding: 6px 20px, border-radius: 999px
+  box-shadow: 0 10px 30px rgba(0,0,0, 0.30)
+  border: 1px solid rgba(255,255,255, 0.15) light / rgba(255,255,255, 0.10) dark
+  z-index: 101, white-space: nowrap
+
+.l-tile.sliding .zone-bar:
+  height: 6px
+
+.l-tile.sliding .zone-bar-fill:
+  transition: none
+```
+
+**Interaction:** See §7.5 (Swipe-to-Dim) and §7.6 (Tap-to-Toggle).
+
+**Lighting header pattern:**
+```
+Layout: display: flex, align-items: center, gap: 10px, margin-bottom: 16px
+
+Header icon:
+  width: 34px, height: 34px, border-radius: 10px
+  display: grid, place-items: center
+  border: 1px solid transparent, background: transparent
+  color: var(--text-muted), transition: all .2s ease
+  .on: background: var(--amber-fill), color: var(--amber), border-color: var(--amber-border)
+
+Title: font-weight: 700, font-size: 14px, color: var(--text-sub), letter-spacing: .1px
+
+Spacer: flex: 1
+
+All Off button:
+  display: flex, align-items: center, gap: 4px
+  padding: 7px 12px, border-radius: var(--r-pill)
+  border: 1px solid var(--amber-border), background: var(--amber-fill)
+  color: var(--amber), font-size: 12px, font-weight: 700
+  box-shadow: var(--ctrl-sh)
+  Hover: box-shadow: var(--shadow)
+  Press: transform: scale(.96), opacity: 0.8
+
+Adaptive pill:
+  display: flex, align-items: center, gap: 5px
+  padding: 7px 10px, border-radius: var(--r-pill)
+  border: 1px solid var(--ctrl-border), background: var(--ctrl-bg)
+  box-shadow: var(--ctrl-sh)
+  font-size: 12px, font-weight: 600, color: var(--text-sub)
+  letter-spacing: .2px
+  Hover: box-shadow: var(--shadow)
+  Press: transform: scale(.97)
+  .on: background: var(--amber-fill), color: var(--amber), border-color: var(--amber-border)
+  Tap: toggle adaptive switch
+  Long-press (500ms): fire hass-more-info (see §7.7)
+```
+
+### 20.5 Media Card Sub-Components
+
+Components specific to the media player card (Sonos). These all live inside the standard card shell (§3.1) with the standard header (§5).
+
+#### 20.5.1 Card State Tint
+
+```css
+.card[data-state="playing"] { border-color: rgba(52,199,89, 0.14) }
+:host(.dark) .card[data-state="playing"] { border-color: rgba(48,209,88, 0.16) }
+```
+
+Playing state activates green accent on info tile, entity icon, and play button.
+
+#### 20.5.2 Album Art
+
+```
+width: 56px, height: 56px (48×48 at ≤440px)
+flex-shrink: 0
+border-radius: 10px
+overflow: hidden
+background: var(--track-bg)
+box-shadow: var(--ctrl-sh) (playing: var(--shadow))
+display: grid, place-items: center
+position: relative
+
+img: width: 100%, height: 100%, object-fit: cover, position: absolute, inset: 0
+Placeholder icon: var(--text-muted)
+```
+
+#### 20.5.3 Track Info
+
+```
+flex: 1, min-width: 0
+display: flex, flex-direction: column, gap: 3px
+
+Track name: 15px / 700 / var(--text) (14px at ≤440px)
+  line-height: 1.15, white-space: nowrap, overflow: hidden, text-overflow: ellipsis
+
+Artist: 13px / 600 / var(--text-sub)
+  line-height: 1.15, white-space: nowrap, overflow: hidden, text-overflow: ellipsis
+```
+
+#### 20.5.4 Media Row / View Switching
+
+Two interchangeable rows: track view (default) and volume view. Toggle via volume button.
+
+```
+.media-row:
+  display: flex, align-items: center, gap: 14px
+  transition: opacity .2s, transform .2s
+
+.media-row.hidden:
+  opacity: 0
+  transform: translateY(4px)
+  pointer-events: none
+  position: absolute, inset: 0
+```
+
+Volume row uses `translateY(-4px)` when hidden (slides from opposite direction).
+
+#### 20.5.5 Volume Slider
+
+Reuses §7.3 slider pattern with green accent.
+
+```
+Track height: 44px
+Track radius: var(--r-track)
+Fill: rgba(52,199,89, 0.26) light / rgba(48,209,88, 0.28) dark
+Stroke: 2px, var(--green), full height
+Thumb dot: var(--green)
+```
+
+**Volume percentage label:**
+```
+font-size: 14px, font-weight: 700, color: var(--text)
+font-variant-numeric: tabular-nums, letter-spacing: -0.2px
+min-width: 42px, text-align: right, flex-shrink: 0
+```
+
+**Mute icon:** Changes glyph by volume level:
+- 0%: `volume_off`
+- 1–50%: `volume_down`
+- 51–100%: `volume_up`
+- Always FILL 1, `color: var(--green)`
+
+**Cooldown:** After volume service call, ignore incoming state updates for 1500ms to prevent bounce-back.
+
+#### 20.5.6 Speaker Dropdown
+
+Uses §7.1 dropdown pattern (right-aligned). Min-width: 220px.
+
+**Speaker option:**
+```
+Same as §7.1 .dd-option
+Contains: icon (speaker/tv) + text column (name + now-playing) + group checkbox
+
+Speaker text:
+  .spk-name: flex: 1, ellipsis
+  .spk-now-playing: 10.5px / 500 / var(--text-muted), ellipsis
+  Selected: .spk-now-playing color: var(--green), opacity: 0.7
+```
+
+**Group checkbox:**
+```
+width: 20px, height: 20px
+border-radius: 999px
+border: 1.5px solid var(--text-muted)
+display: grid, place-items: center
+transition: all .15s ease
+cursor: pointer
+
+Hover: border-color: var(--green)
+.in-group: background: var(--green), border-color: var(--green)
+Check icon: 14px, FILL 1, color: #fff, opacity: 0 → 1 when .in-group
+```
+
+**Action options (Group All / Ungroup All):**
+```
+Color: var(--text-sub), hover: var(--text)
+Icon: var(--green)
+Separated by .dd-divider (1px, var(--divider), margin: 3px 8px)
+Only shown when >1 speaker available
+```
+
+**Left-click option:** Switch active entity (volume target).
+**Right-click checkbox:** Toggle speaker group membership via `sonos_toggle_group_membership` script.
+
+### 20.6 Room Card
+
+A card-shaped row for room overview with light orb toggles and navigation.
+
+**Card container:**
+```
+min-height: 72px
+border-radius: var(--r-card)
+background: var(--glass)
+backdrop-filter: blur(24px), -webkit-backdrop-filter: blur(24px)
+border: 1px solid var(--ctrl-border)
+box-shadow: var(--shadow), var(--inset)
+display: flex, align-items: center
+padding: 0 14px, gap: 12px
+cursor: pointer
+transition: all .15s
+position: relative, overflow: hidden
+```
+
+**Glass stroke `::before`:** Same as card (§3.2).
+
+Hover: `box-shadow: var(--shadow-up), var(--inset)`
+Active room: `border-color: var(--amber-border)`
+
+**Room icon:**
+```
+width: 44px, height: 44px
+border-radius: 12px
+display: grid, place-items: center
+flex-shrink: 0
+transition: all .2s
+border: 1px solid transparent
+
+Inactive: background: var(--gray-ghost), color: var(--text-muted)
+Active (any light on): background: var(--amber-fill), color: var(--amber), border-color: var(--amber-border), icon FILL 1
+```
+
+**Room info:**
+```
+flex: 1, min-width: 0
+
+.room-name: 14px / 700 / var(--text), line-height: 1.2
+.room-status: 11.5px / 600 / var(--text-muted), line-height: 1.2, margin-top: 2px
+  Active text (e.g., brightness): color: var(--amber)
+```
+
+Status text pattern: "All off" OR "{count} of {total} on · {brightness}% · {temp}°F"
+
+**Room controls:**
+```
+display: flex, align-items: center, gap: 6px
+```
+
+**Light orb (per-light toggle):**
+```
+width: 34px, height: 34px
+border-radius: 10px
+display: grid, place-items: center
+flex-shrink: 0
+cursor: pointer
+transition: all .15s
+border: 1px solid transparent
+
+Off: background: var(--gray-ghost), color: var(--text-muted)
+On: background: var(--amber-fill), color: var(--amber), border-color: var(--amber-border), icon FILL 1
+Hover: background: var(--track-bg)
+Press: transform: scale(.92)
+```
+
+Tap: `light.toggle` on individual entity.
+
+**Room toggle (all lights):**
+```
+width: 44px, height: 24px
+border-radius: 12px
+position: relative
+cursor: pointer
+transition: background .15s
+
+Off: background: var(--toggle-off)
+On: background: var(--toggle-on)
+
+Knob:
+  width: 20px, height: 20px
+  border-radius: 999px
+  background: var(--toggle-knob)
+  box-shadow: 0 1px 2px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06)
+  position: absolute, top: 2px, left: 2px
+  transition: transform .15s ease
+  .on: transform: translateX(20px)
+```
+
+**Chevron (navigation):**
+```
+color: var(--text-muted), flex-shrink: 0, cursor: pointer
+```
+
+Tap: navigates to room detail view via `history.pushState` + `location-changed` event.
+
+**Layout:** Vertical stack of room cards: `display: flex; flex-direction: column; gap: 10px`.
+
+### 20.7 Weather Card Sub-Components
+
+Components inside the weather card, building on the standard card shell and header.
+
+#### 20.7.1 Current Conditions
+
+```
+.weather-main: display: flex, align-items: flex-start, gap: 20px, padding: 0 4px
+
+.weather-current:
+  display: flex, flex-direction: column, gap: 2px
+
+.weather-temp:
+  font-size: 42px, font-weight: 700, line-height: 1
+  letter-spacing: -1.5px
+  font-variant-numeric: tabular-nums
+  color: var(--text)
+
+.weather-desc:
+  font-size: 13px, font-weight: 600, color: var(--text-sub)
+  margin-top: 4px
+```
+
+#### 20.7.2 Detail Rows
+
+```
+.weather-details: display: flex, flex-direction: column, gap: 6px, padding-top: 6px
+
+.weather-detail:
+  display: flex, align-items: center, gap: 6px
+  font-size: 12px, font-weight: 600, color: var(--text-sub)
+  Icon: color: var(--blue)
+  Value: font-weight: 700, color: var(--text), tabular-nums
+```
+
+Details shown: wind (with compass bearing), humidity, pressure.
+
+#### 20.7.3 Forecast Tile
+
+```
+Grid: display: grid, grid-template-columns: repeat(5, 1fr), gap: 8px
+Responsive (≤440px): grid-template-columns: repeat(3, 1fr)
+
+.forecast-tile:
+  display: flex, flex-direction: column, align-items: center, gap: 4px
+  padding: 10px 4px 8px
+  border-radius: 12px
+  background: var(--ctrl-bg)
+  border: 1px solid var(--ctrl-border)
+  transition: all .15s
+
+First tile ("Now" / "Today"):
+  background: var(--blue-fill)
+  border-color: var(--blue-border)
+  Day label + icon: color: var(--blue)
+
+.forecast-day:
+  font-size: 10px, font-weight: 700
+  letter-spacing: .3px, text-transform: uppercase
+  color: var(--text-muted)
+
+.forecast-icon: color: var(--text-sub)
+
+.forecast-hi: 13px / 700 / var(--text), tabular-nums
+.forecast-lo: 11px / 600 / var(--text-muted), tabular-nums
+```
+
+**Weather condition icon mapping:**
+| HA state         | Material Symbol     |
+|------------------|---------------------|
+| sunny            | sunny               |
+| cloudy           | cloud               |
+| clear-night      | bedtime             |
+| partlycloudy     | partly_cloudy_day   |
+| rainy / pouring  | rainy               |
+| snowy            | weather_snowy       |
+| lightning        | thunderstorm        |
+| lightning-rainy  | thunderstorm        |
+| windy            | air                 |
+| fog              | foggy               |
+
+### 20.8 Sensor Card Sub-Components
+
+Components for displaying environment sensor data with optional history visualization.
+
+#### 20.8.1 Sensor Row
+
+```
+display: flex, align-items: center, gap: 12px
+padding: 12px
+border-radius: var(--r-tile)
+transition: all .15s
+cursor: pointer
+```
+
+Hover: subtle background shift. Tap: fires `hass-more-info` or navigates.
+
+**Icon container:**
+```
+width: 36px, height: 36px
+border-radius: 10px
+display: grid, place-items: center
+background: var(--{accent}-fill)
+color: var(--{accent})
+Icon: FILL 1
+```
+
+**Value display:**
+```
+font-size: 24px, font-weight: 700
+color: var(--text)
+font-variant-numeric: tabular-nums
+```
+
+**Unit:** Per §4.5 pattern for degree symbols. Other units inline: `font-size: 14px, font-weight: 600, color: var(--text-sub)`.
+
+**Divider between rows:** `height: 1px; background: var(--divider); margin: 0 12px`.
+
+#### 20.8.2 Trend Indicator
+
+```
+Inline flex, gap: 4px
+Icon: 14px
+  Rising: arrow_upward, color: var(--red)
+  Falling: arrow_downward, color: var(--blue)
+  Stable: remove (dash), color: var(--text-muted)
+Text: 11px / 600
+```
+
+Trend computed from history: compares current value to average of recent data points.
+
+#### 20.8.3 Sparkline (Mini Chart)
+
+```
+height: 40px, width: 80px
+SVG element, no axes, no labels
+
+Path: stroke: var(--{accent}), stroke-width: 2px, fill: none
+  Computed from entity history (default 6 hours)
+```
+
+Purely decorative trend indicator. Rate-limited history fetch (2 min cache).
+
+#### 20.8.4 Threshold Styling
+
+Sensor rows change appearance based on configurable thresholds:
+
+| Style class | Icon container bg    | Text color      |
+|-------------|----------------------|-----------------|
+| `warning`   | `var(--amber-fill)`  | `var(--amber)`  |
+| `error`     | `var(--red-fill)`    | `var(--red)`    |
+| `success`   | `var(--green-fill)`  | `var(--green)`  |
+| `info`      | `var(--blue-fill)`   | `var(--blue)`   |
+
+Threshold operators: `gte`, `gt`, `lte`, `lt`, `eq`, `neq`.
+
+---
+
+## 21. Layout Patterns
+
+Page-level layout rules for arranging cards on the dashboard.
+
+### 21.1 Layout Grid
+
+```css
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  width: 100%;
+  max-width: 860px;
+}
+
+@media (min-width: 520px) {
+  .layout-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+```
+
+Full-width elements (e.g., room card stack, scene row): `grid-column: 1 / -1`.
+
+### 21.2 Card Stack
+
+Vertical stack of same-type cards:
+```
+display: flex
+flex-direction: column
+gap: 20px
+```
+
+### 21.3 Responsive Breakpoints
+
+All responsive rules trigger at `max-width: 440px` (card-level) or `min-width: 520px` (grid-level).
+
+| Element                | Desktop          | Mobile (≤440px)     |
+|------------------------|------------------|---------------------|
+| Card padding           | 20px             | 16px                |
+| Section container      | 38px radius, 20px pad | 28px radius, 16px pad |
+| Status grid            | 4 columns        | 2 columns           |
+| Light zone grid        | 3 columns        | 2 columns           |
+| Forecast grid          | 5 columns        | 3 columns           |
+| Hero numerals          | 48px             | 42px                |
+| Hero letter-spacing    | -1.5px           | -1.3px              |
+| Status tile value      | 18px             | 16px                |
+| Scene chip             | 12px, 10px 16px  | 11px, 9px 4px       |
+| Transport buttons      | 38px, gap 4px    | 34px, gap 2px       |
+| Play button            | 42px             | 38px                |
+| Album art              | 56×56px          | 48×48px             |
+| Track name             | 15px             | 14px                |
+
+### 21.4 Reduced Motion
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+All motion stops. State changes remain functional (instant).

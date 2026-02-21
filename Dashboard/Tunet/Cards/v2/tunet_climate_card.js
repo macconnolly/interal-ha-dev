@@ -16,6 +16,7 @@ import {
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
 } from './tunet_base.js';
+import { dispatchAction, normalizeAction } from './tunet_runtime.js';
 
 const CARD_VERSION = '1.1.0';
 
@@ -692,6 +693,10 @@ class TunetClimateCard extends HTMLElement {
       display_min: config.display_min != null ? Number(config.display_min) : null,
       display_max: config.display_max != null ? Number(config.display_max) : null,
       surface: config.surface === 'section' ? 'section' : 'card',
+      tap_action: normalizeAction(config.tap_action || { action: 'more-info' }, config.entity),
+      fan_tap_action: config.fan_tap_action ? normalizeAction(config.fan_tap_action, config.entity) : null,
+      mode_tap_action: config.mode_tap_action ? normalizeAction(config.mode_tap_action, config.entity) : null,
+      eco_tap_action: config.eco_tap_action ? normalizeAction(config.eco_tap_action, config.entity) : null,
     };
 
     if (this._config.surface === 'section') {
@@ -791,20 +796,27 @@ class TunetClimateCard extends HTMLElement {
     // Header tile - open more_info
     $.hdrTile.addEventListener('click', (e) => {
       e.stopPropagation();
-      const ev = new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: this._config.entity } });
-      this.dispatchEvent(ev);
+      this._dispatchConfigAction(this._config.tap_action, this._config.entity);
     });
 
     // Fan toggle
     $.fanBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      this._toggleFan();
+      if (this._config.fan_tap_action) {
+        this._dispatchConfigAction(this._config.fan_tap_action, this._config.entity);
+      } else {
+        this._toggleFan();
+      }
     });
 
     // Mode menu toggle
     $.modeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      this._toggleMenu();
+      if (this._config.mode_tap_action) {
+        this._dispatchConfigAction(this._config.mode_tap_action, this._config.entity);
+      } else {
+        this._toggleMenu();
+      }
     });
 
     // Mode options
@@ -818,7 +830,11 @@ class TunetClimateCard extends HTMLElement {
     // Eco toggle
     $.ecoOpt.addEventListener('click', (e) => {
       e.stopPropagation();
-      this._toggleEco();
+      if (this._config.eco_tap_action) {
+        this._dispatchConfigAction(this._config.eco_tap_action, this._config.entity);
+      } else {
+        this._toggleEco();
+      }
     });
 
     // Thumb drag - mouse
@@ -1259,6 +1275,11 @@ class TunetClimateCard extends HTMLElement {
       if (s.cool != null) this.$.coolR.innerHTML = s.cool + D;
       this._debouncedSetTemperature();
     }
+  }
+
+  _dispatchConfigAction(action, fallbackEntity) {
+    dispatchAction(this._hass, this, action, fallbackEntity)
+      .catch(() => this._updateAll());
   }
 
   /* -- Service Calls -- */

@@ -100,12 +100,27 @@
       tap_action:
         action: more-info
 
-    - type: value
-      entity: sensor.oal_global_brightness_offset
-      icon: bolt
-      label: Boost
-      accent: amber
-      format: integer
+    - type: alarm
+      entity: sensor.sonos_alarm_bedroom_display
+      playing_entity: sensor.sonos_alarm_playing
+      icon: alarm
+      label: Alarm
+      accent: blue
+      tap_action:
+        action: call-service
+        service: script.turn_on
+        service_data:
+          entity_id: script.disable_tomorrows_sonos_alarms
+      snooze_action:
+        action: call-service
+        service: script.turn_on
+        service_data:
+          entity_id: script.sonos_snooze_next_alarm
+      dismiss_action:
+        action: call-service
+        service: script.turn_on
+        service_data:
+          entity_id: script.sonos_dismiss_alarm
 
     - type: dropdown
       entity: input_select.oal_active_configuration

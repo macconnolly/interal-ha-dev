@@ -234,18 +234,59 @@
     .t-btn:active { transform: scale(.90); }
     .t-btn .icon { font-size: 20px; }
 
-    .t-btn.primary {
-      width: 40px; height: 40px;
-      background: var(--ctrl-bg);
+    /* ═══════════════════════════════════════════
+       SOURCE DROPDOWN — switch which speaker you're controlling
+       ═══════════════════════════════════════════ */
+    .source-wrap { position: relative; }
+    .source-btn {
+      display: flex; align-items: center; gap: 4px;
+      padding: 6px 10px;
+      border-radius: 10px;
       border: 1px solid var(--ctrl-border);
+      background: var(--ctrl-bg);
       box-shadow: var(--ctrl-sh);
-      color: var(--text);
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      color: var(--text-sub); letter-spacing: .2px;
+      cursor: pointer; transition: all .15s ease;
+      white-space: nowrap;
     }
-    .t-btn.primary:hover { box-shadow: var(--shadow); }
-    .card[data-state="playing"] .t-btn.primary {
-      background: var(--blue-fill);
-      border-color: var(--blue-border);
-      color: var(--blue);
+    .source-btn:hover { box-shadow: var(--shadow); }
+    .source-btn:active { transform: scale(.97); }
+    .source-btn .icon { font-size: 16px; }
+    .source-btn .chevron { font-size: 14px; transition: transform .2s ease; }
+    .source-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+
+    .source-dd {
+      position: absolute; top: calc(100% + 6px); right: 0;
+      min-width: 200px;
+      background: var(--glass);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--ctrl-border);
+      border-radius: 14px;
+      box-shadow: var(--shadow-up);
+      padding: 6px;
+      z-index: 20;
+      display: none;
+    }
+    .source-dd.open { display: block; }
+
+    .source-opt {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text);
+      cursor: pointer; transition: background .12s ease;
+      border: none; background: none; width: 100%;
+      text-align: left; font-family: inherit;
+    }
+    .source-opt:hover { background: var(--track-bg); }
+    .source-opt .icon { font-size: 18px; color: var(--text-sub); }
+    .source-opt.active { font-weight: 700; }
+    .source-opt.active .icon { color: var(--blue); font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .source-opt .opt-sub {
+      font-size: 11px; font-weight: 500; color: var(--text-muted);
+      margin-left: auto; white-space: nowrap;
     }
 
     /* ═══════════════════════════════════════════
@@ -266,36 +307,67 @@
     }
     .speakers-scroll::-webkit-scrollbar { display: none; }
 
-    /* Individual speaker tile */
+    /* Individual speaker tile — wide landscape pill */
     .speaker-tile {
       scroll-snap-align: start;
       flex-shrink: 0;
-      width: 120px;
-      min-height: 100px;
+      width: 150px;
       background: var(--tile-bg);
       border-radius: var(--r-tile);
       box-shadow: var(--tile-shadow);
       border: 1.5px solid var(--border-ghost);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 12px 8px 16px;
-      gap: 4px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto auto;
+      align-items: center;
+      column-gap: 8px;
+      row-gap: 1px;
+      padding: 10px 12px 16px;
       position: relative;
       cursor: pointer;
       user-select: none;
-      transition: all .2s ease;
+      touch-action: pan-y;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s, border-color .2s, background-color .3s;
     }
     .speaker-tile:hover { box-shadow: var(--tile-shadow-lift); }
-    .speaker-tile:active { transform: scale(.96); }
 
     /* Grouped (active) state */
     .speaker-tile.grouped {
       border-color: var(--blue-border);
     }
 
+    /* Sliding (drag-to-volume active) */
+    .speaker-tile.sliding {
+      transform: scale(1.06);
+      box-shadow: var(--tile-shadow-lift);
+      border-color: var(--blue);
+      z-index: 100;
+    }
+
+    /* Floating volume pill (appears on drag, like lighting tiles) */
+    .spk-floating-pill {
+      position: absolute;
+      top: -10px; left: 50%;
+      transform: translate(-50%, -100%);
+      background: var(--tile-bg);
+      color: var(--blue);
+      padding: 5px 14px;
+      border-radius: var(--r-pill);
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+      white-space: nowrap;
+      z-index: 101;
+      border: 1px solid var(--border-ghost);
+      opacity: 0; pointer-events: none;
+      transition: opacity .15s ease;
+    }
+    html.dark .spk-floating-pill { border-color: rgba(255,255,255,0.08); }
+    .speaker-tile.sliding .spk-floating-pill { opacity: 1; }
+
     /* Grouped dot indicator */
     .group-dot {
-      position: absolute; top: 8px; left: 8px;
+      position: absolute; top: 8px; right: 8px;
       width: 7px; height: 7px;
       background: var(--blue);
       border-radius: 50%;
@@ -305,10 +377,11 @@
     }
     .speaker-tile.grouped .group-dot { opacity: 1; }
 
-    /* Speaker icon wrap */
+    /* Speaker icon wrap — spans both rows, sits on the left */
     .spk-icon-wrap {
-      width: 36px; height: 36px;
-      border-radius: 10px;
+      grid-row: 1 / 3;
+      width: 34px; height: 34px;
+      border-radius: 9px;
       display: grid; place-items: center;
       transition: all .2s ease;
       background: var(--gray-ghost);
@@ -323,19 +396,21 @@
       font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
 
-    /* Speaker name */
+    /* Speaker name — top row, right of icon */
     .spk-name {
       font-size: 13px; font-weight: 600; color: var(--text);
-      line-height: 1.2; text-align: center;
+      line-height: 1.2; text-align: left;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      max-width: 100%;
+      align-self: end;
     }
 
-    /* Volume value */
+    /* Volume value — bottom-left under the name */
     .spk-vol {
-      font-size: 12px; font-weight: 700;
+      font-size: 11px; font-weight: 700;
       color: var(--blue);
       line-height: 1;
+      text-align: left;
+      align-self: start;
       transition: color .2s ease;
     }
     .speaker-tile:not(.grouped) .spk-vol {
@@ -344,7 +419,7 @@
 
     /* Volume bar */
     .spk-vol-track {
-      position: absolute; bottom: 8px; left: 12px; right: 12px;
+      position: absolute; bottom: 7px; left: 12px; right: 12px;
       height: 3px; background: var(--track-bg);
       border-radius: var(--r-pill);
       overflow: hidden;
@@ -353,7 +428,7 @@
       height: 100%; border-radius: var(--r-pill);
       background: var(--blue);
       opacity: 0.6;
-      transition: width .15s ease;
+      transition: width .1s linear;
     }
     .speaker-tile:not(.grouped) .spk-vol-fill {
       opacity: 0.2;
@@ -366,8 +441,7 @@
       width: 600px;
     }
     .card.wide .speaker-tile {
-      width: 130px;
-      min-height: 108px;
+      width: 160px;
     }
 
     /* ═══════════════════════════════════════════
@@ -381,11 +455,23 @@
       .t-btn { width: 32px; height: 32px; }
       .t-btn .icon { font-size: 18px; }
       .t-btn.primary { width: 36px; height: 36px; }
-      .speaker-tile { width: 105px; min-height: 92px; padding: 10px 6px 14px; }
-      .spk-icon-wrap { width: 32px; height: 32px; border-radius: 8px; }
+
+      /* Tiles become near-square on mobile */
+      .speaker-tile {
+        width: 100px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        padding: 10px 8px 16px;
+        gap: 3px;
+      }
+      .spk-icon-wrap {
+        grid-row: unset;
+        width: 32px; height: 32px; border-radius: 8px;
+      }
       .spk-icon-wrap .icon { font-size: 18px; }
-      .spk-name { font-size: 12px; }
-      .spk-vol { font-size: 11px; }
+      .spk-name { font-size: 12px; text-align: center; align-self: unset; }
+      .spk-vol { font-size: 10px; text-align: center; align-self: unset; }
+      .spk-vol-track { left: 10px; right: 10px; bottom: 6px; }
     }
 
     /* ═══════════════════════════════════════════
@@ -466,48 +552,77 @@
       </div>
       <div class="transport">
         <button class="t-btn" title="Previous"><span class="icon">skip_previous</span></button>
+        <button class="t-btn" title="Pause"><span class="icon filled">pause</span></button>
         <button class="t-btn" title="Next"><span class="icon">skip_next</span></button>
         <button class="t-btn" title="Volume" onclick="toggleVol(this)"><span class="icon">volume_up</span></button>
-        <button class="t-btn primary" title="Pause"><span class="icon filled">pause</span></button>
+      </div>
+      <div class="source-wrap">
+        <button class="source-btn" onclick="toggleSource(this)" aria-expanded="false">
+          <span class="icon">weekend</span> Living
+          <span class="icon chevron">expand_more</span>
+        </button>
+        <div class="source-dd">
+          <button class="source-opt active" onclick="selectSource(this, 'Living', 'weekend')">
+            <span class="icon">weekend</span> Living Room Sonos
+            <span class="opt-sub">Playing</span>
+          </button>
+          <button class="source-opt" onclick="selectSource(this, 'Kitchen', 'countertops')">
+            <span class="icon">countertops</span> Kitchen Soundbar
+            <span class="opt-sub">NFL Game</span>
+          </button>
+          <button class="source-opt" onclick="selectSource(this, 'Bedroom', 'bed')">
+            <span class="icon">bed</span> Bedroom Sonos
+            <span class="opt-sub">Idle</span>
+          </button>
+          <button class="source-opt" onclick="selectSource(this, 'Office', 'desk')">
+            <span class="icon">desk</span> Office Sonos
+            <span class="opt-sub">Idle</span>
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Speaker Tiles (horizontal scroll) -->
     <div class="speakers-scroll">
-      <div class="speaker-tile grouped" onclick="toggleGroup(this)">
+      <div class="speaker-tile grouped">
         <div class="group-dot"></div>
+        <div class="spk-floating-pill">15%</div>
         <div class="spk-icon-wrap"><span class="icon">weekend</span></div>
         <div class="spk-name">Living</div>
         <div class="spk-vol">15%</div>
         <div class="spk-vol-track"><div class="spk-vol-fill" style="width:15%"></div></div>
       </div>
 
-      <div class="speaker-tile grouped" onclick="toggleGroup(this)">
+      <div class="speaker-tile grouped">
         <div class="group-dot"></div>
-        <div class="spk-icon-wrap"><span class="icon">countertop</span></div>
+        <div class="spk-floating-pill">10%</div>
+        <div class="spk-icon-wrap"><span class="icon">countertops</span></div>
         <div class="spk-name">Kitchen</div>
         <div class="spk-vol">10%</div>
         <div class="spk-vol-track"><div class="spk-vol-fill" style="width:10%"></div></div>
       </div>
 
-      <div class="speaker-tile grouped" onclick="toggleGroup(this)">
+      <div class="speaker-tile grouped">
         <div class="group-dot"></div>
+        <div class="spk-floating-pill">6%</div>
         <div class="spk-icon-wrap"><span class="icon">bed</span></div>
         <div class="spk-name">Bedroom</div>
         <div class="spk-vol">6%</div>
         <div class="spk-vol-track"><div class="spk-vol-fill" style="width:6%"></div></div>
       </div>
 
-      <div class="speaker-tile" onclick="toggleGroup(this)">
+      <div class="speaker-tile">
         <div class="group-dot"></div>
+        <div class="spk-floating-pill">0%</div>
         <div class="spk-icon-wrap"><span class="icon">desk</span></div>
         <div class="spk-name">Office</div>
         <div class="spk-vol">0%</div>
         <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
       </div>
 
-      <div class="speaker-tile" onclick="toggleGroup(this)">
+      <div class="speaker-tile">
         <div class="group-dot"></div>
+        <div class="spk-floating-pill">0%</div>
         <div class="spk-icon-wrap"><span class="icon">dining</span></div>
         <div class="spk-name">Dining</div>
         <div class="spk-vol">0%</div>
@@ -542,15 +657,26 @@
       </div>
       <div class="transport">
         <button class="t-btn"><span class="icon">skip_previous</span></button>
+        <button class="t-btn"><span class="icon">play_arrow</span></button>
         <button class="t-btn"><span class="icon">skip_next</span></button>
         <button class="t-btn"><span class="icon">volume_up</span></button>
-        <button class="t-btn primary"><span class="icon filled">play_arrow</span></button>
+      </div>
+      <div class="source-wrap">
+        <button class="source-btn" onclick="toggleSource(this)" aria-expanded="false">
+          <span class="icon">weekend</span> Living
+          <span class="icon chevron">expand_more</span>
+        </button>
+        <div class="source-dd">
+          <button class="source-opt active"><span class="icon">weekend</span> Living Room Sonos <span class="opt-sub">Paused</span></button>
+          <button class="source-opt"><span class="icon">countertops</span> Kitchen Soundbar <span class="opt-sub">Idle</span></button>
+        </div>
       </div>
     </div>
 
     <div class="speakers-scroll">
       <div class="speaker-tile grouped">
         <div class="group-dot"></div>
+        <div class="spk-floating-pill">12%</div>
         <div class="spk-icon-wrap"><span class="icon">weekend</span></div>
         <div class="spk-name">Living</div>
         <div class="spk-vol">12%</div>
@@ -558,13 +684,15 @@
       </div>
       <div class="speaker-tile grouped">
         <div class="group-dot"></div>
-        <div class="spk-icon-wrap"><span class="icon">countertop</span></div>
+        <div class="spk-floating-pill">8%</div>
+        <div class="spk-icon-wrap"><span class="icon">countertops</span></div>
         <div class="spk-name">Kitchen</div>
         <div class="spk-vol">8%</div>
         <div class="spk-vol-track"><div class="spk-vol-fill" style="width:8%"></div></div>
       </div>
       <div class="speaker-tile">
         <div class="group-dot"></div>
+        <div class="spk-floating-pill">0%</div>
         <div class="spk-icon-wrap"><span class="icon">bed</span></div>
         <div class="spk-name">Bedroom</div>
         <div class="spk-vol">0%</div>
@@ -572,6 +700,7 @@
       </div>
       <div class="speaker-tile">
         <div class="group-dot"></div>
+        <div class="spk-floating-pill">0%</div>
         <div class="spk-icon-wrap"><span class="icon">desk</span></div>
         <div class="spk-name">Office</div>
         <div class="spk-vol">0%</div>
@@ -595,15 +724,26 @@
       </div>
       <div class="transport">
         <button class="t-btn" disabled><span class="icon">skip_previous</span></button>
+        <button class="t-btn"><span class="icon">play_arrow</span></button>
         <button class="t-btn" disabled><span class="icon">skip_next</span></button>
         <button class="t-btn"><span class="icon">volume_up</span></button>
-        <button class="t-btn primary"><span class="icon">play_arrow</span></button>
+      </div>
+      <div class="source-wrap">
+        <button class="source-btn" onclick="toggleSource(this)" aria-expanded="false">
+          <span class="icon">weekend</span> Living
+          <span class="icon chevron">expand_more</span>
+        </button>
+        <div class="source-dd">
+          <button class="source-opt active"><span class="icon">weekend</span> Living Room Sonos <span class="opt-sub">Idle</span></button>
+          <button class="source-opt"><span class="icon">countertops</span> Kitchen Soundbar <span class="opt-sub">NFL Game</span></button>
+        </div>
       </div>
     </div>
 
     <div class="speakers-scroll">
       <div class="speaker-tile">
         <div class="group-dot"></div>
+        <div class="spk-floating-pill">0%</div>
         <div class="spk-icon-wrap"><span class="icon">weekend</span></div>
         <div class="spk-name">Living</div>
         <div class="spk-vol">0%</div>
@@ -611,13 +751,15 @@
       </div>
       <div class="speaker-tile">
         <div class="group-dot"></div>
-        <div class="spk-icon-wrap"><span class="icon">countertop</span></div>
+        <div class="spk-floating-pill">0%</div>
+        <div class="spk-icon-wrap"><span class="icon">countertops</span></div>
         <div class="spk-name">Kitchen</div>
         <div class="spk-vol">0%</div>
         <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
       </div>
       <div class="speaker-tile">
         <div class="group-dot"></div>
+        <div class="spk-floating-pill">0%</div>
         <div class="spk-icon-wrap"><span class="icon">bed</span></div>
         <div class="spk-name">Bedroom</div>
         <div class="spk-vol">0%</div>
@@ -625,6 +767,7 @@
       </div>
       <div class="speaker-tile">
         <div class="group-dot"></div>
+        <div class="spk-floating-pill">0%</div>
         <div class="spk-icon-wrap"><span class="icon">desk</span></div>
         <div class="spk-name">Office</div>
         <div class="spk-vol">0%</div>
@@ -648,9 +791,20 @@
       </div>
       <div class="transport">
         <button class="t-btn"><span class="icon">skip_previous</span></button>
+        <button class="t-btn"><span class="icon filled">pause</span></button>
         <button class="t-btn"><span class="icon">skip_next</span></button>
         <button class="t-btn"><span class="icon">volume_up</span></button>
-        <button class="t-btn primary"><span class="icon filled">pause</span></button>
+      </div>
+      <div class="source-wrap">
+        <button class="source-btn" onclick="toggleSource(this)" aria-expanded="false">
+          <span class="icon">weekend</span> Living
+          <span class="icon chevron">expand_more</span>
+        </button>
+        <div class="source-dd">
+          <button class="source-opt active" onclick="selectSource(this, 'Living', 'weekend')"><span class="icon">weekend</span> Living Room Sonos <span class="opt-sub">Playing</span></button>
+          <button class="source-opt" onclick="selectSource(this, 'Kitchen', 'countertops')"><span class="icon">countertops</span> Kitchen Soundbar <span class="opt-sub">NFL Game</span></button>
+          <button class="source-opt" onclick="selectSource(this, 'Bedroom', 'bed')"><span class="icon">bed</span> Bedroom Sonos <span class="opt-sub">Idle</span></button>
+        </div>
       </div>
     </div>
 
@@ -664,7 +818,7 @@
       </div>
       <div class="speaker-tile grouped">
         <div class="group-dot"></div>
-        <div class="spk-icon-wrap"><span class="icon">countertop</span></div>
+        <div class="spk-icon-wrap"><span class="icon">countertops</span></div>
         <div class="spk-name">Kitchen</div>
         <div class="spk-vol">10%</div>
         <div class="spk-vol-track"><div class="spk-vol-fill" style="width:10%"></div></div>
@@ -703,10 +857,9 @@
     document.getElementById('btn-dark').classList.toggle('active', mode === 'dark');
   }
 
-  // Toggle group membership
+  // ── Toggle group membership (tap only, not drag) ──
   function toggleGroup(tile) {
     tile.classList.toggle('grouped');
-    // Update icon fill
     const icon = tile.querySelector('.spk-icon-wrap .icon');
     if (tile.classList.contains('grouped')) {
       icon.classList.add('filled');
@@ -715,7 +868,7 @@
     }
   }
 
-  // Volume overlay toggle
+  // ── Volume overlay toggle ──
   function toggleVol(btn) {
     const card = btn.closest('.card');
     const overlay = card.querySelector('.vol-overlay');
@@ -725,10 +878,9 @@
     btn.closest('.vol-overlay').classList.remove('active');
   }
 
-  // Volume slider interaction
+  // ── Volume slider (overlay) ──
   document.querySelectorAll('.vol-slider-track').forEach(track => {
     let dragging = false;
-
     function updateVol(e) {
       const rect = track.getBoundingClientRect();
       const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
@@ -737,55 +889,115 @@
       const pctEl = track.parentElement.querySelector('.vol-pct');
       if (pctEl) pctEl.textContent = Math.round(pct) + '%';
     }
-
     track.addEventListener('pointerdown', (e) => {
-      dragging = true;
-      track.setPointerCapture(e.pointerId);
-      updateVol(e);
+      dragging = true; track.setPointerCapture(e.pointerId); updateVol(e);
     });
     track.addEventListener('pointermove', (e) => { if (dragging) updateVol(e); });
     track.addEventListener('pointerup', () => { dragging = false; });
   });
 
-  // Speaker tile drag-to-volume
+  // ── Speaker tile: drag-to-volume (lighting card pattern) ──
+  // 6px threshold before drag activates
+  // Floating pill pops above tile during drag
+  // Tap (no drag) toggles group membership
+  const DRAG_THRESHOLD = 6;
+  const DRAG_SCALE = 1.2; // px of drag per 1% volume
+
   document.querySelectorAll('.speaker-tile').forEach(tile => {
-    let startX = 0, startVol = 0, isDragging = false;
+    let startX = 0, startVol = 0, isDragging = false, pointerId = null;
 
     tile.addEventListener('pointerdown', (e) => {
+      // Don't interfere with scroll
       startX = e.clientX;
       const fill = tile.querySelector('.spk-vol-fill');
       startVol = parseFloat(fill.style.width) || 0;
       isDragging = false;
+      pointerId = e.pointerId;
       tile.setPointerCapture(e.pointerId);
     });
 
     tile.addEventListener('pointermove', (e) => {
+      if (pointerId === null) return;
       const dx = e.clientX - startX;
-      if (Math.abs(dx) > 6) {
+
+      if (!isDragging && Math.abs(dx) > DRAG_THRESHOLD) {
         isDragging = true;
-        const newVol = Math.max(0, Math.min(100, startVol + (dx / 1.5)));
+        tile.classList.add('sliding');
+      }
+
+      if (isDragging) {
+        const newVol = Math.max(0, Math.min(100, startVol + (dx / DRAG_SCALE)));
+        const rounded = Math.round(newVol);
         const fill = tile.querySelector('.spk-vol-fill');
         const volLabel = tile.querySelector('.spk-vol');
-        fill.style.width = newVol + '%';
-        volLabel.textContent = Math.round(newVol) + '%';
+        const pill = tile.querySelector('.spk-floating-pill');
+
+        fill.style.width = rounded + '%';
+        volLabel.textContent = rounded + '%';
+        if (pill) pill.textContent = rounded + '%';
       }
     });
 
     tile.addEventListener('pointerup', (e) => {
       if (isDragging) {
-        e.stopPropagation();
-        // Don't toggle group on drag
+        tile.classList.remove('sliding');
+        isDragging = false;
+      } else {
+        // Tap: toggle group
+        toggleGroup(tile);
       }
+      pointerId = null;
     });
 
-    // Override click to prevent toggle during drag
-    tile.addEventListener('click', (e) => {
-      if (isDragging) {
-        e.stopPropagation();
-        e.preventDefault();
-        isDragging = false;
-      }
-    }, true);
+    tile.addEventListener('pointercancel', () => {
+      tile.classList.remove('sliding');
+      isDragging = false;
+      pointerId = null;
+    });
+  });
+
+  // ── Source dropdown ──
+  function toggleSource(btn) {
+    const dd = btn.nextElementSibling;
+    const isOpen = dd.classList.contains('open');
+
+    // Close all other dropdowns first
+    document.querySelectorAll('.source-dd.open').forEach(d => {
+      d.classList.remove('open');
+      d.previousElementSibling.setAttribute('aria-expanded', 'false');
+    });
+
+    if (!isOpen) {
+      dd.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  function selectSource(opt, name, iconName) {
+    const wrap = opt.closest('.source-wrap');
+    const btn = wrap.querySelector('.source-btn');
+    const dd = wrap.querySelector('.source-dd');
+
+    // Update active state
+    dd.querySelectorAll('.source-opt').forEach(o => o.classList.remove('active'));
+    opt.classList.add('active');
+
+    // Update button label + icon
+    btn.innerHTML = `<span class="icon">${iconName}</span> ${name} <span class="icon chevron">expand_more</span>`;
+
+    // Close dropdown
+    dd.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+
+  // Close dropdown on outside click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.source-wrap')) {
+      document.querySelectorAll('.source-dd.open').forEach(d => {
+        d.classList.remove('open');
+        d.previousElementSibling.setAttribute('aria-expanded', 'false');
+      });
+    }
   });
 </script>
 

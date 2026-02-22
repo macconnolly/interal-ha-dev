@@ -138,7 +138,7 @@ const CARD_STYLES = `
     border: 1px solid transparent;
     box-shadow: var(--tile-shadow-rest);
     cursor: pointer; user-select: none;
-    touch-action: pan-y;
+    touch-action: none;
     min-height: 62px;
     min-width: 0;
     overflow: visible;
@@ -427,9 +427,11 @@ class TunetSpeakerGridCard extends HTMLElement {
 
     // Drag state
     this._dragEntity = null;
+    this._dragTile = null;
     this._dragStartX = 0;
     this._dragActive = false;
     this._dragVol = 0;
+    this._dragCurrentVol = 0;
     this._volDebounce = null;
 
     // Long-press state
@@ -609,6 +611,18 @@ class TunetSpeakerGridCard extends HTMLElement {
     this._hass.callService(domain, service, data);
   }
 
+  _sendVolumeSet(entityId, percent) {
+    const pct = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+    if (!entityId) return;
+    this._callService('media_player', 'volume_set', {
+      entity_id: entityId,
+      volume_level: pct / 100,
+    });
+    this._serviceCooldown = true;
+    clearTimeout(this._cooldownTimer);
+    this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
+  }
+
   _getEffectiveSpeakers() {
     if (this._config.speakers && this._config.speakers.length > 0) {
       return this._config.speakers;
@@ -768,13 +782,22 @@ class TunetSpeakerGridCard extends HTMLElement {
   /* ── Tile Pointer Handling ──────────────────────── */
 
   _onTilePointerDown(entity, e, tile) {
+    if (e.cancelable) e.preventDefault();
     this._dragEntity = entity;
+    this._dragTile = tile || null;
     this._dragStartX = e.clientX;
     this._dragActive = false;
     this._longPressFired = false;
 
     const playerState = this._hass && this._hass.states[entity];
     this._dragVol = playerState ? Math.round((playerState.attributes.volume_level || 0) * 100) : 0;
+    this._dragCurrentVol = this._dragVol;
+
+    try {
+      if (tile && typeof tile.setPointerCapture === 'function') tile.setPointerCapture(e.pointerId);
+    } catch (_) {
+      // no-op
+    }
 
     clearTimeout(this._longPressTimer);
     this._longPressTimer = setTimeout(() => {
@@ -791,6 +814,7 @@ class TunetSpeakerGridCard extends HTMLElement {
 
   _onPointerMove(e) {
     if (!this._dragEntity) return;
+    if (e.cancelable) e.preventDefault();
 
     const dx = e.clientX - this._dragStartX;
     const THRESHOLD = 4;
@@ -806,6 +830,7 @@ class TunetSpeakerGridCard extends HTMLElement {
     }
 
     const pct = Math.max(0, Math.min(100, this._dragVol + Math.round(dx / 2)));
+    this._dragCurrentVol = pct;
 
     const refs = this._tileRefs.get(this._dragEntity);
     if (refs) {
@@ -815,15 +840,11 @@ class TunetSpeakerGridCard extends HTMLElement {
       refs.tile.setAttribute('aria-valuenow', String(pct));
     }
 
+    const targetEntity = this._dragEntity;
+    const targetVolume = pct;
     clearTimeout(this._volDebounce);
     this._volDebounce = setTimeout(() => {
-      this._callService('media_player', 'volume_set', {
-        entity_id: this._dragEntity,
-        volume_level: pct / 100,
-      });
-      this._serviceCooldown = true;
-      clearTimeout(this._cooldownTimer);
-      this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
+      this._sendVolumeSet(targetEntity, targetVolume);
     }, 200);
   }
 
@@ -837,6 +858,11 @@ class TunetSpeakerGridCard extends HTMLElement {
     if (refs) {
       refs.tile.classList.remove('dragging');
     }
+
+    clearTimeout(this._volDebounce);
+    if (this._dragActive) {
+      this._sendVolumeSet(entity, this._dragCurrentVol);
+    }
     document.body.style.cursor = '';
 
     if (!this._dragActive && !this._longPressFired) {
@@ -845,7 +871,16 @@ class TunetSpeakerGridCard extends HTMLElement {
       });
     }
 
+    try {
+      if (this._dragTile && typeof this._dragTile.releasePointerCapture === 'function') {
+        this._dragTile.releasePointerCapture(e.pointerId);
+      }
+    } catch (_) {
+      // no-op
+    }
+
     this._dragEntity = null;
+    this._dragTile = null;
     this._dragActive = false;
   }
 

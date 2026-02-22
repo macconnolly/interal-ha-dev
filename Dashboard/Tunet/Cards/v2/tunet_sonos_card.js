@@ -245,7 +245,7 @@ const SPEAKER_TILE_STYLES = `
     position: relative;
     cursor: pointer;
     user-select: none;
-    touch-action: pan-y;
+    touch-action: none;
     transition:
       transform .3s var(--spring),
       box-shadow .3s ease,
@@ -523,7 +523,7 @@ const TUNET_SONOS_TEMPLATE = `
    Constants
    =============================================================== */
 
-const DRAG_THRESHOLD = 6;
+const DRAG_THRESHOLD = 4;
 const DRAG_SCALE = 1.2; // px per 1% volume
 const LONG_PRESS_MS = 500;
 
@@ -1141,6 +1141,7 @@ class TunetSonosCard extends HTMLElement {
   /* ── Tile Pointer Handling ───────────────────────── */
 
   _onTilePointerDown(entity, e, tile) {
+    if (e.cancelable) e.preventDefault();
     this._dragEntity = entity;
     this._dragStartX = e.clientX;
     this._dragActive = false;
@@ -1150,6 +1151,12 @@ class TunetSonosCard extends HTMLElement {
     const playerState = this._hass && this._hass.states[entity];
     this._dragVol = playerState ? Math.round((playerState.attributes.volume_level || 0) * 100) : 0;
     this._dragCurrentVol = this._dragVol;
+
+    try {
+      if (tile && typeof tile.setPointerCapture === 'function') tile.setPointerCapture(e.pointerId);
+    } catch (_) {
+      // no-op
+    }
 
     clearTimeout(this._longPressTimer);
     if (this._holdFromIcon) {
@@ -1168,6 +1175,7 @@ class TunetSonosCard extends HTMLElement {
 
   _onPointerMove(e) {
     if (!this._dragEntity) return;
+    if (e.cancelable) e.preventDefault();
     const dx = e.clientX - this._dragStartX;
 
     if (!this._dragActive) {
@@ -1196,7 +1204,7 @@ class TunetSonosCard extends HTMLElement {
     }, 200);
   }
 
-  _onPointerUp() {
+  _onPointerUp(e) {
     if (!this._dragEntity) return;
     clearTimeout(this._longPressTimer);
 
@@ -1220,6 +1228,14 @@ class TunetSonosCard extends HTMLElement {
     this._dragEntity = null;
     this._dragActive = false;
     this._holdFromIcon = false;
+
+    try {
+      if (refs?.tile && typeof refs.tile.releasePointerCapture === 'function') {
+        refs.tile.releasePointerCapture(e.pointerId);
+      }
+    } catch (_) {
+      // no-op
+    }
   }
 
   /* ── Full Update ─────────────────────────────────── */

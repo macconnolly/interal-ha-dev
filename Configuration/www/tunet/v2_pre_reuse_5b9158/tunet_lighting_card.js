@@ -350,8 +350,12 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* Max rows constraint (grid mode) */
   :host([data-max-rows]) .light-grid {
-    max-height: calc(var(--max-rows) * var(--grid-row, 124px) + (var(--max-rows) - 1) * 10px);
-    overflow: hidden;
+    /* Reserve headroom so drag pill and shadow can rise above first row without clipping. */
+    --pill-overflow-top: 16px;
+    padding-top: var(--pill-overflow-top);
+    max-height: calc(var(--max-rows) * var(--grid-row, 124px) + (var(--max-rows) - 1) * 10px + var(--pill-overflow-top));
+    overflow-x: hidden;
+    overflow-y: hidden;
   }
 
   /* Scroll layout overrides */

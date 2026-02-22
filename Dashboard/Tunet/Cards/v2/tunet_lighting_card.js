@@ -75,6 +75,10 @@ ${LABEL_BUTTON_PATTERN}
     --text-muted: rgba(248,250,252, 0.45);
   }
 
+  :host(.dark) .light-grid tunet-light-tile {
+    --pill-bg: rgba(15,23,42, 0.98);
+  }
+
   /* ── Card surface overrides ─────────────────── */
   .card {
     width: 100%;
@@ -229,8 +233,11 @@ ${LABEL_BUTTON_PATTERN}
 
   /* Max rows constraint (grid mode) */
   :host([data-max-rows]) .light-grid {
-    max-height: calc(var(--max-rows) * var(--grid-row, 124px) + (var(--max-rows) - 1) * 10px);
-    overflow: hidden;
+    --pill-overflow-top: 16px;
+    padding-top: var(--pill-overflow-top);
+    max-height: calc(var(--max-rows) * var(--grid-row, 124px) + (var(--max-rows) - 1) * 10px + var(--pill-overflow-top));
+    overflow-x: hidden;
+    overflow-y: hidden;
   }
 
   /* Scroll layout overrides */
@@ -983,7 +990,76 @@ class TunetLightingCard extends HTMLElement {
     if (!ae) return [];
     const entity = this._getEntity(ae);
     if (!entity || !entity.attributes) return [];
-    return entity.attributes.manual_control || [];
+    const attrs = entity.attributes;
+    const raw =
+      attrs.manual_control ??
+      attrs.manual_controls ??
+      attrs.manually_controlled ??
+      attrs.manual_controlled ??
+      attrs.manual_controlled_lights ??
+      [];
+    return this._coerceEntityIdList(raw);
+  }
+
+  _normalizeEntityId(value) {
+    if (typeof value !== 'string') return '';
+    const normalized = value.trim().replace(/^['"]|['"]$/g, '').toLowerCase();
+    return /^[a-z0-9_]+\.[a-z0-9_]+$/.test(normalized) ? normalized : '';
+  }
+
+  _coerceEntityIdList(value) {
+    const out = [];
+    const seen = new Set();
+    const push = (candidate) => {
+      const id = this._normalizeEntityId(candidate);
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      out.push(id);
+    };
+
+    const walk = (input) => {
+      if (input == null) return;
+      if (Array.isArray(input)) {
+        for (const item of input) walk(item);
+        return;
+      }
+      if (typeof input === 'string') {
+        const trimmed = input.trim();
+        if (!trimmed) return;
+        if (
+          (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+          (trimmed.startsWith('{') && trimmed.endsWith('}'))
+        ) {
+          try {
+            walk(JSON.parse(trimmed));
+            return;
+          } catch (_) {
+            // Fall through to regex extraction for malformed strings.
+          }
+        }
+        const matches = trimmed.match(/[a-z0-9_]+\.[a-z0-9_]+/gi);
+        if (matches) {
+          for (const match of matches) push(match);
+          return;
+        }
+        push(trimmed);
+        return;
+      }
+      if (typeof input === 'object') {
+        if (typeof input.entity_id === 'string') push(input.entity_id);
+        if (typeof input.entity === 'string') push(input.entity);
+        if (typeof input.light === 'string') push(input.light);
+        if (Array.isArray(input.entities)) walk(input.entities);
+        if (Array.isArray(input.lights)) walk(input.lights);
+        for (const [key, nested] of Object.entries(input)) {
+          push(key);
+          if (nested && typeof nested === 'object') walk(nested);
+        }
+      }
+    };
+
+    walk(value);
+    return out;
   }
 
   _openMoreInfo(entityId) {
@@ -999,14 +1075,25 @@ class TunetLightingCard extends HTMLElement {
     const entity = this._getEntity(entityId);
     if (!entity) return false;
     const value = String(entity.state || '').toLowerCase();
-    return value === 'on' || value === 'true' || value === 'active' || value === 'home' || value === 'open';
+    return (
+      value === 'on' ||
+      value === 'true' ||
+      value === 'active' ||
+      value === 'home' ||
+      value === 'open' ||
+      value === 'manual' ||
+      value === 'override' ||
+      value === 'overridden' ||
+      value === 'enabled' ||
+      value === 'yes'
+    );
   }
 
   _isManualForZone(zone, adaptiveManualSet) {
     const opts = zone.options || {};
     if (typeof opts.manual_active === 'boolean') return opts.manual_active;
     if (opts.manual_entity) return this._isTruthyState(opts.manual_entity);
-    return adaptiveManualSet.has(zone.entity);
+    return adaptiveManualSet.has(String(zone.entity || '').toLowerCase());
   }
 
   _tileConfigForZone(zone, manualActive) {
@@ -1182,8 +1269,8 @@ class TunetLightingCard extends HTMLElement {
         parts.push(`<span class="amber-ic">${onCount} on</span> \u00b7 ${avgBrt}%`);
       }
 
-      if (aeOn && manualCount > 0) {
-        parts.push(`<span class="adaptive-ic">Adaptive</span> \u00b7 <span class="red-ic">${manualCount} manual</span>`);
+      if (manualCount > 0) {
+        parts.push(`<span class="red-ic">${manualCount} manual</span>`);
       } else if (aeOn) {
         parts.push('<span class="adaptive-ic">Adaptive</span>');
       }

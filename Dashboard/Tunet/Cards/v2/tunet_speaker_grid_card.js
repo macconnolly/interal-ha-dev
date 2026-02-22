@@ -430,7 +430,9 @@ class TunetSpeakerGridCard extends HTMLElement {
     this._dragStartX = 0;
     this._dragActive = false;
     this._dragVol = 0;
+    this._dragCurrentVol = 0;
     this._volDebounce = null;
+    this._holdFromIcon = false;
 
     // Long-press state
     this._longPressTimer = null;
@@ -497,9 +499,13 @@ class TunetSpeakerGridCard extends HTMLElement {
     };
   }
 
+  static getConfigElement() {
+    return document.createElement(SPEAKER_GRID_EDITOR_TAG);
+  }
+
   setConfig(config) {
-    if (!config.entity) {
-      throw new Error('Please define a media_player entity');
+    if (!config || typeof config !== 'object') {
+      throw new Error('Invalid speaker-grid config');
     }
 
     const asFinite = (v, fb) => { const n = Number(v); return Number.isFinite(n) ? n : fb; };
@@ -508,7 +514,7 @@ class TunetSpeakerGridCard extends HTMLElement {
     const tileSize = tileSizeRaw === 'compact' ? 'compact' : (tileSizeRaw === 'large' ? 'large' : 'standard');
 
     this._config = {
-      entity: config.entity,
+      entity: config.entity || '',
       name: config.name || 'Speakers',
       speakers: config.speakers || [],
       coordinator_sensor: config.coordinator_sensor || 'sensor.sonos_smart_coordinator',
@@ -607,6 +613,18 @@ class TunetSpeakerGridCard extends HTMLElement {
   _callService(domain, service, data) {
     if (!this._hass) return;
     this._hass.callService(domain, service, data);
+  }
+
+  _sendVolumeSet(entityId, percent) {
+    const pct = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+    if (!entityId) return;
+    this._callService('media_player', 'volume_set', {
+      entity_id: entityId,
+      volume_level: pct / 100,
+    });
+    this._serviceCooldown = true;
+    clearTimeout(this._cooldownTimer);
+    this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
   }
 
   _getEffectiveSpeakers() {
@@ -772,21 +790,25 @@ class TunetSpeakerGridCard extends HTMLElement {
     this._dragStartX = e.clientX;
     this._dragActive = false;
     this._longPressFired = false;
+    this._holdFromIcon = !!(e.target && e.target.closest && e.target.closest('.tile-icon-wrap'));
 
     const playerState = this._hass && this._hass.states[entity];
     this._dragVol = playerState ? Math.round((playerState.attributes.volume_level || 0) * 100) : 0;
+    this._dragCurrentVol = this._dragVol;
 
     clearTimeout(this._longPressTimer);
-    this._longPressTimer = setTimeout(() => {
-      if (!this._dragActive && this._dragEntity === entity) {
-        this._longPressFired = true;
-        this.dispatchEvent(new CustomEvent('hass-more-info', {
-          bubbles: true, composed: true,
-          detail: { entityId: entity },
-        }));
-        this._dragEntity = null;
-      }
-    }, 500);
+    if (this._holdFromIcon) {
+      this._longPressTimer = setTimeout(() => {
+        if (!this._dragActive && this._dragEntity === entity) {
+          this._longPressFired = true;
+          this.dispatchEvent(new CustomEvent('hass-more-info', {
+            bubbles: true, composed: true,
+            detail: { entityId: entity },
+          }));
+          this._dragEntity = null;
+        }
+      }, 500);
+    }
   }
 
   _onPointerMove(e) {
@@ -806,6 +828,7 @@ class TunetSpeakerGridCard extends HTMLElement {
     }
 
     const pct = Math.max(0, Math.min(100, this._dragVol + Math.round(dx / 2)));
+    this._dragCurrentVol = pct;
 
     const refs = this._tileRefs.get(this._dragEntity);
     if (refs) {
@@ -815,15 +838,11 @@ class TunetSpeakerGridCard extends HTMLElement {
       refs.tile.setAttribute('aria-valuenow', String(pct));
     }
 
+    const targetEntity = this._dragEntity;
+    const targetVolume = pct;
     clearTimeout(this._volDebounce);
     this._volDebounce = setTimeout(() => {
-      this._callService('media_player', 'volume_set', {
-        entity_id: this._dragEntity,
-        volume_level: pct / 100,
-      });
-      this._serviceCooldown = true;
-      clearTimeout(this._cooldownTimer);
-      this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
+      this._sendVolumeSet(targetEntity, targetVolume);
     }, 200);
   }
 
@@ -839,6 +858,11 @@ class TunetSpeakerGridCard extends HTMLElement {
     }
     document.body.style.cursor = '';
 
+    if (this._dragActive) {
+      clearTimeout(this._volDebounce);
+      this._sendVolumeSet(entity, this._dragCurrentVol);
+    }
+
     if (!this._dragActive && !this._longPressFired) {
       this._callScript('sonos_toggle_group_membership', {
         target_speaker: entity,
@@ -847,6 +871,7 @@ class TunetSpeakerGridCard extends HTMLElement {
 
     this._dragEntity = null;
     this._dragActive = false;
+    this._holdFromIcon = false;
   }
 
   /* ── Full Update ────────────────────────────────── */
@@ -914,6 +939,48 @@ class TunetSpeakerGridCard extends HTMLElement {
       }
     }
   }
+}
+
+const SPEAKER_GRID_EDITOR_TAG = 'tunet-speaker-grid-card-editor';
+
+if (!customElements.get(SPEAKER_GRID_EDITOR_TAG)) {
+  customElements.define(SPEAKER_GRID_EDITOR_TAG, class TunetSpeakerGridCardEditor extends HTMLElement {
+    setConfig(config) {
+      this._config = { ...(config || {}) };
+      this._render();
+    }
+
+    set hass(hass) {
+      this._hass = hass;
+      this._render();
+    }
+
+    _onValueChanged(ev) {
+      if (!ev.detail?.value) return;
+      this._config = { ...(this._config || {}), ...ev.detail.value };
+      this.dispatchEvent(new CustomEvent('config-changed', {
+        detail: { config: this._config },
+        bubbles: true,
+        composed: true,
+      }));
+    }
+
+    _render() {
+      if (!this._hass) return;
+      if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
+      this.shadowRoot.innerHTML = '';
+
+      const form = document.createElement('ha-form');
+      const formSpec = TunetSpeakerGridCard.getConfigForm();
+      form.hass = this._hass;
+      form.data = this._config || {};
+      form.schema = formSpec.schema;
+      form.computeLabel = formSpec.computeLabel;
+      form.computeHelper = formSpec.computeHelper;
+      form.addEventListener('value-changed', this._onValueChanged.bind(this));
+      this.shadowRoot.appendChild(form);
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════

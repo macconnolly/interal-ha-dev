@@ -1005,12 +1005,13 @@ export const LIGHT_TILE_PATTERN = `
     --bar-h-active: 6px;
     --bar-inset: 14px;
     --bar-bottom: 10px;
+    --pill-bg: var(--tile-bg);
     --pill-shadow: 0 10px 30px rgba(0,0,0,0.3);
     --pill-border: 1px solid rgba(255,255,255,0.1);
 
     position: relative;
     border-radius: var(--r-tile, 16px);
-    background: var(--tile-bg);
+    background: var(--pill-bg, var(--tile-bg));
     border: 1px solid var(--border-ghost, transparent);
     box-shadow: var(--shadow);
     cursor: pointer;
@@ -1326,7 +1327,7 @@ export const LIGHT_TILE_PATTERN = `
     color: var(--amber);
     font-weight: 700;
     font-size: 15px;
-    background: var(--tile-bg);
+    background: var(--pill-bg, var(--tile-bg));
     padding: 6px 20px;
     border-radius: 999px;
     box-shadow: var(--pill-shadow);

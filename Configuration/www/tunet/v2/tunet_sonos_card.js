@@ -547,7 +547,9 @@ class TunetSonosCard extends HTMLElement {
     this._dragStartX = 0;
     this._dragActive = false;
     this._dragVol = 0;
+    this._dragCurrentVol = 0;
     this._volDebounce = null;
+    this._holdFromIcon = false;
 
     // Long-press state
     this._longPressTimer = null;
@@ -741,6 +743,18 @@ class TunetSonosCard extends HTMLElement {
   _callService(domain, service, data) {
     if (!this._hass) return;
     this._hass.callService(domain, service, data);
+  }
+
+  _sendVolumeSet(entityId, percent) {
+    const pct = clamp(Math.round(Number(percent) || 0), 0, 100);
+    if (!entityId) return;
+    this._callService('media_player', 'volume_set', {
+      entity_id: entityId,
+      volume_level: pct / 100,
+    });
+    this._serviceCooldown = true;
+    clearTimeout(this._cooldownTimer);
+    this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
   }
 
   _callScript(name, data = {}) {
@@ -1131,21 +1145,25 @@ class TunetSonosCard extends HTMLElement {
     this._dragStartX = e.clientX;
     this._dragActive = false;
     this._longPressFired = false;
+    this._holdFromIcon = !!(e.target && e.target.closest && e.target.closest('.spk-icon-wrap'));
 
     const playerState = this._hass && this._hass.states[entity];
     this._dragVol = playerState ? Math.round((playerState.attributes.volume_level || 0) * 100) : 0;
+    this._dragCurrentVol = this._dragVol;
 
     clearTimeout(this._longPressTimer);
-    this._longPressTimer = setTimeout(() => {
-      if (!this._dragActive && this._dragEntity === entity) {
-        this._longPressFired = true;
-        this.dispatchEvent(new CustomEvent('hass-more-info', {
-          bubbles: true, composed: true,
-          detail: { entityId: entity },
-        }));
-        this._dragEntity = null;
-      }
-    }, LONG_PRESS_MS);
+    if (this._holdFromIcon) {
+      this._longPressTimer = setTimeout(() => {
+        if (!this._dragActive && this._dragEntity === entity) {
+          this._longPressFired = true;
+          this.dispatchEvent(new CustomEvent('hass-more-info', {
+            bubbles: true, composed: true,
+            detail: { entityId: entity },
+          }));
+          this._dragEntity = null;
+        }
+      }, LONG_PRESS_MS);
+    }
   }
 
   _onPointerMove(e) {
@@ -1162,6 +1180,7 @@ class TunetSonosCard extends HTMLElement {
     }
 
     const newVol = clamp(Math.round(this._dragVol + (dx / DRAG_SCALE)), 0, 100);
+    this._dragCurrentVol = newVol;
     const refs = this._tileRefs.get(this._dragEntity);
     if (refs) {
       refs.volEl.textContent = newVol + '%';
@@ -1169,15 +1188,11 @@ class TunetSonosCard extends HTMLElement {
       refs.volFill.style.width = newVol + '%';
     }
 
+    const targetEntity = this._dragEntity;
+    const targetVolume = newVol;
     clearTimeout(this._volDebounce);
     this._volDebounce = setTimeout(() => {
-      this._callService('media_player', 'volume_set', {
-        entity_id: this._dragEntity,
-        volume_level: newVol / 100,
-      });
-      this._serviceCooldown = true;
-      clearTimeout(this._cooldownTimer);
-      this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
+      this._sendVolumeSet(targetEntity, targetVolume);
     }, 200);
   }
 
@@ -1190,6 +1205,11 @@ class TunetSonosCard extends HTMLElement {
 
     if (refs) refs.tile.classList.remove('sliding');
 
+    if (this._dragActive) {
+      clearTimeout(this._volDebounce);
+      this._sendVolumeSet(entity, this._dragCurrentVol);
+    }
+
     if (!this._dragActive && !this._longPressFired) {
       // Tap: toggle group membership
       this._callScript('sonos_toggle_group_membership', {
@@ -1199,6 +1219,7 @@ class TunetSonosCard extends HTMLElement {
 
     this._dragEntity = null;
     this._dragActive = false;
+    this._holdFromIcon = false;
   }
 
   /* ── Full Update ─────────────────────────────────── */

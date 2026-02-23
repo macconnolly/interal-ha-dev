@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tunet v2 — Visual Test Harness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+      transition: background .3s, color .3s;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    body.light {
+      background: linear-gradient(135deg, #e8e0d8 0%, #d4ccc4 100%);
+      color: #1C1C1E;
+    }
+    body.dark {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #F5F5F7;
+    }
+
+    /* ── Toolbar ──────────────────────────────── */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      border-radius: 16px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    body.light .toolbar {
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    body.dark .toolbar {
+      background: rgba(30,41,59,0.7);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .toolbar h1 {
+      font-size: 16px;
+      font-weight: 700;
+      flex: 1;
+    }
+    .toolbar button {
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    body.light .toolbar button {
+      background: rgba(255,255,255,0.6);
+      color: #1C1C1E;
+    }
+    body.dark .toolbar button {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.1);
+      color: #F5F5F7;
+    }
+    .toolbar button:hover { transform: scale(1.03); }
+    .toolbar button:active { transform: scale(0.97); }
+    .toolbar button.active {
+      background: rgba(0,122,255,0.12);
+      border-color: rgba(0,122,255,0.3);
+      color: #007AFF;
+    }
+    body.dark .toolbar button.active {
+      background: rgba(10,132,255,0.15);
+      border-color: rgba(10,132,255,0.3);
+      color: #0A84FF;
+    }
+
+    /* ── Section headings ────────────────────── */
+    .section {
+      margin-bottom: 32px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      opacity: 0.5;
+      margin-bottom: 12px;
+    }
+    .section-desc {
+      font-size: 12px;
+      opacity: 0.4;
+      margin-bottom: 16px;
+    }
+
+    /* ── Primitive grid ──────────────────────── */
+    .prim-grid {
+      display: grid;
+      gap: 16px;
+    }
+    .prim-grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .prim-grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .prim-grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .prim-grid-6 { grid-template-columns: repeat(6, 1fr); }
+
+    .prim-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* ── Event log ───────────────────────────── */
+    .event-log {
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 11px;
+      font-family: "SF Mono", "Menlo", monospace;
+      padding: 12px;
+      border-radius: 12px;
+      margin-top: 16px;
+    }
+    body.light .event-log {
+      background: rgba(0,0,0,0.04);
+      color: #1C1C1E;
+    }
+    body.dark .event-log {
+      background: rgba(255,255,255,0.04);
+      color: #F5F5F7;
+    }
+    .event-log .ev-line {
+      padding: 2px 0;
+      opacity: 0.8;
+    }
+    .event-log .ev-line:first-child { opacity: 1; }
+    .event-log .ev-time { color: #8E8E93; }
+    .event-log .ev-name { color: #007AFF; font-weight: 600; }
+    body.dark .event-log .ev-name { color: #0A84FF; }
+
+    /* ── Tile container (for light tiles) ───── */
+    .tile-container {
+      width: 130px;
+      height: 124px;
+    }
+    .tile-container.compact {
+      height: 106px;
+    }
+
+    /* ── Card container (for full composer) ─── */
+    .card-container {
+      max-width: 500px;
+    }
+
+    @media (max-width: 600px) {
+      .prim-grid-3 { grid-template-columns: repeat(2, 1fr); }
+      .prim-grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .prim-grid-6 { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body class="light">
+
+<div class="toolbar" id="toolbar">
+  <h1>Tunet v2 Visual Test Harness</h1>
+  <button id="btnTheme" onclick="toggleTheme()">Dark Mode</button>
+  <button id="btnToggleLights" onclick="toggleAllLights()">Toggle Lights</button>
+  <button id="btnClearLog" onclick="clearLog()">Clear Log</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 1: Light Tiles
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Light Tile Primitives</div>
+  <div class="section-desc">tunet-light-tile — Drag-to-dim, tap-to-toggle, manual dot, accent colors</div>
+  <div class="prim-grid prim-grid-4" id="lightTileGrid"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 2: Control Buttons
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Control Button Primitives</div>
+  <div class="section-desc">tunet-control-button — Toggle, selector, icon variants with accent colors</div>
+  <div class="prim-row" id="controlBtnRow"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 3: Info Tiles
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Info Tile Primitives</div>
+  <div class="section-desc">tunet-info-tile — Header entity identifier with icon, title, subtitle, accent</div>
+  <div class="prim-row" id="infoTileRow"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 4: Full Lighting Card Composer
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Lighting Card Composer (Full)</div>
+  <div class="section-desc">tunet-lighting-card — Composes light tiles + header primitives. Grid layout.</div>
+  <div class="card-container" id="composerContainer"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 5: Lighting Card (Section Surface)
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Lighting Card — Section Surface + Scroll</div>
+  <div class="section-desc">Alternate surface and scroll layout mode</div>
+  <div class="card-container" id="composerContainer2"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     EVENT LOG
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Event Log</div>
+  <div class="section-desc">Events emitted by primitives (tunet:value-commit, tunet:action, etc.)</div>
+  <div class="event-log" id="eventLog">
+    <div class="ev-line"><span class="ev-time">--:--:--</span> Ready. Interact with components above.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MOCK HASS + COMPONENT INIT
+     ═══════════════════════════════════════════════════════ -->
+<script type="module">
+
+/* ─── Mock hass object ──────────────────────────────── */
+
+const LIGHTS_ON = true;
+
+function createMockHass(lightsOn = true) {
+  const mkLight = (friendly, state, brightness = 180, colorTemp = 370) => ({
+    entity_id: '', // will be set below
+    state: state,
+    attributes: {
+      friendly_name: friendly,
+      brightness: state === 'on' ? brightness : undefined,
+      color_temp: state === 'on' ? colorTemp : undefined,
+      color_temp_kelvin: state === 'on' ? Math.round(1000000 / colorTemp) : undefined,
+      supported_color_modes: ['color_temp', 'brightness'],
+      icon: 'mdi:lightbulb',
+      entity_id: undefined, // for groups
+    },
+    last_changed: new Date().toISOString(),
+    last_updated: new Date().toISOString(),
+  });
+
+  const onState = lightsOn ? 'on' : 'off';
+  const brt = lightsOn ? 180 : 0;
+
+  const states = {
+    'light.living_room_lights': mkLight('Living Room Lights', onState, 200, 370),
+    'light.kitchen_island_lights': mkLight('Kitchen Island', onState, 180, 330),
+    'light.bedroom_primary_lights': mkLight('Bedroom', lightsOn ? 'off' : 'off', 0, 370),
+    'light.accent_spots_lights': mkLight('Accent Spots', onState, 140, 400),
+    'light.recessed_ceiling_lights': mkLight('Ceiling', onState, 70, 370),
+    'light.column_lights': mkLight('Columns', onState, 200, 320),
+    'light.living_room_couch_lamp': mkLight('Couch Lamp', onState, 200, 370),
+    'light.living_room_floor_lamp': mkLight('Floor Lamp', lightsOn ? 'off' : 'off', 0, 370),
+    'light.living_room_spot_lights': mkLight('Spot Lights', onState, 160, 400),
+    'light.all_adaptive_lights': {
+      entity_id: 'light.all_adaptive_lights',
+      state: onState,
+      attributes: {
+        friendly_name: 'All Adaptive Lights',
+        entity_id: [
+          'light.living_room_lights',
+          'light.kitchen_island_lights',
+          'light.bedroom_primary_lights',
+          'light.accent_spots_lights',
+          'light.recessed_ceiling_lights',
+          'light.column_lights',
+        ],
+        icon: 'mdi:lightbulb-group',
+      },
+      last_changed: new Date().toISOString(),
+      last_updated: new Date().toISOString(),
+    },
+    'switch.adaptive_lighting_main_living': {
+      entity_id: 'switch.adaptive_lighting_main_living',
+      state: 'on',
+      attributes: {
+        friendly_name: 'Adaptive Lighting Main Living',
+        manual_control: lightsOn ? ['light.living_room_couch_lamp'] : [],
+      },
+      last_changed: new Date().toISOString(),
+      last_updated: new Date().toISOString(),
+    },
+    'sensor.oal_system_status': {
+      entity_id: 'sensor.oal_system_status',
+      state: lightsOn ? 'Active' : 'Idle',
+      attributes: {
+        friendly_name: 'OAL System Status',
+        active_configuration: 'Adaptive',
+        lights_on: lightsOn ? 5 : 0,
+        lights_total: 6,
+        zones_adaptive: lightsOn ? 5 : 6,
+        active_zonal_overrides: lightsOn ? 1 : 0,
+        active_modifiers: lightsOn ? [{ name: 'Partlycloudy', value: 9 }] : [],
+        sun_phase: 'afternoon',
+      },
+      last_changed: new Date().toISOString(),
+      last_updated: new Date().toISOString(),
+    },
+    'input_select.oal_active_configuration': {
+      entity_id: 'input_select.oal_active_configuration',
+      state: 'Adaptive',
+      attributes: {
+        friendly_name: 'OAL Configuration',
+        options: ['Adaptive', 'Full Bright', 'Dim Ambient', 'Warm Ambient', 'TV Mode', 'Sleep'],
+      },
+      last_changed: new Date().toISOString(),
+      last_updated: new Date().toISOString(),
+    },
+    'climate.dining_room': {
+      entity_id: 'climate.dining_room',
+      state: 'heat_cool',
+      attributes: {
+        friendly_name: 'Dining Room',
+        current_temperature: 71,
+        current_humidity: 27,
+        hvac_action: 'cooling',
+        temperature: 72,
+      },
+      last_changed: new Date().toISOString(),
+      last_updated: new Date().toISOString(),
+    },
+  };
+
+  // Set entity_id on each
+  for (const [id, obj] of Object.entries(states)) {
+    obj.entity_id = id;
+  }
+
+  return {
+    states,
+    themes: { darkMode: document.body.classList.contains('dark') },
+    callService: (domain, service, data) => {
+      logEvent('service-call', `${domain}.${service}`, JSON.stringify(data));
+      return Promise.resolve();
+    },
+    language: 'en',
+  };
+}
+
+let mockHass = createMockHass(true);
+let lightsOn = true;
+
+/* ─── Event logging ─────────────────────────────────── */
+
+function logEvent(type, name, detail) {
+  const log = document.getElementById('eventLog');
+  const now = new Date().toLocaleTimeString('en-US', { hour12: false });
+  const line = document.createElement('div');
+  line.className = 'ev-line';
+  line.innerHTML = `<span class="ev-time">${now}</span> <span class="ev-name">${type}</span> ${name} ${detail || ''}`;
+  log.prepend(line);
+  // Cap at 50 lines
+  while (log.children.length > 50) log.lastChild.remove();
+}
+
+// Listen for all tunet events at document level
+for (const evName of ['tunet:value-commit', 'tunet:value-preview', 'tunet:action', 'tunet:request-more-info', 'hass-more-info']) {
+  document.addEventListener(evName, (e) => {
+    const d = e.detail || {};
+    const summary = d.entity ? `entity=${d.entity}` : '';
+    const extra = d.value != null ? ` value=${d.value}` : '';
+    const actionInfo = d.action ? ` action=${typeof d.action === 'object' ? d.action.action : d.action}` : '';
+    logEvent(evName, summary, extra + actionInfo);
+  });
+}
+
+/* ─── Theme toggle ──────────────────────────────────── */
+
+window.toggleTheme = () => {
+  const body = document.body;
+  const isDark = body.classList.toggle('dark');
+  body.classList.toggle('light', !isDark);
+  document.getElementById('btnTheme').textContent = isDark ? 'Light Mode' : 'Dark Mode';
+
+  // Refresh hass with new dark mode state
+  mockHass = createMockHass(lightsOn);
+  refreshAll();
+};
+
+window.toggleAllLights = () => {
+  lightsOn = !lightsOn;
+  mockHass = createMockHass(lightsOn);
+  refreshAll();
+  document.getElementById('btnToggleLights').textContent = lightsOn ? 'Turn Off' : 'Turn On';
+};
+
+window.clearLog = () => {
+  document.getElementById('eventLog').innerHTML = '<div class="ev-line"><span class="ev-time">--:--:--</span> Log cleared.</div>';
+};
+
+/* ─── Track all created elements for hass refresh ───── */
+
+const allElements = [];
+
+function refreshAll() {
+  for (const el of allElements) {
+    el.hass = mockHass;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 1: Light Tiles
+   ═══════════════════════════════════════════════════════ */
+
+await import('./tunet_light_tile.js');
+await import('./tunet_control_button.js');
+await import('./tunet_info_tile.js');
+
+const lightTileConfigs = [
+  { entity: 'light.living_room_lights', name: 'Living', icon: 'lightbulb' },
+  { entity: 'light.kitchen_island_lights', name: 'Kitchen', icon: 'kitchen' },
+  { entity: 'light.bedroom_primary_lights', name: 'Bedroom', icon: 'bed' },
+  { entity: 'light.accent_spots_lights', name: 'Spots', icon: 'highlight' },
+];
+
+const lightGrid = document.getElementById('lightTileGrid');
+for (const cfg of lightTileConfigs) {
+  const container = document.createElement('div');
+  container.className = 'tile-container';
+  const tile = document.createElement('tunet-light-tile');
+  tile.setConfig(cfg);
+  tile.hass = mockHass;
+  container.appendChild(tile);
+  lightGrid.appendChild(container);
+  allElements.push(tile);
+}
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 2: Control Buttons
+   ═══════════════════════════════════════════════════════ */
+
+const ctrlBtnConfigs = [
+  { icon: 'power_settings_new', label: 'All Off', variant: 'toggle', entity: 'light.all_adaptive_lights' },
+  { icon: 'auto_awesome', label: 'Adaptive', variant: 'toggle', entity: 'switch.adaptive_lighting_main_living', accent: 'amber' },
+  { icon: 'tune', label: 'Mode', variant: 'selector', entity: 'input_select.oal_active_configuration' },
+  { icon: 'bedtime', variant: 'icon', accent: 'blue' },
+  { icon: 'bed', variant: 'icon', accent: 'purple' },
+];
+
+const ctrlRow = document.getElementById('controlBtnRow');
+for (const cfg of ctrlBtnConfigs) {
+  const btn = document.createElement('tunet-control-button');
+  btn.setConfig({
+    ...cfg,
+    tap_action: { action: 'toggle', entity: cfg.entity },
+    hold_action: { action: 'more-info', entity: cfg.entity },
+  });
+  btn.hass = mockHass;
+  ctrlRow.appendChild(btn);
+  allElements.push(btn);
+}
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 3: Info Tiles
+   ═══════════════════════════════════════════════════════ */
+
+const infoConfigs = [
+  { entity: 'sensor.oal_system_status', icon: 'lightbulb', title: 'Lighting', subtitle: 'auto', accent: 'amber' },
+  { entity: 'climate.dining_room', icon: 'thermostat', title: 'Climate', subtitle: '71°F · Cooling', accent: 'blue' },
+  { icon: 'weekend', title: 'Living Room', subtitle: '4 lights on', accent: 'green' },
+  { icon: 'bed', title: 'Bedroom', subtitle: 'Off', accent: 'purple' },
+];
+
+const infoRow = document.getElementById('infoTileRow');
+for (const cfg of infoConfigs) {
+  const tile = document.createElement('tunet-info-tile');
+  tile.setConfig({
+    ...cfg,
+    tap_action: { action: 'more-info', entity: cfg.entity },
+    hold_action: { action: 'more-info', entity: cfg.entity },
+  });
+  tile.hass = mockHass;
+  infoRow.appendChild(tile);
+  allElements.push(tile);
+}
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 4: Full Lighting Card (Grid)
+   ═══════════════════════════════════════════════════════ */
+
+await import('./tunet_lighting_card.js');
+
+const composerEl = document.createElement('tunet-lighting-card');
+composerEl.setConfig({
+  name: 'Lighting',
+  layout: 'grid',
+  columns: 3,
+  rows: 2,
+  tile_size: 'compact',
+  expand_groups: false,
+  show_adaptive_toggle: true,
+  adaptive_entity: 'switch.adaptive_lighting_main_living',
+  primary_entity: 'sensor.oal_system_status',
+  zones: [
+    { entity: 'light.living_room_lights', name: 'Living', icon: 'lightbulb' },
+    { entity: 'light.kitchen_island_lights', name: 'Kitchen', icon: 'kitchen' },
+    { entity: 'light.bedroom_primary_lights', name: 'Bedroom', icon: 'bed' },
+    { entity: 'light.accent_spots_lights', name: 'Spots', icon: 'highlight' },
+    { entity: 'light.recessed_ceiling_lights', name: 'Ceiling', icon: 'light' },
+    { entity: 'light.column_lights', name: 'Columns', icon: 'view_column' },
+  ],
+});
+composerEl.hass = mockHass;
+document.getElementById('composerContainer').appendChild(composerEl);
+allElements.push(composerEl);
+
+/* ═══════════════════════════════════════════════════════
+   SECTION 5: Lighting Card (Section Surface + Scroll)
+   ═══════════════════════════════════════════════════════ */
+
+const composerEl2 = document.createElement('tunet-lighting-card');
+composerEl2.setConfig({
+  name: 'Lighting — Scroll',
+  surface: 'section',
+  layout: 'scroll',
+  scroll_rows: 2,
+  columns: 3,
+  tile_size: 'standard',
+  expand_groups: false,
+  show_adaptive_toggle: false,
+  primary_entity: 'sensor.oal_system_status',
+  zones: [
+    { entity: 'light.living_room_lights', name: 'Living', icon: 'lightbulb' },
+    { entity: 'light.kitchen_island_lights', name: 'Kitchen', icon: 'kitchen' },
+    { entity: 'light.bedroom_primary_lights', name: 'Bedroom', icon: 'bed' },
+    { entity: 'light.accent_spots_lights', name: 'Spots', icon: 'highlight' },
+    { entity: 'light.recessed_ceiling_lights', name: 'Ceiling', icon: 'light' },
+    { entity: 'light.column_lights', name: 'Columns', icon: 'view_column' },
+    { entity: 'light.living_room_couch_lamp', name: 'Couch', icon: 'lamp' },
+    { entity: 'light.living_room_floor_lamp', name: 'Floor', icon: 'lamp' },
+    { entity: 'light.living_room_spot_lights', name: 'L. Spots', icon: 'highlight' },
+  ],
+});
+composerEl2.hass = mockHass;
+document.getElementById('composerContainer2').appendChild(composerEl2);
+allElements.push(composerEl2);
+
+/* ─── Initial log ───────────────────────────────────── */
+logEvent('init', 'harness', `${allElements.length} elements created, mock hass with ${Object.keys(mockHass.states).length} entities`);
+
+</script>
+</body>
+</html>

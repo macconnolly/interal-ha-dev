@@ -1,5 +1,5 @@
 /**
- * Tunet Lighting Card  v3.0.1 Beta
+ * Tunet Lighting Card  v3.2.0
  * ──────────────────────────────────────────────────────────────
  * Complete rewrite aligned to Tunet Design Language v8.0 by Mac
  * Reference: tunet_climate_card.js (gold standard)
@@ -29,7 +29,7 @@
  * ──────────────────────────────────────────────────────────────
  */
 
-const LIGHTING_CARD_VERSION = '3.1.0';
+const LIGHTING_CARD_VERSION = '3.2.0';
 
 if (!window.TunetCardFoundation) {
   window.TunetCardFoundation = {
@@ -166,9 +166,9 @@ const LIGHTING_STYLES = `
     /* Radii */
     --r-card: 24px;
     --r-section: 32px;
-    --r-tile: 16px;
+    --r-tile: 22px;
     --r-pill: 999px;
-    --r-track: 4px;
+    --r-track: 99px;
 
     /* Section Surface */
     --section-bg: rgba(255,255,255, 0.45);
@@ -202,6 +202,7 @@ const LIGHTING_STYLES = `
 
     /* Tile Surfaces */
     --tile-bg: rgba(255,255,255, 0.92);
+    --border-ghost: transparent;
 
     color-scheme: light;
     display: block;
@@ -258,6 +259,7 @@ const LIGHTING_STYLES = `
     --toggle-knob: rgba(255,255,255, 0.92);
 
     --tile-bg: rgba(30,41,59, 0.90);
+    --border-ghost: rgba(255,255,255, 0.05);
 
     --section-bg: rgba(30,41,59, 0.60);
     --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
@@ -280,7 +282,7 @@ const LIGHTING_STYLES = `
 
   /* ── Icons (Design Language §6) ──────────────────── */
   .icon {
-    font-family: 'Material Symbols Outlined', 'Material Symbols Rounded';
+    font-family: 'Material Symbols Rounded';
     font-weight: normal;
     font-style: normal;
     display: inline-flex;
@@ -294,13 +296,9 @@ const LIGHTING_STYLES = `
     vertical-align: middle;
     flex-shrink: 0;
     -webkit-font-smoothing: antialiased;
-    --ms-fill: 0;
-    --ms-wght: 100;
-    --ms-grad: 200;
-    --ms-opsz: 20;
-    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
-  .icon.filled { --ms-fill: 1; }
+  .icon.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   .icon-20 { font-size: 20px; width: 20px; height: 20px; }
   .icon-18 { font-size: 18px; width: 18px; height: 18px; }
   .icon-16 { font-size: 16px; width: 16px; height: 16px; }
@@ -606,7 +604,6 @@ const LIGHTING_STYLES = `
   .light-grid {
     display: grid;
     grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
-    grid-auto-rows: var(--grid-row, 124px);
     gap: 10px;
     width: 100%;
     min-width: 0;
@@ -615,7 +612,7 @@ const LIGHTING_STYLES = `
 
   /* Max rows constraint (grid mode) */
   :host([data-max-rows]) .light-grid {
-    max-height: calc(var(--max-rows) * var(--grid-row, 124px) + (var(--max-rows) - 1) * 10px);
+    grid-template-rows: repeat(var(--max-rows, 2), auto);
     overflow: hidden;
   }
 
@@ -643,6 +640,7 @@ const LIGHTING_STYLES = `
     background: var(--tile-bg);
     border-radius: var(--r-tile);
     box-shadow: var(--tile-shadow-rest);
+    aspect-ratio: 1 / 0.95;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -651,10 +649,10 @@ const LIGHTING_STYLES = `
     cursor: pointer;
     user-select: none;
     touch-action: none;
-    border: 1px solid transparent;
+    border: 1px solid var(--border-ghost, transparent);
     overflow: visible;
     min-height: 0;
-    height: 100%;
+    padding: 10px 8px 18px;
     transition:
       transform .2s cubic-bezier(0.34, 1.56, 0.64, 1),
       box-shadow .2s ease,
@@ -716,8 +714,7 @@ const LIGHTING_STYLES = `
     border: 1px solid var(--amber-border);
   }
   .l-tile.on .zone-val { color: var(--amber); }
-  .l-tile.on .progress-fill { background: rgba(212,133,10, 0.90); }
-  :host(.dark) .l-tile.on .progress-fill { background: rgba(251,191,36, 0.90); }
+  .l-tile.on .progress-fill { background: var(--amber); opacity: 0.9; }
   .l-tile.on .tile-icon-wrap .icon {
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
@@ -739,10 +736,9 @@ const LIGHTING_STYLES = `
     transform: translate(-50%, -50%);
     color: var(--amber);
     font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 0.2px;
+    font-size: 15px;
     background: var(--tile-bg);
-    padding: 5px 16px;
+    padding: 6px 20px;
     border-radius: var(--r-pill);
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     z-index: 101;
@@ -757,7 +753,7 @@ const LIGHTING_STYLES = `
   .tile-icon-wrap {
     width: 44px;
     height: 44px;
-    border-radius: var(--r-tile);
+    border-radius: 16px;
     display: grid;
     place-items: center;
     margin-bottom: 6px;
@@ -837,10 +833,9 @@ const LIGHTING_STYLES = `
   @media (max-width: 440px) {
     .card {
       padding: 16px;
-      --r-track: 8px;
     }
     .light-grid { gap: 8px; }
-    .l-tile { min-height: 96px; }
+    .l-tile { aspect-ratio: 1 / 1.05; }
 
     :host([layout="scroll"]) .light-grid {
       grid-auto-columns: calc(44% - 6px);
@@ -861,8 +856,7 @@ const LIGHTING_TEMPLATE = `
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 
   <div class="card-wrap">
     <div class="card">
@@ -948,8 +942,7 @@ class TunetLightingCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap' },
     ];
 
     for (const cfg of links) {
@@ -1292,10 +1285,6 @@ class TunetLightingCard extends HTMLElement {
     // Set CSS custom properties
     grid.style.setProperty('--cols', this._config.columns);
     grid.style.setProperty('--scroll-rows', this._config.scroll_rows);
-    const rowHeight = this._config.tile_size === 'compact'
-      ? '106px'
-      : (this._config.tile_size === 'large' ? '142px' : '124px');
-    grid.style.setProperty('--grid-row', rowHeight);
 
     for (const zone of this._resolvedZones) {
       const tile = document.createElement('div');

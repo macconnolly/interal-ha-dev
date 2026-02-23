@@ -4,7 +4,7 @@
  * Version 2.0.0
  */
 
-const TUNET_STATUS_VERSION = '2.1.0';
+const TUNET_STATUS_VERSION = '2.2.0';
 
 if (!window.TunetCardFoundation) {
   window.TunetCardFoundation = {
@@ -222,19 +222,15 @@ const TUNET_STATUS_STYLES = `
   }
 
   .icon {
-    font-family: 'Material Symbols Outlined', 'Material Symbols Rounded';
+    font-family: 'Material Symbols Rounded';
     font-weight: normal; font-style: normal;
     display: inline-flex; align-items: center; justify-content: center;
     line-height: 1; text-transform: none; letter-spacing: normal;
     white-space: nowrap; direction: ltr; vertical-align: middle; flex-shrink: 0;
     -webkit-font-smoothing: antialiased;
-    --ms-fill: 0;
-    --ms-wght: 100;
-    --ms-grad: 200;
-    --ms-opsz: 20;
-    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
-  .icon.filled { --ms-fill: 1; }
+  .icon.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
 
   .card {
     position: relative; width: 100%;
@@ -317,13 +313,9 @@ const TUNET_STATUS_STYLES = `
     width: 30px; height: 30px;
   }
   .tile[data-accent="amber"] .tile-icon { color: var(--amber); }
-  .tile[data-accent="amber"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   .tile[data-accent="blue"] .tile-icon { color: var(--blue); }
-  .tile[data-accent="blue"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   .tile[data-accent="green"] .tile-icon { color: var(--green); }
-  .tile[data-accent="green"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   .tile[data-accent="red"] .tile-icon { color: var(--red); }
-  .tile[data-accent="red"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   .tile[data-accent="muted"] .tile-icon { color: var(--text-muted); }
 
   .tile-val {
@@ -526,8 +518,7 @@ class TunetStatusCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap' },
     ];
     for (const cfg of links) {
       if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
@@ -667,8 +658,7 @@ class TunetStatusCard extends HTMLElement {
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
     `;
 
     const tpl = document.createElement('template');
@@ -809,6 +799,7 @@ class TunetStatusCard extends HTMLElement {
         valEl: el.querySelector(`#val-${i}`),
         dotEl: el.querySelector(`#dot-${i}`),
         secEl: el.querySelector(`#sec-${i}`),
+        iconEl: el.querySelector('.tile-icon .icon'),
         ddMenuEl: tile.type === 'dropdown' ? el.querySelector(`#ddmenu-${i}`) : null,
         ddValEl: tile.type === 'dropdown' ? el.querySelector(`#ddval-${i}`) : null,
       });
@@ -934,7 +925,7 @@ class TunetStatusCard extends HTMLElement {
     if (!this._hass || !this._tileEls) return;
 
     for (const tile of this._tileEls) {
-      const { config, valEl, dotEl, secEl, ddMenuEl, ddValEl, index } = tile;
+      const { config, valEl, dotEl, secEl, iconEl, ddMenuEl, ddValEl, index } = tile;
       if (!config.entity) { if (valEl) valEl.textContent = '--'; continue; }
 
       const entity = this._hass.states[config.entity];
@@ -955,7 +946,43 @@ class TunetStatusCard extends HTMLElement {
           this._updateValueTile(valEl, dotEl, secEl, entity, config);
           break;
       }
+
+      // State-aware icon fill per v8.4 spec
+      if (iconEl) {
+        this._updateIconFill(iconEl, entity, config);
+      }
     }
+  }
+
+  _updateIconFill(iconEl, entity, config) {
+    // Telemetry tiles (no attribute, showing raw state like weather) are always filled
+    // Value tiles with attribute show system counts -- filled when value > 0
+    // Dropdown tiles -- filled (interactive selection always has a value)
+    // Timer tiles -- filled when active
+    // Indicator tiles -- filled when entity is on/active
+    const type = config.type;
+    let active = false;
+
+    if (type === 'timer') {
+      active = entity.state === 'active';
+    } else if (type === 'indicator') {
+      active = entity.state === 'on' || entity.state === 'active';
+    } else if (type === 'dropdown') {
+      // Dropdown always has a selection; treat as telemetry (always filled)
+      active = true;
+    } else {
+      // value type
+      if (config.attribute) {
+        const val = entity.attributes[config.attribute];
+        const num = Number(val);
+        active = !isNaN(num) ? num !== 0 : (val != null && val !== '' && val !== 'unknown' && val !== 'unavailable');
+      } else {
+        // Raw state display (weather, temperature sensors) -- telemetry, always filled
+        active = true;
+      }
+    }
+
+    iconEl.classList.toggle('filled', active);
   }
 
   _updateValueTile(valEl, dotEl, secEl, entity, config) {

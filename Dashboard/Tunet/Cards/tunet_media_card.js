@@ -329,7 +329,7 @@ const TUNET_MEDIA_STYLES = `
 
   /* -- Dropdown Menu -- */
   .dd-menu {
-    position: fixed; top: 0; left: 0;
+    position: absolute; top: calc(100% + 6px); right: 0;
     min-width: 220px; padding: 5px; border-radius: var(--r-tile);
     background: var(--dd-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--dd-border); box-shadow: var(--shadow-up);
@@ -689,7 +689,6 @@ class TunetMediaCard extends HTMLElement {
 
     TunetMediaCard._injectFonts();
     this._onDocClick = this._onDocClick.bind(this);
-    this._onViewportChange = this._onViewportChange.bind(this);
   }
 
   /* -- Font Injection (once globally) -- */
@@ -863,14 +862,10 @@ class TunetMediaCard extends HTMLElement {
 
   connectedCallback() {
     document.addEventListener('click', this._onDocClick);
-    window.addEventListener('resize', this._onViewportChange, { passive: true });
-    window.addEventListener('scroll', this._onViewportChange, { passive: true });
   }
 
   disconnectedCallback() {
     document.removeEventListener('click', this._onDocClick);
-    window.removeEventListener('resize', this._onViewportChange);
-    window.removeEventListener('scroll', this._onViewportChange);
     this._stopProgress();
     clearTimeout(this._volDebounce);
     clearTimeout(this._cooldownTimer);
@@ -1225,11 +1220,6 @@ class TunetMediaCard extends HTMLElement {
     }
   }
 
-  _onViewportChange() {
-    if (!this.$ || !this.$.spkMenu || !this.$.spkMenu.classList.contains('open')) return;
-    this._positionSpeakerMenu();
-  }
-
   _openSpeakerMenu() {
     if (!this.$ || !this.$.spkMenu || !this.$.spkBtn) return;
     this.$.spkMenu.classList.add('open');
@@ -1241,32 +1231,27 @@ class TunetMediaCard extends HTMLElement {
     if (!this.$ || !this.$.spkMenu || !this.$.spkBtn) return;
     this.$.spkMenu.classList.remove('open');
     this.$.spkBtn.setAttribute('aria-expanded', 'false');
-    this.$.spkMenu.style.left = '';
     this.$.spkMenu.style.top = '';
+    this.$.spkMenu.style.bottom = '';
   }
 
   _positionSpeakerMenu() {
     const { spkBtn, spkMenu } = this.$ || {};
     if (!spkBtn || !spkMenu) return;
 
+    // Default: open below (CSS handles top: calc(100% + 6px); right: 0)
+    // Flip above if menu would extend past viewport bottom
     const btnRect = spkBtn.getBoundingClientRect();
-    const menuRect = spkMenu.getBoundingClientRect();
-    const menuWidth = Math.max(menuRect.width || 220, 220);
-    const menuHeight = Math.max(menuRect.height || 260, 200);
-    const pad = 8;
+    const menuHeight = Math.max(spkMenu.offsetHeight || 200, 200);
+    const spaceBelow = window.innerHeight - btnRect.bottom - 8;
 
-    let left = btnRect.right - menuWidth;
-    if (left < pad) left = pad;
-    const maxLeft = Math.max(pad, window.innerWidth - menuWidth - pad);
-    if (left > maxLeft) left = maxLeft;
-
-    let top = btnRect.bottom + 6;
-    if (top + menuHeight > window.innerHeight - pad) {
-      top = Math.max(pad, btnRect.top - menuHeight - 6);
+    if (spaceBelow < menuHeight && btnRect.top > menuHeight + 8) {
+      spkMenu.style.top = 'auto';
+      spkMenu.style.bottom = 'calc(100% + 6px)';
+    } else {
+      spkMenu.style.top = 'calc(100% + 6px)';
+      spkMenu.style.bottom = 'auto';
     }
-
-    spkMenu.style.left = `${Math.round(left)}px`;
-    spkMenu.style.top = `${Math.round(top)}px`;
   }
 
   /* -- Speaker Dropdown Menu (dual-purpose: select + group) -- */

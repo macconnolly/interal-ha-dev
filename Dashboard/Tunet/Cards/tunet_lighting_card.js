@@ -608,12 +608,15 @@ const LIGHTING_STYLES = `
     width: 100%;
     min-width: 0;
     overflow-y: visible;
+    padding-top: 20px;
+    margin-top: -20px;
   }
 
-  /* Max rows constraint (grid mode) */
+  /* Max rows constraint (grid mode) — padding-top reserves space for floating pills */
   :host([data-max-rows]) .light-grid {
     grid-template-rows: repeat(var(--max-rows, 2), auto);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: visible;
   }
 
   /* Scroll layout overrides */

@@ -11,13 +11,13 @@
 const PAGE_STYLES = `
   :host {
     display: block;
-    --bg: #f4f4f9;
+    --bg1: #c2dde6; --bg2: #a8c8d8; --bg3: #7ba8be; --bg4: #5b8aa0;
     --text-main: #1c1c1e;
     --text-sub: #8e8e93;
     --amber: #d4850a;
   }
   :host(.dark) {
-    --bg: #0f172a;
+    --bg1: #152a33; --bg2: #162438; --bg3: #1a1f3a; --bg4: #141428;
     --text-main: #f8fafc;
     --text-sub: #94a3b8;
     --amber: #fbbf24;
@@ -26,17 +26,36 @@ const PAGE_STYLES = `
   *, *::before, *::after { box-sizing: border-box; }
 
   .page {
-    background: var(--bg);
+    position: relative;
     min-height: 100vh;
-    padding: 24px 16px;
+    padding: 32px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
     font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
     color: var(--text-main);
-    transition: background-color 0.4s ease, color 0.4s ease;
+    transition: color 0.4s ease;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background:
+      radial-gradient(ellipse 1200px 800px at 15% 10%, rgba(255,255,255,0.55), transparent 55%),
+      radial-gradient(ellipse 900px 700px at 80% 15%, rgba(255,255,255,0.35), transparent 60%),
+      linear-gradient(140deg, var(--bg1), var(--bg2) 35%, var(--bg3) 65%, var(--bg4));
+  }
+  :host(.dark) .page {
+    background:
+      radial-gradient(ellipse 1200px 800px at 15% 10%, rgba(40,100,130,0.15), transparent 55%),
+      radial-gradient(ellipse 800px 600px at 80% 85%, rgba(60,50,120,0.12), transparent 55%),
+      linear-gradient(140deg, var(--bg1), var(--bg2) 35%, var(--bg3) 65%, var(--bg4));
+  }
+  .page::before {
+    content: "";
+    position: fixed;
+    inset: -60px;
+    background: linear-gradient(160deg, var(--bg1), var(--bg3), var(--bg4));
+    filter: blur(28px) saturate(1.05);
+    z-index: -2;
   }
 
   .dashboard {
@@ -126,9 +145,15 @@ class TunetPageCard extends HTMLElement {
     const isDark = !!(hass && hass.themes && hass.themes.darkMode);
     this.classList.toggle('dark', isDark);
 
-    // Forward hass to all child cards
+    // Forward hass to all child cards (including native cards on wrappers)
     for (const child of this._childCards) {
       if (child) child.hass = hass;
+    }
+    // Also check card-slot wrappers for async-created native cards
+    if (this.shadowRoot) {
+      for (const slot of this.shadowRoot.querySelectorAll('.card-slot > div')) {
+        if (slot._nativeCard) slot._nativeCard.hass = hass;
+      }
     }
 
     // Dynamic subtitle
@@ -206,9 +231,7 @@ class TunetPageCard extends HTMLElement {
   }
 
   _createCard(config) {
-    // Handle HA native cards and custom cards
-    const helpers = window.loadCardHelpers ? window.loadCardHelpers() : null;
-
+    // Custom cards — direct instantiation
     if (config.type && config.type.startsWith('custom:')) {
       const tag = config.type.replace('custom:', '');
       const el = document.createElement(tag);
@@ -226,29 +249,26 @@ class TunetPageCard extends HTMLElement {
       return el;
     }
 
-    // Native HA cards (like 'grid') — use helpers
-    if (helpers && helpers.then) {
-      const wrapper = document.createElement('div');
-      helpers.then(h => {
-        const card = h.createCardElement(config);
+    // Native HA cards (like 'grid') — use loadCardHelpers
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'width:100%';
+
+    const createNative = async () => {
+      try {
+        const helpers = await window.loadCardHelpers();
+        const card = helpers.createCardElement(config);
         if (this._hass) card.hass = this._hass;
         wrapper.appendChild(card);
-        // Track for hass forwarding
+        // Track for hass forwarding — store on wrapper for lookup
+        wrapper._nativeCard = card;
         this._childCards.push(card);
-      });
-      return wrapper;
-    }
-
-    // Fallback: try createElement directly
-    const tag = config.type;
-    try {
-      const el = document.createElement(`hui-${tag}-card`);
-      if (typeof el.setConfig === 'function') el.setConfig(config);
-      return el;
-    } catch (e) {
-      console.warn(`[tunet-page] Could not create card type: ${tag}`);
-      return null;
-    }
+      } catch (e) {
+        console.warn(`[tunet-page] Failed to create native card type: ${config.type}`, e);
+        wrapper.innerHTML = `<div style="padding:12px;color:red;font-size:12px;">Card error: ${config.type} - ${e.message}</div>`;
+      }
+    };
+    createNative();
+    return wrapper;
   }
 
   getCardSize() {

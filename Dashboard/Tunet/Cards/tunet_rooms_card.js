@@ -104,12 +104,80 @@ const ROOM_ICON_FALLBACKS = new Set([
   'chevron_right',
 ]);
 
+const ACTION_TYPES = new Set(['more-info', 'navigate', 'url', 'call-service', 'none']);
+
 function normalizeIcon(icon) {
   return window.TunetCardFoundation.normalizeIcon(icon, {
     aliases: ICON_ALIASES,
     allow: ROOM_ICON_FALLBACKS,
     fallback: 'lightbulb',
   });
+}
+
+function failConfig(path, message) {
+  throw new Error(`[Tunet Rooms Card] ${path} ${message}`);
+}
+
+function isObjectLike(value) {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeTapAction(action, path, options = {}) {
+  const required = options.required !== false;
+  if (action == null) {
+    if (required) failConfig(path, 'is required');
+    return null;
+  }
+  if (!isObjectLike(action)) failConfig(path, 'must be an object');
+
+  const actionTypeRaw = action.action != null ? String(action.action).trim() : '';
+  const actionType = actionTypeRaw || 'more-info';
+  if (!ACTION_TYPES.has(actionType)) {
+    failConfig(`${path}.action`, `must be one of: ${Array.from(ACTION_TYPES).join(', ')}`);
+  }
+
+  if (actionType === 'navigate' && !String(action.navigation_path || '').trim()) {
+    failConfig(`${path}.navigation_path`, 'is required when action is "navigate"');
+  }
+  if (actionType === 'url' && !String(action.url_path || '').trim()) {
+    failConfig(`${path}.url_path`, 'is required when action is "url"');
+  }
+  if (actionType === 'call-service') {
+    const service = String(action.service || '').trim();
+    const [domain, serviceName] = service.split('.');
+    if (!domain || !serviceName) {
+      failConfig(`${path}.service`, 'must be in "domain.service" format when action is "call-service"');
+    }
+  }
+
+  return {
+    action: actionType,
+    entity: action.entity || '',
+    navigation_path: action.navigation_path || '',
+    url_path: action.url_path || '',
+    new_tab: action.new_tab === true,
+    service: action.service || '',
+    service_data: isObjectLike(action.service_data) ? action.service_data : {},
+  };
+}
+
+function normalizeSecondary(secondary, path) {
+  if (secondary == null || secondary === '') return '';
+  if (typeof secondary === 'string') return secondary;
+  if (!isObjectLike(secondary)) {
+    failConfig(path, 'must be a string or an object template (entity/attribute/prefix/suffix/fallback)');
+  }
+  if (!String(secondary.entity || '').trim()) {
+    failConfig(`${path}.entity`, 'is required for a secondary template object');
+  }
+  return {
+    entity: String(secondary.entity).trim(),
+    attribute: secondary.attribute ? String(secondary.attribute) : '',
+    unit: secondary.unit != null ? String(secondary.unit) : '',
+    prefix: secondary.prefix != null ? String(secondary.prefix) : '',
+    suffix: secondary.suffix != null ? String(secondary.suffix) : '',
+    fallback: secondary.fallback != null ? String(secondary.fallback) : '--',
+  };
 }
 
 /* ===============================================================
@@ -241,7 +309,7 @@ const ROOMS_STYLES = `
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     border-radius: var(--r-section);
     border: 1px solid var(--ctrl-border);
-    padding: 20px;
+    padding: var(--tunet-rooms-card-padding, 20px);
     box-shadow: var(--shadow-section), var(--inset);
     display: flex; flex-direction: column; gap: 16px;
     width: 100%;
@@ -283,7 +351,7 @@ const ROOMS_STYLES = `
   .room-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: var(--tunet-rooms-gap, 10px);
     /* Keep 2x2 cards tall enough so summary labels don't overlap controls. */
     grid-auto-rows: minmax(132px, auto);
   }
@@ -336,11 +404,15 @@ const ROOMS_STYLES = `
     align-self: start;
   }
   .room-name { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.2; }
-  .room-status {
+  .room-primary, .room-status {
     font-size: 11.5px; font-weight: 600; color: var(--text-muted); line-height: 1.2; margin-top: 2px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .room-status .amber-txt { color: var(--amber); }
+  .room-secondary {
+    font-size: 11px; font-weight: 600; color: var(--text-sub); line-height: 1.2; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .room-primary .amber-txt, .room-status .amber-txt { color: var(--amber); }
 
   .room-controls {
     grid-column: 1 / -1;
@@ -349,7 +421,7 @@ const ROOMS_STYLES = `
     flex-wrap: wrap;
     align-items: center;
     align-self: end;
-    gap: 8px;
+    gap: var(--tunet-room-controls-gap, 8px);
     min-height: 34px;
   }
   .room-sub-controls {
@@ -377,10 +449,19 @@ const ROOMS_STYLES = `
     transform: scale(1.03);
   }
 
+  .room-chip {
+    width: 30px; height: 30px; border-radius: 999px;
+    background: var(--chip-bg); border-color: var(--chip-border); box-shadow: var(--chip-sh);
+  }
+  .room-chip[data-active="true"] {
+    background: var(--amber-fill); color: var(--amber); border-color: var(--amber-border);
+  }
+  .room-chip[disabled], .room-chip.is-disabled { opacity: 0.45; cursor: not-allowed; }
+
   .room-slider-wrap {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--tunet-room-controls-gap, 8px);
     flex: 1;
     min-width: 0;
     padding: 6px 8px;
@@ -519,31 +600,39 @@ class TunetRoomsCard extends HTMLElement {
   }
 
   /*
-   * Config: rooms is an array of room objects:
+   * setConfig contract (standalone entry):
    * {
-   *   name: 'Living Room',
-   *   icon: 'weekend',
-   *   lights: [
-   *     { entity: 'light.spots', icon: 'highlight', name: 'Spots', sub_button: true },
-   *     { entity: 'light.ceiling', icon: 'light', name: 'Ceiling', sub_button: true },
-   *     { entity: 'light.lamp', icon: 'table_lamp', name: 'Lamp', sub_button: false },
-   *   ],
-   *   temperature_entity: 'sensor.living_room_temp',
-   *   navigate_path: '/lovelace/living-room',
+   *   title?: 'Rooms',
+   *   theme?: 'auto' | 'light' | 'dark',
+   *   variant?: string,
+   *   spacing?: { card_padding?: number, room_gap?: number, control_gap?: number },
+   *   rooms: [{
+   *     name: string,
+   *     icon: string,
+   *     primary?: string,
+   *     secondary?: string | { entity, attribute?, unit?, prefix?, suffix?, fallback? },
+   *     tap_action: { action: 'more-info'|'navigate'|'url'|'call-service'|'none', ... },
+   *     chips?: [{ icon, tap_action, active?, disabled? }],
+   *
+   *     // legacy compatibility also supported
+   *     lights?: [{ entity, icon?, name?, sub_button? }],
+   *     temperature_entity?: string,
+   *     navigate_path?: string,
+   *   }]
    * }
    */
 
   static getConfigForm() {
     return {
       schema: [
-        { name: 'name', selector: { text: {} } },
+        { name: 'title', selector: { text: {} } },
         { name: 'rooms', selector: { object: {} } },
         { name: 'enable_sub_buttons', selector: { boolean: {} } },
         { name: 'sub_slider_timeout_ms', selector: { number: { min: 1200, max: 8000, step: 100, mode: 'box' } } },
       ],
       computeLabel: (schema) => {
         const labels = {
-          name: 'Card Name',
+          title: 'Card Title',
           rooms: 'Rooms Config',
           enable_sub_buttons: 'Enable Sub-Button Sliders',
           sub_slider_timeout_ms: 'Sub-Slider Auto-Close (ms)',
@@ -555,9 +644,12 @@ class TunetRoomsCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      name: 'Rooms',
+      title: 'Rooms',
       enable_sub_buttons: true,
       sub_slider_timeout_ms: 3200,
+      theme: 'auto',
+      variant: '',
+      spacing: {},
       rooms: [
         {
           name: 'Living Room',
@@ -571,45 +663,173 @@ class TunetRoomsCard extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config.rooms || !Array.isArray(config.rooms) || config.rooms.length === 0) {
-      throw new Error('Please define at least one room');
+    if (!isObjectLike(config)) {
+      failConfig('config', 'must be an object');
     }
+    if (!Array.isArray(config.rooms) || config.rooms.length === 0) {
+      failConfig('config.rooms', 'must be a non-empty array');
+    }
+
     const timeoutMsRaw = Number(config.sub_slider_timeout_ms);
     const timeoutMs = Number.isFinite(timeoutMsRaw)
       ? Math.max(1200, Math.min(8000, Math.round(timeoutMsRaw)))
       : 3200;
+
+    const spacing = isObjectLike(config.spacing) ? config.spacing : {};
+    const theme = String(config.theme || 'auto').trim();
+    if (!['auto', 'light', 'dark'].includes(theme)) {
+      failConfig('config.theme', 'must be one of: auto, light, dark');
+    }
+
     this._config = {
-      name: config.name || 'Rooms',
+      title: String(config.title || config.name || 'Rooms').trim() || 'Rooms',
+      theme,
+      variant: String(config.variant || '').trim(),
+      spacing: {
+        card_padding: Number.isFinite(Number(spacing.card_padding)) ? Math.max(0, Number(spacing.card_padding)) : null,
+        room_gap: Number.isFinite(Number(spacing.room_gap)) ? Math.max(0, Number(spacing.room_gap)) : null,
+        control_gap: Number.isFinite(Number(spacing.control_gap)) ? Math.max(0, Number(spacing.control_gap)) : null,
+      },
       enable_sub_buttons: config.enable_sub_buttons !== false,
       sub_slider_timeout_ms: timeoutMs,
-      rooms: config.rooms.map((room) => ({
-        name: room.name || 'Room',
-        icon: normalizeIcon(room.icon || 'home'),
-        temperature_entity: room.temperature_entity || '',
-        navigate_path: room.navigate_path || '',
-        lights: (room.lights || []).map((light) => ({
-          entity: light.entity || '',
-          icon: normalizeIcon(light.icon || 'lightbulb'),
-          name: light.name || '',
-          sub_button: light.sub_button !== false,
-        })),
-      })),
+      rooms: config.rooms.map((room, roomIndex) => {
+        const roomPath = `config.rooms[${roomIndex}]`;
+        if (!isObjectLike(room)) failConfig(roomPath, 'must be an object');
+
+        const name = String(room.name || '').trim();
+        if (!name) failConfig(`${roomPath}.name`, 'is required and must be a non-empty string');
+
+        const iconRaw = String(room.icon || '').trim();
+        if (!iconRaw) failConfig(`${roomPath}.icon`, 'is required and must be a non-empty string');
+
+        const chipsRaw = room.chips == null ? [] : room.chips;
+        if (!Array.isArray(chipsRaw)) failConfig(`${roomPath}.chips`, 'must be an array when provided');
+        const chips = chipsRaw.map((chip, chipIndex) => {
+          const chipPath = `${roomPath}.chips[${chipIndex}]`;
+          if (!isObjectLike(chip)) failConfig(chipPath, 'must be an object');
+          const chipIcon = String(chip.icon || '').trim();
+          if (!chipIcon) failConfig(`${chipPath}.icon`, 'is required and must be a non-empty string');
+          return {
+            icon: normalizeIcon(chipIcon),
+            tap_action: normalizeTapAction(chip.tap_action, `${chipPath}.tap_action`),
+            active: chip.active === true,
+            disabled: chip.disabled === true,
+          };
+        });
+
+        const lightsRaw = room.lights == null ? [] : room.lights;
+        if (!Array.isArray(lightsRaw)) failConfig(`${roomPath}.lights`, 'must be an array when provided');
+
+        const tapAction = room.tap_action
+          ? normalizeTapAction(room.tap_action, `${roomPath}.tap_action`)
+          : room.navigate_path
+            ? { action: 'navigate', navigation_path: String(room.navigate_path), entity: '', url_path: '', new_tab: false, service: '', service_data: {} }
+            : (lightsRaw[0] && lightsRaw[0].entity)
+              ? { action: 'more-info', entity: String(lightsRaw[0].entity), navigation_path: '', url_path: '', new_tab: false, service: '', service_data: {} }
+              : null;
+
+        if (!tapAction) {
+          failConfig(`${roomPath}.tap_action`, 'is required when no legacy navigate_path/lights fallback is available');
+        }
+
+        return {
+          name,
+          icon: normalizeIcon(iconRaw),
+          primary: room.primary != null ? String(room.primary) : '',
+          secondary: normalizeSecondary(room.secondary, `${roomPath}.secondary`),
+          tap_action: tapAction,
+          chips,
+          temperature_entity: room.temperature_entity || '',
+          navigate_path: room.navigate_path || '',
+          lights: lightsRaw.map((light, lightIndex) => {
+            const lightPath = `${roomPath}.lights[${lightIndex}]`;
+            if (!isObjectLike(light)) failConfig(lightPath, 'must be an object');
+            return {
+              entity: light.entity || '',
+              icon: normalizeIcon(light.icon || 'lightbulb'),
+              name: light.name || '',
+              sub_button: light.sub_button !== false,
+            };
+          }),
+        };
+      }),
     };
+
     if (this._rendered) {
+      this._applyCardConfigTokens();
       this._buildRooms();
       this._updateAll();
     }
   }
+
+  _applyCardConfigTokens() {
+    if (!this.$ || !this.$.sectionContainer) return;
+    const hostStyle = this.style;
+    hostStyle.removeProperty('--tunet-rooms-card-padding');
+    hostStyle.removeProperty('--tunet-rooms-gap');
+    hostStyle.removeProperty('--tunet-room-controls-gap');
+
+    const spacing = this._config.spacing || {};
+    if (spacing.card_padding != null) hostStyle.setProperty('--tunet-rooms-card-padding', `${spacing.card_padding}px`);
+    if (spacing.room_gap != null) hostStyle.setProperty('--tunet-rooms-gap', `${spacing.room_gap}px`);
+    if (spacing.control_gap != null) hostStyle.setProperty('--tunet-room-controls-gap', `${spacing.control_gap}px`);
+
+    this.$.sectionContainer.dataset.variant = this._config.variant || '';
+  }
+
+  _resolveThemeMode(hass) {
+    if (this._config.theme === 'dark') return true;
+    if (this._config.theme === 'light') return false;
+    return !!(hass && hass.themes && hass.themes.darkMode);
+  }
+
+  _handleTapAction(tapAction, defaultEntityId = '') {
+    if (!tapAction || tapAction.action === 'none') return;
+    const action = tapAction.action || 'more-info';
+
+    if (action === 'more-info') {
+      const entityId = tapAction.entity || defaultEntityId;
+      if (!entityId) return;
+      this.dispatchEvent(new CustomEvent('hass-more-info', {
+        bubbles: true,
+        composed: true,
+        detail: { entityId },
+      }));
+      return;
+    }
+
+    if (action === 'navigate') {
+      if (!tapAction.navigation_path) return;
+      history.pushState(null, '', tapAction.navigation_path);
+      window.dispatchEvent(new Event('location-changed'));
+      return;
+    }
+
+    if (action === 'url') {
+      if (!tapAction.url_path) return;
+      window.open(tapAction.url_path, tapAction.new_tab ? '_blank' : '_self');
+      return;
+    }
+
+    if (action === 'call-service') {
+      const [domain, service] = String(tapAction.service || '').split('.');
+      if (!domain || !service) return;
+      window.TunetCardFoundation.callServiceSafe(this, domain, service, tapAction.service_data || {});
+      return;
+    }
+  }
+
 
   set hass(hass) {
     const oldHass = this._hass;
     this._hass = hass;
     if (!this._rendered) {
       this._render();
+      this._applyCardConfigTokens();
       this._buildRooms();
       this._rendered = true;
     }
-    const isDark = !!(hass.themes && hass.themes.darkMode);
+    const isDark = this._resolveThemeMode(hass);
     if (isDark) this.classList.add('dark');
     else this.classList.remove('dark');
     if (!oldHass || this._entitiesChanged(oldHass, hass)) this._updateAll();
@@ -621,6 +841,8 @@ class TunetRoomsCard extends HTMLElement {
         if (light.entity && o.states[light.entity] !== n.states[light.entity]) return true;
       }
       if (room.temperature_entity && o.states[room.temperature_entity] !== n.states[room.temperature_entity]) return true;
+      if (room.secondary && typeof room.secondary === 'object' && room.secondary.entity
+        && o.states[room.secondary.entity] !== n.states[room.secondary.entity]) return true;
     }
     return false;
   }
@@ -654,6 +876,7 @@ class TunetRoomsCard extends HTMLElement {
     this.$ = {
       roomList: this.shadowRoot.getElementById('roomList'),
       sectionTitle: this.shadowRoot.getElementById('sectionTitle'),
+      sectionContainer: this.shadowRoot.querySelector('.section-container'),
     };
   }
 
@@ -774,7 +997,7 @@ class TunetRoomsCard extends HTMLElement {
 
   _buildRooms() {
     if (this.$.sectionTitle) {
-      this.$.sectionTitle.textContent = this._config.name || 'Rooms';
+      this.$.sectionTitle.textContent = this._config.title || 'Rooms';
     }
 
     const list = this.$.roomList;
@@ -805,7 +1028,8 @@ class TunetRoomsCard extends HTMLElement {
         </button>
         <div class="room-info">
           <div class="room-name">${h(roomCfg.name || 'Room')}</div>
-          <div class="room-status">--</div>
+          <div class="room-primary">--</div>
+          <div class="room-secondary">--</div>
         </div>
         <span class="icon room-chevron" style="font-size:18px">chevron_right</span>
         <div class="room-controls">
@@ -818,8 +1042,23 @@ class TunetRoomsCard extends HTMLElement {
         </div>
       `;
 
-      const statusEl = card.querySelector('.room-status');
-      const orbEls = Array.from(card.querySelectorAll('.room-orb'));
+
+      if (Array.isArray(roomCfg.chips) && roomCfg.chips.length) {
+        const chipContainer = card.querySelector('.room-sub-controls');
+        roomCfg.chips.forEach((chip, chipIndex) => {
+          const chipBtn = document.createElement('button');
+          chipBtn.type = 'button';
+          chipBtn.className = 'room-orb room-chip';
+          chipBtn.dataset.chipIndex = String(chipIndex);
+          chipBtn.dataset.active = chip.active ? 'true' : 'false';
+          chipBtn.disabled = chip.disabled === true;
+          chipBtn.innerHTML = `<span class="icon" style="font-size:16px">${h(chip.icon || 'lightbulb')}</span>`;
+          chipContainer.appendChild(chipBtn);
+        });
+      }
+      const primaryEl = card.querySelector('.room-primary');
+      const secondaryEl = card.querySelector('.room-secondary');
+      const orbEls = Array.from(card.querySelectorAll('.room-orb[data-entity]'));
       const sliderWrap = card.querySelector(`#room-slider-wrap-${roomIndex}`);
       const sliderInput = sliderWrap.querySelector('.room-slider');
       const sliderValue = sliderWrap.querySelector('.room-slider-val');
@@ -828,8 +1067,10 @@ class TunetRoomsCard extends HTMLElement {
       const ref = {
         el: card,
         cfg: roomCfg,
-        statusEl,
+        primaryEl,
+        secondaryEl,
         orbEls,
+        chipEls: Array.from(card.querySelectorAll('.room-chip')),
         sliderWrap,
         sliderInput,
         sliderValue,
@@ -855,6 +1096,15 @@ class TunetRoomsCard extends HTMLElement {
           this._toggleRoomLight(ref, entityId, orb);
         });
       });
+      ref.chipEls.forEach((chipEl) => {
+        chipEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const chipIndex = Number(chipEl.dataset.chipIndex);
+          const chipCfg = roomCfg.chips && roomCfg.chips[chipIndex];
+          if (!chipCfg || chipCfg.disabled) return;
+          this._handleTapAction(chipCfg.tap_action);
+        });
+      });
 
       sliderInput.addEventListener('input', (e) => {
         const entityId = sliderInput.dataset.entity;
@@ -873,17 +1123,10 @@ class TunetRoomsCard extends HTMLElement {
       });
 
       card.addEventListener('click', () => {
-        if (roomCfg.navigate_path) {
-          history.pushState(null, '', roomCfg.navigate_path);
-          const event = new Event('location-changed');
-          window.dispatchEvent(event);
-        } else if ((roomCfg.lights || []).length && roomCfg.lights[0].entity) {
-          this.dispatchEvent(new CustomEvent('hass-more-info', {
-            bubbles: true,
-            composed: true,
-            detail: { entityId: roomCfg.lights[0].entity },
-          }));
-        }
+        const fallbackEntity = (roomCfg.lights || [])[0] && (roomCfg.lights || [])[0].entity
+          ? (roomCfg.lights || [])[0].entity
+          : '';
+        this._handleTapAction(roomCfg.tap_action, fallbackEntity);
       });
 
       list.appendChild(card);
@@ -946,31 +1189,46 @@ class TunetRoomsCard extends HTMLElement {
         }
       }
 
-      // Status text
-      let statusParts = [];
-      if (anyOn) {
-        if (onCount === lights.length) {
-          statusParts.push('On');
+      // Primary text
+      let primaryText = ref.cfg.primary || '';
+      if (!primaryText) {
+        if (anyOn) {
+          primaryText = onCount === lights.length ? 'On' : `${onCount} of ${lights.length} on`;
+          if (brightCount > 0) primaryText += ` · ${Math.round(totalBright / brightCount)}%`;
         } else {
-          statusParts.push(`${onCount} of ${lights.length} on`);
+          primaryText = 'All off';
         }
-        if (brightCount > 0) {
-          statusParts.push(Math.round(totalBright / brightCount) + '%');
-        }
-      } else {
-        statusParts.push('All off');
       }
 
-      // Temperature
-      if (ref.cfg.temperature_entity) {
+      // Secondary text
+      let secondaryText = '';
+      if (typeof ref.cfg.secondary === 'string' && ref.cfg.secondary) {
+        secondaryText = ref.cfg.secondary;
+      } else if (ref.cfg.secondary && typeof ref.cfg.secondary === 'object') {
+        const secEntity = this._hass.states[ref.cfg.secondary.entity];
+        if (!secEntity || secEntity.state === 'unavailable') {
+          secondaryText = ref.cfg.secondary.fallback || '--';
+        } else {
+          const value = ref.cfg.secondary.attribute
+            ? secEntity.attributes[ref.cfg.secondary.attribute]
+            : secEntity.state;
+          if (value == null || value === 'unknown' || value === 'unavailable') {
+            secondaryText = ref.cfg.secondary.fallback || '--';
+          } else {
+            const renderedUnit = ref.cfg.secondary.unit || '';
+            secondaryText = `${ref.cfg.secondary.prefix || ''}${value}${renderedUnit}${ref.cfg.secondary.suffix || ''}`;
+          }
+        }
+      } else if (ref.cfg.temperature_entity) {
         const tempEntity = this._hass.states[ref.cfg.temperature_entity];
         if (tempEntity && tempEntity.state) {
           const unit = tempEntity.attributes.unit_of_measurement || '°F';
-          statusParts.push(Math.round(Number(tempEntity.state)) + unit);
+          secondaryText = Math.round(Number(tempEntity.state)) + unit;
         }
       }
 
-      ref.statusEl.textContent = statusParts.join(' \u00b7 ');
+      if (ref.primaryEl) ref.primaryEl.textContent = primaryText || '--';
+      if (ref.secondaryEl) ref.secondaryEl.textContent = secondaryText || '--';
     }
   }
 }

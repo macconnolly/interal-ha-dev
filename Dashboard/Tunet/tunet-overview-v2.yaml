@@ -113,7 +113,7 @@
         action: call-service
         service: script.turn_on
         service_data:
-          entity_id: script.oal_reset_manual_control
+          entity_id: script.oal_reset_soft
       tap_action:
         action: more-info
 

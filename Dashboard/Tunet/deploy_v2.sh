@@ -5,9 +5,10 @@
 # Deploys bundled v2 cards to Home Assistant instance.
 #
 # Usage:
-#   ./deploy_v2.sh              # Deploy to default HA host
-#   ./deploy_v2.sh 10.0.0.21   # Deploy to specific host
-#   ./deploy_v2.sh --dry-run    # Show what would be deployed
+#   ./deploy_v2.sh                       # Deploy to default HA host
+#   ./deploy_v2.sh 10.0.0.21            # Deploy to specific host
+#   ./deploy_v2.sh --dry-run             # Show what would be deployed
+#   ./deploy_v2.sh 10.0.0.21 --dry-run  # Dry-run against specific host
 #
 # Prerequisites:
 #   - SSH access to HA instance (key-based auth recommended)
@@ -28,16 +29,19 @@ DIST_DIR="${SCRIPT_DIR}/Cards/dist"
 BUNDLE_SCRIPT="${SCRIPT_DIR}/Cards/v2/bundle.js"
 
 # ── Config ─────────────────────────────────────────────────────
-HA_HOST="${1:-10.0.0.21}"
 HA_USER="root"
 HA_WWW_DIR="/config/www/tunet/dist"
 CACHE_VERSION="2.0.$(date +%s)"
 DRY_RUN=false
+HA_HOST="10.0.0.21"
 
-if [[ "${1:-}" == "--dry-run" ]]; then
-  DRY_RUN=true
-  HA_HOST="10.0.0.21"
-fi
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=true ;;
+    -*) echo "Unknown flag: $arg"; exit 1 ;;
+    *) HA_HOST="$arg" ;;
+  esac
+done
 
 echo "═══════════════════════════════════════════════════"
 echo "  Tunet v2 Deploy"

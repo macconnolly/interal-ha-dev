@@ -318,9 +318,12 @@ const STYLES = `
   .hdr-title {
     font-weight: 700;
     font-size: 13px;
-    color: var(--text-sub);
+    color: var(--text);
     letter-spacing: .1px;
     line-height: 1.15;
+  }
+  .card[data-mode="off"] .hdr-title {
+    color: var(--text-sub);
   }
   .hdr-sub {
     font-size: 10.5px;
@@ -867,11 +870,11 @@ class TunetClimateCard extends HTMLElement {
         {
           name: 'entity',
           required: true,
-          selector: { entity: { domain: 'climate' } },
+          selector: { entity: { filter: [{ domain: 'climate' }] } },
         },
         {
           name: 'humidity_entity',
-          selector: { entity: { domain: 'sensor', device_class: 'humidity' } },
+          selector: { entity: { filter: [{ domain: 'sensor', device_class: 'humidity' }] } },
         },
         {
           name: 'name',

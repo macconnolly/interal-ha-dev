@@ -1,10 +1,10 @@
 /**
  * Tunet Weather Card
  * Current conditions + forecast with glassmorphism design
- * Version 1.0.0
+ * Version 1.3.0
  */
 
-const TUNET_WEATHER_VERSION = '1.1.0';
+const TUNET_WEATHER_VERSION = '1.3.0';
 
 if (!window.TunetCardFoundation) {
   window.TunetCardFoundation = {
@@ -265,30 +265,28 @@ const TUNET_WEATHER_STYLES = `
   .weather-detail .val { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
   /* Forecast */
-  .forecast { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-  .fc-tile {
+  .weather-forecast { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .forecast-tile {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     padding: 10px 4px 8px; border-radius: 12px;
     background: var(--ctrl-bg); border: 1px solid var(--ctrl-border);
-    box-shadow: var(--tile-shadow-rest);
     transition: all .15s;
   }
-  .fc-tile:hover { box-shadow: var(--tile-shadow-lift); }
-  .fc-tile.now { background: var(--blue-fill); border-color: var(--blue-border); }
-  .fc-day {
+  .forecast-tile:first-child { background: var(--blue-fill); border-color: var(--blue-border); }
+  .forecast-day {
     font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
     color: var(--text-muted);
   }
-  .fc-tile.now .fc-day { color: var(--blue); }
-  .fc-icon { color: var(--text-sub); font-size: 20px; width: 20px; height: 20px; }
-  .fc-tile.now .fc-icon { color: var(--blue); }
-  .fc-temps { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-  .fc-hi { font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
-  .fc-lo { font-size: 11px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .forecast-tile:first-child .forecast-day { color: var(--blue); }
+  .forecast-icon { color: var(--text-sub); }
+  .forecast-tile:first-child .forecast-icon { color: var(--blue); }
+  .forecast-temps { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .forecast-hi { font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .forecast-lo { font-size: 11px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
   @media (max-width: 440px) {
     .card { padding: 16px; }
-    .forecast { grid-template-columns: repeat(3, 1fr); }
+    .weather-forecast { grid-template-columns: repeat(3, 1fr); }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -328,7 +326,12 @@ class TunetWeatherCard extends HTMLElement {
     this._hass = null;
     this._rendered = false;
     this._forecast = [];
+    this._forecastUnsub = null;
     TunetWeatherCard._injectFonts();
+  }
+
+  disconnectedCallback() {
+    this._unsubForecast();
   }
 
   static _injectFonts() {
@@ -352,7 +355,7 @@ class TunetWeatherCard extends HTMLElement {
   static getConfigForm() {
     return {
       schema: [
-        { name: 'entity', required: true, selector: { entity: { domain: 'weather' } } },
+        { name: 'entity', required: true, selector: { entity: { filter: [{ domain: 'weather' }] } } },
         { name: 'name', selector: { text: {} } },
         { name: 'forecast_days', selector: { number: { min: 1, max: 7, step: 1, mode: 'box' } } },
         { name: 'show_last_updated', selector: { boolean: {} } },
@@ -398,14 +401,23 @@ class TunetWeatherCard extends HTMLElement {
     else this.classList.remove('dark');
 
     const entity = this._config.entity;
+
+    // Subscribe to forecast on first hass set or entity change
+    if (!oldHass || (entity && (!this._forecastUnsub || this._subscribedEntity !== entity))) {
+      this._subscribedEntity = entity;
+      this._subscribeForecast();
+    }
+
     if (!oldHass || (entity && oldHass.states[entity] !== hass.states[entity])) {
       this._updateAll();
-      this._fetchForecast();
     }
   }
 
   getCardSize() {
-    return 5;
+    // Header (1) + current conditions row (2) + forecast row (2) = 5
+    // Without forecast: Header (1) + current conditions (2) = 3
+    const hasForecast = this._config.forecast_days > 0;
+    return hasForecast ? 5 : 3;
   }
 
   _render() {
@@ -443,7 +455,7 @@ class TunetWeatherCard extends HTMLElement {
               </div>
               <div class="weather-details" id="details"></div>
             </div>
-            <div class="forecast" id="forecast"></div>
+            <div class="weather-forecast" id="forecast"></div>
           </div>
         </div>
       </div>
@@ -470,8 +482,19 @@ class TunetWeatherCard extends HTMLElement {
     });
   }
 
-  async _fetchForecast() {
+  _unsubForecast() {
+    if (this._forecastUnsub) {
+      this._forecastUnsub();
+      this._forecastUnsub = null;
+    }
+  }
+
+  async _subscribeForecast() {
     if (!this._hass || !this._config.entity) return;
+
+    // Unsubscribe from any previous subscription
+    this._unsubForecast();
+
     try {
       const result = await this._hass.callWS({
         type: 'weather/get_forecasts',
@@ -489,16 +512,30 @@ class TunetWeatherCard extends HTMLElement {
         return;
       }
     } catch {
-      // Fall through to attribute fallback.
-    }
+      // Fallback: try the one-shot service call with return_response
+      try {
+        const result = await this._hass.callService('weather', 'get_forecasts', {
+          type: 'daily',
+        }, { entity_id: this._config.entity }, false, true);
 
-    try {
-      const entity = this._hass.states[this._config.entity];
-      if (entity && entity.attributes.forecast) {
-        this._forecast = entity.attributes.forecast;
-        this._renderForecast();
-      }
-    } catch (_) {}
+        const forecast = result?.response?.[this._config.entity]?.forecast
+          || result?.[this._config.entity]?.forecast;
+        if (Array.isArray(forecast) && forecast.length > 0) {
+          this._forecast = forecast;
+          this._renderForecast();
+          return;
+        }
+      } catch (_) {}
+
+      // Last resort: legacy attribute fallback
+      try {
+        const entity = this._hass.states[this._config.entity];
+        if (entity && entity.attributes.forecast) {
+          this._forecast = entity.attributes.forecast;
+          this._renderForecast();
+        }
+      } catch (_) {}
+    }
   }
 
   _updateAll() {
@@ -585,12 +622,12 @@ class TunetWeatherCard extends HTMLElement {
       const lo = fc.templow != null ? Math.round(fc.templow) : null;
 
       return `
-        <div class="fc-tile${i === 0 ? ' now' : ''}">
-          <span class="fc-day">${dayName}</span>
-          <span class="icon fc-icon">${icon}</span>
-          <div class="fc-temps">
-            <span class="fc-hi">${hi}&deg;</span>
-            ${lo != null ? `<span class="fc-lo">${lo}&deg;</span>` : ''}
+        <div class="forecast-tile">
+          <span class="forecast-day">${dayName}</span>
+          <span class="icon forecast-icon" style="font-size:20px">${icon}</span>
+          <div class="forecast-temps">
+            <span class="forecast-hi">${hi}&deg;</span>
+            ${lo != null ? `<span class="forecast-lo">${lo}&deg;</span>` : ''}
           </div>
         </div>`;
     }).join('');

@@ -283,7 +283,7 @@ const TUNET_STATUS_STYLES = `
     transition: all .15s ease;
     position: relative;
     overflow: visible;
-    min-height: var(--tile-row-h);
+    min-height: 0;
     height: 100%;
   }
   :host([tile-size="compact"]) .tile {
@@ -654,6 +654,11 @@ class TunetStatusCard extends HTMLElement {
     this.shadowRoot.innerHTML = '';
     this.shadowRoot.appendChild(style);
 
+    // Custom CSS override layer
+    this._customStyleEl = document.createElement('style');
+    this._customStyleEl.textContent = this._config.custom_css || '';
+    this.shadowRoot.appendChild(this._customStyleEl);
+
     const fontLinks = `
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -698,6 +703,9 @@ class TunetStatusCard extends HTMLElement {
     if (!this._gridEl) return;
     this._gridEl.innerHTML = '';
     this._titleEl.textContent = this._config.name;
+    this._gridEl.style.gridTemplateColumns = `repeat(${this._config.columns || 4}, 1fr)`;
+    // Refresh custom CSS on rebuild (covers config editor changes)
+    if (this._customStyleEl) this._customStyleEl.textContent = this._config.custom_css || '';
     this._tileEls = [];
     this._clearAllTimers();
     const h = window.TunetCardFoundation.escapeHtml;
@@ -1159,13 +1167,27 @@ class TunetStatusCard extends HTMLElement {
       tile.el.setAttribute('aria-expanded', 'true');
       this._openDropdown = index;
 
-      // Overflow check: flip above if menu overflows card
+      // Viewport-aware positioning: prefer below, flip above only if more space
       requestAnimationFrame(() => {
-        const menuRect = tile.ddMenuEl.getBoundingClientRect();
-        const cardRect = this.shadowRoot.querySelector('.card').getBoundingClientRect();
-        if (menuRect.bottom > cardRect.bottom + 20) {
-          tile.ddMenuEl.style.top = 'auto';
-          tile.ddMenuEl.style.bottom = 'calc(100% + 4px)';
+        const menuEl = tile.ddMenuEl;
+        const tileRect = tile.el.getBoundingClientRect();
+        const menuRect = menuEl.getBoundingClientRect();
+        const viewH = window.innerHeight;
+        const spaceBelow = viewH - tileRect.bottom - 8;
+        const spaceAbove = tileRect.top - 8;
+        const menuH = menuRect.height;
+
+        if (menuH > spaceBelow && spaceAbove > spaceBelow) {
+          // Flip above the tile
+          menuEl.style.top = 'auto';
+          menuEl.style.bottom = 'calc(100% + 4px)';
+          // Cap height if even above space is tight
+          if (menuH > spaceAbove) {
+            menuEl.style.maxHeight = `${Math.max(120, spaceAbove - 8)}px`;
+          }
+        } else if (menuH > spaceBelow) {
+          // Not enough space either way; cap height below
+          menuEl.style.maxHeight = `${Math.max(120, spaceBelow - 8)}px`;
         }
       });
 

@@ -453,7 +453,7 @@ class TunetActionsCard extends HTMLElement {
     return {
       schema: [
         { name: 'variant', selector: { select: { options: ['default', 'mode_strip'] } } },
-        { name: 'mode_entity', selector: { entity: { domain: ['input_select'] } } },
+        { name: 'mode_entity', selector: { entity: { filter: [{ domain: 'input_select' }] } } },
         { name: 'compact', selector: { boolean: {} } },
       ],
       computeLabel: (schema) => {
@@ -527,7 +527,12 @@ class TunetActionsCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 1;
+    // Actions has a card shell with padding, so minimum 2
+    // Compact variant is shorter
+    if (this._config.compact) return 2;
+    const actionCount = (this._config.actions || []).length;
+    const rows = Math.max(1, Math.ceil(actionCount / 4));
+    return 1 + rows;
   }
 
   _render() {

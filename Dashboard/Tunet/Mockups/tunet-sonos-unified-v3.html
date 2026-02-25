@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tunet Sonos Unified Card v3 – Compact Player + Speaker Tiles</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════
+       TOKENS — LIGHT (Tunet design_language.md v8.3)
+       ═══════════════════════════════════════════ */
+    :root {
+      --bg1: #bcccd3; --bg2: #b4c4c8; --bg3: #99a8a1; --bg4: #839088;
+      --glass: rgba(255,255,255,0.68);
+      --glass-border: rgba(255,255,255,0.45);
+      --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
+      --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
+      --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
+      --text: #1C1C1E;
+      --text-sub: rgba(28,28,30,0.55);
+      --text-muted: #8E8E93;
+
+      /* Blue accent for Sonos */
+      --blue: #007AFF;
+      --blue-fill: rgba(0,122,255,0.09);
+      --blue-border: rgba(0,122,255,0.14);
+      --blue-glow: rgba(0,122,255,0.25);
+
+      /* Green for playing state */
+      --green: #34C759;
+      --green-fill: rgba(52,199,89,0.12);
+      --green-border: rgba(52,199,89,0.15);
+
+      --track-bg: rgba(28,28,30,0.055);
+      --tile-bg: #ffffff;
+      --tile-bg-off: rgba(255,255,255,0.75);
+      --gray-ghost: rgba(0,0,0,0.035);
+
+      --r-card: 24px;
+      --r-section: 32px;
+      --r-tile: 16px;
+      --r-pill: 999px;
+
+      --ctrl-bg: rgba(255,255,255,0.52);
+      --ctrl-border: rgba(0,0,0,0.05);
+      --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+
+      --tile-shadow: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+      --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
+
+      --border-ghost: transparent;
+
+      color-scheme: light;
+    }
+
+    /* ═══════════════════════════════════════════
+       TOKENS — DARK
+       ═══════════════════════════════════════════ */
+    html.dark {
+      --bg1: #1c3038; --bg2: #1e2e40; --bg3: #223844; --bg4: #1a2e30;
+      --glass: rgba(44,44,46,0.72);
+      --glass-border: rgba(255,255,255,0.08);
+      --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
+      --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
+      --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
+      --text: #F5F5F7;
+      --text-sub: rgba(245,245,247,0.50);
+      --text-muted: rgba(245,245,247,0.35);
+
+      --blue: #0A84FF;
+      --blue-fill: rgba(10,132,255,0.13);
+      --blue-border: rgba(10,132,255,0.18);
+      --blue-glow: rgba(10,132,255,0.35);
+
+      --green: #30D158;
+      --green-fill: rgba(48,209,88,0.14);
+      --green-border: rgba(48,209,88,0.18);
+
+      --track-bg: rgba(255,255,255,0.06);
+      --tile-bg: rgba(255,255,255,0.08);
+      --tile-bg-off: rgba(255,255,255,0.04);
+      --gray-ghost: rgba(255,255,255,0.04);
+
+      --ctrl-bg: rgba(255,255,255,0.08);
+      --ctrl-border: rgba(255,255,255,0.08);
+      --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+
+      --tile-shadow: 0 4px 12px rgba(0,0,0,0.20), 0 1px 2px rgba(0,0,0,0.30);
+      --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.20);
+
+      --border-ghost: rgba(255,255,255,0.05);
+
+      color-scheme: dark;
+    }
+
+    /* ═══════════════════════════════════════════
+       BASE
+       ═══════════════════════════════════════════ */
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; }
+    body {
+      font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .page {
+      min-height: 100%; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 32px 16px; gap: 24px;
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%, rgba(255,255,255,0.45), transparent 55%),
+        radial-gradient(ellipse 900px 700px at 80% 15%, rgba(255,255,255,0.25), transparent 60%),
+        linear-gradient(140deg, var(--bg1), var(--bg2) 35%, var(--bg3) 65%, var(--bg4));
+    }
+    html.dark .page {
+      background:
+        radial-gradient(ellipse 1200px 800px at 15% 10%, rgba(255,255,255,0.02), transparent 55%),
+        linear-gradient(140deg, var(--bg1), var(--bg2) 35%, var(--bg3) 65%, var(--bg4));
+    }
+
+    /* ═══════════════════════════════════════════
+       ICONS
+       ═══════════════════════════════════════════ */
+    .icon {
+      font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal;
+      display: inline-flex; align-items: center; justify-content: center; line-height: 1;
+      text-transform: none; letter-spacing: normal; white-space: nowrap; direction: ltr;
+      vertical-align: middle; flex-shrink: 0; -webkit-font-smoothing: antialiased;
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .icon.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+    /* ═══════════════════════════════════════════
+       THEME TOGGLE
+       ═══════════════════════════════════════════ */
+    .theme-toggle {
+      display: flex; gap: 4px; padding: 4px; border-radius: var(--r-pill);
+      background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border); box-shadow: var(--shadow);
+    }
+    .theme-btn {
+      padding: 8px 16px; border: none; border-radius: var(--r-pill);
+      background: transparent; color: var(--text-muted);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 180ms ease;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .theme-btn.active { background: rgba(255,255,255,0.45); color: var(--text); box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+    html.dark .theme-btn.active { background: rgba(255,255,255,0.10); }
+
+    /* ═══════════════════════════════════════════
+       CARD SURFACE (glass)
+       ═══════════════════════════════════════════ */
+    .card {
+      position: relative; width: 420px; max-width: 100%;
+      border-radius: var(--r-card);
+      background: var(--glass);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--ctrl-border);
+      box-shadow: var(--shadow), var(--inset);
+      padding: 16px;
+      display: flex; flex-direction: column; gap: 12px;
+      transition: background .3s, border-color .3s, box-shadow .3s, opacity .3s;
+      overflow: hidden;
+    }
+    .card::before {
+      content: ""; position: absolute; inset: 0;
+      border-radius: var(--r-card); padding: 1px;
+      pointer-events: none; z-index: 0;
+      background: linear-gradient(160deg, rgba(255,255,255,0.60), rgba(255,255,255,0.10) 40%, rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.25));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+    }
+    html.dark .card::before {
+      background: linear-gradient(160deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.01) 60%, rgba(255,255,255,0.06));
+    }
+
+    /* State borders */
+    .card[data-state="playing"] { border-color: rgba(0,122,255,0.14); }
+    html.dark .card[data-state="playing"] { border-color: rgba(10,132,255,0.18); }
+    .card[data-state="paused"] { opacity: 0.88; }
+    .card[data-state="idle"] { opacity: 0.65; }
+
+    /* ═══════════════════════════════════════════
+       COMPACT PLAYER HEADER
+       ═══════════════════════════════════════════ */
+    .player-header {
+      display: flex; align-items: center; gap: 12px;
+      min-height: 48px;
+    }
+
+    /* Album art */
+    .album-art {
+      width: 48px; height: 48px; flex-shrink: 0;
+      border-radius: 12px; overflow: hidden;
+      background: var(--blue-fill);
+      display: grid; place-items: center;
+      position: relative;
+    }
+    .album-art img {
+      width: 100%; height: 100%; object-fit: cover;
+      position: absolute; inset: 0;
+    }
+    .album-art .icon { color: var(--blue); font-size: 24px; }
+    .card[data-state="playing"] .album-art { box-shadow: var(--ctrl-sh); }
+
+    /* Track info */
+    .track-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .track-name {
+      font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.2;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .track-artist {
+      font-size: 12px; font-weight: 600; color: var(--text-sub); line-height: 1.2;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* Transport controls */
+    .transport {
+      display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+    }
+    .t-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: grid; place-items: center;
+      cursor: pointer; transition: all .15s ease;
+      border: none; background: transparent; color: var(--text-sub);
+    }
+    .t-btn:hover { background: var(--track-bg); }
+    .t-btn:active { transform: scale(.90); }
+    .t-btn .icon { font-size: 20px; }
+
+    .t-btn.primary {
+      width: 40px; height: 40px;
+      background: var(--ctrl-bg);
+      border: 1px solid var(--ctrl-border);
+      box-shadow: var(--ctrl-sh);
+      color: var(--text);
+    }
+    .t-btn.primary:hover { box-shadow: var(--shadow); }
+    .card[data-state="playing"] .t-btn.primary {
+      background: var(--blue-fill);
+      border-color: var(--blue-border);
+      color: var(--blue);
+    }
+
+    /* ═══════════════════════════════════════════
+       SPEAKER TILES — Horizontal Scroll
+       ═══════════════════════════════════════════ */
+    .speakers-scroll {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding-left: 0;
+      padding: 4px 0 6px 0;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -4px;
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+    .speakers-scroll::-webkit-scrollbar { display: none; }
+
+    /* Individual speaker tile */
+    .speaker-tile {
+      scroll-snap-align: start;
+      flex-shrink: 0;
+      width: 120px;
+      min-height: 100px;
+      background: var(--tile-bg);
+      border-radius: var(--r-tile);
+      box-shadow: var(--tile-shadow);
+      border: 1.5px solid var(--border-ghost);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 12px 8px 16px;
+      gap: 4px;
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      transition: all .2s ease;
+    }
+    .speaker-tile:hover { box-shadow: var(--tile-shadow-lift); }
+    .speaker-tile:active { transform: scale(.96); }
+
+    /* Grouped (active) state */
+    .speaker-tile.grouped {
+      border-color: var(--blue-border);
+    }
+
+    /* Grouped dot indicator */
+    .group-dot {
+      position: absolute; top: 8px; left: 8px;
+      width: 7px; height: 7px;
+      background: var(--blue);
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity .2s ease;
+      box-shadow: 0 0 8px var(--blue-glow);
+    }
+    .speaker-tile.grouped .group-dot { opacity: 1; }
+
+    /* Speaker icon wrap */
+    .spk-icon-wrap {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      transition: all .2s ease;
+      background: var(--gray-ghost);
+      color: var(--text-sub);
+    }
+    .spk-icon-wrap .icon { font-size: 20px; }
+    .speaker-tile.grouped .spk-icon-wrap {
+      background: var(--blue-fill);
+      color: var(--blue);
+    }
+    .speaker-tile.grouped .spk-icon-wrap .icon {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    /* Speaker name */
+    .spk-name {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      line-height: 1.2; text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    /* Volume value */
+    .spk-vol {
+      font-size: 12px; font-weight: 700;
+      color: var(--blue);
+      line-height: 1;
+      transition: color .2s ease;
+    }
+    .speaker-tile:not(.grouped) .spk-vol {
+      color: var(--text-muted);
+    }
+
+    /* Volume bar */
+    .spk-vol-track {
+      position: absolute; bottom: 8px; left: 12px; right: 12px;
+      height: 3px; background: var(--track-bg);
+      border-radius: var(--r-pill);
+      overflow: hidden;
+    }
+    .spk-vol-fill {
+      height: 100%; border-radius: var(--r-pill);
+      background: var(--blue);
+      opacity: 0.6;
+      transition: width .15s ease;
+    }
+    .speaker-tile:not(.grouped) .spk-vol-fill {
+      opacity: 0.2;
+    }
+
+    /* ═══════════════════════════════════════════
+       VARIANT: WIDE CARD (tablet)
+       ═══════════════════════════════════════════ */
+    .card.wide {
+      width: 600px;
+    }
+    .card.wide .speaker-tile {
+      width: 130px;
+      min-height: 108px;
+    }
+
+    /* ═══════════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════════ */
+    @media (max-width: 440px) {
+      .card { padding: 14px; gap: 10px; }
+      .player-header { gap: 10px; }
+      .album-art { width: 44px; height: 44px; border-radius: 10px; }
+      .track-name { font-size: 14px; }
+      .t-btn { width: 32px; height: 32px; }
+      .t-btn .icon { font-size: 18px; }
+      .t-btn.primary { width: 36px; height: 36px; }
+      .speaker-tile { width: 105px; min-height: 92px; padding: 10px 6px 14px; }
+      .spk-icon-wrap { width: 32px; height: 32px; border-radius: 8px; }
+      .spk-icon-wrap .icon { font-size: 18px; }
+      .spk-name { font-size: 12px; }
+      .spk-vol { font-size: 11px; }
+    }
+
+    /* ═══════════════════════════════════════════
+       STATE LABEL (demo only)
+       ═══════════════════════════════════════════ */
+    .state-label {
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      letter-spacing: 1px; text-transform: uppercase;
+      text-align: center; margin-top: -8px;
+    }
+
+    /* ═══════════════════════════════════════════
+       VOLUME SLIDER OVERLAY (shown on vol btn tap)
+       ═══════════════════════════════════════════ */
+    .vol-overlay {
+      position: absolute; inset: 0;
+      background: var(--glass);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border-radius: var(--r-card);
+      display: none; align-items: center; justify-content: center;
+      gap: 12px; padding: 16px 20px;
+      z-index: 10;
+    }
+    .vol-overlay.active { display: flex; }
+    .vol-overlay .icon { font-size: 20px; color: var(--text-sub); cursor: pointer; }
+    .vol-overlay .icon:active { transform: scale(.9); }
+    .vol-slider-track {
+      flex: 1; height: 6px; background: var(--track-bg);
+      border-radius: var(--r-pill); position: relative; cursor: pointer;
+    }
+    .vol-slider-fill {
+      height: 100%; border-radius: var(--r-pill);
+      background: var(--blue); transition: width .1s linear;
+    }
+    .vol-slider-thumb {
+      position: absolute; top: 50%; transform: translate(-50%, -50%);
+      width: 18px; height: 18px; background: #fff;
+      border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+      transition: left .1s linear;
+    }
+    html.dark .vol-slider-thumb { background: var(--text); }
+    .vol-pct {
+      font-size: 14px; font-weight: 700; color: var(--blue);
+      min-width: 36px; text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+
+<body>
+<div class="page">
+
+  <!-- Theme toggle -->
+  <div class="theme-toggle">
+    <button class="theme-btn active" id="btn-light" onclick="setTheme('light')">
+      <span class="icon" style="font-size:16px">light_mode</span> Light
+    </button>
+    <button class="theme-btn" id="btn-dark" onclick="setTheme('dark')">
+      <span class="icon" style="font-size:16px">dark_mode</span> Dark
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       STATE: PLAYING
+       ═══════════════════════════════════════ -->
+  <div class="state-label">Playing</div>
+  <div class="card" data-state="playing" id="card-playing">
+
+    <!-- Compact Player Header -->
+    <div class="player-header">
+      <div class="album-art">
+        <img src="https://i.scdn.co/image/ab67616d0000b273c49d11cf9a49b4be2faeabc3" alt="album art" onerror="this.style.display='none'">
+        <span class="icon filled">music_note</span>
+      </div>
+      <div class="track-info">
+        <div class="track-name">Get Along</div>
+        <div class="track-artist">Kenny Chesney</div>
+      </div>
+      <div class="transport">
+        <button class="t-btn" title="Previous"><span class="icon">skip_previous</span></button>
+        <button class="t-btn" title="Next"><span class="icon">skip_next</span></button>
+        <button class="t-btn" title="Volume" onclick="toggleVol(this)"><span class="icon">volume_up</span></button>
+        <button class="t-btn primary" title="Pause"><span class="icon filled">pause</span></button>
+      </div>
+    </div>
+
+    <!-- Speaker Tiles (horizontal scroll) -->
+    <div class="speakers-scroll">
+      <div class="speaker-tile grouped" onclick="toggleGroup(this)">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">weekend</span></div>
+        <div class="spk-name">Living</div>
+        <div class="spk-vol">15%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:15%"></div></div>
+      </div>
+
+      <div class="speaker-tile grouped" onclick="toggleGroup(this)">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">countertop</span></div>
+        <div class="spk-name">Kitchen</div>
+        <div class="spk-vol">10%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:10%"></div></div>
+      </div>
+
+      <div class="speaker-tile grouped" onclick="toggleGroup(this)">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">bed</span></div>
+        <div class="spk-name">Bedroom</div>
+        <div class="spk-vol">6%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:6%"></div></div>
+      </div>
+
+      <div class="speaker-tile" onclick="toggleGroup(this)">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">desk</span></div>
+        <div class="spk-name">Office</div>
+        <div class="spk-vol">0%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
+      </div>
+
+      <div class="speaker-tile" onclick="toggleGroup(this)">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">dining</span></div>
+        <div class="spk-name">Dining</div>
+        <div class="spk-vol">0%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Volume Overlay (shown when volume button tapped) -->
+    <div class="vol-overlay" id="vol-overlay-playing">
+      <span class="icon" style="cursor:pointer" onclick="toggleMute()">volume_off</span>
+      <div class="vol-slider-track" id="vol-track-playing">
+        <div class="vol-slider-fill" style="width:15%"></div>
+        <div class="vol-slider-thumb" style="left:15%"></div>
+      </div>
+      <div class="vol-pct">15%</div>
+      <span class="icon" style="cursor:pointer" onclick="closeVol(this)">close</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       STATE: PAUSED
+       ═══════════════════════════════════════ -->
+  <div class="state-label">Paused</div>
+  <div class="card" data-state="paused">
+    <div class="player-header">
+      <div class="album-art">
+        <span class="icon filled">music_note</span>
+      </div>
+      <div class="track-info">
+        <div class="track-name">Cicada Choir</div>
+        <div class="track-artist">Dylan Gossett</div>
+      </div>
+      <div class="transport">
+        <button class="t-btn"><span class="icon">skip_previous</span></button>
+        <button class="t-btn"><span class="icon">skip_next</span></button>
+        <button class="t-btn"><span class="icon">volume_up</span></button>
+        <button class="t-btn primary"><span class="icon filled">play_arrow</span></button>
+      </div>
+    </div>
+
+    <div class="speakers-scroll">
+      <div class="speaker-tile grouped">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">weekend</span></div>
+        <div class="spk-name">Living</div>
+        <div class="spk-vol">12%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:12%"></div></div>
+      </div>
+      <div class="speaker-tile grouped">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">countertop</span></div>
+        <div class="spk-name">Kitchen</div>
+        <div class="spk-vol">8%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:8%"></div></div>
+      </div>
+      <div class="speaker-tile">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">bed</span></div>
+        <div class="spk-name">Bedroom</div>
+        <div class="spk-vol">0%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
+      </div>
+      <div class="speaker-tile">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">desk</span></div>
+        <div class="spk-name">Office</div>
+        <div class="spk-vol">0%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       STATE: IDLE (nothing playing)
+       ═══════════════════════════════════════ -->
+  <div class="state-label">Idle</div>
+  <div class="card" data-state="idle">
+    <div class="player-header">
+      <div class="album-art">
+        <span class="icon">music_note</span>
+      </div>
+      <div class="track-info">
+        <div class="track-name" style="color: var(--text-muted)">Not Playing</div>
+        <div class="track-artist">Tap a speaker to start</div>
+      </div>
+      <div class="transport">
+        <button class="t-btn" disabled><span class="icon">skip_previous</span></button>
+        <button class="t-btn" disabled><span class="icon">skip_next</span></button>
+        <button class="t-btn"><span class="icon">volume_up</span></button>
+        <button class="t-btn primary"><span class="icon">play_arrow</span></button>
+      </div>
+    </div>
+
+    <div class="speakers-scroll">
+      <div class="speaker-tile">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">weekend</span></div>
+        <div class="spk-name">Living</div>
+        <div class="spk-vol">0%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
+      </div>
+      <div class="speaker-tile">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">countertop</span></div>
+        <div class="spk-name">Kitchen</div>
+        <div class="spk-vol">0%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
+      </div>
+      <div class="speaker-tile">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">bed</span></div>
+        <div class="spk-name">Bedroom</div>
+        <div class="spk-vol">0%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
+      </div>
+      <div class="speaker-tile">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">desk</span></div>
+        <div class="spk-name">Office</div>
+        <div class="spk-vol">0%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       WIDE VARIANT (tablet)
+       ═══════════════════════════════════════ -->
+  <div class="state-label">Tablet / Wide</div>
+  <div class="card wide" data-state="playing">
+    <div class="player-header">
+      <div class="album-art">
+        <span class="icon filled">music_note</span>
+      </div>
+      <div class="track-info">
+        <div class="track-name">Get Along</div>
+        <div class="track-artist">Kenny Chesney</div>
+      </div>
+      <div class="transport">
+        <button class="t-btn"><span class="icon">skip_previous</span></button>
+        <button class="t-btn"><span class="icon">skip_next</span></button>
+        <button class="t-btn"><span class="icon">volume_up</span></button>
+        <button class="t-btn primary"><span class="icon filled">pause</span></button>
+      </div>
+    </div>
+
+    <div class="speakers-scroll">
+      <div class="speaker-tile grouped">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">weekend</span></div>
+        <div class="spk-name">Living</div>
+        <div class="spk-vol">15%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:15%"></div></div>
+      </div>
+      <div class="speaker-tile grouped">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">countertop</span></div>
+        <div class="spk-name">Kitchen</div>
+        <div class="spk-vol">10%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:10%"></div></div>
+      </div>
+      <div class="speaker-tile grouped">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">bed</span></div>
+        <div class="spk-name">Bedroom</div>
+        <div class="spk-vol">6%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:6%"></div></div>
+      </div>
+      <div class="speaker-tile">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">desk</span></div>
+        <div class="spk-name">Office</div>
+        <div class="spk-vol">0%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
+      </div>
+      <div class="speaker-tile">
+        <div class="group-dot"></div>
+        <div class="spk-icon-wrap"><span class="icon">dining</span></div>
+        <div class="spk-name">Dining</div>
+        <div class="spk-vol">0%</div>
+        <div class="spk-vol-track"><div class="spk-vol-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Theme switching
+  function setTheme(mode) {
+    document.documentElement.classList.toggle('dark', mode === 'dark');
+    document.getElementById('btn-light').classList.toggle('active', mode === 'light');
+    document.getElementById('btn-dark').classList.toggle('active', mode === 'dark');
+  }
+
+  // Toggle group membership
+  function toggleGroup(tile) {
+    tile.classList.toggle('grouped');
+    // Update icon fill
+    const icon = tile.querySelector('.spk-icon-wrap .icon');
+    if (tile.classList.contains('grouped')) {
+      icon.classList.add('filled');
+    } else {
+      icon.classList.remove('filled');
+    }
+  }
+
+  // Volume overlay toggle
+  function toggleVol(btn) {
+    const card = btn.closest('.card');
+    const overlay = card.querySelector('.vol-overlay');
+    if (overlay) overlay.classList.toggle('active');
+  }
+  function closeVol(btn) {
+    btn.closest('.vol-overlay').classList.remove('active');
+  }
+
+  // Volume slider interaction
+  document.querySelectorAll('.vol-slider-track').forEach(track => {
+    let dragging = false;
+
+    function updateVol(e) {
+      const rect = track.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+      track.querySelector('.vol-slider-fill').style.width = pct + '%';
+      track.querySelector('.vol-slider-thumb').style.left = pct + '%';
+      const pctEl = track.parentElement.querySelector('.vol-pct');
+      if (pctEl) pctEl.textContent = Math.round(pct) + '%';
+    }
+
+    track.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      track.setPointerCapture(e.pointerId);
+      updateVol(e);
+    });
+    track.addEventListener('pointermove', (e) => { if (dragging) updateVol(e); });
+    track.addEventListener('pointerup', () => { dragging = false; });
+  });
+
+  // Speaker tile drag-to-volume
+  document.querySelectorAll('.speaker-tile').forEach(tile => {
+    let startX = 0, startVol = 0, isDragging = false;
+
+    tile.addEventListener('pointerdown', (e) => {
+      startX = e.clientX;
+      const fill = tile.querySelector('.spk-vol-fill');
+      startVol = parseFloat(fill.style.width) || 0;
+      isDragging = false;
+      tile.setPointerCapture(e.pointerId);
+    });
+
+    tile.addEventListener('pointermove', (e) => {
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 6) {
+        isDragging = true;
+        const newVol = Math.max(0, Math.min(100, startVol + (dx / 1.5)));
+        const fill = tile.querySelector('.spk-vol-fill');
+        const volLabel = tile.querySelector('.spk-vol');
+        fill.style.width = newVol + '%';
+        volLabel.textContent = Math.round(newVol) + '%';
+      }
+    });
+
+    tile.addEventListener('pointerup', (e) => {
+      if (isDragging) {
+        e.stopPropagation();
+        // Don't toggle group on drag
+      }
+    });
+
+    // Override click to prevent toggle during drag
+    tile.addEventListener('click', (e) => {
+      if (isDragging) {
+        e.stopPropagation();
+        e.preventDefault();
+        isDragging = false;
+      }
+    }, true);
+  });
+</script>
+
+</body>
+</html>

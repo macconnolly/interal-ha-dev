@@ -722,7 +722,7 @@ class TunetMediaCard extends HTMLElement {
         {
           name: 'entity',
           required: true,
-          selector: { entity: { domain: 'media_player' } },
+          selector: { entity: { filter: [{ domain: 'media_player' }] } },
         },
         {
           name: 'name',
@@ -734,11 +734,11 @@ class TunetMediaCard extends HTMLElement {
           schema: [
             {
               name: 'coordinator_sensor',
-              selector: { entity: { domain: 'sensor' } },
+              selector: { entity: { filter: [{ domain: 'sensor' }] } },
             },
             {
               name: 'active_group_sensor',
-              selector: { entity: { domain: 'sensor' } },
+              selector: { entity: { filter: [{ domain: 'sensor' }] } },
             },
             {
               name: 'active_group_members_sensor',
@@ -746,7 +746,7 @@ class TunetMediaCard extends HTMLElement {
             },
             {
               name: 'playing_status_sensor',
-              selector: { entity: { domain: 'sensor' } },
+              selector: { entity: { filter: [{ domain: 'sensor' }] } },
             },
           ],
         },

@@ -149,6 +149,11 @@ const LIGHTING_STYLES = `
     --green-fill: rgba(52,199,89, 0.12);
     --green-border: rgba(52,199,89, 0.15);
 
+    /* Accent: Red (manual override) */
+    --red: #FF3B30;
+    --red-fill: rgba(255,59,48, 0.10);
+    --red-border: rgba(255,59,48, 0.20);
+
     /* Accent: Purple */
     --purple: #AF52DE;
     --purple-fill: rgba(175,82,222, 0.10);
@@ -232,6 +237,10 @@ const LIGHTING_STYLES = `
     --green: #30D158;
     --green-fill: rgba(48,209,88, 0.14);
     --green-border: rgba(48,209,88, 0.18);
+
+    --red: #FF453A;
+    --red-fill: rgba(255,69,58, 0.14);
+    --red-border: rgba(255,69,58, 0.25);
 
     --purple: #BF5AF2;
     --purple-fill: rgba(191,90,242, 0.14);
@@ -445,6 +454,9 @@ const LIGHTING_STYLES = `
   .card[data-any-on="true"] .entity-icon {
     color: var(--amber);
   }
+  .card[data-any-on="true"] .hdr-title {
+    color: var(--text);
+  }
 
   /* Title & Subtitle (§5.4) */
   .hdr-text {
@@ -473,8 +485,10 @@ const LIGHTING_STYLES = `
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .hdr-sub .amber-ic { color: var(--amber); }
-  .hdr-sub .green-ic { color: var(--green); }
+  .hdr-sub .amber-ic    { color: var(--amber); }
+  .hdr-sub .adaptive-ic { color: var(--text-muted); }
+  .card[data-any-on="true"] .hdr-sub .adaptive-ic { color: var(--text); }
+  .hdr-sub .red-ic      { color: var(--red); }
 
   /* Spacer (§5.5) */
   .hdr-spacer { flex: 1; }
@@ -541,7 +555,7 @@ const LIGHTING_STYLES = `
     position: absolute;
     top: -4px;
     right: -4px;
-    background: #FF3B30;
+    background: var(--red);
     color: #fff;
     font-size: 10.5px;
     font-weight: 700;
@@ -812,7 +826,7 @@ const LIGHTING_STYLES = `
     right: 10px;
     width: 8px;
     height: 8px;
-    background: #FF3B30;
+    background: var(--red);
     border-radius: 50%;
     display: none;
     box-shadow: 0 0 12px rgba(255,82,82,0.6);
@@ -967,16 +981,16 @@ class TunetLightingCard extends HTMLElement {
       schema: [
         {
           name: 'entities',
-          selector: { entity: { domain: 'light', multiple: true } },
+          selector: { entity: { multiple: true, filter: [{ domain: 'light' }] } },
         },
         { name: 'name',            selector: { text: {} } },
-        { name: 'primary_entity',  selector: { entity: { domain: 'light' } } },
-        { name: 'adaptive_entity', selector: { entity: { domain: ['switch', 'automation', 'input_boolean'] } } },
+        { name: 'primary_entity',  selector: { entity: { filter: [{ domain: 'light' }] } } },
+        { name: 'adaptive_entity', selector: { entity: { filter: [{ domain: 'switch' }, { domain: 'automation' }, { domain: 'input_boolean' }] } } },
         { name: 'surface',         selector: { select: { options: ['card', 'section'] } } },
         { name: 'layout',          selector: { select: { options: ['grid', 'scroll'] } } },
         {
           name: '', type: 'grid', schema: [
-            { name: 'columns',     selector: { number: { min: 2, max: 5, step: 1, mode: 'box' } } },
+            { name: 'columns',     selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
             { name: 'scroll_rows', selector: { number: { min: 1, max: 3, step: 1, mode: 'box' } } },
           ],
         },
@@ -1005,6 +1019,9 @@ class TunetLightingCard extends HTMLElement {
         show_adaptive_toggle: 'Show Adaptive Toggle',
         custom_css:      'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
+      computeHelper: (s) => ({
+        custom_css: 'CSS rules injected into shadow DOM. Use .light-grid, .l-tile, etc.',
+      }[s.name] || ''),
     };
   }
 
@@ -1250,6 +1267,11 @@ class TunetLightingCard extends HTMLElement {
     style.textContent = LIGHTING_STYLES;
     this.shadowRoot.appendChild(style);
 
+    // Custom CSS override layer
+    this._customStyleEl = document.createElement('style');
+    this._customStyleEl.textContent = this._config.custom_css || '';
+    this.shadowRoot.appendChild(this._customStyleEl);
+
     const tpl = document.createElement('template');
     tpl.innerHTML = LIGHTING_TEMPLATE;
     this.shadowRoot.appendChild(tpl.content.cloneNode(true));
@@ -1284,6 +1306,9 @@ class TunetLightingCard extends HTMLElement {
     const grid = this.$.lightGrid;
     if (!grid) return;
     grid.innerHTML = '';
+
+    // Refresh custom CSS on rebuild (covers config editor changes)
+    if (this._customStyleEl) this._customStyleEl.textContent = this._config.custom_css || '';
 
     // Set CSS custom properties
     grid.style.setProperty('--cols', this._config.columns);

@@ -1,0 +1,314 @@
+# ═══════════════════════════════════════════════════════════════
+# Tunet Overview Dashboard v2 — Responsive Composition
+# ═══════════════════════════════════════════════════════════════
+# Card source: Cards/dist/ (bundled from Cards/v2/ + tunet_base.js)
+# Rebuild:     node Cards/v2/bundle.js
+#
+# Responsive strategy:
+#   - Each card handles its own internal responsive CSS (≤440px)
+#   - Dashboard composition uses layout-card for cross-card layout
+#   - Environment row: 2-col desktop → stacked mobile (≤768px)
+#   - Media + Sensor: side-by-side desktop → stacked mobile
+#   - Rooms card: internal 2-col → 1-col at ≤760px
+#
+# Order:
+#   1) Top Mode Strip (compact, full-width)
+#   2) Home Status (4x2 grid, collapses to 2-col on mobile)
+#   3) Lighting Hero (5 zones, grid with scroll fallback)
+#   4) Environment Row (Climate + Weather, responsive 2-col)
+#   5) Media + Speaker Grid (responsive 2-col)
+#   6) Rooms (responsive grid via card internals)
+#
+# Lovelace resources (add to configuration.yaml or UI):
+#   - url: /local/tunet/dist/tunet_actions_card.js?v=2.0.0
+#   - url: /local/tunet/dist/tunet_status_card.js?v=2.0.0
+#   - url: /local/tunet/dist/tunet_lighting_card.js?v=2.0.0
+#   - url: /local/tunet/dist/tunet_climate_card.js?v=2.0.0
+#   - url: /local/tunet/dist/tunet_weather_card.js?v=2.0.0
+#   - url: /local/tunet/dist/tunet_media_card.js?v=2.0.0
+#   - url: /local/tunet/dist/tunet_speaker_grid_card.js?v=2.0.0
+#   - url: /local/tunet/dist/tunet_sensor_card.js?v=2.0.0
+#   - url: /local/tunet/dist/tunet_rooms_card.js?v=2.0.0
+# ═══════════════════════════════════════════════════════════════
+
+# ─── 1. TOP MODE STRIP ────────────────────────────────────────
+- type: custom:tunet-actions-card
+  variant: mode_strip
+  compact: true
+  mode_entity: input_select.oal_active_configuration
+  actions:
+    - name: All On
+      icon: lightbulb
+      accent: amber
+      service: light.turn_on
+      service_data:
+        entity_id: light.all_adaptive_lights
+      state_entity: light.all_adaptive_lights
+      active_when: 'on'
+
+    - name: All Off
+      icon: power_settings_new
+      accent: amber
+      service: light.turn_off
+      service_data:
+        entity_id: light.all_adaptive_lights
+      state_entity: light.all_adaptive_lights
+      active_when: 'off'
+
+    - name: Bedtime
+      icon: bedtime
+      accent: amber
+      service: input_select.select_option
+      service_data:
+        entity_id: input_select.oal_active_configuration
+        option: Dim Ambient
+      state_entity: input_select.oal_active_configuration
+      active_when: Dim Ambient
+
+    - name: Sleep Mode
+      icon: bed
+      accent: amber
+      service: input_select.select_option
+      service_data:
+        entity_id: input_select.oal_active_configuration
+        option: Sleep
+      state_entity: input_select.oal_active_configuration
+      active_when: Sleep
+
+# ─── 2. HOME STATUS (4x2) ─────────────────────────────────────
+# Status card handles its own responsive: 4-col → 2-col at ≤440px
+- type: custom:tunet-status-card
+  name: Home Status
+  columns: 4
+  tiles:
+    # Row 1
+    - type: indicator
+      entity: switch.adaptive_lighting_main_living
+      icon: sunny
+      label: Adaptive
+      accent: amber
+      format: state
+      dot_rules:
+        - match: 'on'
+          dot: green
+        - match: '*'
+          dot: muted
+      tap_action:
+        action: navigate
+        navigation_path: /tunet-overview/lights
+
+    - type: indicator
+      entity: sensor.oal_system_status
+      icon: front_hand
+      label: Manual
+      accent: amber
+      format: state
+      show_when:
+        entity: sensor.oal_system_status
+        operator: contains
+        state: Manual
+      aux_action:
+        label: Reset
+        icon: restart_alt
+        action: call-service
+        service: script.turn_on
+        service_data:
+          entity_id: script.oal_reset_manual_control
+      tap_action:
+        action: more-info
+
+    - type: value
+      entity: sensor.oal_global_brightness_offset
+      icon: bolt
+      label: Boost
+      accent: amber
+      format: integer
+
+    - type: dropdown
+      entity: input_select.oal_active_configuration
+      icon: tune
+      label: Mode
+      accent: muted
+
+    # Row 2 (fixed)
+    - type: value
+      entity: weather.home
+      icon: partly_cloudy_day
+      label: Weather
+      accent: blue
+      format: state
+
+    - type: value
+      entity: weather.home
+      icon: thermostat
+      label: Outside
+      accent: blue
+      attribute: temperature
+      unit: °F
+      format: integer
+
+    - type: value
+      entity: weather.home
+      icon: water_drop
+      label: Humidity
+      accent: blue
+      attribute: humidity
+      unit: '%'
+      format: integer
+
+    - type: value
+      entity: sensor.dining_room_temperature
+      icon: home
+      label: Inside
+      accent: amber
+      unit: °F
+      format: integer
+
+# ─── 3. LIGHTING HERO (TOP 5 ZONES) ───────────────────────────
+- type: custom:tunet-lighting-card
+  name: Lighting
+  surface: section
+  layout: grid
+  expand_groups: false
+  tile_size: compact
+  columns: 3
+  rows: 2
+  adaptive_entity: switch.adaptive_lighting_main_living
+  primary_entity: sensor.oal_system_status
+  zones:
+    - entity: light.living_room_lights
+      name: Living
+      icon: lightbulb
+    - entity: light.kitchen_island_pendants
+      name: Island
+      icon: kitchen
+    - entity: light.master_presence
+      name: Bed
+      icon: bed
+    - entity: light.accent_spots_lights
+      name: Spots
+      icon: highlight
+    - entity: light.all_column_lights
+      name: Columns
+      icon: view_column
+
+# ─── 4. ENVIRONMENT ROW (Climate + Weather) ─────────────────
+# layout-card: 2-col on desktop, stacked on mobile
+- type: custom:layout-card
+  layout_type: custom:grid-layout
+  layout:
+    grid-template-columns: 1fr 1fr
+    gap: 16px
+    margin: 0
+    padding: 0
+    mediaquery:
+      "(max-width: 768px)":
+        grid-template-columns: 1fr
+  cards:
+    - type: custom:tunet-climate-card
+      entity: climate.dining_room
+      name: Climate
+
+    - type: custom:tunet-weather-card
+      entity: weather.home
+      name: Environment
+      forecast_days: 5
+      show_last_updated: false
+
+# ─── 5. MEDIA + SPEAKER GRID ────────────────────────────────
+# layout-card: side-by-side on wide screens, stacked on mobile/tablet
+- type: custom:layout-card
+  layout_type: custom:grid-layout
+  layout:
+    grid-template-columns: 1fr 1fr
+    gap: 16px
+    margin: 0
+    padding: 0
+    mediaquery:
+      "(max-width: 768px)":
+        grid-template-columns: 1fr
+  cards:
+    - type: custom:tunet-media-card
+      entity: media_player.living_room
+      name: Sonos
+      show_progress: true
+
+    - type: custom:tunet-speaker-grid-card
+      entity: media_player.living_room
+      name: Speakers
+
+# ─── 6. SENSOR DASHBOARD ────────────────────────────────────
+- type: custom:tunet-sensor-card
+  name: Environment
+
+# ─── 7. ROOMS ───────────────────────────────────────────────
+# Rooms card handles responsive internally: 2-col → 1-col at ≤760px
+- type: custom:tunet-rooms-card
+  name: Rooms
+  rooms:
+    - name: Living Room
+      icon: weekend
+      temperature_entity: sensor.dining_room_temperature
+      navigate_path: /tunet-overview/living-room
+      lights:
+        - entity: light.living_room_couch_lamp
+          icon: lamp
+          name: Couch
+        - entity: light.living_room_floor_lamp
+          icon: lamp
+          name: Floor
+        - entity: light.living_room_spot_lights
+          icon: highlight
+          name: Spots
+        - entity: light.living_room_credenza_light
+          icon: light
+          name: Credenza
+
+    - name: Kitchen
+      icon: kitchen
+      navigate_path: /tunet-overview/kitchen
+      lights:
+        - entity: light.kitchen_island_pendants
+          icon: light
+          name: Pendants
+        - entity: light.kitchen_main_lights
+          icon: kitchen
+          name: Main
+        - entity: light.kitchen_counter_cabinet_underlights
+          icon: kitchen
+          name: Under-cab
+
+    - name: Dining Room
+      icon: restaurant
+      temperature_entity: sensor.dining_room_temperature
+      navigate_path: /tunet-overview/dining
+      lights:
+        - entity: light.dining_room_spot_lights
+          icon: highlight
+          name: Spots
+        - entity: light.all_column_lights
+          icon: view_column
+          name: Columns
+
+    - name: Bedroom
+      icon: bed
+      temperature_entity: sensor.bedroom_temp_humidity_sensor_temperature
+      navigate_path: /tunet-overview/bedroom
+      lights:
+        - entity: light.master_presence
+          icon: bed
+          name: Main
+        - entity: light.master_bedroom_corner_accent_govee
+          icon: nightlight
+          name: Accent
+        - entity: light.master_bedroom_table_lamps
+          icon: lamp
+          name: Table Lamps
+
+    - name: Office
+      icon: desktop_windows
+      navigate_path: /tunet-overview/office
+      lights:
+        - entity: light.office_desk_lamp
+          icon: desk
+          name: Desk

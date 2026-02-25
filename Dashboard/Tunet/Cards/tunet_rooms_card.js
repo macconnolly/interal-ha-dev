@@ -2,10 +2,10 @@
  * Tunet Rooms Card
  * Custom Home Assistant card with glassmorphism design
  * Room overview capsules with per-room light group orbs
- * Version 2.1.0
+ * Version 2.2.0
  */
 
-const ROOMS_CARD_VERSION = '2.1.0';
+const ROOMS_CARD_VERSION = '2.2.0';
 
 if (!window.TunetCardFoundation) {
   window.TunetCardFoundation = {
@@ -526,10 +526,11 @@ class TunetRoomsCard extends HTMLElement {
    *   lights: [
    *     { entity: 'light.spots', icon: 'highlight', name: 'Spots', sub_button: true },
    *     { entity: 'light.ceiling', icon: 'light', name: 'Ceiling', sub_button: true },
-   *     { entity: 'light.lamp', icon: 'table_lamp', name: 'Lamp', sub_button: false },
+   *     { entity: 'light.lamp', icon: 'table_lamp', name: 'Lamp', sub_button: false, tap_action: { action: 'more-info' } },
    *   ],
    *   temperature_entity: 'sensor.living_room_temp',
    *   navigate_path: '/lovelace/living-room',
+   *   tap_action: { action: 'navigate', navigation_path: '/lovelace/living-room' },
    * }
    */
 
@@ -587,11 +588,13 @@ class TunetRoomsCard extends HTMLElement {
         icon: normalizeIcon(room.icon || 'home'),
         temperature_entity: room.temperature_entity || '',
         navigate_path: room.navigate_path || '',
+        tap_action: room.tap_action || null,
         lights: (room.lights || []).map((light) => ({
           entity: light.entity || '',
           icon: normalizeIcon(light.icon || 'lightbulb'),
           name: light.name || '',
           sub_button: light.sub_button !== false,
+          tap_action: light.tap_action || null,
         })),
       })),
     };
@@ -726,6 +729,7 @@ class TunetRoomsCard extends HTMLElement {
       ? { entity_id: entityId }
       : { entity_id: entityId, brightness_pct: clamped };
     window.TunetCardFoundation.callServiceSafe(this, domain, service, data, {
+      pendingEl: ref && ref.sliderInput ? ref.sliderInput : null,
       onError: () => this._updateAll(),
     });
     if (ref && ref.sliderValue) {
@@ -740,6 +744,7 @@ class TunetRoomsCard extends HTMLElement {
     const before = orb.classList.contains('on');
     orb.classList.toggle('on', !before);
     window.TunetCardFoundation.callServiceSafe(this, 'light', 'toggle', { entity_id: entityId }, {
+      pendingEl: orb || null,
       onError: () => {
         orb.classList.toggle('on', before);
         this._updateAll();
@@ -748,7 +753,7 @@ class TunetRoomsCard extends HTMLElement {
     this._setEntityCooldown(entityId);
   }
 
-  _toggleRoomGroup(ref) {
+  _toggleRoomGroup(ref, pendingEl = null) {
     if (!this._hass || !ref || !ref.cfg) return;
     const entityIds = (ref.cfg.lights || []).map((l) => l.entity).filter(Boolean);
     if (!entityIds.length) return;
@@ -768,8 +773,52 @@ class TunetRoomsCard extends HTMLElement {
       this._setEntityCooldown(entityId);
     }
     window.TunetCardFoundation.callServiceSafe(this, domain, service, { entity_id: entityIds }, {
+      pendingEl,
       onError: () => this._updateAll(),
     });
+  }
+
+  _fireMoreInfo(entityId) {
+    if (!entityId || !this._hass) return;
+    this.dispatchEvent(new CustomEvent('hass-more-info', {
+      bubbles: true,
+      composed: true,
+      detail: { entityId },
+    }));
+  }
+
+  _handleTapAction(tapAction, defaultEntityId, options = {}) {
+    if (!this._hass) return;
+    const actionCfg = tapAction || { action: 'more-info', entity: defaultEntityId };
+    const action = actionCfg.action || 'more-info';
+
+    if (action === 'none') return;
+
+    if (action === 'more-info') {
+      this._fireMoreInfo(actionCfg.entity || defaultEntityId);
+      return;
+    }
+
+    if (action === 'navigate') {
+      const path = actionCfg.navigation_path || actionCfg.navigate_path;
+      if (!path) return;
+      window.history.pushState(null, '', path);
+      window.dispatchEvent(new Event('location-changed'));
+      return;
+    }
+
+    if (action === 'call-service' || action === 'service') {
+      const service = actionCfg.service || '';
+      const [domain, serviceName] = service.split('.');
+      if (!domain || !serviceName) return;
+      window.TunetCardFoundation.callServiceSafe(this, domain, serviceName, actionCfg.service_data || {}, {
+        pendingEl: options.pendingEl || null,
+        onError: () => this._updateAll(),
+      });
+      return;
+    }
+
+    this._fireMoreInfo(actionCfg.entity || defaultEntityId);
   }
 
   _buildRooms() {
@@ -837,23 +886,27 @@ class TunetRoomsCard extends HTMLElement {
         sliderTimer: null,
       };
 
-      roomIcon.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this._toggleRoomGroup(ref);
-      });
+      window.TunetCardFoundation.bindActivate(roomIcon, () => {
+        this._toggleRoomGroup(ref, roomIcon);
+      }, { stopPropagation: true });
 
       orbEls.forEach((orb) => {
-        orb.addEventListener('click', (e) => {
-          e.stopPropagation();
+        const entityId = orb.dataset.entity;
+        const lightCfg = (roomCfg.lights || []).find((l) => l.entity === entityId) || null;
+
+        window.TunetCardFoundation.bindActivate(orb, () => {
           const entityId = orb.dataset.entity;
           if (!entityId || !this._hass) return;
           const entity = this._hass.states[entityId];
-          const lightCfg = (roomCfg.lights || []).find((l) => l.entity === entityId);
+          if (lightCfg && lightCfg.tap_action) {
+            this._handleTapAction(lightCfg.tap_action, entityId, { pendingEl: orb });
+            return;
+          }
           const allowSub = this._config.enable_sub_buttons && (!lightCfg || lightCfg.sub_button !== false);
           if (allowSub && this._openSubSlider(ref, entityId)) return;
           if (entity && entity.state === 'unavailable') return;
           this._toggleRoomLight(ref, entityId, orb);
-        });
+        }, { stopPropagation: true });
       });
 
       sliderInput.addEventListener('input', (e) => {
@@ -863,7 +916,9 @@ class TunetRoomsCard extends HTMLElement {
         sliderValue.textContent = pct <= 0 ? 'Off' : `${pct}%`;
       });
       sliderInput.addEventListener('pointerdown', (e) => e.stopPropagation());
+      sliderInput.addEventListener('keydown', (e) => e.stopPropagation());
       sliderWrap.addEventListener('click', (e) => e.stopPropagation());
+      sliderWrap.addEventListener('keydown', (e) => e.stopPropagation());
 
       sliderInput.addEventListener('change', (e) => {
         const entityId = sliderInput.dataset.entity;
@@ -872,18 +927,12 @@ class TunetRoomsCard extends HTMLElement {
         this._setRoomLightBrightness(ref, entityId, pct);
       });
 
-      card.addEventListener('click', () => {
-        if (roomCfg.navigate_path) {
-          history.pushState(null, '', roomCfg.navigate_path);
-          const event = new Event('location-changed');
-          window.dispatchEvent(event);
-        } else if ((roomCfg.lights || []).length && roomCfg.lights[0].entity) {
-          this.dispatchEvent(new CustomEvent('hass-more-info', {
-            bubbles: true,
-            composed: true,
-            detail: { entityId: roomCfg.lights[0].entity },
-          }));
-        }
+      window.TunetCardFoundation.bindActivate(card, () => {
+        const defaultEntity = (roomCfg.lights || []).length ? roomCfg.lights[0].entity : '';
+        const defaultAction = roomCfg.navigate_path
+          ? { action: 'navigate', navigation_path: roomCfg.navigate_path }
+          : { action: 'more-info', entity: defaultEntity };
+        this._handleTapAction(roomCfg.tap_action || defaultAction, defaultEntity, { pendingEl: card });
       });
 
       list.appendChild(card);

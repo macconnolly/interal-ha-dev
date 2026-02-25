@@ -17,14 +17,12 @@ Editor: static getConfigForm() — NEVER imperative editor class
 ```
 
 ## Token source of truth
-`:host` and `:host(.dark)` blocks in `tunet_climate_card.js` lines 15-76 are pixel-identical to design_language.md v8.0. Copy them verbatim for any new or updated card.
+All cards now use midnight navy dark palette (`rgba(30,41,59,...)` base, `#fbbf24` dark amber).
+`:host` and `:host(.dark)` blocks across all cards are synchronized to design_language.md v8.3.
 
-## Cards needing work
-- **status** (803 lines): Wrong tokens (glass 0.55/0.06, tiles invisible in dark), no §5 header, not in dashboard config
-- **lighting** (685 lines): Wrong tokens, needs responsive scroll mode, no §5 header
-- **actions** (~200 lines): Wrong tokens, active chip missing fill, no §5 header
-- **rooms** (~400 lines): Wrong tokens, missing adaptive lighting toggle, touch targets undersized
-- **sensor** (1 line): Empty placeholder
+## Card status
+All 7 canonical cards deployed with midnight navy tokens, tile physics, and icon validation.
+Overview config: `tunet-overview-config.yaml` includes all cards in correct order.
 
 <claude-mem-context>
 # Recent Activity

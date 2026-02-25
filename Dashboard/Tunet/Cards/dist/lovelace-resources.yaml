@@ -1,0 +1,31 @@
+# ═══════════════════════════════════════════════════════════════
+# Tunet v2 Lovelace Resources
+# ═══════════════════════════════════════════════════════════════
+# Add these to HA via Settings → Dashboards → Resources
+# or in configuration.yaml under lovelace.resources
+#
+# File location on HA: /config/www/tunet/dist/<filename>.js
+# URL path:            /local/tunet/dist/<filename>.js
+#
+# Cache busting: increment ?v= after each deploy
+# ═══════════════════════════════════════════════════════════════
+
+resources:
+  - url: /local/tunet/dist/tunet_actions_card.js?v=2.0.0
+    type: js
+  - url: /local/tunet/dist/tunet_status_card.js?v=2.0.0
+    type: js
+  - url: /local/tunet/dist/tunet_lighting_card.js?v=2.0.0
+    type: js
+  - url: /local/tunet/dist/tunet_climate_card.js?v=2.0.0
+    type: js
+  - url: /local/tunet/dist/tunet_weather_card.js?v=2.0.0
+    type: js
+  - url: /local/tunet/dist/tunet_media_card.js?v=2.0.0
+    type: js
+  - url: /local/tunet/dist/tunet_speaker_grid_card.js?v=2.0.0
+    type: js
+  - url: /local/tunet/dist/tunet_sensor_card.js?v=2.0.0
+    type: js
+  - url: /local/tunet/dist/tunet_rooms_card.js?v=2.0.0
+    type: js

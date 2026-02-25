@@ -1,8 +1,654 @@
 /**
- * Tunet Lighting Card  v3.2.0
+ * tunet_lighting_card.js — Bundled standalone build
+ * Generated: 2026-02-25T05:37:39.050Z
+ * Source: v2/tunet_lighting_card.js + v2/tunet_base.js
+ * This file is auto-generated. Edit v2/ sources, then re-run: node v2/bundle.js
+ */
+
+(function() {
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// TUNET BASE MODULE (inlined from tunet_base.js)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Tunet Base Module
+ * Shared tokens, CSS blocks, and utilities for the Tunet card suite
+ * Version 1.0.0
+ *
+ * Architecture: String exports, not inheritance.
+ * Each card remains a standalone HTMLElement subclass.
+ * Cards import CSS strings and concatenate them into their shadow DOM <style>.
+ */
+
+// ═══════════════════════════════════════════════════════════
+// TOKENS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Complete token system: light mode (spec §2.1) + dark mode (spec §2.2).
+ * Source: design_language.md v8.3
+ */
+const TOKENS = `
+  :host {
+    /* Glass Surfaces */
+    --glass: rgba(255,255,255, 0.68);
+    --glass-border: rgba(255,255,255, 0.45);
+
+    /* Shadows (two-layer: contact + ambient) */
+    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
+    --inset: inset 0 0 0 0.5px rgba(0,0,0, 0.06);
+
+    /* Text */
+    --text: #1C1C1E;
+    --text-sub: rgba(28,28,30, 0.55);
+    --text-muted: #8E8E93;
+
+    /* Accent: Amber */
+    --amber: #D4850A;
+    --amber-fill: rgba(212,133,10, 0.10);
+    --amber-border: rgba(212,133,10, 0.22);
+
+    /* Accent: Blue */
+    --blue: #007AFF;
+    --blue-fill: rgba(0,122,255, 0.09);
+    --blue-border: rgba(0,122,255, 0.18);
+
+    /* Accent: Green */
+    --green: #34C759;
+    --green-fill: rgba(52,199,89, 0.12);
+    --green-border: rgba(52,199,89, 0.15);
+
+    /* Accent: Purple */
+    --purple: #AF52DE;
+    --purple-fill: rgba(175,82,222, 0.10);
+    --purple-border: rgba(175,82,222, 0.18);
+
+    /* Accent: Red */
+    --red: #FF3B30;
+    --red-fill: rgba(255,59,48, 0.10);
+    --red-border: rgba(255,59,48, 0.22);
+
+    /* Track / Slider */
+    --track-bg: rgba(28,28,30, 0.055);
+    --track-h: 44px;
+
+    /* Thumb */
+    --thumb-bg: #fff;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
+
+    /* Radii */
+    --r-card: 24px;
+    --r-section: 32px;
+    --r-tile: 16px;
+    --r-pill: 999px;
+    --r-track: 14px;
+
+    /* Controls */
+    --ctrl-bg: rgba(255,255,255, 0.52);
+    --ctrl-border: rgba(0,0,0, 0.05);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+
+    /* Chips */
+    --chip-bg: rgba(255,255,255, 0.48);
+    --chip-border: rgba(0,0,0, 0.05);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
+
+    /* Dropdown Menu */
+    --dd-bg: rgba(255,255,255, 0.84);
+    --dd-border: rgba(255,255,255, 0.60);
+
+    /* Dividers */
+    --divider: rgba(28,28,30, 0.07);
+
+    /* Toggle Switch */
+    --toggle-off: rgba(28,28,30, 0.10);
+    --toggle-on: rgba(52,199,89, 0.28);
+    --toggle-knob: rgba(255,255,255, 0.96);
+
+    /* Tile Surfaces */
+    --tile-bg: rgba(255,255,255, 0.92);
+    --tile-bg-off: rgba(28,28,30, 0.04);
+    --gray-ghost: rgba(0, 0, 0, 0.035);
+    --border-ghost: transparent;
+
+    /* Section Container */
+    --section-bg: rgba(255,255,255, 0.35);
+    --section-shadow: 0 8px 40px rgba(0,0,0,0.10);
+
+    color-scheme: light;
+    display: block;
+  }
+
+  :host(.dark) {
+    --glass: rgba(44,44,46, 0.72);
+    --glass-border: rgba(255,255,255, 0.08);
+
+    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
+    --inset: inset 0 0 0 0.5px rgba(255,255,255, 0.06);
+
+    --text: #F5F5F7;
+    --text-sub: rgba(245,245,247, 0.50);
+    --text-muted: rgba(245,245,247, 0.35);
+
+    --amber: #E8961E;
+    --amber-fill: rgba(232,150,30, 0.14);
+    --amber-border: rgba(232,150,30, 0.25);
+
+    --blue: #0A84FF;
+    --blue-fill: rgba(10,132,255, 0.13);
+    --blue-border: rgba(10,132,255, 0.22);
+
+    --green: #30D158;
+    --green-fill: rgba(48,209,88, 0.14);
+    --green-border: rgba(48,209,88, 0.18);
+
+    --purple: #BF5AF2;
+    --purple-fill: rgba(191,90,242, 0.14);
+    --purple-border: rgba(191,90,242, 0.22);
+
+    --red: #FF453A;
+    --red-fill: rgba(255,69,58, 0.14);
+    --red-border: rgba(255,69,58, 0.25);
+
+    --track-bg: rgba(255,255,255, 0.06);
+    --thumb-bg: #F5F5F7;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
+
+    --ctrl-bg: rgba(255,255,255, 0.08);
+    --ctrl-border: rgba(255,255,255, 0.08);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+
+    --chip-bg: rgba(58,58,60, 0.50);
+    --chip-border: rgba(255,255,255, 0.06);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
+
+    --dd-bg: rgba(58,58,60, 0.88);
+    --dd-border: rgba(255,255,255, 0.08);
+
+    --divider: rgba(255,255,255, 0.06);
+
+    --toggle-off: rgba(255,255,255, 0.10);
+    --toggle-on: rgba(48,209,88, 0.30);
+    --toggle-knob: rgba(255,255,255, 0.92);
+
+    --tile-bg: rgba(44,44,46, 0.90);
+    --tile-bg-off: rgba(255,255,255, 0.04);
+    --gray-ghost: rgba(255, 255, 255, 0.05);
+    --border-ghost: rgba(255, 255, 255, 0.08);
+
+    --section-bg: rgba(255,255,255, 0.05);
+    --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
+
+    color-scheme: dark;
+  }
+`;
+
+/**
+ * Midnight Navy dark mode override.
+ * Append AFTER TOKENS to override dark mode with navy palette.
+ * Used by: lighting card only.
+ * Source: lighting-section-mockup-polish.html + parity lock values.
+ */
+const TOKENS_MIDNIGHT = `
+  :host(.dark) {
+    /* Midnight Navy - Parity Lock baseline */
+    --glass: rgba(30,41,59, 0.72);
+    --glass-border: rgba(255,255,255, 0.10);
+
+    --text: #F8FAFC;
+    --text-sub: rgba(248,250,252, 0.65);
+    --text-muted: rgba(248,250,252, 0.40);
+
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36, 0.12);
+    --amber-border: rgba(251,191,36, 0.25);
+
+    --tile-bg: rgba(255,255,255, 0.08);
+    --tile-bg-off: rgba(255,255,255, 0.04);
+    --gray-ghost: rgba(255,255,255, 0.04);
+    --border-ghost: rgba(255,255,255, 0.05);
+
+    --section-bg: rgba(30,41,59, 0.60);
+
+    --track-bg: rgba(255,255,255, 0.08);
+    --shadow: 0 4px 20px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.5);
+    --shadow-up: 0 1px 4px rgba(0,0,0,0.40), 0 20px 40px rgba(0,0,0,0.35);
+  }
+`;
+
+// ═══════════════════════════════════════════════════════════
+// SHARED CSS BLOCKS
+// ═══════════════════════════════════════════════════════════
+
+const RESET = `
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+`;
+
+const BASE_FONT = `
+  .wrap, .card-wrap {
+    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+`;
+
+/**
+ * Material Symbols Rounded icon base.
+ * Uses CSS custom properties for font-variation-settings.
+ * Font-family: Rounded only (not Outlined).
+ */
+const ICON_BASE = `
+  .icon {
+    font-family: 'Material Symbols Rounded';
+    font-weight: normal;
+    font-style: normal;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    white-space: nowrap;
+    direction: ltr;
+    vertical-align: middle;
+    flex-shrink: 0;
+    -webkit-font-smoothing: antialiased;
+    --ms-fill: 0;
+    --ms-wght: 100;
+    --ms-grad: 200;
+    --ms-opsz: 20;
+    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
+  }
+  .icon.filled { --ms-fill: 1; }
+  .icon-28 { font-size: 28px; width: 28px; height: 28px; }
+  .icon-24 { font-size: 24px; width: 24px; height: 24px; }
+  .icon-20 { font-size: 20px; width: 20px; height: 20px; }
+  .icon-18 { font-size: 18px; width: 18px; height: 18px; }
+  .icon-16 { font-size: 16px; width: 16px; height: 16px; }
+  .icon-14 { font-size: 14px; width: 14px; height: 14px; }
+`;
+
+/** Universal glass card shell. Spec §3.1 */
+const CARD_SURFACE = `
+  .card {
+    position: relative;
+    border-radius: var(--r-card);
+    background: var(--glass);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--ctrl-border);
+    box-shadow: var(--shadow), var(--inset);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: background .3s, border-color .3s, box-shadow .3s, opacity .3s;
+    overflow: hidden;
+  }
+`;
+
+/** Glass stroke pseudo-element for card surface. Spec §3.2 */
+const CARD_SURFACE_GLASS_STROKE = `
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--r-card);
+    padding: 1px;
+    pointer-events: none;
+    z-index: 0;
+    background: linear-gradient(
+      160deg,
+      rgba(255,255,255, 0.60),
+      rgba(255,255,255, 0.10) 40%,
+      rgba(255,255,255, 0.02) 60%,
+      rgba(255,255,255, 0.25)
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  :host(.dark) .card::before {
+    background: linear-gradient(
+      160deg,
+      rgba(255,255,255, 0.12),
+      rgba(255,255,255, 0.03) 40%,
+      rgba(255,255,255, 0.01) 60%,
+      rgba(255,255,255, 0.06)
+    );
+  }
+`;
+
+/** Section container surface (status, lighting cards) */
+const SECTION_SURFACE = `
+  .section-container {
+    border-radius: var(--r-section);
+    background: var(--section-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--ctrl-border);
+    box-shadow: var(--section-shadow);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+`;
+
+/** Base tile surface for status, lighting, sensor tiles */
+const TILE_SURFACE = `
+  .tile {
+    border-radius: var(--r-tile);
+    background: var(--tile-bg);
+    border: 1px solid var(--border-ghost);
+    box-shadow: var(--shadow);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: background .2s, border-color .2s, box-shadow .2s, transform .2s;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .tile:hover {
+    box-shadow: var(--shadow-up);
+  }
+
+  .tile:active {
+    transform: scale(0.97);
+  }
+
+  .tile.off {
+    background: var(--tile-bg-off);
+    box-shadow: none;
+  }
+
+  .tile.off .tile-icon {
+    background: var(--gray-ghost);
+    color: var(--text-muted);
+  }
+`;
+
+/** Shared section header row */
+const HEADER_PATTERN = `
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 28px;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: var(--text-sub);
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+`;
+
+/** Shared control button surface (info tile, toggle buttons, selectors) */
+const CTRL_SURFACE = `
+  .ctrl-btn {
+    min-height: 42px;
+    border-radius: 10px;
+    border: 1px solid var(--ctrl-border);
+    background: var(--ctrl-bg);
+    box-shadow: var(--ctrl-sh);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 12px;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-sub);
+  }
+
+  .ctrl-btn:hover {
+    box-shadow: var(--shadow);
+  }
+
+  .ctrl-btn:active {
+    transform: scale(0.95);
+  }
+`;
+
+/** Shared dropdown menu */
+const DROPDOWN_MENU = `
+  .dd-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    padding: 5px;
+    border-radius: var(--r-tile);
+    background: var(--dd-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--dd-border);
+    box-shadow: var(--shadow-up);
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .dd-menu.open {
+    display: flex;
+    animation: menuIn .14s ease forwards;
+  }
+
+  @keyframes menuIn {
+    from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .dd-option {
+    padding: 9px 12px;
+    border-radius: 11px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background .1s;
+    user-select: none;
+  }
+
+  .dd-option:hover {
+    background: var(--track-bg);
+  }
+
+  .dd-option:active {
+    transform: scale(0.97);
+  }
+
+  .dd-divider {
+    height: 1px;
+    background: var(--divider);
+    margin: 3px 8px;
+  }
+`;
+
+const REDUCED_MOTION = `
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+`;
+
+const RESPONSIVE_BASE = `
+  @media (max-width: 440px) {
+    .card { padding: 16px; }
+    .section-container { padding: 16px; border-radius: 28px; }
+  }
+`;
+
+// ═══════════════════════════════════════════════════════════
+// FONT INJECTION
+// ═══════════════════════════════════════════════════════════
+
+let _fontsInjected = false;
+
+/**
+ * Inject Google Fonts links into document.head (idempotent).
+ * Call once from any card's constructor.
+ */
+function injectFonts() {
+  if (_fontsInjected) return;
+  _fontsInjected = true;
+  const links = [
+    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
+  ];
+  for (const cfg of links) {
+    if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
+    const link = document.createElement('link');
+    link.rel = cfg.rel;
+    link.href = cfg.href;
+    if (cfg.crossOrigin !== undefined) link.crossOrigin = cfg.crossOrigin;
+    document.head.appendChild(link);
+  }
+}
+
+/**
+ * Font link tags for injection into shadow DOM.
+ * Use inside the card's _render() template.
+ */
+const FONT_LINKS = `
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+`;
+
+// ═══════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Standardized dark mode detection.
+ * @param {Object} hass - Home Assistant instance
+ * @returns {boolean}
+ */
+function detectDarkMode(hass) {
+  if (!hass?.themes) return false;
+  const theme = hass.themes?.darkMode;
+  if (typeof theme === 'boolean') return theme;
+  const selected = hass.themes?.theme;
+  if (selected && selected.toLowerCase().includes('dark')) return true;
+  return false;
+}
+
+/**
+ * Apply or remove .dark class on host element.
+ * @param {HTMLElement} element - The custom element (this)
+ * @param {boolean} isDark
+ */
+function applyDarkClass(element, isDark) {
+  element.classList.toggle('dark', isDark);
+}
+
+/**
+ * Fire a custom event (for hass-more-info, etc.).
+ * @param {HTMLElement} element
+ * @param {string} type - Event type
+ * @param {Object} detail - Event detail payload
+ */
+function fireEvent(element, type, detail = {}) {
+  element.dispatchEvent(new CustomEvent(type, {
+    bubbles: true,
+    composed: true,
+    detail,
+  }));
+}
+
+/**
+ * Idempotent card registration with HA.
+ * @param {string} tagName - Custom element tag (e.g. 'tunet-climate-card')
+ * @param {Function} cardClass - The HTMLElement subclass
+ * @param {Object} meta - { name, description, documentationURL? }
+ */
+function registerCard(tagName, cardClass, meta) {
+  if (!customElements.get(tagName)) {
+    customElements.define(tagName, cardClass);
+  }
+  window.customCards = window.customCards || [];
+  if (!window.customCards.some(c => c.type === tagName)) {
+    window.customCards.push({
+      type: tagName,
+      preview: true,
+      ...meta,
+    });
+  }
+}
+
+/**
+ * Console branding for card version logging.
+ * @param {string} name - Display name (e.g. 'TUNET-CLIMATE')
+ * @param {string} version - Version string
+ * @param {string} color - Hex color for badge
+ */
+function logCardVersion(name, version, color = '#D4850A') {
+  const lightBg = color + '20';
+  console.info(
+    `%c ${name} %c v${version} `,
+    `color: #fff; background: ${color}; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;`,
+    `color: ${color}; background: ${lightBg}; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;`
+  );
+}
+
+/**
+ * Clamp a number between min and max.
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// CARD: tunet_lighting_card.js
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Tunet Lighting Card  v3.3.0 (v2 migration)
  * ──────────────────────────────────────────────────────────────
  * Complete rewrite aligned to Tunet Design Language v8.0 by Mac
- * Reference: tunet_climate_card.js (gold standard)
+ * Migrated to tunet_base.js shared module.
  *
  * Architecture:
  *   Shadow DOM custom element · Full token system (light + dark)
@@ -29,344 +675,64 @@
  * ──────────────────────────────────────────────────────────────
  */
 
-const LIGHTING_CARD_VERSION = '3.2.0';
-
-if (!window.TunetCardFoundation) {
-  window.TunetCardFoundation = {
-    escapeHtml(value) {
-      return String(value == null ? '' : value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    },
-    normalizeIcon(icon, options = {}) {
-      const fallback = options.fallback || 'lightbulb';
-      const aliases = options.aliases || {};
-      const allow = options.allow || null;
-      if (!icon) return fallback;
-      const raw = String(icon).replace(/^mdi:/, '').trim();
-      const resolved = aliases[raw] || raw;
-      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
-      if (allow && allow.size && !allow.has(resolved)) return fallback;
-      return resolved;
-    },
-    bindActivate(el, handler, options = {}) {
-      if (!el || typeof handler !== 'function') return () => {};
-      const role = options.role || 'button';
-      const tabindex = options.tabindex != null ? options.tabindex : 0;
-      if (!el.hasAttribute('role')) el.setAttribute('role', role);
-      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', String(tabindex));
-      const onClick = (e) => {
-        if (options.stopPropagation) e.stopPropagation();
-        handler(e);
-      };
-      const onKey = (e) => {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        e.preventDefault();
-        if (options.stopPropagation) e.stopPropagation();
-        handler(e);
-      };
-      el.addEventListener('click', onClick);
-      el.addEventListener('keydown', onKey);
-      return () => {
-        el.removeEventListener('click', onClick);
-        el.removeEventListener('keydown', onKey);
-      };
-    },
-    async callServiceSafe(host, domain, service, data = {}, options = {}) {
-      const hass = host && host._hass ? host._hass : host;
-      if (!hass || !domain || !service) return false;
-      const pendingEl = options.pendingEl || null;
-      if (pendingEl) {
-        pendingEl.classList.add('is-pending');
-        if ('disabled' in pendingEl) pendingEl.disabled = true;
-      }
-      try {
-        const result = hass.callService(domain, service, data || {});
-        if (result && typeof result.then === 'function') await result;
-        return true;
-      } catch (error) {
-        console.error(`[Tunet] callService failed: ${domain}.${service}`, error);
-        if (typeof options.onError === 'function') options.onError(error);
-        if (host && typeof host.dispatchEvent === 'function') {
-          host.dispatchEvent(new CustomEvent('tunet-service-error', {
-            bubbles: true,
-            composed: true,
-            detail: {
-              domain,
-              service,
-              data,
-              error: String(error && error.message ? error.message : error),
-            },
-          }));
-        }
-        return false;
-      } finally {
-        if (pendingEl) {
-          pendingEl.classList.remove('is-pending');
-          if ('disabled' in pendingEl) pendingEl.disabled = false;
-        }
-      }
-    },
-  };
-}
+const CARD_VERSION = '3.3.0';
 
 /* ═══════════════════════════════════════════════════════════════
-   CSS – Complete token system from Design Language v8.0
+   CSS – Shared base + card-specific overrides
    ═══════════════════════════════════════════════════════════════ */
 
 const LIGHTING_STYLES = `
-  /* ── Tokens: Light (Design Language §2.1) ──────── */
+${TOKENS}
+${TOKENS_MIDNIGHT}
+${RESET}
+${BASE_FONT}
+${ICON_BASE}
+${CARD_SURFACE}
+${CARD_SURFACE_GLASS_STROKE}
+
+  /* ── Lighting-specific token overrides ──────── */
   :host {
-    /* Glass Surfaces */
-    --glass: rgba(255,255,255, 0.68);
-    --glass-border: rgba(255,255,255, 0.45);
+    /* Track radius: narrow progress bars (base: 14px) */
+    --r-track: 4px;
 
-    /* Shadows (two-layer: contact + ambient) */
-    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
-    --inset: inset 0 0 0 0.5px rgba(0,0,0, 0.06);
+    /* Tile physics (not in base tokens) */
+    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
 
-    /* Text */
-    --text: #1C1C1E;
-    --text-sub: rgba(28,28,30, 0.55);
-    --text-muted: #8E8E93;
-
-    /* Accent: Amber (lighting primary) */
-    --amber: #D4850A;
-    --amber-fill: rgba(212,133,10, 0.10);
-    --amber-border: rgba(212,133,10, 0.22);
-
-    /* Accent: Blue */
-    --blue: #007AFF;
-    --blue-fill: rgba(0,122,255, 0.09);
-    --blue-border: rgba(0,122,255, 0.18);
-
-    /* Accent: Green (eco, adaptive) */
-    --green: #34C759;
-    --green-fill: rgba(52,199,89, 0.12);
-    --green-border: rgba(52,199,89, 0.15);
-
-    /* Accent: Red (manual override) */
-    --red: #FF3B30;
-    --red-fill: rgba(255,59,48, 0.10);
-    --red-border: rgba(255,59,48, 0.20);
-
-    /* Accent: Purple */
-    --purple: #AF52DE;
-    --purple-fill: rgba(175,82,222, 0.10);
-    --purple-border: rgba(175,82,222, 0.18);
-
-    /* Track / Slider */
-    --track-bg: rgba(28,28,30, 0.055);
-    --track-h: 44px;
-
-    /* Thumb */
-    --thumb-bg: #fff;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
-
-    /* Radii */
-    --r-card: 24px;
-    --r-section: 32px;
-    --r-tile: 22px;
-    --r-pill: 999px;
-    --r-track: 99px;
-
-    /* Section Surface */
+    /* Section bg: slightly more opaque than base 0.35 */
     --section-bg: rgba(255,255,255, 0.45);
-    --section-shadow: 0 8px 40px rgba(0,0,0,0.10);
-
-    /* Tile physics */
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-
-    /* Controls (header controls, pills, buttons) */
-    --ctrl-bg: rgba(255,255,255, 0.52);
-    --ctrl-border: rgba(0,0,0, 0.05);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
-
-    /* Chips */
-    --chip-bg: rgba(255,255,255, 0.48);
-    --chip-border: rgba(0,0,0, 0.05);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
-
-    /* Dropdown Menu */
-    --dd-bg: rgba(255,255,255, 0.84);
-    --dd-border: rgba(255,255,255, 0.60);
-
-    /* Dividers */
-    --divider: rgba(28,28,30, 0.07);
-
-    /* Toggle Switch */
-    --toggle-off: rgba(28,28,30, 0.10);
-    --toggle-on: rgba(52,199,89, 0.28);
-    --toggle-knob: rgba(255,255,255, 0.96);
-
-    /* Tile Surfaces */
-    --tile-bg: rgba(255,255,255, 0.92);
-    --border-ghost: transparent;
-
-    color-scheme: light;
-    display: block;
   }
 
-  /* ── Tokens: Dark (Midnight Navy) ──────────────── */
   :host(.dark) {
-    --glass: rgba(30,41,59, 0.72);
-    --glass-border: rgba(255,255,255, 0.08);
+    /* Solid navy tile bg (overrides TOKENS_MIDNIGHT rgba(255,255,255, 0.08)) */
+    --tile-bg: rgba(30,41,59, 0.92);
 
-    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
-    --inset: inset 0 0 0 0.5px rgba(255,255,255, 0.06);
+    /* Warmer amber accent (overrides TOKENS_MIDNIGHT 0.12/0.25) */
+    --amber-fill: rgba(251,191,36, 0.18);
+    --amber-border: rgba(251,191,36, 0.32);
 
-    --text: #F5F5F7;
-    --text-sub: rgba(245,245,247, 0.50);
-    --text-muted: rgba(245,245,247, 0.35);
+    /* Slightly brighter muted text (overrides TOKENS_MIDNIGHT 0.40) */
+    --text-muted: rgba(248,250,252, 0.45);
 
-    --amber: #fbbf24;
-    --amber-fill: rgba(251,191,36, 0.14);
-    --amber-border: rgba(251,191,36, 0.25);
-
-    --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255, 0.13);
-    --blue-border: rgba(10,132,255, 0.22);
-
-    --green: #30D158;
-    --green-fill: rgba(48,209,88, 0.14);
-    --green-border: rgba(48,209,88, 0.18);
-
-    --red: #FF453A;
-    --red-fill: rgba(255,69,58, 0.14);
-    --red-border: rgba(255,69,58, 0.25);
-
-    --purple: #BF5AF2;
-    --purple-fill: rgba(191,90,242, 0.14);
-    --purple-border: rgba(191,90,242, 0.22);
-
-    --track-bg: rgba(255,255,255, 0.06);
-    --thumb-bg: #F5F5F7;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
-
-    --ctrl-bg: rgba(255,255,255, 0.08);
-    --ctrl-border: rgba(255,255,255, 0.08);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-
-    --chip-bg: rgba(30,41,59, 0.50);
-    --chip-border: rgba(255,255,255, 0.06);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
-
-    --dd-bg: rgba(30,41,59, 0.92);
-    --dd-border: rgba(255,255,255, 0.08);
-    --divider: rgba(255,255,255, 0.06);
-
-    --toggle-off: rgba(255,255,255, 0.10);
-    --toggle-on: rgba(48,209,88, 0.30);
-    --toggle-knob: rgba(255,255,255, 0.92);
-
-    --tile-bg: rgba(30,41,59, 0.90);
-    --border-ghost: rgba(255,255,255, 0.05);
-
-    --section-bg: rgba(30,41,59, 0.60);
-    --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
-
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-
-    color-scheme: dark;
+    /* Deeper section shadow (overrides standard dark 0.25) */
+    --section-shadow: 0 8px 40px rgba(0,0,0,0.35);
   }
 
-  /* ── Reset ───────────────────────────────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  .card-wrap {
-    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* ── Icons (Design Language §6) ──────────────────── */
-  .icon {
-    font-family: 'Material Symbols Rounded';
-    font-weight: normal;
-    font-style: normal;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    text-transform: none;
-    letter-spacing: normal;
-    white-space: nowrap;
-    direction: ltr;
-    vertical-align: middle;
-    flex-shrink: 0;
-    -webkit-font-smoothing: antialiased;
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  }
-  .icon.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-  .icon-20 { font-size: 20px; width: 20px; height: 20px; }
-  .icon-18 { font-size: 18px; width: 18px; height: 18px; }
-  .icon-16 { font-size: 16px; width: 16px; height: 16px; }
-  .icon-14 { font-size: 14px; width: 14px; height: 14px; }
-
-  /* ═══════════════════════════════════════════════════
-     CARD SURFACE (Design Language §3.1)
-     Default surface: frosted glass card
-     ═══════════════════════════════════════════════════ */
+  /* ── Card surface overrides ─────────────────── */
   .card {
-    position: relative;
     width: 100%;
     max-width: 100%;
-    border-radius: var(--r-card);
-    background: var(--glass);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--ctrl-border);
-    box-shadow: var(--shadow), var(--inset);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
     overflow: visible;
-    transition: background .3s, border-color .3s, box-shadow .3s, opacity .3s;
   }
 
-  /* Glass Stroke (Design Language §3.2) */
-  .card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: var(--r-card);
-    padding: 1px;
-    pointer-events: none;
-    z-index: 0;
-    background: linear-gradient(160deg,
-      rgba(255,255,255, 0.50),
-      rgba(255,255,255, 0.08) 40%,
-      rgba(255,255,255, 0.02) 60%,
-      rgba(255,255,255, 0.20));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-  }
-  :host(.dark) .card::before {
-    background: linear-gradient(160deg,
-      rgba(255,255,255, 0.14),
-      rgba(255,255,255, 0.03) 40%,
-      rgba(255,255,255, 0.01) 60%,
-      rgba(255,255,255, 0.08));
-  }
-
-  /* Card state tint (Design Language §3.3) */
+  /* ── Card state tint (Design Language §3.3) ─── */
   .card[data-any-on="true"] {
     border-color: rgba(212,133,10, 0.14);
   }
   :host(.dark) .card[data-any-on="true"] {
     border-color: rgba(251,191,36, 0.22);
   }
+
   /* ═══════════════════════════════════════════════════
      SECTION SURFACE (alternative container mode)
      surface: 'section' config option
@@ -591,9 +957,6 @@ const LIGHTING_STYLES = `
     cursor: pointer;
     transition: all .15s ease;
   }
-  .selector-btn .icon {
-    font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 20;
-  }
   .selector-btn:hover { box-shadow: var(--shadow); }
   .selector-btn:active { transform: scale(.97); }
   .selector-btn:focus-visible {
@@ -606,9 +969,6 @@ const LIGHTING_STYLES = `
     background: var(--amber-fill);
     font-weight: 700;
   }
-  .selector-btn.active .icon {
-    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
-  }
 
   /* ═══════════════════════════════════════════════════
      TILE GRID (Design Language §3.5)
@@ -618,19 +978,17 @@ const LIGHTING_STYLES = `
   .light-grid {
     display: grid;
     grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+    grid-auto-rows: var(--grid-row, 124px);
     gap: 10px;
     width: 100%;
     min-width: 0;
     overflow-y: visible;
-    padding-top: 20px;
-    margin-top: -20px;
   }
 
-  /* Max rows constraint (grid mode) — padding-top reserves space for floating pills */
+  /* Max rows constraint (grid mode) */
   :host([data-max-rows]) .light-grid {
-    grid-template-rows: repeat(var(--max-rows, 2), auto);
-    overflow-x: hidden;
-    overflow-y: visible;
+    max-height: calc(var(--max-rows) * var(--grid-row, 124px) + (var(--max-rows) - 1) * 10px);
+    overflow: hidden;
   }
 
   /* Scroll layout overrides */
@@ -657,7 +1015,6 @@ const LIGHTING_STYLES = `
     background: var(--tile-bg);
     border-radius: var(--r-tile);
     box-shadow: var(--tile-shadow-rest);
-    aspect-ratio: 1 / 0.95;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -666,10 +1023,10 @@ const LIGHTING_STYLES = `
     cursor: pointer;
     user-select: none;
     touch-action: none;
-    border: 1px solid var(--border-ghost, transparent);
+    border: 1px solid transparent;
     overflow: visible;
     min-height: 0;
-    padding: 10px 8px 18px;
+    height: 100%;
     transition:
       transform .2s cubic-bezier(0.34, 1.56, 0.64, 1),
       box-shadow .2s ease,
@@ -731,7 +1088,8 @@ const LIGHTING_STYLES = `
     border: 1px solid var(--amber-border);
   }
   .l-tile.on .zone-val { color: var(--amber); }
-  .l-tile.on .progress-fill { background: var(--amber); opacity: 0.9; }
+  .l-tile.on .progress-fill { background: rgba(212,133,10, 0.90); }
+  :host(.dark) .l-tile.on .progress-fill { background: rgba(251,191,36, 0.90); }
   .l-tile.on .tile-icon-wrap .icon {
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
@@ -753,9 +1111,10 @@ const LIGHTING_STYLES = `
     transform: translate(-50%, -50%);
     color: var(--amber);
     font-weight: 700;
-    font-size: 15px;
+    font-size: 13px;
+    letter-spacing: 0.2px;
     background: var(--tile-bg);
-    padding: 6px 20px;
+    padding: 5px 16px;
     border-radius: var(--r-pill);
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     z-index: 101;
@@ -770,7 +1129,7 @@ const LIGHTING_STYLES = `
   .tile-icon-wrap {
     width: 44px;
     height: 44px;
-    border-radius: 16px;
+    border-radius: var(--r-tile);
     display: grid;
     place-items: center;
     margin-bottom: 6px;
@@ -836,13 +1195,7 @@ const LIGHTING_STYLES = `
   /* ═══════════════════════════════════════════════════
      ACCESSIBILITY (Design Language §11)
      ═══════════════════════════════════════════════════ */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
+${REDUCED_MOTION}
 
   /* ═══════════════════════════════════════════════════
      RESPONSIVE (Design Language §4.6)
@@ -850,9 +1203,10 @@ const LIGHTING_STYLES = `
   @media (max-width: 440px) {
     .card {
       padding: 16px;
+      --r-track: 8px;
     }
     .light-grid { gap: 8px; }
-    .l-tile { aspect-ratio: 1 / 1.05; }
+    .l-tile { min-height: 96px; }
 
     :host([layout="scroll"]) .light-grid {
       grid-auto-columns: calc(44% - 6px);
@@ -870,10 +1224,7 @@ const LIGHTING_STYLES = `
    ═══════════════════════════════════════════════════════════════ */
 
 const LIGHTING_TEMPLATE = `
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  ${FONT_LINKS}
 
   <div class="card-wrap">
     <div class="card">
@@ -882,7 +1233,8 @@ const LIGHTING_TEMPLATE = `
       <div class="hdr">
 
         <!-- Info Tile (§5.2) -->
-        <div class="info-tile" id="infoTile" tabindex="0">
+        <div class="info-tile" id="infoTile" tabindex="0"
+             role="button" aria-label="Show lighting details">
           <div class="entity-icon" id="entityIcon">
             <span class="icon icon-18" id="entityGlyph">lightbulb</span>
           </div>
@@ -942,34 +1294,11 @@ class TunetLightingCard extends HTMLElement {
     this._adaptivePressTimer = null;
     this._adaptiveLongPress = false;
 
-    TunetLightingCard._injectFonts();
+    injectFonts();
 
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerUp   = this._onPointerUp.bind(this);
     this._onPointerCancel = this._onPointerCancel.bind(this);
-  }
-
-  /* ── Font injection (once globally) ────────────── */
-
-  static _injectFonts() {
-    if (TunetLightingCard._fontsInjected) return;
-    TunetLightingCard._fontsInjected = true;
-
-    const links = [
-      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap' },
-    ];
-
-    for (const cfg of links) {
-      if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
-      const link = document.createElement('link');
-      link.rel = cfg.rel;
-      link.href = cfg.href;
-      if (cfg.crossOrigin !== undefined) link.crossOrigin = cfg.crossOrigin;
-      document.head.appendChild(link);
-    }
   }
 
   /* ═══════════════════════════════════════════════════
@@ -999,10 +1328,16 @@ class TunetLightingCard extends HTMLElement {
             { name: 'rows',        selector: { text: {} } },
             { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
             { name: 'expand_groups', selector: { boolean: {} } },
-            { name: 'show_adaptive_toggle', selector: { boolean: {} } },
           ],
         },
-        { name: 'custom_css', label: 'Custom CSS (injected into shadow DOM)', selector: { text: { multiline: true } } },
+        {
+          type: 'expandable',
+          title: 'Advanced',
+          icon: 'mdi:code-braces',
+          schema: [
+            { name: 'custom_css', selector: { text: { multiline: true } } },
+          ],
+        },
       ],
       computeLabel: (s) => ({
         entities:        'Light Entities (groups auto-expand)',
@@ -1016,7 +1351,6 @@ class TunetLightingCard extends HTMLElement {
         scroll_rows:     'Scroll Rows',
         tile_size:       'Tile Size',
         expand_groups:   'Expand Group Entities',
-        show_adaptive_toggle: 'Show Adaptive Toggle',
         custom_css:      'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
       computeHelper: (s) => ({
@@ -1074,7 +1408,6 @@ class TunetLightingCard extends HTMLElement {
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
     const tileSize = tileSizeRaw === 'compact' ? 'compact' : (tileSizeRaw === 'large' ? 'large' : 'standard');
     const expandGroups = config.expand_groups !== false;
-    const showAdaptiveToggle = config.show_adaptive_toggle === true;
     const rows = config.rows === 'auto' || config.rows == null
       ? null
       : (() => {
@@ -1096,7 +1429,6 @@ class TunetLightingCard extends HTMLElement {
       surface,
       tile_size:       tileSize,
       expand_groups:   expandGroups,
-      show_adaptive_toggle: showAdaptiveToggle,
       rows,
       custom_css:      config.custom_css || '',
     };
@@ -1148,8 +1480,8 @@ class TunetLightingCard extends HTMLElement {
     }
 
     // Dark mode detection (Design Language §12.1)
-    const isDark = !!(hass.themes && hass.themes.darkMode);
-    this.classList.toggle('dark', isDark);
+    const isDark = detectDarkMode(hass);
+    applyDarkClass(this, isDark);
 
     if (!oldHass || this._entitiesChanged(oldHass, hass)) {
       this._updateAll();
@@ -1194,10 +1526,9 @@ class TunetLightingCard extends HTMLElement {
         // Simple string in zones array
         this._expandEntity(z, zones, seen);
       } else if (z && z.entity) {
-        // Rich zone object – check per-zone expand override, then global
-        const shouldExpand = z.expand !== undefined ? z.expand !== false : this._config.expand_groups;
+        // Rich zone object – check if it's a group
         const entity = this._hass ? this._hass.states[z.entity] : null;
-        if (shouldExpand && entity && entity.attributes && entity.attributes.entity_id &&
+        if (this._config.expand_groups && entity && entity.attributes && entity.attributes.entity_id &&
             Array.isArray(entity.attributes.entity_id)) {
           // Group – expand with optional name/icon overrides
           for (const memberId of entity.attributes.entity_id) {
@@ -1276,16 +1607,6 @@ class TunetLightingCard extends HTMLElement {
     tpl.innerHTML = LIGHTING_TEMPLATE;
     this.shadowRoot.appendChild(tpl.content.cloneNode(true));
 
-    if (this._config.custom_css) {
-      let customStyle = this.shadowRoot.querySelector('#tunet-custom-css');
-      if (!customStyle) {
-        customStyle = document.createElement('style');
-        customStyle.id = 'tunet-custom-css';
-        this.shadowRoot.querySelector('style').after(customStyle);
-      }
-      customStyle.textContent = this._config.custom_css;
-    }
-
     this.$ = {
       card:        this.shadowRoot.querySelector('.card'),
       infoTile:    this.shadowRoot.getElementById('infoTile'),
@@ -1313,6 +1634,10 @@ class TunetLightingCard extends HTMLElement {
     // Set CSS custom properties
     grid.style.setProperty('--cols', this._config.columns);
     grid.style.setProperty('--scroll-rows', this._config.scroll_rows);
+    const rowHeight = this._config.tile_size === 'compact'
+      ? '106px'
+      : (this._config.tile_size === 'large' ? '142px' : '124px');
+    grid.style.setProperty('--grid-row', rowHeight);
 
     for (const zone of this._resolvedZones) {
       const tile = document.createElement('div');
@@ -1326,36 +1651,17 @@ class TunetLightingCard extends HTMLElement {
       tile.setAttribute('aria-valuenow', '0');
       tile.setAttribute('tabindex', '0');
 
-      const manualDot = document.createElement('div');
-      manualDot.className = 'manual-dot';
-
-      const iconWrap = document.createElement('div');
-      iconWrap.className = 'tile-icon-wrap';
-      const icon = document.createElement('span');
-      icon.className = 'icon icon-20';
-      icon.textContent = this._zoneIcon(zone);
-      iconWrap.appendChild(icon);
-
-      const zoneName = document.createElement('div');
-      zoneName.className = 'zone-name';
-      zoneName.textContent = this._zoneName(zone);
-
-      const zoneVal = document.createElement('div');
-      zoneVal.className = 'zone-val';
-      zoneVal.textContent = 'Off';
-
-      const progressTrack = document.createElement('div');
-      progressTrack.className = 'progress-track';
-      const progressFill = document.createElement('div');
-      progressFill.className = 'progress-fill';
-      progressFill.style.width = '0%';
-      progressTrack.appendChild(progressFill);
-
-      tile.appendChild(manualDot);
-      tile.appendChild(iconWrap);
-      tile.appendChild(zoneName);
-      tile.appendChild(zoneVal);
-      tile.appendChild(progressTrack);
+      tile.innerHTML = `
+        <div class="manual-dot"></div>
+        <div class="tile-icon-wrap">
+          <span class="icon icon-20">${this._zoneIcon(zone)}</span>
+        </div>
+        <div class="zone-name">${this._zoneName(zone)}</div>
+        <div class="zone-val">Off</div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:0%"></div>
+        </div>
+      `;
 
       grid.appendChild(tile);
     }
@@ -1400,7 +1706,7 @@ class TunetLightingCard extends HTMLElement {
 
   _setupListeners() {
     // Info tile – fires hass-more-info (Design Language §11.2)
-    window.TunetCardFoundation.bindActivate(this.$.infoTile, () => {
+    this.$.infoTile.addEventListener('click', () => {
       const entityId = this._config.primary_entity ||
                        (this._config.entities.length > 0 ? this._config.entities[0] : '') ||
                        (this._resolvedZones.length > 0 ? this._resolvedZones[0].entity : '');
@@ -1657,6 +1963,8 @@ class TunetLightingCard extends HTMLElement {
   }
 
   _normalizeIcon(icon) {
+    if (!icon) return 'lightbulb';
+    const raw = String(icon).replace(/^mdi:/, '').trim();
     const map = {
       light_group: 'lightbulb',
       shelf_auto: 'shelves',
@@ -1665,10 +1973,9 @@ class TunetLightingCard extends HTMLElement {
       table_lamp: 'lamp',
       floor_lamp: 'lamp',
     };
-    return window.TunetCardFoundation.normalizeIcon(icon, {
-      aliases: map,
-      fallback: 'lightbulb',
-    });
+    const resolved = map[raw] || raw;
+    if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return 'lightbulb';
+    return resolved;
   }
 
   _zoneIcon(zone) {
@@ -1711,27 +2018,19 @@ class TunetLightingCard extends HTMLElement {
     return entity.attributes.manual_control || [];
   }
 
-  _zoneMembers(id) {
-    const entity = this._getEntity(id);
-    const members = entity && entity.attributes ? entity.attributes.entity_id : null;
-    if (Array.isArray(members) && members.length > 0) return members;
-    return [id];
-  }
-
-  _isZoneManual(zoneEntity, manualSet) {
-    if (manualSet.has(zoneEntity)) return true;
-    const members = this._zoneMembers(zoneEntity);
-    return members.some((member) => manualSet.has(member));
-  }
-
   /* ═══════════════════════════════════════════════════
      SERVICE CALLS
      ═══════════════════════════════════════════════════ */
 
-  async _callService(domain, service, data) {
-    const ok = await window.TunetCardFoundation.callServiceSafe(this, domain, service, data);
-    if (!ok) throw new Error(`Service call failed: ${domain}.${service}`);
-    return ok;
+  _callService(domain, service, data) {
+    if (!this._hass) return Promise.resolve();
+    try {
+      const result = this._hass.callService(domain, service, data);
+      if (result && typeof result.then === 'function') return result;
+      return Promise.resolve(result);
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
 
   _setCooldown(id) {
@@ -1808,7 +2107,6 @@ class TunetLightingCard extends HTMLElement {
     if (!this._hass || !this._rendered) return;
 
     const manualList = this._getManuallyControlled();
-    const manualSet = new Set(manualList);
     let onCount = 0;
     let totalCount = 0;
     let totalBrightness = 0;
@@ -1849,7 +2147,7 @@ class TunetLightingCard extends HTMLElement {
       refs.name.textContent = this._zoneName(zone);
 
       // Manual dot
-      const isManual = this._isZoneManual(zone.entity, manualSet);
+      const isManual = manualList.includes(zone.entity);
       refs.el.dataset.manual = isManual ? 'true' : 'false';
 
     }
@@ -1874,7 +2172,7 @@ class TunetLightingCard extends HTMLElement {
 
     // ── Subtitle (Design Language §5.4) ──
     if (this._config.subtitle) {
-      this.$.hdrSub.textContent = this._config.subtitle;
+      this.$.hdrSub.innerHTML = this._config.subtitle;
     } else {
       const avgBrt = onCount > 0 ? Math.round(totalBrightness / onCount) : 0;
       const ae = this._config.adaptive_entity;
@@ -1887,23 +2185,23 @@ class TunetLightingCard extends HTMLElement {
       if (onCount === 0) {
         parts.push('All off');
       } else if (onCount === totalCount) {
-        parts.push(`All on \u00b7 ${avgBrt}%`);
+        parts.push(`<span class="amber-ic">All on</span> \u00b7 ${avgBrt}%`);
       } else {
-        parts.push(`${onCount} on \u00b7 ${avgBrt}%`);
+        parts.push(`<span class="amber-ic">${onCount} on</span> \u00b7 ${avgBrt}%`);
       }
 
       if (aeOn && manualCount > 0) {
-        parts.push(`Adaptive \u00b7 ${manualCount} manual`);
+        parts.push(`<span class="adaptive-ic">Adaptive</span> \u00b7 <span class="red-ic">${manualCount} manual</span>`);
       } else if (aeOn) {
-        parts.push('Adaptive');
+        parts.push('<span class="adaptive-ic">Adaptive</span>');
       }
 
-      this.$.hdrSub.textContent = parts.join(' \u00b7 ');
+      this.$.hdrSub.innerHTML = parts.join(' \u00b7 ');
     }
 
     // ── Adaptive toggle ──
     const ae = this._config.adaptive_entity;
-    if (ae && this._config.show_adaptive_toggle) {
+    if (ae) {
       this.$.adaptiveBtn.classList.remove('hidden');
       const aeEntity = this._getEntity(ae);
       const aeOn = aeEntity && aeEntity.state === 'on';
@@ -1924,23 +2222,13 @@ class TunetLightingCard extends HTMLElement {
    Registration
    ═══════════════════════════════════════════════════════════════ */
 
-if (!customElements.get('tunet-lighting-card')) {
-  customElements.define('tunet-lighting-card', TunetLightingCard);
-}
+registerCard('tunet-lighting-card', TunetLightingCard, {
+  name:             'Tunet Lighting Card',
+  description:      'Glassmorphism lighting controller - drag-to-dim, floating pill, adaptive toggle, grid/scroll layout, rich zone config',
+  documentationURL: 'https://github.com/tunet/tunet-lighting-card',
+});
 
-window.customCards = window.customCards || [];
-if (!window.customCards.some((card) => card.type === 'tunet-lighting-card')) {
-  window.customCards.push({
-    type:             'tunet-lighting-card',
-    name:             'Tunet Lighting Card',
-    description:      'Glassmorphism lighting controller – drag-to-dim, floating pill, adaptive toggle, grid/scroll layout, rich zone config',
-    preview:          true,
-    documentationURL: 'https://github.com/tunet/tunet-lighting-card',
-  });
-}
+logCardVersion('TUNET-LIGHTING', CARD_VERSION, '#D4850A');
 
-console.info(
-  `%c TUNET-LIGHTING %c v${LIGHTING_CARD_VERSION} `,
-  'color: #fff; background: #D4850A; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;',
-  'color: #D4850A; background: #fff3e0; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;'
-);
+
+})();

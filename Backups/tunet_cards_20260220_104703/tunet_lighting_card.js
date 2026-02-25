@@ -1,5 +1,5 @@
 /**
- * Tunet Lighting Card  v3.2.0
+ * Tunet Lighting Card  v3.0.1 Beta
  * ──────────────────────────────────────────────────────────────
  * Complete rewrite aligned to Tunet Design Language v8.0 by Mac
  * Reference: tunet_climate_card.js (gold standard)
@@ -29,7 +29,7 @@
  * ──────────────────────────────────────────────────────────────
  */
 
-const LIGHTING_CARD_VERSION = '3.2.0';
+const LIGHTING_CARD_VERSION = '3.1.0';
 
 if (!window.TunetCardFoundation) {
   window.TunetCardFoundation = {
@@ -149,11 +149,6 @@ const LIGHTING_STYLES = `
     --green-fill: rgba(52,199,89, 0.12);
     --green-border: rgba(52,199,89, 0.15);
 
-    /* Accent: Red (manual override) */
-    --red: #FF3B30;
-    --red-fill: rgba(255,59,48, 0.10);
-    --red-border: rgba(255,59,48, 0.20);
-
     /* Accent: Purple */
     --purple: #AF52DE;
     --purple-fill: rgba(175,82,222, 0.10);
@@ -171,9 +166,9 @@ const LIGHTING_STYLES = `
     /* Radii */
     --r-card: 24px;
     --r-section: 32px;
-    --r-tile: 22px;
+    --r-tile: 16px;
     --r-pill: 999px;
-    --r-track: 99px;
+    --r-track: 4px;
 
     /* Section Surface */
     --section-bg: rgba(255,255,255, 0.45);
@@ -207,7 +202,6 @@ const LIGHTING_STYLES = `
 
     /* Tile Surfaces */
     --tile-bg: rgba(255,255,255, 0.92);
-    --border-ghost: transparent;
 
     color-scheme: light;
     display: block;
@@ -238,10 +232,6 @@ const LIGHTING_STYLES = `
     --green-fill: rgba(48,209,88, 0.14);
     --green-border: rgba(48,209,88, 0.18);
 
-    --red: #FF453A;
-    --red-fill: rgba(255,69,58, 0.14);
-    --red-border: rgba(255,69,58, 0.25);
-
     --purple: #BF5AF2;
     --purple-fill: rgba(191,90,242, 0.14);
     --purple-border: rgba(191,90,242, 0.22);
@@ -268,7 +258,6 @@ const LIGHTING_STYLES = `
     --toggle-knob: rgba(255,255,255, 0.92);
 
     --tile-bg: rgba(30,41,59, 0.90);
-    --border-ghost: rgba(255,255,255, 0.05);
 
     --section-bg: rgba(30,41,59, 0.60);
     --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
@@ -291,7 +280,7 @@ const LIGHTING_STYLES = `
 
   /* ── Icons (Design Language §6) ──────────────────── */
   .icon {
-    font-family: 'Material Symbols Rounded';
+    font-family: 'Material Symbols Outlined', 'Material Symbols Rounded';
     font-weight: normal;
     font-style: normal;
     display: inline-flex;
@@ -305,9 +294,13 @@ const LIGHTING_STYLES = `
     vertical-align: middle;
     flex-shrink: 0;
     -webkit-font-smoothing: antialiased;
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    --ms-fill: 0;
+    --ms-wght: 100;
+    --ms-grad: 200;
+    --ms-opsz: 20;
+    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
   }
-  .icon.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .icon.filled { --ms-fill: 1; }
   .icon-20 { font-size: 20px; width: 20px; height: 20px; }
   .icon-18 { font-size: 18px; width: 18px; height: 18px; }
   .icon-16 { font-size: 16px; width: 16px; height: 16px; }
@@ -454,9 +447,6 @@ const LIGHTING_STYLES = `
   .card[data-any-on="true"] .entity-icon {
     color: var(--amber);
   }
-  .card[data-any-on="true"] .hdr-title {
-    color: var(--text);
-  }
 
   /* Title & Subtitle (§5.4) */
   .hdr-text {
@@ -485,10 +475,8 @@ const LIGHTING_STYLES = `
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .hdr-sub .amber-ic    { color: var(--amber); }
-  .hdr-sub .adaptive-ic { color: var(--text-muted); }
-  .card[data-any-on="true"] .hdr-sub .adaptive-ic { color: var(--text); }
-  .hdr-sub .red-ic      { color: var(--red); }
+  .hdr-sub .amber-ic { color: var(--amber); }
+  .hdr-sub .green-ic { color: var(--green); }
 
   /* Spacer (§5.5) */
   .hdr-spacer { flex: 1; }
@@ -555,7 +543,7 @@ const LIGHTING_STYLES = `
     position: absolute;
     top: -4px;
     right: -4px;
-    background: var(--red);
+    background: #FF3B30;
     color: #fff;
     font-size: 10.5px;
     font-weight: 700;
@@ -618,19 +606,17 @@ const LIGHTING_STYLES = `
   .light-grid {
     display: grid;
     grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+    grid-auto-rows: var(--grid-row, 124px);
     gap: 10px;
     width: 100%;
     min-width: 0;
     overflow-y: visible;
-    padding-top: 20px;
-    margin-top: -20px;
   }
 
-  /* Max rows constraint (grid mode) — padding-top reserves space for floating pills */
+  /* Max rows constraint (grid mode) */
   :host([data-max-rows]) .light-grid {
-    grid-template-rows: repeat(var(--max-rows, 2), auto);
-    overflow-x: hidden;
-    overflow-y: visible;
+    max-height: calc(var(--max-rows) * var(--grid-row, 124px) + (var(--max-rows) - 1) * 10px);
+    overflow: hidden;
   }
 
   /* Scroll layout overrides */
@@ -657,7 +643,6 @@ const LIGHTING_STYLES = `
     background: var(--tile-bg);
     border-radius: var(--r-tile);
     box-shadow: var(--tile-shadow-rest);
-    aspect-ratio: 1 / 0.95;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -666,10 +651,10 @@ const LIGHTING_STYLES = `
     cursor: pointer;
     user-select: none;
     touch-action: none;
-    border: 1px solid var(--border-ghost, transparent);
+    border: 1px solid transparent;
     overflow: visible;
     min-height: 0;
-    padding: 10px 8px 18px;
+    height: 100%;
     transition:
       transform .2s cubic-bezier(0.34, 1.56, 0.64, 1),
       box-shadow .2s ease,
@@ -731,7 +716,8 @@ const LIGHTING_STYLES = `
     border: 1px solid var(--amber-border);
   }
   .l-tile.on .zone-val { color: var(--amber); }
-  .l-tile.on .progress-fill { background: var(--amber); opacity: 0.9; }
+  .l-tile.on .progress-fill { background: rgba(212,133,10, 0.90); }
+  :host(.dark) .l-tile.on .progress-fill { background: rgba(251,191,36, 0.90); }
   .l-tile.on .tile-icon-wrap .icon {
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
@@ -753,9 +739,10 @@ const LIGHTING_STYLES = `
     transform: translate(-50%, -50%);
     color: var(--amber);
     font-weight: 700;
-    font-size: 15px;
+    font-size: 13px;
+    letter-spacing: 0.2px;
     background: var(--tile-bg);
-    padding: 6px 20px;
+    padding: 5px 16px;
     border-radius: var(--r-pill);
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     z-index: 101;
@@ -770,7 +757,7 @@ const LIGHTING_STYLES = `
   .tile-icon-wrap {
     width: 44px;
     height: 44px;
-    border-radius: 16px;
+    border-radius: var(--r-tile);
     display: grid;
     place-items: center;
     margin-bottom: 6px;
@@ -826,7 +813,7 @@ const LIGHTING_STYLES = `
     right: 10px;
     width: 8px;
     height: 8px;
-    background: var(--red);
+    background: #FF3B30;
     border-radius: 50%;
     display: none;
     box-shadow: 0 0 12px rgba(255,82,82,0.6);
@@ -850,9 +837,10 @@ const LIGHTING_STYLES = `
   @media (max-width: 440px) {
     .card {
       padding: 16px;
+      --r-track: 8px;
     }
     .light-grid { gap: 8px; }
-    .l-tile { aspect-ratio: 1 / 1.05; }
+    .l-tile { min-height: 96px; }
 
     :host([layout="scroll"]) .light-grid {
       grid-auto-columns: calc(44% - 6px);
@@ -873,7 +861,8 @@ const LIGHTING_TEMPLATE = `
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
   <div class="card-wrap">
     <div class="card">
@@ -959,7 +948,8 @@ class TunetLightingCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&icon_names=ac_unit,air,arrow_upward,auto_awesome,bed,bedtime,check,chevron_right,circle,close,cloud,deck,desk,desktop_windows,device_thermostat,eco,expand_more,fluorescent,foggy,highlight,home,info,kitchen,lamp,light,lightbulb,link,link_off,local_fire_department,mode_fan,music_note,nightlight,partly_cloudy_day,pause,play_arrow,podcasts,power_settings_new,radio,rainy,restart_alt,restaurant,sensors,shelves,skip_next,skip_previous,smart_display,speaker,speaker_group,speaker_notes,speed,sunny,thermostat,thunderstorm,tune,tv,view_column,volume_down,volume_up,wall_lamp,warning,water_drop,wb_sunny,weather_hail,weather_snowy,weekend&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
     ];
 
     for (const cfg of links) {
@@ -981,16 +971,16 @@ class TunetLightingCard extends HTMLElement {
       schema: [
         {
           name: 'entities',
-          selector: { entity: { multiple: true, filter: [{ domain: 'light' }] } },
+          selector: { entity: { domain: 'light', multiple: true } },
         },
         { name: 'name',            selector: { text: {} } },
-        { name: 'primary_entity',  selector: { entity: { filter: [{ domain: 'light' }] } } },
-        { name: 'adaptive_entity', selector: { entity: { filter: [{ domain: 'switch' }, { domain: 'automation' }, { domain: 'input_boolean' }] } } },
+        { name: 'primary_entity',  selector: { entity: { domain: 'light' } } },
+        { name: 'adaptive_entity', selector: { entity: { domain: ['switch', 'automation', 'input_boolean'] } } },
         { name: 'surface',         selector: { select: { options: ['card', 'section'] } } },
         { name: 'layout',          selector: { select: { options: ['grid', 'scroll'] } } },
         {
           name: '', type: 'grid', schema: [
-            { name: 'columns',     selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
+            { name: 'columns',     selector: { number: { min: 2, max: 5, step: 1, mode: 'box' } } },
             { name: 'scroll_rows', selector: { number: { min: 1, max: 3, step: 1, mode: 'box' } } },
           ],
         },
@@ -1019,9 +1009,6 @@ class TunetLightingCard extends HTMLElement {
         show_adaptive_toggle: 'Show Adaptive Toggle',
         custom_css:      'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
-      computeHelper: (s) => ({
-        custom_css: 'CSS rules injected into shadow DOM. Use .light-grid, .l-tile, etc.',
-      }[s.name] || ''),
     };
   }
 
@@ -1267,11 +1254,6 @@ class TunetLightingCard extends HTMLElement {
     style.textContent = LIGHTING_STYLES;
     this.shadowRoot.appendChild(style);
 
-    // Custom CSS override layer
-    this._customStyleEl = document.createElement('style');
-    this._customStyleEl.textContent = this._config.custom_css || '';
-    this.shadowRoot.appendChild(this._customStyleEl);
-
     const tpl = document.createElement('template');
     tpl.innerHTML = LIGHTING_TEMPLATE;
     this.shadowRoot.appendChild(tpl.content.cloneNode(true));
@@ -1307,12 +1289,13 @@ class TunetLightingCard extends HTMLElement {
     if (!grid) return;
     grid.innerHTML = '';
 
-    // Refresh custom CSS on rebuild (covers config editor changes)
-    if (this._customStyleEl) this._customStyleEl.textContent = this._config.custom_css || '';
-
     // Set CSS custom properties
     grid.style.setProperty('--cols', this._config.columns);
     grid.style.setProperty('--scroll-rows', this._config.scroll_rows);
+    const rowHeight = this._config.tile_size === 'compact'
+      ? '106px'
+      : (this._config.tile_size === 'large' ? '142px' : '124px');
+    grid.style.setProperty('--grid-row', rowHeight);
 
     for (const zone of this._resolvedZones) {
       const tile = document.createElement('div');

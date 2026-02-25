@@ -1,146 +1,13 @@
-A unified visual language for every card, tile, control, and surface on the Custom Home Assistant dashboard. This document is card-agnostic. It defines the system; individual card specs reference it.
+# Tunet Design Language
 
-Version 8.4 – February 2026
+A unified visual language for every card, tile, control, and surface on the Tunet Home Assistant dashboard. This document is card-agnostic. It defines the system; individual card specs reference it.
+
+Version 8.0 – February 2026
 Platform: Home Assistant OS via Tailscale
 Rendering: Chromium WebView (HA Companion + Desktop)
 Typeface: DM Sans (Google Fonts)
 Icon library: Material Symbols Rounded (Google Fonts, variable font)
 Target: 400px card width, responsive to 320px minimum
-
-### 2026-02-20 Parity Lock (v8.4, Normative)
-
-This block is authoritative for Tunet implementation and interaction behavior.  
-If any older section conflicts, this block wins.
-
-#### Canonical card ownership
-
-Only one production implementation per custom element type:
-
-1. `custom:tunet-lighting-card` -> `Dashboard/Tunet/Cards/tunet_lighting_card.js`
-2. `custom:tunet-rooms-card` -> `Dashboard/Tunet/Cards/tunet_rooms_card.js`
-3. `custom:tunet-climate-card` -> `Dashboard/Tunet/Cards/tunet_climate_card.js`
-4. `custom:tunet-status-card` -> `Dashboard/Tunet/Cards/tunet_status_card.js`
-5. `custom:tunet-actions-card` -> `Dashboard/Tunet/Cards/tunet_actions_card.js`
-6. `custom:tunet-weather-card` -> `Dashboard/Tunet/Cards/tunet_weather_card.js`
-7. `custom:tunet-media-card` -> `Dashboard/Tunet/Cards/tunet_media_card.js`
-
-Alt implementations are archive/reference-only and must not be loaded in Lovelace resources.
-
-#### Overview composition contract
-
-Required order on overview:
-
-1. Compact quick-actions strip (All On / All Off / Bedtime / Sleep Mode)
-2. Home status grid (4x2 target density)
-3. Lighting hero (curated primary zones only)
-4. Environment row (climate + weather)
-5. Media
-6. Rooms
-
-Standalone scenes card is not part of overview baseline.
-OAL mode selection remains in Home Status as a dedicated dropdown tile (`input_select.oal_active_configuration`).
-Dark-mode visual baseline for Tunet cards is the midnight variant (`#0f172a` canvas context, `#1e293b` card surfaces, amber family anchored to `#fbbf24` in dark interactions).
-
-#### Surface parity contract
-
-Standard card surface (default):
-
-- `border-radius: var(--r-card)` (`24px`)
-- `background: var(--glass)`
-- `backdrop-filter: blur(24px)` and `-webkit-backdrop-filter: blur(24px)`
-- `border: 1px solid var(--ctrl-border)`
-- `box-shadow: var(--shadow), var(--inset)`
-
-Section-container surface (variant):
-
-- `border-radius: var(--r-section)` (`32px`)
-- `background: rgba(255,255,255,0.45)` light / `rgba(30,41,59,0.60)` dark
-- `backdrop-filter: blur(20px)` and `-webkit-backdrop-filter: blur(20px)`
-- `border: 1px solid var(--ctrl-border)` (never hardcoded rgba border)
-- `box-shadow: var(--shadow-section)` where `--shadow-section` is `0 8px 40px rgba(0,0,0,0.10)` in light mode
-
-#### Lighting hero functional contract
-
-`tunet_lighting_card.js` is the flex superset and must keep:
-
-- `layout: grid|scroll`
-- `columns`, `rows`, `scroll_rows`, `tile_size` (`compact|standard`, with `large` alias support)
-- `expand_groups` (`true` by default, `false` for curated hero zoning)
-- finite-number sanitation for numeric layout config before writing CSS vars
-- backward-compat schema normalization:
-  - `entities` + `zones` (preferred)
-  - `light_group` + `light_overrides` (legacy)
-- container-driven width (`width: 100%`; no fixed width cap)
-- scroll-mode `getCardSize()` based on visible rows, not total entities
-- grid tiles bounded to prevent oversized/overflow rows
-- tile rest/lift physics:
-  - rest: `0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08)`
-  - sliding/lifted: `0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)`
-- off tile state never uses global opacity fade (`opacity: 1` stays); off is conveyed via ghost icon-wrap + muted text + hidden progress
-
-#### Interaction and accessibility contract
-
-- Info tile taps fire `hass-more-info` with `bubbles: true, composed: true`.
-- Interactive non-button elements require keyboard semantics: `tabindex="0"`, role, Enter/Space handlers, and `:focus-visible`.
-- Scene pills must be semantic `<button type="button">`.
-- Tap outcomes are deterministic and explicit: `more-info`, `navigate`, `call-service`, `url`, or `none`.
-- Drag-to-dim supports pointer and touch with axis lock, threshold guard, and cancel-safe behavior.
-
-#### Rooms card contract
-
-- Rooms rows are two-column on desktop and single-column on narrow/mobile.
-- Main room icon toggles all lights in the room.
-- Per-light sub buttons remain primary controls and can transition to an inline brightness slider on tap when brightness is supported.
-- Row tap navigates when path exists; otherwise fallback is `hass-more-info`.
-
-#### Icon governance contract
-
-- Only valid Material Symbols Rounded ligatures are allowed.
-- Deprecated aliases must normalize before render (`shelf_auto`, `countertops`, `desk_lamp`, etc.).
-- Unknown icon values must fall back to a safe default (`lightbulb` unless domain-specific fallback exists).
-- Icon loading is a single-source contract:
-  - allowed: one shared Material Symbols Rounded variable-font URL
-  - forbidden: `Material Symbols Outlined` as a separate family
-  - forbidden: `icon_names=` filtered glyph bundles in production cards
-  - required URL (exact family axes):
-    - `https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap`
-- Icon state semantics are role-based and mandatory:
-  - control/interactive entity icons must map `off|idle -> FILL 0` and `on|active -> FILL 1`
-  - telemetry/data-only icons may remain always filled (`FILL 1`) because they communicate presence of data, not toggle state
-  - alert/severity icons may force `FILL 1` only when severity is active; otherwise default to `FILL 0`
-- Card-level compliance requirements (mandatory):
-  - `tunet_actions_card.js`: keep active-chip `.filled` toggling by `state_entity`
-  - `tunet_climate_card.js`: keep header/fan icon `filled` mapped to HVAC/fan action state
-  - `tunet_lighting_card.js`: keep entity/toggle icon fill mapped to on/off and active mode
-  - `tunet_rooms_card.js`: keep room/orb icon fill mapped to room on/off aggregate state
-  - `tunet_speaker_grid_card.js`: keep in-group speaker icon fill mapped to group membership state
-  - `tunet_media_card.js`: normalize to explicit class-based fill mapping for play/active speaker context (no accent-only implicit fill)
-  - `tunet_status_card.js`: replace accent-forced `FILL 1` with state-aware fill rules per tile type
-  - `tunet_scenes_card.js`: scene chips are action triggers (not persistent state); use `FILL 0` idle and temporary `FILL 1` only during active feedback pulse
-  - `tunet_weather_card.js`: weather condition icon is telemetry and may remain always filled
-  - `tunet_sensor_card.js`: sensor row icons are telemetry and may remain always filled
-
-#### Reliability and registration contract
-
-1. Custom element registration must be idempotent:
-   - `if (!customElements.get('tag-name')) { customElements.define(...) }`
-2. Card picker registration must be deduplicated:
-   - push only if type is not already present in `window.customCards`
-3. Never load duplicate resource URLs for the same card type.
-4. Keep dark amber token at `#fbbf24` across all cards.
-
-#### Ambiguous step clarification: “Remove last sync date”
-
-When removing a “Last Sync” tile/row, delete the config object from YAML arrays.  
-Do not hide with CSS and do not leave placeholders.
-
-```yaml
-tiles:
-  # remove this object entirely
-  # - type: value
-  #   label: Last Sync
-  #   entity: sensor.some_last_sync
-```
 
 ---
 
@@ -353,9 +220,9 @@ Cards do not define page backgrounds. They run on the HA dashboard and use `back
   --text-sub: rgba(245,245,247, 0.50);
   --text-muted: rgba(245,245,247, 0.35);
 
-  --amber: #fbbf24;
-  --amber-fill: rgba(251,191,36, 0.14);
-  --amber-border: rgba(251,191,36, 0.25);
+  --amber: #E8961E;
+  --amber-fill: rgba(232,150,30, 0.14);
+  --amber-border: rgba(232,150,30, 0.25);
 
   --blue: #0A84FF;
   --blue-fill: rgba(10,132,255, 0.13);
@@ -523,7 +390,7 @@ Accent tint opacity: 0.12 – 0.16 (barely visible)
 Applied via data attribute: card[data-action="heating"] { border-color: rgba(...) }
 ```
 
-**Off tile state:** Tile opacity remains `1`. Use ghost icon-wrap/background, muted text, and hidden progress fill to communicate off.
+**Off state:** `opacity: 0.55` on the entire card.
 
 ### 3.4 Control Surface (Shared by All Header Controls)
 
@@ -593,6 +460,8 @@ border-radius: var(--r-pill)             → 999px (capsule)
 | Chip             | `--chip-bg`    | none  | `--chip-sh`   | 999px    |
 | Header controls  | `--ctrl-bg`    | none  | `--ctrl-sh`   | 10px     |
 | Icon container   | transparent    | none  | none          | 6px      |
+
+
 ---
 
 ## 4. Typography
@@ -886,18 +755,11 @@ All icons use Material Symbols Rounded as a variable font loaded via Google Font
 }
 ```
 
-### 6.3 Font Link (System Contract)
+### 6.3 Font Link
 
 ```html
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
 ```
-
-Loading rules:
-
-1. Load one shared Material Symbols Rounded URL per page/session
-2. Do not load `Material Symbols Outlined` as a second family
-3. Do not use `icon_names=` filtering for production dashboards; full ligature compatibility is preferred over micro-optimization
-4. Font URL must be identical across `_injectFonts()` and shadow template fallback to preserve browser deduplication
 
 ### 6.4 Size Scale
 
@@ -908,34 +770,17 @@ Loading rules:
 | `.icon-16` | 16px | Mode button icon, context chips              |
 | `.icon-14` | 14px | Chevrons, checkmarks, inline indicators      |
 
-### 6.5 State Convention (Normative)
+### 6.5 State Convention
 
-| Icon role                         | Idle state | Active state | Enforcement rule |
-|-----------------------------------|------------|--------------|------------------|
-| Toggle/control icon               | FILL 0     | FILL 1       | Must map to live entity/control state |
-| Persistent entity state icon      | FILL 0     | FILL 1       | Must map `off|idle` vs `on|active` |
-| Telemetry/data-only icon          | FILL 1     | FILL 1       | Always filled permitted |
-| Trigger/action chip icon          | FILL 0     | FILL 1 pulse | Fill only during active feedback window |
-| Alert/severity icon               | FILL 0     | FILL 1       | Fill only when severity condition is true |
+| Entity state                 | FILL | Class     | When                                       |
+|------------------------------|------|-----------|--------------------------------------------|
+| Off / idle / inactive        | 0    | (none)    | Default for all toggleable icons           |
+| On / active / engaged        | 1    | `.filled` | Entity is actively doing something         |
+| Data display (non-toggle)    | 1    | `.filled` | Informational icons (humidity, sensor)     |
 
-Toggle `.filled` in JS when state changes. Do not hardcode `FILL 1` in accent CSS for components that represent interactive state.
+Toggle `.filled` class in JS when state changes.
 
 **Dynamic glyph swapping:** In some cards, the entity icon glyph itself changes based on the current action (not just the fill state). For example, a climate card might show `thermostat` when idle, `local_fire_department` when heating, and `ac_unit` when cooling. This is the exception to "never swap icon ligature names for state changes" - it applies when the icon represents what the system is *doing*, not just whether it's on or off.
-
-### 6.6 Card Compliance Matrix (v8.4)
-
-| Card | Current role classification | Required icon-state behavior |
-|------|------------------------------|------------------------------|
-| `tunet_actions_card.js` | Trigger/action chips + optional state entity | Keep state-entity-driven fill toggling |
-| `tunet_climate_card.js` | Persistent entity state + control toggles | Keep action/fan state-driven fill |
-| `tunet_lighting_card.js` | Persistent entity state + controls | Keep on/off and adaptive state-driven fill |
-| `tunet_rooms_card.js` | Aggregate room state + per-entity controls | Keep aggregate/child state-driven fill |
-| `tunet_speaker_grid_card.js` | Group membership state | Keep group-state-driven fill |
-| `tunet_media_card.js` | Playback + source/group context | Convert accent-only fill cases to explicit state-driven fill classes |
-| `tunet_status_card.js` | Mixed status tiles | Replace accent-forced fill with tile-state-aware fill logic |
-| `tunet_scenes_card.js` | Stateless triggers | Idle outline, temporary fill on action feedback only |
-| `tunet_weather_card.js` | Telemetry | Always-filled condition icon allowed |
-| `tunet_sensor_card.js` | Telemetry | Always-filled sensor icons allowed |
 
 ---
 
@@ -1096,7 +941,7 @@ All three share identical idle treatment. All three accept the same accent tripl
 ### 8.4 Off-Mode Card State
 
 When the entity is off:
-- Tile: `opacity: 1` (off is conveyed by ghost/muted content, not global opacity fade)
+- Card: `opacity: 0.55`
 - Controls that don't apply: hidden via `display: none`
 - Track: `opacity: 0.35`
 
@@ -1531,74 +1376,3 @@ Every shadow in the system, with both light (L) and dark (D) values.
 18. Info tile fires `hass-more-info` on tap - it is the primary entity interaction point
 19. Cards never define page backgrounds - they rely on `backdrop-filter` to sample from the HA dashboard
 20. Active-state CSS never needs `:host(.dark)` overrides - accent tokens resolve correctly in both modes
-
----
-
-## 21. Tunet Overview Implementation Contract (2026-02)
-
-This section is normative for the Tunet Overview page. It resolves previous ambiguity between alt and legacy cards.
-
-### 21.1 Canonical Card Types
-
-Only one production implementation per custom element type:
-
-- `custom:tunet-lighting-card` -> `Dashboard/Tunet/Cards/tunet_lighting_card.js` (canonical)
-- `custom:tunet-rooms-card` -> `Dashboard/Tunet/Cards/tunet_rooms_card.js` (canonical)
-- `custom:tunet-climate-card` -> `Dashboard/Tunet/Cards/tunet_climate_card.js` (canonical)
-- `custom:tunet-status-card` -> `Dashboard/Tunet/Cards/tunet_status_card.js` (canonical)
-- `custom:tunet-actions-card` -> `Dashboard/Tunet/Cards/tunet_actions_card.js` (canonical)
-- `custom:tunet-weather-card` -> `Dashboard/Tunet/Cards/tunet_weather_card.js` (canonical)
-- `custom:tunet-media-card` -> `Dashboard/Tunet/Cards/tunet_media_card.js` (canonical)
-- `custom:tunet-scenes-card` -> `Dashboard/Tunet/Cards/tunet_scenes_card.js` (available, not in overview baseline)
-
-Alt and duplicate implementations are archived and must not be loaded as Lovelace resources.
-
-### 21.2 Overview Composition
-
-Required order:
-
-1. Compact top quick-actions strip (All On / All Off / Bedtime / Sleep Mode)
-2. Home Status (4 columns x 2 rows)
-3. Lighting Hero (curated top 5 zones)
-4. Environment row (Climate + Weather forecast)
-5. Media
-6. Rooms
-
-Standalone scenes card is not part of the overview baseline.
-
-### 21.3 Hero Lighting Scope
-
-The hero card on Overview is intentionally curated for primary zones. It must not auto-expand full house groups in this context. Full-light control lives on dedicated light views.
-
-Lighting card guarantees for overview and detail views:
-
-- Supports both config schemas (`entities`/`zones` and legacy `light_group`/`light_overrides`).
-- Sanitizes non-finite numeric layout values before applying CSS vars.
-- Reports scroll layout card size by visible rows, not total item count.
-- Prevents oversized grid tiles from overflowing section containers.
-
-### 21.4 Conditional UI Policy
-
-Conditional visibility belongs to dashboard composition (YAML-level condition wrappers) and explicit tile `show_when` rules, not implicit card hiding.
-
-Interactive semantics are explicit:
-
-- Every tap target maps to a declared action class (`more-info`, `navigate`, `call-service`, `url`, `none`).
-- Scene/status/sensor interactions must include keyboard parity when native button semantics are not used.
-
-### 21.5 Icon Validity Policy
-
-If a configured Material Symbols ligature is invalid/unknown, cards must fall back to `lightbulb` (or nearest safe domain icon). Deprecated aliases (`shelf_auto`, `countertops`, `desk_lamp`, etc.) must be normalized.
-
-Rooms icon/set policy in this release:
-
-- Room rows use orb-first controls.
-- Row-level master toggle switch is excluded from overview baseline behavior.
-- Desktop target density is two-column rooms; mobile collapses to one column.
-
-### 21.6 Reliability Guardrails
-
-- Always guard custom element registration with `customElements.get(...)`.
-- Never load duplicate resources for the same custom element type.
-- Keep light and dark accent tokens synchronized with this spec (`--amber` dark = `#fbbf24`).
-- Media/speaker dropdown overlays must stack above following cards (z-index contract, no clipping behind lower sections).

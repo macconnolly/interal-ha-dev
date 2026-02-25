@@ -45,11 +45,10 @@ if (!window.TunetCardFoundation) {
 
 const TUNET_SCENES_STYLES = `
   :host {
-    --glass: rgba(255,255,255,0.68);
+    --glass: rgba(255,255,255,0.55);
     --glass-border: rgba(255,255,255,0.45);
-    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
+    --shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
     --shadow-up: 0 1px 3px rgba(0,0,0,0.10), 0 12px 40px rgba(0,0,0,0.12);
-    --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
     --text: #1C1C1E;
     --text-sub: rgba(28,28,30,0.55);
     --text-muted: #8E8E93;
@@ -68,29 +67,7 @@ const TUNET_SCENES_STYLES = `
     --red: #FF3B30;
     --red-fill: rgba(255,59,48,0.10);
     --red-border: rgba(255,59,48,0.22);
-    --track-bg: rgba(28,28,30,0.055);
-    --track-h: 44px;
-    --thumb-bg: #fff;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
-    --r-card: 24px;
-    --r-tile: 16px;
-    --r-track: 4px;
     --r-pill: 999px;
-    --ctrl-bg: rgba(255,255,255,0.52);
-    --ctrl-border: rgba(0,0,0,0.05);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
-    --chip-bg: rgba(255,255,255,0.48);
-    --chip-border: rgba(0,0,0,0.05);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
-    --dd-bg: rgba(255,255,255,0.84);
-    --dd-border: rgba(255,255,255,0.60);
-    --divider: rgba(28,28,30,0.07);
-    --toggle-off: rgba(28,28,30,0.10);
-    --toggle-on: rgba(52,199,89,0.28);
-    --toggle-knob: rgba(255,255,255,0.96);
-    --tile-bg: rgba(255,255,255,0.92);
-    color-scheme: light;
     display: block;
   }
 
@@ -100,7 +77,6 @@ const TUNET_SCENES_STYLES = `
     --glass-border: rgba(255,255,255,0.08);
     --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
     --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
-    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
     --text: #F5F5F7;
     --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
@@ -119,29 +95,6 @@ const TUNET_SCENES_STYLES = `
     --red: #FF453A;
     --red-fill: rgba(255,69,58,0.14);
     --red-border: rgba(255,69,58,0.25);
-    --track-bg: rgba(255,255,255,0.06);
-    --track-h: 44px;
-    --thumb-bg: #F5F5F7;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
-    --r-card: 24px;
-    --r-tile: 16px;
-    --r-track: 4px;
-    --r-pill: 999px;
-    --ctrl-bg: rgba(255,255,255,0.08);
-    --ctrl-border: rgba(255,255,255,0.08);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-    --chip-bg: rgba(30,41,59,0.50);
-    --chip-border: rgba(255,255,255,0.06);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
-    --dd-bg: rgba(30,41,59,0.92);
-    --dd-border: rgba(255,255,255,0.08);
-    --divider: rgba(255,255,255,0.06);
-    --toggle-off: rgba(255,255,255,0.10);
-    --toggle-on: rgba(48,209,88,0.30);
-    --toggle-knob: rgba(255,255,255,0.92);
-    --tile-bg: rgba(30,41,59,0.90);
-    color-scheme: dark;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -153,15 +106,19 @@ const TUNET_SCENES_STYLES = `
   }
 
   .icon {
-    font-family: 'Material Symbols Rounded';
+    font-family: 'Material Symbols Outlined', 'Material Symbols Rounded';
     font-weight: normal; font-style: normal;
     display: inline-flex; align-items: center; justify-content: center;
     line-height: 1; text-transform: none; letter-spacing: normal;
     white-space: nowrap; direction: ltr; vertical-align: middle; flex-shrink: 0;
     -webkit-font-smoothing: antialiased;
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    --ms-fill: 0;
+    --ms-wght: 100;
+    --ms-grad: 200;
+    --ms-opsz: 20;
+    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
   }
-  .icon.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .icon.filled { --ms-fill: 1; }
 
   .scene-row {
     display: flex;
@@ -236,7 +193,8 @@ class TunetScenesCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
     ];
     for (const cfg of links) {
       if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
@@ -256,7 +214,7 @@ class TunetScenesCard extends HTMLElement {
           type: 'expandable',
           title: 'Scenes',
           schema: [
-            { name: 'entity', required: true, selector: { entity: { filter: [{ domain: 'scene' }, { domain: 'script' }] } } },
+            { name: 'entity', required: true, selector: { entity: { domain: ['scene', 'script'] } } },
             { name: 'name', selector: { text: {} } },
             { name: 'icon', selector: { icon: {} } },
             { name: 'accent', selector: { select: { options: ['amber', 'blue', 'green', 'purple', 'red'] } } },
@@ -301,12 +259,7 @@ class TunetScenesCard extends HTMLElement {
   }
 
   getCardSize() {
-    // Scenes is a flat chip row with no card shell, so it's compact
-    // But if chips wrap to multiple rows we need more space
-    const chipCount = (this._config.scenes || []).length;
-    // ~5 chips fit per row at standard width; each row ~50px
-    const rows = Math.max(1, Math.ceil(chipCount / 5));
-    return rows;
+    return 1;
   }
 
   _render() {
@@ -320,7 +273,8 @@ class TunetScenesCard extends HTMLElement {
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     `;
     const tpl = document.createElement('template');
     tpl.innerHTML = fontLinks + '<div class="wrap"><div class="scene-row" id="row"></div></div>';

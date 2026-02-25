@@ -117,23 +117,10 @@ const TUNET_MEDIA_STYLES = `
     --text: #1C1C1E;
     --text-sub: rgba(28,28,30,0.55);
     --text-muted: #8E8E93;
-    --amber: #D4850A;
-    --amber-fill: rgba(212,133,10,0.10);
-    --amber-border: rgba(212,133,10,0.22);
-    --blue: #007AFF;
-    --blue-fill: rgba(0,122,255,0.09);
-    --blue-border: rgba(0,122,255,0.18);
     --green: #34C759;
     --green-fill: rgba(52,199,89,0.12);
     --green-border: rgba(52,199,89,0.15);
-    --purple: #AF52DE;
-    --purple-fill: rgba(175,82,222,0.10);
-    --purple-border: rgba(175,82,222,0.18);
     --track-bg: rgba(28,28,30,0.055);
-    --track-h: 44px;
-    --thumb-bg: #fff;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
     --r-card: 24px;
     --r-tile: 16px;
     --r-pill: 999px;
@@ -141,17 +128,12 @@ const TUNET_MEDIA_STYLES = `
     --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.05);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
-    --chip-bg: rgba(255,255,255,0.48);
-    --chip-border: rgba(0,0,0,0.05);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
     --dd-bg: rgba(255,255,255,0.84);
     --dd-border: rgba(255,255,255,0.60);
     --divider: rgba(28,28,30,0.07);
-    --toggle-off: rgba(28,28,30,0.10);
-    --toggle-on: rgba(52,199,89,0.28);
-    --toggle-knob: rgba(255,255,255,0.96);
-    --tile-bg: rgba(255,255,255,0.92);
-    color-scheme: light;
+    --thumb-bg: #fff;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
     display: block;
   }
 
@@ -165,36 +147,19 @@ const TUNET_MEDIA_STYLES = `
     --text: #F5F5F7;
     --text-sub: rgba(245,245,247,0.50);
     --text-muted: rgba(245,245,247,0.35);
-    --amber: #fbbf24;
-    --amber-fill: rgba(251,191,36,0.14);
-    --amber-border: rgba(251,191,36,0.25);
-    --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255,0.13);
-    --blue-border: rgba(10,132,255,0.22);
     --green: #30D158;
     --green-fill: rgba(48,209,88,0.14);
     --green-border: rgba(48,209,88,0.18);
-    --purple: #BF5AF2;
-    --purple-fill: rgba(191,90,242,0.14);
-    --purple-border: rgba(191,90,242,0.22);
     --track-bg: rgba(255,255,255,0.06);
-    --thumb-bg: #F5F5F7;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
     --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-    --chip-bg: rgba(30,41,59,0.50);
-    --chip-border: rgba(255,255,255,0.06);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
     --dd-bg: rgba(30,41,59,0.92);
     --dd-border: rgba(255,255,255,0.08);
     --divider: rgba(255,255,255,0.06);
-    --toggle-off: rgba(255,255,255,0.10);
-    --toggle-on: rgba(48,209,88,0.30);
-    --toggle-knob: rgba(255,255,255,0.92);
-    --tile-bg: rgba(30,41,59,0.90);
-    color-scheme: dark;
+    --thumb-bg: #F5F5F7;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
   }
 
   /* -- Reset -- */
@@ -210,15 +175,19 @@ const TUNET_MEDIA_STYLES = `
 
   /* -- Icons -- */
   .icon {
-    font-family: 'Material Symbols Rounded';
+    font-family: 'Material Symbols Outlined', 'Material Symbols Rounded';
     font-weight: normal; font-style: normal;
     display: inline-flex; align-items: center; justify-content: center;
     line-height: 1; text-transform: none; letter-spacing: normal;
     white-space: nowrap; direction: ltr; vertical-align: middle;
     flex-shrink: 0; -webkit-font-smoothing: antialiased;
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    --ms-fill: 0;
+    --ms-wght: 100;
+    --ms-grad: 200;
+    --ms-opsz: 20;
+    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
   }
-  .icon.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .icon.filled { --ms-fill: 1; }
 
   /* -- Card Shell -- */
   .card {
@@ -269,9 +238,6 @@ const TUNET_MEDIA_STYLES = `
   }
   .info-tile:hover { box-shadow: var(--shadow); }
   .info-tile:active { transform: scale(.98); }
-  .info-tile:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
-  .vol-btn:focus-visible, .vol-icon:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
-  .transport-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
   .card[data-state="playing"] .info-tile {
     background: var(--green-fill); border-color: var(--green-border);
   }
@@ -329,7 +295,7 @@ const TUNET_MEDIA_STYLES = `
 
   /* -- Dropdown Menu -- */
   .dd-menu {
-    position: absolute; top: calc(100% + 6px); right: 0;
+    position: fixed; top: 0; left: 0;
     min-width: 220px; padding: 5px; border-radius: var(--r-tile);
     background: var(--dd-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--dd-border); box-shadow: var(--shadow-up);
@@ -577,7 +543,8 @@ const TUNET_MEDIA_TEMPLATE = `
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
   <div class="card-wrap">
     <div class="card" id="card" data-state="idle">
@@ -689,6 +656,7 @@ class TunetMediaCard extends HTMLElement {
 
     TunetMediaCard._injectFonts();
     this._onDocClick = this._onDocClick.bind(this);
+    this._onViewportChange = this._onViewportChange.bind(this);
   }
 
   /* -- Font Injection (once globally) -- */
@@ -701,7 +669,8 @@ class TunetMediaCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
     ];
 
     for (const cfg of links) {
@@ -722,7 +691,7 @@ class TunetMediaCard extends HTMLElement {
         {
           name: 'entity',
           required: true,
-          selector: { entity: { filter: [{ domain: 'media_player' }] } },
+          selector: { entity: { domain: 'media_player' } },
         },
         {
           name: 'name',
@@ -734,11 +703,11 @@ class TunetMediaCard extends HTMLElement {
           schema: [
             {
               name: 'coordinator_sensor',
-              selector: { entity: { filter: [{ domain: 'sensor' }] } },
+              selector: { entity: { domain: 'sensor' } },
             },
             {
               name: 'active_group_sensor',
-              selector: { entity: { filter: [{ domain: 'sensor' }] } },
+              selector: { entity: { domain: 'sensor' } },
             },
             {
               name: 'active_group_members_sensor',
@@ -746,7 +715,7 @@ class TunetMediaCard extends HTMLElement {
             },
             {
               name: 'playing_status_sensor',
-              selector: { entity: { filter: [{ domain: 'sensor' }] } },
+              selector: { entity: { domain: 'sensor' } },
             },
           ],
         },
@@ -862,13 +831,15 @@ class TunetMediaCard extends HTMLElement {
 
   connectedCallback() {
     document.addEventListener('click', this._onDocClick);
+    window.addEventListener('resize', this._onViewportChange, { passive: true });
+    window.addEventListener('scroll', this._onViewportChange, { passive: true });
   }
 
   disconnectedCallback() {
     document.removeEventListener('click', this._onDocClick);
+    window.removeEventListener('resize', this._onViewportChange);
+    window.removeEventListener('scroll', this._onViewportChange);
     this._stopProgress();
-    clearTimeout(this._volDebounce);
-    clearTimeout(this._cooldownTimer);
   }
 
   /* -- Helpers -- */
@@ -1136,16 +1107,12 @@ class TunetMediaCard extends HTMLElement {
   _setupVolDrag() {
     const track = this.$.volTrack;
     let dragging = false;
-    // Capture target entity and last volume at drag-start to avoid closure drift
-    let dragEntity = null;
-    let lastPct = 0;
 
     const setVol = (e) => {
       const rect = track.getBoundingClientRect();
       const cx = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
       const x = cx - rect.left;
       const pct = Math.max(0, Math.min(100, Math.round(x / rect.width * 100)));
-      lastPct = pct;
       this._renderVolume(pct);
 
       // Update mute icon during drag
@@ -1153,25 +1120,21 @@ class TunetMediaCard extends HTMLElement {
       this.$.volMuteIcon.textContent = volIcon;
 
       clearTimeout(this._volDebounce);
-      const targetEntity = dragEntity;
       this._volDebounce = setTimeout(() => {
-        this._sendVolumeSet(targetEntity, pct);
+        this._callService('volume_set', {
+          entity_id: this._activeEntity,
+          volume_level: pct / 100,
+        });
+        // Block state bounce-back for 1.5s after service call
+        this._serviceCooldown = true;
+        clearTimeout(this._cooldownTimer);
+        this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
       }, 200);
-    };
-
-    const commitFinal = () => {
-      // Flush any pending debounce and commit the final value immediately
-      clearTimeout(this._volDebounce);
-      this._volDebounce = null;
-      if (dragEntity) {
-        this._sendVolumeSet(dragEntity, lastPct);
-      }
     };
 
     track.addEventListener('pointerdown', (e) => {
       dragging = true;
       this._volDragging = true;
-      dragEntity = this._activeEntity;
       track.classList.add('dragging');
       track.setPointerCapture(e.pointerId);
       setVol(e);
@@ -1180,29 +1143,15 @@ class TunetMediaCard extends HTMLElement {
       if (dragging) setVol(e);
     });
     track.addEventListener('pointerup', () => {
-      if (dragging) commitFinal();
       dragging = false;
       this._volDragging = false;
-      dragEntity = null;
       track.classList.remove('dragging');
     });
     track.addEventListener('pointercancel', () => {
       dragging = false;
       this._volDragging = false;
-      dragEntity = null;
       track.classList.remove('dragging');
     });
-  }
-
-  _sendVolumeSet(entityId, pct) {
-    if (!entityId || !this._hass) return;
-    this._callService('volume_set', {
-      entity_id: entityId,
-      volume_level: pct / 100,
-    });
-    this._serviceCooldown = true;
-    clearTimeout(this._cooldownTimer);
-    this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
   }
 
   _setView(v) {
@@ -1220,6 +1169,11 @@ class TunetMediaCard extends HTMLElement {
     }
   }
 
+  _onViewportChange() {
+    if (!this.$ || !this.$.spkMenu || !this.$.spkMenu.classList.contains('open')) return;
+    this._positionSpeakerMenu();
+  }
+
   _openSpeakerMenu() {
     if (!this.$ || !this.$.spkMenu || !this.$.spkBtn) return;
     this.$.spkMenu.classList.add('open');
@@ -1231,27 +1185,32 @@ class TunetMediaCard extends HTMLElement {
     if (!this.$ || !this.$.spkMenu || !this.$.spkBtn) return;
     this.$.spkMenu.classList.remove('open');
     this.$.spkBtn.setAttribute('aria-expanded', 'false');
+    this.$.spkMenu.style.left = '';
     this.$.spkMenu.style.top = '';
-    this.$.spkMenu.style.bottom = '';
   }
 
   _positionSpeakerMenu() {
     const { spkBtn, spkMenu } = this.$ || {};
     if (!spkBtn || !spkMenu) return;
 
-    // Default: open below (CSS handles top: calc(100% + 6px); right: 0)
-    // Flip above if menu would extend past viewport bottom
     const btnRect = spkBtn.getBoundingClientRect();
-    const menuHeight = Math.max(spkMenu.offsetHeight || 200, 200);
-    const spaceBelow = window.innerHeight - btnRect.bottom - 8;
+    const menuRect = spkMenu.getBoundingClientRect();
+    const menuWidth = Math.max(menuRect.width || 220, 220);
+    const menuHeight = Math.max(menuRect.height || 260, 200);
+    const pad = 8;
 
-    if (spaceBelow < menuHeight && btnRect.top > menuHeight + 8) {
-      spkMenu.style.top = 'auto';
-      spkMenu.style.bottom = 'calc(100% + 6px)';
-    } else {
-      spkMenu.style.top = 'calc(100% + 6px)';
-      spkMenu.style.bottom = 'auto';
+    let left = btnRect.right - menuWidth;
+    if (left < pad) left = pad;
+    const maxLeft = Math.max(pad, window.innerWidth - menuWidth - pad);
+    if (left > maxLeft) left = maxLeft;
+
+    let top = btnRect.bottom + 6;
+    if (top + menuHeight > window.innerHeight - pad) {
+      top = Math.max(pad, btnRect.top - menuHeight - 6);
     }
+
+    spkMenu.style.left = `${Math.round(left)}px`;
+    spkMenu.style.top = `${Math.round(top)}px`;
   }
 
   /* -- Speaker Dropdown Menu (dual-purpose: select + group) -- */

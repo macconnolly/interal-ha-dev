@@ -90,9 +90,6 @@ const STYLES = `
     --green: #34C759;
     --green-fill: rgba(52,199,89,0.12);
     --green-border: rgba(52,199,89,0.15);
-    --purple: #AF52DE;
-    --purple-fill: rgba(175,82,222,0.10);
-    --purple-border: rgba(175,82,222,0.18);
     --track-bg: rgba(28,28,30,0.055);
     --track-h: 44px;
     --thumb-bg: #fff;
@@ -105,17 +102,10 @@ const STYLES = `
     --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.05);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
-    --chip-bg: rgba(255,255,255,0.48);
-    --chip-border: rgba(0,0,0,0.05);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
     --dd-bg: rgba(255,255,255,0.84);
     --dd-border: rgba(255,255,255,0.60);
     --divider: rgba(28,28,30,0.07);
-    --toggle-off: rgba(28,28,30,0.10);
-    --toggle-on: rgba(52,199,89,0.28);
-    --toggle-knob: rgba(255,255,255,0.96);
-    --tile-bg: rgba(255,255,255,0.92);
-    --r-section: 32px;
+    --r-section: 38px;
     --section-bg: rgba(255,255,255,0.35);
     --section-shadow: 0 8px 40px rgba(0,0,0,0.10);
     color-scheme: light;
@@ -141,9 +131,6 @@ const STYLES = `
     --green: #30D158;
     --green-fill: rgba(48,209,88,0.14);
     --green-border: rgba(48,209,88,0.18);
-    --purple: #BF5AF2;
-    --purple-fill: rgba(191,90,242,0.14);
-    --purple-border: rgba(191,90,242,0.22);
     --track-bg: rgba(255,255,255,0.06);
     --thumb-bg: #F5F5F7;
     --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
@@ -151,16 +138,9 @@ const STYLES = `
     --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-    --chip-bg: rgba(30,41,59,0.50);
-    --chip-border: rgba(255,255,255,0.06);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
     --dd-bg: rgba(30,41,59,0.92);
     --dd-border: rgba(255,255,255,0.08);
     --divider: rgba(255,255,255,0.06);
-    --toggle-off: rgba(255,255,255,0.10);
-    --toggle-on: rgba(48,209,88,0.30);
-    --toggle-knob: rgba(255,255,255,0.92);
-    --tile-bg: rgba(30,41,59,0.90);
     --section-bg: rgba(30,41,59,0.60);
     --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
     color-scheme: dark;
@@ -179,7 +159,7 @@ const STYLES = `
 
   /* -- Icons: Material Symbols Rounded -- */
   .icon {
-    font-family: 'Material Symbols Rounded';
+    font-family: 'Material Symbols Outlined', 'Material Symbols Rounded';
     font-weight: normal;
     font-style: normal;
     display: inline-flex;
@@ -193,9 +173,13 @@ const STYLES = `
     vertical-align: middle;
     flex-shrink: 0;
     -webkit-font-smoothing: antialiased;
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    --ms-fill: 0;
+    --ms-wght: 100;
+    --ms-grad: 200;
+    --ms-opsz: 20;
+    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
   }
-  .icon.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .icon.filled { --ms-fill: 1; }
   .icon-20 { font-size: 20px; }
   .icon-18 { font-size: 18px; }
   .icon-16 { font-size: 16px; }
@@ -318,12 +302,9 @@ const STYLES = `
   .hdr-title {
     font-weight: 700;
     font-size: 13px;
-    color: var(--text);
+    color: var(--text-sub);
     letter-spacing: .1px;
     line-height: 1.15;
-  }
-  .card[data-mode="off"] .hdr-title {
-    color: var(--text-sub);
   }
   .hdr-sub {
     font-size: 10.5px;
@@ -710,7 +691,8 @@ const TEMPLATE = `
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
   <div class="card-wrap">
     <div class="card" id="card" data-mode="heat_cool" data-action="idle">
@@ -848,7 +830,8 @@ class TunetClimateCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
     ];
 
     for (const cfg of links) {
@@ -870,11 +853,11 @@ class TunetClimateCard extends HTMLElement {
         {
           name: 'entity',
           required: true,
-          selector: { entity: { filter: [{ domain: 'climate' }] } },
+          selector: { entity: { domain: 'climate' } },
         },
         {
           name: 'humidity_entity',
-          selector: { entity: { filter: [{ domain: 'sensor', device_class: 'humidity' }] } },
+          selector: { entity: { domain: 'sensor', device_class: 'humidity' } },
         },
         {
           name: 'name',

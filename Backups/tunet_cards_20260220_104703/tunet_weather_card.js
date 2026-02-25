@@ -1,10 +1,10 @@
 /**
  * Tunet Weather Card
  * Current conditions + forecast with glassmorphism design
- * Version 1.3.0
+ * Version 1.0.0
  */
 
-const TUNET_WEATHER_VERSION = '1.3.0';
+const TUNET_WEATHER_VERSION = '1.1.0';
 
 if (!window.TunetCardFoundation) {
   window.TunetCardFoundation = {
@@ -101,37 +101,11 @@ const TUNET_WEATHER_STYLES = `
     --blue: #007AFF;
     --blue-fill: rgba(0,122,255,0.09);
     --blue-border: rgba(0,122,255,0.18);
-    --green: #34C759;
-    --green-fill: rgba(52,199,89,0.12);
-    --green-border: rgba(52,199,89,0.15);
-    --purple: #AF52DE;
-    --purple-fill: rgba(175,82,222,0.10);
-    --purple-border: rgba(175,82,222,0.18);
-    --amber: #D4850A;
-    --amber-fill: rgba(212,133,10,0.10);
-    --amber-border: rgba(212,133,10,0.22);
-    --track-bg: rgba(28,28,30,0.055);
-    --track-h: 44px;
-    --thumb-bg: #fff;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
     --r-card: 24px;
     --r-tile: 16px;
-    --r-pill: 999px;
-    --r-track: 4px;
     --ctrl-bg: rgba(255,255,255,0.52);
     --ctrl-border: rgba(0,0,0,0.05);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
-    --chip-bg: rgba(255,255,255,0.48);
-    --chip-border: rgba(0,0,0,0.05);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
-    --dd-bg: rgba(255,255,255,0.84);
-    --dd-border: rgba(255,255,255,0.60);
-    --divider: rgba(28,28,30,0.07);
-    --toggle-off: rgba(28,28,30,0.10);
-    --toggle-on: rgba(52,199,89,0.28);
-    --toggle-knob: rgba(255,255,255,0.96);
-    --tile-bg: rgba(255,255,255,0.92);
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     color-scheme: light;
@@ -151,32 +125,9 @@ const TUNET_WEATHER_STYLES = `
     --blue: #0A84FF;
     --blue-fill: rgba(10,132,255,0.13);
     --blue-border: rgba(10,132,255,0.22);
-    --green: #30D158;
-    --green-fill: rgba(48,209,88,0.14);
-    --green-border: rgba(48,209,88,0.18);
-    --purple: #BF5AF2;
-    --purple-fill: rgba(191,90,242,0.14);
-    --purple-border: rgba(191,90,242,0.22);
-    --amber: #fbbf24;
-    --amber-fill: rgba(251,191,36,0.14);
-    --amber-border: rgba(251,191,36,0.25);
-    --track-bg: rgba(255,255,255,0.06);
-    --thumb-bg: #F5F5F7;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
     --ctrl-bg: rgba(255,255,255,0.08);
     --ctrl-border: rgba(255,255,255,0.08);
     --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-    --chip-bg: rgba(30,41,59,0.50);
-    --chip-border: rgba(255,255,255,0.06);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
-    --dd-bg: rgba(30,41,59,0.92);
-    --dd-border: rgba(255,255,255,0.08);
-    --divider: rgba(255,255,255,0.06);
-    --toggle-off: rgba(255,255,255,0.10);
-    --toggle-on: rgba(48,209,88,0.30);
-    --toggle-knob: rgba(255,255,255,0.92);
-    --tile-bg: rgba(30,41,59,0.90);
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     color-scheme: dark;
@@ -191,15 +142,19 @@ const TUNET_WEATHER_STYLES = `
   }
 
   .icon {
-    font-family: 'Material Symbols Rounded';
+    font-family: 'Material Symbols Outlined', 'Material Symbols Rounded';
     font-weight: normal; font-style: normal;
     display: inline-flex; align-items: center; justify-content: center;
     line-height: 1; text-transform: none; letter-spacing: normal;
     white-space: nowrap; direction: ltr; vertical-align: middle; flex-shrink: 0;
     -webkit-font-smoothing: antialiased;
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    --ms-fill: 0;
+    --ms-wght: 100;
+    --ms-grad: 200;
+    --ms-opsz: 20;
+    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
   }
-  .icon.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .icon.filled { --ms-fill: 1; }
 
   /* Card */
   .card {
@@ -237,7 +192,6 @@ const TUNET_WEATHER_STYLES = `
   }
   .info-tile:hover { box-shadow: var(--shadow); }
   .info-tile:active { transform: scale(.98); }
-  .info-tile:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
   .entity-icon {
     width: 24px; height: 24px; border-radius: 6px;
     display: grid; place-items: center; flex-shrink: 0;
@@ -265,28 +219,30 @@ const TUNET_WEATHER_STYLES = `
   .weather-detail .val { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
   /* Forecast */
-  .weather-forecast { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-  .forecast-tile {
+  .forecast { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .fc-tile {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     padding: 10px 4px 8px; border-radius: 12px;
     background: var(--ctrl-bg); border: 1px solid var(--ctrl-border);
+    box-shadow: var(--tile-shadow-rest);
     transition: all .15s;
   }
-  .forecast-tile:first-child { background: var(--blue-fill); border-color: var(--blue-border); }
-  .forecast-day {
+  .fc-tile:hover { box-shadow: var(--tile-shadow-lift); }
+  .fc-tile.now { background: var(--blue-fill); border-color: var(--blue-border); }
+  .fc-day {
     font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
     color: var(--text-muted);
   }
-  .forecast-tile:first-child .forecast-day { color: var(--blue); }
-  .forecast-icon { color: var(--text-sub); }
-  .forecast-tile:first-child .forecast-icon { color: var(--blue); }
-  .forecast-temps { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-  .forecast-hi { font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
-  .forecast-lo { font-size: 11px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fc-tile.now .fc-day { color: var(--blue); }
+  .fc-icon { color: var(--text-sub); font-size: 20px; width: 20px; height: 20px; }
+  .fc-tile.now .fc-icon { color: var(--blue); }
+  .fc-temps { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .fc-hi { font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .fc-lo { font-size: 11px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
   @media (max-width: 440px) {
     .card { padding: 16px; }
-    .weather-forecast { grid-template-columns: repeat(3, 1fr); }
+    .forecast { grid-template-columns: repeat(3, 1fr); }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -326,12 +282,7 @@ class TunetWeatherCard extends HTMLElement {
     this._hass = null;
     this._rendered = false;
     this._forecast = [];
-    this._forecastUnsub = null;
     TunetWeatherCard._injectFonts();
-  }
-
-  disconnectedCallback() {
-    this._unsubForecast();
   }
 
   static _injectFonts() {
@@ -341,7 +292,8 @@ class TunetWeatherCard extends HTMLElement {
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
+      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200' },
     ];
     for (const cfg of links) {
       if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
@@ -355,7 +307,7 @@ class TunetWeatherCard extends HTMLElement {
   static getConfigForm() {
     return {
       schema: [
-        { name: 'entity', required: true, selector: { entity: { filter: [{ domain: 'weather' }] } } },
+        { name: 'entity', required: true, selector: { entity: { domain: 'weather' } } },
         { name: 'name', selector: { text: {} } },
         { name: 'forecast_days', selector: { number: { min: 1, max: 7, step: 1, mode: 'box' } } },
         { name: 'show_last_updated', selector: { boolean: {} } },
@@ -382,7 +334,7 @@ class TunetWeatherCard extends HTMLElement {
       entity: config.entity,
       name: config.name || 'Weather',
       forecast_days: config.forecast_days || 5,
-      show_last_updated: config.show_last_updated === true,
+      show_last_updated: config.show_last_updated !== false,
     };
     if (this._rendered) this._updateAll();
   }
@@ -401,23 +353,14 @@ class TunetWeatherCard extends HTMLElement {
     else this.classList.remove('dark');
 
     const entity = this._config.entity;
-
-    // Subscribe to forecast on first hass set or entity change
-    if (!oldHass || (entity && (!this._forecastUnsub || this._subscribedEntity !== entity))) {
-      this._subscribedEntity = entity;
-      this._subscribeForecast();
-    }
-
     if (!oldHass || (entity && oldHass.states[entity] !== hass.states[entity])) {
       this._updateAll();
+      this._fetchForecast();
     }
   }
 
   getCardSize() {
-    // Header (1) + current conditions row (2) + forecast row (2) = 5
-    // Without forecast: Header (1) + current conditions (2) = 3
-    const hasForecast = this._config.forecast_days > 0;
-    return hasForecast ? 5 : 3;
+    return 5;
   }
 
   _render() {
@@ -430,7 +373,8 @@ class TunetWeatherCard extends HTMLElement {
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     `;
 
     const tpl = document.createElement('template');
@@ -455,7 +399,7 @@ class TunetWeatherCard extends HTMLElement {
               </div>
               <div class="weather-details" id="details"></div>
             </div>
-            <div class="weather-forecast" id="forecast"></div>
+            <div class="forecast" id="forecast"></div>
           </div>
         </div>
       </div>
@@ -482,23 +426,12 @@ class TunetWeatherCard extends HTMLElement {
     });
   }
 
-  _unsubForecast() {
-    if (this._forecastUnsub) {
-      this._forecastUnsub();
-      this._forecastUnsub = null;
-    }
-  }
-
-  async _subscribeForecast() {
+  async _fetchForecast() {
     if (!this._hass || !this._config.entity) return;
-
-    // Unsubscribe from any previous subscription
-    this._unsubForecast();
-
     try {
       const result = await this._hass.callWS({
         type: 'weather/get_forecasts',
-        entity_id: this._config.entity,
+        entity_ids: [this._config.entity],
         forecast_type: 'daily',
       });
       const forecast = result
@@ -512,30 +445,16 @@ class TunetWeatherCard extends HTMLElement {
         return;
       }
     } catch {
-      // Fallback: try the one-shot service call with return_response
-      try {
-        const result = await this._hass.callService('weather', 'get_forecasts', {
-          type: 'daily',
-        }, { entity_id: this._config.entity }, false, true);
-
-        const forecast = result?.response?.[this._config.entity]?.forecast
-          || result?.[this._config.entity]?.forecast;
-        if (Array.isArray(forecast) && forecast.length > 0) {
-          this._forecast = forecast;
-          this._renderForecast();
-          return;
-        }
-      } catch (_) {}
-
-      // Last resort: legacy attribute fallback
-      try {
-        const entity = this._hass.states[this._config.entity];
-        if (entity && entity.attributes.forecast) {
-          this._forecast = entity.attributes.forecast;
-          this._renderForecast();
-        }
-      } catch (_) {}
+      // Fall through to attribute fallback.
     }
+
+    try {
+      const entity = this._hass.states[this._config.entity];
+      if (entity && entity.attributes.forecast) {
+        this._forecast = entity.attributes.forecast;
+        this._renderForecast();
+      }
+    } catch (_) {}
   }
 
   _updateAll() {
@@ -622,12 +541,12 @@ class TunetWeatherCard extends HTMLElement {
       const lo = fc.templow != null ? Math.round(fc.templow) : null;
 
       return `
-        <div class="forecast-tile">
-          <span class="forecast-day">${dayName}</span>
-          <span class="icon forecast-icon" style="font-size:20px">${icon}</span>
-          <div class="forecast-temps">
-            <span class="forecast-hi">${hi}&deg;</span>
-            ${lo != null ? `<span class="forecast-lo">${lo}&deg;</span>` : ''}
+        <div class="fc-tile${i === 0 ? ' now' : ''}">
+          <span class="fc-day">${dayName}</span>
+          <span class="icon fc-icon">${icon}</span>
+          <div class="fc-temps">
+            <span class="fc-hi">${hi}&deg;</span>
+            ${lo != null ? `<span class="fc-lo">${lo}&deg;</span>` : ''}
           </div>
         </div>`;
     }).join('');

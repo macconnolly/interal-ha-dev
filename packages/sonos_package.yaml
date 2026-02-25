@@ -895,6 +895,21 @@ template:
           {% else %}
             none
           {% endif %}
+        group_members: >
+          {% set coord = this.state %}
+          {% if coord in ['none', 'unknown', 'unavailable', ''] %}
+            []
+          {% else %}
+            {{ state_attr(coord, 'group_members') | default([coord], true) }}
+          {% endif %}
+        grouped_count: >
+          {% set coord = this.state %}
+          {% if coord in ['none', 'unknown', 'unavailable', ''] %}
+            0
+          {% else %}
+            {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
+            {{ members | length }}
+          {% endif %}
 
     # ------------------------------------------------------------------
     # Sonos Active Group Coordinator
@@ -943,6 +958,60 @@ template:
         is_playing_group: >
           {% set coord = this.state %}
           {{ states(coord) == 'playing' if coord not in ['none', 'unknown', 'unavailable', ''] else false }}
+
+    # ------------------------------------------------------------------
+    # Sonos Active Group Members
+    # UI-first grouping sensor: provides stable group_members list
+    # with fallback to smart coordinator when active-group signal is weak.
+    # ------------------------------------------------------------------
+    - name: "Sonos Active Group Members"
+      unique_id: sonos_active_group_members
+      icon: mdi:account-multiple-outline
+      state: >
+        {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
+        {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
+        {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
+        {% set coord = active_coord if active_coord not in invalid else smart_coord %}
+        {% if coord in invalid %}
+          0
+        {% else %}
+          {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
+          {{ members | length }}
+        {% endif %}
+      attributes:
+        coordinator: >
+          {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
+          {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
+          {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
+          {{ active_coord if active_coord not in invalid else smart_coord }}
+        source: >
+          {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
+          {% if active_coord not in ['none', 'unknown', 'unavailable', ''] %}
+            active_group_coordinator
+          {% else %}
+            smart_coordinator_fallback
+          {% endif %}
+        group_members: >
+          {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
+          {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
+          {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
+          {% set coord = active_coord if active_coord not in invalid else smart_coord %}
+          {% if coord in invalid %}
+            []
+          {% else %}
+            {{ state_attr(coord, 'group_members') | default([coord], true) }}
+          {% endif %}
+        member_names: >
+          {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
+          {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
+          {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
+          {% set coord = active_coord if active_coord not in invalid else smart_coord %}
+          {% if coord in invalid %}
+            []
+          {% else %}
+            {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
+            {{ expand(members) | map(attribute='name') | list }}
+          {% endif %}
 
     - name: "Sonos Living Room Group Label"
       unique_id: sonos_living_room_group_label
@@ -1010,6 +1079,10 @@ template:
         {% endif %}
 
   binary_sensor:
+    # ------------------------------------------------------------------
+    # Legacy "playing-group" binaries (backward compatibility only)
+    # New UI grouping uses sensor.sonos_active_group_* + *_in_active_group.
+    # ------------------------------------------------------------------
     - name: "Sonos Living Room In Playing Group"
       unique_id: sonos_living_room_in_playing_group
       icon: mdi:speaker

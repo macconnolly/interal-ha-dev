@@ -6,34 +6,43 @@ set -euo pipefail
 #
 # Usage:
 #   deploy_cards.sh [--root PATH] [--env-file PATH] [--dry-run] [--help]
-#                   [card_file.js ...]
+#                   [--skip-resources] [card_file.js ...]
 #
 # Positional arguments (optional):
 #   card_file.js ...   One or more specific card filenames to deploy.
 #                      If omitted, all .js files in the source dir are deployed.
+#
+# WSL note:
+#   Paths with spaces (e.g. /mnt/c/Users/Mac Connolly/...) are fully supported.
+#   Use quotes: ./deploy_cards.sh --root "/mnt/c/Users/Mac Connolly/ha-live - Copy"
 # ---------------------------------------------------------------------------
 
 usage() {
   cat <<'EOF'
 Deploy Tunet custom dashboard card JS files to Home Assistant with backup.
+Also registers deployed cards as Lovelace resources in configuration.yaml.
 
 Usage:
   deploy_cards.sh [--root PATH] [--env-file PATH] [--dry-run] [--help]
-                  [card_file.js ...]
+                  [--skip-resources] [card_file.js ...]
 
 Options:
-  --root PATH        Project root (default: resolved from script location)
-  --env-file PATH    Path to .env (default: <root>/.env)
-  --dry-run          Print actions without SSH/SCP writes
-  -h, --help         Show this help
+  --root PATH          Project root (default: resolved from script location)
+  --env-file PATH      Path to .env (default: <root>/.env)
+  --dry-run            Print actions without SSH/SCP writes
+  --skip-resources     Skip adding Lovelace resource entries
+  -h, --help           Show this help
 
 Positional arguments:
-  card_file.js ...   Specific card filename(s) to deploy (e.g. tunet_climate_card.js).
-                     Omit to deploy ALL .js files in Dashboard/Tunet/Cards/.
+  card_file.js ...     Specific card filename(s) to deploy (e.g. tunet_climate_card.js).
+                       Omit to deploy ALL .js files in Dashboard/Tunet/Cards/.
 
 Examples:
   # Deploy all cards
   ./deploy_cards.sh
+
+  # Deploy from WSL path with spaces
+  ./deploy_cards.sh --root "/mnt/c/Users/Mac Connolly/ha-live - Copy"
 
   # Deploy a single card
   ./deploy_cards.sh tunet_climate_card.js
@@ -83,6 +92,7 @@ require_cmd() {
 # ---------------------------------------------------------------------------
 
 DRY_RUN=0
+SKIP_RESOURCES=0
 
 # Script lives at <root>/skills/ha-card-deploy/scripts/deploy_cards.sh
 # Walk up three levels to reach repo root.
@@ -106,6 +116,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dry-run)
       DRY_RUN=1
+      shift
+      ;;
+    --skip-resources)
+      SKIP_RESOURCES=1
       shift
       ;;
     -h|--help)
@@ -210,7 +224,7 @@ run_scp_to_remote() {
 # Phase 1: Resolve the set of cards to deploy
 # ---------------------------------------------------------------------------
 
-printf '\n%b--- Phase 1/4: Resolving card list%b\n' "${CYAN}" "${RESET}"
+printf '\n%b--- Phase 1/5: Resolving card list%b\n' "${CYAN}" "${RESET}"
 
 mapfile -t all_local_cards < <(
   find "$LOCAL_CARDS_DIR" -maxdepth 1 -type f -name '*.js' -exec basename {} \; | sort
@@ -249,7 +263,7 @@ printf '  - %s\n' "${target_cards[@]}"
 # Phase 2: Backup — create local dir, pull existing remote files into it
 # ---------------------------------------------------------------------------
 
-printf '\n%b--- Phase 2/4: Backing up remote cards%b\n' "${CYAN}" "${RESET}"
+printf '\n%b--- Phase 2/5: Backing up remote cards%b\n' "${CYAN}" "${RESET}"
 
 mkdir -p "$BACKUP_DIR"
 log "Backup directory: ${BACKUP_DIR}"
@@ -298,7 +312,7 @@ log "Backup complete: ${#backed_up[@]} backed up, ${#backup_skipped[@]} skipped 
 # Phase 3: Deploy — SCP each card to remote
 # ---------------------------------------------------------------------------
 
-printf '\n%b--- Phase 3/4: Deploying cards to HA%b\n' "${CYAN}" "${RESET}"
+printf '\n%b--- Phase 3/5: Deploying cards to HA%b\n' "${CYAN}" "${RESET}"
 
 deploy_ok=0
 deploy_fail=0
@@ -333,10 +347,96 @@ for card in "${target_cards[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
-# Phase 4: Summary
+# Phase 4/5: Register Lovelace resources in configuration.yaml
 # ---------------------------------------------------------------------------
 
-printf '\n%b--- Phase 4/4: Summary%b\n' "${CYAN}" "${RESET}"
+REMOTE_CONFIG="/config/configuration.yaml"
+CACHE_VERSION="$(date +%Y%m%d)"
+resources_added=0
+resources_skipped=0
+
+if [[ "$SKIP_RESOURCES" -eq 1 ]]; then
+  printf '\n%b--- Phase 4/5: Skipping resource registration (--skip-resources)%b\n' "${CYAN}" "${RESET}"
+elif [[ "$deploy_fail" -gt 0 ]]; then
+  printf '\n%b--- Phase 4/5: Skipping resource registration (deploy failures)%b\n' "${YELLOW}" "${RESET}"
+else
+  printf '\n%b--- Phase 4/5: Registering Lovelace resources%b\n' "${CYAN}" "${RESET}"
+
+  # Backup configuration.yaml before modifying
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    config_backup="/config/configuration.yaml.bak.$(date +%Y%m%d_%H%M%S)"
+    run_ssh "cp '${REMOTE_CONFIG}' '${config_backup}'"
+    log "Backed up configuration.yaml -> ${config_backup}"
+  fi
+
+  for card in "${target_cards[@]}"; do
+    resource_url="/local/tunet/${card}"
+
+    # Check if this resource URL is already registered (ignore ?v= query params)
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      log "[DRY RUN] Would check/add resource: ${resource_url}?v=${CACHE_VERSION}  (type: module)"
+      (( resources_added++ )) || true
+      continue
+    fi
+
+    already_exists="$(run_ssh "grep -cF '${resource_url}' '${REMOTE_CONFIG}'" 2>/dev/null || echo "0")"
+
+    if [[ "$already_exists" -gt 0 ]]; then
+      # Resource exists — update the cache-bust version
+      run_ssh "sed -i 's|${resource_url}?v=[^ ]*|${resource_url}?v=${CACHE_VERSION}|g' '${REMOTE_CONFIG}'"
+      log_ok "Updated cache version: ${resource_url}?v=${CACHE_VERSION}"
+      (( resources_skipped++ )) || true
+    else
+      # Resource missing — append after the last existing resource entry.
+      # Python is always available on HA OS; use it for safe YAML insertion.
+      run_ssh "python3 -c \"
+import re, sys
+with open('${REMOTE_CONFIG}', 'r') as f:
+    lines = f.read().split('\n')
+
+new_lines = [
+    '    - url: ${resource_url}?v=${CACHE_VERSION}',
+    '      type: module',
+]
+
+# Find the last '    - url:' line (resource entry) and the type: line after it
+last_idx = -1
+for i, line in enumerate(lines):
+    if re.match(r'^    - url:', line):
+        last_idx = i
+        if i + 1 < len(lines) and 'type:' in lines[i + 1]:
+            last_idx = i + 1
+
+if last_idx == -1:
+    print('ERROR: No resource block found in configuration.yaml', file=sys.stderr)
+    sys.exit(1)
+
+for j, nl in enumerate(new_lines):
+    lines.insert(last_idx + 1 + j, nl)
+
+with open('${REMOTE_CONFIG}', 'w') as f:
+    f.write('\n'.join(lines))
+print('OK')
+\""
+      log_ok "Added resource: ${resource_url}?v=${CACHE_VERSION}"
+      (( resources_added++ )) || true
+    fi
+  done
+
+  log "Resources: ${resources_added} added, ${resources_skipped} updated (already registered)"
+
+  if [[ "$DRY_RUN" -eq 0 ]] && [[ "$resources_added" -gt 0 ]]; then
+    printf '\n  %bNew resources were added to configuration.yaml.%b\n' "${YELLOW}" "${RESET}"
+    printf '  You must restart HA for new resources to load.\n'
+    printf '  Run:  ha core restart  (or restart via the HA UI)\n'
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Phase 5/5: Summary
+# ---------------------------------------------------------------------------
+
+printf '\n%b--- Phase 5/5: Summary%b\n' "${CYAN}" "${RESET}"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   log "Dry-run mode — no files were written."
@@ -346,6 +446,9 @@ printf '  Target cards  : %d\n' "${#target_cards[@]}"
 printf '  Backed up     : %d\n' "${#backed_up[@]}"
 printf '  Skipped backup: %d  (new remote files)\n' "${#backup_skipped[@]}"
 printf "  ${GREEN}Deployed OK${RESET}   : %d\n" "$deploy_ok"
+if [[ "$SKIP_RESOURCES" -eq 0 ]] && [[ "$deploy_fail" -eq 0 ]]; then
+  printf "  ${GREEN}Resources${RESET}     : %d added, %d updated\n" "$resources_added" "$resources_skipped"
+fi
 
 if [[ "$deploy_fail" -gt 0 ]]; then
   printf "  ${RED}Failed${RESET}        : %d\n" "$deploy_fail"
@@ -355,7 +458,7 @@ if [[ "$deploy_fail" -gt 0 ]]; then
   printf '\n%bBackup location (for rollback):%b\n' "${YELLOW}" "${RESET}"
   printf '  %s\n' "$BACKUP_DIR"
   printf '\n%bTo rollback a card manually:%b\n' "${YELLOW}" "${RESET}"
-  printf '  scp %s/<card>.js %s@%s:%s/<card>.js\n' \
+  printf '  scp "%s/<card>.js" %s@%s:%s/<card>.js\n' \
     "$BACKUP_DIR" "$HA_SSH_USER" "$HA_SSH_HOST" "$REMOTE_CARDS_DIR"
   exit 1
 fi

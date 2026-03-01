@@ -301,8 +301,11 @@ tunet_nav_card.js
 │   └── Optional FAB (floating action button)
 ├── Media mini-player
 │   ├── Multi-speaker aware (Sonos group support)
-│   ├── Album art, title, transport controls
-│   └── Tap to expand (browser_mod popup)
+│   ├── Pagination buttons (< >) to cycle between speakers (not swipe)
+│   ├── Album art, title/artist, play/pause, speaker name
+│   ├── Dismissible (swipe down or close) and reopenable (tap Media nav item)
+│   ├── Compact height (~48-56px) in nav bar area
+│   └── Tap to expand → browser_mod popup with full Sonos control
 ├── Responsive transition
 │   ├── CSS media query at configurable breakpoint
 │   └── Cross-fade animation between modes
@@ -720,88 +723,108 @@ Built-in visibility (since HA 2024.6) supports:
 
 ---
 
-## 12. OPEN DECISIONS REQUIRING USER INPUT
+## 12. CONFIRMED DECISIONS
 
-### DECISION 1: Navigation Bar Approach
+All 5 decisions resolved (2026-03-01):
 
-**Options**:
+### DECISION 1: Custom Tunet Nav Card — CONFIRMED
 
-| Option | Best When | Risk |
-|--------|-----------|------|
-| **A: Navbar Card** | You want fast implementation, responsive out of the box, and can live with limited browser_mod compat | Active route highlight breaks with browser_mod; sections-only |
-| **B: Bubble Card Sub-Buttons** | You want entity-aware buttons, occupancy reordering, and are willing to limit desktop to bottom bar | No side rail; coupled to BC ecosystem; hash conflicts |
-| **C: Custom Tunet Nav Card** | You want perfect design match, full browser_mod compat, responsive side rail, and multi-speaker media | Build cost ~800-1200 lines; must maintain ourselves |
-| **D: Start with Navbar Card, plan custom later** | You want to move fast now and refine later | Potential throwaway work; but low risk since nav is swappable |
+**Choice: Option C — Build custom `tunet-nav-card`**
 
-**Factors to weigh**:
-- How important is the desktop side rail? (Navbar Card is the only off-the-shelf option)
-- How important is browser_mod popup compatibility? (Custom is the safest)
-- How important is matching the Tunet design system exactly? (Custom is the only perfect match)
-- What's the timeline? (Navbar Card = days, Custom = 1-2 weeks)
+Rationale:
+- Browser_mod popup compatibility is a **must** — only custom guarantees this
+- Design system match — same tokens, glass, typography as all other Tunet cards
+- Media mini-player with speaker pagination — no off-the-shelf card offers this
+- Responsive side rail (desktop) + bottom bar (mobile) — full control
+- Follows the proven 13-card vanilla JS pattern (~800-1200 lines)
 
-### DECISION 2: Dashboard Mode
+### DECISION 2: Hybrid Dashboard Mode — CONFIRMED
 
-**Options**:
+**Choice: Option C — Hybrid (storage default + YAML Tunet dashboard), start with small test**
 
-| Option | Trade-off |
-|--------|-----------|
-| **A: YAML mode** | Full `!include`, git-friendly, no visual editor |
-| **B: Storage mode** | Visual editor, no `!include`, poor version control |
-| **C: Hybrid** (storage default + YAML Tunet dashboard) | Best of both, resource management can conflict |
+```yaml
+# configuration.yaml
+lovelace:
+  mode: storage        # Default dashboard stays UI-managed
+  dashboards:
+    tunet-overview:
+      mode: yaml
+      filename: Dashboard/Tunet/tunet-overview-config.yaml
+      title: Tunet
+      show_in_sidebar: true
+```
 
-**Recommendation to evaluate**: Option C (hybrid) — keep a storage dashboard for family/simple use, maintain the Tunet dashboard in YAML for full control.
+Note on `!include`: Research confirmed V2 cards **do not currently use** `!include`, Jinja2, YAML anchors, or decluttering templates. All config is explicit inline YAML, all logic is in the JS cards themselves. However, YAML mode is still preferred for git-trackability and future flexibility.
 
-### DECISION 3: View Architecture
+### DECISION 3: Hybrid Architecture — CONFIRMED
 
-**Options**:
+**Choice: Option C — Overview + Subviews + Browser Mod Popups**
 
-| Option | Summary |
-|--------|---------|
-| **A: Multi-view + subviews** | Overview + room subviews. Navigate between views. |
-| **B: Single view + popups** | Everything on one page, browser_mod for detail. |
-| **C: Hybrid** | Overview view + room subviews + browser_mod popups for entity detail. |
+Interaction flow:
+```
+Room tile (tunet-rooms-card) showing room brightness
+  → TAP → browser_mod popup with room's lights + per-light controls
+           + small icon/link to navigate to full room subview
+  → Full room subview: all devices, scenes, speakers, automation status
+     (native back button returns to overview)
 
-**Key question**: Should rooms be full subviews (native back button, full page space) or browser_mod popups (instant, overlay, no page transition)?
+Status tile / entity
+  → TAP → browser_mod popup for expanded detail/control
+  → Quick inline toggles remain on overview (no popup needed)
+```
 
-### DECISION 4: Navigation Items
+### DECISION 4: 4 Navigation Items — CONFIRMED
 
-**How many items in the nav bar?**
+**Choice: Home, Rooms, Media, Settings**
 
-| Count | Items | Notes |
-|-------|-------|-------|
-| 3 | Home, Rooms, Media | Minimal. Matches Apple/Google pattern. |
-| 4 | Home, Rooms, Media, Settings | Adds settings access. Still clean. |
-| 5 | Home, Rooms, Media, Climate, Settings | Function categories in nav. At the UX limit. |
+| Item | Icon | Destination | Notes |
+|------|------|-------------|-------|
+| Home | `mdi:home` | Overview view | Climate, status, lighting, actions all live here |
+| Rooms | `mdi:floor-plan` | Rooms view or popup grid | Tapping room → room subview |
+| Media | `mdi:speaker` | Media view or popup | Full Sonos control |
+| Settings | `mdi:cog` | Settings subview | System config, OAL tuning |
 
-**UX research says 3-5 max.** Both Apple and Google recently reduced to 3 tabs.
+Climate does NOT get its own nav item — it lives on the Home view.
 
-### DECISION 5: Media Player in Nav Bar
+### DECISION 5: Media Mini-Player in Nav Bar — CONFIRMED
 
-**Options**:
-- **Include media mini-player** in nav bar (like Navbar Card's BETA widget)
-- **Separate media card** on the overview (current approach)
-- **Media accessed via popup** from a nav item (tap Media → browser_mod popup with full Sonos control)
+**Choice: Built-in mini-player in the custom nav card**
+
+Spec:
+- Streamlined version of the `tunet-sonos-card` slider unified card
+- **Pagination buttons (< >)** to cycle between speakers (not swipe — explicit buttons)
+- Shows: album art, title/artist, play/pause, speaker name
+- **Dismissible** (swipe down or close button) and **reopenable** (tap Media nav item)
+- Compact height (~48-56px) when embedded in the nav bar area
+- Tap to expand → browser_mod popup with full Sonos control
 
 ---
 
 ## 13. RECOMMENDED NEXT STEPS
 
-### Immediate (this session)
-1. Review the 5 open decisions above and discuss preferences
-2. Decide on navigation bar approach (Decision 1)
-3. Decide on dashboard mode (Decision 2)
+### Phase 1: Foundation
+1. Add `getGridOptions()` to all 13 Tunet cards for Sections compatibility
+2. Set up Kiosk Mode configuration
+3. Set up hybrid dashboard mode (YAML Tunet dashboard + storage default)
+4. Create view structure: Overview + room subviews + settings subview
 
-### Short-term (next session)
-4. Implement `getGridOptions()` on all 13 Tunet cards for Sections compatibility
-5. Set up Kiosk Mode configuration
-6. Build or configure the chosen navigation bar
-7. Set up the dashboard structure (views, subviews)
+### Phase 2: Navigation Card
+5. Build `tunet-nav-card` — bottom bar mode (mobile) with 4 items
+6. Add responsive side rail mode (desktop >= 768px)
+7. Add media mini-player with speaker pagination (< >) and dismiss/reopen
+8. Active route highlighting + badge indicators
 
-### Medium-term
-8. Implement browser_mod popup templates for entity detail views
-9. Build room subviews with full control layouts
-10. Refine responsive behavior across phone/tablet/desktop
-11. Polish animations, transitions, and micro-interactions
+### Phase 3: Popup System
+9. Configure browser_mod popup templates for room lights (from rooms card tap)
+10. Add "navigate to full room" icon inside each room popup
+11. Entity detail popups for status tiles, lighting zones
+12. Full Sonos control popup (expanded from mini-player tap)
+
+### Phase 4: Polish
+13. Refine responsive behavior across phone/tablet/desktop
+14. Animations, transitions, micro-interactions
+15. Dark mode verification across all new components
+16. Performance testing with all cards + nav + popups loaded
 
 ### Design Tokens to Define for Navigation
 ```css

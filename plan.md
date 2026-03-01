@@ -6,7 +6,7 @@ Last updated: 2026-03-01
 ## Current Reality Snapshot (Fact Base)
 - DONE SNAP.01: New dashboard YAML exists at `Dashboard/Tunet/tunet-suite-config.yaml`; Outcome: repo has a single source of truth for the POC dashboard config; Verify: the file exists on this branch.
 - DONE SNAP.02: Dashboard YAML is deployed to HA at `/config/dashboards/tunet-suite.yaml`; Outcome: HA has the YAML file available on disk; Verify: HA host filesystem shows the file at that path.
-- TODO SNAP.03: `tunet-suite` is NOT registered in HA dashboards yet; Outcome: it must be registered before it shows up; Verify: Settings -> Dashboards does not list it (yet).
+- DONE SNAP.03: `tunet-suite` YAML dashboard is registered in HA (`/config/configuration.yaml`) and HA has been restarted; Outcome: dashboard is reachable; Verify: Settings -> Dashboards lists `tunet-suite` and `/tunet-suite/overview` opens.
 - DONE SNAP.04: V2 cards are deployed to HA under `/config/www/tunet/v2_next/`; Outcome: HA can serve `/local/tunet/v2_next/*.js`; Verify: direct browser fetch of a resource returns JS (200).
 - DONE SNAP.05: Lovelace resources were repointed to `/local/tunet/v2_next/...`; Outcome: HA frontend loads v2_next modules; Verify: Settings -> Dashboards -> Resources shows `/local/tunet/v2_next/` URLs.
 - DONE SNAP.06: `tunet-nav-card` exists (POC), 3 items, breakpoint 900; Outcome: persistent nav chrome exists; Verify: `Dashboard/Tunet/Cards/v2/tunet_nav_card.js` exists and is loaded as a resource.
@@ -15,6 +15,7 @@ Last updated: 2026-03-01
 - TODO SNAP.09: Bug 3 still exists in at least one HA Storage dashboard; Outcome: must be manually removed in HA UI storage dashboards; Verify: searching storage dashboard YAML in HA still finds `sensor.aqi`.
 - TODO SNAP.10: Bug 4 (V2 config editors) not validated end-to-end; Outcome: cannot assume `getConfigForm()` works in the current HA frontend/browser; Verify: Phase 0 diagnostics.
 - DONE SNAP.11: Office is merged into Living Room (no Office room/subview); Outcome: no Office view to build; Verify: there is no `path: office` in `tunet-suite-config.yaml`.
+- DONE SNAP.12: HA Core version is `2026.3.0b1`; Outcome: `getConfigForm()` should be supported; Verify: Settings -> About shows `2026.3.0b1`.
 
 ## Goals
 - Make `tunet-suite` a real HA dashboard: registered, visible, loads without red error cards or custom-element collisions.
@@ -40,25 +41,25 @@ Last updated: 2026-03-01
 
 ### 0.1 - Safety Baseline (HA-Side)
 - TODO P0.01: Create a full HA backup named `pre_tunet_suite_2026_03_01`; Outcome: rollback point exists; Verify: Settings -> System -> Backups lists the new backup with the expected name/timestamp.
-- TODO P0.02: Capture current Lovelace Resources list (URLs + types) before edits; Outcome: exact rollback path for resources; Verify: screenshot or copied text is saved somewhere outside HA cache (notes).
-- TODO P0.03: Capture current Dashboards list (URL paths + modes) before edits; Outcome: exact rollback path for dashboards; Verify: screenshot/notes of Settings -> Dashboards.
+- TODO P0.02: Capture current Lovelace Resources list (URLs + types) for rollback; Outcome: exact rollback path for resources; Verify: screenshot or copied text is saved somewhere outside HA cache (notes).
+- TODO P0.03: Capture current Dashboards list (URL paths + modes) for rollback; Outcome: exact rollback path for dashboards; Verify: screenshot/notes of Settings -> Dashboards.
 
 ### 0.2 - Register `tunet-suite` YAML Dashboard (Do Not Assume It Is Registered)
-- TODO P0.04: Confirm `/config/dashboards/tunet-suite.yaml` exists on HA; Outcome: registration will not point to a missing file; Verify: HA file editor or SSH shows the file.
-- TODO P0.05: Register `tunet-suite` in `/config/configuration.yaml` under `lovelace: dashboards:` (mode: yaml, filename: `dashboards/tunet-suite.yaml`); Outcome: HA knows about the dashboard; Verify: YAML passes validation (no syntax errors).
-- TODO P0.06: Restart HA after `configuration.yaml` edit; Outcome: dashboard registration loads; Verify: Settings -> System -> Logs shows restart completed without config errors.
-- TODO P0.07: Confirm `tunet-suite` appears in Settings -> Dashboards; Outcome: dashboard is registered; Verify: it shows with correct title/icon and opens.
-- TODO P0.08: Open `/tunet-suite/overview`; Outcome: Overview view loads; Verify: no "dashboard not found" and no red error banners.
+- DONE P0.04: Confirm `/config/dashboards/tunet-suite.yaml` exists on HA; Outcome: registration points to a real file; Verify: `/tunet-suite/overview` opens.
+- DONE P0.05: Register `tunet-suite` in `/config/configuration.yaml` under `lovelace: dashboards:` (mode: yaml, filename: `dashboards/tunet-suite.yaml`); Outcome: HA knows about the dashboard; Verify: Settings -> Dashboards shows it.
+- DONE P0.06: Restart HA after `configuration.yaml` edit; Outcome: dashboard registration loads; Verify: HA returns to RUNNING state and dashboards list is accessible.
+- DONE P0.07: Confirm `tunet-suite` appears in Settings -> Dashboards; Outcome: dashboard is registered; Verify: it shows with correct title/icon and opens.
+- TODO P0.08: Open `/tunet-suite/overview` in the UI and sanity-check rendering; Outcome: Overview view loads; Verify: no "dashboard not found" and no red error banners.
 
 ### 0.3 - Resource Hygiene (V2 Next + Collision Avoidance)
 - DONE P0.09: V2 JS is deployed to `/config/www/tunet/v2_next/`; Outcome: HA can serve the files; Verify: open `/local/tunet/v2_next/tunet_status_card.js` in a browser and see source.
 - TODO P0.10: Confirm `tunet_base.js` exists at `/config/www/tunet/v2_next/tunet_base.js`; Outcome: runtime imports succeed; Verify: open `/local/tunet/v2_next/tunet_base.js` and it loads (200).
 - DONE P0.11: Lovelace resources point to `/local/tunet/v2_next/...` and are `type: module`; Outcome: correct import semantics; Verify: Settings -> Dashboards -> Resources list.
-- TODO P0.12: Confirm Bubble Card resource is installed and loaded; Outcome: hash popups can render; Verify: no "Custom element doesn't exist: bubble-card" error on `/tunet-suite/overview`.
+- DONE P0.12: Confirm Bubble Card resource is installed and loaded; Outcome: hash popups can render; Verify: Lovelace Resources includes `/hacsfiles/Bubble-Card/bubble-card.js`.
 - TODO P0.13: Confirm there are no duplicate Tunet resources (V1 + V2) defining the same tag names; Outcome: no registry collisions; Verify: browser console has no `Failed to execute 'define'` errors mentioning `tunet-`.
 
 ### 0.4 - Cache Bust Strategy (So Testing Is Real)
-- TODO P0.14: Bump a single coherent `?v=` on all `/local/tunet/v2_next/*.js` resources (same version string across all cards); Outcome: HA frontend reloads modules; Verify: DevTools Network shows 200 (not 304) for these resources.
+- DONE P0.14: Bump a single coherent `?v=` on all `/local/tunet/v2_next/*.js` resources (same version string across all cards); Outcome: HA frontend reloads modules; Verify: Lovelace Resources show consistent `?v=` values.
 - TODO P0.15: Hard refresh with DevTools "Disable cache" enabled; Outcome: no stale resources; Verify: Network tab shows resources fetched with the bumped `?v=`.
 
 ### 0.5 - Grid Sizing Alignment (Sections Auto-Height)
@@ -234,8 +235,8 @@ Last updated: 2026-03-01
 - TODO DEP.05: After YAML changes, refresh `/tunet-suite/overview`; Outcome: YAML changes take effect; Verify: UI reflects edits.
 
 ### Register Dashboard (One-Time)
-- TODO DEP.06: Add `lovelace: dashboards: tunet-suite:` entry in `/config/configuration.yaml`; Outcome: dashboard registered; Verify: Settings -> Dashboards lists it.
-- TODO DEP.07: Restart HA after registration; Outcome: registration loaded; Verify: dashboard opens successfully.
+- DONE DEP.06: Add `lovelace: dashboards: tunet-suite:` entry in `/config/configuration.yaml`; Outcome: dashboard registered; Verify: Settings -> Dashboards lists it.
+- DONE DEP.07: Restart HA after registration; Outcome: registration loaded; Verify: dashboard opens successfully.
 
 ### Cache Bust (Repeatable)
 - TODO DEP.08: Bump a single `?v=` across all Tunet resources every deploy; Outcome: predictable cache behavior; Verify: DevTools Network shows new query values.

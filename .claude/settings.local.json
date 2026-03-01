@@ -94,7 +94,9 @@
       "Bash(echo === PRE-REUSE MEDIA CARD - header comments ===:*)",
       "Bash(xargs:*)",
       "Bash(cat:*)",
-      "Bash(echo === $f ===:*)"
+      "Bash(echo === $f ===:*)",
+      "WebFetch(domain:brunosabot.dev)",
+      "WebFetch(domain:newreleases.io)"
     ],
     "deny": [],
     "ask": []

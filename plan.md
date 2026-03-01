@@ -1,531 +1,448 @@
-# Tunet Dashboard Card Suite — Stabilization Plan
+# Tunet Dashboard — Implementation Plan v2
+## Bug Fixes + Per-Room Views + Navigation Architecture
 
-## Executive Summary
-
-**Goal:** Get every Tunet card working perfectly in live HA, matching mockup fidelity.
-**Strategy:** V1 self-contained monolithic cards on `main` as base, cherry-pick targeted UX features from pre-reuse, single-card perfection loop.
-**Architecture freeze:** No shared modules, no primitives, no `tunet_base.js` imports until all cards pass gates.
-
----
-
-## 1. Architectural Decision (Locked)
-
-### What we're using: V1 Self-Contained Monoliths
-
-Each card is a single `.js` file with zero external dependencies. All CSS tokens, TunetCardFoundation utilities, and font injection are inlined per-card.
-
-**Location:** `Dashboard/Tunet/Cards/*.js` (11 files on `main` branch)
-**Deployed to:** HA at `/config/www/tunet/*.js` via `sshpass` SCP to `10.0.0.21`
-**Lovelace resources:** `/local/tunet/*.js?v=6000` (11 entries in `.storage/lovelace_resources`)
-
-### Why not V2 shared base (`tunet_base.js`)
-
-The pre-reuse snapshot (`origin/trial:Configuration/www/tunet/v2_pre_reuse_5b9158/`) uses ES module imports from `tunet_base.js` (778 lines). 10-agent evaluation found:
-
-1. **Single point of failure** — if `tunet_base.js` fails to load, ALL 9 cards break (blank dashboard)
-2. **Pre-reuse cards regressed** — every card lost `callServiceSafe` error handling, `escapeHtml` XSS protection, and `bindActivate` keyboard accessibility
-3. **Token drift** — `tunet_base.js` has stale values: `--text-muted: rgba(248,250,252, 0.45)` (should be `rgba(245,245,247, 0.35)`), icon defaults `wght: 100, GRAD: 200, opsz: 20` (should be `400, 0, 24`)
-4. **Missing cards** — pre-reuse has no `tunet_page_card.js` or `tunet_scenes_card.js`
-5. **Deployment complexity** — requires 11 resource URL changes + deploying `tunet_base.js` alongside cards
-
-### Why not V2 full extraction (primitives/composers)
-
-The primitive extraction (`tunet_light_tile.js`, `tunet_speaker_tile.js`, `tunet_status_tile.js`, `tunet_runtime.js`, etc.) is documented in `Dashboard/Tunet/Docs/agent_handoff_2026-02-23.md` as the source of regressions R1-R6:
-
-- R1: Volume dispatch broken on speaker tiles
-- R2: Drag interaction reliability degraded
-- R3: Visual parity lost (shadows, spacing, typography)
-- R4: Manual state indicators desynced
-- R5: Subtitle logic contradictions
-- R6: Editor/config form regressions
-
-**Architecture freeze applies until Pass 2.** See §10 for the Pass 2 promotion model.
+**Supersedes:** Previous V1 Stabilization Plan
+**Working branch:** `claude/dashboard-nav-research-QnOBs`
+**Card suite:** V2 ES modules (`Dashboard/Tunet/Cards/v2/*.js`) importing from `tunet_base.js`
 
 ---
 
-## 2. Source of Truth
+## File Inventory (V2 Active Cards)
 
-### Files
+| File | Version | Lines | Config Editor |
+|------|---------|------:|:---:|
+| `v2/tunet_base.js` | — | 778 | N/A (shared module) |
+| `v2/tunet_actions_card.js` | — | 446 | `getConfigForm()` line 269 |
+| `v2/tunet_climate_card.js` | — | 1383 | `getConfigForm()` line 630 |
+| `v2/tunet_light_tile.js` | — | 802 | `getConfigForm()` line 766 |
+| `v2/tunet_lighting_card.js` | — | 1667 | `getConfigForm()` line 672 |
+| `v2/tunet_media_card.js` | — | 1234 | `getConfigForm()` line 481 |
+| `v2/tunet_rooms_card.js` | — | 578 | `getConfigForm()` line 294 |
+| `v2/tunet_sensor_card.js` | — | 833 | `getConfigForm()` line 397 |
+| `v2/tunet_sonos_card.js` | — | 1367 | `getConfigForm()` line 578 |
+| `v2/tunet_speaker_grid_card.js` | — | 932 | `getConfigForm()` line 446 |
+| `v2/tunet_status_card.js` | 2.4.0 | 1111 | `getConfigForm()` line 414 |
+| `v2/tunet_weather_card.js` | — | 440 | `getConfigForm()` line 175 |
 
-| Purpose | Path | Notes |
-|---------|------|-------|
-| **Card source (canonical)** | `Dashboard/Tunet/Cards/*.js` | 11 files, main branch |
-| **Design spec** | `Dashboard/Tunet/Mockups/design_language.md` (v8.3+) | THE rulebook |
-| **Gold standard card** | `Dashboard/Tunet/Cards/tunet_climate_card.js` | Match this quality |
-| **Lighting mockup** | `Dashboard/mockups/living_card_mockup.html` | Visual target for tiles |
-| **Overview mockup** | `Dashboard/Tunet/Mockups/tunet-overview-dashboard.html` | Full dashboard target |
-| **Dashboard config** | `Dashboard/Tunet/tunet-overview-config.yaml` | Card composition |
-| **Pre-reuse reference** | `origin/trial:Configuration/www/tunet/v2_pre_reuse_5b9158/` | Cherry-pick source only |
-| **Handoff forensics** | `Dashboard/Tunet/Docs/agent_handoff_2026-02-23.md` (trial branch) | V1→V2 failure timeline |
-| **Card build instructions** | `Dashboard/Tunet/Cards/CLAUDE.md` | Skeleton + token source |
-| **This plan** | `plan.md` | Living document |
-
-### Branch
-
-Working branch: **`main`** (or a feature branch off main like `tunet/card-perfection`)
-All card fixes land as atomic single-card commits.
-
-### HA Deployment
-
-- Server: `10.0.0.21` via SSH (credentials in `.env` as `HA_SSH_PASSWORD`)
-- Card path on HA: `/config/www/tunet/*.js`
-- Deploy command: `sshpass -p "$HA_SSH_PASS" scp <file> root@10.0.0.21:/config/www/tunet/`
-- Cache bust: bump `?v=` in Lovelace resources OR `ha core restart`
-- Dashboard URL: `/tunet-overview`
+| Config File | Lines |
+|-------------|------:|
+| `Dashboard/Tunet/tunet-overview-config.yaml` | 360 |
+| `Dashboard/Tunet/tunet-v2-test-config.yaml` | 380 |
 
 ---
 
-## 3. What 10 Evaluation Agents Found
+## Phase 0: Bug Fixes
 
-### Per-Card Verdict (main branch as base)
+### Bug 1: Status Tiles Not Same Size
 
-| Card | Version | Lines | Spec Fidelity | Production Ready? | Work Needed |
-|------|---------|-------|:---:|:---:|---|
-| **tunet_climate_card.js** | 1.0.0 | 1634 | 9.3/10 | **Yes** | None — gold standard |
-| **tunet_actions_card.js** | 2.1.0 | 675 | 9/10 | **Yes** | None |
-| **tunet_sensor_card.js** | 1.0.0 | 1093 | 9/10 | **Yes** | None |
-| **tunet_scenes_card.js** | 1.0.0 | 379 | 9/10 | **Yes** | None |
-| **tunet_weather_card.js** | 1.1.0 | 623 | 9/10 | **Yes** | Optional: forecast subscription from pre-reuse v1.4.0 |
-| **tunet_page_card.js** | — | 281 | 8/10 | **Yes** | Gradient background verify |
-| **tunet_lighting_card.js** | 3.2.0 | 1918 | 8/10 | Needs polish | Colored subtitle, header promotion, dark pill contrast |
-| **tunet_media_card.js** | 3.0.0 | 1575 | 8/10 | Needs verify | Dropdown fix deployed, may need fixed-position revert |
-| **tunet_status_card.js** | 2.2.0 | 1268 | 7/10 | Needs fixes | Viewport dropdown, visibility:hidden show_when |
-| **tunet_rooms_card.js** | 2.1.0 | 1000 | 7/10 | Needs fixes | Amber status text, sizing, reported "very broken" |
-| **tunet_speaker_grid_card.js** | 1.0.0 | 961 | 5/10 | Needs rewrite | v1→v3 gap: horizontal layout, media metadata, volume commit bug, pointer capture, group dot |
+**File:** `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
 
-### Key Cross-Cutting Findings
+**Root cause:** The `.tile.has-aux` CSS rule at **line 177** adds `padding-top: 26px` to tiles that have an aux action button, while the base `.tile` rule at **line 92** uses `padding: 14px 8px 10px`. Combined with `grid-auto-rows: auto` at **line 82**, each row auto-sizes to its tallest member. Tiles without `has-aux` in the same row are vertically centered inside the taller row, making them appear visually smaller.
 
-1. **Main matches design spec at 9.3/10** — mockup-eval confirmed main's tokens are closer to spec than pre-reuse (7.1/10) or either mockup HTML (5.4-7.3/10)
-2. **Pre-reuse icon defaults are wrong** — `wght: 100, GRAD: 200, opsz: 20` vs spec's `400, 0, 24`
-3. **Pre-reuse text tokens are wrong** — based on Tailwind `#F8FAFC` not spec's Apple `#F5F5F7`
-4. **Every pre-reuse card lost error handling** — `callServiceSafe` → raw `callService`
-5. **Speaker grid has a real volume-loss bug on main** — no final commit on pointerup
-6. **Speaker grid is NOT in the dashboard config** — needs to be added to `tunet-overview-config.yaml`
+The aux button itself is `position: absolute; top: 8px; right: 8px` (lines 155-156), so it's removed from flow and does NOT need layout clearance.
+
+**Fix (Option B — uniform padding):**
+
+| Change | Location | What |
+|--------|----------|------|
+| 1 | Line 92 | Change `.tile` padding from `14px 8px 10px` to `26px 8px 10px` |
+| 2 | Line 177 | **Delete** the entire rule `.tile.has-aux { padding-top: 26px; }` |
+
+**Effect:** Every tile gets the same 26px top padding uniformly. Aux buttons occupy the same top-right space in every tile but are only rendered when configured. Zero conditional height difference.
+
+**Risk:** Tiles become 12px taller overall. This is acceptable — the extra space gives the icon/label/value stack more breathing room and ensures the aux pill never overlaps the icon.
 
 ---
 
-## 4. Past Failed Approaches (Do Not Repeat)
+### Bug 2: Reset Button (Aux Action Pill) Always Showing
 
-### Failure 1: V2 Primitive Extraction (Feb 20-21, 2026)
+**File:** `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
 
-**What happened:** 4 commits (`ca3828d`, `f11d9eb`, `5fda035`, `253800e`) extracted shared UI primitives from monolithic cards into reusable web components. Created 10 new files (3,770 lines): `tunet_light_tile.js`, `tunet_speaker_tile.js`, `tunet_status_tile.js`, `tunet_runtime.js`, `tunet_action_chip.js`, `tunet_info_tile.js`, `tunet_control_button.js`, `tunet_scene_chip.js`, `tunet_scene_row.js`, `tunet_sonos_card.js`.
+**Root cause:** Three pieces are missing:
 
-**Why it failed:** Cross-component event dispatch (`tunet_runtime.js` `dispatchAction`) created coupling that was hard to debug. Volume dispatch, drag interaction, and visual parity all regressed. The `tunet_base.js` shared module ballooned from 778 to 1,818 lines.
+1. **No reference to aux element.** The `_buildGrid()` method at **lines 676-691** creates and appends the aux button unconditionally when `tile.aux_action` is truthy, but the `_tileEls` array push at **lines 694-702** does NOT store a reference to the aux DOM element. There are 7 properties stored (`el`, `config`, `index`, `valEl`, `dotEl`, `ddMenuEl`, `ddValEl`) — `auxEl` is missing.
 
-**Lesson:** Abstraction before stability is backwards. Get each card working perfectly as a monolith first.
+2. **No visibility update method.** The `_updateValues()` method at **lines 821-850** iterates tiles and dispatches to type-specific update methods, but never evaluates aux button visibility. The existing `_evaluateVisibility()` at **lines 738-751** handles tile-level `show_when` but not `aux_action.show_when`.
 
-### Failure 2: Multi-Card Parallel Fixes (Feb 23, 2026)
+3. **No `show_when` in YAML config.** The Manual tile's `aux_action` config (overview YAML lines 92-98, test YAML lines 81-87) has no conditional visibility — it always renders.
 
-**What happened:** Agent team applied icon font sweep + token fixes to all 10 cards simultaneously in one session.
+**Existing infrastructure to reuse:**
+- `_matchesShowWhen()` at **lines 753-780** — already supports 6 operators (`equals`, `not_equals`, `contains`, `not_contains`, `gt`, `lt`). No changes needed.
+- `_evaluateVisibility()` at **lines 738-751** — pattern to follow for the new method.
 
-**Why it partially failed:** Icon fixes deployed but couldn't verify all cards. Rooms card remained "very broken." Speaker grid card missing from dashboard. Gradient background not rendering. Too many changes at once made it impossible to isolate which card caused which regression.
+**Fix — 4 changes:**
 
-**Lesson:** Single-card-at-a-time with validation gates between each.
+| # | Location | What |
+|---|----------|------|
+| 1 | Lines 694-702 (`_tileEls.push`) | Add `auxEl: tile.aux_action ? el.querySelector('.tile-aux') : null` to the object literal |
+| 2 | After line 751 (after `_evaluateVisibility`) | Add new `_updateAuxVisibility()` method. For each tile with `auxEl` and `config.aux_action.show_when`, call `_matchesShowWhen()` and toggle `auxEl.style.display` between `''` and `'none'` |
+| 3 | Line 522 (in `set hass()`, after `this._evaluateVisibility()`) | Add call to `this._updateAuxVisibility()` |
+| 4 | YAML configs (see below) | Add `show_when` block to the Manual tile's `aux_action` |
 
-### Failure 3: Using Pre-Reuse as Runtime Base
+**YAML change — both files:**
 
-**What the Codex plan proposed:** Deploy `v2_pre_reuse_5b9158/` cards as the active runtime.
+`tunet-overview-config.yaml` lines 92-98 and `tunet-v2-test-config.yaml` lines 81-87:
+Add `show_when` block to `aux_action` on the Manual tile. Condition: `input_number.oal_manual_brightness_offset` with operator `not_equals` and state `'0'`. This makes the "Reset" pill only appear when there's actually a manual brightness offset to reset.
 
-**Why it's stale:** Previous session cleaned up pre-reuse directory from HA. Main's self-contained cards are already deployed. Pre-reuse cards need `tunet_base.js` alongside them. Pre-reuse has wrong icon defaults, wrong text tokens, lost error handling.
-
-**Lesson:** Don't switch runtime base when the current one is functional. Fix forward on what's deployed.
-
----
-
-## 5. Priority Order and Per-Card Fix Plans
-
-### Iteration 1: Lighting Card (P0 Hero)
-
-**File:** `Dashboard/Tunet/Cards/tunet_lighting_card.js` (v3.2.0, 1918 lines)
-**Cherry-pick source:** `origin/trial:Configuration/www/tunet/v2_pre_reuse_5b9158/tunet_lighting_card.js` (v3.3.0)
-
-**Patches (4 small):**
-
-| # | What | Where | Cherry-Pick? | Size |
-|---|------|-------|:---:|:---:|
-| 1 | Add `--red` token (light: `#FF3B30`, dark: `#FF453A`) | `:host` and `:host(.dark)` blocks (~line 130, 185) | From `tunet_base.js` line 56/178 | S |
-| 2 | Add `.adaptive-ic`, `.red-ic` CSS + header title promotion | After `.amber-ic` rule (line 476) + after `.hdr-title` rule (line 465) | From pre-reuse lines 217-220, 186 | S |
-| 3 | Switch subtitle from `textContent` to `innerHTML` with colored spans | `_updateAll()` lines 1862-1876 | From pre-reuse lines 1552-1567 | S |
-| 4 | Dark-mode floating pill: amber border + stronger shadow | After `.l-tile.sliding .zone-val` rule (~line 750) | New (both versions need this) | S |
-
-**What we're NOT changing (and why):**
-- Manual parser — main's `_isZoneManual()` with Set + group traversal is already superior to pre-reuse's `array.includes()`
-- Drag physics — identical in both, main adds `callServiceSafe` which is better
-- Grid row system — main's `aspect-ratio: 1/0.95` matches mockup; pre-reuse's `--grid-row: 124px` is a different approach, not better
-- Amber tuning — main matches spec (9.3/10); pre-reuse values deviate from spec
-- Pill clipping — main's `padding-top: 20px; margin-top: -20px` with `overflow-y: visible` works; no clipping
-
-**Validation gate:**
-- [ ] Subtitle shows amber "3 on · 62%", contextual "Adaptive", red "1 manual"
-- [ ] "All off" renders plain (no colored span)
-- [ ] Header title brightens on any-light-on
-- [ ] Dark mode pill has amber border ring during drag
-- [ ] Static subtitle override (`config.subtitle`) still uses safe `textContent`
-- [ ] No visual regression in light mode
-- [ ] Drag still commits brightness correctly
+**Note on Bug 1 interaction:** With Option B's uniform padding, the `has-aux` class no longer affects layout, so there's no need to toggle it in `_updateAuxVisibility()`. The class still exists for potential future CSS targeting but is layout-neutral.
 
 ---
 
-### Iteration 2: Speaker Grid Card (P0)
+### Bug 3: Weather AQI Not Present
 
-**File:** `Dashboard/Tunet/Cards/tunet_speaker_grid_card.js` (v1.0.0, 961 lines)
-**Cherry-pick source:** `origin/trial:Configuration/www/tunet/v2_pre_reuse_5b9158/tunet_speaker_grid_card.js` (v3.1.0, 965 lines)
+**Files:**
+- `Dashboard/Tunet/tunet-overview-config.yaml` **lines 245-259**
+- `Dashboard/Tunet/tunet-v2-test-config.yaml` **lines 234-248**
 
-**This is the biggest gap.** Main is v1.0.0, pre-reuse is v3.1.0 — a 3-major-version delta. The speaker-deep-eval agent found 23 features in v3.1.0 missing from v1.0.0.
+**Root cause:** Both configs reference `sensor.aqi` which does not exist as a HA entity. The sensor card renders it as `?` with an orphan row.
 
-**Recommended approach:** Port pre-reuse v3.1.0's tile layout, state machine, and interaction model into main's self-contained architecture. Keep main's TunetCardFoundation, midnight navy tokens, and icon validation. This is effectively a rewrite of the card interior while preserving the card shell.
+**Fix:** Remove the entire `sensor.aqi` block (15 lines) from both files. This reduces the sensor card from 4 rows to 3. If `sensor.bedroom_temp_humidity_sensor_temperature` exists, it can be added as a replacement row. Otherwise, 3 rows (Living Room temp, Humidity, Outside temp) is a clean layout.
 
-**Critical items (must-have):**
-
-| # | What | Why | Size |
-|---|------|-----|:---:|
-| 1 | Horizontal tile layout | v1 uses vertical stacks, v3 uses horizontal — fundamentally different UX | L |
-| 2 | Final volume commit on pointerup | **v1 has a real volume-loss bug** — debounced value may never reach HA | S |
-| 3 | `setPointerCapture` / `releasePointerCapture` | Drag can be lost if pointer exits tile bounds | S |
-| 4 | `e.preventDefault()` on pointerdown/move | Prevents scroll interference during drag | S |
-| 5 | Media metadata display (`.spk-meta`) | v1 tiles show only icon+name+vol — no track info | M |
-| 6 | Paused/idle state styling | v1 has only default and in-group states | M |
-| 7 | Group dot indicator | Visual feedback for group membership | S |
-| 8 | ARIA `role="slider"` + `aria-valuenow` | Accessibility for dual tap/drag interaction | S |
-| 9 | Add to dashboard config | Speaker grid is NOT in `tunet-overview-config.yaml` | S |
-
-**Nice-to-have:**
-
-| # | What | Size |
-|---|------|:---:|
-| 10 | Steel Blue accent system (`#4682B4`/`#6BA3C7`) | S |
-| 11 | Tile size presets (compact/standard/large) | S |
-| 12 | Custom CSS injection | S |
-| 13 | Spring easing + hover lift | S |
-| 14 | Dynamic `getCardSize()` | S |
-| 15 | Updated entity selector format (`filter: [{}]`) | S |
-
-**Validation gate:**
-- [ ] Volume drag always commits final value on pointer-up
-- [ ] Drag works when pointer leaves tile bounds
-- [ ] Tiles show speaker name + current track info
-- [ ] Paused speakers visually distinct from playing
-- [ ] Group dot visible on grouped speakers
-- [ ] Tap toggles group membership
-- [ ] Long-press opens more-info dialog
-- [ ] Card appears in dashboard between media and rooms sections
+**Verification needed:** Confirm `sensor.bedroom_temp_humidity_sensor_temperature` exists before adding it as a replacement. If it doesn't exist, just delete the AQI block.
 
 ---
 
-### Iteration 3: Media/Sonos Card (P0)
+### Bug 4: UI Configuration Forms Not Working (All V2 Cards)
 
-**File:** `Dashboard/Tunet/Cards/tunet_media_card.js` (v3.0.0, ~1575 lines)
-**Cherry-pick source:** Pre-reuse v3.1.0 (1232 lines)
+**Files:** All 12 V2 card files in `Dashboard/Tunet/Cards/v2/`
 
-**Current state:** Dropdown `position:fixed` → `position:absolute` fix was deployed this session. Main is functionally superior in almost every area (Foundation, volume drag entity capture, 5-tier group member detection, commitFinal on pointerup).
+**Symptom:** None of the V2 cards display a visual configuration editor in the HA dashboard UI. Users see only the YAML editor.
 
-**Remaining work:**
+**What the code does:** Every V2 card implements `static getConfigForm()` (see File Inventory table above for line numbers) returning `{ schema: [...], computeLabel: fn }`. Every card has `static get configurable() { return true; }`. Card registration via `registerCard()` in `tunet_base.js` (lines 740-752) correctly calls `customElements.define()` and pushes to `window.customCards`.
 
-| # | What | Size |
-|---|------|:---:|
-| 1 | Verify dropdown positioning works in live HA after restart | S |
-| 2 | Consider reverting to `position:fixed` with viewport tracking if absolute has issues in HA panels | M |
+**Root cause investigation — three hypotheses:**
 
-**Pre-reuse's one advantage:** `position:fixed` dropdown with `resize`/`scroll` listeners for viewport-aware repositioning. If `position:absolute` clips in HA's scrollable panel views, port the fixed-position approach back but keep main's Foundation utilities.
+**Hypothesis A: HA version too old.** `getConfigForm()` was merged into HA frontend in PR #16142 (early 2025). If the user's HA instance predates this merge, the frontend won't look for this static method. The traditional pattern is `getConfigElement()` which returns a custom element.
 
-**Validation gate:**
-- [ ] Speaker dropdown opens directly below button
-- [ ] Dropdown doesn't clip in scrollable HA panels
-- [ ] Volume drag commits final value
-- [ ] Speaker selection switches active entity
-- [ ] Group toggle works from dropdown
+*How to verify:* Check HA version in Settings → About. `getConfigForm()` requires HA 2025.2+ (approximate).
 
----
+**Hypothesis B: Browser cache.** The community forum reports that config editors don't appear until:
+- Resource URLs have a version parameter bumped (e.g., `?v=2` → `?v=3`)
+- Browser DevTools "Disable cache" is enabled
+- Hard refresh (Ctrl+Shift+R) is performed
 
-### Iteration 4: Status Card (P1)
+*How to verify:* Bump resource version, hard refresh, try adding a card via the UI picker.
 
-**File:** `Dashboard/Tunet/Cards/tunet_status_card.js` (v2.2.0, 1268 lines)
-**Cherry-pick source:** Pre-reuse v2.3.0 (927 lines)
+**Hypothesis C: Schema limitations for complex configs.** `getConfigForm()` can only express flat/simple schemas using HA selectors. Cards with complex nested configs (like the status card's `tiles` array with per-tile type-specific options) cannot be fully expressed in a `getConfigForm()` schema. For these cards, the basic fields (name, columns) would show up, but the complex nested config (tiles) would not be editable in the UI.
 
-| # | What | Cherry-Pick? | Size |
-|---|------|:---:|:---:|
-| 1 | Viewport-aware dropdown positioning (spaceBelow/spaceAbove + maxHeight flip) | Pre-reuse lines 856-878 | S |
-| 2 | `visibility: hidden` for `show_when` hidden tiles (preserves grid layout vs `display: none`) | Pre-reuse line 148-151 | S |
-| 3 | Column count refresh on `_buildGrid()` | Pre-reuse line 456 | S |
-| 4 | Dropdown `maxHeight` reset on close | Pre-reuse line 889 | S |
-| 5 | Fix dropdown service domain detection (`select.*` vs `input_select.*`) | New — neither version handles this | M |
+*This means:* Even if `getConfigForm()` works, it will only ever expose top-level scalar fields. The full config for cards like status, lighting (zones array), sensor (sensors array), rooms (rooms array) will still require YAML editing.
 
-**Keep main's advantages:** `tile_size` presets, `secondary` value field, icon state-aware fill (`_updateIconFill()`), dropdown keyboard navigation (arrow-key/Escape), red/purple accent tokens, `escapeHtml`, `callServiceSafe`.
+**Fix options (decide based on verification):**
 
-**Validation gate:**
-- [ ] Dropdown flips above when near viewport bottom
-- [ ] Hidden tiles preserve grid slot (no layout reflow)
-- [ ] Timer countdown correct
-- [ ] Dot rules render correctly
-- [ ] Dropdown service calls work for both `input_select` and `select` entities
+| Option | Scope | Effort | Result |
+|--------|-------|--------|--------|
+| A: Verify HA version, bump cache | All cards | Trivial | If `getConfigForm()` IS supported, top-level fields become editable |
+| B: Add `getConfigElement()` editors | Per card | Large (custom editor element per card) | Full visual editing including arrays |
+| C: Accept YAML-only for complex cards | All cards | None | `getConfigForm()` for simple fields, YAML for arrays |
 
----
+**Recommendation:** Start with Option A (verify + cache bust). If `getConfigForm()` works for basic fields, accept Option C for complex cards — YAML editing for `tiles`/`zones`/`sensors` arrays is fine since these are power-user configs. Full visual editors (Option B) would be a Phase 3+ effort.
 
-### Iteration 5: Rooms Card (P1)
+**Key code locations per card:**
 
-**File:** `Dashboard/Tunet/Cards/tunet_rooms_card.js` (v2.1.0, 1000 lines)
-**Cherry-pick source:** Pre-reuse v2.2.0 (774 lines)
-
-| # | What | Size |
-|---|------|:---:|
-| 1 | Amber-colored status text (`<span class="amber-txt">N on</span>`) | S |
-| 2 | Review grid-auto-rows (main forces `minmax(132px, auto)` which may cause excess whitespace) | S |
-| 3 | Investigate "very broken" report — likely needs live testing to identify root cause | M |
-
-**Validation gate:**
-- [ ] Room cards render with correct orbs per light
-- [ ] Tap on room icon toggles all room lights
-- [ ] Status text shows amber "on" count
-- [ ] No excess whitespace in grid layout
-- [ ] Dark mode contrast acceptable
+| Card | `configurable` | `getConfigForm()` | Schema fields exposed |
+|------|:-:|:-:|---|
+| `tunet_status_card.js` | Line 412 | Line 414 | name, columns, custom_css |
+| `tunet_climate_card.js` | Line 628 | Line 630 | entity, humidity_entity, name, surface, display_min, display_max |
+| `tunet_lighting_card.js` | Line 670 | Line 672 | (check schema — likely name, columns, layout, tile_size) |
+| `tunet_actions_card.js` | Line 267 | Line 269 | variant, mode_entity, compact |
+| `tunet_media_card.js` | Line 479 | Line 481 | (check schema) |
+| `tunet_rooms_card.js` | Line 292 | Line 294 | (check schema) |
+| `tunet_sensor_card.js` | Line 395 | Line 397 | (check schema) |
+| `tunet_speaker_grid_card.js` | Line 444 | Line 446 | (check schema) |
+| `tunet_sonos_card.js` | Line 576 | Line 578 | (check schema) |
+| `tunet_weather_card.js` | Line 173 | Line 175 | (check schema) |
+| `tunet_light_tile.js` | Line 764 | Line 766 | (check schema) |
 
 ---
 
-### Iteration 6: Remaining Cards (P2 — verify only)
+## Phase 1: Foundation for Navigation
 
-These cards are production-ready. Quick visual verification in live HA, no code changes expected.
+### 1a. `getGridOptions()` for Sections Layout Compatibility
 
-| Card | Version | Check |
+**What:** Home Assistant Sections layout (introduced 2024) requires cards to implement `getGridOptions()` returning `{ columns, rows, min_columns, min_rows, max_columns, max_rows }`. Without this, cards either get wrong sizing or fail to render in Sections dashboards.
+
+**Files:** All 12 V2 card files.
+
+**Pattern (from HA docs):**
+```js
+getGridOptions() {
+  return { columns: 4, rows: 'auto', min_columns: 2, max_columns: 4 };
+}
+```
+
+Each card needs values appropriate to its layout:
+
+| Card | Suggested columns | Suggested rows | Rationale |
+|------|:-:|:-:|---|
+| Status card | 4 | auto | Full-width 4-column grid |
+| Lighting card | 4 | auto | Full-width zone grid |
+| Climate card | 2 | auto | Half-width in environment row |
+| Weather card | 2 | auto | Half-width in environment row |
+| Actions card | 4 | 1 | Full-width single row strip |
+| Media card | 4 | auto | Full-width player |
+| Sensor card | 4 | auto | Full-width sparkline rows |
+| Speaker grid | 4 | auto | Full-width speaker tiles |
+| Rooms card | 4 | auto | Full-width room grid |
+| Sonos card | 4 | auto | Full-width |
+| Light tile | 1 | 1 | Single tile |
+
+**Where to add:** After `getCardSize()` in each card. Most cards already have `getCardSize()` — search for it per card.
+
+### 1b. Kiosk Mode Setup
+
+**What:** Hide HA's native header, sidebar, and overflow menu for a dedicated dashboard tablet/kiosk experience.
+
+**Dependency:** `kiosk-mode` HACS integration (verify installed).
+
+**Config location:** Top of dashboard YAML view config.
+
+**Implementation:** Add `kiosk_mode:` block to the dashboard view YAML. Settings: `kiosk: true` (or selective: `hide_header: true`, `hide_sidebar: true`).
+
+### 1c. View Structure Skeleton
+
+**What:** Create the multi-view dashboard structure with subview support.
+
+**Current state:** Single view at `/tunet-overview` defined by `tunet-overview-config.yaml`.
+
+**Target structure:**
+
+```
+/tunet-overview              (main view — overview cards)
+/tunet-overview/living-room  (subview — living room detail)
+/tunet-overview/kitchen      (subview — kitchen detail)
+/tunet-overview/dining       (subview — dining room detail)
+/tunet-overview/bedroom      (subview — bedroom detail)
+/tunet-overview/office       (subview — office detail)
+```
+
+Each subview is defined in the dashboard's YAML with `subview: true`. The Tunet room cards or nav card provide navigation to these subviews via `tap_action: { action: navigate, navigation_path: /tunet-overview/living-room }`.
+
+---
+
+## Phase 2: Per-Room Subviews
+
+### Room View Template Pattern
+
+Every room view follows this section order. Sections with no relevant entity are **omitted entirely** — never empty shells.
+
+```
+1. Quick Actions Strip  (tunet-actions-card, room-scoped)
+2. Lighting Controls    (tunet-lighting-card, individual lights as zones)
+3. Climate              (tunet-climate-card, IF climate entity exists for room)
+4. Media                (tunet-media-card, IF media_player exists for room)
+5. Room Sensors         (tunet-status-card, 2-tile row: temp + humidity/motion)
+```
+
+### Room Entity Matrix
+
+| Room | Lights | Climate | Media | Temp Sensor | Humidity | Motion |
+|------|--------|:---:|:---:|---|---|---|
+| **Living** | couch lamp, floor lamp, spots, credenza | `climate.dining_room` (shared) | `media_player.living_room` | `sensor.dining_room_temperature` | `weather.home` attr | TBD |
+| **Kitchen** | island pendants, main, under-cabinet | — | `media_player.kitchen` | — | `sensor.kitchen_humidity` | TBD |
+| **Dining** | spot lights, column lights | `climate.dining_room` | `media_player.dining_room` | `sensor.dining_room_temperature` | `weather.home` attr | TBD |
+| **Bedroom** | main (Govee), accent (Govee), table lamps | — | `media_player.bedroom` | `sensor.bedroom_temp_humidity_sensor_temperature` | Verify: own entity or attribute? | TBD |
+| **Office** | desk lamp (single light) | — | — | — | — | TBD |
+
+### Per-Room Config Details
+
+**Living Room** — Most complete room. All 5 sections present.
+- Actions: All Off, Bedtime, Sleep (targeting `light.living_room_lights` and `input_select.oal_active_configuration`)
+- Lighting: 4 zones (couch, floor, spots, credenza), `columns: 3`, `adaptive_entity: switch.adaptive_lighting_main_living`, `primary_entity: light.living_room_lights`
+- Climate: `climate.dining_room` (shared open floor plan)
+- Media: `media_player.living_room`, show progress, coordinator sensor
+- Sensors: 2 tiles — temperature (dining room sensor, amber) + humidity (weather.home attribute, blue)
+
+**Kitchen** — No climate, no temp sensor.
+- Actions: All Off, All On (targeting `light.kitchen_island_lights`)
+- Lighting: 3 zones (pendants, main, under-cabinet), `columns: 3`, `primary_entity: light.kitchen_island_lights`
+- Media: `media_player.kitchen`
+- Sensors: 2 tiles — humidity (`sensor.kitchen_humidity`) + outside temp (`weather.home` attribute)
+
+**Dining Room** — Shared climate with living room.
+- Actions: All Off (targeting `group.dining_lights` / `light.dining_room_spot_lights`)
+- Lighting: 2 zones (spots, columns), `columns: 2`, `primary_entity: light.dining_room_spot_lights`
+- Climate: `climate.dining_room` (same thermostat)
+- Media: `media_player.dining_room`
+- Sensors: 2 tiles — temperature + humidity
+
+**Bedroom** — GOVEE lights (2700-6500K range, do NOT expose wide color temp controls).
+- Actions: All Off, Bedtime, Sleep (targeting `light.bedroom_primary_lights`)
+- Lighting: 3 zones (main, accent Govee, table lamps), `columns: 3`, `adaptive_entity: switch.adaptive_lighting_bedroom_primary`
+- Media: `media_player.bedroom`
+- Sensors: 2 tiles — temperature + humidity (verify: separate entity or attribute of temp sensor?)
+- **Govee note:** The lighting card should not render color temp sliders for these devices (brightness only). This may require a per-zone `color_temp_control: false` config flag if not already supported.
+
+**Office** — Minimal room. Single light, nothing else confirmed.
+- Actions: Desk Off, Desk On (targeting `light.office_desk_lamp`)
+- Light: Use standalone `tunet-light-tile` with `variant: horizontal` instead of wrapping a single light in the full lighting card grid. This signals "single-entity room" to future maintainers.
+- No climate, media, or sensor sections.
+
+### Entity Discovery Needed Before Deployment
+
+| Entity | Status | How to verify |
+|--------|--------|---------------|
+| `sensor.bedroom_temp_humidity_sensor_humidity` | Unconfirmed — may be attribute of temp sensor | Check HA States page |
+| `binary_sensor.*_motion` (all rooms) | Unconfirmed | Filter States page to `binary_sensor`, search "motion" |
+| `sensor.kitchen_temperature` | Not found in config | Check States page |
+| `light.office_desk_lamp` | Referenced in plan | Verify entity ID |
+| `group.dining_lights` | Referenced for dining All Off | Verify exists |
+
+### Rules for Sparse Rooms
+
+| Condition | Approach |
+|---|---|
+| No media entity | Omit media card from room view |
+| No climate entity | Omit climate card |
+| Only 1 light | Use `tunet-light-tile` standalone, not lighting card |
+| No temp sensor | Omit sensor status row |
+| 2 lights, sparse look | Use `columns: 2` so tiles fill width |
+
+---
+
+## Phase 3: Navigation Card
+
+### Architecture Decision: Bubble Card Pop-ups
+
+**Decided:** Use Bubble Card hash-based pop-ups for all popups (room quick-controls, entity detail, alarm editing). This is consistent with the existing Sonos alarm popup system already working in the dashboard.
+
+**Existing popup reference:** The Sonos alarm management popup (provided by user) demonstrates the full pattern:
+- `#sonos-alarms` — overview popup with room-grouped alarm tiles
+- `#edit-alarm` — detail editing popup with time, volume, recurrence controls
+- Master-detail navigation via hash changes
+- Full styling control via Bubble Card `styles:` + `card_mod:`
+
+**Room popup pattern:**
+
+```
+Room tile tap → #living-room popup
+  Shows: light toggles, media now-playing, quick scene buttons
+  "Open Room ▸" button → navigates to /tunet-overview/living-room subview
+
+Room tile long-press → navigates directly to subview
+```
+
+### Navigation Card (`tunet-nav-card`) — New Card
+
+**Purpose:** Bottom navigation bar (mobile) / side rail (desktop) providing persistent navigation across views.
+
+**Items (4 max for mobile bottom bar):**
+
+| Position | Icon | Label | Action |
+|----------|------|-------|--------|
+| 1 | `home` | Home | Navigate to `/tunet-overview` |
+| 2 | `meeting_room` | Rooms | Toggle `#rooms-menu` popup |
+| 3 | `play_circle` | Media | Toggle `#media-overview` popup |
+| 4 | `settings` | Settings | Navigate to `/tunet-overview/settings` or popup |
+
+**Responsive behavior:**
+- Mobile (< 768px): Fixed bottom bar, 56px height, safe-area padding
+- Desktop (> 768px): Fixed left side rail, 72px width, vertical icon stack
+- Active route highlighting via `window.location.pathname` comparison
+
+**Media mini-player:** The nav bar includes a compact now-playing strip above the nav items (mobile) or below the nav icons (desktop). Shows: album art thumb, track name, play/pause button. Data source: the primary `media_player` entity. Tap expands to full media popup.
+
+### Popup Definitions
+
+All popups are defined as Bubble Card `card_type: pop-up` within the main overview view. Hash-based routing means they overlay the current view.
+
+| Hash | Content | Notes |
 |------|---------|-------|
-| `tunet_climate_card.js` | 1.0.0 | Gold standard — confirm no regressions |
-| `tunet_weather_card.js` | 1.1.0 | Forecast loads, dark mode correct |
-| `tunet_actions_card.js` | 2.1.0 | 4 action chips render, service calls work |
-| `tunet_sensor_card.js` | 1.0.0 | Sparklines render, thresholds color correctly |
-| `tunet_scenes_card.js` | 1.0.0 | Scene chips activate correctly |
-| `tunet_page_card.js` | — | Gradient background renders in both modes |
+| `#rooms-menu` | Grid of room tiles with status summaries | Tap → room popup, long-press → subview |
+| `#living-room` | Quick controls for living room | Light toggles + media + "Open Room" link |
+| `#kitchen` | Quick controls for kitchen | Same pattern |
+| `#dining` | Quick controls for dining | Same pattern |
+| `#bedroom` | Quick controls for bedroom | Same pattern |
+| `#media-overview` | Speaker grid with group controls | Reuses tunet-speaker-grid-card |
+| `#sonos-alarms` | Alarm management (existing) | Already built and working |
+| `#edit-alarm` | Alarm detail editor (existing) | Already built and working |
 
 ---
 
-## 6. Visual Standards (From Mockup Eval)
+## Phase 4: Polish and Integration
 
-### Token Source of Truth
+### Dark Mode Verification
 
-Main branch cards match the design spec at **9.3/10 fidelity**. These values are locked:
+All room subviews and popups must render correctly in both light and dark modes. The Midnight Navy dark theme tokens are locked (see design_language.md v8.0). User preference is `rgba(30,41,59,0.65)` dark blue glass.
 
-**Light mode:**
-```
---glass: rgba(255,255,255, 0.68)
---glass-border: rgba(255,255,255, 0.45)
---shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10)
---text: #1C1C1E
---text-sub: rgba(28,28,30, 0.55)
---text-muted: #8E8E93
---amber: #D4850A
-```
+### Responsive Testing
 
-**Dark mode (Midnight Navy — LOCKED):**
-```
---glass: rgba(30,41,59, 0.72)
---glass-border: rgba(255,255,255, 0.08)
---shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28)
---text: #F5F5F7
---text-sub: rgba(245,245,247, 0.50)
---text-muted: rgba(245,245,247, 0.35)
---amber: #fbbf24
---tile-bg: rgba(30,41,59, 0.90)
---dd-bg: rgba(30,41,59, 0.92)
-```
+- Test nav card at 375px (iPhone SE), 390px (iPhone 14), 768px (iPad), 1024px+ (desktop)
+- Verify popup content doesn't overflow on small screens
+- Verify subview scrolling works correctly with fixed nav bar
 
-**DO NOT USE (pre-reuse deviations):**
-- `#F8FAFC` for text (wrong — use `#F5F5F7`)
-- `rgba(248,250,252, 0.45)` for text-muted (wrong — use `rgba(245,245,247, 0.35)`)
-- `rgba(44,44,46, 0.72)` for glass (old gray — use `rgba(30,41,59, 0.72)`)
-- `rgba(58,58,60, *)` for anything (old gray family — purged)
-- `#E8961E` for amber (old — use `#fbbf24`)
-- `wght: 100, GRAD: 200, opsz: 20` for icons (wrong — use `wght: 400, GRAD: 0, opsz: 24`)
+### Performance
 
-### Tile Shadow Physics (Parity Lock)
-
-```
-Rest:   0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08)
-Lifted: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)
-```
-
-### Icon System
-
-- Font: Material Symbols Rounded (NOT Outlined)
-- Default: `font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24`
-- Active/on: `font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24`
-- Never use `icon_names=` filtered Google Fonts URLs
+- Room subviews should load lazily (HA handles this for subviews)
+- Popup content should not maintain state when closed
+- Verify no duplicate `customElements.define` errors when navigating between views
 
 ---
 
-## 7. Interaction Standards
-
-### Drag Gestures
-- Must update optimistic UI during drag
-- Must commit final value on `pointerup` (clear any pending debounce, send immediately)
-- Must survive `pointercancel` (clean abort, no orphaned timers)
-- Must use `setPointerCapture` for reliability
-- Must call `e.preventDefault()` on `pointerdown`/`pointermove` to prevent scroll interference
-
-### Service Calls
-- Always use `TunetCardFoundation.callServiceSafe()` — never raw `hass.callService()`
-- Provides: error handling, pending element state, `tunet-service-error` custom events
-
-### Accessibility
-- Interactive elements use `TunetCardFoundation.bindActivate()` — provides `role`, `tabindex`, keyboard (Enter/Space) support
-- Config-sourced text in `innerHTML` must be wrapped in `escapeHtml()`
-- `:focus-visible` outlines on all interactive controls
-
-### Dark Mode
-- Toggle via `hass.themes.darkMode` → `this.classList.toggle('dark', isDark)`
-- CSS via `:host(.dark)` selectors
-- No JavaScript style overrides for dark mode — all in CSS
-
----
-
-## 8. Deployment Procedure (Per Card)
+## Execution Order
 
 ```
-1. Edit card file in Dashboard/Tunet/Cards/<card>.js
-2. SCP to HA:
-   source .env && sshpass -p "$HA_SSH_PASSWORD" scp \
-     Dashboard/Tunet/Cards/<card>.js \
-     root@10.0.0.21:/config/www/tunet/<card>.js
-3. Bump resource version:
-   Current: ?v=6000 → next: ?v=6001 (or ha core restart)
-4. Hard refresh dashboard in browser
-5. Validate on /tunet-overview (both light and dark mode)
-6. Commit with card-scoped message:
-   "fix(tunet): <card> — <what changed>"
-7. Do NOT start next card until validation gate is green
+Phase 0: Bug Fixes (prerequisites)
+  0.1  Bug 1 — Status tile uniform padding         [status_card.js lines 92, 177]
+  0.2  Bug 2 — Aux button conditional visibility    [status_card.js + 2 YAML files]
+  0.3  Bug 3 — Remove AQI sensor block              [2 YAML files]
+  0.4  Bug 4 — Diagnose config editor issue          [verify HA version + cache]
+
+Phase 1: Foundation
+  1.1  Add getGridOptions() to all V2 cards          [12 files]
+  1.2  Set up Kiosk Mode                             [dashboard YAML]
+  1.3  Create view structure skeleton                [dashboard YAML — 5 subviews]
+
+Phase 2: Room Subviews
+  2.1  Entity discovery (motion sensors, bedroom humidity, etc.)
+  2.2  Living Room subview config
+  2.3  Kitchen subview config
+  2.4  Dining Room subview config
+  2.5  Bedroom subview config
+  2.6  Office subview config
+
+Phase 3: Navigation
+  3.1  Build tunet-nav-card (bottom bar / side rail)
+  3.2  Room quick-control popups (5 rooms)
+  3.3  Media overview popup
+  3.4  Nav card media mini-player
+  3.5  Active route highlighting
+
+Phase 4: Polish
+  4.1  Dark mode verification across all views
+  4.2  Responsive testing
+  4.3  Performance audit
+  4.4  Config editor improvements (if warranted)
 ```
 
 ---
 
-## 9. Testing Protocol
+## Reference: Sonos Alarm Popup Pattern
 
-### Per-Card Gate Checklist
+The working Sonos alarm system demonstrates the proven popup architecture:
 
-**Functional:**
-- [ ] Tap action sends expected service/event
-- [ ] Hold/long-press fires only in intended hit area
-- [ ] Drag (slow, fast, interrupted) commits correctly
-- [ ] Entity unavailable → fallback rendering → recovery on available
-- [ ] Service errors handled gracefully (no silent failures)
+**Key structural elements:**
+- Bubble Card `card_type: pop-up` with `hash: "#sonos-alarms"` for routing
+- Room-grouped separator headers with accent colors per room
+- Horizontal-stack alarm tiles using Bubble Card `card_type: button` with `button_type: switch`
+- `tap_action: toggle` for quick enable/disable
+- `hold_action: perform-action` → `script.sonos_load_alarm_for_edit` for drill-down editing
+- `card_mod` style overrides for Bubble Card elements
+- Navigation between popups via `navigation_path: "#edit-alarm"` and `"#sonos-alarms"`
 
-**Visual:**
-- [ ] Matches mockup shadows, spacing, typography, colors
-- [ ] Light mode and dark mode both correct
-- [ ] Floating elements (pills, dropdowns) not clipped
-- [ ] State transitions animate correctly
+**Styling pattern:** Each alarm tile uses `card_mod` to zero-out `ha-card` background/border/shadow, then Bubble Card `styles:` for the actual tile appearance. Template expressions in `card_mod` (`content: '{{ state_attr(...) }}'`) display dynamic alarm time and recurrence.
 
-**Regression:**
-- [ ] Previously locked cards still work after this card's deploy
-- [ ] No duplicate custom element registration errors in console
-- [ ] No `tunet_base.js` import errors (should be none — V1 architecture)
-
-### Mandatory Scenarios
-1. Pointer drag + pointercancel
-2. Rapid repeated drags
-3. Unavailable → available entity recovery
-4. Dark/light mode toggle
-5. Browser cache stale → version bump reload
+This exact pattern should be replicated for room quick-control popups.
 
 ---
 
-## 10. Pass 2: Architecture Promotion (Future — After All Gates Green)
+## Key Decisions Log
 
-**Not started until:** Every card on `/tunet-overview` passes all behavior + visual gates with zero open regressions.
-
-**Decision to make:** Keep stabilized V1 monoliths or reintroduce shared base + primitives.
-
-**If reintroducing shared code:**
-1. Extract `tunet_base.js` with CORRECTED tokens (main's midnight navy, not pre-reuse's drifted values)
-2. Migrate one card at a time to imports
-3. Each migration is a separate commit with its own gate check
-4. If any card regresses, revert to V1 monolith and investigate
-5. Primitives (light_tile, speaker_tile, etc.) are a separate decision after base extraction is stable
-
-**Gate-based promotion model:**
-```
-V1 Monolith (locked, working)
-  → Extract shared CSS to tunet_base.js
-  → Migrate card to imports
-  → Validate: same behavior, same visual, same performance
-  → Lock migrated card
-  → Next card
-```
-
----
-
-## 11. File Inventory
-
-### Active Cards (main branch, deployed)
-
-| File | Version | Lines | Status |
-|------|---------|------:|--------|
-| `Dashboard/Tunet/Cards/tunet_page_card.js` | — | 281 | Deployed, page wrapper |
-| `Dashboard/Tunet/Cards/tunet_actions_card.js` | 2.1.0 | 675 | Deployed, production-ready |
-| `Dashboard/Tunet/Cards/tunet_status_card.js` | 2.2.0 | 1268 | Deployed, needs P1 fixes |
-| `Dashboard/Tunet/Cards/tunet_lighting_card.js` | 3.2.0 | 1918 | Deployed, needs P0 polish |
-| `Dashboard/Tunet/Cards/tunet_climate_card.js` | 1.0.0 | 1634 | Deployed, gold standard |
-| `Dashboard/Tunet/Cards/tunet_weather_card.js` | 1.1.0 | 623 | Deployed, production-ready |
-| `Dashboard/Tunet/Cards/tunet_sensor_card.js` | 1.0.0 | 1093 | Deployed, production-ready |
-| `Dashboard/Tunet/Cards/tunet_media_card.js` | 3.0.0 | 1575 | Deployed, dropdown fix applied |
-| `Dashboard/Tunet/Cards/tunet_rooms_card.js` | 2.1.0 | 1000 | Deployed, needs P1 fixes |
-| `Dashboard/Tunet/Cards/tunet_scenes_card.js` | 1.0.0 | 379 | Deployed, production-ready |
-| `Dashboard/Tunet/Cards/tunet_speaker_grid_card.js` | 1.0.0 | 961 | Deployed, needs P0 rewrite |
-
-### Reference Files (git only, not deployed)
-
-| File | Branch | Purpose |
-|------|--------|---------|
-| `Configuration/www/tunet/v2_pre_reuse_5b9158/*.js` | `origin/trial` | Cherry-pick source for features |
-| `Configuration/www/tunet/v2_pre_reuse_5b9158/tunet_base.js` | `origin/trial` | Token/utility reference (do NOT deploy) |
-| `Dashboard/Tunet/Cards/v2/*.js` | `origin/trial` | V2 extraction archive (do NOT use) |
-| `Dashboard/Tunet/Docs/agent_handoff_2026-02-23.md` | `origin/trial` | Failure forensics |
-
-### Dashboard Config
-
-| File | Purpose |
-|------|---------|
-| `Dashboard/Tunet/tunet-overview-config.yaml` | Card composition for /tunet-overview |
-| `/tmp/lovelace_resources_clean.json` | Current Lovelace resource snapshot |
-
-### Design References
-
-| File | Purpose |
-|------|---------|
-| `Dashboard/Tunet/Mockups/design_language.md` | v8.3+ canonical spec |
-| `Dashboard/mockups/living_card_mockup.html` | Lighting tile visual target |
-| `Dashboard/Tunet/Mockups/tunet-overview-dashboard.html` | Full dashboard visual target |
-| `Dashboard/Tunet/Mockups/tunet-sonos-card-v2.html` | Media card visual target |
-
----
-
-## 12. Branch Map
-
-| Branch | Purpose | Status | Safe to Archive? |
-|--------|---------|--------|:---:|
-| `main` | **Active development** | 2 ahead of origin/main | No — active |
-| `origin/trial` | V2 experiment + pre-reuse snapshot | 16 ahead, 11 behind main | No — reference source |
-| `tunet/dashboard-finalize` | Old pre-stabilization fork | 0 ahead, 13 behind main | **Yes** — fully absorbed into main |
-| `origin/trial-lighting-finalize` | V2 header primitives | 6 ahead of fork point | Yes — superseded |
-| `origin/tunet/v2-cards-and-refinements` | Staging snapshot | 1 ahead of fork point | Yes — superseded |
-| `origin/claude/abstract-lighting-tiles-RP2rU` | V2 test harness | 2 ahead of origin/main | Yes — experiment only |
-| `origin/claude/review-design-language-5wk1F` | Alt card variants + DL v9.0 | 17 behind main | Yes — experiment only |
-| `origin/claude/sonos-media-card-v3-vtF1c` | Sonos-focused branch | 20 behind main | Yes — absorbed into main |
-| `review/tunet-*` | Review branches | Various | Yes — review artifacts |
-| OAL branches | Unrelated to Tunet | Various | No — separate workstream |
-
----
-
-## 13. Success Definition
-
-**Pass 1 is complete when:**
-1. Every card on `/tunet-overview` passes its validation gate
-2. No open regressions in drag/dropdown/hold/manual-state behaviors
-3. Light mode and dark mode both visually correct
-4. Speaker grid card is in the dashboard and functional
-5. No mixed-path ambiguity in Lovelace resources
-6. Each card locked with a single-card-scoped commit
-
-**"Works perfectly" means:**
-- User never sees a blank card or console error
-- Drag gestures feel responsive and always commit
-- Dropdowns open in the right place and close on outside click
-- State indicators (manual dots, status text, group badges) match actual HA state
-- Dark mode midnight navy palette is consistent across all cards
-- Typography, shadows, and spacing match the mockup intent
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | V2 ES module cards as active suite | V2 cards are what's being worked on, V1 stabilization plan is superseded |
+| 2 | Bubble Card popups (not browser_mod) | Consistent with working Sonos alarm system, better styling control |
+| 3 | `getConfigForm()` over `getConfigElement()` for now | Already implemented in all cards, verify before rewriting |
+| 4 | Option B for tile sizing (uniform padding) | Removes conditional class entirely, zero layout disruption |
+| 5 | YAML-only for complex card configs | `getConfigForm()` can't express nested arrays (tiles, zones, sensors) |
+| 6 | Room subviews (not just popups) | Full room detail needs more space than a popup allows |
+| 7 | Standalone `tunet-light-tile` for office | Single-entity room shouldn't use multi-zone lighting card |

@@ -3,10 +3,10 @@
  * Sonos media player with transport, volume, and dual-purpose speaker dropdown
  * Dual-entity model: coordinator for media/transport, active entity for volume
  * Auto-detects speakers from active-group or playing-group Sonos binaries
- * Version 3.1.0 — host z-index elevation fix for dropdown escape
+ * Version 3.0.0
  */
 
-const TUNET_MEDIA_VERSION = '3.1.0';
+const TUNET_MEDIA_VERSION = '3.0.0';
 const MEDIA_SPEAKER_ICON_ALLOW = new Set([
   'speaker',
   'speaker_group',
@@ -329,11 +329,11 @@ const TUNET_MEDIA_STYLES = `
 
   /* -- Dropdown Menu -- */
   .dd-menu {
-    position: absolute; top: calc(100% + 6px); left: 0;
-    min-width: 220px; max-width: calc(100vw - 40px); padding: 5px; border-radius: var(--r-tile);
+    position: absolute; top: calc(100% + 6px); right: 0;
+    min-width: 220px; padding: 5px; border-radius: var(--r-tile);
     background: var(--dd-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--dd-border); box-shadow: var(--shadow-up);
-    z-index: 5000; display: none; flex-direction: column; gap: 1px;
+    z-index: 2147483000; display: none; flex-direction: column; gap: 1px;
   }
   .dd-menu.open { display: flex; animation: menuIn .14s ease forwards; }
   @keyframes menuIn {
@@ -1222,9 +1222,6 @@ class TunetMediaCard extends HTMLElement {
 
   _openSpeakerMenu() {
     if (!this.$ || !this.$.spkMenu || !this.$.spkBtn) return;
-    // Elevate host element so shadow DOM z-index escapes stacking context
-    this.style.position = 'relative';
-    this.style.zIndex = '10';
     this.$.spkMenu.classList.add('open');
     this.$.spkBtn.setAttribute('aria-expanded', 'true');
     this._positionSpeakerMenu();
@@ -1236,38 +1233,24 @@ class TunetMediaCard extends HTMLElement {
     this.$.spkBtn.setAttribute('aria-expanded', 'false');
     this.$.spkMenu.style.top = '';
     this.$.spkMenu.style.bottom = '';
-    // Reset host elevation
-    this.style.position = '';
-    this.style.zIndex = '';
   }
 
   _positionSpeakerMenu() {
     const { spkBtn, spkMenu } = this.$ || {};
     if (!spkBtn || !spkMenu) return;
 
+    // Default: open below (CSS handles top: calc(100% + 6px); right: 0)
+    // Flip above if menu would extend past viewport bottom
     const btnRect = spkBtn.getBoundingClientRect();
     const menuHeight = Math.max(spkMenu.offsetHeight || 200, 200);
-    const menuWidth = Math.max(spkMenu.offsetWidth || 220, 220);
     const spaceBelow = window.innerHeight - btnRect.bottom - 8;
 
-    // Vertical: flip above if not enough space below
     if (spaceBelow < menuHeight && btnRect.top > menuHeight + 8) {
       spkMenu.style.top = 'auto';
       spkMenu.style.bottom = 'calc(100% + 6px)';
     } else {
       spkMenu.style.top = 'calc(100% + 6px)';
       spkMenu.style.bottom = 'auto';
-    }
-
-    // Horizontal: right-align if dropdown would overflow viewport right edge
-    const wrapRect = spkBtn.parentElement.getBoundingClientRect();
-    const spaceRight = window.innerWidth - wrapRect.left;
-    if (spaceRight < menuWidth + 8) {
-      spkMenu.style.left = 'auto';
-      spkMenu.style.right = '0';
-    } else {
-      spkMenu.style.left = '0';
-      spkMenu.style.right = 'auto';
     }
   }
 

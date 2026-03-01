@@ -472,29 +472,55 @@ class TunetWeatherCard extends HTMLElement {
 
   async _fetchForecast() {
     if (!this._hass || !this._config.entity) return;
-    try {
-      const result = await this._hass.callWS({
-        type: 'weather/get_forecasts',
-        entity_id: this._config.entity,
-        forecast_type: 'daily',
-      });
-      const forecast = result
-        && result[this._config.entity]
-        && Array.isArray(result[this._config.entity].forecast)
-        ? result[this._config.entity].forecast
-        : [];
-      if (forecast.length > 0) {
-        this._forecast = forecast;
-        this._renderForecast();
-        return;
+    const entityId = this._config.entity;
+
+    // Method 1: callWS (preferred HA frontend API)
+    if (typeof this._hass.callWS === 'function') {
+      try {
+        const result = await this._hass.callWS({
+          type: 'weather/get_forecasts',
+          entity_id: entityId,
+          forecast_type: 'daily',
+        });
+        const forecast = result && result[entityId]
+          && Array.isArray(result[entityId].forecast)
+          ? result[entityId].forecast : [];
+        if (forecast.length > 0) {
+          this._forecast = forecast;
+          this._renderForecast();
+          return;
+        }
+      } catch (err) {
+        console.warn('[Tunet Weather] callWS failed:', err);
       }
-    } catch {
-      // Fall through to attribute fallback.
     }
 
+    // Method 2: connection.sendMessagePromise (fallback)
+    if (this._hass.connection && typeof this._hass.connection.sendMessagePromise === 'function') {
+      try {
+        const result = await this._hass.connection.sendMessagePromise({
+          type: 'weather/get_forecasts',
+          entity_id: entityId,
+          forecast_type: 'daily',
+        });
+        const resp = result && result.response;
+        const forecast = resp && resp[entityId]
+          && Array.isArray(resp[entityId].forecast)
+          ? resp[entityId].forecast : [];
+        if (forecast.length > 0) {
+          this._forecast = forecast;
+          this._renderForecast();
+          return;
+        }
+      } catch (err) {
+        console.warn('[Tunet Weather] sendMessagePromise failed:', err);
+      }
+    }
+
+    // Method 3: attribute fallback (legacy HA < 2024.3)
     try {
-      const entity = this._hass.states[this._config.entity];
-      if (entity && entity.attributes.forecast) {
+      const entity = this._hass.states[entityId];
+      if (entity && entity.attributes.forecast && Array.isArray(entity.attributes.forecast)) {
         this._forecast = entity.attributes.forecast;
         this._renderForecast();
       }

@@ -1,19 +1,8 @@
 # ═══════════════════════════════════════════════════════════════
-# Tunet Overview Dashboard — Final Composition Contract
+# Tunet V2 Test Dashboard — Every Card Configured
 # ═══════════════════════════════════════════════════════════════
-# Order:
-#   1) Quick Actions Strip (compact)
-#   2) Home Status (4x2)
-#   3) Lighting Hero (Top 5 zones)
-#   4) Environment Row (Climate + Weather)
-#   5) Media
-#   6) Rooms
-#
-# Notes:
-# - This file is card-YAML for the overview page composition.
-# - Uses native HA grid card for side-by-side environment row.
-# - Status tiles support tap_action, show_when, and aux_action.
-# - No external layout-card dependency.
+# Deploy this as a separate HA dashboard view to verify all V2
+# ES module cards load and function correctly.
 # ═══════════════════════════════════════════════════════════════
 
 # ─── 1. QUICK ACTIONS ─────────────────────────────────────────
@@ -117,7 +106,7 @@
       label: Mode
       accent: muted
 
-    # Row 2 (fixed)
+    # Row 2
     - type: value
       entity: weather.home
       icon: partly_cloudy_day
@@ -151,7 +140,7 @@
       unit: °F
       format: integer
 
-# ─── 3. LIGHTING HERO (3x2 CORE ZONES) ────────────────────────
+# ─── 3. LIGHTING HERO ────────────────────────────────────────
 - type: custom:tunet-lighting-card
   name: Lighting
   surface: section
@@ -198,7 +187,7 @@
       forecast_days: 5
       show_last_updated: false
 
-# ─── 4b. ENVIRONMENT SENSORS ─────────────────────────────────
+# ─── 5. ENVIRONMENT SENSORS ──────────────────────────────────
 - type: custom:tunet-sensor-card
   title: Environment
   icon: sensors
@@ -258,13 +247,13 @@
           condition: lte
           style: success
 
-# ─── 5. MEDIA ─────────────────────────────────────────────────
+# ─── 6. MEDIA PLAYER ─────────────────────────────────────────
 - type: custom:tunet-media-card
   entity: media_player.living_room
   name: Sonos
   show_progress: true
 
-# ─── 5b. SPEAKER GRID ────────────────────────────────────────
+# ─── 7. SPEAKER GRID ─────────────────────────────────────────
 - type: custom:tunet-speaker-grid-card
   entity: media_player.living_room
   name: Speakers
@@ -288,7 +277,31 @@
       name: Bedroom
       icon: speaker
 
-# ─── 6. ROOMS ─────────────────────────────────────────────────
+# ─── 8. SONOS UNIFIED CARD (media + speakers in one) ─────────
+- type: custom:tunet-sonos-card
+  entity: media_player.living_room
+  name: Sonos Unified
+  coordinator_sensor: sensor.sonos_smart_coordinator
+  active_group_sensor: sensor.sonos_active_group_coordinator
+  playing_status_sensor: sensor.sonos_playing_status
+  speakers:
+    - entity: media_player.living_room
+      name: Living Room
+      icon: speaker
+    - entity: media_player.dining_room
+      name: Dining Room
+      icon: speaker
+    - entity: media_player.kitchen
+      name: Kitchen
+      icon: speaker
+    - entity: media_player.bath
+      name: Bathroom
+      icon: speaker
+    - entity: media_player.bedroom
+      name: Bedroom
+      icon: speaker
+
+# ─── 9. ROOMS ────────────────────────────────────────────────
 - type: custom:tunet-rooms-card
   name: Rooms
   rooms:
@@ -298,10 +311,10 @@
       navigate_path: /tunet-overview/living-room
       lights:
         - entity: light.living_room_couch_lamp
-          icon: lamp
+          icon: table_lamp
           name: Couch
         - entity: light.living_room_floor_lamp
-          icon: lamp
+          icon: table_lamp
           name: Floor
         - entity: light.living_room_spot_lights
           icon: highlight
@@ -348,7 +361,7 @@
           icon: nightlight
           name: Accent
         - entity: light.master_bedroom_table_lamps
-          icon: lamp
+          icon: table_lamp
           name: Table Lamps
 
     - name: Office
@@ -358,3 +371,10 @@
         - entity: light.office_desk_lamp
           icon: desk
           name: Desk
+
+# ─── 10. LIGHT TILE (standalone test) ────────────────────────
+- type: custom:tunet-light-tile
+  entity: light.living_room_couch_lamp
+  name: Couch Lamp
+  icon: table_lamp
+  variant: vertical

@@ -88,7 +88,9 @@ DRY_RUN=0
 # Walk up three levels to reach repo root.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-ENV_FILE=""
+ENV_FILE=".end"
+PASSWORD="PASSWORD"
+USERNAME="ROOT"
 
 declare -a FILTER_CARDS=()
 
@@ -138,8 +140,8 @@ else
 fi
 
 HA_SSH_HOST="${HA_SSH_HOST:-10.0.0.21}"
-HA_SSH_USER="${HA_SSH_USER:-root}"
-HA_SSH_PASSWORD="${HA_SSH_PASSWORD:-password}"
+HA_SSH_USER="ROOT"
+HA_SSH_PASSWORD="PASSWORD"
 
 # ---------------------------------------------------------------------------
 # Path constants

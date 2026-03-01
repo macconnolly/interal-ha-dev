@@ -284,6 +284,7 @@ const TUNET_STATUS_STYLES = `
     position: relative;
     overflow: visible;
     min-height: var(--tile-row-h);
+    height: 100%;
   }
   :host([tile-size="compact"]) .tile {
     padding: 10px 8px 8px;
@@ -369,9 +370,9 @@ const TUNET_STATUS_STYLES = `
     padding: 0 8px;
     border-radius: 999px;
     border: 1px solid var(--ctrl-border);
-    background: var(--tile-bg);
+    background: var(--ctrl-bg);
     box-shadow: var(--ctrl-sh);
-    color: var(--text);
+    color: var(--text-sub);
     font-family: inherit;
     font-size: 10px;
     font-weight: 700;

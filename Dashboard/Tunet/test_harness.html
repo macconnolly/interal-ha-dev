@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tunet V1 — Dashboard Test Harness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+      transition: background .3s, color .3s;
+      min-height: 100vh;
+    }
+    body.light {
+      background: linear-gradient(135deg, #e8e0d8 0%, #d4ccc4 100%);
+      color: #1C1C1E;
+    }
+    body.dark {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #F5F5F7;
+    }
+
+    /* ── Toolbar ──────────────────────────────── */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    body.light .toolbar {
+      background: rgba(255,255,255,0.75);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    body.dark .toolbar {
+      background: rgba(30,41,59,0.75);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .toolbar h1 {
+      font-size: 14px;
+      font-weight: 700;
+      flex: 1;
+      white-space: nowrap;
+    }
+    .toolbar button {
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    body.light .toolbar button {
+      background: rgba(255,255,255,0.6);
+      color: #1C1C1E;
+    }
+    body.dark .toolbar button {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.1);
+      color: #F5F5F7;
+    }
+    .toolbar button:hover { transform: scale(1.03); }
+    .toolbar button:active { transform: scale(0.97); }
+    .toolbar button.active {
+      background: rgba(251,191,36,0.15);
+      border-color: rgba(251,191,36,0.3);
+      color: #D4850A;
+    }
+    body.dark .toolbar button.active {
+      color: #fbbf24;
+    }
+    .toolbar .sep {
+      width: 1px;
+      height: 24px;
+      background: rgba(128,128,128,0.2);
+    }
+
+    /* ── Dashboard column ────────────────────── */
+    .dashboard {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Section labels ──────────────────────── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.35;
+      padding: 8px 4px 0;
+    }
+
+    /* ── Environment row (2-col grid) ────────── */
+    .env-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* ── Event log ───────────────────────────── */
+    .event-log-wrap {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 999;
+      transition: transform .3s ease;
+    }
+    .event-log-wrap.collapsed { transform: translateY(calc(100% - 32px)); }
+    .event-log-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+    }
+    body.light .event-log-toggle {
+      background: rgba(255,255,255,0.9);
+      border-top: 1px solid rgba(0,0,0,0.08);
+    }
+    body.dark .event-log-toggle {
+      background: rgba(30,41,59,0.95);
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .event-log {
+      max-height: 180px;
+      overflow-y: auto;
+      font-size: 11px;
+      font-family: "SF Mono", "Menlo", "Consolas", monospace;
+      padding: 8px 16px;
+    }
+    body.light .event-log {
+      background: rgba(245,245,245,0.98);
+      color: #1C1C1E;
+    }
+    body.dark .event-log {
+      background: rgba(15,23,42,0.98);
+      color: #F5F5F7;
+    }
+    .ev-line { padding: 1px 0; opacity: 0.8; }
+    .ev-line:first-child { opacity: 1; }
+    .ev-time { color: #8E8E93; }
+    .ev-name { color: #D4850A; font-weight: 600; }
+    body.dark .ev-name { color: #fbbf24; }
+    .ev-svc { color: #007AFF; }
+    body.dark .ev-svc { color: #0A84FF; }
+
+    /* ── Card isolation outlines (debug) ────── */
+    .card-slot { position: relative; }
+    .card-slot.debug {
+      outline: 1px dashed rgba(251,191,36,0.3);
+      outline-offset: 2px;
+    }
+    .card-slot.debug::after {
+      content: attr(data-card);
+      position: absolute;
+      top: -14px;
+      right: 4px;
+      font-size: 9px;
+      font-weight: 700;
+      opacity: 0.3;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body class="dark">
+
+<div class="toolbar" id="toolbar">
+  <h1>Tunet V1 Test Harness</h1>
+  <button id="btnTheme" onclick="toggleTheme()">Light Mode</button>
+  <button id="btnLights" onclick="toggleLights()">Lights Off</button>
+  <button id="btnManual" onclick="toggleManual()">+ Manual</button>
+  <button id="btnSleep" onclick="toggleSleep()">Sleep</button>
+  <div class="sep"></div>
+  <button id="btnDebug" onclick="toggleDebug()">Outlines</button>
+  <button id="btnLog" onclick="toggleLog()">Log</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     DASHBOARD — mirrors tunet-overview-config.yaml
+     ═══════════════════════════════════════════════════════ -->
+<div class="dashboard" id="dashboard">
+
+  <!-- 1. Quick Actions -->
+  <div class="section-label">1. Quick Actions</div>
+  <div class="card-slot" data-card="actions" id="slot-actions"></div>
+
+  <!-- 2. Home Status -->
+  <div class="section-label">2. Home Status</div>
+  <div class="card-slot" data-card="status" id="slot-status"></div>
+
+  <!-- 3. Lighting Hero -->
+  <div class="section-label">3. Lighting Hero</div>
+  <div class="card-slot" data-card="lighting" id="slot-lighting"></div>
+
+  <!-- 4. Environment Row -->
+  <div class="section-label">4. Environment</div>
+  <div class="env-row">
+    <div class="card-slot" data-card="climate" id="slot-climate"></div>
+    <div class="card-slot" data-card="weather" id="slot-weather"></div>
+  </div>
+
+  <!-- 4b. Sensors -->
+  <div class="card-slot" data-card="sensor" id="slot-sensor"></div>
+
+  <!-- 5. Media -->
+  <div class="section-label">5. Media</div>
+  <div class="card-slot" data-card="media" id="slot-media"></div>
+
+  <!-- 6. Rooms -->
+  <div class="section-label">6. Rooms</div>
+  <div class="card-slot" data-card="rooms" id="slot-rooms"></div>
+
+  <!-- Bottom spacer for event log -->
+  <div style="height: 200px;"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     EVENT LOG (collapsible)
+     ═══════════════════════════════════════════════════════ -->
+<div class="event-log-wrap collapsed" id="logWrap">
+  <div class="event-log-toggle" onclick="toggleLog()">
+    <span>Event Log</span>
+    <span id="logCount">0 events</span>
+  </div>
+  <div class="event-log" id="eventLog">
+    <div class="ev-line"><span class="ev-time">--:--:--</span> Harness ready.</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// MOCK HASS — realistic entity states for all cards
+// ═══════════════════════════════════════════════════════
+
+let lightsOn = true;
+let manualOverride = false;
+let sleepMode = false;
+let eventCount = 0;
+
+function mkEntity(id, state, attrs = {}) {
+  return {
+    entity_id: id,
+    state: String(state),
+    attributes: { friendly_name: id.split('.').pop().replace(/_/g, ' '), ...attrs },
+    last_changed: new Date().toISOString(),
+    last_updated: new Date().toISOString(),
+  };
+}
+
+function mkLight(id, name, on, brightness = 180, colorTemp = 370) {
+  return mkEntity(id, on ? 'on' : 'off', {
+    friendly_name: name,
+    brightness: on ? brightness : undefined,
+    color_temp: on ? colorTemp : undefined,
+    color_temp_kelvin: on ? Math.round(1000000 / colorTemp) : undefined,
+    supported_color_modes: ['color_temp', 'brightness'],
+    min_mireds: 153,
+    max_mireds: 500,
+  });
+}
+
+function buildStates() {
+  const on = lightsOn;
+  const config = sleepMode ? 'Sleep' : 'Adaptive';
+
+  return {
+    // ── Zone lights ──
+    'light.living_room_lights':       mkLight('light.living_room_lights', 'Living Room', on, 200, 370),
+    'light.kitchen_island_lights':    mkLight('light.kitchen_island_lights', 'Kitchen Island', on, 180, 330),
+    'light.bedroom_primary_lights':   mkLight('light.bedroom_primary_lights', 'Bedroom', false, 0, 370),
+    'light.accent_spots_lights':      mkLight('light.accent_spots_lights', 'Accent Spots', on, 140, 400),
+    'light.recessed_ceiling_lights':  mkLight('light.recessed_ceiling_lights', 'Ceiling', on, 70, 370),
+    'light.column_lights':            mkLight('light.column_lights', 'Columns', on, 200, 320),
+
+    // ── Individual lights (rooms card) ──
+    'light.living_room_couch_lamp':           mkLight('light.living_room_couch_lamp', 'Couch Lamp', on, 200, 370),
+    'light.living_room_floor_lamp':           mkLight('light.living_room_floor_lamp', 'Floor Lamp', false, 0, 370),
+    'light.living_room_spot_lights':          mkLight('light.living_room_spot_lights', 'Spot Lights', on, 160, 400),
+    'light.living_room_credenza_light':       mkLight('light.living_room_credenza_light', 'Credenza', on, 180, 370),
+    'light.kitchen_island_pendants':          mkLight('light.kitchen_island_pendants', 'Pendants', on, 180, 330),
+    'light.kitchen_main_lights':              mkLight('light.kitchen_main_lights', 'Main', on, 200, 370),
+    'light.kitchen_counter_cabinet_underlights': mkLight('light.kitchen_counter_cabinet_underlights', 'Under-cab', on, 100, 400),
+    'light.dining_room_spot_lights':          mkLight('light.dining_room_spot_lights', 'Spots', on, 150, 370),
+    'light.all_column_lights':                mkLight('light.all_column_lights', 'Columns', on, 200, 320),
+    'light.master_presence':                  mkLight('light.master_presence', 'Main', false, 0, 370),
+    'light.master_bedroom_corner_accent_govee': mkLight('light.master_bedroom_corner_accent_govee', 'Accent', false, 0, 370),
+    'light.master_bedroom_table_lamps':       mkLight('light.master_bedroom_table_lamps', 'Table Lamps', false, 0, 370),
+    'light.office_desk_lamp':                 mkLight('light.office_desk_lamp', 'Desk', on, 200, 330),
+
+    // ── Light group ──
+    'light.all_adaptive_lights': mkEntity('light.all_adaptive_lights', on ? 'on' : 'off', {
+      friendly_name: 'All Adaptive Lights',
+      entity_id: [
+        'light.living_room_lights', 'light.kitchen_island_lights',
+        'light.bedroom_primary_lights', 'light.accent_spots_lights',
+        'light.recessed_ceiling_lights', 'light.column_lights',
+      ],
+    }),
+
+    // ── Adaptive lighting switches ──
+    'switch.adaptive_lighting_main_living': mkEntity('switch.adaptive_lighting_main_living', 'on', {
+      friendly_name: 'AL Main Living',
+      manual_control: manualOverride ? ['light.living_room_couch_lamp'] : [],
+    }),
+
+    // ── OAL system ──
+    'sensor.oal_system_status': mkEntity('sensor.oal_system_status', on ? 'Active' : 'Idle', {
+      friendly_name: 'OAL System Status',
+      active_configuration: config,
+      lights_on: on ? 5 : 0,
+      lights_total: 6,
+      zones_adaptive: on ? (manualOverride ? 4 : 5) : 6,
+      active_zonal_overrides: manualOverride ? 1 : 0,
+      active_modifiers: on ? [{ name: 'Partlycloudy', value: 9 }] : [],
+      sun_phase: 'afternoon',
+    }),
+
+    'sensor.oal_global_brightness_offset': mkEntity('sensor.oal_global_brightness_offset', on ? '9' : '0', {
+      friendly_name: 'Brightness Offset',
+      unit_of_measurement: '%',
+    }),
+
+    'input_select.oal_active_configuration': mkEntity('input_select.oal_active_configuration', config, {
+      friendly_name: 'OAL Configuration',
+      options: ['Adaptive', 'Full Bright', 'Dim Ambient', 'Warm Ambient', 'TV Mode', 'Sleep'],
+    }),
+
+    // ── Climate ──
+    'climate.dining_room': mkEntity('climate.dining_room', 'heat_cool', {
+      friendly_name: 'Dining Room',
+      current_temperature: 71,
+      current_humidity: 27,
+      hvac_action: 'cooling',
+      temperature: 72,
+      target_temp_high: 76,
+      target_temp_low: 68,
+      min_temp: 50,
+      max_temp: 90,
+      hvac_modes: ['off', 'heat', 'cool', 'heat_cool', 'auto'],
+      preset_modes: ['eco', 'away', 'home'],
+      preset_mode: 'home',
+      fan_modes: ['auto', 'on', 'circulate'],
+      fan_mode: 'auto',
+    }),
+
+    // ── Weather ──
+    'weather.home': mkEntity('weather.home', 'partlycloudy', {
+      friendly_name: 'Home',
+      temperature: 58,
+      humidity: 45,
+      pressure: 30.12,
+      wind_speed: 8,
+      wind_bearing: 210,
+      forecast: [
+        { datetime: new Date().toISOString(), condition: 'partlycloudy', temperature: 62, templow: 48 },
+        { datetime: new Date(Date.now() + 86400000).toISOString(), condition: 'sunny', temperature: 68, templow: 52 },
+        { datetime: new Date(Date.now() + 172800000).toISOString(), condition: 'rainy', temperature: 55, templow: 44 },
+        { datetime: new Date(Date.now() + 259200000).toISOString(), condition: 'cloudy', temperature: 60, templow: 46 },
+        { datetime: new Date(Date.now() + 345600000).toISOString(), condition: 'sunny', temperature: 72, templow: 54 },
+      ],
+    }),
+
+    // ── Sensors ──
+    'sensor.dining_room_temperature': mkEntity('sensor.dining_room_temperature', '71.2', {
+      friendly_name: 'Dining Room Temperature',
+      unit_of_measurement: '°F',
+      device_class: 'temperature',
+    }),
+    'sensor.bedroom_temp_humidity_sensor_temperature': mkEntity('sensor.bedroom_temp_humidity_sensor_temperature', '68.5', {
+      friendly_name: 'Bedroom Temperature',
+      unit_of_measurement: '°F',
+      device_class: 'temperature',
+    }),
+    'sensor.kitchen_humidity': mkEntity('sensor.kitchen_humidity', '42', {
+      friendly_name: 'Kitchen Humidity',
+      unit_of_measurement: '%',
+      device_class: 'humidity',
+    }),
+    'sensor.aqi': mkEntity('sensor.aqi', '38', {
+      friendly_name: 'AQI',
+      unit_of_measurement: 'AQI',
+    }),
+
+    // ── Media player ──
+    'media_player.living_room': mkEntity('media_player.living_room', 'playing', {
+      friendly_name: 'Living Room',
+      media_title: 'Midnight City',
+      media_artist: 'M83',
+      media_album_name: 'Hurry Up, Were Dreaming',
+      media_duration: 243,
+      media_position: 87,
+      media_position_updated_at: new Date().toISOString(),
+      volume_level: 0.35,
+      is_volume_muted: false,
+      source: 'Spotify',
+      source_list: ['Spotify', 'AirPlay', 'Line In', 'TV'],
+      entity_picture: '/local/album_art_placeholder.jpg',
+      supported_features: 152463,
+      group_members: ['media_player.living_room', 'media_player.kitchen'],
+    }),
+    'media_player.kitchen': mkEntity('media_player.kitchen', 'playing', {
+      friendly_name: 'Kitchen',
+      volume_level: 0.28,
+      is_volume_muted: false,
+      group_members: ['media_player.living_room', 'media_player.kitchen'],
+    }),
+    'media_player.bedroom': mkEntity('media_player.bedroom', 'idle', {
+      friendly_name: 'Bedroom',
+      volume_level: 0.20,
+      is_volume_muted: false,
+    }),
+    'media_player.dining_room': mkEntity('media_player.dining_room', 'idle', {
+      friendly_name: 'Dining Room',
+      volume_level: 0.25,
+      is_volume_muted: false,
+    }),
+    'media_player.bathroom': mkEntity('media_player.bathroom', 'idle', {
+      friendly_name: 'Bathroom',
+      volume_level: 0.15,
+      is_volume_muted: false,
+    }),
+
+    // ── Sonos binary sensors (group membership) ──
+    'binary_sensor.sonos_living_room_in_playing_group': mkEntity('binary_sensor.sonos_living_room_in_playing_group', 'on', {}),
+    'binary_sensor.sonos_kitchen_in_playing_group': mkEntity('binary_sensor.sonos_kitchen_in_playing_group', 'on', {}),
+    'binary_sensor.sonos_bedroom_in_playing_group': mkEntity('binary_sensor.sonos_bedroom_in_playing_group', 'off', {}),
+    'binary_sensor.sonos_dining_room_in_playing_group': mkEntity('binary_sensor.sonos_dining_room_in_playing_group', 'off', {}),
+    'binary_sensor.sonos_bathroom_in_playing_group': mkEntity('binary_sensor.sonos_bathroom_in_playing_group', 'off', {}),
+  };
+}
+
+function createMockHass() {
+  return {
+    states: buildStates(),
+    themes: { darkMode: document.body.classList.contains('dark') },
+    callService(domain, service, data) {
+      logEvent('service', `${domain}.${service}`, JSON.stringify(data || {}).slice(0, 120));
+      return Promise.resolve();
+    },
+    callWS(msg) {
+      // Mock weather/get_forecasts WebSocket call
+      if (msg.type === 'weather/get_forecasts') {
+        const entity = this.states[msg.entity_id];
+        const forecast = entity?.attributes?.forecast || [];
+        return Promise.resolve({ [msg.entity_id]: { forecast } });
+      }
+      logEvent('ws', msg.type, JSON.stringify(msg).slice(0, 100));
+      return Promise.resolve({});
+    },
+    connection: {
+      subscribeMessage(cb, msg) {
+        // Mock weather/subscribe_forecast
+        if (msg.type === 'weather/subscribe_forecast') {
+          const entity = createMockHass().states[msg.entity_id];
+          const forecast = entity?.attributes?.forecast || [];
+          setTimeout(() => cb({ type: 'event', forecast }), 100);
+          return Promise.resolve(() => {});
+        }
+        return Promise.resolve(() => {});
+      },
+    },
+    language: 'en',
+    locale: { language: 'en', number_format: 'language' },
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// EVENT LOGGING
+// ═══════════════════════════════════════════════════════
+
+function logEvent(type, name, detail) {
+  eventCount++;
+  document.getElementById('logCount').textContent = `${eventCount} events`;
+  const log = document.getElementById('eventLog');
+  const now = new Date().toLocaleTimeString('en-US', { hour12: false });
+  const line = document.createElement('div');
+  line.className = 'ev-line';
+  const cls = type === 'service' ? 'ev-svc' : 'ev-name';
+  line.innerHTML = `<span class="ev-time">${now}</span> <span class="${cls}">${type}</span> ${escHtml(name)} ${escHtml(detail || '')}`;
+  log.prepend(line);
+  while (log.children.length > 80) log.lastChild.remove();
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Intercept all custom events cards might fire
+for (const ev of ['hass-more-info', 'll-rebuild', 'location-changed',
+  'tunet:value-commit', 'tunet:value-preview', 'tunet:action',
+  'tunet-service-error', 'config-changed']) {
+  document.addEventListener(ev, (e) => {
+    const d = e.detail || {};
+    const info = d.entityId || d.entity_id || d.entity || '';
+    logEvent(ev, info, JSON.stringify(d).slice(0, 100));
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// TOOLBAR CONTROLS
+// ═══════════════════════════════════════════════════════
+
+const allCards = [];
+
+window.toggleTheme = () => {
+  const isDark = document.body.classList.toggle('dark');
+  document.body.classList.toggle('light', !isDark);
+  document.getElementById('btnTheme').textContent = isDark ? 'Light Mode' : 'Dark Mode';
+  refreshAll();
+};
+
+window.toggleLights = () => {
+  lightsOn = !lightsOn;
+  document.getElementById('btnLights').textContent = lightsOn ? 'Lights Off' : 'Lights On';
+  document.getElementById('btnLights').classList.toggle('active', !lightsOn);
+  refreshAll();
+};
+
+window.toggleManual = () => {
+  manualOverride = !manualOverride;
+  document.getElementById('btnManual').textContent = manualOverride ? '- Manual' : '+ Manual';
+  document.getElementById('btnManual').classList.toggle('active', manualOverride);
+  refreshAll();
+};
+
+window.toggleSleep = () => {
+  sleepMode = !sleepMode;
+  document.getElementById('btnSleep').textContent = sleepMode ? 'Wake' : 'Sleep';
+  document.getElementById('btnSleep').classList.toggle('active', sleepMode);
+  refreshAll();
+};
+
+window.toggleDebug = () => {
+  document.querySelectorAll('.card-slot').forEach(el => el.classList.toggle('debug'));
+  document.getElementById('btnDebug').classList.toggle('active');
+};
+
+window.toggleLog = () => {
+  document.getElementById('logWrap').classList.toggle('collapsed');
+  document.getElementById('btnLog').classList.toggle('active');
+};
+
+function refreshAll() {
+  const hass = createMockHass();
+  for (const card of allCards) {
+    card.hass = hass;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CARD LOADING — import all V1 monolithic cards
+// ═══════════════════════════════════════════════════════
+
+async function loadCards() {
+  const cardDir = './Cards/';
+
+  // Load all card JS files
+  const cardFiles = [
+    'tunet_actions_card.js',
+    'tunet_status_card.js',
+    'tunet_lighting_card.js',
+    'tunet_climate_card.js',
+    'tunet_weather_card.js',
+    'tunet_sensor_card.js',
+    'tunet_media_card.js',
+    'tunet_rooms_card.js',
+    // tunet_scenes_card.js — not in overview config
+    // tunet_speaker_grid_card.js — not in overview config (yet)
+    // tunet_page_card.js — page wrapper, not a content card
+  ];
+
+  for (const file of cardFiles) {
+    try {
+      await import(cardDir + file);
+      logEvent('load', file, 'OK');
+    } catch (err) {
+      logEvent('load-error', file, err.message);
+      console.error(`Failed to load ${file}:`, err);
+    }
+  }
+
+  const hass = createMockHass();
+
+  // ── 1. Actions Card ──
+  createCard('slot-actions', 'tunet-actions-card', {
+    variant: 'mode_strip',
+    compact: true,
+    mode_entity: 'input_select.oal_active_configuration',
+    actions: [
+      { name: 'All On', icon: 'lightbulb', accent: 'amber',
+        service: 'light.turn_on', service_data: { entity_id: 'light.all_adaptive_lights' },
+        state_entity: 'light.all_adaptive_lights', active_when: 'on' },
+      { name: 'All Off', icon: 'power_settings_new', accent: 'amber',
+        service: 'light.turn_off', service_data: { entity_id: 'light.all_adaptive_lights' },
+        state_entity: 'light.all_adaptive_lights', active_when: 'off' },
+      { name: 'Bedtime', icon: 'bedtime', accent: 'amber',
+        service: 'input_select.select_option',
+        service_data: { entity_id: 'input_select.oal_active_configuration', option: 'Dim Ambient' },
+        state_entity: 'input_select.oal_active_configuration', active_when: 'Dim Ambient' },
+      { name: 'Sleep Mode', icon: 'bed', accent: 'amber',
+        service: 'input_select.select_option',
+        service_data: { entity_id: 'input_select.oal_active_configuration', option: 'Sleep' },
+        state_entity: 'input_select.oal_active_configuration', active_when: 'Sleep' },
+    ],
+  }, hass);
+
+  // ── 2. Status Card ──
+  createCard('slot-status', 'tunet-status-card', {
+    name: 'Home Status',
+    columns: 4,
+    tile_size: 'compact',
+    tiles: [
+      { type: 'value', entity: 'sensor.oal_system_status', icon: 'sunny', label: 'Adaptive',
+        accent: 'green', attribute: 'zones_adaptive', format: 'integer',
+        tap_action: { action: 'navigate', navigation_path: '/tunet-overview/lights' } },
+      { type: 'value', entity: 'sensor.oal_system_status', icon: 'front_hand', label: 'Manual',
+        accent: 'red', attribute: 'active_zonal_overrides', format: 'integer',
+        show_when: { entity: 'sensor.oal_system_status', operator: 'not_equals', state: 'Adaptive' },
+        aux_action: { label: 'Reset', icon: 'restart_alt', action: 'call-service',
+          service: 'script.turn_on', service_data: { entity_id: 'script.oal_reset_soft' } },
+        tap_action: { action: 'more-info' } },
+      { type: 'value', entity: 'sensor.oal_global_brightness_offset', icon: 'bolt', label: 'Boost',
+        accent: 'amber', format: 'integer',
+        secondary: { entity: 'sensor.oal_system_status', attribute: 'active_modifiers' } },
+      { type: 'dropdown', entity: 'input_select.oal_active_configuration', icon: 'tune',
+        label: 'Mode', accent: 'muted' },
+      { type: 'value', entity: 'weather.home', icon: 'partly_cloudy_day', label: 'Weather',
+        accent: 'blue', format: 'state' },
+      { type: 'value', entity: 'weather.home', icon: 'thermostat', label: 'Outside',
+        accent: 'blue', attribute: 'temperature', unit: '°F', format: 'integer' },
+      { type: 'value', entity: 'weather.home', icon: 'water_drop', label: 'Humidity',
+        accent: 'blue', attribute: 'humidity', unit: '%', format: 'integer' },
+      { type: 'value', entity: 'sensor.dining_room_temperature', icon: 'home', label: 'Inside',
+        accent: 'amber', unit: '°F', format: 'integer' },
+    ],
+  }, hass);
+
+  // ── 3. Lighting Hero ──
+  createCard('slot-lighting', 'tunet-lighting-card', {
+    name: 'Lighting',
+    surface: 'section',
+    layout: 'grid',
+    expand_groups: false,
+    show_adaptive_toggle: false,
+    tile_size: 'compact',
+    columns: 3,
+    rows: 2,
+    adaptive_entity: 'switch.adaptive_lighting_main_living',
+    primary_entity: 'sensor.oal_system_status',
+    zones: [
+      { entity: 'light.living_room_lights', name: 'Living', icon: 'lightbulb' },
+      { entity: 'light.kitchen_island_lights', name: 'Kitchen', icon: 'kitchen' },
+      { entity: 'light.bedroom_primary_lights', name: 'Bedroom', icon: 'bed' },
+      { entity: 'light.accent_spots_lights', name: 'Spots', icon: 'highlight' },
+      { entity: 'light.recessed_ceiling_lights', name: 'Ceiling', icon: 'light' },
+      { entity: 'light.column_lights', name: 'Columns', icon: 'view_column' },
+    ],
+  }, hass);
+
+  // ── 4a. Climate ──
+  createCard('slot-climate', 'tunet-climate-card', {
+    entity: 'climate.dining_room',
+    name: 'Climate',
+  }, hass);
+
+  // ── 4b. Weather ──
+  createCard('slot-weather', 'tunet-weather-card', {
+    entity: 'weather.home',
+    name: 'Environment',
+    forecast_days: 5,
+    show_last_updated: false,
+  }, hass);
+
+  // ── 4c. Sensors ──
+  createCard('slot-sensor', 'tunet-sensor-card', {
+    title: 'Environment',
+    icon: 'sensors',
+    icon_color: 'blue',
+    show_sparkline: true,
+    show_trend: true,
+    sensors: [
+      { entity: 'sensor.dining_room_temperature', label: 'Living Room', icon: 'thermostat',
+        accent: 'amber', unit: '°F', precision: 0,
+        thresholds: [{ value: 80, condition: 'gte', style: 'error' }, { value: 75, condition: 'gte', style: 'warning' }],
+        show_range: true },
+      { entity: 'sensor.kitchen_humidity', label: 'Humidity', icon: 'water_drop',
+        accent: 'blue', unit: '%', precision: 0,
+        thresholds: [{ value: 60, condition: 'gte', style: 'warning' }, { value: 20, condition: 'lte', style: 'warning' }],
+        show_range: true },
+      { entity: 'weather.home', label: 'Outside', icon: 'device_thermostat',
+        accent: 'blue', unit: '°F', precision: 0, value_attribute: 'temperature', show_range: true },
+      { entity: 'sensor.aqi', label: 'Air Quality', icon: 'air',
+        accent: 'green', unit: 'AQI',
+        thresholds: [{ value: 150, condition: 'gte', style: 'error' }, { value: 100, condition: 'gte', style: 'warning' },
+          { value: 50, condition: 'lte', style: 'success' }] },
+    ],
+  }, hass);
+
+  // ── 5. Media ──
+  createCard('slot-media', 'tunet-media-card', {
+    entity: 'media_player.living_room',
+    name: 'Sonos',
+    show_progress: true,
+  }, hass);
+
+  // ── 6. Rooms ──
+  createCard('slot-rooms', 'tunet-rooms-card', {
+    name: 'Rooms',
+    rooms: [
+      { name: 'Living Room', icon: 'weekend',
+        temperature_entity: 'sensor.dining_room_temperature',
+        navigate_path: '/tunet-overview/living-room',
+        lights: [
+          { entity: 'light.living_room_couch_lamp', icon: 'lamp', name: 'Couch' },
+          { entity: 'light.living_room_floor_lamp', icon: 'lamp', name: 'Floor' },
+          { entity: 'light.living_room_spot_lights', icon: 'highlight', name: 'Spots' },
+          { entity: 'light.living_room_credenza_light', icon: 'light', name: 'Credenza' },
+        ] },
+      { name: 'Kitchen', icon: 'kitchen',
+        navigate_path: '/tunet-overview/kitchen',
+        lights: [
+          { entity: 'light.kitchen_island_pendants', icon: 'light', name: 'Pendants' },
+          { entity: 'light.kitchen_main_lights', icon: 'kitchen', name: 'Main' },
+          { entity: 'light.kitchen_counter_cabinet_underlights', icon: 'kitchen', name: 'Under-cab' },
+        ] },
+      { name: 'Dining Room', icon: 'restaurant',
+        temperature_entity: 'sensor.dining_room_temperature',
+        navigate_path: '/tunet-overview/dining',
+        lights: [
+          { entity: 'light.dining_room_spot_lights', icon: 'highlight', name: 'Spots' },
+          { entity: 'light.all_column_lights', icon: 'view_column', name: 'Columns' },
+        ] },
+      { name: 'Bedroom', icon: 'bed',
+        temperature_entity: 'sensor.bedroom_temp_humidity_sensor_temperature',
+        navigate_path: '/tunet-overview/bedroom',
+        lights: [
+          { entity: 'light.master_presence', icon: 'bed', name: 'Main' },
+          { entity: 'light.master_bedroom_corner_accent_govee', icon: 'nightlight', name: 'Accent' },
+          { entity: 'light.master_bedroom_table_lamps', icon: 'lamp', name: 'Table Lamps' },
+        ] },
+      { name: 'Office', icon: 'desktop_windows',
+        navigate_path: '/tunet-overview/office',
+        lights: [
+          { entity: 'light.office_desk_lamp', icon: 'desk', name: 'Desk' },
+        ] },
+    ],
+  }, hass);
+
+  logEvent('init', 'harness', `${allCards.length} cards loaded, ${Object.keys(hass.states).length} entities`);
+}
+
+function createCard(slotId, tagName, config, hass) {
+  const slot = document.getElementById(slotId);
+  if (!slot) return;
+
+  if (!customElements.get(tagName)) {
+    logEvent('warn', tagName, 'element not registered — card file may have failed to load');
+    slot.innerHTML = `<div style="padding:16px;opacity:0.4;font-size:12px;">Missing: ${tagName}</div>`;
+    return;
+  }
+
+  const el = document.createElement(tagName);
+  try {
+    el.setConfig(config);
+  } catch (err) {
+    logEvent('config-error', tagName, err.message);
+    slot.innerHTML = `<div style="padding:16px;color:#FF453A;font-size:12px;">Config error: ${tagName}<br>${escHtml(err.message)}</div>`;
+    return;
+  }
+  el.hass = hass;
+  slot.appendChild(el);
+  allCards.push(el);
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════
+loadCards();
+</script>
+</body>
+</html>

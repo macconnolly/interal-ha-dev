@@ -1,7 +1,7 @@
 /**
- * Tunet Speaker Grid Card
+ * Tunet Speaker Grid Card (v2 – ES Module)
  * Sonos speaker grid with per-speaker volume control and group management
- * Auto-detects speakers from binary_sensor.sonos_*_in_playing_group entities
+ * Auto-detects speakers from binary_sensor.sonos_*_in_active_group entities
  *
  * Horizontal tile layout: icon | name + song | vol% | vol-bar (bottom)
  *
@@ -10,272 +10,32 @@
  *   Drag L/R   = volume control (200px = full range)
  *   Hold 500ms = open more-info dialog
  *
- * Version 2.0.0
+ * Version 3.1.0
  */
 
-const SPEAKER_GRID_VERSION = '2.0.0';
+import {
+  TOKENS,
+  RESET,
+  BASE_FONT,
+  ICON_BASE,
+  CARD_SURFACE,
+  CARD_SURFACE_GLASS_STROKE,
+  REDUCED_MOTION,
+  FONT_LINKS,
+  injectFonts,
+  detectDarkMode,
+  applyDarkClass,
+  registerCard,
+  logCardVersion,
+} from './tunet_base.js';
+
+const CARD_VERSION = '3.1.0';
 
 // ═══════════════════════════════════════════════════════════
-// Shared Foundation (idempotent)
+// Card-specific CSS overrides
 // ═══════════════════════════════════════════════════════════
 
-if (!window.TunetCardFoundation) {
-  window.TunetCardFoundation = {
-    escapeHtml(value) {
-      return String(value == null ? '' : value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    },
-    normalizeIcon(icon, options = {}) {
-      const fallback = options.fallback || 'lightbulb';
-      const aliases = options.aliases || {};
-      const allow = options.allow || null;
-      if (!icon) return fallback;
-      const raw = String(icon).replace(/^mdi:/, '').trim();
-      const resolved = aliases[raw] || raw;
-      if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return fallback;
-      if (allow && allow.size && !allow.has(resolved)) return fallback;
-      return resolved;
-    },
-    bindActivate(el, handler, options = {}) {
-      if (!el || typeof handler !== 'function') return () => {};
-      const role = options.role || 'button';
-      const tabindex = options.tabindex != null ? options.tabindex : 0;
-      if (!el.hasAttribute('role')) el.setAttribute('role', role);
-      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', String(tabindex));
-      const onClick = (e) => {
-        if (options.stopPropagation) e.stopPropagation();
-        handler(e);
-      };
-      const onKey = (e) => {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        e.preventDefault();
-        if (options.stopPropagation) e.stopPropagation();
-        handler(e);
-      };
-      el.addEventListener('click', onClick);
-      el.addEventListener('keydown', onKey);
-      return () => {
-        el.removeEventListener('click', onClick);
-        el.removeEventListener('keydown', onKey);
-      };
-    },
-    async callServiceSafe(host, domain, service, data = {}, options = {}) {
-      const hass = host && host._hass ? host._hass : host;
-      if (!hass || !domain || !service) return false;
-      try {
-        const result = hass.callService(domain, service, data || {});
-        if (result && typeof result.then === 'function') await result;
-        return true;
-      } catch (error) {
-        console.error(`[Tunet] callService failed: ${domain}.${service}`, error);
-        if (typeof options.onError === 'function') options.onError(error);
-        return false;
-      }
-    },
-  };
-}
-
-// ═══════════════════════════════════════════════════════════
-// CSS Tokens + Shared Blocks + Card Styles
-// ═══════════════════════════════════════════════════════════
-
-const TUNET_SPEAKER_GRID_STYLES = `
-  /* ── Tokens: Light ─────────────────────────────────── */
-  :host {
-    --glass: rgba(255,255,255,0.68);
-    --glass-border: rgba(255,255,255,0.45);
-    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.10);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.10), 0 12px 36px rgba(0,0,0,0.12);
-    --inset: inset 0 0 0 0.5px rgba(0,0,0,0.06);
-    --text: #1C1C1E;
-    --text-sub: rgba(28,28,30,0.55);
-    --text-muted: #8E8E93;
-    --amber: #D4850A;
-    --amber-fill: rgba(212,133,10,0.10);
-    --amber-border: rgba(212,133,10,0.22);
-    --blue: #007AFF;
-    --blue-fill: rgba(0,122,255,0.09);
-    --blue-border: rgba(0,122,255,0.18);
-    --green: #34C759;
-    --green-fill: rgba(52,199,89,0.12);
-    --green-border: rgba(52,199,89,0.15);
-    --purple: #AF52DE;
-    --purple-fill: rgba(175,82,222,0.10);
-    --purple-border: rgba(175,82,222,0.18);
-    --track-bg: rgba(28,28,30,0.055);
-    --track-h: 44px;
-    --thumb-bg: #fff;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
-    --r-card: 24px;
-    --r-tile: 16px;
-    --r-pill: 999px;
-    --r-track: 14px;
-    --ctrl-bg: rgba(255,255,255,0.52);
-    --ctrl-border: rgba(0,0,0,0.05);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
-    --chip-bg: rgba(255,255,255,0.48);
-    --chip-border: rgba(0,0,0,0.05);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
-    --dd-bg: rgba(255,255,255,0.84);
-    --dd-border: rgba(255,255,255,0.60);
-    --divider: rgba(28,28,30,0.07);
-    --toggle-off: rgba(28,28,30,0.10);
-    --toggle-on: rgba(52,199,89,0.28);
-    --toggle-knob: rgba(255,255,255,0.96);
-    --tile-bg: rgba(255,255,255,0.92);
-    --r-section: 32px;
-    --section-bg: rgba(255,255,255,0.35);
-    --section-shadow: 0 8px 40px rgba(0,0,0,0.10);
-    color-scheme: light;
-    display: block;
-  }
-
-  /* ── Tokens: Dark (Midnight Navy) ──────────────────── */
-  :host(.dark) {
-    --glass: rgba(30,41,59,0.72);
-    --glass-border: rgba(255,255,255,0.08);
-    --shadow: 0 1px 3px rgba(0,0,0,0.30), 0 8px 28px rgba(0,0,0,0.28);
-    --shadow-up: 0 1px 4px rgba(0,0,0,0.35), 0 12px 36px rgba(0,0,0,0.35);
-    --inset: inset 0 0 0 0.5px rgba(255,255,255,0.06);
-    --text: #F5F5F7;
-    --text-sub: rgba(245,245,247,0.50);
-    --text-muted: rgba(245,245,247,0.35);
-    --amber: #fbbf24;
-    --amber-fill: rgba(251,191,36,0.14);
-    --amber-border: rgba(251,191,36,0.25);
-    --blue: #0A84FF;
-    --blue-fill: rgba(10,132,255,0.13);
-    --blue-border: rgba(10,132,255,0.22);
-    --green: #30D158;
-    --green-fill: rgba(48,209,88,0.14);
-    --green-border: rgba(48,209,88,0.18);
-    --purple: #BF5AF2;
-    --purple-fill: rgba(191,90,242,0.14);
-    --purple-border: rgba(191,90,242,0.22);
-    --track-bg: rgba(255,255,255,0.06);
-    --thumb-bg: #F5F5F7;
-    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
-    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
-    --ctrl-bg: rgba(255,255,255,0.08);
-    --ctrl-border: rgba(255,255,255,0.08);
-    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-    --chip-bg: rgba(30,41,59,0.50);
-    --chip-border: rgba(255,255,255,0.06);
-    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
-    --dd-bg: rgba(30,41,59,0.92);
-    --dd-border: rgba(255,255,255,0.08);
-    --divider: rgba(255,255,255,0.06);
-    --toggle-off: rgba(255,255,255,0.10);
-    --toggle-on: rgba(48,209,88,0.30);
-    --toggle-knob: rgba(255,255,255,0.92);
-    --tile-bg: rgba(30,41,59,0.90);
-    --section-bg: rgba(30,41,59,0.60);
-    --section-shadow: 0 8px 40px rgba(0,0,0,0.25);
-    color-scheme: dark;
-  }
-
-  /* ── Reset ─────────────────────────────────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  /* ── Base Font ─────────────────────────────────────── */
-  .card-wrap {
-    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* ── Icons: Material Symbols Rounded ───────────────── */
-  .icon {
-    font-family: 'Material Symbols Rounded';
-    font-weight: normal;
-    font-style: normal;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    text-transform: none;
-    letter-spacing: normal;
-    white-space: nowrap;
-    direction: ltr;
-    vertical-align: middle;
-    flex-shrink: 0;
-    -webkit-font-smoothing: antialiased;
-    --ms-fill: 0;
-    --ms-wght: 100;
-    --ms-grad: 200;
-    --ms-opsz: 20;
-    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
-  }
-  .icon.filled { --ms-fill: 1; }
-  .icon-28 { font-size: 28px; width: 28px; height: 28px; }
-  .icon-24 { font-size: 24px; width: 24px; height: 24px; }
-  .icon-20 { font-size: 20px; width: 20px; height: 20px; }
-  .icon-18 { font-size: 18px; width: 18px; height: 18px; }
-  .icon-16 { font-size: 16px; width: 16px; height: 16px; }
-  .icon-14 { font-size: 14px; width: 14px; height: 14px; }
-
-  /* ── Card Surface ──────────────────────────────────── */
-  .card {
-    position: relative;
-    border-radius: var(--r-card);
-    background: var(--glass);
-    backdrop-filter: blur(var(--blur-card, 24px));
-    -webkit-backdrop-filter: blur(var(--blur-card, 24px));
-    border: 1px solid var(--ctrl-border);
-    box-shadow: var(--shadow), var(--inset);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    transition:
-      background var(--motion-surface, 0.28s) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1)),
-      border-color var(--motion-surface, 0.28s) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1)),
-      box-shadow var(--motion-surface, 0.28s) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1)),
-      opacity var(--motion-surface, 0.28s) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1)),
-      transform var(--motion-ui, 0.18s) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1));
-    overflow: hidden;
-  }
-
-  /* ── Glass Stroke ──────────────────────────────────── */
-  .card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: var(--r-card);
-    padding: 1px;
-    pointer-events: none;
-    z-index: 0;
-    background: linear-gradient(
-      160deg,
-      rgba(255,255,255, 0.60),
-      rgba(255,255,255, 0.10) 40%,
-      rgba(255,255,255, 0.02) 60%,
-      rgba(255,255,255, 0.25)
-    );
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-  }
-
-  :host(.dark) .card::before {
-    background: linear-gradient(
-      160deg,
-      rgba(255,255,255, 0.12),
-      rgba(255,255,255, 0.03) 40%,
-      rgba(255,255,255, 0.01) 60%,
-      rgba(255,255,255, 0.06)
-    );
-  }
-
-  /* ═══════════════════════════════════════════════════════
-     Card-Specific Overrides (Steel Blue accent)
-     ═══════════════════════════════════════════════════════ */
-
+const CARD_OVERRIDES = `
   :host {
     /* Steel Blue accent */
     --accent: #4682B4;
@@ -291,6 +51,8 @@ const TUNET_SPEAKER_GRID_STYLES = `
     --divider: rgba(28,28,30,0.07);
     --r-pill: 999px;
     --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    display: block;
   }
   :host(.dark) {
     --accent: #6BA3C7;
@@ -311,11 +73,13 @@ const TUNET_SPEAKER_GRID_STYLES = `
     overflow: visible;
     transition: background .3s, border-color .3s, box-shadow .3s, opacity .3s;
   }
+`;
 
-  /* ═══════════════════════════════════════════════════════
-     Card-Specific Styles
-     ═══════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// Card-specific styles
+// ═══════════════════════════════════════════════════════════
 
+const CARD_STYLES = `
   /* Icon size helpers */
   .icon-20 { font-size: 20px; --ms-opsz: 20; }
   .icon-18 { font-size: 18px; --ms-opsz: 20; }
@@ -374,7 +138,7 @@ const TUNET_SPEAKER_GRID_STYLES = `
     border: 1px solid transparent;
     box-shadow: var(--tile-shadow-rest);
     cursor: pointer; user-select: none;
-    touch-action: pan-y;
+    touch-action: none;
     min-height: 62px;
     min-width: 0;
     overflow: visible;
@@ -436,9 +200,6 @@ const TUNET_SPEAKER_GRID_STYLES = `
     transition: color .15s ease;
   }
   :host([tile-size="compact"]) .spk-meta { font-size: 10px; }
-
-  /* ── show_metadata: false hides meta elements ── */
-  :host([show-metadata="false"]) .spk-meta { display: none; }
 
   /* ── Volume % (right) ────────────────────────── */
   .spk-vol {
@@ -589,27 +350,22 @@ const TUNET_SPEAKER_GRID_STYLES = `
     .spk-meta { font-size: 10px; }
     .spk-vol { font-size: 13px; }
   }
-
-  /* ── Reduced Motion ────────────────────────────── */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
-  }
 `;
 
 // ═══════════════════════════════════════════════════════════
-// Font Links (shadow DOM injection)
+// Composite stylesheet
 // ═══════════════════════════════════════════════════════════
 
-const FONT_LINKS = `
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+const TUNET_SPEAKER_GRID_STYLES = `
+  ${TOKENS}
+  ${RESET}
+  ${BASE_FONT}
+  ${ICON_BASE}
+  ${CARD_SURFACE}
+  ${CARD_SURFACE_GLASS_STROKE}
+  ${CARD_OVERRIDES}
+  ${CARD_STYLES}
+  ${REDUCED_MOTION}
 `;
 
 // ═══════════════════════════════════════════════════════════
@@ -680,34 +436,12 @@ class TunetSpeakerGridCard extends HTMLElement {
     this._longPressTimer = null;
     this._longPressFired = false;
 
-    // Inject fonts into document.head (once globally)
-    TunetSpeakerGridCard._injectFonts();
-  }
-
-  /* ── Font Injection (V1 pattern) ─────────────────── */
-
-  static _injectFonts() {
-    if (TunetSpeakerGridCard._fontsInjected) return;
-    TunetSpeakerGridCard._fontsInjected = true;
-
-    const links = [
-      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-      { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200&display=swap' },
-    ];
-
-    for (const cfg of links) {
-      if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
-      const link = document.createElement('link');
-      link.rel = cfg.rel;
-      link.href = cfg.href;
-      if (cfg.crossOrigin !== undefined) link.crossOrigin = cfg.crossOrigin;
-      document.head.appendChild(link);
-    }
+    injectFonts();
   }
 
   /* ── Config ─────────────────────────────────────── */
+
+  static get configurable() { return true; }
 
   static getConfigForm() {
     return {
@@ -729,7 +463,6 @@ class TunetSpeakerGridCard extends HTMLElement {
           ],
         },
         { name: 'show_group_actions', selector: { boolean: {} } },
-        { name: 'show_metadata', selector: { boolean: {} } },
         {
           type: 'expandable',
           title: 'Advanced',
@@ -746,7 +479,6 @@ class TunetSpeakerGridCard extends HTMLElement {
         columns:            'Grid Columns',
         tile_size:          'Tile Size',
         show_group_actions: 'Show Group/Ungroup Buttons',
-        show_metadata:      'Show Song Metadata',
         custom_css:         'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
       computeHelper: (s) => ({
@@ -763,7 +495,6 @@ class TunetSpeakerGridCard extends HTMLElement {
       columns: 4,
       tile_size: 'standard',
       show_group_actions: true,
-      show_metadata: true,
       speakers: [],
     };
   }
@@ -777,7 +508,6 @@ class TunetSpeakerGridCard extends HTMLElement {
     const columns = Math.max(2, Math.min(8, Math.round(asFinite(config.columns, 4))));
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
     const tileSize = tileSizeRaw === 'compact' ? 'compact' : (tileSizeRaw === 'large' ? 'large' : 'standard');
-    const showMetadata = config.show_metadata !== false;
 
     this._config = {
       entity: config.entity,
@@ -787,12 +517,10 @@ class TunetSpeakerGridCard extends HTMLElement {
       columns,
       tile_size: tileSize,
       show_group_actions: config.show_group_actions !== false,
-      show_metadata: showMetadata,
       custom_css: config.custom_css || '',
     };
 
     this.setAttribute('tile-size', tileSize);
-    this.setAttribute('show-metadata', String(showMetadata));
 
     this._cachedSpeakers = null;
     if (this._rendered) {
@@ -814,9 +542,8 @@ class TunetSpeakerGridCard extends HTMLElement {
       this._buildGrid();
     }
 
-    // Inline dark mode detection + class toggle
-    const isDark = !!(hass && hass.themes && hass.themes.darkMode);
-    this.classList.toggle('dark', isDark);
+    const isDark = detectDarkMode(hass);
+    applyDarkClass(this, isDark);
 
     if (!this._cachedSpeakers || this._cachedSpeakers.length === 0) {
       this._cachedSpeakers = this._getEffectiveSpeakers();
@@ -891,7 +618,7 @@ class TunetSpeakerGridCard extends HTMLElement {
     if (!this._hass) return [];
     const speakers = [];
     for (const entityId of Object.keys(this._hass.states)) {
-      const match = entityId.match(/^binary_sensor\.sonos_(.+)_in_playing_group$/);
+      const match = entityId.match(/^binary_sensor\.sonos_(.+)_in_active_group$/);
       if (match) {
         const room = match[1];
         const playerEntity = `media_player.${room}`;
@@ -967,7 +694,7 @@ class TunetSpeakerGridCard extends HTMLElement {
     const speakers = this._cachedSpeakers || [];
     const cols = this._config.columns;
     grid.style.setProperty('--cols', cols);
-    grid.style.setProperty('--cols-sm', Math.min(2, cols));
+    grid.style.setProperty('--cols-sm', 1);
 
     for (const spk of speakers) {
       const tile = document.createElement('div');
@@ -1192,27 +919,14 @@ class TunetSpeakerGridCard extends HTMLElement {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Registration (V1 pattern)
+// Registration
 // ═══════════════════════════════════════════════════════════
 
-if (!customElements.get('tunet-speaker-grid-card')) {
-  customElements.define('tunet-speaker-grid-card', TunetSpeakerGridCard);
-}
+registerCard('tunet-speaker-grid-card', TunetSpeakerGridCard, {
+  name: 'Tunet Speaker Grid Card',
+  description: 'Sonos speaker grid with horizontal tiles, volume control, and group management',
+  preview: true,
+  documentationURL: 'https://github.com/tunet/tunet-speaker-grid-card',
+});
 
-// Register with HA card picker
-window.customCards = window.customCards || [];
-if (!window.customCards.some((card) => card.type === 'tunet-speaker-grid-card')) {
-  window.customCards.push({
-    type: 'tunet-speaker-grid-card',
-    name: 'Tunet Speaker Grid Card',
-    description: 'Sonos speaker grid with horizontal tiles, volume control, and group management',
-    preview: true,
-    documentationURL: 'https://github.com/tunet/tunet-speaker-grid-card',
-  });
-}
-
-console.info(
-  `%c TUNET-SPEAKER-GRID %c v${SPEAKER_GRID_VERSION} `,
-  'color: #fff; background: #4682B4; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;',
-  'color: #4682B4; background: #4682B420; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;'
-);
+logCardVersion('TUNET-SPEAKER-GRID', CARD_VERSION, '#4682B4');

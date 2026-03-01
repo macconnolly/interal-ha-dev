@@ -420,6 +420,15 @@ class TunetLightTile extends HTMLElement {
     return this._config?.variant === 'horizontal' ? 1 : 2;
   }
 
+  // Sections view (12-column grid) sizing hints
+  getGridOptions() {
+    return {
+      columns: 3,
+      min_columns: 3,
+      max_columns: 12,
+    };
+  }
+
   // ── Constructor ──────────────────────────────────
   constructor() {
     super();

@@ -614,6 +614,15 @@ class TunetMediaCard extends HTMLElement {
     return 3;
   }
 
+  // Sections view (12-column grid) sizing hints
+  getGridOptions() {
+    return {
+      columns: 12,
+      min_columns: 6,
+      max_columns: 12,
+    };
+  }
+
   /* -- Lifecycle -- */
 
   connectedCallback() {

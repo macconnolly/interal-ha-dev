@@ -236,6 +236,15 @@ class TunetWeatherCard extends HTMLElement {
     return hasForecast ? 5 : 3;
   }
 
+  // Sections view (12-column grid) sizing hints
+  getGridOptions() {
+    return {
+      columns: 6,
+      min_columns: 3,
+      max_columns: 12,
+    };
+  }
+
   _render() {
     const style = document.createElement('style');
     style.textContent = TUNET_WEATHER_STYLES;

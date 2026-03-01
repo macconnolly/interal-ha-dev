@@ -874,6 +874,15 @@ class TunetLightingCard extends HTMLElement {
     return Math.max(2, 2 + visibleRows * 2);
   }
 
+  // Sections view (12-column grid) sizing hints
+  getGridOptions() {
+    return {
+      columns: 12,
+      min_columns: 6,
+      max_columns: 12,
+    };
+  }
+
   /* ═══════════════════════════════════════════════════
      ZONE RESOLUTION – Three entity patterns
      ═══════════════════════════════════════════════════ */

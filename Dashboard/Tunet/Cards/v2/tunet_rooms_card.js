@@ -380,6 +380,15 @@ class TunetRoomsCard extends HTMLElement {
     return Math.max(2, rows + 1);
   }
 
+  // Sections view (12-column grid) sizing hints
+  getGridOptions() {
+    return {
+      columns: 12,
+      min_columns: 6,
+      max_columns: 12,
+    };
+  }
+
   connectedCallback() {}
   disconnectedCallback() {
     clearTimeout(this._longPressTimer);

@@ -521,6 +521,15 @@ class TunetSensorCard extends HTMLElement {
     return 1 + (this._config.sensors || []).length;
   }
 
+  // Sections view (12-column grid) sizing hints
+  getGridOptions() {
+    return {
+      columns: 12,
+      min_columns: 6,
+      max_columns: 12,
+    };
+  }
+
   connectedCallback() {
     this._historyTimer = setInterval(() => {
       if (this._hass) this._fetchAllHistory();

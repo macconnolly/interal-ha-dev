@@ -735,6 +735,15 @@ class TunetClimateCard extends HTMLElement {
     return 4;
   }
 
+  // Sections view (12-column grid) sizing hints
+  getGridOptions() {
+    return {
+      columns: 6,
+      min_columns: 3,
+      max_columns: 12,
+    };
+  }
+
   /* -- Lifecycle -- */
 
   connectedCallback() {

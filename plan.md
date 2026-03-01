@@ -1,448 +1,263 @@
-# Tunet Dashboard — Implementation Plan v2
-## Bug Fixes + Per-Room Views + Navigation Architecture
-
-**Supersedes:** Previous V1 Stabilization Plan
-**Working branch:** `claude/dashboard-nav-research-QnOBs`
-**Card suite:** V2 ES modules (`Dashboard/Tunet/Cards/v2/*.js`) importing from `tunet_base.js`
-
----
-
-## File Inventory (V2 Active Cards)
-
-| File | Version | Lines | Config Editor |
-|------|---------|------:|:---:|
-| `v2/tunet_base.js` | — | 778 | N/A (shared module) |
-| `v2/tunet_actions_card.js` | — | 446 | `getConfigForm()` line 269 |
-| `v2/tunet_climate_card.js` | — | 1383 | `getConfigForm()` line 630 |
-| `v2/tunet_light_tile.js` | — | 802 | `getConfigForm()` line 766 |
-| `v2/tunet_lighting_card.js` | — | 1667 | `getConfigForm()` line 672 |
-| `v2/tunet_media_card.js` | — | 1234 | `getConfigForm()` line 481 |
-| `v2/tunet_rooms_card.js` | — | 578 | `getConfigForm()` line 294 |
-| `v2/tunet_sensor_card.js` | — | 833 | `getConfigForm()` line 397 |
-| `v2/tunet_sonos_card.js` | — | 1367 | `getConfigForm()` line 578 |
-| `v2/tunet_speaker_grid_card.js` | — | 932 | `getConfigForm()` line 446 |
-| `v2/tunet_status_card.js` | 2.4.0 | 1111 | `getConfigForm()` line 414 |
-| `v2/tunet_weather_card.js` | — | 440 | `getConfigForm()` line 175 |
-
-| Config File | Lines |
-|-------------|------:|
-| `Dashboard/Tunet/tunet-overview-config.yaml` | 360 |
-| `Dashboard/Tunet/tunet-v2-test-config.yaml` | 380 |
-
----
-
-## Phase 0: Bug Fixes
-
-### Bug 1: Status Tiles Not Same Size
-
-**File:** `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
-
-**Root cause:** The `.tile.has-aux` CSS rule at **line 177** adds `padding-top: 26px` to tiles that have an aux action button, while the base `.tile` rule at **line 92** uses `padding: 14px 8px 10px`. Combined with `grid-auto-rows: auto` at **line 82**, each row auto-sizes to its tallest member. Tiles without `has-aux` in the same row are vertically centered inside the taller row, making them appear visually smaller.
-
-The aux button itself is `position: absolute; top: 8px; right: 8px` (lines 155-156), so it's removed from flow and does NOT need layout clearance.
-
-**Fix (Option B — uniform padding):**
-
-| Change | Location | What |
-|--------|----------|------|
-| 1 | Line 92 | Change `.tile` padding from `14px 8px 10px` to `26px 8px 10px` |
-| 2 | Line 177 | **Delete** the entire rule `.tile.has-aux { padding-top: 26px; }` |
-
-**Effect:** Every tile gets the same 26px top padding uniformly. Aux buttons occupy the same top-right space in every tile but are only rendered when configured. Zero conditional height difference.
-
-**Risk:** Tiles become 12px taller overall. This is acceptable — the extra space gives the icon/label/value stack more breathing room and ensures the aux pill never overlaps the icon.
-
----
-
-### Bug 2: Reset Button (Aux Action Pill) Always Showing
-
-**File:** `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
-
-**Root cause:** Three pieces are missing:
-
-1. **No reference to aux element.** The `_buildGrid()` method at **lines 676-691** creates and appends the aux button unconditionally when `tile.aux_action` is truthy, but the `_tileEls` array push at **lines 694-702** does NOT store a reference to the aux DOM element. There are 7 properties stored (`el`, `config`, `index`, `valEl`, `dotEl`, `ddMenuEl`, `ddValEl`) — `auxEl` is missing.
-
-2. **No visibility update method.** The `_updateValues()` method at **lines 821-850** iterates tiles and dispatches to type-specific update methods, but never evaluates aux button visibility. The existing `_evaluateVisibility()` at **lines 738-751** handles tile-level `show_when` but not `aux_action.show_when`.
-
-3. **No `show_when` in YAML config.** The Manual tile's `aux_action` config (overview YAML lines 92-98, test YAML lines 81-87) has no conditional visibility — it always renders.
-
-**Existing infrastructure to reuse:**
-- `_matchesShowWhen()` at **lines 753-780** — already supports 6 operators (`equals`, `not_equals`, `contains`, `not_contains`, `gt`, `lt`). No changes needed.
-- `_evaluateVisibility()` at **lines 738-751** — pattern to follow for the new method.
-
-**Fix — 4 changes:**
-
-| # | Location | What |
-|---|----------|------|
-| 1 | Lines 694-702 (`_tileEls.push`) | Add `auxEl: tile.aux_action ? el.querySelector('.tile-aux') : null` to the object literal |
-| 2 | After line 751 (after `_evaluateVisibility`) | Add new `_updateAuxVisibility()` method. For each tile with `auxEl` and `config.aux_action.show_when`, call `_matchesShowWhen()` and toggle `auxEl.style.display` between `''` and `'none'` |
-| 3 | Line 522 (in `set hass()`, after `this._evaluateVisibility()`) | Add call to `this._updateAuxVisibility()` |
-| 4 | YAML configs (see below) | Add `show_when` block to the Manual tile's `aux_action` |
-
-**YAML change — both files:**
-
-`tunet-overview-config.yaml` lines 92-98 and `tunet-v2-test-config.yaml` lines 81-87:
-Add `show_when` block to `aux_action` on the Manual tile. Condition: `input_number.oal_manual_brightness_offset` with operator `not_equals` and state `'0'`. This makes the "Reset" pill only appear when there's actually a manual brightness offset to reset.
-
-**Note on Bug 1 interaction:** With Option B's uniform padding, the `has-aux` class no longer affects layout, so there's no need to toggle it in `_updateAuxVisibility()`. The class still exists for potential future CSS targeting but is layout-neutral.
-
----
-
-### Bug 3: Weather AQI Not Present
-
-**Files:**
-- `Dashboard/Tunet/tunet-overview-config.yaml` **lines 245-259**
-- `Dashboard/Tunet/tunet-v2-test-config.yaml` **lines 234-248**
-
-**Root cause:** Both configs reference `sensor.aqi` which does not exist as a HA entity. The sensor card renders it as `?` with an orphan row.
-
-**Fix:** Remove the entire `sensor.aqi` block (15 lines) from both files. This reduces the sensor card from 4 rows to 3. If `sensor.bedroom_temp_humidity_sensor_temperature` exists, it can be added as a replacement row. Otherwise, 3 rows (Living Room temp, Humidity, Outside temp) is a clean layout.
-
-**Verification needed:** Confirm `sensor.bedroom_temp_humidity_sensor_temperature` exists before adding it as a replacement. If it doesn't exist, just delete the AQI block.
-
----
-
-### Bug 4: UI Configuration Forms Not Working (All V2 Cards)
-
-**Files:** All 12 V2 card files in `Dashboard/Tunet/Cards/v2/`
-
-**Symptom:** None of the V2 cards display a visual configuration editor in the HA dashboard UI. Users see only the YAML editor.
-
-**What the code does:** Every V2 card implements `static getConfigForm()` (see File Inventory table above for line numbers) returning `{ schema: [...], computeLabel: fn }`. Every card has `static get configurable() { return true; }`. Card registration via `registerCard()` in `tunet_base.js` (lines 740-752) correctly calls `customElements.define()` and pushes to `window.customCards`.
-
-**Root cause investigation — three hypotheses:**
-
-**Hypothesis A: HA version too old.** `getConfigForm()` was merged into HA frontend in PR #16142 (early 2025). If the user's HA instance predates this merge, the frontend won't look for this static method. The traditional pattern is `getConfigElement()` which returns a custom element.
-
-*How to verify:* Check HA version in Settings → About. `getConfigForm()` requires HA 2025.2+ (approximate).
-
-**Hypothesis B: Browser cache.** The community forum reports that config editors don't appear until:
-- Resource URLs have a version parameter bumped (e.g., `?v=2` → `?v=3`)
-- Browser DevTools "Disable cache" is enabled
-- Hard refresh (Ctrl+Shift+R) is performed
-
-*How to verify:* Bump resource version, hard refresh, try adding a card via the UI picker.
-
-**Hypothesis C: Schema limitations for complex configs.** `getConfigForm()` can only express flat/simple schemas using HA selectors. Cards with complex nested configs (like the status card's `tiles` array with per-tile type-specific options) cannot be fully expressed in a `getConfigForm()` schema. For these cards, the basic fields (name, columns) would show up, but the complex nested config (tiles) would not be editable in the UI.
-
-*This means:* Even if `getConfigForm()` works, it will only ever expose top-level scalar fields. The full config for cards like status, lighting (zones array), sensor (sensors array), rooms (rooms array) will still require YAML editing.
-
-**Fix options (decide based on verification):**
-
-| Option | Scope | Effort | Result |
-|--------|-------|--------|--------|
-| A: Verify HA version, bump cache | All cards | Trivial | If `getConfigForm()` IS supported, top-level fields become editable |
-| B: Add `getConfigElement()` editors | Per card | Large (custom editor element per card) | Full visual editing including arrays |
-| C: Accept YAML-only for complex cards | All cards | None | `getConfigForm()` for simple fields, YAML for arrays |
-
-**Recommendation:** Start with Option A (verify + cache bust). If `getConfigForm()` works for basic fields, accept Option C for complex cards — YAML editing for `tiles`/`zones`/`sensors` arrays is fine since these are power-user configs. Full visual editors (Option B) would be a Phase 3+ effort.
-
-**Key code locations per card:**
-
-| Card | `configurable` | `getConfigForm()` | Schema fields exposed |
-|------|:-:|:-:|---|
-| `tunet_status_card.js` | Line 412 | Line 414 | name, columns, custom_css |
-| `tunet_climate_card.js` | Line 628 | Line 630 | entity, humidity_entity, name, surface, display_min, display_max |
-| `tunet_lighting_card.js` | Line 670 | Line 672 | (check schema — likely name, columns, layout, tile_size) |
-| `tunet_actions_card.js` | Line 267 | Line 269 | variant, mode_entity, compact |
-| `tunet_media_card.js` | Line 479 | Line 481 | (check schema) |
-| `tunet_rooms_card.js` | Line 292 | Line 294 | (check schema) |
-| `tunet_sensor_card.js` | Line 395 | Line 397 | (check schema) |
-| `tunet_speaker_grid_card.js` | Line 444 | Line 446 | (check schema) |
-| `tunet_sonos_card.js` | Line 576 | Line 578 | (check schema) |
-| `tunet_weather_card.js` | Line 173 | Line 175 | (check schema) |
-| `tunet_light_tile.js` | Line 764 | Line 766 | (check schema) |
-
----
-
-## Phase 1: Foundation for Navigation
-
-### 1a. `getGridOptions()` for Sections Layout Compatibility
-
-**What:** Home Assistant Sections layout (introduced 2024) requires cards to implement `getGridOptions()` returning `{ columns, rows, min_columns, min_rows, max_columns, max_rows }`. Without this, cards either get wrong sizing or fail to render in Sections dashboards.
-
-**Files:** All 12 V2 card files.
-
-**Pattern (from HA docs):**
-```js
-getGridOptions() {
-  return { columns: 4, rows: 'auto', min_columns: 2, max_columns: 4 };
-}
-```
-
-Each card needs values appropriate to its layout:
-
-| Card | Suggested columns | Suggested rows | Rationale |
-|------|:-:|:-:|---|
-| Status card | 4 | auto | Full-width 4-column grid |
-| Lighting card | 4 | auto | Full-width zone grid |
-| Climate card | 2 | auto | Half-width in environment row |
-| Weather card | 2 | auto | Half-width in environment row |
-| Actions card | 4 | 1 | Full-width single row strip |
-| Media card | 4 | auto | Full-width player |
-| Sensor card | 4 | auto | Full-width sparkline rows |
-| Speaker grid | 4 | auto | Full-width speaker tiles |
-| Rooms card | 4 | auto | Full-width room grid |
-| Sonos card | 4 | auto | Full-width |
-| Light tile | 1 | 1 | Single tile |
-
-**Where to add:** After `getCardSize()` in each card. Most cards already have `getCardSize()` — search for it per card.
-
-### 1b. Kiosk Mode Setup
-
-**What:** Hide HA's native header, sidebar, and overflow menu for a dedicated dashboard tablet/kiosk experience.
-
-**Dependency:** `kiosk-mode` HACS integration (verify installed).
-
-**Config location:** Top of dashboard YAML view config.
-
-**Implementation:** Add `kiosk_mode:` block to the dashboard view YAML. Settings: `kiosk: true` (or selective: `hide_header: true`, `hide_sidebar: true`).
-
-### 1c. View Structure Skeleton
-
-**What:** Create the multi-view dashboard structure with subview support.
-
-**Current state:** Single view at `/tunet-overview` defined by `tunet-overview-config.yaml`.
-
-**Target structure:**
-
-```
-/tunet-overview              (main view — overview cards)
-/tunet-overview/living-room  (subview — living room detail)
-/tunet-overview/kitchen      (subview — kitchen detail)
-/tunet-overview/dining       (subview — dining room detail)
-/tunet-overview/bedroom      (subview — bedroom detail)
-/tunet-overview/office       (subview — office detail)
-```
-
-Each subview is defined in the dashboard's YAML with `subview: true`. The Tunet room cards or nav card provide navigation to these subviews via `tap_action: { action: navigate, navigation_path: /tunet-overview/living-room }`.
-
----
-
-## Phase 2: Per-Room Subviews
-
-### Room View Template Pattern
-
-Every room view follows this section order. Sections with no relevant entity are **omitted entirely** — never empty shells.
-
-```
-1. Quick Actions Strip  (tunet-actions-card, room-scoped)
-2. Lighting Controls    (tunet-lighting-card, individual lights as zones)
-3. Climate              (tunet-climate-card, IF climate entity exists for room)
-4. Media                (tunet-media-card, IF media_player exists for room)
-5. Room Sensors         (tunet-status-card, 2-tile row: temp + humidity/motion)
-```
-
-### Room Entity Matrix
-
-| Room | Lights | Climate | Media | Temp Sensor | Humidity | Motion |
-|------|--------|:---:|:---:|---|---|---|
-| **Living** | couch lamp, floor lamp, spots, credenza | `climate.dining_room` (shared) | `media_player.living_room` | `sensor.dining_room_temperature` | `weather.home` attr | TBD |
-| **Kitchen** | island pendants, main, under-cabinet | — | `media_player.kitchen` | — | `sensor.kitchen_humidity` | TBD |
-| **Dining** | spot lights, column lights | `climate.dining_room` | `media_player.dining_room` | `sensor.dining_room_temperature` | `weather.home` attr | TBD |
-| **Bedroom** | main (Govee), accent (Govee), table lamps | — | `media_player.bedroom` | `sensor.bedroom_temp_humidity_sensor_temperature` | Verify: own entity or attribute? | TBD |
-| **Office** | desk lamp (single light) | — | — | — | — | TBD |
-
-### Per-Room Config Details
-
-**Living Room** — Most complete room. All 5 sections present.
-- Actions: All Off, Bedtime, Sleep (targeting `light.living_room_lights` and `input_select.oal_active_configuration`)
-- Lighting: 4 zones (couch, floor, spots, credenza), `columns: 3`, `adaptive_entity: switch.adaptive_lighting_main_living`, `primary_entity: light.living_room_lights`
-- Climate: `climate.dining_room` (shared open floor plan)
-- Media: `media_player.living_room`, show progress, coordinator sensor
-- Sensors: 2 tiles — temperature (dining room sensor, amber) + humidity (weather.home attribute, blue)
-
-**Kitchen** — No climate, no temp sensor.
-- Actions: All Off, All On (targeting `light.kitchen_island_lights`)
-- Lighting: 3 zones (pendants, main, under-cabinet), `columns: 3`, `primary_entity: light.kitchen_island_lights`
-- Media: `media_player.kitchen`
-- Sensors: 2 tiles — humidity (`sensor.kitchen_humidity`) + outside temp (`weather.home` attribute)
-
-**Dining Room** — Shared climate with living room.
-- Actions: All Off (targeting `group.dining_lights` / `light.dining_room_spot_lights`)
-- Lighting: 2 zones (spots, columns), `columns: 2`, `primary_entity: light.dining_room_spot_lights`
-- Climate: `climate.dining_room` (same thermostat)
-- Media: `media_player.dining_room`
-- Sensors: 2 tiles — temperature + humidity
-
-**Bedroom** — GOVEE lights (2700-6500K range, do NOT expose wide color temp controls).
-- Actions: All Off, Bedtime, Sleep (targeting `light.bedroom_primary_lights`)
-- Lighting: 3 zones (main, accent Govee, table lamps), `columns: 3`, `adaptive_entity: switch.adaptive_lighting_bedroom_primary`
-- Media: `media_player.bedroom`
-- Sensors: 2 tiles — temperature + humidity (verify: separate entity or attribute of temp sensor?)
-- **Govee note:** The lighting card should not render color temp sliders for these devices (brightness only). This may require a per-zone `color_temp_control: false` config flag if not already supported.
-
-**Office** — Minimal room. Single light, nothing else confirmed.
-- Actions: Desk Off, Desk On (targeting `light.office_desk_lamp`)
-- Light: Use standalone `tunet-light-tile` with `variant: horizontal` instead of wrapping a single light in the full lighting card grid. This signals "single-entity room" to future maintainers.
-- No climate, media, or sensor sections.
-
-### Entity Discovery Needed Before Deployment
-
-| Entity | Status | How to verify |
-|--------|--------|---------------|
-| `sensor.bedroom_temp_humidity_sensor_humidity` | Unconfirmed — may be attribute of temp sensor | Check HA States page |
-| `binary_sensor.*_motion` (all rooms) | Unconfirmed | Filter States page to `binary_sensor`, search "motion" |
-| `sensor.kitchen_temperature` | Not found in config | Check States page |
-| `light.office_desk_lamp` | Referenced in plan | Verify entity ID |
-| `group.dining_lights` | Referenced for dining All Off | Verify exists |
-
-### Rules for Sparse Rooms
-
-| Condition | Approach |
-|---|---|
-| No media entity | Omit media card from room view |
-| No climate entity | Omit climate card |
-| Only 1 light | Use `tunet-light-tile` standalone, not lighting card |
-| No temp sensor | Omit sensor status row |
-| 2 lights, sparse look | Use `columns: 2` so tiles fill width |
-
----
-
-## Phase 3: Navigation Card
-
-### Architecture Decision: Bubble Card Pop-ups
-
-**Decided:** Use Bubble Card hash-based pop-ups for all popups (room quick-controls, entity detail, alarm editing). This is consistent with the existing Sonos alarm popup system already working in the dashboard.
-
-**Existing popup reference:** The Sonos alarm management popup (provided by user) demonstrates the full pattern:
-- `#sonos-alarms` — overview popup with room-grouped alarm tiles
-- `#edit-alarm` — detail editing popup with time, volume, recurrence controls
-- Master-detail navigation via hash changes
-- Full styling control via Bubble Card `styles:` + `card_mod:`
-
-**Room popup pattern:**
-
-```
-Room tile tap → #living-room popup
-  Shows: light toggles, media now-playing, quick scene buttons
-  "Open Room ▸" button → navigates to /tunet-overview/living-room subview
-
-Room tile long-press → navigates directly to subview
-```
-
-### Navigation Card (`tunet-nav-card`) — New Card
-
-**Purpose:** Bottom navigation bar (mobile) / side rail (desktop) providing persistent navigation across views.
-
-**Items (4 max for mobile bottom bar):**
-
-| Position | Icon | Label | Action |
-|----------|------|-------|--------|
-| 1 | `home` | Home | Navigate to `/tunet-overview` |
-| 2 | `meeting_room` | Rooms | Toggle `#rooms-menu` popup |
-| 3 | `play_circle` | Media | Toggle `#media-overview` popup |
-| 4 | `settings` | Settings | Navigate to `/tunet-overview/settings` or popup |
-
-**Responsive behavior:**
-- Mobile (< 768px): Fixed bottom bar, 56px height, safe-area padding
-- Desktop (> 768px): Fixed left side rail, 72px width, vertical icon stack
-- Active route highlighting via `window.location.pathname` comparison
-
-**Media mini-player:** The nav bar includes a compact now-playing strip above the nav items (mobile) or below the nav icons (desktop). Shows: album art thumb, track name, play/pause button. Data source: the primary `media_player` entity. Tap expands to full media popup.
-
-### Popup Definitions
-
-All popups are defined as Bubble Card `card_type: pop-up` within the main overview view. Hash-based routing means they overlay the current view.
-
-| Hash | Content | Notes |
-|------|---------|-------|
-| `#rooms-menu` | Grid of room tiles with status summaries | Tap → room popup, long-press → subview |
-| `#living-room` | Quick controls for living room | Light toggles + media + "Open Room" link |
-| `#kitchen` | Quick controls for kitchen | Same pattern |
-| `#dining` | Quick controls for dining | Same pattern |
-| `#bedroom` | Quick controls for bedroom | Same pattern |
-| `#media-overview` | Speaker grid with group controls | Reuses tunet-speaker-grid-card |
-| `#sonos-alarms` | Alarm management (existing) | Already built and working |
-| `#edit-alarm` | Alarm detail editor (existing) | Already built and working |
-
----
-
-## Phase 4: Polish and Integration
-
-### Dark Mode Verification
-
-All room subviews and popups must render correctly in both light and dark modes. The Midnight Navy dark theme tokens are locked (see design_language.md v8.0). User preference is `rgba(30,41,59,0.65)` dark blue glass.
-
-### Responsive Testing
-
-- Test nav card at 375px (iPhone SE), 390px (iPhone 14), 768px (iPad), 1024px+ (desktop)
-- Verify popup content doesn't overflow on small screens
-- Verify subview scrolling works correctly with fixed nav bar
-
-### Performance
-
-- Room subviews should load lazily (HA handles this for subviews)
-- Popup content should not maintain state when closed
-- Verify no duplicate `customElements.define` errors when navigating between views
-
----
-
-## Execution Order
-
-```
-Phase 0: Bug Fixes (prerequisites)
-  0.1  Bug 1 — Status tile uniform padding         [status_card.js lines 92, 177]
-  0.2  Bug 2 — Aux button conditional visibility    [status_card.js + 2 YAML files]
-  0.3  Bug 3 — Remove AQI sensor block              [2 YAML files]
-  0.4  Bug 4 — Diagnose config editor issue          [verify HA version + cache]
-
-Phase 1: Foundation
-  1.1  Add getGridOptions() to all V2 cards          [12 files]
-  1.2  Set up Kiosk Mode                             [dashboard YAML]
-  1.3  Create view structure skeleton                [dashboard YAML — 5 subviews]
-
-Phase 2: Room Subviews
-  2.1  Entity discovery (motion sensors, bedroom humidity, etc.)
-  2.2  Living Room subview config
-  2.3  Kitchen subview config
-  2.4  Dining Room subview config
-  2.5  Bedroom subview config
-  2.6  Office subview config
-
-Phase 3: Navigation
-  3.1  Build tunet-nav-card (bottom bar / side rail)
-  3.2  Room quick-control popups (5 rooms)
-  3.3  Media overview popup
-  3.4  Nav card media mini-player
-  3.5  Active route highlighting
-
-Phase 4: Polish
-  4.1  Dark mode verification across all views
-  4.2  Responsive testing
-  4.3  Performance audit
-  4.4  Config editor improvements (if warranted)
-```
-
----
-
-## Reference: Sonos Alarm Popup Pattern
-
-The working Sonos alarm system demonstrates the proven popup architecture:
-
-**Key structural elements:**
-- Bubble Card `card_type: pop-up` with `hash: "#sonos-alarms"` for routing
-- Room-grouped separator headers with accent colors per room
-- Horizontal-stack alarm tiles using Bubble Card `card_type: button` with `button_type: switch`
-- `tap_action: toggle` for quick enable/disable
-- `hold_action: perform-action` → `script.sonos_load_alarm_for_edit` for drill-down editing
-- `card_mod` style overrides for Bubble Card elements
-- Navigation between popups via `navigation_path: "#edit-alarm"` and `"#sonos-alarms"`
-
-**Styling pattern:** Each alarm tile uses `card_mod` to zero-out `ha-card` background/border/shadow, then Bubble Card `styles:` for the actual tile appearance. Template expressions in `card_mod` (`content: '{{ state_attr(...) }}'`) display dynamic alarm time and recurrence.
-
-This exact pattern should be replicated for room quick-control popups.
-
----
-
-## Key Decisions Log
-
-| # | Decision | Rationale |
-|---|----------|-----------|
-| 1 | V2 ES module cards as active suite | V2 cards are what's being worked on, V1 stabilization plan is superseded |
-| 2 | Bubble Card popups (not browser_mod) | Consistent with working Sonos alarm system, better styling control |
-| 3 | `getConfigForm()` over `getConfigElement()` for now | Already implemented in all cards, verify before rewriting |
-| 4 | Option B for tile sizing (uniform padding) | Removes conditional class entirely, zero layout disruption |
-| 5 | YAML-only for complex card configs | `getConfigForm()` can't express nested arrays (tiles, zones, sensors) |
-| 6 | Room subviews (not just popups) | Full room detail needs more space than a popup allows |
-| 7 | Standalone `tunet-light-tile` for office | Single-entity room shouldn't use multi-zone lighting card |
+# Tunet Suite Dashboard - Implementation Plan (V2 Next)
+
+Working branch: `claude/dashboard-nav-research-QnOBs`
+Last updated: 2026-03-01
+
+## Current Reality Snapshot (Fact Base)
+- DONE SNAP.01: New dashboard YAML exists at `Dashboard/Tunet/tunet-suite-config.yaml`; Outcome: repo has a single source of truth for the POC dashboard config; Verify: the file exists on this branch.
+- DONE SNAP.02: Dashboard YAML is deployed to HA at `/config/dashboards/tunet-suite.yaml`; Outcome: HA has the YAML file available on disk; Verify: HA host filesystem shows the file at that path.
+- TODO SNAP.03: `tunet-suite` is NOT registered in HA dashboards yet; Outcome: it must be registered before it shows up; Verify: Settings -> Dashboards does not list it (yet).
+- DONE SNAP.04: V2 cards are deployed to HA under `/config/www/tunet/v2_next/`; Outcome: HA can serve `/local/tunet/v2_next/*.js`; Verify: direct browser fetch of a resource returns JS (200).
+- DONE SNAP.05: Lovelace resources were repointed to `/local/tunet/v2_next/...`; Outcome: HA frontend loads v2_next modules; Verify: Settings -> Dashboards -> Resources shows `/local/tunet/v2_next/` URLs.
+- DONE SNAP.06: `tunet-nav-card` exists (POC), 3 items, breakpoint 900; Outcome: persistent nav chrome exists; Verify: `Dashboard/Tunet/Cards/v2/tunet_nav_card.js` exists and is loaded as a resource.
+- DONE SNAP.07: Bug 1 and Bug 2 are implemented in V2 `tunet_status_card`; Outcome: status tiles are uniform and aux pill respects `aux_show_when`; Verify: see Phase 0 verification tasks.
+- DONE SNAP.08: Bug 3 removed from repo YAMLs (`sensor.aqi` removed); Outcome: repo dashboards no longer reference missing `sensor.aqi`; Verify: `rg "sensor\\.aqi" Dashboard/Tunet/*.yaml` returns no matches.
+- TODO SNAP.09: Bug 3 still exists in at least one HA Storage dashboard; Outcome: must be manually removed in HA UI storage dashboards; Verify: searching storage dashboard YAML in HA still finds `sensor.aqi`.
+- TODO SNAP.10: Bug 4 (V2 config editors) not validated end-to-end; Outcome: cannot assume `getConfigForm()` works in the current HA frontend/browser; Verify: Phase 0 diagnostics.
+- DONE SNAP.11: Office is merged into Living Room (no Office room/subview); Outcome: no Office view to build; Verify: there is no `path: office` in `tunet-suite-config.yaml`.
+
+## Goals
+- Make `tunet-suite` a real HA dashboard: registered, visible, loads without red error cards or custom-element collisions.
+- Use Sections layout correctly: no forced vertical sizing; cards self-size by content; grid constraints use columns/min/max only.
+- Establish navigation architecture: Overview -> room popups (hash) -> room subviews, with persistent `tunet-nav-card`.
+- Start from ONE working room popup (Living Room) and converge on the pattern: minimal quick actions + ONE expandable lighting surface + "Open Room" link to subview.
+- Rollback stays easy: keep `v2_next` as staging; keep a stable resource root available for quick revert.
+
+## Non-Goals
+- Full visual UI editors for complex nested arrays (tiles/zones/sensors) unless required; YAML remains acceptable for power-user configs.
+- Creating an Office room/surface (Office is part of Living Room).
+- Retheming/redesigning cards beyond what is required for correctness, navigation, and readability.
+- Migrating every legacy HA Storage dashboard (only fix those blocking progress and known-bad entities like `sensor.aqi`).
+
+## Constraints / Rules Of Engagement
+- Grid sizing strategy: do NOT force vertical rows; let Sections auto-size height; only use columns/min/max in `getGridOptions()` and avoid `rows:` in YAML configs.
+- Popup strategy: prefer ONE consolidated, expandable lighting surface inside the popup (do not duplicate many `tunet-light-tile` cards).
+- V1 cards may be used selectively if they are better, but avoid custom element tag collisions:
+- Do NOT load V1 and V2 resources that define the same `customElements.define('tunet-*')` tags at the same time.
+- If a V1 card is required, either rename its custom element tag(s) or isolate it into a dashboard/resource set that does not load the V2 suite.
+
+## Phase 0 - Make The POC Reachable And Safe (Registration, Resources, Cache, Baselines)
+
+### 0.1 - Safety Baseline (HA-Side)
+- TODO P0.01: Create a full HA backup named `pre_tunet_suite_2026_03_01`; Outcome: rollback point exists; Verify: Settings -> System -> Backups lists the new backup with the expected name/timestamp.
+- TODO P0.02: Capture current Lovelace Resources list (URLs + types) before edits; Outcome: exact rollback path for resources; Verify: screenshot or copied text is saved somewhere outside HA cache (notes).
+- TODO P0.03: Capture current Dashboards list (URL paths + modes) before edits; Outcome: exact rollback path for dashboards; Verify: screenshot/notes of Settings -> Dashboards.
+
+### 0.2 - Register `tunet-suite` YAML Dashboard (Do Not Assume It Is Registered)
+- TODO P0.04: Confirm `/config/dashboards/tunet-suite.yaml` exists on HA; Outcome: registration will not point to a missing file; Verify: HA file editor or SSH shows the file.
+- TODO P0.05: Register `tunet-suite` in `/config/configuration.yaml` under `lovelace: dashboards:` (mode: yaml, filename: `dashboards/tunet-suite.yaml`); Outcome: HA knows about the dashboard; Verify: YAML passes validation (no syntax errors).
+- TODO P0.06: Restart HA after `configuration.yaml` edit; Outcome: dashboard registration loads; Verify: Settings -> System -> Logs shows restart completed without config errors.
+- TODO P0.07: Confirm `tunet-suite` appears in Settings -> Dashboards; Outcome: dashboard is registered; Verify: it shows with correct title/icon and opens.
+- TODO P0.08: Open `/tunet-suite/overview`; Outcome: Overview view loads; Verify: no "dashboard not found" and no red error banners.
+
+### 0.3 - Resource Hygiene (V2 Next + Collision Avoidance)
+- DONE P0.09: V2 JS is deployed to `/config/www/tunet/v2_next/`; Outcome: HA can serve the files; Verify: open `/local/tunet/v2_next/tunet_status_card.js` in a browser and see source.
+- TODO P0.10: Confirm `tunet_base.js` exists at `/config/www/tunet/v2_next/tunet_base.js`; Outcome: runtime imports succeed; Verify: open `/local/tunet/v2_next/tunet_base.js` and it loads (200).
+- DONE P0.11: Lovelace resources point to `/local/tunet/v2_next/...` and are `type: module`; Outcome: correct import semantics; Verify: Settings -> Dashboards -> Resources list.
+- TODO P0.12: Confirm Bubble Card resource is installed and loaded; Outcome: hash popups can render; Verify: no "Custom element doesn't exist: bubble-card" error on `/tunet-suite/overview`.
+- TODO P0.13: Confirm there are no duplicate Tunet resources (V1 + V2) defining the same tag names; Outcome: no registry collisions; Verify: browser console has no `Failed to execute 'define'` errors mentioning `tunet-`.
+
+### 0.4 - Cache Bust Strategy (So Testing Is Real)
+- TODO P0.14: Bump a single coherent `?v=` on all `/local/tunet/v2_next/*.js` resources (same version string across all cards); Outcome: HA frontend reloads modules; Verify: DevTools Network shows 200 (not 304) for these resources.
+- TODO P0.15: Hard refresh with DevTools "Disable cache" enabled; Outcome: no stale resources; Verify: Network tab shows resources fetched with the bumped `?v=`.
+
+### 0.5 - Grid Sizing Alignment (Sections Auto-Height)
+- TODO P0.31: Remove `rows: 2` from the Overview `custom:tunet-lighting-card` in `Dashboard/Tunet/tunet-suite-config.yaml`; Outcome: Overview lighting card height is intrinsic; Verify: zones are not clipped and there is no forced empty vertical space.
+- DONE P0.32: V2 cards implement columns-only `getGridOptions()` (no `rows`, `min_rows`, `max_rows`); Outcome: Sections sizing hints follow policy; Verify: code search shows no `min_rows`/`max_rows` and `getGridOptions()` returns `{ columns, min_columns, max_columns }` only.
+- TODO P0.33: Verify Sections auto-height visually on `/tunet-suite/overview`; Outcome: cards expand to fit content; Verify: no cut-off content in lighting/status/sensor cards at multiple viewport widths.
+
+### 0.6 - Entity Inventory Audit (Prevent Red Error Cards)
+- TODO P0.16: In HA Developer Tools -> States, confirm core system entities exist: `sensor.oal_system_status`, `sensor.oal_global_brightness_offset`, `input_select.oal_active_configuration`; Outcome: status/actions cards can render; Verify: each entity is present and has state.
+- TODO P0.17: Confirm core services/scripts exist: `script.oal_reset_soft`; Outcome: aux actions work; Verify: calling script works (or update config to match real script).
+- TODO P0.18: Confirm room light group entities exist: `light.living_room_lights`, `light.kitchen_island_lights`, `light.bedroom_primary_lights`; Outcome: consolidated room lighting surfaces can use group expansion; Verify: each entity exists and toggles.
+- TODO P0.19: Confirm per-light entities referenced in `tunet-suite-config.yaml` exist (Living: couch/floor/spots/credenza/desk; Kitchen: pendants/main/under-cab; Dining: spots/columns; Bedroom: main/accent/table lamps); Outcome: no missing lights; Verify: no entity rows are missing in States.
+- TODO P0.20: Confirm media entities exist: `media_player.living_room`, `media_player.kitchen`, `media_player.dining_room`, `media_player.bedroom`; Outcome: media cards can render; Verify: each entity exists (or remove speakers from config).
+- TODO P0.21: Confirm climate entity exists: `climate.dining_room`; Outcome: climate card works; Verify: entity exists and responds.
+- TODO P0.22: Confirm sensor entities exist: `sensor.dining_room_temperature`, `sensor.kitchen_humidity`; Outcome: sensor/status cards populate; Verify: values are numeric and update.
+
+### 0.7 - Validate Phase 0 Bugs In Real UI (Even If Code Is Done)
+- DONE P0.23: Bug 1 implemented in V2 `tunet_status_card` (uniform padding; no conditional `has-aux` padding); Outcome: row height is uniform across tiles.
+- TODO P0.24: Verify Bug 1 on `/tunet-suite/overview`; Outcome: tiles with/without aux pill appear equal height; Verify: visually inspect mixed tiles in same row.
+- DONE P0.25: Bug 2 implemented (`aux_show_when` respected + state tracking); Outcome: aux pill shows only when condition passes.
+- TODO P0.26: Verify Bug 2 by forcing global offset to 0 and non-0; Outcome: "Reset" pill toggles visibility without reload; Verify: observe pill appear/disappear as the entity changes.
+- DONE P0.27: Bug 3 removed from repo YAMLs (`sensor.aqi` removed); Outcome: repo YAMLs are clean.
+- TODO P0.28: Locate and remove any `sensor.aqi` references in HA Storage dashboards; Outcome: no missing entity rows remain; Verify: in HA dashboard YAML editor search `sensor.aqi` returns zero matches.
+- TODO P0.29: Verify legacy Storage dashboards no longer show `?` for AQI; Outcome: clean sensor rows; Verify: open affected dashboards and confirm no AQI row.
+- TODO P0.30: Validate Bug 4 by adding a simple Tunet card via the UI card picker; Outcome: confirm whether config editors appear; Verify: Add card -> pick a Tunet card (nav/weather/climate) shows a form instead of YAML-only.
+
+### Phase 0 Verification Checklist (Click/Observe)
+- TODO P0.V01: Settings -> Dashboards shows "Tunet Suite (POC)" and it opens; Verify: `/tunet-suite/overview` loads.
+- TODO P0.V02: `/tunet-suite/overview` renders all custom cards without red error cards; Verify: scroll through Overview and confirm no "Custom element doesn't exist" errors.
+- TODO P0.V03: Browser console is clean of registry collisions and 404 module loads; Verify: no `customElements.define` collisions and no failed module imports.
+- TODO P0.V04: DevTools Network shows Tunet card modules loaded from `/local/tunet/v2_next/` with the latest `?v=`; Verify: every `tunet_*.js` resource request includes the bumped version.
+
+## Phase 1 - POC-First Walking Skeleton (Living Room Popup Only)
+
+### Definition Of Done (Walking Skeleton)
+- Living Room tile opens a hash popup (`#living-room`) reliably.
+- Popup contains minimal actions and ONE consolidated, expandable lighting surface.
+- Popup contains a clear "Open Room" navigation link to `/tunet-suite/living-room`.
+- Popup does not duplicate many individual `tunet-light-tile` cards.
+
+### 1.1 - Living Room Popup (Prefer One Expandable Lighting Surface)
+- IN-PROGRESS P1.01: Living Room popup exists (`hash: '#living-room'`) in `tunet-suite-config.yaml`; Outcome: popup routing is wired; Verify: tapping Living Room tile changes URL hash and opens popup.
+- DONE P1.02: Popup includes "Open Room" navigate button to `/tunet-suite/living-room`; Outcome: popup links to full room subview; Verify: tap navigates to the subview.
+- TODO P1.03: Replace the multiple `custom:tunet-light-tile` cards in the Living Room popup with ONE `custom:tunet-lighting-card`; Outcome: a single lighting surface replaces duplicated tiles; Verify: popup shows one lighting card, not a vertical stack of many tiles.
+- TODO P1.04: Configure the popup `tunet-lighting-card` for expansion (use room group + `expand_groups: true`); Outcome: per-light controls exist inside the one card; Verify: Couch/Floor/Spots/Credenza/Desk are controllable from within the lighting card UI.
+- TODO P1.05: Remove `rows:` limits from the popup lighting card config; Outcome: popup height is intrinsic and not clipped; Verify: all items visible without forced empty space or truncation.
+- TODO P1.06: Keep one "All Off" action targeting `light.living_room_lights`; Outcome: one-tap off works; Verify: all Living Room lights turn off.
+- TODO P1.07: Ensure popup lighting surface density works at 390px and 520px widths; Outcome: no accidental horizontal overflow; Verify: mobile viewport has no sideways scroll in the popup.
+
+### 1.2 - Link To The Larger Subview (Keep Popup Minimal)
+- TODO P1.08: Ensure popup content is intentionally minimal (quick actions + lighting surface + Open Room) and does not replicate full-room media/sensors; Outcome: popup stays focused; Verify: subview has more content than popup.
+- TODO P1.09: Add `hold_action` on Living Room tile to navigate directly to `/tunet-suite/living-room`; Outcome: power users can skip popup; Verify: long-press on room tile opens subview.
+
+### 1.3 - Deploy And Cache Bust
+- TODO P1.10: Deploy updated `Dashboard/Tunet/tunet-suite-config.yaml` to HA `/config/dashboards/tunet-suite.yaml`; Outcome: HA uses updated YAML; Verify: changes appear after refresh.
+- TODO P1.11: If lighting-card behavior changes are needed, deploy updated `/config/www/tunet/v2_next/` JS and bump `?v=`; Outcome: UI reflects new JS; Verify: DevTools Network shows new resource versions.
+
+### Phase 1 Verification Checklist (Click/Observe)
+- TODO P1.V01: On `/tunet-suite/overview`, tap Living Room; Verify: popup opens and hash is `#living-room`.
+- TODO P1.V02: In popup, confirm exactly one lighting surface exists; Verify: no duplicated stacks of `tunet-light-tile`.
+- TODO P1.V03: Toggle each Living Room light from inside the single lighting surface; Verify: HA states change and UI updates.
+- TODO P1.V04: Tap "Open Room"; Verify: navigates to `/tunet-suite/living-room` and popup closes.
+
+## Phase 2 - Room Subviews (Living Room First, Then Kitchen/Dining/Bedroom)
+
+### 2.1 - Living Room Subview (Full Surface)
+- TODO P2.01: Convert Living Room subview from multiple `tunet-light-tile` cards to ONE `tunet-lighting-card`; Outcome: consolidated room lighting; Verify: one lighting card controls all Living Room lights.
+- TODO P2.02: Add `tunet-actions-card` at top of Living Room subview (room-scoped actions); Outcome: room quick actions exist; Verify: actions affect intended entities only.
+- TODO P2.03: Keep/add `tunet-media-card` for `media_player.living_room`; Outcome: media controls accessible; Verify: play/pause works.
+- TODO P2.04: Add a minimal sensors/status surface only if entities exist (temp, humidity, motion); Outcome: context without empty shells; Verify: no missing entity error rows.
+
+### 2.2 - Kitchen Subview
+- TODO P2.05: Replace Kitchen subview tiles with one `tunet-lighting-card` for Kitchen lights; Outcome: consolidated lighting; Verify: pendants/main/under-cab appear in one surface.
+- TODO P2.06: Add `tunet-actions-card` for Kitchen (All Off/All On); Outcome: quick actions exist; Verify: actions work.
+- TODO P2.07: Add `tunet-media-card` for `media_player.kitchen` only if entity exists; Outcome: no red errors; Verify: card present only when entity exists.
+
+### 2.3 - Dining Room Subview
+- TODO P2.08: Replace Dining subview tiles with one `tunet-lighting-card` for Dining lights; Outcome: consolidated lighting; Verify: spots/columns appear.
+- TODO P2.09: Keep/add `tunet-climate-card` for `climate.dining_room`; Outcome: climate controls exist; Verify: setpoint changes persist.
+- TODO P2.10: Add media only if `media_player.dining_room` exists; Outcome: no missing media; Verify: card renders or is omitted.
+
+### 2.4 - Bedroom Subview
+- TODO P2.11: Replace Bedroom subview tiles with one `tunet-lighting-card` for Bedroom lights; Outcome: consolidated lighting; Verify: main/accent/table lamps appear.
+- TODO P2.12: Ensure Bedroom lighting UI does not expose unsupported controls for Govee (if applicable); Outcome: no broken sliders; Verify: controls match device capabilities.
+- TODO P2.13: Add media only if `media_player.bedroom` exists; Outcome: no missing media; Verify: card renders or is omitted.
+
+### 2.5 - Office Is Not A Room (Regression Guard)
+- DONE P2.14: Office merged into Living Room; Outcome: no Office view to implement; Verify: `tunet-suite-config.yaml` has no Office view path.
+- TODO P2.15: Ensure "Office" never appears as a room tile label; Outcome: nav remains consistent; Verify: room list only includes Living/Kitchen/Dining/Bedroom.
+
+### Phase 2 Verification Checklist (Click/Observe)
+- TODO P2.V01: Open each subview (`/tunet-suite/living-room`, `/kitchen`, `/dining-room`, `/bedroom`); Verify: no red error cards.
+- TODO P2.V02: In each subview, confirm exactly one lighting surface exists; Verify: lighting is consolidated per room.
+- TODO P2.V03: Toggle each room light; Verify: HA states update and UI reflects.
+- TODO P2.V04: Dining: adjust thermostat; Verify: climate responds.
+- TODO P2.V05: Living: play/pause media; Verify: media responds.
+
+## Phase 3 - Expand Popups (Kitchen, Dining, Bedroom) Using The Same Pattern
+
+### 3.1 - Popup Pattern Template (Shared)
+- TODO P3.01: Define a standard popup template (Bubble pop-up + quick actions + one lighting surface + Open Room link); Outcome: consistent UX; Verify: all room popups share structure and styles.
+- TODO P3.02: Ensure popup styles work in both light and dark modes; Outcome: readable in both; Verify: switch theme and re-test popups.
+
+### 3.2 - Implement Each Room Popup
+- TODO P3.03: Add Kitchen popup `#kitchen` using one expandable lighting surface (group expansion) and "Open Room" to `/tunet-suite/kitchen`; Outcome: kitchen popup works; Verify: tap tile opens popup and controls toggle lights.
+- TODO P3.04: Add Dining popup `#dining-room` (or `#dining`) using one lighting surface and "Open Room" to `/tunet-suite/dining-room`; Outcome: dining popup works; Verify: lights toggle.
+- TODO P3.05: Add Bedroom popup `#bedroom` using one lighting surface and "Open Room" to `/tunet-suite/bedroom`; Outcome: bedroom popup works; Verify: lights toggle.
+- TODO P3.06: Update `tunet-rooms-card` tile behavior: tap -> popup hash, hold -> subview path; Outcome: consistent nav; Verify: tap/hold behavior matches across rooms.
+
+### Phase 3 Verification Checklist (Click/Observe)
+- TODO P3.V01: Tap each room tile on Overview; Verify: correct popup opens (hash matches room).
+- TODO P3.V02: In each popup, confirm exactly one lighting surface exists; Verify: no duplicated tile stacks.
+- TODO P3.V03: Tap "Open Room" from each popup; Verify: navigates to matching subview and popup closes.
+- TODO P3.V04: Use browser back; Verify: returns to Overview and hash popups behave correctly.
+
+## Phase 4 - Navigation Card Hardening (Beyond POC)
+
+### 4.1 - Active Route Highlighting
+- DONE P4.01: `tunet-nav-card` exists with 3 items and desktop breakpoint 900; Outcome: nav renders; Verify: nav card appears in `tunet-suite-config.yaml`.
+- TODO P4.02: Verify active highlighting updates on view navigation and browser back/forward; Outcome: no stale active state; Verify: active icon changes correctly when navigating Overview/Rooms/Media.
+- TODO P4.03: Verify room subviews count as Rooms active; Outcome: Rooms stays highlighted in subviews; Verify: open `/tunet-suite/living-room` and Rooms is active.
+
+### 4.2 - Safe Area, Offsets, And Kiosk
+- TODO P4.04: Validate safe-area padding on mobile (iOS/Android); Outcome: nav not clipped; Verify: device with notch shows full nav.
+- TODO P4.05: Validate global offsets applied by nav card do not affect non-Tunet dashboards; Outcome: offsets are scoped or safe; Verify: open a non-Tunet dashboard and confirm layout unchanged.
+- TODO P4.06: Decide kiosk-mode approach for `tunet-suite` (kiosk-mode HACS vs native) and implement; Outcome: tablet view has clean chrome; Verify: header/sidebar hidden as desired.
+
+### 4.3 - Optional Media Mini-Player (Only If Worth It)
+- TODO P4.07: Decide whether to add a mini-player to nav card or rely on Media view; Outcome: avoid feature creep; Verify: decision captured as DONE/TODO in this plan.
+- TODO P4.08: If mini-player is kept, implement minimal now-playing + play/pause + tap to `/tunet-suite/media`; Outcome: lightweight media access; Verify: controls work and do not degrade performance.
+
+### Phase 4 Verification Checklist (Click/Observe)
+- TODO P4.V01: Resize viewport below/above 900px; Verify: bottom bar becomes side rail without layout breakage.
+- TODO P4.V02: Navigate Overview -> Rooms -> Media -> Rooms; Verify: active state always correct.
+- TODO P4.V03: Confirm nav does not cover the last content on any view/subview; Verify: bottom-most cards remain accessible.
+
+## Phase 5 - Bugs, Config Editors, V1 Selective Use, And Cutover
+
+### 5.1 - Bug 4: Config Editors (Do Not Assume)
+- TODO P5.01: Record HA Core + Frontend versions from Settings -> About; Outcome: known compatibility baseline; Verify: versions are written into this plan under a new DONE snapshot line.
+- TODO P5.02: Test `getConfigForm()` support by adding `custom:tunet-nav-card` via UI card picker; Outcome: confirm schema editor works (or not); Verify: either a form appears or it stays YAML-only.
+- TODO P5.03: If `getConfigForm()` is unsupported, decide between implementing `getConfigElement()` (at least for nav/weather/climate) vs accepting YAML-only; Outcome: clear direction; Verify: decision is recorded as DONE with rationale.
+- TODO P5.04: If implementing `getConfigElement()`, spike on `tunet-nav-card` first (small surface); Outcome: one working visual editor element; Verify: visual editor appears for nav card.
+
+### 5.2 - HA Storage Dashboard Cleanup (Targeted)
+- TODO P5.05: Remove `sensor.aqi` from any HA Storage dashboards still containing it; Outcome: no missing entity rows; Verify: storage dashboards YAML search returns zero hits.
+- TODO P5.06: Remove any stale `rows:` constraints in Storage dashboards that clip Sections height; Outcome: auto-height works; Verify: no clipping in UI.
+
+### 5.3 - V1 Cards Selective Use (If Needed)
+- TODO P5.07: Identify any specific V1 card that is materially better than its V2 counterpart (document which and why); Outcome: justified exception list; Verify: list exists with at least one measurable reason (bug-free, better UX, missing V2 feature).
+- TODO P5.08: For each V1 exception, choose collision-safe strategy (rename tag or isolate resources); Outcome: no `customElements.define` collisions; Verify: console clean after loading.
+- TODO P5.09: If renaming tags, ensure YAML uses the renamed `custom:` type and that resources load only once; Outcome: stable mixed suite; Verify: no collisions and cards render.
+
+### 5.4 - Cutover Strategy (When POC Is Good)
+- TODO P5.10: Decide stable deployment convention: keep `/local/tunet/v2_next/` as stable or promote to `/local/tunet/v2/`; Outcome: a single stable root; Verify: decision recorded.
+- TODO P5.11: If promoting, copy v2_next to v2 and repoint resources; Outcome: stable `/local/tunet/v2/` usage; Verify: resources list uses v2 and UI works after cache bust.
+- TODO P5.12: Optionally hide legacy dashboards after cutover; Outcome: users land on the right dashboard; Verify: sidebar is decluttered and no broken links.
+
+### Phase 5 Verification Checklist (Click/Observe)
+- TODO P5.V01: Add a Tunet card via UI card picker; Verify: config editor behavior matches expectation and is documented.
+- TODO P5.V02: Open any legacy dashboard previously affected by AQI; Verify: no missing entity rows remain.
+- TODO P5.V03: Confirm cutover resources load and no collisions occur; Verify: console is clean after hard refresh.
+
+## Deployment Runbook (HA-Side Actions, Rollback, Cache Bust)
+
+### Deploy Cards To HA (`v2_next`)
+- DONE DEP.01: V2 card JS is deployed to `/config/www/tunet/v2_next/`; Outcome: staging root exists; Verify: direct fetch works.
+- TODO DEP.02: Ensure deployed directory includes all `tunet_*.js` and `tunet_base.js`; Outcome: imports succeed; Verify: each file fetch returns 200.
+- TODO DEP.03: Ensure Lovelace resources are `type: module` and point at `/local/tunet/v2_next/` (plus Bubble Card resource); Outcome: correct loader; Verify: resource list matches.
+
+### Deploy Dashboard YAML
+- DONE DEP.04: `Dashboard/Tunet/tunet-suite-config.yaml` is copied to `/config/dashboards/tunet-suite.yaml`; Outcome: YAML exists on HA; Verify: file present and readable.
+- TODO DEP.05: After YAML changes, refresh `/tunet-suite/overview`; Outcome: YAML changes take effect; Verify: UI reflects edits.
+
+### Register Dashboard (One-Time)
+- TODO DEP.06: Add `lovelace: dashboards: tunet-suite:` entry in `/config/configuration.yaml`; Outcome: dashboard registered; Verify: Settings -> Dashboards lists it.
+- TODO DEP.07: Restart HA after registration; Outcome: registration loaded; Verify: dashboard opens successfully.
+
+### Cache Bust (Repeatable)
+- TODO DEP.08: Bump a single `?v=` across all Tunet resources every deploy; Outcome: predictable cache behavior; Verify: DevTools Network shows new query values.
+- TODO DEP.09: Use hard refresh + disable cache during development; Outcome: eliminates stale frontend; Verify: resources re-fetch (200).
+
+### Rollback (Fast Path)
+- TODO DEP.10: Keep a known-good stable resource root (e.g., `/local/tunet/v2/`) available; Outcome: rollback path exists; Verify: stable resources are still present on HA.
+- TODO DEP.11: If v2_next breaks, repoint resources back to stable root and hard refresh; Outcome: broken JS no longer loads; Verify: console errors disappear.
+- TODO DEP.12: If `tunet-suite` YAML breaks badly, hide/remove dashboard registration temporarily; Outcome: users are not blocked; Verify: sidebar no longer shows tunet-suite.
+
+## Known Gaps / Honesty List
+- TODO GAP.01: Exact HA Core/Frontend versions are not recorded here yet; Outcome: cannot conclude config editor support; Verify: Phase 5 captures versions as DONE.
+- TODO GAP.02: Some entity IDs may differ between HA and YAML; Outcome: risk of red error cards; Verify: Phase 0 entity audit completed and YAML updated as needed.
+- TODO GAP.03: `v2_next` is active in HA but repo docs may mention `v2`; Outcome: confusion risk; Verify: plan/runbook clearly states active root and rollback.
+- TODO GAP.04: Popup styling is optimized for dark glass; Outcome: light mode may need tweaks; Verify: Phase 3 tests both modes.
+- TODO GAP.05: Mixing V1 and V2 is risky due to tag collisions; Outcome: may require renames/isolation; Verify: Phase 5 collision-safe strategy executed.
+
+## If Config Editors Still Don't Show (Diagnostics)
+- TODO DIAG.01: Confirm there are no `customElements.define` collisions in browser console; Outcome: cards register properly; Verify: console is clean on refresh.
+- TODO DIAG.02: Confirm all Tunet resources are loaded as `type: module`; Outcome: module semantics valid; Verify: resource list.
+- TODO DIAG.03: Confirm HA Frontend supports `getConfigForm`; Outcome: avoid chasing impossible UI; Verify: version check + HA release notes.
+- TODO DIAG.04: In browser console, run `window.customCards?.map(c => c.type)` and confirm `tunet-*` entries exist; Outcome: frontend sees card metadata; Verify: list includes Tunet cards.
+- TODO DIAG.05: Try adding `custom:tunet-nav-card` via "Add card"; Outcome: simplest config surface; Verify: form appears (or not) consistently after cache bust.
+- TODO DIAG.06: If schema UI never appears, implement a `getConfigElement()` spike for ONE card; Outcome: prove editor pipeline; Verify: visual editor appears for that card.
+- TODO DIAG.07: If even `getConfigElement()` does not work, investigate broader frontend issues (failed module loads, CSP, JS errors); Outcome: root cause identified; Verify: underlying errors resolved before continuing.

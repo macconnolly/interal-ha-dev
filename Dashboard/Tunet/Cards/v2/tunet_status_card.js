@@ -89,7 +89,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     background: var(--tile-bg);
     border-radius: var(--r-tile);
     box-shadow: var(--tile-shadow-rest);
-    padding: 14px 8px 10px;
+    padding: 26px 8px 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 4px;
     cursor: pointer;
@@ -174,7 +174,6 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   .tile-aux:hover { box-shadow: var(--tile-shadow-rest); }
   .tile-aux:active { transform: scale(0.97); }
-  .tile.has-aux { padding-top: 26px; }
 
   /* ── Timer Tile ──────────────────────────────── */
   .tile[data-type="timer"] .tile-val {
@@ -456,6 +455,7 @@ class TunetStatusCard extends HTMLElement {
           show_when: t.show_when || null,
           tap_action: t.tap_action || null,
           aux_action: t.aux_action || null,
+          aux_show_when: t.aux_show_when || null,
         };
 
         if (type === 'alarm') {
@@ -510,6 +510,7 @@ class TunetStatusCard extends HTMLElement {
     for (const t of this._config.tiles) {
       if (t.entity) relevantEntities.add(t.entity);
       if (t.show_when && t.show_when.entity) relevantEntities.add(t.show_when.entity);
+      if (t.aux_show_when && t.aux_show_when.entity) relevantEntities.add(t.aux_show_when.entity);
       if (t.playing_entity) relevantEntities.add(t.playing_entity);
     }
 
@@ -527,6 +528,14 @@ class TunetStatusCard extends HTMLElement {
   getCardSize() {
     const rows = Math.ceil(this._config.tiles.length / (this._config.columns || 4));
     return Math.max(2, rows + 1);
+  }
+
+  getGridOptions() {
+    return {
+      columns: 12,
+      min_columns: 6,
+      max_columns: 12,
+    };
   }
 
   /* ═══════════════════════════════════════════════════
@@ -673,6 +682,7 @@ class TunetStatusCard extends HTMLElement {
         }
       }
 
+      let auxEl = null;
       if (tile.aux_action) {
         const auxBtn = document.createElement('button');
         auxBtn.type = 'button';
@@ -687,7 +697,7 @@ class TunetStatusCard extends HTMLElement {
           this._handleTapAction(tile.aux_action, tile.entity);
         });
         el.appendChild(auxBtn);
-        el.classList.add('has-aux');
+        auxEl = auxBtn;
       }
 
       this._gridEl.appendChild(el);
@@ -695,6 +705,7 @@ class TunetStatusCard extends HTMLElement {
         el,
         config: tile,
         index: i,
+        auxEl,
         valEl: el.querySelector(`#val-${i}`),
         dotEl: el.querySelector(`#dot-${i}`),
         ddMenuEl: tile.type === 'dropdown' ? el.querySelector(`#ddmenu-${i}`) : null,
@@ -739,14 +750,19 @@ class TunetStatusCard extends HTMLElement {
     if (!this._hass || !this._tileEls) return;
 
     for (const tile of this._tileEls) {
-      const { config, el } = tile;
-      if (!config.show_when) {
-        el.classList.remove('tile-hidden');
-        continue;
+      const { config, el, auxEl } = tile;
+
+      const tileVisible = !config.show_when
+        ? true
+        : this._matchesShowWhen(this._hass.states[config.show_when.entity], config.show_when);
+      el.classList.toggle('tile-hidden', !tileVisible);
+
+      if (auxEl) {
+        const auxVisible = !config.aux_show_when
+          ? true
+          : this._matchesShowWhen(this._hass.states[config.aux_show_when.entity], config.aux_show_when);
+        auxEl.hidden = !(tileVisible && auxVisible);
       }
-      const watchEntity = this._hass.states[config.show_when.entity];
-      const visible = this._matchesShowWhen(watchEntity, config.show_when);
-      el.classList.toggle('tile-hidden', !visible);
     }
   }
 

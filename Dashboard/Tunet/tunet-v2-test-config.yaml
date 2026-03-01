@@ -78,6 +78,11 @@
         entity: sensor.oal_system_status
         operator: not_equals
         state: Adaptive
+      aux_show_when:
+        entity: sensor.oal_global_brightness_offset
+        attribute: total_offset
+        operator: not_equals
+        state: 0
       aux_action:
         label: Reset
         icon: restart_alt
@@ -231,21 +236,6 @@
       precision: 0
       value_attribute: temperature
       show_range: true
-    - entity: sensor.aqi
-      label: Air Quality
-      icon: air
-      accent: green
-      unit: AQI
-      thresholds:
-        - value: 150
-          condition: gte
-          style: error
-        - value: 100
-          condition: gte
-          style: warning
-        - value: 50
-          condition: lte
-          style: success
 
 # ─── 6. MEDIA PLAYER ─────────────────────────────────────────
 - type: custom:tunet-media-card
@@ -322,6 +312,9 @@
         - entity: light.living_room_credenza_light
           icon: light
           name: Credenza
+        - entity: light.office_desk_lamp
+          icon: desk
+          name: Desk
 
     - name: Kitchen
       icon: kitchen
@@ -345,7 +338,7 @@
         - entity: light.dining_room_spot_lights
           icon: highlight
           name: Spots
-        - entity: light.all_column_lights
+        - entity: light.dining_column_strip_light_matter
           icon: view_column
           name: Columns
 
@@ -363,14 +356,6 @@
         - entity: light.master_bedroom_table_lamps
           icon: table_lamp
           name: Table Lamps
-
-    - name: Office
-      icon: desktop_windows
-      navigate_path: /tunet-overview/office
-      lights:
-        - entity: light.office_desk_lamp
-          icon: desk
-          name: Desk
 
 # ─── 10. LIGHT TILE (standalone test) ────────────────────────
 - type: custom:tunet-light-tile

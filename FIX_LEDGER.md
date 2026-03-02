@@ -1,7 +1,7 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-01
+Last updated: 2026-03-02
 Scope: `/home/mac/HA/implementation_10`
 
 ## Purpose
@@ -12,6 +12,37 @@ This file is the machine-actionable findings ledger for the Tunet Suite work.
 - `FIX_LEDGER.md` is the detailed findings and remediation source of truth.
 - When a sub-agent needs exact work items, use this file first.
 - When a human needs phase order, rollout order, or deployment order, use `plan.md`.
+
+## Control Document Precedence
+
+If the control documents disagree, use this precedence order:
+
+1. `plan.md`
+2. `FIX_LEDGER.md`
+3. `Dashboard/Tunet/Docs/agent_driver_pack.md`
+4. `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
+5. `Dashboard/Tunet/CLAUDE.md`
+
+Do not silently smooth over conflicts. Record them explicitly in planning outputs.
+
+## Branch And Status Discipline
+
+- This ledger is authoritative for broad Tunet work only on branch `claude/dashboard-nav-research-QnOBs`.
+- Broad planning outputs must record the live current branch and HEAD before using this ledger.
+- Imported findings must be classified as:
+  - `OPEN`
+  - `ALREADY FIXED IN REPO`
+  - `FIXED IN REPO BUT NOT DEPLOYED`
+  - `FIXED IN YAML BUT NOT STORAGE`
+
+## Reconciled Findings That Must Not Be Reopened Blindly
+
+These items have already changed materially on this branch and must be verified before being repeated as active blockers:
+
+- `back_path` is already present on Tunet suite subviews.
+- the storage Living Room popup already uses one consolidated `tunet-lighting-card`.
+- `tunet_sensor_card.js` `value_attribute` support.
+- nav active color token drift in `tunet_nav_card.js`.
 
 ## Canonical Decisions Already Made
 
@@ -61,6 +92,32 @@ These grades are implementation-health grades, not value judgments. They reflect
 | `Dashboard/Tunet/Cards/v2/tunet_actions_card.js` | B | Straightforward and low-risk | No major issue surfaced in this tranche |
 
 ## Remediation Ledger
+
+### Control-Plane Hardening
+
+#### FL-000
+- Status: `DONE`
+- Severity: `HIGH`
+- Files:
+  - `.claude/skills/tunet-agent-driver/SKILL.md`
+  - `CLAUDE.md`
+  - `Dashboard/Tunet/CLAUDE.md`
+  - `Dashboard/Tunet/Docs/agent_driver_pack.md`
+  - `plan.md`
+  - `FIX_LEDGER.md`
+- Problem:
+  - The Tunet multi-agent workflow had strong structure but insufficient determinism around branch, document precedence, stale findings, and required saved-artifact preflight.
+- Exact Fix:
+  - Add explicit branch guard requirements.
+  - Add explicit control-document precedence.
+  - Add stale-finding classification and reconciliation rules.
+  - Require branch/head and control-doc reconciliation sections in saved planning artifacts.
+- Why This Matters:
+  - The biggest remaining failure mode is no longer “lack of analysis”; it is producing high-effort, high-confidence artifacts from the wrong branch or from stale assumptions.
+- Dependency:
+  - None.
+- Validation:
+  - Read the listed files and confirm they now explicitly document branch guard, precedence, stale-finding handling, and saved-artifact discipline.
 
 ### Immediate Operational Alignment
 

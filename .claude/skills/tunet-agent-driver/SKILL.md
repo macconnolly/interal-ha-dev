@@ -37,6 +37,65 @@ Treat them this way:
 
 If any of these conflict, call the conflict out explicitly. Do not silently pick one.
 
+## Branch Guard And Determinism
+
+This skill is authoritative only on the intended Tunet working branch:
+
+- `claude/dashboard-nav-research-QnOBs`
+
+Before doing substantive work, record:
+
+1. current branch
+2. current HEAD commit
+
+If the current branch is not `claude/dashboard-nav-research-QnOBs`:
+
+- stop
+- report the actual branch
+- do not produce authoritative Tunet planning artifacts
+
+Do not trust static commit markers in docs. Always trust live repo state.
+
+## Control Document Precedence
+
+When the control documents disagree, use this precedence order:
+
+1. `plan.md`
+2. `FIX_LEDGER.md`
+3. `Dashboard/Tunet/Docs/agent_driver_pack.md`
+4. `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
+5. `Dashboard/Tunet/CLAUDE.md`
+
+Do not silently resolve conflicts. Record them in a `CONTROL_DOC_CONFLICTS` section.
+
+## Stale Findings Protocol
+
+Older findings must not be repeated as open without checking the current branch first.
+
+Classify reused findings as one of:
+
+- `OPEN`
+- `ALREADY FIXED IN REPO`
+- `FIXED IN REPO BUT NOT DEPLOYED`
+- `FIXED IN YAML BUT NOT STORAGE`
+
+At minimum, explicitly reconcile these before restating them:
+
+- `back_path` coverage on Tunet suite subviews
+- the storage Living Room popup using one consolidated `tunet-lighting-card`
+- `tunet_sensor_card.js` `value_attribute` support
+- nav active color token drift in `tunet_nav_card.js`
+
+## Required Preflight Sections
+
+Every substantial saved artifact produced under this skill must begin with:
+
+- `BRANCH_AND_HEAD`
+- `CONTROL_DOCS_READ`
+- `CONTROL_DOC_CONFLICTS`
+- `STALE_FINDINGS_RECONCILIATION`
+- `ASSUMPTIONS`
+
 ## Non-Negotiable Tunet Principles
 
 Every agent run using this skill must preserve these principles:
@@ -108,6 +167,7 @@ Then:
 6. rerun Agent 1 to produce the corrected final artifacts
 
 Do not skip the Agent 4 review loop.
+Agent 1 cannot finalize before Agent 4 has attacked the draft ledger and plan.
 
 ## Saved Output Contract
 
@@ -121,6 +181,7 @@ The run is not complete unless these files exist:
 - `Dashboard/Tunet/Agent-Reviews/agent4_feasibility_critique.md`
 
 Do not accept summary-only responses in place of these files.
+Chat-only summaries do not count as completion.
 
 ## Output Quality Bar
 

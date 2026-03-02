@@ -1,7 +1,7 @@
 # Tunet Multi-Agent Driver Pack
 
 Working branch: `claude/dashboard-nav-research-QnOBs`  
-HEAD at time of writing: `94253a5`  
+HEAD markers in this file are historical only; agents must record the live current HEAD during preflight.  
 Repo root: `/home/mac/HA/implementation_10`
 
 ## Purpose
@@ -24,6 +24,18 @@ The design goal is not generic “analysis.” The design goal is to maximize:
 6. phased execution planning where every tranche is small, working, and testable  
 
 This pack assumes the agents can communicate with each other and can save outputs to repo files.
+
+## Control-Plane Objective
+
+The highest-value failures to prevent at this stage are:
+
+- running on the wrong branch
+- using the wrong control document as the source of truth
+- repeating stale findings as if they are still open
+- accepting chat-only summaries instead of saved artifacts
+- allowing Agent 1 to finalize before Agent 4 has attacked the draft plan
+
+This driver pack is part of the control plane for the project, not just a convenience prompt.
 
 ## What This Driver Pack Is Optimizing For
 
@@ -115,6 +127,9 @@ If a later coding agent cannot act from the item without re-researching the repo
   - whether it can ship independently
 - If an agent discovers an issue that was not explicitly requested but is relevant, that is a success condition, not noise.
 - Small, fully working, fully testable tranches beat broad, impressive, fragile plans.
+- Branch determinism matters more than elegant synthesis.
+- If the branch is wrong, stop instead of producing a misleading artifact.
+- If a finding is already fixed on this branch, say so plainly.
 
 ## Required Output Shape For All Agents
 
@@ -141,9 +156,18 @@ For each finding or work item, use this structure where applicable:
 - `Deploy Impact`
 - `Can Ship Independently`
 
+Every saved artifact must also begin with:
+
+- `BRANCH_AND_HEAD`
+- `CONTROL_DOCS_READ`
+- `CONTROL_DOC_CONFLICTS`
+- `STALE_FINDINGS_RECONCILIATION`
+- `ASSUMPTIONS`
+
 ## Required Saved Outputs
 
 Every agent must save its full output to a repo file, not just return chat text.
+Chat-only summaries do not count as completion.
 
 Use these exact output paths:
 
@@ -162,6 +186,61 @@ If an agent produces an intermediate draft and a final revision, it must either:
 - overwrite the file with the improved version, or
 - save `*_v1.md` and `*_v2.md` and clearly mark the final one
 
+## Branch Guard
+
+Before doing substantive work, every agent must:
+
+1. record the current branch
+2. record the current HEAD commit
+3. compare the branch to the expected working branch:
+   - `claude/dashboard-nav-research-QnOBs`
+
+If the branch is not `claude/dashboard-nav-research-QnOBs`:
+
+- stop
+- report the actual branch
+- do not produce authoritative Tunet planning outputs
+
+## Control Document Precedence
+
+When the Tunet control documents disagree, use this precedence order:
+
+1. `plan.md`
+2. `FIX_LEDGER.md`
+3. `Dashboard/Tunet/Docs/agent_driver_pack.md`
+4. `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
+5. `Dashboard/Tunet/CLAUDE.md`
+
+Interpretation:
+
+- `plan.md` controls execution order and current tranche
+- `FIX_LEDGER.md` controls defect status and remediation granularity
+- `agent_driver_pack.md` controls orchestration, roles, output contract, and supervision
+- `DEPLOYMENT_RESOURCES.md` controls deployment-path and staging-root reality
+- `Dashboard/Tunet/CLAUDE.md` controls Tunet UI / UX / design quality expectations
+
+If a conflict exists, write it down in `CONTROL_DOC_CONFLICTS` before proceeding.
+
+## Stale Findings Reconciliation
+
+This repo now has multiple waves of research and code changes. Older assessments may be partly or fully stale.
+
+Every agent must classify reused findings as one of:
+
+- `OPEN`
+- `ALREADY FIXED IN REPO`
+- `FIXED IN REPO BUT NOT DEPLOYED`
+- `FIXED IN YAML BUT NOT STORAGE`
+
+Agents must not repeat old findings as active blockers without checking current branch state.
+
+Known examples that must be reconciled before reuse:
+
+- `back_path` coverage on Tunet suite subviews
+- the storage Living Room popup using one consolidated `tunet-lighting-card`
+- `tunet_sensor_card.js` `value_attribute` support
+- nav active color token drift in `tunet_nav_card.js`
+
 ## Launch Order
 
 ### Recommended order
@@ -170,6 +249,8 @@ If an agent produces an intermediate draft and a final revision, it must either:
 2. Launch Agent 1 immediately after, but instruct it not to finalize until it has the outputs of Agents 2, 3, and 4.
 3. After Agent 1 creates a first-pass ledger and plan, send those files to Agent 4 for attack review.
 4. Agent 1 then issues a revised final ledger and plan.
+
+Agent 1 cannot finalize before Agent 4 has attacked the draft ledger and execution plan.
 
 ### Why this order
 

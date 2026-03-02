@@ -12,11 +12,11 @@ All current dashboard work lives in `Dashboard/Tunet/`. Key files:
 
 | What | File | Why it matters |
 |------|------|----------------|
-| **Design spec** | `Dashboard/Tunet/Mockups/design_language.md` (v8.0) | THE canonical rulebook. Every token, every rule. |
+| **Design spec** | `Dashboard/Tunet/Mockups/design_language.md` (v8.3) | THE canonical rulebook. Every token, every rule. |
 | **Gold standard** | `Dashboard/Tunet/Cards/tunet_climate_card.js` (1513 lines) | Match this quality. |
 | **Mockups** | `Dashboard/Tunet/Mockups/tunet-new-cards-v3.html` | Visual target for status/action/lighting cards |
 | **Config** | `Dashboard/Tunet/tunet-overview-config.yaml` | Current dashboard card definitions |
-| **OUTDATED** | `Dashboard/Tunet/tunet-design-system.md` (v2.1) | SUPERSEDED by design_language.md v8.0 |
+| **OUTDATED** | `Dashboard/Tunet/tunet-design-system.md` (v2.1) | SUPERSEDED by design_language.md v8.3 |
 
 ### Tunet Multi-Agent Driver
 
@@ -42,6 +42,9 @@ Required control documents for that workflow:
 - `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
 - `Dashboard/Tunet/CLAUDE.md`
 
+For Tunet-specific UI / UX / design rules, `Dashboard/Tunet/CLAUDE.md` overrides this root-level Tunet summary where they differ.
+If there is any ambiguity about Tunet design tokens, card interaction rules, or quality bar, prefer the Tunet-local file and record the mismatch under `CONTROL_DOC_CONFLICTS`.
+
 Execution expectations:
 
 - prefer a 4-agent first wave:
@@ -53,6 +56,10 @@ Execution expectations:
 - optimize for execution-grade outputs another coding agent can implement directly
 - prefer exact English remediation steps over large speculative code blocks
 - require exact file references, exact line numbers, validation, dependencies, deploy impact, and `NEW DISCOVERIES`
+- require explicit current-branch verification before treating broad Tunet planning output as authoritative
+- require `CONTROL_DOC_CONFLICTS` if `plan.md`, `FIX_LEDGER.md`, `agent_driver_pack.md`, deployment docs, and Tunet-local guidance disagree
+- require stale-finding reconciliation before repeating prior findings as open blockers
+- Agent 1 cannot finalize before Agent 4 has attacked the draft ledger and execution plan
 
 Tunet-specific architectural rules to preserve:
 
@@ -69,7 +76,7 @@ Tunet-specific architectural rules to preserve:
 2. Actions card, Lighting card, Rooms card
 
 ### User preference
-User likes the dark blue glass variant `rgba(30,41,59,0.65)` in dark mode. design_language.md v8.0 specifies neutral gray `rgba(44,44,46,0.72)`. Present both for comparison when refining dark mode.
+User likes the dark blue glass variant `rgba(30,41,59,0.65)` in dark mode. The currently referenced Tunet design spec remains `design_language.md` v8.3. If user preference and the written spec diverge, preserve both in planning outputs and make the conflict explicit instead of silently choosing one.
 
 ---
 

@@ -3,6 +3,7 @@
 ## Canonical Design Spec
 **`Mockups/design_language.md` (v8.3)** is THE rulebook. Read it before building or modifying any card.
 `tunet-design-system.md` (v2.1) is OUTDATED and superseded. Do not use its values.
+For Tunet-specific design, interaction, and quality decisions, this file and `design_language.md` override any shorter root-level Tunet summary if they differ.
 
 ## Quality Bar
 **`Cards/tunet_climate_card.js`** (1513 lines) is the gold standard. Every card must match its token compliance, header pattern, surface treatment, interactions, and accessibility.
@@ -49,9 +50,21 @@ Control documents for that workflow:
 Execution bar:
 - prefer a 4-agent first wave
 - save full artifacts to `Dashboard/Tunet/Agent-Reviews/`
+- chat-only summaries do not count as completion
 - optimize for execution-grade outputs another coding agent can implement directly
 - prefer exact English remediation steps over large speculative code blocks
 - preserve the Tunet UI quality bar, Sections-native behavior, and small working testable tranches
+- Agent 1 cannot finalize before Agent 4 has attacked the draft ledger and execution plan
+- verify the current branch before producing authoritative planning output
+- if the control docs disagree, record that conflict explicitly
+- classify prior findings before reusing them:
+  - open issue
+  - already fixed in repo
+  - fixed in repo but not deployed
+  - fixed in YAML but not storage
+- do not reopen as blockers findings that are already reconciled on this branch, including:
+  - `back_path` already present on Tunet suite subviews
+  - the storage Living Room popup already using one consolidated `tunet-lighting-card`
 
 <claude-mem-context>
 # Recent Activity

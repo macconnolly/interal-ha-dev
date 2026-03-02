@@ -1,25 +1,48 @@
 # Tunet Suite Dashboard - Implementation Plan (V2 Next)
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-01
+Last updated: 2026-03-02
 
 ## Canonical Control Documents
 
 - `plan.md` is the single execution source of truth for phase order, deployment order, and current status.
 - `FIX_LEDGER.md` is the detailed findings, remediation, and validation backlog.
+- `Dashboard/Tunet/Docs/agent_driver_pack.md` is the orchestration source of truth for multi-agent Tunet review runs.
+- `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md` is the deployment-path and staging-root reality source of truth.
+- `Dashboard/Tunet/CLAUDE.md` is the Tunet UI / UX quality bar.
 - If a contributor needs to know what to do next, start here.
 - If a contributor needs exact defects, exact files, exact validation, or a sub-agent-ready backlog, use `FIX_LEDGER.md`.
 
+### Control Document Precedence
+
+If the control documents disagree, use this precedence order:
+
+1. `plan.md`
+2. `FIX_LEDGER.md`
+3. `Dashboard/Tunet/Docs/agent_driver_pack.md`
+4. `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
+5. `Dashboard/Tunet/CLAUDE.md`
+
+Contributors must not silently resolve these conflicts. Record them explicitly.
+
 ## Current Execution Tranche
 
-This tranche is intentionally bounded to remove drift between the plan, the repo, and the live HA staging deployment before deeper feature work continues.
+This tranche is intentionally bounded to harden the control plane before deeper UI and HA execution work continues.
 
 Priority order for the current tranche:
-1. Align repo documentation with the actual `v2_next` staging deployment.
-2. Remove stale fixed-row assumptions from Tunet YAML dashboards.
-3. Normalize known-bad entity/config drift already validated against live HA.
-4. Fix sensor-card correctness issues that make current YAML semantically wrong.
-5. Tighten the POC so the Living Room pattern matches the intended architecture.
+1. Enforce branch determinism for broad Tunet planning and review work.
+2. Make control-document precedence explicit across skill, Claude docs, driver pack, plan, and ledger.
+3. Add stale-finding reconciliation so older assessments stop reopening already-fixed issues.
+4. Keep the execution plan and detailed ledger aligned on what is actually open vs fixed vs fixed-but-not-deployed.
+5. Only after that, continue deeper UI, HA, and responsive implementation work.
+
+### Tranche Deliverables
+
+- branch guard documented everywhere authoritative planning can start
+- control-document precedence documented everywhere authoritative planning can start
+- stale-finding classification protocol documented everywhere authoritative planning can start
+- `plan.md` and `FIX_LEDGER.md` aligned on already-fixed vs still-open findings
+- multi-agent outputs required to begin with branch/head and control-doc reconciliation
 
 ## Current Reality Snapshot (Fact Base)
 - DONE SNAP.01: New dashboard YAML exists at `Dashboard/Tunet/tunet-suite-config.yaml`; Outcome: repo has a single source of truth for the POC dashboard config; Verify: the file exists on this branch.
@@ -35,6 +58,26 @@ Priority order for the current tranche:
 - DONE SNAP.11: Office is merged into Living Room (no Office room/subview); Outcome: no Office view to build; Verify: there is no `path: office` in `tunet-suite-config.yaml`.
 - DONE SNAP.12: HA Core version is `2026.3.0b1`; Outcome: `getConfigForm()` should be supported; Verify: Settings -> About shows `2026.3.0b1`.
 - DONE SNAP.13: Detailed remediation backlog now lives in `FIX_LEDGER.md`; Outcome: findings are execution-grade and sub-agent-ready; Verify: the file exists and enumerates issue IDs, exact fixes, and validation steps.
+- DONE SNAP.14: The repo now has a Tunet-specific Claude skill at `.claude/skills/tunet-agent-driver/SKILL.md`; Outcome: broad Claude-style planning/review runs have a reusable orchestration entry point; Verify: the file exists on this branch.
+- DONE SNAP.15: Root and Tunet-local Claude guidance now route broad Tunet planning work into the agent-driver workflow; Outcome: instruction drift is reduced; Verify: both `CLAUDE.md` files mention the skill.
+
+## Branch And Findings Discipline
+
+- Broad Tunet planning work is authoritative only on branch `claude/dashboard-nav-research-QnOBs`.
+- Contributors must record the live current branch and HEAD before producing planning artifacts.
+- Prior findings must be classified as:
+  - `OPEN`
+  - `ALREADY FIXED IN REPO`
+  - `FIXED IN REPO BUT NOT DEPLOYED`
+  - `FIXED IN YAML BUT NOT STORAGE`
+- Contributors must not repeat older findings as open without checking current branch state first.
+
+### Known Findings That Must Be Reconciled Before Reuse
+
+- `back_path` is already present on Tunet suite subviews on this branch.
+- the storage Living Room popup already uses one consolidated `tunet-lighting-card` on this branch.
+- `tunet_sensor_card.js` `value_attribute` support must be checked against current branch state before restating it as open.
+- nav active color token drift in `tunet_nav_card.js` must be checked against current branch state before restating it as open.
 
 ## Goals
 - Make `tunet-suite` a real HA dashboard: registered, visible, loads without red error cards or custom-element collisions.

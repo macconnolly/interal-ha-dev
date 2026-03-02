@@ -21,13 +21,19 @@
 ### T-006
 - `Browser Mod popup POC`
 - Likely scope:
-  - one minimal room popup or one minimal media popup
+  - one Browser Mod popup per room pattern, starting with one room
   - Browser Mod integration/service usage
   - dashboard config only, unless a tiny helper change is truly required
 - Why next:
   - the user explicitly wants Browser Mod, not broken hash popups
   - popup behavior is a core product decision and should be proven with one working, premium-feeling example before further broad UI work
   - the popup model influences nav behavior and overview affordances
+- Design constraints:
+  - one popup per room
+  - iOS-grade sheet / overlay styling
+  - no lazy default styling
+  - no generic pill grabber
+  - quick actions + one primary interaction surface + route to deeper room view
 
 ### T-007
 - `Integrated UI / UX shell recovery`
@@ -39,6 +45,10 @@
   - the Apple-grade polish and V1 atmosphere are still missing
   - the top utility strip still does not feel intentional enough
   - page-shell recovery should happen after nav and popup direction are established, not before
+- Design focus:
+  - extract V1 atmosphere without resurrecting the wrapper wholesale
+  - restore one-touch clarity and premium spatial rhythm
+  - make the whole suite feel deliberate rather than merely "rendered"
 
 ## LATER
 
@@ -77,3 +87,5 @@ The user explicitly locked the next four major product decisions in this order:
 4. `HOME LAYOUT`
 
 Do not silently reorder these back into the older "layout first, polish later" sequence without explicit user approval.
+
+Use [nav_popup_ux_direction.md](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/nav_popup_ux_direction.md) as the design-direction supplement for these four decisions.

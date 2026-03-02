@@ -15,6 +15,7 @@
 - `Dashboard/Tunet/tunet-suite-storage-config.yaml`
 - `Dashboard/Tunet/CLAUDE.md`
 - `plan.md: user-locked next decision order`
+- `Dashboard/Tunet/Docs/nav_popup_ux_direction.md`
 
 ### GOAL
 - Re-establish the custom Tunet nav as a first-class design decision with one working, visible, premium-feeling POC that can become the real directional baseline for the suite.
@@ -28,6 +29,7 @@
 - Desktop finally shows a real side-rail or otherwise intentional non-mobile nav treatment instead of a forced phone dock.
 - Mobile/tablet nav remains deliberate and polished rather than feeling like a fallback.
 - The nav becomes a product surface the user can react to visually before popup, shell, and home-layout decisions are layered on top.
+- The nav begins carrying tiny, high-value live-state affordances where appropriate, rather than acting like a dead route strip.
 
 ### FILES_ALLOWED
 - `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
@@ -56,6 +58,7 @@
 - Decide and implement the smallest viable premium nav baseline:
   - bottom dock on phone
   - intentional desktop treatment on wide screens
+  - tiny live-state details where they add clear value, such as a subtle playback indicator when media is active
   - no fake "temporary" breakpoint hacks left in place
 - Make only the nav and dashboard wiring changes needed to show a real navigation direction.
 - Do not mix popup redesign, actions-strip redesign, or full home-layout changes into this tranche.
@@ -64,6 +67,7 @@
 - The nav is no longer configured with a placeholder breakpoint that forces mobile behavior everywhere.
 - On desktop, the nav visibly presents as a deliberate desktop treatment rather than a phone dock.
 - On phone-sized widths, the nav still behaves as a bottom dock.
+- At least one tiny live-state affordance is proven if it can be added cleanly without turning nav into a mini-dashboard.
 - The work stays scoped to nav chrome and dashboard wiring.
 - Popup behavior, shell polish, and home layout remain unchanged in this tranche.
 
@@ -100,7 +104,10 @@
 
 ### UNKNOWNS
 - Whether the best desktop treatment is a side rail immediately, or an intermediate wider dock that still reads as deliberate.
-- Whether the nav should remain pure chrome in this tranche or include a tiny hint of integrated media affordance.
+- Which tiny live-state affordance is the highest-value first proof:
+  - now-playing indicator
+  - small media glyph
+  - other subtle status hint
 - Whether any current global offset behavior in `tunet_nav_card.js` must be revisited immediately to support the recovered desktop treatment cleanly.
 
 ### STOP_CONDITIONS

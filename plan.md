@@ -9,6 +9,7 @@ Last updated: 2026-03-02
 - `FIX_LEDGER.md` is the detailed findings, remediation, and validation backlog.
 - `Dashboard/Tunet/Docs/agent_driver_pack.md` is the orchestration source of truth for multi-agent Tunet review runs.
 - `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md` and the tranche prompt docs are the execution source of truth once broad planning has selected a single slice.
+- `Dashboard/Tunet/Docs/nav_popup_ux_direction.md` is the design-direction source of truth for the next four product decisions: nav, popup, integrated UI / UX, and home layout.
 - `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md` is the deployment-path and staging-root reality source of truth.
 - `Dashboard/Tunet/CLAUDE.md` is the Tunet UI / UX quality bar.
 - If a contributor needs to know what to do next, start here.
@@ -48,6 +49,8 @@ Contributors must not silently reorder these back into an older implementation-d
 - Do not treat the current storage overview composition as "the" final overview architecture.
 - Do not use the current forced-mobile nav configuration as the baseline product direction.
 - Do not continue investing in Bubble hash popups as the canonical path when the user preference is now Browser Mod.
+- Do not treat popup work as generic card stacks; the product direction is one polished popup per room, styled like an iOS-grade sheet rather than a lazy default overlay.
+- Do not treat component width as the only Sections concern; placement, role, one-touch controllability, and interaction hierarchy matter as much as span ratios.
 
 ### Current Active Tranche
 
@@ -60,6 +63,7 @@ This tranche is intentionally bounded to restore the custom Tunet nav as a first
 - one working, intentional nav baseline
 - no more placeholder `desktop_breakpoint: 9999` behavior treated as the real product direction
 - clear phone vs desktop nav behavior the user can react to
+- at least one small, high-value live-state affordance direction captured or proven in nav
 - no popup, shell, or home-layout scope creep in this tranche
 
 ## Current Reality Snapshot (Fact Base)
@@ -115,6 +119,8 @@ This tranche is intentionally bounded to restore the custom Tunet nav as a first
 - Grid sizing strategy: do NOT force vertical rows; let Sections auto-size height; only use columns/min/max in `getGridOptions()` and avoid `rows:` in YAML configs.
 - Popup strategy: Browser Mod is the preferred direction for the next popup tranche. Existing Bubble/hash work is historical POC material unless explicitly re-approved.
 - Popup content strategy: prefer ONE intentional interaction surface inside the popup (do not duplicate many `tunet-light-tile` cards).
+- Popup product strategy: one popup per room, polished like an iOS-grade overlay, no lazy default styling, no generic pill grabber.
+- Interaction standard: optimize for one-touch controllability on primary actions in the Apple sense of clarity, immediacy, and progressive disclosure.
 - V1 cards may be used selectively if they are better, but avoid custom element tag collisions:
 - Do NOT load V1 and V2 resources that define the same `customElements.define('tunet-*')` tags at the same time.
 - If a V1 card is required, either rename its custom element tag(s) or isolate it into a dashboard/resource set that does not load the V2 suite.
@@ -129,6 +135,21 @@ The historical phases below remain useful backlog, but the near-term product seq
 4. `T-008 - Home Overview Layout And Hero Decision`
 
 These are large design decisions and must be handled one at a time, together with the user, not silently bundled into a broad "keep implementing the dashboard" stream.
+
+### Directional Notes For The Next Four Decisions
+
+- `NAV`:
+  - nav should act as premium chrome and may carry tiny live-state hints where they materially improve scannability
+  - avoid turning nav into a full content surface too early
+- `POPUP`:
+  - one popup per room
+  - Browser Mod preferred
+  - visually polished like an iOS-grade sheet, not a generic card stack
+- `INTEGRATED UI / UX`:
+  - recover V1 atmosphere, rhythm, and polish in a Sections-compatible way
+  - prioritize one-touch clarity over decorative complexity
+- `HOME LAYOUT`:
+  - decide placement by interaction role and one-touch value, not just by span ratios or card dimensions
 
 ## Phase 0 - Make The POC Reachable And Safe (Registration, Resources, Cache, Baselines)
 
@@ -188,6 +209,17 @@ These are large design decisions and must be handled one at a time, together wit
 - TODO P0.V02: `/tunet-suite/overview` renders all custom cards without red error cards; Verify: scroll through Overview and confirm no "Custom element doesn't exist" errors.
 - TODO P0.V03: Browser console is clean of registry collisions and 404 module loads; Verify: no `customElements.define` collisions and no failed module imports.
 - TODO P0.V04: DevTools Network shows Tunet card modules loaded from `/local/tunet/v2_next/` with the latest `?v=`; Verify: every `tunet_*.js` resource request includes the bumped version.
+
+## Historical Phase Backlog Note
+
+The detailed phase sections below remain useful as implementation backlog, but they contain older popup and route language from the earlier POC path.
+
+Interpret them with these overrides:
+
+- the near-term active product order is the tranche order above
+- Browser Mod is the preferred popup direction for the next popup tranche
+- references below to Bubble/hash popups are historical unless explicitly re-approved
+- do not let the older phase wording override the user-locked nav -> popup -> integrated UI / UX -> home layout sequence
 
 ## Phase 1 - POC-First Walking Skeleton (Living Room Popup Only)
 

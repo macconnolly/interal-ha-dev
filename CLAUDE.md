@@ -18,6 +18,52 @@ All current dashboard work lives in `Dashboard/Tunet/`. Key files:
 | **Config** | `Dashboard/Tunet/tunet-overview-config.yaml` | Current dashboard card definitions |
 | **OUTDATED** | `Dashboard/Tunet/tunet-design-system.md` (v2.1) | SUPERSEDED by design_language.md v8.0 |
 
+### Tunet Multi-Agent Driver
+
+When the task is broader than a single narrow code edit, and especially when it involves:
+
+- Sections-native dashboard compliance
+- storage vs YAML vs hybrid dashboard strategy
+- popup, nav, or responsive architecture
+- phased remediation planning
+- fix-ledger generation
+- multi-agent Tunet review
+- validating whether the current plan is defensible
+
+use the repo-local skill:
+
+- `.claude/skills/tunet-agent-driver/SKILL.md`
+
+Required control documents for that workflow:
+
+- `Dashboard/Tunet/Docs/agent_driver_pack.md`
+- `plan.md`
+- `FIX_LEDGER.md`
+- `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
+- `Dashboard/Tunet/CLAUDE.md`
+
+Execution expectations:
+
+- prefer a 4-agent first wave:
+  - Manager / Ledger Integrator
+  - HA Standards + Integration Researcher
+  - Codebase Mapper + Key Function Reviewer
+  - Architecture / UX / Feasibility Critic
+- save full artifacts to `Dashboard/Tunet/Agent-Reviews/`
+- optimize for execution-grade outputs another coding agent can implement directly
+- prefer exact English remediation steps over large speculative code blocks
+- require exact file references, exact line numbers, validation, dependencies, deploy impact, and `NEW DISCOVERIES`
+
+Tunet-specific architectural rules to preserve:
+
+- this must be a real Home Assistant Sections dashboard
+- do not force vertical sizing unless absolutely required
+- `rows` should generally be omitted when intrinsic height is the correct Sections behavior
+- persistent nav is dashboard chrome, not proof that content cards are Sections-native
+- storage-first or hybrid editability is preferred when it materially improves maintainability
+- popups should stay minimal and high-utility
+- phases should produce small, working, testable increments
+
 ### Refinement queue (one card at a time)
 1. Status card (`tunet_status_card.js`) — first priority
 2. Actions card, Lighting card, Rooms card

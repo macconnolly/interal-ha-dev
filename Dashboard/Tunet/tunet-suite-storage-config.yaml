@@ -1,4 +1,8 @@
-title: Tunet Suite (POC)
+# Storage dashboard source for `tunet-suite-storage`.
+# This mirrors the current Tunet Suite POC so the HA storage dashboard
+# can be recreated or updated from repo state.
+
+title: Tunet Suite (Storage POC)
 icon: mdi:view-dashboard
 
 views:
@@ -9,26 +13,19 @@ views:
     title: Overview
     path: overview
     icon: mdi:home
-    max_columns: 3
+    max_columns: 4
     sections:
       - type: grid
+        column_span: 4
         cards:
-          - type: custom:tunet-nav-card
-            home_path: /tunet-suite/overview
-            rooms_path: /tunet-suite/rooms
-            media_path: /tunet-suite/media
-            subview_paths:
-              - /tunet-suite/living-room
-              - /tunet-suite/kitchen
-              - /tunet-suite/dining-room
-              - /tunet-suite/bedroom
-            desktop_breakpoint: 9999
-            show_settings: false
-
           - type: custom:tunet-actions-card
             variant: mode_strip
             compact: true
             mode_entity: input_select.oal_active_configuration
+
+      - type: grid
+        column_span: 4
+        cards:
 
           - type: custom:tunet-status-card
             name: Home Status
@@ -55,8 +52,8 @@ views:
                   operator: not_equals
                   state: Adaptive
                 aux_show_when:
-                  entity: sensor.oal_global_brightness_offset
-                  attribute: total_offset
+                  entity: sensor.oal_system_status
+                  attribute: active_zonal_overrides
                   operator: not_equals
                   state: 0
                 aux_action:
@@ -118,148 +115,10 @@ views:
                 unit: °F
                 format: integer
 
-          - type: custom:tunet-rooms-card
-            name: Rooms
-            rooms:
-              - name: Living Room
-                icon: weekend
-                temperature_entity: sensor.dining_room_temperature
-                navigate_path: '#living-room'
-                lights:
-                  - entity: light.living_room_couch_lamp
-                    icon: table_lamp
-                    name: Couch
-                  - entity: light.living_room_floor_lamp
-                    icon: floor_lamp
-                    name: Floor
-                  - entity: light.living_room_spot_lights
-                    icon: highlight
-                    name: Spots
-                  - entity: light.living_room_credenza_light
-                    icon: light
-                    name: Credenza
-                  - entity: light.office_desk_lamp
-                    icon: desk
-                    name: Desk
-
-              - name: Kitchen
-                icon: kitchen
-                navigate_path: /tunet-suite/kitchen
-                lights:
-                  - entity: light.kitchen_island_pendants
-                    icon: light
-                    name: Pendants
-                  - entity: light.kitchen_main_lights
-                    icon: kitchen
-                    name: Main
-                  - entity: light.kitchen_counter_cabinet_underlights
-                    icon: kitchen
-                    name: Under-cab
-
-              - name: Dining Room
-                icon: restaurant
-                temperature_entity: sensor.dining_room_temperature
-                navigate_path: /tunet-suite/dining-room
-                lights:
-                  - entity: light.dining_room_spot_lights
-                    icon: highlight
-                    name: Spots
-                  - entity: light.dining_column_strip_light_matter
-                    icon: view_column
-                    name: Columns
-
-              - name: Bedroom
-                icon: bed
-                navigate_path: /tunet-suite/bedroom
-                lights:
-                  - entity: light.bedroom_primary_lights
-                    icon: bed
-                    name: Main
-                  - entity: light.master_bedroom_corner_accent_govee
-                    icon: palette
-                    name: Accent
-                  - entity: light.master_bedroom_table_lamps
-                    icon: table_lamp
-                    name: Table Lamps
-
-          - type: vertical-stack
-            cards:
-              - type: custom:bubble-card
-                card_type: pop-up
-                hash: '#living-room'
-                name: Living Room
-                icon: mdi:sofa
-                width_desktop: 520px
-                margin_top_mobile: 18px
-                margin_top_desktop: 74px
-                bg_opacity: 90
-                auto_close: ''
-                close_on_click: false
-                styles: |
-                  .bubble-pop-up-container {
-                    backdrop-filter: blur(24px) saturate(180%);
-                    -webkit-backdrop-filter: blur(24px) saturate(180%);
-                    background: rgba(30, 41, 59, 0.92) !important;
-                  }
-                  .bubble-header-container {
-                    padding-bottom: 8px;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-                    margin-bottom: 8px;
-                  }
-                  .bubble-name {
-                    font-weight: 700;
-                    font-size: 1.15em;
-                    color: #fff;
-                  }
-                  .bubble-state {
-                    opacity: 0.7;
-                    font-size: 0.95em;
-                  }
-
-              - type: horizontal-stack
-                cards:
-                  - type: button
-                    name: All Off
-                    icon: mdi:power
-                    tap_action:
-                      action: call-service
-                      service: light.turn_off
-                      data:
-                        entity_id: light.living_room_lights
-                  - type: button
-                    name: Open Room
-                    icon: mdi:arrow-right
-                    tap_action:
-                      action: navigate
-                      navigation_path: /tunet-suite/living-room
-
-              - type: custom:tunet-lighting-card
-                name: Living Room
-                surface: section
-                layout: grid
-                expand_groups: false
-                show_adaptive_toggle: false
-                tile_size: compact
-                columns: 2
-                zones:
-                  - entity: light.living_room_couch_lamp
-                    name: Couch
-                    icon: table_lamp
-                  - entity: light.living_room_floor_lamp
-                    name: Floor
-                    icon: floor_lamp
-                  - entity: light.living_room_spot_lights
-                    name: Spots
-                    icon: highlight
-                  - entity: light.living_room_credenza_light
-                    name: Credenza
-                    icon: light
-                  - entity: light.office_desk_lamp
-                    name: Desk
-                    icon: desk
-
       - type: grid
+        column_span: 4
         cards:
+
           - type: custom:tunet-lighting-card
             name: Lighting
             surface: section
@@ -290,6 +149,9 @@ views:
                 name: Columns
                 icon: view_column
 
+      - type: grid
+        column_span: 4
+        cards:
           - type: custom:tunet-sensor-card
             title: Environment
             icon: sensors
@@ -335,12 +197,14 @@ views:
                 show_range: true
 
       - type: grid
+        column_span: 4
         cards:
           - type: custom:tunet-climate-card
             entity: climate.dining_room
             name: Climate
 
       - type: grid
+        column_span: 4
         cards:
           - type: custom:tunet-weather-card
             entity: weather.home
@@ -349,39 +213,7 @@ views:
             show_last_updated: false
 
       - type: grid
-        cards:
-          - type: custom:tunet-media-card
-            entity: media_player.living_room
-            name: Sonos
-            coordinator_sensor: sensor.sonos_smart_coordinator
-            active_group_sensor: sensor.sonos_active_group_coordinator
-            speakers:
-              - entity: media_player.living_room
-                name: Living Room
-                icon: speaker
-              - entity: media_player.dining_room
-                name: Dining Room
-                icon: speaker
-              - entity: media_player.kitchen
-                name: Kitchen
-                icon: speaker
-              - entity: media_player.bath
-                name: Bathroom
-                icon: speaker
-              - entity: media_player.bedroom
-                name: Bedroom
-                icon: speaker
-
-  # ======================================================================
-  # ROOMS DIRECTORY
-  # ======================================================================
-  - type: sections
-    title: Rooms
-    path: rooms
-    icon: mdi:floor-plan
-    max_columns: 3
-    sections:
-      - type: grid
+        column_span: 4
         cards:
           - type: custom:tunet-rooms-card
             name: Rooms
@@ -389,7 +221,7 @@ views:
               - name: Living Room
                 icon: weekend
                 temperature_entity: sensor.dining_room_temperature
-                navigate_path: /tunet-suite/living-room
+                navigate_path: '#living-room'
                 lights:
                   - entity: light.living_room_couch_lamp
                     icon: table_lamp
@@ -409,7 +241,7 @@ views:
 
               - name: Kitchen
                 icon: kitchen
-                navigate_path: /tunet-suite/kitchen
+                navigate_path: /tunet-suite-storage/kitchen
                 lights:
                   - entity: light.kitchen_island_pendants
                     icon: light
@@ -424,7 +256,7 @@ views:
               - name: Dining Room
                 icon: restaurant
                 temperature_entity: sensor.dining_room_temperature
-                navigate_path: /tunet-suite/dining-room
+                navigate_path: /tunet-suite-storage/dining-room
                 lights:
                   - entity: light.dining_room_spot_lights
                     icon: highlight
@@ -435,7 +267,189 @@ views:
 
               - name: Bedroom
                 icon: bed
-                navigate_path: /tunet-suite/bedroom
+                navigate_path: /tunet-suite-storage/bedroom
+                lights:
+                  - entity: light.bedroom_primary_lights
+                    icon: bed
+                    name: Main
+                  - entity: light.master_bedroom_corner_accent_govee
+                    icon: palette
+                    name: Accent
+                  - entity: light.master_bedroom_table_lamps
+                    icon: table_lamp
+                    name: Table Lamps
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:bubble-card
+            card_type: pop-up
+            hash: '#living-room'
+            name: Living Room
+            icon: mdi:sofa
+            width_desktop: 520px
+            margin_top_mobile: 18px
+            margin_top_desktop: 74px
+            bg_opacity: 90
+            auto_close: ''
+            close_on_click: false
+            styles: |
+              .bubble-pop-up {
+                background: rgba(30, 41, 59, 0.96) !important;
+                border-radius: 24px 24px 0 0 !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+                box-shadow: 0 -4px 16px rgba(0,0,0,0.18), 0 -8px 36px rgba(0,0,0,0.34) !important;
+                padding-bottom: env(safe-area-inset-bottom, 24px) !important;
+              }
+              .bubble-pop-up-backdrop {
+                background: rgba(15, 23, 42, 0.42) !important;
+                backdrop-filter: blur(18px) saturate(160%) !important;
+                -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+              }
+              .bubble-pop-up .bubble-header-container {
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                margin-bottom: 10px;
+                padding-bottom: 10px;
+              }
+              .bubble-name {
+                font-weight: 700;
+                font-size: 1.1em;
+                color: #fff;
+              }
+              .bubble-state {
+                color: rgba(255,255,255,0.72);
+              }
+            cards:
+              - type: grid
+                columns: 2
+                square: false
+                cards:
+                  - type: custom:bubble-card
+                    card_type: button
+                    button_type: state
+                    entity: light.living_room_lights
+                    name: All Off
+                    icon: mdi:power
+                    show_state: false
+                    tap_action:
+                      action: call-service
+                      service: light.turn_off
+                      data:
+                        entity_id: light.living_room_lights
+                  - type: custom:bubble-card
+                    card_type: button
+                    button_type: name
+                    entity: light.living_room_lights
+                    name: Open Room
+                    icon: mdi:arrow-right
+                    show_state: false
+                    tap_action:
+                      action: navigate
+                      navigation_path: /tunet-suite-storage/living-room
+              - type: custom:tunet-lighting-card
+                name: Living Room
+                surface: section
+                layout: grid
+                expand_groups: false
+                show_adaptive_toggle: false
+                tile_size: compact
+                columns: 2
+                zones:
+                  - entity: light.living_room_couch_lamp
+                    name: Couch
+                    icon: table_lamp
+                  - entity: light.living_room_floor_lamp
+                    name: Floor
+                    icon: floor_lamp
+                  - entity: light.living_room_spot_lights
+                    name: Spots
+                    icon: highlight
+                  - entity: light.living_room_credenza_light
+                    name: Credenza
+                    icon: light
+                  - entity: light.office_desk_lamp
+                    name: Desk
+                    icon: desk
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:tunet-nav-card
+            home_path: /tunet-suite-storage/overview
+            rooms_path: /tunet-suite-storage/rooms
+            media_path: /tunet-suite-storage/media
+            subview_paths:
+              - /tunet-suite-storage/living-room
+              - /tunet-suite-storage/kitchen
+              - /tunet-suite-storage/dining-room
+              - /tunet-suite-storage/bedroom
+            desktop_breakpoint: 9999
+            show_settings: false
+
+  # ======================================================================
+  # ROOMS DIRECTORY
+  # ======================================================================
+  - type: sections
+    title: Rooms
+    path: rooms
+    icon: mdi:floor-plan
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: custom:tunet-rooms-card
+            name: Rooms
+            rooms:
+              - name: Living Room
+                icon: weekend
+                temperature_entity: sensor.dining_room_temperature
+                navigate_path: /tunet-suite-storage/living-room
+                lights:
+                  - entity: light.living_room_couch_lamp
+                    icon: table_lamp
+                    name: Couch
+                  - entity: light.living_room_floor_lamp
+                    icon: floor_lamp
+                    name: Floor
+                  - entity: light.living_room_spot_lights
+                    icon: highlight
+                    name: Spots
+                  - entity: light.living_room_credenza_light
+                    icon: light
+                    name: Credenza
+                  - entity: light.office_desk_lamp
+                    icon: desk
+                    name: Desk
+
+              - name: Kitchen
+                icon: kitchen
+                navigate_path: /tunet-suite-storage/kitchen
+                lights:
+                  - entity: light.kitchen_island_pendants
+                    icon: light
+                    name: Pendants
+                  - entity: light.kitchen_main_lights
+                    icon: kitchen
+                    name: Main
+                  - entity: light.kitchen_counter_cabinet_underlights
+                    icon: kitchen
+                    name: Under-cab
+
+              - name: Dining Room
+                icon: restaurant
+                temperature_entity: sensor.dining_room_temperature
+                navigate_path: /tunet-suite-storage/dining-room
+                lights:
+                  - entity: light.dining_room_spot_lights
+                    icon: highlight
+                    name: Spots
+                  - entity: light.dining_column_strip_light_matter
+                    icon: view_column
+                    name: Columns
+
+              - name: Bedroom
+                icon: bed
+                navigate_path: /tunet-suite-storage/bedroom
                 lights:
                   - entity: light.bedroom_primary_lights
                     icon: bed
@@ -448,14 +462,14 @@ views:
                     name: Table Lamps
 
           - type: custom:tunet-nav-card
-            home_path: /tunet-suite/overview
-            rooms_path: /tunet-suite/rooms
-            media_path: /tunet-suite/media
+            home_path: /tunet-suite-storage/overview
+            rooms_path: /tunet-suite-storage/rooms
+            media_path: /tunet-suite-storage/media
             subview_paths:
-              - /tunet-suite/living-room
-              - /tunet-suite/kitchen
-              - /tunet-suite/dining-room
-              - /tunet-suite/bedroom
+              - /tunet-suite-storage/living-room
+              - /tunet-suite-storage/kitchen
+              - /tunet-suite-storage/dining-room
+              - /tunet-suite-storage/bedroom
             desktop_breakpoint: 9999
             show_settings: false
 
@@ -501,14 +515,14 @@ views:
             active_group_sensor: sensor.sonos_active_group_coordinator
 
           - type: custom:tunet-nav-card
-            home_path: /tunet-suite/overview
-            rooms_path: /tunet-suite/rooms
-            media_path: /tunet-suite/media
+            home_path: /tunet-suite-storage/overview
+            rooms_path: /tunet-suite-storage/rooms
+            media_path: /tunet-suite-storage/media
             subview_paths:
-              - /tunet-suite/living-room
-              - /tunet-suite/kitchen
-              - /tunet-suite/dining-room
-              - /tunet-suite/bedroom
+              - /tunet-suite-storage/living-room
+              - /tunet-suite-storage/kitchen
+              - /tunet-suite-storage/dining-room
+              - /tunet-suite-storage/bedroom
             desktop_breakpoint: 9999
             show_settings: false
 
@@ -520,7 +534,7 @@ views:
     path: living-room
     icon: mdi:sofa
     subview: true
-    back_path: /tunet-suite/overview
+    back_path: /tunet-suite-storage/overview
     max_columns: 3
     sections:
       - type: grid
@@ -557,14 +571,14 @@ views:
             active_group_sensor: sensor.sonos_active_group_coordinator
 
           - type: custom:tunet-nav-card
-            home_path: /tunet-suite/overview
-            rooms_path: /tunet-suite/rooms
-            media_path: /tunet-suite/media
+            home_path: /tunet-suite-storage/overview
+            rooms_path: /tunet-suite-storage/rooms
+            media_path: /tunet-suite-storage/media
             subview_paths:
-              - /tunet-suite/living-room
-              - /tunet-suite/kitchen
-              - /tunet-suite/dining-room
-              - /tunet-suite/bedroom
+              - /tunet-suite-storage/living-room
+              - /tunet-suite-storage/kitchen
+              - /tunet-suite-storage/dining-room
+              - /tunet-suite-storage/bedroom
             desktop_breakpoint: 9999
             show_settings: false
 
@@ -573,7 +587,7 @@ views:
     path: kitchen
     icon: mdi:countertop
     subview: true
-    back_path: /tunet-suite/overview
+    back_path: /tunet-suite-storage/overview
     max_columns: 3
     sections:
       - type: grid
@@ -592,14 +606,14 @@ views:
             variant: horizontal
 
           - type: custom:tunet-nav-card
-            home_path: /tunet-suite/overview
-            rooms_path: /tunet-suite/rooms
-            media_path: /tunet-suite/media
+            home_path: /tunet-suite-storage/overview
+            rooms_path: /tunet-suite-storage/rooms
+            media_path: /tunet-suite-storage/media
             subview_paths:
-              - /tunet-suite/living-room
-              - /tunet-suite/kitchen
-              - /tunet-suite/dining-room
-              - /tunet-suite/bedroom
+              - /tunet-suite-storage/living-room
+              - /tunet-suite-storage/kitchen
+              - /tunet-suite-storage/dining-room
+              - /tunet-suite-storage/bedroom
             desktop_breakpoint: 9999
             show_settings: false
 
@@ -608,7 +622,7 @@ views:
     path: dining-room
     icon: mdi:silverware-fork-knife
     subview: true
-    back_path: /tunet-suite/overview
+    back_path: /tunet-suite-storage/overview
     max_columns: 3
     sections:
       - type: grid
@@ -627,14 +641,14 @@ views:
             name: Climate
 
           - type: custom:tunet-nav-card
-            home_path: /tunet-suite/overview
-            rooms_path: /tunet-suite/rooms
-            media_path: /tunet-suite/media
+            home_path: /tunet-suite-storage/overview
+            rooms_path: /tunet-suite-storage/rooms
+            media_path: /tunet-suite-storage/media
             subview_paths:
-              - /tunet-suite/living-room
-              - /tunet-suite/kitchen
-              - /tunet-suite/dining-room
-              - /tunet-suite/bedroom
+              - /tunet-suite-storage/living-room
+              - /tunet-suite-storage/kitchen
+              - /tunet-suite-storage/dining-room
+              - /tunet-suite-storage/bedroom
             desktop_breakpoint: 9999
             show_settings: false
 
@@ -643,7 +657,7 @@ views:
     path: bedroom
     icon: mdi:bed
     subview: true
-    back_path: /tunet-suite/overview
+    back_path: /tunet-suite-storage/overview
     max_columns: 3
     sections:
       - type: grid
@@ -662,13 +676,13 @@ views:
             variant: horizontal
 
           - type: custom:tunet-nav-card
-            home_path: /tunet-suite/overview
-            rooms_path: /tunet-suite/rooms
-            media_path: /tunet-suite/media
+            home_path: /tunet-suite-storage/overview
+            rooms_path: /tunet-suite-storage/rooms
+            media_path: /tunet-suite-storage/media
             subview_paths:
-              - /tunet-suite/living-room
-              - /tunet-suite/kitchen
-              - /tunet-suite/dining-room
-              - /tunet-suite/bedroom
+              - /tunet-suite-storage/living-room
+              - /tunet-suite-storage/kitchen
+              - /tunet-suite-storage/dining-room
+              - /tunet-suite-storage/bedroom
             desktop_breakpoint: 9999
             show_settings: false

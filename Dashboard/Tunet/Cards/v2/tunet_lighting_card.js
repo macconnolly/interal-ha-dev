@@ -1364,8 +1364,9 @@ class TunetLightingCard extends HTMLElement {
       shelf_auto: 'shelves',
       countertops: 'kitchen',
       desk_lamp: 'desk',
-      table_lamp: 'lamp',
-      floor_lamp: 'lamp',
+      lamp: 'table_lamp',
+      table_lamp: 'table_lamp',
+      floor_lamp: 'floor_lamp',
     };
     const resolved = map[raw] || raw;
     if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return 'lightbulb';
@@ -1382,9 +1383,9 @@ class TunetLightingCard extends HTMLElement {
     if (e && e.attributes.icon) {
       const map = {
         'mdi:ceiling-light':       'light',
-        'mdi:lamp':                'lamp',
-        'mdi:floor-lamp':          'lamp',
-        'mdi:floor-lamp-outline':  'lamp',
+        'mdi:lamp':                'table_lamp',
+        'mdi:floor-lamp':          'floor_lamp',
+        'mdi:floor-lamp-outline':  'floor_lamp',
         'mdi:desk-lamp':           'desk',
         'mdi:lightbulb':           'lightbulb',
         'mdi:lightbulb-group':     'lightbulb',

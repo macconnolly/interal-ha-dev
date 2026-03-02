@@ -450,18 +450,6 @@ class TunetSensorCard extends HTMLElement {
           precision: 0,
           show_range: true,
         },
-        {
-          entity: 'sensor.aqi',
-          label: 'Air Quality',
-          icon: 'air',
-          accent: 'green',
-          unit: 'AQI',
-          thresholds: [
-            { value: 150, condition: 'gte', style: 'error' },
-            { value: 100, condition: 'gte', style: 'warning' },
-            { value: 50, condition: 'lte', style: 'success' },
-          ],
-        },
       ],
     };
   }
@@ -711,12 +699,20 @@ class TunetSensorCard extends HTMLElement {
         const end = new Date();
         const start = new Date(end.getTime() - hours * 3600000);
 
-        const url = `history/period/${start.toISOString()}?filter_entity_id=${cfg.entity}&end_time=${end.toISOString()}&minimal_response&no_attributes`;
+        const wantsAttributeHistory = !!cfg.value_attribute;
+        const url = wantsAttributeHistory
+          ? `history/period/${start.toISOString()}?filter_entity_id=${cfg.entity}&end_time=${end.toISOString()}`
+          : `history/period/${start.toISOString()}?filter_entity_id=${cfg.entity}&end_time=${end.toISOString()}&minimal_response&no_attributes`;
         const result = await this._hass.callApi('GET', url);
 
         if (result && result[0] && result[0].length > 0) {
           const points = result[0]
-            .map(s => ({ t: new Date(s.last_changed).getTime(), v: parseFloat(s.state) }))
+            .map((s) => {
+              const sourceVal = cfg.value_attribute
+                ? (s.attributes ? s.attributes[cfg.value_attribute] : undefined)
+                : s.state;
+              return { t: new Date(s.last_changed).getTime(), v: parseFloat(sourceVal) };
+            })
             .filter(p => !isNaN(p.v));
 
           this._historyCache[cfg.entity] = {
@@ -778,7 +774,9 @@ class TunetSensorCard extends HTMLElement {
           rawVal = null;
           unit = cfg.unit || '';
         } else {
-          rawVal = entity.state;
+          rawVal = cfg.value_attribute
+            ? entity.attributes?.[cfg.value_attribute]
+            : entity.state;
           unit = cfg.unit || entity.attributes.unit_of_measurement || '';
 
           if (!isNaN(rawVal) && rawVal !== '') {

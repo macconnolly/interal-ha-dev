@@ -165,7 +165,6 @@
   show_adaptive_toggle: false
   tile_size: compact
   columns: 3
-  rows: 2
   adaptive_entity: switch.adaptive_lighting_main_living
   primary_entity: sensor.oal_system_status
   zones:
@@ -288,10 +287,10 @@
       navigate_path: /tunet-overview/living-room
       lights:
         - entity: light.living_room_couch_lamp
-          icon: lamp
+          icon: table_lamp
           name: Couch
         - entity: light.living_room_floor_lamp
-          icon: lamp
+          icon: floor_lamp
           name: Floor
         - entity: light.living_room_spot_lights
           icon: highlight
@@ -341,5 +340,5 @@
           icon: nightlight
           name: Accent
         - entity: light.master_bedroom_table_lamps
-          icon: lamp
+          icon: table_lamp
           name: Table Lamps

@@ -3,6 +3,24 @@
 Working branch: `claude/dashboard-nav-research-QnOBs`
 Last updated: 2026-03-01
 
+## Canonical Control Documents
+
+- `plan.md` is the single execution source of truth for phase order, deployment order, and current status.
+- `FIX_LEDGER.md` is the detailed findings, remediation, and validation backlog.
+- If a contributor needs to know what to do next, start here.
+- If a contributor needs exact defects, exact files, exact validation, or a sub-agent-ready backlog, use `FIX_LEDGER.md`.
+
+## Current Execution Tranche
+
+This tranche is intentionally bounded to remove drift between the plan, the repo, and the live HA staging deployment before deeper feature work continues.
+
+Priority order for the current tranche:
+1. Align repo documentation with the actual `v2_next` staging deployment.
+2. Remove stale fixed-row assumptions from Tunet YAML dashboards.
+3. Normalize known-bad entity/config drift already validated against live HA.
+4. Fix sensor-card correctness issues that make current YAML semantically wrong.
+5. Tighten the POC so the Living Room pattern matches the intended architecture.
+
 ## Current Reality Snapshot (Fact Base)
 - DONE SNAP.01: New dashboard YAML exists at `Dashboard/Tunet/tunet-suite-config.yaml`; Outcome: repo has a single source of truth for the POC dashboard config; Verify: the file exists on this branch.
 - DONE SNAP.02: Dashboard YAML is deployed to HA at `/config/dashboards/tunet-suite.yaml`; Outcome: HA has the YAML file available on disk; Verify: HA host filesystem shows the file at that path.
@@ -16,6 +34,7 @@ Last updated: 2026-03-01
 - TODO SNAP.10: Bug 4 (V2 config editors) not validated end-to-end; Outcome: cannot assume `getConfigForm()` works in the current HA frontend/browser; Verify: Phase 0 diagnostics.
 - DONE SNAP.11: Office is merged into Living Room (no Office room/subview); Outcome: no Office view to build; Verify: there is no `path: office` in `tunet-suite-config.yaml`.
 - DONE SNAP.12: HA Core version is `2026.3.0b1`; Outcome: `getConfigForm()` should be supported; Verify: Settings -> About shows `2026.3.0b1`.
+- DONE SNAP.13: Detailed remediation backlog now lives in `FIX_LEDGER.md`; Outcome: findings are execution-grade and sub-agent-ready; Verify: the file exists and enumerates issue IDs, exact fixes, and validation steps.
 
 ## Goals
 - Make `tunet-suite` a real HA dashboard: registered, visible, loads without red error cards or custom-element collisions.
@@ -63,7 +82,7 @@ Last updated: 2026-03-01
 - TODO P0.15: Hard refresh with DevTools "Disable cache" enabled; Outcome: no stale resources; Verify: Network tab shows resources fetched with the bumped `?v=`.
 
 ### 0.5 - Grid Sizing Alignment (Sections Auto-Height)
-- TODO P0.31: Remove `rows: 2` from the Overview `custom:tunet-lighting-card` in `Dashboard/Tunet/tunet-suite-config.yaml`; Outcome: Overview lighting card height is intrinsic; Verify: zones are not clipped and there is no forced empty vertical space.
+- DONE P0.31: Remove stale `rows:` constraints from Tunet YAML dashboards (`tunet-suite-config.yaml`, `tunet-overview-config.yaml`, `tunet-v2-test-config.yaml`); Outcome: lighting cards now use intrinsic height in Sections at the repo level; Verify: `rg -n "rows:\\s*2" Dashboard/Tunet/*.yaml` returns no matches.
 - DONE P0.32: V2 cards implement columns-only `getGridOptions()` (no `rows`, `min_rows`, `max_rows`); Outcome: Sections sizing hints follow policy; Verify: code search shows no `min_rows`/`max_rows` and `getGridOptions()` returns `{ columns, min_columns, max_columns }` only.
 - TODO P0.33: Verify Sections auto-height visually on `/tunet-suite/overview`; Outcome: cards expand to fit content; Verify: no cut-off content in lighting/status/sensor cards at multiple viewport widths.
 
@@ -86,6 +105,10 @@ Last updated: 2026-03-01
 - TODO P0.29: Verify legacy Storage dashboards no longer show `?` for AQI; Outcome: clean sensor rows; Verify: open affected dashboards and confirm no AQI row.
 - TODO P0.30: Validate Bug 4 by adding a simple Tunet card via the UI card picker; Outcome: confirm whether config editors appear; Verify: Add card -> pick a Tunet card (nav/weather/climate) shows a form instead of YAML-only.
 
+### 0.8 - Findings Backlog Reconciliation
+- DONE P0.34: `FIX_LEDGER.md` exists and is linked from this plan; Outcome: there is now one detailed backlog for findings and fixes; Verify: `FIX_LEDGER.md` exists at repo root.
+- TODO P0.35: Work immediate operational items from `FIX_LEDGER.md` first (FL-001 through FL-010); Outcome: plan, repo, and live staging state stop drifting; Verify: each item is either closed in code/docs or explicitly deferred with rationale.
+
 ### Phase 0 Verification Checklist (Click/Observe)
 - TODO P0.V01: Settings -> Dashboards shows "Tunet Suite (POC)" and it opens; Verify: `/tunet-suite/overview` loads.
 - TODO P0.V02: `/tunet-suite/overview` renders all custom cards without red error cards; Verify: scroll through Overview and confirm no "Custom element doesn't exist" errors.
@@ -103,9 +126,9 @@ Last updated: 2026-03-01
 ### 1.1 - Living Room Popup (Prefer One Expandable Lighting Surface)
 - IN-PROGRESS P1.01: Living Room popup exists (`hash: '#living-room'`) in `tunet-suite-config.yaml`; Outcome: popup routing is wired; Verify: tapping Living Room tile changes URL hash and opens popup.
 - DONE P1.02: Popup includes "Open Room" navigate button to `/tunet-suite/living-room`; Outcome: popup links to full room subview; Verify: tap navigates to the subview.
-- TODO P1.03: Replace the multiple `custom:tunet-light-tile` cards in the Living Room popup with ONE `custom:tunet-lighting-card`; Outcome: a single lighting surface replaces duplicated tiles; Verify: popup shows one lighting card, not a vertical stack of many tiles.
-- TODO P1.04: Configure the popup `tunet-lighting-card` for expansion (use room group + `expand_groups: true`); Outcome: per-light controls exist inside the one card; Verify: Couch/Floor/Spots/Credenza/Desk are controllable from within the lighting card UI.
-- TODO P1.05: Remove `rows:` limits from the popup lighting card config; Outcome: popup height is intrinsic and not clipped; Verify: all items visible without forced empty space or truncation.
+- DONE P1.03: Replace the multiple `custom:tunet-light-tile` cards in the Living Room popup with ONE `custom:tunet-lighting-card`; Outcome: a single lighting surface now replaces duplicated tiles at the repo and deployed YAML level; Verify: popup config contains one lighting card, not a vertical stack of many tiles.
+- DONE P1.04: Configure the popup lighting surface as one consolidated room card using explicit Living Room zones; Outcome: Couch/Floor/Spots/Credenza/Desk are modeled in one surface; Verify: popup lighting card zones list contains the five explicit Living Room lights.
+- DONE P1.05: Remove `rows:` limits from the popup lighting card config; Outcome: popup height is intrinsic and not clipped by explicit row limits; Verify: popup lighting card has no `rows:` key.
 - TODO P1.06: Keep one "All Off" action targeting `light.living_room_lights`; Outcome: one-tap off works; Verify: all Living Room lights turn off.
 - TODO P1.07: Ensure popup lighting surface density works at 390px and 520px widths; Outcome: no accidental horizontal overflow; Verify: mobile viewport has no sideways scroll in the popup.
 
@@ -126,7 +149,7 @@ Last updated: 2026-03-01
 ## Phase 2 - Room Subviews (Living Room First, Then Kitchen/Dining/Bedroom)
 
 ### 2.1 - Living Room Subview (Full Surface)
-- TODO P2.01: Convert Living Room subview from multiple `tunet-light-tile` cards to ONE `tunet-lighting-card`; Outcome: consolidated room lighting; Verify: one lighting card controls all Living Room lights.
+- DONE P2.01: Convert Living Room subview from multiple `tunet-light-tile` cards to ONE `tunet-lighting-card`; Outcome: repo and deployed YAML now use consolidated room lighting; Verify: Living Room subview config contains one lighting card with explicit Living Room zones.
 - TODO P2.02: Add `tunet-actions-card` at top of Living Room subview (room-scoped actions); Outcome: room quick actions exist; Verify: actions affect intended entities only.
 - TODO P2.03: Keep/add `tunet-media-card` for `media_player.living_room`; Outcome: media controls accessible; Verify: play/pause works.
 - TODO P2.04: Add a minimal sensors/status surface only if entities exist (temp, humidity, motion); Outcome: context without empty shells; Verify: no missing entity error rows.

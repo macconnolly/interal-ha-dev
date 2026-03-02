@@ -154,7 +154,6 @@
   show_adaptive_toggle: false
   tile_size: compact
   columns: 3
-  rows: 2
   adaptive_entity: switch.adaptive_lighting_main_living
   primary_entity: sensor.oal_system_status
   zones:

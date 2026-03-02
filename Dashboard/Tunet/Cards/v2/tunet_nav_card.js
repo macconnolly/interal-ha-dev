@@ -92,7 +92,7 @@ const NAV_STYLES = `
   }
 
   .btn.active {
-    color: var(--amber-strong);
+    color: var(--amber);
   }
 
   .btn.active .icon {

@@ -8,10 +8,12 @@ Last updated: 2026-03-02
 - `plan.md` is the single execution source of truth for phase order, deployment order, and current status.
 - `FIX_LEDGER.md` is the detailed findings, remediation, and validation backlog.
 - `Dashboard/Tunet/Docs/agent_driver_pack.md` is the orchestration source of truth for multi-agent Tunet review runs.
+- `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md` and the tranche prompt docs are the execution source of truth once broad planning has selected a single slice.
 - `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md` is the deployment-path and staging-root reality source of truth.
 - `Dashboard/Tunet/CLAUDE.md` is the Tunet UI / UX quality bar.
 - If a contributor needs to know what to do next, start here.
 - If a contributor needs exact defects, exact files, exact validation, or a sub-agent-ready backlog, use `FIX_LEDGER.md`.
+- If a contributor is executing one small slice, use the tranche docs rather than the broad agent driver.
 
 ### Control Document Precedence
 

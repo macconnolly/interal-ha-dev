@@ -26,6 +26,10 @@ Read these files first:
 3. `FIX_LEDGER.md`
 4. `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
 5. `Dashboard/Tunet/CLAUDE.md`
+6. `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md`
+7. `Dashboard/Tunet/Docs/tranche_manager_prompt.md`
+8. `Dashboard/Tunet/Docs/tranche_implementation_prompt.md`
+9. `Dashboard/Tunet/Docs/tranche_review_prompt.md`
 
 Treat them this way:
 
@@ -34,8 +38,29 @@ Treat them this way:
 - `FIX_LEDGER.md` is the detailed remediation backlog and validation map.
 - `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md` is the live deployment and staging reality check.
 - `Dashboard/Tunet/CLAUDE.md` contains the Tunet UI and interaction quality bar.
+- the tranche docs define how to turn the broad ledger into one small working execution slice at a time.
 
 If any of these conflict, call the conflict out explicitly. Do not silently pick one.
+
+## Broad Phase vs Tranche Phase
+
+Use this skill in two distinct modes:
+
+1. broad phase
+   - architecture pressure test
+   - standards review
+   - codebase mapping
+   - ledger generation
+   - tranche queue formation
+
+2. tranche phase
+   - select one small working slice
+   - implement that slice only
+   - review that slice only
+   - update the ledger
+
+Once the broad phase has produced a credible ledger and tranche queue, do not continue using broad prompts for implementation.
+Switch to the tranche workflow and execute one small, validated slice at a time.
 
 ## Branch Guard And Determinism
 

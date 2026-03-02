@@ -43,6 +43,10 @@ use the repo-local Claude skill:
 
 Control documents for that workflow:
 - `Dashboard/Tunet/Docs/agent_driver_pack.md`
+- `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md`
+- `Dashboard/Tunet/Docs/tranche_manager_prompt.md`
+- `Dashboard/Tunet/Docs/tranche_implementation_prompt.md`
+- `Dashboard/Tunet/Docs/tranche_review_prompt.md`
 - `plan.md`
 - `FIX_LEDGER.md`
 - `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`

@@ -25,6 +25,31 @@ The design goal is not generic “analysis.” The design goal is to maximize:
 
 This pack assumes the agents can communicate with each other and can save outputs to repo files.
 
+## Relationship To The Tranche Workflow
+
+This file governs the broad research, pressure-testing, and ledger-building phase.
+
+After this broad phase is complete, execution should usually move to the tranche workflow:
+
+- `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md`
+- `Dashboard/Tunet/Docs/tranche_manager_prompt.md`
+- `Dashboard/Tunet/Docs/tranche_implementation_prompt.md`
+- `Dashboard/Tunet/Docs/tranche_review_prompt.md`
+
+Use this division of labor:
+
+- `agent_driver_pack.md`:
+  - for broad discovery
+  - for architecture pressure-testing
+  - for ledger generation
+  - for tranche queue formation
+- tranche docs:
+  - for one small working slice at a time
+  - for implementation discipline
+  - for review discipline
+
+Do not use the broad driver pack as the direct implementation prompt for a small code slice if a tranche has already been selected.
+
 ## Control-Plane Objective
 
 The highest-value failures to prevent at this stage are:

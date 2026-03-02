@@ -37,6 +37,10 @@ use the repo-local skill:
 Required control documents for that workflow:
 
 - `Dashboard/Tunet/Docs/agent_driver_pack.md`
+- `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md`
+- `Dashboard/Tunet/Docs/tranche_manager_prompt.md`
+- `Dashboard/Tunet/Docs/tranche_implementation_prompt.md`
+- `Dashboard/Tunet/Docs/tranche_review_prompt.md`
 - `plan.md`
 - `FIX_LEDGER.md`
 - `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
@@ -60,6 +64,7 @@ Execution expectations:
 - require `CONTROL_DOC_CONFLICTS` if `plan.md`, `FIX_LEDGER.md`, `agent_driver_pack.md`, deployment docs, and Tunet-local guidance disagree
 - require stale-finding reconciliation before repeating prior findings as open blockers
 - Agent 1 cannot finalize before Agent 4 has attacked the draft ledger and execution plan
+- once broad planning is complete, switch to the tranche workflow and execute one small working slice at a time
 
 Tunet-specific architectural rules to preserve:
 

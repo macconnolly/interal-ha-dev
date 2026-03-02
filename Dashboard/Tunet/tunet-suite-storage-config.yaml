@@ -52,8 +52,8 @@ views:
                   operator: not_equals
                   state: Adaptive
                 aux_show_when:
-                  entity: sensor.oal_system_status
-                  attribute: active_zonal_overrides
+                  entity: sensor.oal_global_brightness_offset
+                  attribute: total_offset
                   operator: not_equals
                   state: 0
                 aux_action:

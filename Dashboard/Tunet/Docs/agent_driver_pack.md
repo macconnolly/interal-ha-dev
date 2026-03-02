@@ -429,6 +429,101 @@ This section is required, even if empty.
 
 These are operator-friendly launchers for the initial 4-agent run.
 
+## Claude Full Launcher Prompt
+
+This is the fully expanded, copy-pasteable Claude-style launcher prompt with no placeholders. Use it for a broad Tunet review/planning run, not for a narrow one-file edit.
+
+```text
+Switch to branch `claude/dashboard-nav-research-QnOBs`.
+
+Then read these files in full, in this order, and treat them as the controlling instruction set for this run:
+1. `Dashboard/Tunet/Docs/agent_driver_pack.md`
+2. `plan.md`
+3. `FIX_LEDGER.md`
+4. `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
+5. `Dashboard/Tunet/CLAUDE.md`
+
+Do not summarize those files for me. Use them.
+
+Your task is to execute the Tunet 4-agent review and planning workflow exactly as defined in `Dashboard/Tunet/Docs/agent_driver_pack.md`.
+
+Launch exactly these 4 agents for the first wave:
+1. Agent 2: HA Standards + Integration Researcher
+2. Agent 3: Codebase Mapper + Key Function Reviewer
+3. Agent 4: Architecture / UX / Feasibility Critic
+4. Agent 1: Manager / Ledger Integrator
+
+Execution order:
+1. Launch Agents 2, 3, and 4 first.
+2. Launch Agent 1 only after that.
+3. Agent 1 must not finalize until the outputs from Agents 2, 3, and 4 exist.
+4. After Agent 1 writes its first-pass ledger and execution plan, send those outputs back to Agent 4 for attack review.
+5. Then rerun Agent 1 so it incorporates that critique and produces the final corrected outputs.
+
+Files that must be produced by the run:
+- `Dashboard/Tunet/Agent-Reviews/agent1_master_ledger.md`
+- `Dashboard/Tunet/Agent-Reviews/agent1_execution_plan.md`
+- `Dashboard/Tunet/Agent-Reviews/agent1_decision_register.md`
+- `Dashboard/Tunet/Agent-Reviews/agent2_ha_standards_report.md`
+- `Dashboard/Tunet/Agent-Reviews/agent3_code_map.md`
+- `Dashboard/Tunet/Agent-Reviews/agent4_feasibility_critique.md`
+
+Non-negotiable output expectations:
+- Do not accept or produce summary-only outputs when a saved artifact is required.
+- Do not optimize for elegant synthesis; optimize for execution-grade artifacts another coding agent can use directly.
+- Use exact file references and exact line numbers.
+- Separate fact, inference, recommendation, and unresolved question.
+- Include `NEW DISCOVERIES`, even if the discoveries were not explicitly requested.
+- Prefer exact English remediation steps over large speculative code blocks unless exact code is required word-for-word.
+- Capture intention, expected outcome, dependencies, validation, deploy impact, and whether each item can ship independently.
+
+Tunet-specific architectural rules to preserve:
+- this must be a real Home Assistant Sections dashboard
+- do not force vertical sizing unless absolutely required
+- `rows` should generally be omitted when intrinsic height is the correct Sections behavior
+- persistent nav is dashboard chrome, not proof that content cards are Sections-native
+- storage-first or hybrid editability is preferred when it materially improves maintainability
+- popups should stay minimal and high-utility
+- phases must produce small, working, testable increments
+
+Current local Sections audit findings that must be pressure-tested, not ignored:
+- Most Tunet cards are only partially Sections-native.
+- `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js` is currently the biggest offender because it still models layout around explicit `rows`, fixed `grid-auto-rows`, and tile clipping.
+- `Dashboard/Tunet/Cards/v2/tunet_nav_card.js` is fixed-position chrome using global offsets and must be treated as dashboard chrome, not as a normal Sections content card.
+- `Dashboard/Tunet/tunet-suite-storage-config.yaml` overuses `column_span`; even if acceptable for composition, that does not prove lower-level card correctness.
+
+Cards requiring the hardest scrutiny:
+- `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
+- `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
+- `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+- `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
+- `Dashboard/Tunet/Cards/v2/tunet_speaker_grid_card.js`
+
+Cards that currently appear closer to acceptable Sections behavior:
+- `Dashboard/Tunet/Cards/v2/tunet_actions_card.js`
+- `Dashboard/Tunet/Cards/v2/tunet_climate_card.js`
+- `Dashboard/Tunet/Cards/v2/tunet_weather_card.js`
+- `Dashboard/Tunet/Cards/v2/tunet_sensor_card.js`
+- `Dashboard/Tunet/Cards/v2/tunet_media_card.js`
+- `Dashboard/Tunet/Cards/v2/tunet_light_tile.js`
+
+Each agent must explicitly confirm, refine, or reject those local findings with evidence.
+
+Quality bar for this run:
+- maximize effort quality
+- maximize evidence quality
+- maximize downstream usefulness for later coding agents
+- maximize unbiased criticism
+- prefer phased execution where every tranche is small, working, and testable
+- preserve option space where warranted rather than collapsing choices too early
+
+If any file among `plan.md`, `FIX_LEDGER.md`, `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`, `Dashboard/Tunet/CLAUDE.md`, or the repo code conflicts with another, that conflict must be written down explicitly in the saved outputs.
+
+Do not stop at what was asked. If investigation reveals additional material issues, include them.
+
+Your job is not to discuss the workflow. Your job is to execute it faithfully and produce the saved artifacts.
+```
+
 ### Agent 1 - Manager / Ledger Integrator
 
 Read and follow `Dashboard/Tunet/Docs/agent_driver_pack.md`. Use the full `Shared Project Brief`, then execute the `Agent 1 Prompt - Manager / Ledger Integrator`. Your job is to synthesize, not speculate: compare `plan.md`, `FIX_LEDGER.md`, the dashboard configs, and the outputs of Agents 2, 3, and 4, then produce a corrected master ledger, phased execution plan, and decision register in `Dashboard/Tunet/Agent-Reviews/`. Do not finalize until the other three agents have produced their files, and then route your first-pass plan back through Agent 4 for attack review before issuing a final version.

@@ -1,137 +1,131 @@
-# T-003 - Storage Overview Composition Reset
+# T-004 - Status Card Width Normalization And Config Parity
 
 ### TRANCHE_ID
-- `T-003`
+- `T-004`
 
 ### TITLE
-- `Storage Overview composition becomes a real Sections overview instead of a full-row vertical stack`
+- `Status-card internal grid stops visually distorting columns and restores V1 config behaviors the storage overview already expects`
 
 ### STATUS
 - `CODE-DONE / HA-VERIFY`
 
 ### SOURCE_ITEMS
-- `plan.md: storage-first / hybrid overview direction`
-- `Dashboard/Tunet/Docs/overview_ia_locked.md`
-- `FIX_LEDGER.md: overview composition / hero / popup strategy drift`
-- `Dashboard/Tunet/tunet-suite-storage-config.yaml`
+- `tranche_queue.md: T-004`
+- `FIX_LEDGER.md: status-card internal width imbalance / missing config parity`
+- `Dashboard/Tunet/tunet-suite-storage-config.yaml: status card uses tile_size compact and Boost secondary`
+- `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+- `Dashboard/Tunet/Cards/tunet_status_card.js`
 
 ### GOAL
-- Make the storage Overview use an intentional Sections layout:
-  - full-width utility strip
-  - `3:2` Home Status / Environment band
-  - full-width Lighting hero
-  - `3:2` Rooms / Media destination band
-- Remove dependency on the broken Living Room hash popup from the Overview surface.
+- Make the V2 status card use equal internal columns reliably and restore the small V1 behaviors the current storage overview config still assumes: `tile_size`, `secondary`, and top-level UI config for `tile_size`.
 
 ### WHY_NOW
-- The current dashboard pain is structural, not just cosmetic.
-- The page had no real hero and behaved like one full-row section per card.
-- This tranche isolates page composition before reopening card-core work on status widths, lighting density, or actions-strip styling.
+- The overview composition pass is already done.
+- The next visible failure is inside the Home Status card itself: tiles still read as uneven even when the overview structure is better.
+- The current storage config already asks V2 for `tile_size: compact` and a Boost `secondary` line, but V2 was silently ignoring those fields.
 
 ### USER_VISIBLE_OUTCOME
-- Desktop/tablet Overview should stop reading like a long single-column scroll.
-- Lighting becomes the actual hero row.
-- Rooms and Media become a deliberate bottom band.
-- The Living Room overview tile now goes straight to the room subview instead of depending on the broken hash popup.
+- The Home Status tiles should stop reading as different-width columns when one tile contains longer content.
+- The storage overview should honor the intended compact status-card density.
+- The Boost tile should regain its secondary line.
+- The visual editor should at least expose `tile_size` at the card top level again.
 
 ### FILES_ALLOWED
-- `Dashboard/Tunet/tunet-suite-storage-config.yaml`
+- `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
 
 ### FILES_FORBIDDEN_UNLESS_BLOCKED
-- all V2 card JS files
+- `Dashboard/Tunet/tunet-suite-storage-config.yaml`
 - `Dashboard/Tunet/tunet-suite-config.yaml`
-- `Dashboard/Tunet/tunet-overview-config.yaml`
-- `Dashboard/Tunet/tunet-v2-test-config.yaml`
-- any Browser Mod automation/service config
+- all other V2 card JS files
+- nav card files
+- lighting card files
+- popup / Browser Mod config
 
 ### CURRENT_STATE
-- The storage Overview was effectively authored as repeated full-row sections and had no dominant hero.
-- The Living Room overview path depended on `#living-room`, but the Bubble hash popup path was not working reliably.
-- The page hierarchy did not match the locked IA in `overview_ia_locked.md`.
+- V2 status card already renders a 4-column grid, but it was using `repeat(..., 1fr)` without the stronger `minmax(0, 1fr)` constraint, which lets longer intrinsic content distort column widths.
+- V2 status card was not restoring V1 `tile_size` behavior even though the storage overview uses `tile_size: compact`.
+- V2 status card was also not restoring V1 `secondary` support even though the storage overview config sets `secondary` on the Boost tile.
+- V2 `getConfigForm()` did not expose `tile_size`, so there was no top-level UI path for that behavior.
 
 ### INTENDED_STATE
-- `max_columns: 5`
-- top utility band spans `5`
-- Home Status spans `3`
-- Environment companion spans `2`
-- Lighting hero spans `5`
-- Rooms spans `3`
-- Media spans `2`
-- nav remains a full-width chrome row
-- broken Living Room overview hash popup is removed from the active storage Overview path
+- Internal status-card columns are explicitly equal-width and content-constrained.
+- Compact/large tile sizing behaves again through the existing top-level config.
+- Value tiles can render a secondary line again.
+- The card editor exposes `tile_size` as a top-level form field.
+- No overview YAML restructuring is part of this tranche.
 
 ### EXACT_CHANGE_IN_ENGLISH
-- Recompose the storage Overview to the locked `5-column` rhythm.
-- Reduce the Environment companion stack to Climate + Weather only.
-- Keep Lighting as a full-width hero row.
-- Convert the bottom band to `Rooms + Media`.
-- Replace the Living Room overview hash navigation with direct subview navigation.
-- Remove the dead Bubble popup section from the storage Overview.
+- Change the internal status-card grid tracks from bare `1fr` to `minmax(0, 1fr)` so long content cannot widen one column relative to another.
+- Add the missing `min-width: 0` and truncation rules needed for grid children to stay inside their tracks.
+- Restore V1 `tile_size` handling in V2:
+  - parse it in config
+  - set the host attribute
+  - apply compact/large CSS rules
+  - expose it in `getConfigForm()`
+- Restore V1 `secondary` support on value tiles so the Boost tile can render its config line again.
+- Keep this strictly inside the status card.
 
 ### ACCEPTANCE_CRITERIA
-- Storage Overview uses `max_columns: 5`.
-- Actions strip spans the full row.
-- Status and Environment are authored as `3:2`.
-- Lighting spans the full row.
-- Rooms and Media are authored as `3:2`.
-- The Overview no longer contains the Living Room Bubble popup block.
-- The Living Room overview tile no longer points to `#living-room`.
-- No card-core JS was changed in this tranche.
+- `tunet_status_card.js` parses successfully.
+- The V2 status card uses `minmax(0, 1fr)` for its internal grid columns.
+- V2 status-card tiles have `min-width: 0` and value/dropdown text is constrained inside the tile width.
+- V2 status card accepts and applies `tile_size`.
+- V2 status card renders `secondary` text for value tiles.
+- `getConfigForm()` exposes `tile_size`.
+- The updated status-card resource is deployed to live HA with a new cache-busted URL.
+- No other card file is changed.
 
 ### VALIDATION
 
 #### Static validation
-- YAML parses successfully.
-- Diff is confined to `tunet-suite-storage-config.yaml`.
+- `node --check Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+- diff confined to the one status-card file
+
+#### Runtime validation
+- confirm the live resource URL was updated in HA resource config
+- confirm the card can still load without syntax/runtime registration failure
 
 #### HA/live validation
-- Live dashboard `tunet-suite-storage` is updated.
-- Re-read of the live dashboard confirms:
-  - `max_columns: 5`
-  - `3:2` status/environment
-  - `5`-wide lighting hero
-  - `3:2` rooms/media
-  - Living Room navigate path is `/tunet-suite-storage/living-room`
-  - no Living Room Bubble popup block remains in the Overview
-
-#### Visual validation still needed
-- Desktop should now show Lighting as the hero.
-- Rooms and Media should now read as a deliberate bottom band.
-- The Overview should no longer feel like one full-row card after another.
+- hard refresh the storage overview
+- verify the Home Status card now reads as a more even 4x2 grid
+- verify the Boost tile shows its secondary line again
+- verify the compact density feels closer to the intended storage overview config
 
 ### DEPLOY_IMPACT
-- `HA DASHBOARD UPDATE`
-- no JS resource deployment
-- no cache-bust required
+- `HA RESOURCE UPDATE`
+- one JS file deployed
+- one Lovelace resource cache-bust update required
 
 ### ROLLBACK
-- Restore the previous storage Overview composition from git.
-- Reapply the previous storage dashboard config in HA if the new composition is worse.
+- restore `Dashboard/Tunet/Cards/v2/tunet_status_card.js` from git
+- copy the prior file back to `/config/www/tunet/v2_next/`
+- reset the live resource URL to the previous version token if needed
 
 ### DEPENDENCIES
-- Branch must be `claude/dashboard-nav-research-QnOBs`.
-- Live HA storage dashboard `tunet-suite-storage` must exist.
-- `tunet-media-card` must already be loaded as a resource in HA.
+- branch must be `claude/dashboard-nav-research-QnOBs`
+- live HA must already load the status card from `/local/tunet/v2_next/tunet_status_card.js`
+- storage overview must still use `custom:tunet-status-card`
 
 ### UNKNOWNS
-- Whether the current media companion is visually balanced enough at `2/5` without card-core adjustments.
-- Whether the status-card internal tile imbalance will still dominate after the page structure is fixed.
-- Whether the actions strip still needs a separate card-style tranche even after composition is corrected.
+- Whether all of the perceived unevenness was caused by intrinsic grid sizing, or whether some remaining imbalance is still visual/content-driven.
+- Whether compact-mode density alone is enough, or whether font scale should still be revisited in a later tranche.
+- Whether a later config-editor tranche should expose more than `tile_size` at the top level.
 
 ### STOP_CONDITIONS
-- Stop if implementing the page composition requires card-core changes.
-- Stop if the storage dashboard cannot be updated cleanly in HA.
-- Stop if the media companion introduces a runtime failure in the Overview.
+- Stop if fixing the width imbalance requires editing overview YAML again.
+- Stop if fixing `secondary` or `tile_size` forces broader status-card redesign beyond this narrow parity pass.
+- Stop if the live HA resource path differs from `/local/tunet/v2_next/tunet_status_card.js`.
 
 ### OUT_OF_SCOPE
-- Browser Mod implementation
-- status-card internal tile-width normalization
+- Browser Mod popup work
+- actions-strip redesign
+- V1 page-shell polish recovery
 - lighting-card internal density changes
-- actions-card visual restyling
-- desktop typography scaling
+- nav-card behavior changes
+- full status-card visual-editor support for tiles arrays
 
 ### REVIEW_FOCUS
-- Did the tranche stay composition-only?
-- Is Lighting now structurally the hero?
-- Was the dead popup dependency removed from the Overview?
-- Does the live storage config now match the intended `5-column / 3:2 / 5 / 3:2` structure?
+- Did the work stay inside the V2 status card only?
+- Did it actually address internal width normalization instead of reopening overview layout?
+- Did it restore the specific V1 config behaviors the current storage overview depends on?
+- Was the live resource updated cleanly with a new cache-busted URL?

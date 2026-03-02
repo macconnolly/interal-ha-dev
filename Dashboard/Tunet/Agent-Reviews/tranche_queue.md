@@ -2,23 +2,14 @@
 
 ## NOW
 
-### T-003
-- `Storage Overview composition stops degenerating into a full-row stack and gives Lighting a real hero row`
-- Why now:
-  - directly addresses the current desktop/tablet structural failure
-  - resets the page hierarchy before card-core fixes
-  - removes dependency on the broken overview hash popup path
-
-## NEXT
-
 ### T-004
 - `Status-card internal tile width normalization so Home Status stops looking uneven`
-- Likely scope:
-  - `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
-  - possibly storage dashboard config only if one tile type must be temporarily removed or simplified for proof
-- Why next:
-  - user-visible pain remains even after composition fixes
-  - this is now the main blocker to Home Status reading as one coherent grid
+- Why now:
+  - composition is already corrected
+  - the user-visible pain now sits inside the Home Status card itself
+  - the storage overview config already depends on missing V1 parity items in V2 (`tile_size`, `secondary`)
+
+## NEXT
 
 ### T-005
 - `Actions strip visual density and V1 page polish recovery in a Sections-compatible way`

@@ -1,74 +1,71 @@
-# T-003 Implementation Report
+# T-004 Implementation Report
 
 ## TRANCHE_ID
-- `T-003`
+- `T-004`
 
 ## BRANCH_AND_HEAD
 - Branch: `claude/dashboard-nav-research-QnOBs`
-- HEAD at start of implementation: `adc2df8`
+- HEAD at start of implementation: `33aa28f`
 
 ## FILES_CHANGED
-- [tunet-suite-storage-config.yaml](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml)
+- [tunet_status_card.js](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v2/tunet_status_card.js)
 
 ## FILES_NOT_CHANGED
-- all V2 card JS files
-- [tunet-suite-config.yaml](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-config.yaml)
-- [tunet-overview-config.yaml](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-overview-config.yaml)
-- [tunet-v2-test-config.yaml](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-v2-test-config.yaml)
+- [tunet-suite-storage-config.yaml](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml)
+- all other V2 card JS files
+- all dashboard YAML other than the already-completed T-003 work
 
 ## CHANGES_MADE
-- Changed the storage Overview from a `4-column` full-row stack to a `5-column` page rhythm at [tunet-suite-storage-config.yaml:16](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:16).
-- Made the utility band full-width at [tunet-suite-storage-config.yaml:18](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:18).
-- Authored the primary status band as `3:2`:
-  - Home Status at [tunet-suite-storage-config.yaml:26](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:26)
-  - Environment companion at [tunet-suite-storage-config.yaml:118](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:118)
-- Made Lighting a full-width hero row at [tunet-suite-storage-config.yaml:131](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:131).
-- Authored the bottom destination band as `3:2`:
-  - Rooms at [tunet-suite-storage-config.yaml:164](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:164)
-  - Media at [tunet-suite-storage-config.yaml:231](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:231)
-- Removed the broken Living Room Bubble hash popup block from the storage Overview.
-- Changed the Living Room overview tile route from `#living-room` to `/tunet-suite-storage/living-room` at [tunet-suite-storage-config.yaml:173](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:173).
-- Reduced overview weather density from `forecast_days: 5` to `forecast_days: 3` at [tunet-suite-storage-config.yaml:125](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:125).
-- Applied the exact repo composition to the live HA storage dashboard `tunet-suite-storage`.
+- Changed the internal grid tracks from `repeat(..., 1fr)` to `repeat(..., minmax(0, 1fr))` in CSS and in the render-time inline style so long content cannot widen one column more than another.
+- Added `min-width: 0` and stronger overflow constraints to tiles and tile value/dropdown text so the grid can actually honor equal-width tracks.
+- Restored V1 `tile_size` support in V2:
+  - config parsing
+  - host attribute application
+  - compact/large CSS adjustments
+  - top-level form selector in `getConfigForm()`
+- Restored V1 `secondary` support for value tiles:
+  - config parsing
+  - DOM node rendering
+  - state updates
+  - dependency tracking in the `hass` setter
+- Updated the card version to `2.5.0`.
+- Copied the updated status-card JS to the live HA path:
+  - `/config/www/tunet/v2_next/tunet_status_card.js`
+- Updated the live Lovelace resource URL to:
+  - `/local/tunet/v2_next/tunet_status_card.js?v=20260301_06`
 
 ## VALIDATION_RUN
 
 ### Static validation
-- Parsed the updated YAML successfully with Python `yaml.safe_load`.
-- Confirmed the repo diff is confined to the storage dashboard source.
+- `node --check Dashboard/Tunet/Cards/v2/tunet_status_card.js` passed.
+- Repo diff is confined to the V2 status-card file plus tranche docs.
 
 ### HA/live validation
-- Replaced the live storage dashboard config using Home Assistant MCP.
-- Re-read the live dashboard and confirmed:
-  - `max_columns: 5`
-  - Actions strip `column_span: 5`
-  - Home Status `column_span: 3`
-  - Environment companion `column_span: 2`
-  - Lighting hero `column_span: 5`
-  - Rooms `column_span: 3`
-  - Media `column_span: 2`
-  - Living Room route now points to `/tunet-suite-storage/living-room`
-  - the Living Room Bubble popup block is gone from the Overview
-
-### Browser/UI validation still outstanding
-- I did not visually inspect the rendered desktop/tablet result in a browser in this run.
-- This tranche therefore closes the structural config problem, but not final visual judgment.
+- Live resource list confirmed the status card resource existed and was served from `v2_next`.
+- Updated the live resource URL through Home Assistant MCP with the new version token.
+- Browser hard-refresh validation is still required to judge the visual result.
 
 ## BLOCKERS
 - No implementation blocker.
-- Remaining blocker is visual review of the rendered Overview.
+- Remaining blocker is live browser-level visual confirmation of:
+  - more even tile columns
+  - Boost secondary line restored
+  - compact density improvement
 
 ## KNOWN_RISKS
-- Status-card tile imbalance can still make the `3:2` row feel wrong even after composition is fixed.
-- The media companion may still feel visually weak or too dense at `2/5`.
-- The actions strip can still feel wrong because its card styling was not changed here.
+- If the remaining unevenness is mostly aesthetic rather than intrinsic-sizing-driven, a later visual polish tranche may still be needed.
+- The top-level UI config is still partial; this tranche restores `tile_size`, not full tiles-array editing.
+- The dark dropdown token drift remains separate and was intentionally not folded into this tranche.
 
 ## DEPLOY_STATUS
-- Repo storage dashboard source updated.
-- Live HA storage dashboard updated.
-- No JS resource deployment.
+- Repo status-card source updated.
+- Live HA resource file updated.
+- Live Lovelace resource URL updated to `?v=20260301_06`.
 
 ## REVIEW_HANDOFF
-- Reviewer should judge this tranche as a composition pass only.
-- Reviewer should not expect Browser Mod or status-card internals to be solved here.
-- Reviewer should explicitly call out whether the live config now matches the intended `5-column / 3:2 / 5 / 3:2` layout.
+- Reviewer should check whether this tranche stayed status-card-only.
+- Reviewer should focus on whether the chosen fix actually addresses the user’s uneven-column complaint.
+- Reviewer should confirm the restored V1 parity items are exactly:
+  - `tile_size`
+  - `secondary`
+  - top-level `tile_size` UI control

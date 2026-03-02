@@ -12,7 +12,7 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js';
 
-const CARD_VERSION = '2.4.0';
+const CARD_VERSION = '2.5.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -78,7 +78,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* ── Tile Grid ───────────────────────────────── */
   .grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-auto-rows: auto;
     align-items: stretch;
     gap: 10px;
@@ -96,8 +96,17 @@ ${CARD_SURFACE_GLASS_STROKE}
     transition: all .15s ease;
     position: relative;
     overflow: visible;
+    min-width: 0;
     min-height: 0;
     height: 100%;
+  }
+  :host([tile-size="compact"]) .tile {
+    padding: 22px 8px 8px;
+    gap: 3px;
+  }
+  :host([tile-size="large"]) .tile {
+    padding: 30px 10px 12px;
+    gap: 6px;
   }
   .tile:hover { box-shadow: var(--tile-shadow-lift); }
   .tile:active { transform: scale(.97); }
@@ -112,6 +121,12 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: grid; place-items: center;
     margin-bottom: 2px;
   }
+  :host([tile-size="compact"]) .tile-icon {
+    width: 24px; height: 24px;
+  }
+  :host([tile-size="large"]) .tile-icon {
+    width: 30px; height: 30px;
+  }
   .tile[data-accent="amber"] .tile-icon { color: var(--amber); }
   .tile[data-accent="amber"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   .tile[data-accent="blue"] .tile-icon { color: var(--blue); }
@@ -124,13 +139,33 @@ ${CARD_SURFACE_GLASS_STROKE}
   .tile-val {
     font-size: 18px; font-weight: 700; letter-spacing: -.2px; line-height: 1;
     color: var(--text); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
+  :host([tile-size="compact"]) .tile-val { font-size: 16px; }
+  :host([tile-size="large"]) .tile-val { font-size: 20px; }
   .tile-label {
     font-size: 9px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
     color: var(--text-muted); line-height: 1; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
+  :host([tile-size="compact"]) .tile-label {
+    font-size: 8.5px;
+    letter-spacing: .4px;
+  }
+  :host([tile-size="large"]) .tile-label {
+    font-size: 10px;
+    letter-spacing: .55px;
+  }
   .tile-deg { font-size: 0.6em; vertical-align: baseline; position: relative; top: -0.18em; margin-left: -1px; }
+  .tile-secondary {
+    font-size: 9px; font-weight: 500; color: var(--text-sub); line-height: 1;
+    text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%; margin-top: -1px;
+  }
+  :host([tile-size="compact"]) .tile-secondary {
+    font-size: 8.5px;
+  }
+  .tile-secondary:empty { display: none; }
 
   /* ── Status Dots ─────────────────────────────── */
   .status-dot {
@@ -184,6 +219,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   .tile-dd-val {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 2px;
     font-size: 13px;
     font-weight: 600;
@@ -192,6 +228,13 @@ ${CARD_SURFACE_GLASS_STROKE}
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
+    width: 100%;
+    min-width: 0;
+  }
+  .tile-dd-val .dd-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   .tile-dd-val .chevron {
     font-size: 14px; width: 14px; height: 14px;
@@ -370,7 +413,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* ── Responsive ──────────────────────────────── */
   @media (max-width: 440px) {
     .card { padding: 16px; }
-    .grid { grid-template-columns: repeat(2, 1fr); }
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .tile { min-height: 0; }
     .tile-val { font-size: 16px; }
   }
@@ -415,6 +458,7 @@ class TunetStatusCard extends HTMLElement {
       schema: [
         { name: 'name', selector: { text: {} } },
         { name: 'columns', selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
+        { name: 'tile_size', selector: { select: { options: ['compact', 'standard', 'large'] } } },
         {
           type: 'expandable',
           title: 'Advanced',
@@ -427,6 +471,7 @@ class TunetStatusCard extends HTMLElement {
       computeLabel: (s) => ({
         name: 'Card Title',
         columns: 'Columns',
+        tile_size: 'Tile Size',
         custom_css: 'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
       computeHelper: (s) => ({
@@ -436,13 +481,18 @@ class TunetStatusCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return { name: 'Home Status', tiles: [] };
+    return { name: 'Home Status', tile_size: 'compact', tiles: [] };
   }
 
   setConfig(config) {
+    const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
+    const tileSize = tileSizeRaw === 'regular'
+      ? 'standard'
+      : (tileSizeRaw === 'compact' || tileSizeRaw === 'large' ? tileSizeRaw : 'standard');
     this._config = {
       name: config.name || 'Home Status',
       columns: config.columns || 4,
+      tile_size: tileSize,
       custom_css: config.custom_css || '',
       tiles: (config.tiles || []).map(t => {
         const type = t.type || 'value';
@@ -475,6 +525,10 @@ class TunetStatusCard extends HTMLElement {
           base.unit = t.unit || '';
           base.format = t.format || 'state';
           base.attribute = t.attribute || '';
+          base.secondary = t.secondary ? {
+            entity: t.secondary.entity || t.entity,
+            attribute: t.secondary.attribute || '',
+          } : null;
           // Backward compat: convert old status_dot string to dot_rules
           if (t.status_dot && !t.dot_rules) {
             base.dot_rules = [{ match: '*', dot: t.status_dot }];
@@ -486,6 +540,8 @@ class TunetStatusCard extends HTMLElement {
         return base;
       }),
     };
+    if (tileSize === 'compact' || tileSize === 'large') this.setAttribute('tile-size', tileSize);
+    else this.removeAttribute('tile-size');
     if (this._rendered) this._buildGrid();
   }
 
@@ -511,6 +567,7 @@ class TunetStatusCard extends HTMLElement {
       if (t.entity) relevantEntities.add(t.entity);
       if (t.show_when && t.show_when.entity) relevantEntities.add(t.show_when.entity);
       if (t.aux_show_when && t.aux_show_when.entity) relevantEntities.add(t.aux_show_when.entity);
+      if (t.secondary && t.secondary.entity) relevantEntities.add(t.secondary.entity);
       if (t.playing_entity) relevantEntities.add(t.playing_entity);
     }
 
@@ -571,7 +628,7 @@ class TunetStatusCard extends HTMLElement {
 
     this._titleEl = this.shadowRoot.getElementById('title');
     this._gridEl = this.shadowRoot.getElementById('grid');
-    this._gridEl.style.gridTemplateColumns = `repeat(${this._config.columns || 4}, 1fr)`;
+    this._gridEl.style.gridTemplateColumns = `repeat(${this._config.columns || 4}, minmax(0, 1fr))`;
 
     this._buildGrid();
   }
@@ -580,7 +637,7 @@ class TunetStatusCard extends HTMLElement {
     if (!this._gridEl) return;
     this._gridEl.innerHTML = '';
     this._titleEl.textContent = this._config.name;
-    this._gridEl.style.gridTemplateColumns = `repeat(${this._config.columns || 4}, 1fr)`;
+    this._gridEl.style.gridTemplateColumns = `repeat(${this._config.columns || 4}, minmax(0, 1fr))`;
     // Refresh custom CSS on rebuild (covers config editor changes)
     if (this._customStyleEl) this._customStyleEl.textContent = this._config.custom_css || '';
     this._tileEls = [];
@@ -675,6 +732,7 @@ class TunetStatusCard extends HTMLElement {
             ${dotHTML}
             <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${tile.icon}</span></div>
             <span class="tile-val" id="val-${i}">--</span>
+            <span class="tile-secondary" id="sec-${i}"></span>
             <span class="tile-label">${tile.label}</span>
           `;
           this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
@@ -708,6 +766,7 @@ class TunetStatusCard extends HTMLElement {
         auxEl,
         valEl: el.querySelector(`#val-${i}`),
         dotEl: el.querySelector(`#dot-${i}`),
+        secEl: el.querySelector(`#sec-${i}`),
         ddMenuEl: tile.type === 'dropdown' ? el.querySelector(`#ddmenu-${i}`) : null,
         ddValEl: tile.type === 'dropdown' ? el.querySelector(`#ddval-${i}`) : null,
       });
@@ -838,7 +897,7 @@ class TunetStatusCard extends HTMLElement {
     if (!this._hass || !this._tileEls) return;
 
     for (const tile of this._tileEls) {
-      const { config, valEl, dotEl, ddMenuEl, ddValEl, index } = tile;
+      const { config, valEl, dotEl, secEl, ddMenuEl, ddValEl, index } = tile;
       if (!config.entity) { if (valEl) valEl.textContent = '--'; continue; }
 
       const entity = this._hass.states[config.entity];
@@ -859,25 +918,47 @@ class TunetStatusCard extends HTMLElement {
           break;
         case 'value':
         default:
-          this._updateValueTile(valEl, dotEl, entity, config);
+          this._updateValueTile(valEl, dotEl, secEl, entity, config);
           break;
       }
     }
   }
 
-  _updateValueTile(valEl, dotEl, entity, config) {
+  _updateValueTile(valEl, dotEl, secEl, entity, config) {
     let val = config.attribute
       ? (entity.attributes[config.attribute] != null ? entity.attributes[config.attribute] : '?')
       : entity.state;
     const unit = config.unit;
 
-    if (config.format === 'integer') val = Math.round(Number(val));
-    else if (config.format === 'float1') val = Number(val).toFixed(1);
+    if (config.format === 'integer') {
+      const numStr = String(val).replace(/%/g, '').trim();
+      val = Math.round(Number(numStr));
+      if (isNaN(val)) val = String(entity.state).replace(/%/g, '').trim() || '—';
+    } else if (config.format === 'float1') {
+      const numStr = String(val).replace(/%/g, '').trim();
+      val = Number(numStr).toFixed(1);
+      if (val === 'NaN') val = '—';
+    }
 
     this._renderValWithUnit(valEl, val, unit);
 
     if (dotEl && config.dot_rules) {
       this._applyDotRules(dotEl, entity.state, config.dot_rules);
+    }
+
+    if (secEl && config.secondary) {
+      const secEntity = this._hass.states[config.secondary.entity];
+      if (secEntity && config.secondary.attribute) {
+        let secVal = secEntity.attributes[config.secondary.attribute];
+        if (Array.isArray(secVal)) {
+          secVal = secVal.map((m) => (m && m.name) || String(m)).join(', ');
+        }
+        secEl.textContent = secVal != null ? String(secVal) : '';
+      } else {
+        secEl.textContent = '';
+      }
+    } else if (secEl) {
+      secEl.textContent = '';
     }
   }
 

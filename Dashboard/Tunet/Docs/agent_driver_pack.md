@@ -25,6 +25,73 @@ The design goal is not generic “analysis.” The design goal is to maximize:
 
 This pack assumes the agents can communicate with each other and can save outputs to repo files.
 
+## What This Driver Pack Is Optimizing For
+
+This driver is intentionally shaped for agentic coding systems, not human-only review.
+
+The objective is to maximize two things:
+
+1. the effort quality of the agents  
+2. the downstream usefulness of their outputs for later coding agents  
+
+That means the prompts are deliberately biased toward:
+
+- exact repo-grounded evidence
+- exhaustive discovery over elegant brevity
+- issue decomposition over broad themes
+- fix-ledger structure over narrative explanation
+- phased, testable slices over ambitious rewrites
+- high signal for later LLM coding runs
+
+In practice, that means:
+
+- agents should prefer English fix specifications over writing code unless exact code is required
+- agents should name the intention of the change, not just the symptom
+- agents should identify nearby or similar lines, not only the primary failure line
+- agents should explicitly capture unknowns discovered during research
+- agents should preserve option space where appropriate rather than prematurely collapsing choices
+- agents should produce artifacts that another model can execute without rediscovering context
+
+## LLM-Oriented Output Principles
+
+Every agent should assume its output will be consumed by another coding model.
+
+Therefore:
+
+- Prefer exact change intent over vague advice.
+- Prefer “change this behavior” over “clean this up.”
+- Prefer “here is the file and line where the problem originates, and here are 2 nearby related blocks” over “look around this area.”
+- Prefer “this is the likely correct fix direction, but these unknowns remain” over unjustified certainty.
+- Prefer “this can ship independently” vs “this should probably be done together.”
+- Prefer “word-for-word code only when exact syntax matters” over large speculative code dumps.
+
+### What To Avoid
+
+- giant prose summaries with no ledger structure
+- broad architectural rewrites without tranche-level validation
+- code generation for unvalidated assumptions
+- generic “best practice” statements with no repo mapping
+- pretending that a dashboard is Sections-native because it renders inside a Sections dashboard
+- pretending that config editors are “supported” when only simple scalar fields are covered
+
+### What To Include For Every Meaningful Fix Item
+
+For every meaningful item, capture:
+
+- context
+- specific issue
+- specific change
+- intention
+- expected outcome
+- exact file and line
+- similar lines or related locations to inspect
+- dependencies
+- unknowns
+- validation
+- deploy impact
+
+If a later coding agent cannot act from the item without re-researching the repo, the item is not good enough.
+
 ## Non-Negotiable Principles
 
 - Do not optimize for elegant summaries; optimize for execution-grade artifacts.
@@ -110,6 +177,81 @@ If an agent produces an intermediate draft and a final revision, it must either:
 - Agent 3 supplies exact repo evidence and nearby code references.
 - Agent 4 attacks architectural weakness and tranche feasibility.
 - Agent 1 synthesizes rather than improvises.
+
+## Platform-Agnostic Launch Guidance
+
+This driver pack is designed to work across agentic systems, including but not limited to:
+
+- Codex
+- Gemini
+- Claude
+- Deep Research style toolchains
+- any orchestrator that can run multiple agent sessions and save files
+
+The prompts intentionally avoid assuming:
+
+- a specific tool namespace
+- a specific sub-agent API
+- a specific filesystem helper
+- a specific search tool
+
+The only assumptions are:
+
+- the agent can read repo files
+- the agent can write markdown outputs to the repo
+- the agent can search the codebase
+- the agent can optionally browse primary sources
+- the agent can receive clear role separation
+
+If the platform does not support inter-agent communication directly, emulate it by:
+
+1. launching Agents 2, 3, and 4 separately
+2. waiting for their files to be written
+3. launching Agent 1 with those files already present
+4. re-running Agent 4 on Agent 1’s draft
+5. re-running Agent 1 one final time
+
+## Minimal Launch Templates
+
+These are operator-facing launch templates for any platform.
+
+### Minimal Generic Launcher
+
+```text
+Read and follow:
+Dashboard/Tunet/Docs/agent_driver_pack.md
+
+Use the Shared Project Brief from that file.
+Then run exactly one role from that file.
+
+Requirements:
+- Save your output to the exact file path specified for your role.
+- Do not replace the requested artifact with a lightweight summary.
+- Use exact file references and exact line numbers.
+- Include NEW DISCOVERIES.
+- Optimize for a fix-ledger artifact another coding agent can execute.
+```
+
+### Minimal “Retry With Higher Quality” Launcher
+
+Use this when an agent underperforms:
+
+```text
+Your previous output was not execution-grade.
+
+Re-read:
+Dashboard/Tunet/Docs/agent_driver_pack.md
+
+Re-run your assigned role with these corrections:
+- be more exhaustive
+- use exact file references and exact line numbers
+- produce ledger-shaped output, not a narrative summary
+- include intention, exact English change, dependencies, unknowns, and validation
+- include NEW DISCOVERIES
+- do not optimize for brevity
+
+Save the corrected output to the same file path.
+```
 
 ## Shared Project Brief
 
@@ -282,6 +424,90 @@ If an agent finds a valuable problem that was not explicitly requested, it must 
 - `NEW DISCOVERIES`
 
 This section is required, even if empty.
+
+## One-Paragraph Launchers
+
+These are operator-friendly launchers for the initial 4-agent run.
+
+### Agent 1 - Manager / Ledger Integrator
+
+Read and follow `Dashboard/Tunet/Docs/agent_driver_pack.md`. Use the full `Shared Project Brief`, then execute the `Agent 1 Prompt - Manager / Ledger Integrator`. Your job is to synthesize, not speculate: compare `plan.md`, `FIX_LEDGER.md`, the dashboard configs, and the outputs of Agents 2, 3, and 4, then produce a corrected master ledger, phased execution plan, and decision register in `Dashboard/Tunet/Agent-Reviews/`. Do not finalize until the other three agents have produced their files, and then route your first-pass plan back through Agent 4 for attack review before issuing a final version.
+
+### Agent 2 - HA Standards + Integration Researcher
+
+Read and follow `Dashboard/Tunet/Docs/agent_driver_pack.md`. Use the full `Shared Project Brief`, then execute the `Agent 2 Prompt - HA Standards + Integration Researcher`. Your job is to validate this repo against modern Home Assistant truth using primary sources: Sections behavior, `getGridOptions()`, row omission, storage vs YAML vs hybrid, subviews, config-editor feasibility, popup implications, and whether fixed-position nav is architecturally acceptable. Save a detailed standards report to `Dashboard/Tunet/Agent-Reviews/agent2_ha_standards_report.md`, including a card-by-card Sections matrix and exact standards violations with file/line evidence.
+
+### Agent 3 - Codebase Mapper + Key Function Reviewer
+
+Read and follow `Dashboard/Tunet/Docs/agent_driver_pack.md`. Use the full `Shared Project Brief`, then execute the `Agent 3 Prompt - Codebase Mapper + Key Function Reviewer`. Your job is to read the key Tunet V2 card suite and dashboard configs in full, map every meaningful implementation point, find repeated patterns, identify every route, sizing, popup, config-editor, and row/clipping behavior, and record exact locations plus nearby similar code. Save the result to `Dashboard/Tunet/Agent-Reviews/agent3_code_map.md`.
+
+### Agent 4 - Architecture / UX / Feasibility Critic
+
+Read and follow `Dashboard/Tunet/Docs/agent_driver_pack.md`. Use the full `Shared Project Brief`, then execute the `Agent 4 Prompt - Architecture / UX / Feasibility Critic`. Your job is to pressure test the architecture, the Sections-native claims, the popup strategy, the nav strategy, storage/hybrid direction, and the tranche sequencing. You are not here to approve the current approach; you are here to identify where it is weak, misleading, too large, or out of order. Save the critique to `Dashboard/Tunet/Agent-Reviews/agent4_feasibility_critique.md`, then review Agent 1’s first-pass outputs and attack them.
+
+## Copy-Paste Launcher Blocks
+
+These are optimized for agentic coding platforms where you want a direct block to paste into the launched agent.
+
+### Copy-Paste Block For Any Platform
+
+```text
+Use the instructions in:
+Dashboard/Tunet/Docs/agent_driver_pack.md
+
+First read that file in full.
+
+Then execute exactly one role from that file:
+[PASTE THE FULL AGENT 1 / AGENT 2 / AGENT 3 / AGENT 4 PROMPT HERE]
+
+Operational requirements:
+- Save your output to the exact file path specified in the driver pack.
+- Do not return a lightweight summary instead of the file.
+- Be explicit, technical, and evidence-based.
+- Use exact file references and exact line numbers.
+- Separate fact, inference, recommendation, and unresolved question.
+- Include NEW DISCOVERIES even if the section is empty.
+- Do not optimize for elegance; optimize for a ledger-quality artifact another coding agent can execute.
+- If you discover that the current local Sections audit is wrong, refine or reject it with evidence. Do not silently accept it.
+- If you are Agent 1, do not finalize until the other agents’ saved files exist and have been reviewed.
+```
+
+### Copy-Paste Block For Codex-Style Sub-Agents
+
+```text
+Read and execute:
+Dashboard/Tunet/Docs/agent_driver_pack.md
+
+You are running exactly one role from that file.
+Use the Shared Project Brief first, then your assigned agent prompt.
+
+Your required behavior:
+- write the full artifact to the exact output file path specified for your role
+- do not substitute a short summary for the saved file
+- use exact file paths and exact line numbers
+- classify statements as fact, inference, recommendation, or unresolved when appropriate
+- include NEW DISCOVERIES
+- optimize for execution-quality output another coding agent can act on directly
+- prefer English remediation steps to raw code unless exact code is necessary
+- if you are Agent 1, wait for the other agent output files before finalizing
+
+Your assigned role is:
+[PASTE FULL AGENT ROLE PROMPT HERE]
+```
+
+### Copy-Paste Block For Platforms With Weak File-Save Discipline
+
+```text
+You must save your output to the repo file path specified in:
+Dashboard/Tunet/Docs/agent_driver_pack.md
+
+Returning chat text alone is not sufficient.
+If you produce an intermediate draft, save it.
+If you revise it, overwrite or version the saved file clearly.
+
+Your role:
+[PASTE FULL AGENT ROLE PROMPT HERE]
+```
 
 ## Agent 1 Prompt - Manager / Ledger Integrator
 
@@ -698,6 +924,125 @@ Rules:
 - Force `NEW DISCOVERIES`.
 - Force criticism of the shared local Sections audit, not passive acceptance.
 
+## Supervision Checklist
+
+Use this checklist while running the multi-agent pass.
+
+### Before Launch
+
+- Confirm branch is `claude/dashboard-nav-research-QnOBs`.
+- Confirm `Dashboard/Tunet/Docs/agent_driver_pack.md` exists.
+- Confirm `Dashboard/Tunet/Agent-Reviews/` exists.
+- Confirm `plan.md` and `FIX_LEDGER.md` exist and are readable.
+- Launch Agents 2, 3, and 4 first.
+- Launch Agent 1 after the other three are running or after they finish, depending on platform limits.
+
+### Early Failure Signals
+
+An agent is likely failing if:
+
+- it produces a polished summary but does not save a file
+- it gives repo-agnostic advice
+- it avoids exact line numbers
+- it repeats the prompt rather than analyzing
+- it never mentions the current local Sections audit findings
+- it omits `NEW DISCOVERIES`
+- it speaks in broad themes like “improve responsiveness” without file-level specificity
+- it uses certainty language where the evidence is weak
+
+### Mid-Run Failure Signals
+
+#### Agent 2 failure indicators
+
+- relies mainly on non-primary sources
+- gives standards statements without linking them to repo implications
+- does not produce a card-by-card Sections matrix
+- does not explicitly discuss `rows` omission and `columns: "full"` policy
+
+#### Agent 3 failure indicators
+
+- finds only isolated issues and misses repeated patterns
+- fails to identify similar nearby code
+- maps files but not functions / logic blocks
+- does not distinguish dashboard YAML misuse from card-level implementation issues
+
+#### Agent 4 failure indicators
+
+- is supportive instead of adversarial
+- critiques aesthetics but not tranche feasibility
+- does not challenge architecture claims
+- fails to identify whether proposed phases end in working, testable code
+
+#### Agent 1 failure indicators
+
+- finalizes before Agents 2, 3, and 4 are incorporated
+- collapses many issues into vague cleanup phases
+- marks items done without validation
+- creates phases that are too large to ship independently
+- claims Sections-native alignment without resolving the known hard-scrutiny cards
+
+### Pass Criteria By Agent
+
+#### Agent 2 passes only if:
+
+- it cites primary sources
+- it produces a card-by-card Sections matrix
+- it identifies exact standards violations in this repo
+- it states what storage / YAML / hybrid role is actually correct here
+
+#### Agent 3 passes only if:
+
+- it maps exact implementation points
+- it finds repeated patterns
+- it identifies nearby comparable code
+- it provides candidate fix points, not just bugs
+
+#### Agent 4 passes only if:
+
+- it attacks the architecture and tranche sequence
+- it identifies overscoped or weak phases
+- it explains what should be changed rather than only criticizing
+
+#### Agent 1 passes only if:
+
+- it produces a machine-actionable ledger
+- it produces independently shippable tranches
+- it incorporates the other three outputs
+- it clearly distinguishes facts from remaining unknowns
+
+### Retry Procedure
+
+If an agent underperforms:
+
+1. stop using the current output as authoritative
+2. reissue the role with the retry launcher from this file
+3. narrow the scope if the agent is diffusing
+4. require the corrected output to overwrite the previous file or save a clear `v2`
+
+Do not let Agent 1 compensate for weak upstream work. Fix the upstream work.
+
+### What Good Output Looks Like
+
+Good output has these properties:
+
+- numerous concrete findings, not sparse elegant prose
+- exact file references and line numbers
+- explicit option space where the answer is not singular
+- discoveries beyond the original ask
+- every major item includes intention, change, why, dependencies, unknowns, and validation
+- the final phase plan is small-slice and testable
+- a later coding agent could execute from the artifact without re-researching the same ground
+
+### Final Review Loop
+
+The intended loop is:
+
+1. read Agent 2, Agent 3, and Agent 4 outputs first
+2. let Agent 1 draft
+3. send Agent 1 draft back through Agent 4
+4. have Agent 1 revise
+5. only then treat the ledger and plan as authoritative
+
 ### How to maximize implementation usefulness
 
 The final artifact you want from this run is not a pretty summary. It is:
@@ -730,3 +1075,17 @@ This multi-agent run succeeds only if it produces all of the following:
 6. New discoveries not already captured in the current plan
 
 If any of those are missing, run another pass.
+
+## Practical Operator Shortcut
+
+If you need the shortest correct way to run this:
+
+1. give Agent 2 the shared brief + Agent 2 prompt
+2. give Agent 3 the shared brief + Agent 3 prompt
+3. give Agent 4 the shared brief + Agent 4 prompt
+4. wait for their saved files
+5. give Agent 1 the shared brief + Agent 1 prompt
+6. send Agent 1’s draft files to Agent 4
+7. rerun Agent 1 for the final version
+
+That is the intended control loop.

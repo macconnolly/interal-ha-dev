@@ -13,10 +13,10 @@ views:
     title: Overview
     path: overview
     icon: mdi:home
-    max_columns: 4
+    max_columns: 5
     sections:
       - type: grid
-        column_span: 4
+        column_span: 5
         cards:
           - type: custom:tunet-actions-card
             variant: mode_strip
@@ -24,7 +24,7 @@ views:
             mode_entity: input_select.oal_active_configuration
 
       - type: grid
-        column_span: 4
+        column_span: 3
         cards:
 
           - type: custom:tunet-status-card
@@ -116,9 +116,21 @@ views:
                 format: integer
 
       - type: grid
-        column_span: 4
+        column_span: 2
         cards:
+          - type: custom:tunet-climate-card
+            entity: climate.dining_room
+            name: Climate
 
+          - type: custom:tunet-weather-card
+            entity: weather.home
+            name: Environment
+            forecast_days: 3
+            show_last_updated: false
+
+      - type: grid
+        column_span: 5
+        cards:
           - type: custom:tunet-lighting-card
             name: Lighting
             surface: section
@@ -150,70 +162,7 @@ views:
                 icon: view_column
 
       - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-sensor-card
-            title: Environment
-            icon: sensors
-            icon_color: blue
-            show_sparkline: true
-            show_trend: true
-            sensors:
-              - entity: sensor.dining_room_temperature
-                label: Living Room
-                icon: thermostat
-                accent: amber
-                unit: "°F"
-                precision: 0
-                thresholds:
-                  - value: 80
-                    condition: gte
-                    style: error
-                  - value: 75
-                    condition: gte
-                    style: warning
-                show_range: true
-              - entity: sensor.kitchen_humidity
-                label: Humidity
-                icon: water_drop
-                accent: blue
-                unit: "%"
-                precision: 0
-                thresholds:
-                  - value: 60
-                    condition: gte
-                    style: warning
-                  - value: 20
-                    condition: lte
-                    style: warning
-                show_range: true
-              - entity: weather.home
-                label: Outside
-                icon: outdoor_grill
-                accent: green
-                unit: "°F"
-                precision: 0
-                value_attribute: temperature
-                show_range: true
-
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-climate-card
-            entity: climate.dining_room
-            name: Climate
-
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-weather-card
-            entity: weather.home
-            name: Environment
-            forecast_days: 5
-            show_last_updated: false
-
-      - type: grid
-        column_span: 4
+        column_span: 3
         cards:
           - type: custom:tunet-rooms-card
             name: Rooms
@@ -221,7 +170,7 @@ views:
               - name: Living Room
                 icon: weekend
                 temperature_entity: sensor.dining_room_temperature
-                navigate_path: '#living-room'
+                navigate_path: /tunet-suite-storage/living-room
                 lights:
                   - entity: light.living_room_couch_lamp
                     icon: table_lamp
@@ -280,99 +229,16 @@ views:
                     name: Table Lamps
 
       - type: grid
-        column_span: 4
+        column_span: 2
         cards:
-          - type: custom:bubble-card
-            card_type: pop-up
-            hash: '#living-room'
-            name: Living Room
-            icon: mdi:sofa
-            width_desktop: 520px
-            margin_top_mobile: 18px
-            margin_top_desktop: 74px
-            bg_opacity: 90
-            auto_close: ''
-            close_on_click: false
-            styles: |
-              .bubble-pop-up {
-                background: rgba(30, 41, 59, 0.96) !important;
-                border-radius: 24px 24px 0 0 !important;
-                border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-                box-shadow: 0 -4px 16px rgba(0,0,0,0.18), 0 -8px 36px rgba(0,0,0,0.34) !important;
-                padding-bottom: env(safe-area-inset-bottom, 24px) !important;
-              }
-              .bubble-pop-up-backdrop {
-                background: rgba(15, 23, 42, 0.42) !important;
-                backdrop-filter: blur(18px) saturate(160%) !important;
-                -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
-              }
-              .bubble-pop-up .bubble-header-container {
-                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-                margin-bottom: 10px;
-                padding-bottom: 10px;
-              }
-              .bubble-name {
-                font-weight: 700;
-                font-size: 1.1em;
-                color: #fff;
-              }
-              .bubble-state {
-                color: rgba(255,255,255,0.72);
-              }
-            cards:
-              - type: grid
-                columns: 2
-                square: false
-                cards:
-                  - type: custom:bubble-card
-                    card_type: button
-                    button_type: state
-                    entity: light.living_room_lights
-                    name: All Off
-                    icon: mdi:power
-                    show_state: false
-                    tap_action:
-                      action: call-service
-                      service: light.turn_off
-                      data:
-                        entity_id: light.living_room_lights
-                  - type: custom:bubble-card
-                    card_type: button
-                    button_type: name
-                    entity: light.living_room_lights
-                    name: Open Room
-                    icon: mdi:arrow-right
-                    show_state: false
-                    tap_action:
-                      action: navigate
-                      navigation_path: /tunet-suite-storage/living-room
-              - type: custom:tunet-lighting-card
-                name: Living Room
-                surface: section
-                layout: grid
-                expand_groups: false
-                show_adaptive_toggle: false
-                tile_size: compact
-                columns: 2
-                zones:
-                  - entity: light.living_room_couch_lamp
-                    name: Couch
-                    icon: table_lamp
-                  - entity: light.living_room_floor_lamp
-                    name: Floor
-                    icon: floor_lamp
-                  - entity: light.living_room_spot_lights
-                    name: Spots
-                    icon: highlight
-                  - entity: light.living_room_credenza_light
-                    name: Credenza
-                    icon: light
-                  - entity: light.office_desk_lamp
-                    name: Desk
-                    icon: desk
+          - type: custom:tunet-media-card
+            entity: media_player.living_room
+            name: Now Playing
+            coordinator_sensor: sensor.sonos_smart_coordinator
+            active_group_sensor: sensor.sonos_active_group_coordinator
 
       - type: grid
-        column_span: 4
+        column_span: 5
         cards:
           - type: custom:tunet-nav-card
             home_path: /tunet-suite-storage/overview

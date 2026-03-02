@@ -1,11 +1,11 @@
-# T-001 Tranche Review
+# T-003 Tranche Review
 
 ## TRANCHE_ID
-- `T-001`
+- `T-003`
 
 ## BRANCH_AND_HEAD
 - Branch: `claude/dashboard-nav-research-QnOBs`
-- HEAD reviewed against: `a249c8e` plus uncommitted tranche changes in the working tree
+- Reviewed against working tree after live storage dashboard update
 
 ## VERDICT
 - `PARTIAL`
@@ -13,54 +13,70 @@
 ## FINDINGS
 
 ### F-001
+- Severity: `LOW`
+- Files:
+  - [tunet-suite-storage-config.yaml](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml)
+- Line Numbers:
+  - [tunet-suite-storage-config.yaml:16](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:16)
+  - [tunet-suite-storage-config.yaml:26](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:26)
+  - [tunet-suite-storage-config.yaml:118](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:118)
+  - [tunet-suite-storage-config.yaml:131](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:131)
+  - [tunet-suite-storage-config.yaml:164](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:164)
+  - [tunet-suite-storage-config.yaml:231](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:231)
+- What Is Wrong:
+  - The structural composition is now correct in config, but it is not yet browser-verified for visual quality.
+- Why It Matters:
+  - This tranche is about perceived layout quality. Config correctness alone is not enough to close it fully.
+- Exact Fix In English:
+  - Hard refresh the live storage dashboard Overview and visually confirm:
+    - Lighting now reads as the hero
+    - Rooms and Media read as a bottom band
+    - the page no longer feels like one-card-per-row
+
+### F-002
 - Severity: `MEDIUM`
 - Files:
-  - [current_tranche.md](/home/mac/HA/implementation_10/Dashboard/Tunet/Agent-Reviews/current_tranche.md)
-  - [current_tranche_implementation.md](/home/mac/HA/implementation_10/Dashboard/Tunet/Agent-Reviews/current_tranche_implementation.md)
+  - [tunet-suite-storage-config.yaml](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml)
+  - [tunet_status_card.js](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v2/tunet_status_card.js)
 - Line Numbers:
-  - [current_tranche.md](/home/mac/HA/implementation_10/Dashboard/Tunet/Agent-Reviews/current_tranche.md)
-  - [current_tranche_implementation.md](/home/mac/HA/implementation_10/Dashboard/Tunet/Agent-Reviews/current_tranche_implementation.md)
+  - [tunet-suite-storage-config.yaml:30](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:30)
+  - [tunet_status_card.js:79](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v2/tunet_status_card.js:79)
 - What Is Wrong:
-  - The implementation completed the config alignment and live dashboard update, but it did not directly complete the full live acceptance loop for both `total_offset = 0` and `total_offset != 0`.
+  - This tranche does not solve the user-reported internal imbalance of status tiles.
 - Why It Matters:
-  - This tranche was intentionally defined around user-visible behavior. Without the final direct UI check, the tranche is safer than before but not fully closed.
+  - The Overview can still look wrong even with corrected section composition because the status card may still waste or misread its width internally.
 - Exact Fix In English:
-  - Hard refresh the storage dashboard Overview and visually confirm:
-    - when `total_offset != 0`, the Reset pill is visible
-    - when `total_offset = 0`, the Reset pill is hidden
-  - Then update tranche status to `DONE`.
+  - Treat status-card internal width normalization as the next card-core tranche rather than reopening this composition tranche.
 
 ## ACCEPTANCE_CRITERIA_CHECK
-- Storage dashboard Manual tile no longer uses `sensor.oal_system_status.active_zonal_overrides` in `aux_show_when`: `PASS`
-- Storage dashboard Manual tile now uses `sensor.oal_global_brightness_offset.total_offset` in `aux_show_when`: `PASS`
-- No unrelated status tiles, popup blocks, room definitions, or nav settings changed: `PASS`
-- After deployment, Reset pill hidden when `total_offset = 0`: `NOT YET VERIFIED LIVE`
-- After deployment, Reset pill visible when `total_offset != 0`: `LIKELY PASS`, but still not directly browser-verified in this run
-
-## VALIDATION_ASSESSMENT
-- Static validation: `PASS`
-- Live dashboard config validation: `PASS`
-- Browser/UI validation: `PARTIAL`
-- The implementation was disciplined and correctly narrow, but the tranche contract explicitly aimed at a user-visible behavior check, so it should remain open until observed.
+- Storage Overview uses `max_columns: 5`: `PASS`
+- Actions strip spans full row: `PASS`
+- Status / Environment are authored as `3:2`: `PASS`
+- Lighting spans full row: `PASS`
+- Rooms / Media are authored as `3:2`: `PASS`
+- Overview no longer contains the Living Room Bubble popup block: `PASS`
+- Living Room overview tile no longer points to `#living-room`: `PASS`
+- No card-core JS changed: `PASS`
+- Visual layout quality verified live: `NOT YET VERIFIED`
 
 ## SCOPE_DISCIPLINE
-- Scope discipline was good.
-- The change stayed within the intended storage dashboard config surface.
-- Status-card JS was correctly left untouched because the existing attribute-aware logic already supports this behavior.
-- No unrelated files were changed for implementation.
+- Good.
+- This stayed a storage-dashboard composition pass and did not drift into card-core work.
 
 ## REGRESSION_RISKS
-- Low regression risk for repo code because the change is confined to one storage-dashboard config block.
-- Medium operational drift risk if the live storage dashboard is edited again in HA without syncing repo state.
+- Low config regression risk.
+- Medium UX risk that the structural fix may still feel insufficient until:
+  - status-card tile widths are normalized
+  - actions strip styling is restored
+  - page/background polish is recovered in a Sections-compatible way
 
 ## LEDGER_UPDATE_RECOMMENDATION
-- Do not mark `T-001` fully `DONE` yet.
-- Mark it as:
+- Mark `T-003` as:
   - `CODE-DONE / HA-VERIFY`
-  or
-  - `PARTIAL`
-- Once the final browser-level verification is complete, the corresponding storage parity issue can be treated as closed.
+- Do not mark it fully `DONE` until a visual desktop/tablet check confirms the structure is actually better.
 
 ## NEXT_TRANCHE_RECOMMENDATION
-- Proceed to `T-002` only after `T-001` receives the final live UI verification.
-- If the user wants immediate visible UX progress after that, `T-003` is the next strongest candidate because the desktop/tablet long-scroll issue is now the dominant usability problem.
+- `T-004` should now be:
+  - status-card internal width normalization
+  - not config-editor validation
+- The config-editor tranche should be pushed later because the current pain is still layout and visual hierarchy, not form editing.

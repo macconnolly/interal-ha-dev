@@ -2,47 +2,55 @@
 
 ## NOW
 
-### T-001
-- `Storage dashboard Manual tile Reset pill only appears when total offset is non-zero`
+### T-003
+- `Storage Overview composition stops degenerating into a full-row stack and gives Lighting a real hero row`
 - Why now:
-  - directly user-visible
-  - small file surface
-  - validates storage-path parity with intended suite behavior
-  - clean acceptance criteria
+  - directly addresses the current desktop/tablet structural failure
+  - resets the page hierarchy before card-core fixes
+  - removes dependency on the broken overview hash popup path
 
 ## NEXT
 
-### T-002
-- `Storage Living Room tile long-press navigates directly to room subview while tap keeps popup behavior`
+### T-004
+- `Status-card internal tile width normalization so Home Status stops looking uneven`
 - Likely scope:
-  - `Dashboard/Tunet/tunet-suite-storage-config.yaml`
-  - possibly `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` only if the card cannot express hold behavior declaratively
+  - `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+  - possibly storage dashboard config only if one tile type must be temporarily removed or simplified for proof
 - Why next:
-  - strengthens the core overview -> popup -> subview interaction model
-  - still small and architectural
+  - user-visible pain remains even after composition fixes
+  - this is now the main blocker to Home Status reading as one coherent grid
 
-### T-003
-- `Storage Overview desktop/tablet composition stops degenerating into long single-column scroll`
+### T-005
+- `Actions strip visual density and V1 page polish recovery in a Sections-compatible way`
 - Likely scope:
-  - storage dashboard config only first
-  - no card-core changes unless blocked
+  - `Dashboard/Tunet/Cards/v2/tunet_actions_card.js`
+  - overview-level styling path compatible with Sections
 - Why next:
-  - directly addresses current desktop/tablet usability pain
-  - should be attempted as dashboard composition before reopening card internals
+  - current actions strip still feels wrong
+  - the lost Tunet page atmosphere is a real regression
+
+### T-006
+- `Browser Mod replaces broken overview hash popup behavior for room/media quick overlays`
+- Likely scope:
+  - storage dashboard config
+  - Home Assistant Browser Mod integration/service usage
+- Why next:
+  - user explicitly wants Browser Mod over Bubble hash popups
+  - current overview hash popup path is not a reliable interaction surface
 
 ## LATER
 
-### T-004
-- `Validate simple Tunet config-editor behavior in live HA UI with one card that should fully support getConfigForm()`
-
-### T-005
-- `Evaluate tunet-nav-card as chrome vs layout participant and harden its storage-dashboard presentation`
-
-### T-006
+### T-007
 - `Convert Kitchen storage subview from stacked light tiles to one consolidated lighting surface`
 
-### T-007
+### T-008
 - `Convert Dining storage subview from stacked light tiles to one consolidated lighting surface`
 
-### T-008
+### T-009
 - `Convert Bedroom storage subview from stacked light tiles to one consolidated lighting surface`
+
+### T-010
+- `Validate simple Tunet config-editor behavior in live HA UI with one card that should fully support getConfigForm()`
+
+### T-011
+- `Evaluate tunet-nav-card as chrome vs layout participant and harden its storage-dashboard presentation`

@@ -1,140 +1,137 @@
-# T-001 - Storage Status Card Reset Visibility Parity
+# T-003 - Storage Overview Composition Reset
 
 ### TRANCHE_ID
-- `T-001`
+- `T-003`
 
 ### TITLE
-- `Storage dashboard Manual tile Reset pill only appears when total offset is non-zero`
+- `Storage Overview composition becomes a real Sections overview instead of a full-row vertical stack`
 
 ### STATUS
 - `CODE-DONE / HA-VERIFY`
 
 ### SOURCE_ITEMS
-- `plan.md: P0.25-P0.26`
-- `plan.md: current storage-first / hybrid preference`
-- `Dashboard/Tunet/tunet-suite-storage-config.yaml:43-65`
-- `Dashboard/Tunet/tunet-suite-config.yaml:46-68`
-- `Dashboard/Tunet/Cards/v2/tunet_status_card.js:752-765`
-- `Dashboard/Tunet/Cards/v2/tunet_status_card.js:769-790`
+- `plan.md: storage-first / hybrid overview direction`
+- `Dashboard/Tunet/Docs/overview_ia_locked.md`
+- `FIX_LEDGER.md: overview composition / hero / popup strategy drift`
+- `Dashboard/Tunet/tunet-suite-storage-config.yaml`
 
 ### GOAL
-- Make the storage POC status card’s Manual tile show the `Reset` aux pill only when the real global brightness offset `total_offset` is non-zero, matching the intended behavior already expressed in the YAML suite config.
+- Make the storage Overview use an intentional Sections layout:
+  - full-width utility strip
+  - `3:2` Home Status / Environment band
+  - full-width Lighting hero
+  - `3:2` Rooms / Media destination band
+- Remove dependency on the broken Living Room hash popup from the Overview surface.
 
 ### WHY_NOW
-- This is a small, directly user-visible bug.
-- It aligns the preferred storage dashboard path with the intended behavior already present in the YAML suite.
-- It validates the `aux_show_when` mechanism with one concrete live behavior instead of reopening the whole dashboard architecture.
-- It keeps the first execution slice to one config file unless a real blocker is discovered.
+- The current dashboard pain is structural, not just cosmetic.
+- The page had no real hero and behaved like one full-row section per card.
+- This tranche isolates page composition before reopening card-core work on status widths, lighting density, or actions-strip styling.
 
 ### USER_VISIBLE_OUTCOME
-- On the storage dashboard Overview, the `Manual` tile no longer shows a misleading `Reset` pill when `sensor.oal_global_brightness_offset.total_offset` is `0`.
-- When the total offset becomes non-zero, the `Reset` pill appears again without requiring a full config rewrite.
+- Desktop/tablet Overview should stop reading like a long single-column scroll.
+- Lighting becomes the actual hero row.
+- Rooms and Media become a deliberate bottom band.
+- The Living Room overview tile now goes straight to the room subview instead of depending on the broken hash popup.
 
 ### FILES_ALLOWED
 - `Dashboard/Tunet/tunet-suite-storage-config.yaml`
 
 ### FILES_FORBIDDEN_UNLESS_BLOCKED
-- `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+- all V2 card JS files
 - `Dashboard/Tunet/tunet-suite-config.yaml`
 - `Dashboard/Tunet/tunet-overview-config.yaml`
 - `Dashboard/Tunet/tunet-v2-test-config.yaml`
-- any nav-card file
-- any popup or subview config
+- any Browser Mod automation/service config
 
 ### CURRENT_STATE
-- The storage dashboard Overview Manual tile currently uses:
-  - `entity: sensor.oal_system_status`
-  - `attribute: active_zonal_overrides`
-  - `aux_show_when` tied to `sensor.oal_system_status.active_zonal_overrides`
-  at [tunet-suite-storage-config.yaml:43-65](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml:43).
-- The YAML suite dashboard already uses:
-  - `aux_show_when.entity: sensor.oal_global_brightness_offset`
-  - `aux_show_when.attribute: total_offset`
-  at [tunet-suite-config.yaml:46-68](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-config.yaml:46).
-- The V2 status card already supports `aux_show_when` evaluation with attribute-aware comparison at [tunet_status_card.js:760-765](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v2/tunet_status_card.js:760) and [tunet_status_card.js:775-779](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v2/tunet_status_card.js:775).
-- This means the likely drift is in storage dashboard config, not necessarily in card logic.
+- The storage Overview was effectively authored as repeated full-row sections and had no dominant hero.
+- The Living Room overview path depended on `#living-room`, but the Bubble hash popup path was not working reliably.
+- The page hierarchy did not match the locked IA in `overview_ia_locked.md`.
 
 ### INTENDED_STATE
-- The storage dashboard Manual tile uses the same `aux_show_when` contract as the suite YAML:
-  - `entity: sensor.oal_global_brightness_offset`
-  - `attribute: total_offset`
-  - `operator: not_equals`
-  - `state: 0`
-- The storage dashboard is the preferred editable surface, so it must not lag behind the intended status-card behavior.
+- `max_columns: 5`
+- top utility band spans `5`
+- Home Status spans `3`
+- Environment companion spans `2`
+- Lighting hero spans `5`
+- Rooms spans `3`
+- Media spans `2`
+- nav remains a full-width chrome row
+- broken Living Room overview hash popup is removed from the active storage Overview path
 
 ### EXACT_CHANGE_IN_ENGLISH
-- Change the storage dashboard Manual tile’s `aux_show_when` block so it uses `sensor.oal_global_brightness_offset.total_offset` rather than `sensor.oal_system_status.active_zonal_overrides`.
-- Leave the rest of the Manual tile behavior unchanged:
-  - keep `label: Manual`
-  - keep the `Reset` aux action
-  - keep the tile’s primary `show_when` behavior unless a blocker proves that it is also wrong
-- Do not modify status-card JavaScript in this tranche unless the storage config change alone provably cannot satisfy the acceptance criteria.
-
-### ARCHITECTURAL_INTENTION
-- This tranche validates a key workflow principle:
-  - the storage/hybrid dashboard path must remain behaviorally aligned with the intended suite behavior
-- It also validates the discipline of fixing one real bug in one preferred dashboard surface before reopening larger responsive or navigation work.
+- Recompose the storage Overview to the locked `5-column` rhythm.
+- Reduce the Environment companion stack to Climate + Weather only.
+- Keep Lighting as a full-width hero row.
+- Convert the bottom band to `Rooms + Media`.
+- Replace the Living Room overview hash navigation with direct subview navigation.
+- Remove the dead Bubble popup section from the storage Overview.
 
 ### ACCEPTANCE_CRITERIA
-- The storage dashboard Manual tile no longer uses `sensor.oal_system_status.active_zonal_overrides` in its `aux_show_when` block.
-- The storage dashboard Manual tile does use `sensor.oal_global_brightness_offset.total_offset` in its `aux_show_when` block.
-- No unrelated status tiles, popup blocks, room definitions, or nav settings are changed.
-- After deployment to HA storage, the `Reset` pill is hidden when `total_offset = 0`.
-- After deployment to HA storage, the `Reset` pill appears when `total_offset != 0`.
+- Storage Overview uses `max_columns: 5`.
+- Actions strip spans the full row.
+- Status and Environment are authored as `3:2`.
+- Lighting spans the full row.
+- Rooms and Media are authored as `3:2`.
+- The Overview no longer contains the Living Room Bubble popup block.
+- The Living Room overview tile no longer points to `#living-room`.
+- No card-core JS was changed in this tranche.
 
 ### VALIDATION
 
 #### Static validation
-- Inspect [tunet-suite-storage-config.yaml](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml) and confirm the Manual tile `aux_show_when` block matches the intended `total_offset` contract.
-- Confirm only the intended storage status-card block changed.
-
-#### Runtime validation
-- Ensure the YAML/JSON structure for the storage dashboard source remains valid.
-- Confirm there is no need to edit [tunet_status_card.js](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v2/tunet_status_card.js) for this tranche if the config aligns cleanly.
+- YAML parses successfully.
+- Diff is confined to `tunet-suite-storage-config.yaml`.
 
 #### HA/live validation
-- Update the live storage dashboard using the Home Assistant UI or MCP so the storage dashboard matches the repo artifact.
-- Open the storage dashboard Overview.
-- With `sensor.oal_global_brightness_offset.total_offset = 0`, confirm the `Reset` pill is hidden.
-- Force a non-zero total offset and confirm the `Reset` pill appears.
-- Confirm no other Home Status tiles regress visually or behaviorally.
+- Live dashboard `tunet-suite-storage` is updated.
+- Re-read of the live dashboard confirms:
+  - `max_columns: 5`
+  - `3:2` status/environment
+  - `5`-wide lighting hero
+  - `3:2` rooms/media
+  - Living Room navigate path is `/tunet-suite-storage/living-room`
+  - no Living Room Bubble popup block remains in the Overview
+
+#### Visual validation still needed
+- Desktop should now show Lighting as the hero.
+- Rooms and Media should now read as a deliberate bottom band.
+- The Overview should no longer feel like one full-row card after another.
 
 ### DEPLOY_IMPACT
 - `HA DASHBOARD UPDATE`
-- This tranche does not require JS resource deployment if config-only alignment is sufficient.
+- no JS resource deployment
+- no cache-bust required
 
 ### ROLLBACK
-- Restore the previous Manual tile `aux_show_when` block in the storage dashboard source.
-- Reapply the prior storage dashboard config in HA if the live behavior becomes worse or diverges from expected state.
+- Restore the previous storage Overview composition from git.
+- Reapply the previous storage dashboard config in HA if the new composition is worse.
 
 ### DEPENDENCIES
-- The current branch must be `claude/dashboard-nav-research-QnOBs`.
-- The storage dashboard source file must still represent the editable storage POC path.
-- `sensor.oal_global_brightness_offset` must exist in HA and expose `total_offset`.
-- The storage dashboard must be reachable in HA for live verification.
+- Branch must be `claude/dashboard-nav-research-QnOBs`.
+- Live HA storage dashboard `tunet-suite-storage` must exist.
+- `tunet-media-card` must already be loaded as a resource in HA.
 
 ### UNKNOWNS
-- Whether the live storage dashboard currently matches the repo storage source exactly.
-- Whether `active_zonal_overrides` was intentionally chosen for the storage Manual tile for a reason no longer captured in the docs.
-- Whether the user wants the Manual tile’s main `show_when` rule to remain tied to `sensor.oal_system_status != Adaptive`, even after the `Reset` pill itself is tied to `total_offset`.
+- Whether the current media companion is visually balanced enough at `2/5` without card-core adjustments.
+- Whether the status-card internal tile imbalance will still dominate after the page structure is fixed.
+- Whether the actions strip still needs a separate card-style tranche even after composition is corrected.
 
 ### STOP_CONDITIONS
-- Stop if the live storage dashboard is no longer structurally aligned with [tunet-suite-storage-config.yaml](/home/mac/HA/implementation_10/Dashboard/Tunet/tunet-suite-storage-config.yaml).
-- Stop if `sensor.oal_global_brightness_offset` or its `total_offset` attribute does not exist in live HA.
-- Stop if fixing the storage config alone does not satisfy the acceptance criteria and would require status-card JavaScript changes; that becomes a separate tranche.
-- Stop if updating the storage dashboard requires broader status-card semantic changes beyond the Reset-pill visibility path.
+- Stop if implementing the page composition requires card-core changes.
+- Stop if the storage dashboard cannot be updated cleanly in HA.
+- Stop if the media companion introduces a runtime failure in the Overview.
 
 ### OUT_OF_SCOPE
-- Any nav-card changes
-- Any popup composition changes
-- Any room-subview changes
-- Any broader status-card redesign
-- Any climate/environment layout changes
-- Any storage-vs-YAML architecture decision changes
-- Any attempt to fix all status-card issues in one pass
+- Browser Mod implementation
+- status-card internal tile-width normalization
+- lighting-card internal density changes
+- actions-card visual restyling
+- desktop typography scaling
 
 ### REVIEW_FOCUS
-- Did the tranche stay constrained to the storage status-card config?
-- Did it align the storage Manual tile with the intended `total_offset` behavior?
-- Was the live behavior actually validated at zero and non-zero offset?
-- Was status-card JavaScript avoided unless truly blocked?
+- Did the tranche stay composition-only?
+- Is Lighting now structurally the hero?
+- Was the dead popup dependency removed from the Overview?
+- Does the live storage config now match the intended `5-column / 3:2 / 5 / 3:2` structure?

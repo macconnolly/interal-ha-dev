@@ -29,22 +29,38 @@ Contributors must not silently resolve these conflicts. Record them explicitly.
 
 ## Current Execution Tranche
 
-This tranche is intentionally bounded to harden the control plane before deeper UI and HA execution work continues.
+The control-plane hardening tranche is complete. The current work is now governed by a user-locked product-decision order rather than the older "layout first, polish later" sequence.
 
-Priority order for the current tranche:
-1. Enforce branch determinism for broad Tunet planning and review work.
-2. Make control-document precedence explicit across skill, Claude docs, driver pack, plan, and ledger.
-3. Add stale-finding reconciliation so older assessments stop reopening already-fixed issues.
-4. Keep the execution plan and detailed ledger aligned on what is actually open vs fixed vs fixed-but-not-deployed.
-5. Only after that, continue deeper UI, HA, and responsive implementation work.
+### User-Locked Next Decision Order
+
+The next four major decisions must be handled one at a time, in this order:
+
+1. `NAV`
+2. `POPUP`
+3. `INTEGRATED UI / UX`
+4. `HOME LAYOUT`
+
+Contributors must not silently reorder these back into an older implementation-driven sequence without explicit user approval.
+
+### What That Means Operationally
+
+- Do not keep polishing the home layout while nav and popup direction are still unsettled.
+- Do not treat the current storage overview composition as "the" final overview architecture.
+- Do not use the current forced-mobile nav configuration as the baseline product direction.
+- Do not continue investing in Bubble hash popups as the canonical path when the user preference is now Browser Mod.
+
+### Current Active Tranche
+
+`T-005 - Custom Nav Chrome Recovery POC`
+
+This tranche is intentionally bounded to restore the custom Tunet nav as a first-class design decision before popup, shell-polish, and home-layout work continues.
 
 ### Tranche Deliverables
 
-- branch guard documented everywhere authoritative planning can start
-- control-document precedence documented everywhere authoritative planning can start
-- stale-finding classification protocol documented everywhere authoritative planning can start
-- `plan.md` and `FIX_LEDGER.md` aligned on already-fixed vs still-open findings
-- multi-agent outputs required to begin with branch/head and control-doc reconciliation
+- one working, intentional nav baseline
+- no more placeholder `desktop_breakpoint: 9999` behavior treated as the real product direction
+- clear phone vs desktop nav behavior the user can react to
+- no popup, shell, or home-layout scope creep in this tranche
 
 ## Current Reality Snapshot (Fact Base)
 - DONE SNAP.01: New dashboard YAML exists at `Dashboard/Tunet/tunet-suite-config.yaml`; Outcome: repo has a single source of truth for the POC dashboard config; Verify: the file exists on this branch.
@@ -84,8 +100,9 @@ Priority order for the current tranche:
 ## Goals
 - Make `tunet-suite` a real HA dashboard: registered, visible, loads without red error cards or custom-element collisions.
 - Use Sections layout correctly: no forced vertical sizing; cards self-size by content; grid constraints use columns/min/max only.
-- Establish navigation architecture: Overview -> room popups (hash) -> room subviews, with persistent `tunet-nav-card`.
-- Start from ONE working room popup (Living Room) and converge on the pattern: minimal quick actions + ONE expandable lighting surface + "Open Room" link to subview.
+- Establish navigation architecture with the custom `tunet-nav-card` as a real product surface, not a hidden POC.
+- Prefer Browser Mod for the next popup tranche rather than continuing to treat hash popups as canonical.
+- Start from ONE working popup proof, then converge on a repeatable pattern: minimal quick actions + one intentional interaction surface + clear route to deeper control.
 - Rollback stays easy: keep `v2_next` as staging; keep a stable resource root available for quick revert.
 
 ## Non-Goals
@@ -96,10 +113,22 @@ Priority order for the current tranche:
 
 ## Constraints / Rules Of Engagement
 - Grid sizing strategy: do NOT force vertical rows; let Sections auto-size height; only use columns/min/max in `getGridOptions()` and avoid `rows:` in YAML configs.
-- Popup strategy: prefer ONE consolidated, expandable lighting surface inside the popup (do not duplicate many `tunet-light-tile` cards).
+- Popup strategy: Browser Mod is the preferred direction for the next popup tranche. Existing Bubble/hash work is historical POC material unless explicitly re-approved.
+- Popup content strategy: prefer ONE intentional interaction surface inside the popup (do not duplicate many `tunet-light-tile` cards).
 - V1 cards may be used selectively if they are better, but avoid custom element tag collisions:
 - Do NOT load V1 and V2 resources that define the same `customElements.define('tunet-*')` tags at the same time.
 - If a V1 card is required, either rename its custom element tag(s) or isolate it into a dashboard/resource set that does not load the V2 suite.
+
+## Near-Term Tranche Sequence (Supersedes Older Near-Term Order)
+
+The historical phases below remain useful backlog, but the near-term product sequence is now:
+
+1. `T-005 - Custom Nav Chrome Recovery POC`
+2. `T-006 - Browser Mod Popup POC`
+3. `T-007 - Integrated UI / UX Shell Recovery`
+4. `T-008 - Home Overview Layout And Hero Decision`
+
+These are large design decisions and must be handled one at a time, together with the user, not silently bundled into a broad "keep implementing the dashboard" stream.
 
 ## Phase 0 - Make The POC Reachable And Safe (Registration, Resources, Cache, Baselines)
 

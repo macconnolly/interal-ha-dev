@@ -1,5 +1,7 @@
 # T-004 Tranche Review
 
+> Historical note: this file records the review of the last completed tranche. The active next tranche is defined in [current_tranche.md](/home/mac/HA/implementation_10/Dashboard/Tunet/Agent-Reviews/current_tranche.md).
+
 ## TRANCHE_ID
 - `T-004`
 
@@ -67,7 +69,6 @@
 - Do not mark it fully `DONE` until the refreshed dashboard confirms the Home Status card now feels materially more even.
 
 ## NEXT_TRANCHE_RECOMMENDATION
-- `T-005` should now focus on:
-  - actions-strip visual density
-  - V1 page polish recovery in a Sections-compatible way
-- Keep Browser Mod migration as the following tranche, not folded into that visual pass.
+- Historical note:
+  - the recommendation below this review was superseded by a later user-locked order
+  - see [current_tranche.md](/home/mac/HA/implementation_10/Dashboard/Tunet/Agent-Reviews/current_tranche.md) and [tranche_queue.md](/home/mac/HA/implementation_10/Dashboard/Tunet/Agent-Reviews/tranche_queue.md) for the active next tranche definition

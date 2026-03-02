@@ -1,7 +1,7 @@
 # Tunet Overview IA - Locked Baseline
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Purpose: lock the intended Overview information architecture before more storage-dashboard composition work continues.
+Purpose: lock the intended Overview information architecture as a later home-layout decision target, not as permission to keep reworking the overview before nav, popup, and integrated UI / UX decisions are settled.
 
 This document is intentionally limited to:
 
@@ -24,7 +24,7 @@ The current storage Overview still behaves too much like:
 - missing the stronger V1-style top utility / chips band
 - insufficiently deliberate use of wide desktop space
 
-The goal of this document is to freeze the target layout before implementing `T-003` or later overview-composition work.
+The goal of this document is to freeze the target layout so later home-layout work has a clear target once the upstream nav, popup, and integrated UI / UX tranches are complete.
 
 ## Locked Overview IA
 

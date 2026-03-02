@@ -1,131 +1,125 @@
-# T-004 - Status Card Width Normalization And Config Parity
+# T-005 - Custom Nav Chrome Recovery POC
 
 ### TRANCHE_ID
-- `T-004`
+- `T-005`
 
 ### TITLE
-- `Status-card internal grid stops visually distorting columns and restores V1 config behaviors the storage overview already expects`
+- `Bring the custom Tunet nav bar back as an intentional product surface instead of a sidelined POC forced into mobile-dock behavior`
 
 ### STATUS
-- `CODE-DONE / HA-VERIFY`
+- `PLANNED / USER-LOCKED NEXT`
 
 ### SOURCE_ITEMS
-- `tranche_queue.md: T-004`
-- `FIX_LEDGER.md: status-card internal width imbalance / missing config parity`
-- `Dashboard/Tunet/tunet-suite-storage-config.yaml: status card uses tile_size compact and Boost secondary`
-- `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
-- `Dashboard/Tunet/Cards/tunet_status_card.js`
+- `tranche_queue.md: T-005`
+- `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
+- `Dashboard/Tunet/tunet-suite-storage-config.yaml`
+- `Dashboard/Tunet/CLAUDE.md`
+- `plan.md: user-locked next decision order`
 
 ### GOAL
-- Make the V2 status card use equal internal columns reliably and restore the small V1 behaviors the current storage overview config still assumes: `tile_size`, `secondary`, and top-level UI config for `tile_size`.
+- Re-establish the custom Tunet nav as a first-class design decision with one working, visible, premium-feeling POC that can become the real directional baseline for the suite.
 
 ### WHY_NOW
-- The overview composition pass is already done.
-- The next visible failure is inside the Home Status card itself: tiles still read as uneven even when the overview structure is better.
-- The current storage config already asks V2 for `tile_size: compact` and a Boost `secondary` line, but V2 was silently ignoring those fields.
+- The user explicitly wants the next four decisions handled one at a time, together, in this order: nav, popup, integrated UI/UX, home layout.
+- The custom nav bar already exists, but the current branch effectively hides the real intended behavior by forcing mobile-dock mode everywhere.
+- Future popup behavior, shell polish, and home-layout decisions should be made in the context of the actual navigation model, not a temporary placeholder.
 
 ### USER_VISIBLE_OUTCOME
-- The Home Status tiles should stop reading as different-width columns when one tile contains longer content.
-- The storage overview should honor the intended compact status-card density.
-- The Boost tile should regain its secondary line.
-- The visual editor should at least expose `tile_size` at the card top level again.
+- Desktop finally shows a real side-rail or otherwise intentional non-mobile nav treatment instead of a forced phone dock.
+- Mobile/tablet nav remains deliberate and polished rather than feeling like a fallback.
+- The nav becomes a product surface the user can react to visually before popup, shell, and home-layout decisions are layered on top.
 
 ### FILES_ALLOWED
-- `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
-
-### FILES_FORBIDDEN_UNLESS_BLOCKED
+- `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
 - `Dashboard/Tunet/tunet-suite-storage-config.yaml`
 - `Dashboard/Tunet/tunet-suite-config.yaml`
-- all other V2 card JS files
-- nav card files
+
+### FILES_FORBIDDEN_UNLESS_BLOCKED
+- `Dashboard/Tunet/Cards/v2/tunet_actions_card.js`
 - lighting card files
-- popup / Browser Mod config
+- popup / Browser Mod wiring
+- page-shell / background extraction work
+- broad overview layout recomposition
 
 ### CURRENT_STATE
-- V2 status card already renders a 4-column grid, but it was using `repeat(..., 1fr)` without the stronger `minmax(0, 1fr)` constraint, which lets longer intrinsic content distort column widths.
-- V2 status card was not restoring V1 `tile_size` behavior even though the storage overview uses `tile_size: compact`.
-- V2 status card was also not restoring V1 `secondary` support even though the storage overview config sets `secondary` on the Boost tile.
-- V2 `getConfigForm()` did not expose `tile_size`, so there was no top-level UI path for that behavior.
+- The custom nav bar exists and is deployed, but the current storage/dashboard configs effectively force mobile-style behavior everywhere via an extreme `desktop_breakpoint`.
+- The nav is present in the dashboard, but it is not currently demonstrating the intended phone/tablet/desktop experience that motivated the card in the first place.
+- The user wants this elevated ahead of popups, shell polish, and home layout because it is a major product decision, not a minor follow-up.
 
 ### INTENDED_STATE
-- Internal status-card columns are explicitly equal-width and content-constrained.
-- Compact/large tile sizing behaves again through the existing top-level config.
-- Value tiles can render a secondary line again.
-- The card editor exposes `tile_size` as a top-level form field.
-- No overview YAML restructuring is part of this tranche.
+- The nav has a deliberate behavior split across device classes rather than a placeholder "mobile everywhere" mode.
+- The nav visibly communicates the intended Tunet direction: premium chrome, stable affordances, and a real foundation for later popup and layout work.
+- This tranche produces one working nav baseline, not a half-hidden POC.
 
 ### EXACT_CHANGE_IN_ENGLISH
-- Change the internal status-card grid tracks from bare `1fr` to `minmax(0, 1fr)` so long content cannot widen one column relative to another.
-- Add the missing `min-width: 0` and truncation rules needed for grid children to stay inside their tracks.
-- Restore V1 `tile_size` handling in V2:
-  - parse it in config
-  - set the host attribute
-  - apply compact/large CSS rules
-  - expose it in `getConfigForm()`
-- Restore V1 `secondary` support on value tiles so the Boost tile can render its config line again.
-- Keep this strictly inside the status card.
+- Revisit the storage and YAML dashboard nav configuration so the custom nav actually demonstrates the intended responsive model instead of being effectively pinned to mobile behavior.
+- Decide and implement the smallest viable premium nav baseline:
+  - bottom dock on phone
+  - intentional desktop treatment on wide screens
+  - no fake "temporary" breakpoint hacks left in place
+- Make only the nav and dashboard wiring changes needed to show a real navigation direction.
+- Do not mix popup redesign, actions-strip redesign, or full home-layout changes into this tranche.
 
 ### ACCEPTANCE_CRITERIA
-- `tunet_status_card.js` parses successfully.
-- The V2 status card uses `minmax(0, 1fr)` for its internal grid columns.
-- V2 status-card tiles have `min-width: 0` and value/dropdown text is constrained inside the tile width.
-- V2 status card accepts and applies `tile_size`.
-- V2 status card renders `secondary` text for value tiles.
-- `getConfigForm()` exposes `tile_size`.
-- The updated status-card resource is deployed to live HA with a new cache-busted URL.
-- No other card file is changed.
+- The nav is no longer configured with a placeholder breakpoint that forces mobile behavior everywhere.
+- On desktop, the nav visibly presents as a deliberate desktop treatment rather than a phone dock.
+- On phone-sized widths, the nav still behaves as a bottom dock.
+- The work stays scoped to nav chrome and dashboard wiring.
+- Popup behavior, shell polish, and home layout remain unchanged in this tranche.
 
 ### VALIDATION
 
 #### Static validation
-- `node --check Dashboard/Tunet/Cards/v2/tunet_status_card.js`
-- diff confined to the one status-card file
+- `node --check Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
+- diff confined to nav card and dashboard config only
 
 #### Runtime validation
-- confirm the live resource URL was updated in HA resource config
-- confirm the card can still load without syntax/runtime registration failure
+- confirm the nav still registers and renders without custom-element or console errors
+- confirm dashboard config remains valid in HA
 
 #### HA/live validation
-- hard refresh the storage overview
-- verify the Home Status card now reads as a more even 4x2 grid
-- verify the Boost tile shows its secondary line again
-- verify the compact density feels closer to the intended storage overview config
+- hard refresh the storage overview and at least one room subview
+- verify desktop shows the intended non-mobile nav treatment
+- verify phone-sized width still shows the bottom dock treatment
+- verify nav active state still works across Overview / subviews / Media / Rooms surfaces
 
 ### DEPLOY_IMPACT
 - `HA RESOURCE UPDATE`
-- one JS file deployed
-- one Lovelace resource cache-bust update required
+- `HA DASHBOARD UPDATE`
+- one JS file may need redeploy plus dashboard config updates
 
 ### ROLLBACK
-- restore `Dashboard/Tunet/Cards/v2/tunet_status_card.js` from git
-- copy the prior file back to `/config/www/tunet/v2_next/`
-- reset the live resource URL to the previous version token if needed
+- restore nav card config and JS from git
+- redeploy prior resource version if needed
+- reset any temporary breakpoint experimentation to the last known-good state if the new nav treatment is not stable
 
 ### DEPENDENCIES
 - branch must be `claude/dashboard-nav-research-QnOBs`
-- live HA must already load the status card from `/local/tunet/v2_next/tunet_status_card.js`
-- storage overview must still use `custom:tunet-status-card`
+- live HA must already load the nav card from `/local/tunet/v2_next/tunet_nav_card.js`
+- storage dashboard must still include `custom:tunet-nav-card`
 
 ### UNKNOWNS
-- Whether all of the perceived unevenness was caused by intrinsic grid sizing, or whether some remaining imbalance is still visual/content-driven.
-- Whether compact-mode density alone is enough, or whether font scale should still be revisited in a later tranche.
-- Whether a later config-editor tranche should expose more than `tile_size` at the top level.
+- Whether the best desktop treatment is a side rail immediately, or an intermediate wider dock that still reads as deliberate.
+- Whether the nav should remain pure chrome in this tranche or include a tiny hint of integrated media affordance.
+- Whether any current global offset behavior in `tunet_nav_card.js` must be revisited immediately to support the recovered desktop treatment cleanly.
 
 ### STOP_CONDITIONS
-- Stop if fixing the width imbalance requires editing overview YAML again.
-- Stop if fixing `secondary` or `tile_size` forces broader status-card redesign beyond this narrow parity pass.
-- Stop if the live HA resource path differs from `/local/tunet/v2_next/tunet_status_card.js`.
+- Stop if this turns into popup work.
+- Stop if this turns into broad shell / atmosphere work.
+- Stop if this turns into redoing the whole overview layout.
+- Stop if a proper nav recovery would require touching more than the nav card and dashboard-level nav wiring in this tranche.
 
 ### OUT_OF_SCOPE
-- Browser Mod popup work
-- actions-strip redesign
-- V1 page-shell polish recovery
+- Browser Mod popup migration
+- actions strip redesign
+- V1 page-shell / blue atmosphere recovery
+- home overview hero redesign
 - lighting-card internal density changes
-- nav-card behavior changes
-- full status-card visual-editor support for tiles arrays
+- broad layout recomposition
+- full nav mini-player productization unless it is required to make the nav baseline feel coherent
 
 ### REVIEW_FOCUS
-- Did the work stay inside the V2 status card only?
-- Did it actually address internal width normalization instead of reopening overview layout?
-- Did it restore the specific V1 config behaviors the current storage overview depends on?
-- Was the live resource updated cleanly with a new cache-busted URL?
+- Did the work actually recover the intended nav direction, or just tweak a breakpoint without making the nav feel intentional?
+- Did the work stay scoped to nav chrome and nav wiring?
+- Did it avoid silently doing popup, shell, or layout work?
+- Is the resulting nav baseline good enough to serve as the foundation for the next popup tranche?

@@ -1,5 +1,7 @@
 # T-004 Implementation Report
 
+> Historical note: this file records the last completed tranche implementation. The active next tranche is defined in [current_tranche.md](/home/mac/HA/implementation_10/Dashboard/Tunet/Agent-Reviews/current_tranche.md).
+
 ## TRANCHE_ID
 - `T-004`
 

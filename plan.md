@@ -66,22 +66,190 @@ This tranche is intentionally bounded to restore the custom Tunet nav as a first
 - at least one small, high-value live-state affordance direction captured or proven in nav
 - no popup, shell, or home-layout scope creep in this tranche
 
-## Current Reality Snapshot (Fact Base)
-- DONE SNAP.01: New dashboard YAML exists at `Dashboard/Tunet/tunet-suite-config.yaml`; Outcome: repo has a single source of truth for the POC dashboard config; Verify: the file exists on this branch.
-- DONE SNAP.02: Dashboard YAML is deployed to HA at `/config/dashboards/tunet-suite.yaml`; Outcome: HA has the YAML file available on disk; Verify: HA host filesystem shows the file at that path.
-- DONE SNAP.03: `tunet-suite` YAML dashboard is registered in HA (`/config/configuration.yaml`) and HA has been restarted; Outcome: dashboard is reachable; Verify: Settings -> Dashboards lists `tunet-suite` and `/tunet-suite/overview` opens.
-- DONE SNAP.04: V2 cards are deployed to HA under `/config/www/tunet/v2_next/`; Outcome: HA can serve `/local/tunet/v2_next/*.js`; Verify: direct browser fetch of a resource returns JS (200).
-- DONE SNAP.05: Lovelace resources were repointed to `/local/tunet/v2_next/...`; Outcome: HA frontend loads v2_next modules; Verify: Settings -> Dashboards -> Resources shows `/local/tunet/v2_next/` URLs.
-- DONE SNAP.06: `tunet-nav-card` exists (POC), 3 items, breakpoint 900; Outcome: persistent nav chrome exists; Verify: `Dashboard/Tunet/Cards/v2/tunet_nav_card.js` exists and is loaded as a resource.
-- DONE SNAP.07: Bug 1 and Bug 2 are implemented in V2 `tunet_status_card`; Outcome: status tiles are uniform and aux pill respects `aux_show_when`; Verify: see Phase 0 verification tasks.
-- DONE SNAP.08: Bug 3 removed from repo YAMLs (`sensor.aqi` removed); Outcome: repo dashboards no longer reference missing `sensor.aqi`; Verify: `rg "sensor\\.aqi" Dashboard/Tunet/*.yaml` returns no matches.
-- TODO SNAP.09: Bug 3 still exists in at least one HA Storage dashboard; Outcome: must be manually removed in HA UI storage dashboards; Verify: searching storage dashboard YAML in HA still finds `sensor.aqi`.
-- TODO SNAP.10: Bug 4 (V2 config editors) not validated end-to-end; Outcome: cannot assume `getConfigForm()` works in the current HA frontend/browser; Verify: Phase 0 diagnostics.
-- DONE SNAP.11: Office is merged into Living Room (no Office room/subview); Outcome: no Office view to build; Verify: there is no `path: office` in `tunet-suite-config.yaml`.
-- DONE SNAP.12: HA Core version is `2026.3.0b1`; Outcome: `getConfigForm()` should be supported; Verify: Settings -> About shows `2026.3.0b1`.
-- DONE SNAP.13: Detailed remediation backlog now lives in `FIX_LEDGER.md`; Outcome: findings are execution-grade and sub-agent-ready; Verify: the file exists and enumerates issue IDs, exact fixes, and validation steps.
-- DONE SNAP.14: The repo now has a Tunet-specific Claude skill at `.claude/skills/tunet-agent-driver/SKILL.md`; Outcome: broad Claude-style planning/review runs have a reusable orchestration entry point; Verify: the file exists on this branch.
-- DONE SNAP.15: Root and Tunet-local Claude guidance now route broad Tunet planning work into the agent-driver workflow; Outcome: instruction drift is reduced; Verify: both `CLAUDE.md` files mention the skill.
+## System State Model
+
+This section replaces the old mixed "reality snapshot."
+
+For Tunet, three different truths must be kept separate:
+
+1. `REPO STATE`
+2. `LIVE HA STATE`
+3. `PRODUCT STATE`
+
+If these are blended together, future work will incorrectly treat:
+
+- code existence as product acceptance
+- live deployment as design completion
+- historical experiments as current architecture
+
+### Surface Model
+
+Tunet now has more than one meaningful dashboard surface in play.
+
+That is not inherently a problem. It becomes a problem only when contributors fail to say which surface they are optimizing.
+
+For this project, the surfaces must be interpreted like this:
+
+#### 1. Repo-Controlled Architecture Surface
+
+- `Dashboard/Tunet/tunet-suite-config.yaml`
+- role:
+  - architecture source
+  - repo-controlled reference implementation
+  - deployment-safe staging baseline
+- use this surface for:
+  - canonical entity modeling
+  - structural dashboard architecture
+  - resource-root and deployment-path discipline
+  - branch-reviewable changes
+- do not use this surface alone to claim the daily-use product is correct
+
+#### 2. Primary Evaluation / UI-Edit Surface
+
+- `tunet-suite-storage`
+- role:
+  - user-facing evaluation surface
+  - storage/hybrid editing surface
+  - fastest place to judge whether the product actually feels right
+- use this surface for:
+  - tranche-by-tranche UX evaluation
+  - testing whether a direction works for real daily use
+  - checking whether UI-editability is acceptable
+  - judging nav, popup, shell, and home-layout quality
+- do not treat this surface as the only architecture source when it drifts from repo state
+
+#### 3. Historical / Reference Surfaces
+
+- `Dashboard/Tunet/tunet-overview-config.yaml`
+- `Dashboard/Tunet/tunet-v2-test-config.yaml`
+- older live storage dashboards
+- role:
+  - historical reference
+  - component harness
+  - migration/comparison aid
+- use these surfaces for:
+  - finding older behavior worth restoring
+  - comparing V1/V2 behavior
+  - validating isolated card behavior
+- do not use these surfaces to define the next major product decision unless explicitly promoted
+
+### Surface Leadership Rules
+
+These rules exist to stop future work from optimizing the wrong thing:
+
+- If the task is about:
+  - product feel
+  - one-touch usability
+  - family-grade clarity
+  - visual hierarchy
+  - nav / popup / shell / home-layout judgment
+  then the `Primary Evaluation / UI-Edit Surface` leads.
+
+- If the task is about:
+  - canonical architecture
+  - branch truth
+  - deployable reference config
+  - entity normalization
+  - resource pathing
+  - long-term maintainability
+  then the `Repo-Controlled Architecture Surface` leads.
+
+- If the two surfaces drift:
+  - contributors must say so explicitly
+  - contributors must state which surface is being corrected first
+  - contributors must not silently claim both are current and equivalent
+
+- For this project’s current stage:
+  - architectural direction should remain repo-legible
+  - experiential judgment should be made on the storage/hybrid evaluation surface
+
+### Direction Locks
+
+These are active product-direction locks, not implementation facts:
+
+- The next four major decisions must happen in this order:
+  1. `NAV`
+  2. `POPUP`
+  3. `INTEGRATED UI / UX`
+  4. `HOME LAYOUT`
+- Browser Mod is the preferred direction for the next popup tranche.
+- One popup per room is the intended popup model.
+- The interaction quality bar is Apple-grade in the sense of:
+  - one-touch primaries
+  - low cognitive load
+  - premium but quiet chrome
+  - progressive disclosure
+- Sections decisions are about role, placement, hierarchy, and one-touch value, not just width ratios.
+
+### Top-Down Product Considerations
+
+These considerations flow from the intended daily-use experience:
+
+- The suite must be understandable to people who did not build it.
+- The first action and current location should be obvious without explanation.
+- Nav is not just routing; it is the first premium product surface.
+- Popups are not generic overlays; they are intentional, high-value room surfaces.
+- Home layout should not be finalized before nav, popup, and shell language are settled.
+- A surface earns width and prominence through interaction value, not because a card happens to exist.
+
+### Bottom-Up System Considerations
+
+These considerations flow from Home Assistant mechanics and maintainability:
+
+- YAML and storage dashboards are both in play; contributors must state which surface they are touching.
+- `v2_next` is still the staging root and remains the safe deployment target until cutover is approved.
+- Custom cards can be implemented, deployed, and even visually improved before they are accepted as product direction.
+- Historical Bubble/hash work exists in the branch and can still mislead future work unless explicitly fenced.
+- V1 cards may be selectively reused, but custom element collisions must be avoided.
+
+### Repo State
+
+These are facts about the branch contents:
+
+- DONE REPO.01: New dashboard YAML exists at `Dashboard/Tunet/tunet-suite-config.yaml`; Verify: the file exists on this branch.
+- DONE REPO.02: V2 cards are deployed from repo under the `v2_next` staging path convention; Verify: `Dashboard/Tunet/Cards/v2/` is the active working suite.
+- DONE REPO.03: `tunet-nav-card` exists in repo as the custom navigation foundation; Verify: `Dashboard/Tunet/Cards/v2/tunet_nav_card.js` exists.
+- DONE REPO.04: Bug 1 and Bug 2 code work exists in repo `tunet_status_card`; Verify: see Phase 0 verification tasks.
+- DONE REPO.05: Bug 3 is removed from repo YAMLs (`sensor.aqi` removed); Verify: `rg "sensor\\.aqi" Dashboard/Tunet/*.yaml` returns no matches.
+- DONE REPO.06: Office is merged into Living Room in repo configs; Verify: there is no `path: office` in `tunet-suite-config.yaml`.
+- DONE REPO.07: Detailed remediation backlog exists in `FIX_LEDGER.md`; Verify: the file exists.
+- DONE REPO.08: Multi-agent orchestration and tranche workflow docs exist on this branch; Verify: `agent_driver_pack.md` and tranche docs exist.
+
+### Live HA State
+
+These are facts about the deployed Home Assistant environment and should be re-validated before relying on them:
+
+- DONE HA.01: Dashboard YAML is deployed to HA at `/config/dashboards/tunet-suite.yaml`; Verify: HA host filesystem shows the file at that path.
+- DONE HA.02: `tunet-suite` YAML dashboard is registered in HA and reachable; Verify: Settings -> Dashboards lists `tunet-suite` and `/tunet-suite/overview` opens.
+- DONE HA.03: V2 card resources are deployed under `/config/www/tunet/v2_next/`; Verify: direct browser fetch of a resource returns JS (200).
+- DONE HA.04: Lovelace resources were repointed to `/local/tunet/v2_next/...`; Verify: Settings -> Dashboards -> Resources shows `/local/tunet/v2_next/` URLs.
+- DONE HA.05: HA Core version is `2026.3.0b1`; Verify: Settings -> About shows `2026.3.0b1`.
+- TODO HA.06: At least one HA Storage dashboard still contains stale `sensor.aqi` references; Verify: searching storage dashboard YAML in HA still finds `sensor.aqi`.
+- TODO HA.07: V2 config-editor behavior is not validated end-to-end in the live UI; Verify: Phase 0 diagnostics.
+
+### Product State
+
+These are facts about what the product has and has not actually achieved yet. They are not satisfied merely because code or deployment exists.
+
+- DONE PRODUCT.01: The project now has a credible control-plane model: branch discipline, doc precedence, tranche workflow, and explicit direction locks.
+- DONE PRODUCT.02: The order of the next major decisions is now aligned to actual user intent: nav, popup, integrated UI / UX, home layout.
+- PARTIAL PRODUCT.03: The custom nav exists, but it is not yet accepted as the real premium chrome experience.
+- PARTIAL PRODUCT.04: The overview is structurally better than the original vertical-stack state, but the home-screen product direction is not yet settled.
+- PARTIAL PRODUCT.05: Status-card parity work reduced one visible regression, but it did not solve the upper-overview product hierarchy.
+- TODO PRODUCT.06: Browser Mod room popups are not yet the working popup standard.
+- TODO PRODUCT.07: The V1 atmosphere / shell language has not yet been recovered in a Sections-compatible way.
+- TODO PRODUCT.08: The home hero and overview hierarchy are not yet accepted as the final daily-use product direction.
+
+## Supersession Register
+
+This register exists so future work does not silently reuse displaced assumptions.
+
+| Old Assumption | Replaced By | Why | Do Not Use For | Still Reusable For |
+|---|---|---|---|---|
+| Bubble/hash popup POC is the active popup path | Browser Mod preferred, one popup per room | The user explicitly redirected popup architecture toward a more robust and premium overlay model | choosing the next popup platform | harvesting narrow implementation ideas from historical POC work |
+| Layout should keep being refined before nav/popup/UI direction is settled | Nav first, popup second, integrated UI / UX third, home layout fourth | Product-decision order is now locked | choosing the next major tranche | critiquing what is structurally wrong with the current overview |
+| Lighting + Environment is a locked final overview answer | Lighting + companion is only the current leading home-layout candidate | Home layout is still downstream of nav, popup, and shell decisions | claiming the home-screen design is settled | starting later home-layout exploration |
+| Implemented in repo means effectively done | Repo state, live HA state, and product state must be tracked separately | This project is design-led and daily-use quality matters as much as code existence | claiming a product surface is complete | operational rollout tracking |
 
 ## Branch And Findings Discipline
 
@@ -221,7 +389,23 @@ Interpret them with these overrides:
 - references below to Bubble/hash popups are historical unless explicitly re-approved
 - do not let the older phase wording override the user-locked nav -> popup -> integrated UI / UX -> home layout sequence
 
-## Phase 1 - POC-First Walking Skeleton (Living Room Popup Only)
+## HISTORICAL Phase 1 - Bubble/Hash Popup POC (Superseded By Current Popup Direction)
+
+This section is preserved as branch history only.
+
+It does **not** define the active popup implementation path for Tunet.
+
+Use it only for:
+
+- understanding what was prototyped
+- identifying what was already learned
+- reusing small implementation details if they still fit the current product direction
+
+Do **not** use this section as permission to:
+
+- keep Bubble/hash popups as the default popup model
+- treat `#living-room` routing as the active popup standard
+- bypass the current `T-006` Browser Mod popup direction
 
 ### Definition Of Done (Walking Skeleton)
 - Living Room tile opens a hash popup (`#living-room`) reliably.
@@ -286,7 +470,11 @@ Interpret them with these overrides:
 - TODO P2.V04: Dining: adjust thermostat; Verify: climate responds.
 - TODO P2.V05: Living: play/pause media; Verify: media responds.
 
-## Phase 3 - Expand Popups (Kitchen, Dining, Bedroom) Using The Same Pattern
+## HISTORICAL Phase 3 - Expand Bubble/Hash Popups (Superseded By Current Popup Direction)
+
+This section is also historical backlog only.
+
+Its room-popup structure may still contain reusable implementation details, but its popup platform assumptions are no longer the active product direction.
 
 ### 3.1 - Popup Pattern Template (Shared)
 - TODO P3.01: Define a standard popup template (Bubble pop-up + quick actions + one lighting surface + Open Room link); Outcome: consistent UX; Verify: all room popups share structure and styles.

@@ -1,7 +1,7 @@
-# Tunet Overview IA - Locked Baseline
+# Tunet Overview IA - Candidate Baseline
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Purpose: lock the intended Overview information architecture as a later home-layout decision target, not as permission to keep reworking the overview before nav, popup, and integrated UI / UX decisions are settled.
+Purpose: preserve the current best candidate for Overview information architecture as a later home-layout decision target, not as permission to keep reworking the overview before nav, popup, and integrated UI / UX decisions are settled.
 
 This document is intentionally limited to:
 
@@ -24,11 +24,20 @@ The current storage Overview still behaves too much like:
 - missing the stronger V1-style top utility / chips band
 - insufficiently deliberate use of wide desktop space
 
-The goal of this document is to freeze the target layout so later home-layout work has a clear target once the upstream nav, popup, and integrated UI / UX tranches are complete.
+The goal of this document is to preserve a strong candidate layout so later home-layout work has a concrete starting point once the upstream nav, popup, and integrated UI / UX tranches are complete.
 
-## Locked Overview IA
+This document is intentionally subordinate to the current product-decision order:
 
-The Overview should have **four intentional bands**, in this order:
+1. nav
+2. popup
+3. integrated UI / UX
+4. home layout
+
+If later nav, popup, or shell decisions materially change what the hero should be, what the right companion surface should be, or how overview hierarchy should feel, this document must be revised rather than treated as untouchable.
+
+## Current Best Candidate Overview IA
+
+The Overview should likely have **four intentional bands**, in this order:
 
 1. **Top utility band**
    - mode / actions / quick controls
@@ -37,16 +46,18 @@ The Overview should have **four intentional bands**, in this order:
 
 2. **Primary status band**
    - Home Status as the main equal-width grid
-   - Environment as a supporting compact stack to the right on desktop
+   - a supporting compact companion surface to the right on desktop
+   - today that companion is modeled as Environment, but that is not yet a permanently locked product decision
 
 3. **Hero interaction band**
-   - Lighting as the dominant whole-home hero surface
+   - Lighting is the current leading candidate for the dominant whole-home hero surface
+   - this is still subject to later refinement if nav, popup, or integrated UI / UX work reveals a better premium overview hero concept
 
 4. **Destination band**
    - Rooms as the drill-in entry surface
    - Media as a compact companion surface
 
-This is the locked desktop hierarchy:
+This is the current best candidate desktop hierarchy:
 
 - utility first
 - status second
@@ -83,11 +94,12 @@ This is the locked desktop hierarchy:
 
 - The top band must feel like a control strip, not a full content section.
 - Home Status must be one coherent equal-width surface.
-- Environment is not a peer to Lighting; it is a compact support stack.
+- The right-hand companion should support Home Status rather than compete with the hero.
+- Environment is the current candidate for that role, not an irreversible final answer.
 - Lighting deserves the widest and most visually dominant row.
 - Rooms and Media share the last row because both are drill-in surfaces, not overview-dominant content.
 
-## Tablet Layout (Locked)
+## Tablet Layout (Candidate)
 
 ```text
 +--------------------------------------------------------------+
@@ -124,7 +136,7 @@ This is the locked desktop hierarchy:
 - Rooms gets its own row because it remains a major navigation surface.
 - Media may collapse below Rooms instead of competing with it horizontally.
 
-## Phone Layout (Locked)
+## Phone Layout (Candidate)
 
 ```text
 +--------------------------------------+
@@ -163,9 +175,9 @@ This is the locked desktop hierarchy:
 - Lighting remains the hero.
 - Rooms stays above Media because room entry is usually the more common overview jump.
 
-## Storage Dashboard Translation Plan
+## Candidate Storage Dashboard Translation Plan
 
-This is the target section plan for `Dashboard/Tunet/tunet-suite-storage-config.yaml` Overview.
+This is the current candidate section plan for `Dashboard/Tunet/tunet-suite-storage-config.yaml` Overview.
 
 ### Section 1 - Utility Band
 
@@ -258,6 +270,20 @@ When translating this locked IA into the storage dashboard, do **not**:
 - redesign `tunet-nav-card`
 - solve all responsive card-core issues
 - solve config-editor viability
+
+## Status Of This Document
+
+This document is:
+
+- useful as a composition baseline
+- valid as a critique of the current storage overview
+- valid as a candidate home-layout starting point
+
+This document is **not**:
+
+- the final home-screen decision
+- permission to keep iterating layout before nav/popup/UI decisions are settled
+- proof that Lighting + Environment is permanently the correct upper-half pairing
 - solve the entire nav strategy
 
 The composition pass should stay at the dashboard-structure layer first.

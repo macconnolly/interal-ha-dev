@@ -1,10 +1,10 @@
-# T-005 - Custom Nav Chrome Recovery POC
+# T-005 - Premium Nav Product Surface POC
 
 ### TRANCHE_ID
 - `T-005`
 
 ### TITLE
-- `Bring the custom Tunet nav bar back as an intentional product surface instead of a sidelined POC forced into mobile-dock behavior`
+- `Make the custom Tunet nav the first real premium product surface, not a hidden breakpoint experiment`
 
 ### STATUS
 - `PLANNED / USER-LOCKED NEXT`
@@ -18,18 +18,20 @@
 - `Dashboard/Tunet/Docs/nav_popup_ux_direction.md`
 
 ### GOAL
-- Re-establish the custom Tunet nav as a first-class design decision with one working, visible, premium-feeling POC that can become the real directional baseline for the suite.
+- Re-establish the custom Tunet nav as the first visible, credible product decision in the suite: a premium chrome surface that communicates direction, state, and confidence before popup, shell, and home-layout work continue.
 
 ### WHY_NOW
 - The user explicitly wants the next four decisions handled one at a time, together, in this order: nav, popup, integrated UI/UX, home layout.
-- The custom nav bar already exists, but the current branch effectively hides the real intended behavior by forcing mobile-dock mode everywhere.
-- Future popup behavior, shell polish, and home-layout decisions should be made in the context of the actual navigation model, not a temporary placeholder.
+- The custom nav bar already exists, but the current branch hides the intended behavior behind effectively-mobile-everywhere configuration.
+- Future popup behavior, shell polish, and home-layout decisions should be made in the context of a believable navigation model, not a temporary placeholder.
+- The point of this tranche is not merely to fix responsiveness. It is to prove the dashboard can carry a premium control-chrome language at all.
 
 ### USER_VISIBLE_OUTCOME
-- Desktop finally shows a real side-rail or otherwise intentional non-mobile nav treatment instead of a forced phone dock.
-- Mobile/tablet nav remains deliberate and polished rather than feeling like a fallback.
-- The nav becomes a product surface the user can react to visually before popup, shell, and home-layout decisions are layered on top.
-- The nav begins carrying tiny, high-value live-state affordances where appropriate, rather than acting like a dead route strip.
+- Desktop shows a real non-mobile navigation treatment that reads as intentional product chrome, not a stretched phone dock.
+- Phone still uses a bottom dock that feels deliberate and stable.
+- The nav stops feeling like inert routing furniture and starts feeling like part of the intelligent environment.
+- At least one tiny live-state affordance is present and useful, proving that nav can communicate system state without becoming content-heavy.
+- The nav is simple enough that a daily user who did not build the dashboard can understand it immediately and trust it on repeated use.
 
 ### FILES_ALLOWED
 - `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
@@ -44,30 +46,34 @@
 - broad overview layout recomposition
 
 ### CURRENT_STATE
-- The custom nav bar exists and is deployed, but the current storage/dashboard configs effectively force mobile-style behavior everywhere via an extreme `desktop_breakpoint`.
-- The nav is present in the dashboard, but it is not currently demonstrating the intended phone/tablet/desktop experience that motivated the card in the first place.
-- The user wants this elevated ahead of popups, shell polish, and home layout because it is a major product decision, not a minor follow-up.
+- The custom nav bar exists and is deployed, but the current storage/dashboard configs effectively force mobile-style behavior almost everywhere via an extreme `desktop_breakpoint`.
+- The nav is present, but it does not currently demonstrate the intended side-rail / dock split or the premium product quality that justified building a custom card.
+- The user wants this elevated ahead of popups, shell polish, and home layout because nav is a foundational product decision, not a cleanup item.
 
 ### INTENDED_STATE
 - The nav has a deliberate behavior split across device classes rather than a placeholder "mobile everywhere" mode.
-- The nav visibly communicates the intended Tunet direction: premium chrome, stable affordances, and a real foundation for later popup and layout work.
-- This tranche produces one working nav baseline, not a half-hidden POC.
+- The nav visibly communicates the intended Tunet direction: premium chrome, stable affordances, light live state, and a real foundation for later popup and layout work.
+- This tranche produces one working nav baseline the user can judge as a product surface, not a half-hidden POC.
 
 ### EXACT_CHANGE_IN_ENGLISH
 - Revisit the storage and YAML dashboard nav configuration so the custom nav actually demonstrates the intended responsive model instead of being effectively pinned to mobile behavior.
-- Decide and implement the smallest viable premium nav baseline:
+- Implement the smallest viable premium nav baseline:
   - bottom dock on phone
-  - intentional desktop treatment on wide screens
-  - tiny live-state details where they add clear value, such as a subtle playback indicator when media is active
+  - intentional desktop treatment on normal desktop widths
+  - at least one tiny live-state cue with real value, most likely on Media
   - no fake "temporary" breakpoint hacks left in place
+- Keep the nav visually quiet but unmistakably intentional.
 - Make only the nav and dashboard wiring changes needed to show a real navigation direction.
-- Do not mix popup redesign, actions-strip redesign, or full home-layout changes into this tranche.
+- Do not mix popup redesign, actions-strip redesign, shell recovery, or full home-layout changes into this tranche.
 
 ### ACCEPTANCE_CRITERIA
 - The nav is no longer configured with a placeholder breakpoint that forces mobile behavior everywhere.
 - On desktop, the nav visibly presents as a deliberate desktop treatment rather than a phone dock.
 - On phone-sized widths, the nav still behaves as a bottom dock.
-- At least one tiny live-state affordance is proven if it can be added cleanly without turning nav into a mini-dashboard.
+- At least one tiny live-state affordance is present and clearly legible without turning nav into a mini-dashboard.
+- The result feels like premium chrome, not just corrected breakpoint logic.
+- The first action and current location are obvious without explanation.
+- The result is credible for repeated family use, not just technically correct for the builder.
 - The work stays scoped to nav chrome and dashboard wiring.
 - Popup behavior, shell polish, and home layout remain unchanged in this tranche.
 
@@ -86,6 +92,7 @@
 - verify desktop shows the intended non-mobile nav treatment
 - verify phone-sized width still shows the bottom dock treatment
 - verify nav active state still works across Overview / subviews / Media / Rooms surfaces
+- verify a non-builder can identify current location and primary destinations without explanation
 
 ### DEPLOY_IMPACT
 - `HA RESOURCE UPDATE`
@@ -103,12 +110,12 @@
 - storage dashboard must still include `custom:tunet-nav-card`
 
 ### UNKNOWNS
-- Whether the best desktop treatment is a side rail immediately, or an intermediate wider dock that still reads as deliberate.
+- Whether the best desktop treatment is the full side rail immediately, or an intermediate wider dock that still reads as deliberate.
 - Which tiny live-state affordance is the highest-value first proof:
   - now-playing indicator
   - small media glyph
   - other subtle status hint
-- Whether any current global offset behavior in `tunet_nav_card.js` must be revisited immediately to support the recovered desktop treatment cleanly.
+- Whether the current global offset behavior in `tunet_nav_card.js` must be revisited immediately to support a credible desktop treatment.
 
 ### STOP_CONDITIONS
 - Stop if this turns into popup work.
@@ -126,7 +133,7 @@
 - full nav mini-player productization unless it is required to make the nav baseline feel coherent
 
 ### REVIEW_FOCUS
-- Did the work actually recover the intended nav direction, or just tweak a breakpoint without making the nav feel intentional?
+- Did the work actually recover the intended nav direction, or just tweak a breakpoint without making the nav feel like product chrome?
 - Did the work stay scoped to nav chrome and nav wiring?
 - Did it avoid silently doing popup, shell, or layout work?
 - Is the resulting nav baseline good enough to serve as the foundation for the next popup tranche?

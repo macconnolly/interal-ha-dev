@@ -13,6 +13,112 @@ This file is the machine-actionable findings ledger for the Tunet Suite work.
 - When a sub-agent needs exact work items, use this file first.
 - When a human needs phase order, rollout order, or deployment order, use `plan.md`.
 
+This file is **not** meant to be a mixed bag of:
+
+- active defects
+- superseded architectural assumptions
+- product-direction questions
+
+Those three categories must remain separate, or future work will mistake historical drift for actionable remediation.
+
+## Requirement Register And Interpretation Model
+
+This ledger is not just a backlog. It is an architectural control surface.
+
+Every item in this file must answer one question correctly before work begins:
+
+`Given the real product intent, what kind of item is this, which surface does it apply to, and what is allowed to happen next?`
+
+To make that possible, all ledger items must be interpreted through four gates:
+
+1. `Requirement Alignment`
+2. `Surface Scope`
+3. `Item Type`
+4. `Completion Standard`
+
+If an item cannot be interpreted through these four gates, it does not yet belong in the active remediation flow.
+
+### Requirement Register
+
+These requirement IDs are the stable intent model for the Tunet work. Ledger items should reference them explicitly where relevant.
+
+| Requirement ID | Requirement | Why It Exists |
+|---|---|---|
+| `REQ-NAV-001` | `NAV` is the first major product decision. | The product must establish coherent chrome and wayfinding before popup, shell, and home-layout decisions are finalized. |
+| `REQ-NAV-002` | Nav must be understandable without builder knowledge. | Family and guests should know where they are and what each route does without explanation. |
+| `REQ-NAV-003` | Nav must act as a live-state surface, not a dead route strip. | Premium home UI should surface small but useful context at the point of navigation. |
+| `REQ-POP-001` | Browser Mod is the preferred popup system. | Popup behavior must be robust, reusable, and aligned with the intended product surface. |
+| `REQ-POP-002` | There is one popup per room. | Room overlays should be intentional, minimal, and predictable. |
+| `REQ-POP-003` | Popups must feel like premium iOS-grade sheets. | Overlay quality is part of the daily-use product, not an implementation afterthought. |
+| `REQ-UX-001` | Primary actions must be reachable in one touch. | The dashboard is for real household use, not for exploratory builder interaction. |
+| `REQ-UX-002` | Current location and next action must be obvious. | Low cognitive load is required for family-grade usability. |
+| `REQ-UX-003` | Daily-use family clarity outranks technically clever composition. | Product acceptance is determined by repeated household use, not just implementation novelty. |
+| `REQ-SEC-001` | Sections are organized by role, hierarchy, and one-touch value. | Sections is a product-architecture tool, not just a sizing grid. |
+| `REQ-SEC-002` | Width is a ratio decision, not the whole design decision. | Span alone does not determine whether a surface deserves prominence or placement. |
+| `REQ-SEC-003` | Vertical sizing should generally remain intrinsic. | Forced height should be the exception, not the default, in a modern Sections dashboard. |
+| `REQ-SURF-001` | Storage/hybrid is the primary evaluation and UI-edit surface. | Product feel should be judged on the surface people can actually interact with and adjust. |
+| `REQ-SURF-002` | YAML suite is the repo-controlled architecture surface. | Long-term structure, reviewability, and deployment discipline still need a canonical branch-readable surface. |
+| `REQ-DONE-001` | Implemented is not done. | Repo state, live HA state, visual validation, and product acceptance must remain distinct. |
+| `REQ-V1-001` | Valuable V1 polish and interaction patterns should be recovered where compatible. | Migration to Sections must not discard the atmosphere and clarity that made the earlier dashboard feel premium. |
+
+### Four-Gate Interpretation Model
+
+#### 1. Requirement Alignment
+
+Every item should identify which requirement IDs it serves.
+
+Examples:
+
+- `REQ-NAV-001` if it affects nav sequencing or nav acceptance
+- `REQ-POP-001` and `REQ-POP-003` if it affects room popup platform or sheet quality
+- `REQ-UX-001` if it changes one-touch control quality
+- `REQ-SEC-001` if it changes Sections placement, grouping, or interaction hierarchy
+
+#### 2. Surface Scope
+
+Every item should make clear which surface it applies to:
+
+- `Repo Architecture Surface`
+- `Storage/Hybrid Evaluation Surface`
+- `Historical / Reference Surface`
+
+If an item affects more than one surface, that should be stated explicitly rather than implied.
+
+#### 3. Item Type
+
+Every item must fit one of these types:
+
+- `DEFECT`
+- `SUPERSEDED ASSUMPTION`
+- `PRODUCT-DIRECTION DECISION`
+- `VALIDATION TASK`
+
+This prevents design direction from being executed like a bug ticket and prevents historical assumptions from being mistaken for current failures.
+
+#### 4. Completion Standard
+
+Every item must be evaluated against one or more of these completion states:
+
+- `CODE CHANGED`
+- `DEPLOYED`
+- `VISUALLY VALIDATED`
+- `ACCEPTED AS PRODUCT DIRECTION`
+
+The ledger must not collapse these into a single meaning of "done."
+
+### How To Use The Requirement Model
+
+- Use requirement IDs to justify why an item belongs in the active queue.
+- Use surface scope to decide where the work should be implemented or judged.
+- Use item type to decide whether the item belongs in remediation, historical fencing, or product direction.
+- Use completion standard to prevent repo work from being mistaken for daily-use product acceptance.
+
+This is how the ledger stays aligned with Home Assistant's operating philosophy:
+
+- flexibility: multiple surfaces can coexist without being conflated
+- reliability: stale assumptions are fenced instead of silently reused
+- user empowerment: success is measured by understandable, controllable daily use
+
 ## Control Document Precedence
 
 If the control documents disagree, use this precedence order:
@@ -46,23 +152,58 @@ These items have already changed materially on this branch and must be verified 
 
 ## Canonical Decisions Already Made
 
-- Dashboard target: new YAML dashboard at `/tunet-suite`, not in-place mutation of the existing overview dashboard.
+- Surface model:
+  - `tunet-suite` YAML is the repo-controlled architecture surface.
+  - `tunet-suite-storage` is the primary evaluation / UI-edit surface.
+  - older overview and test dashboards are historical / reference surfaces only unless explicitly promoted.
 - Resource strategy: keep `v2_next` as the active staging root until cutover is explicitly approved.
 - Layout strategy: native HA Sections layout is the primary layout engine.
 - Vertical sizing strategy: do not force vertical rows in production sections cards unless there is a compelling card-specific exception.
 - Navigation strategy: custom `tunet-nav-card` is the navigation foundation.
 - Room strategy: Office is not a room; Office lighting is part of Living Room.
-- Popup strategy: current POC uses Bubble Card for room quick-control popups; this is still a decision area for long-term standardization.
+- Popup strategy: Browser Mod is the preferred next-popup direction for Tunet. Existing Bubble/hash popup work is historical POC material only unless explicitly re-approved.
 - Card editor strategy: `getConfigForm()` remains acceptable for simple/scalar configs; nested array editing is not considered solved.
 
 ## How To Use This Ledger
 
-For each item:
+For each active defect item:
 - Read the `Exact Fix`.
 - Read the `Why This Matters`.
+- Read the `Requirement Alignment` if present.
+- Read the `Surface Scope` if present.
 - Respect the `Dependency` ordering.
 - Do not mark the item done until the `Validation` step is complete.
 - If a code change is made but HA has not yet been refreshed or redeployed, keep the status as `CODE-DONE / HA-VERIFY`.
+
+For this file as a whole, interpret it using this structure:
+
+1. `Active Defects / Remediation`
+   - things that should be fixed in code, config, docs, or live HA state
+2. `Superseded Assumptions`
+   - older architectural or planning assumptions that must not be reused blindly
+3. `Product-Direction Decisions`
+   - open or locked design decisions that shape future tranches but are not themselves implementation defects
+
+Do not execute Product-Direction Decisions as if they were bug tickets.
+Do not treat Superseded Assumptions as active failures unless they still survive in code or docs.
+
+## Ledger Model
+
+This ledger now follows the same architectural discipline as `plan.md`:
+
+- `plan.md` defines execution order and system state
+- `FIX_LEDGER.md` defines remediation truth
+
+Within `FIX_LEDGER.md`, every item should fit one of these meanings:
+
+- `DEFECT`
+  - Something is wrong in repo state, live HA state, documentation, or interaction behavior and should be fixed.
+- `SUPERSEDED ASSUMPTION`
+  - Something used to be treated as true or current, but is no longer the right basis for execution.
+- `PRODUCT-DIRECTION DECISION`
+  - A product or architectural decision that shapes future work, but should not be confused with a defect.
+
+If an item is not clearly one of those, the ledger is drifting again.
 
 ## File Scorecard
 
@@ -316,6 +457,23 @@ These grades are implementation-health grades, not value judgments. They reflect
 #### FL-011
 - Status: `OPEN`
 - Severity: `HIGH`
+- Requirement Alignment:
+  - `REQ-NAV-001`
+  - `REQ-NAV-002`
+  - `REQ-NAV-003`
+  - `REQ-SURF-001`
+  - `REQ-SURF-002`
+  - `REQ-DONE-001`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Item Type:
+  - `DEFECT`
+- Completion Standard:
+  - `CODE CHANGED`
+  - `DEPLOYED`
+  - `VISUALLY VALIDATED`
+  - `ACCEPTED AS PRODUCT DIRECTION`
 - Files:
   - `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
 - Problem:
@@ -336,6 +494,24 @@ These grades are implementation-health grades, not value judgments. They reflect
 #### FL-012
 - Status: `OPEN`
 - Severity: `HIGH`
+- Requirement Alignment:
+  - `REQ-NAV-001`
+  - `REQ-NAV-002`
+  - `REQ-UX-001`
+  - `REQ-UX-002`
+  - `REQ-SURF-001`
+  - `REQ-SURF-002`
+  - `REQ-DONE-001`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Item Type:
+  - `DEFECT`
+- Completion Standard:
+  - `CODE CHANGED`
+  - `DEPLOYED`
+  - `VISUALLY VALIDATED`
+  - `ACCEPTED AS PRODUCT DIRECTION`
 - Files:
   - `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
   - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
@@ -354,6 +530,20 @@ These grades are implementation-health grades, not value judgments. They reflect
 #### FL-013
 - Status: `OPEN`
 - Severity: `MEDIUM`
+- Requirement Alignment:
+  - `REQ-NAV-001`
+  - `REQ-NAV-002`
+  - `REQ-SURF-001`
+  - `REQ-DONE-001`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Item Type:
+  - `DEFECT`
+- Completion Standard:
+  - `CODE CHANGED`
+  - `VISUALLY VALIDATED`
+  - `ACCEPTED AS PRODUCT DIRECTION`
 - Files:
   - `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
 - Problem:
@@ -507,11 +697,62 @@ These grades are implementation-health grades, not value judgments. They reflect
 - Validation:
   - Storage dashboard search returns zero hits for `sensor.aqi`.
 
-### Design And Strategy Decisions Still Requiring Fresh Eyes
+### Superseded Assumptions Register
+
+These are not active defects by themselves. They exist to stop future work from silently reusing displaced assumptions.
+
+#### SA-001
+- Status: `SUPERSEDED`
+- Type: `SUPERSEDED ASSUMPTION`
+- Old Assumption:
+  - Bubble/hash popup POC behavior is still an acceptable near-term default popup path for Tunet.
+- Replaced By:
+  - Browser Mod is the preferred next-popup direction, with one popup per room and iOS-grade presentation.
+- Why It Matters:
+  - This assumption can still leak back in from historical phase text and old POC material.
+- Do Not Use For:
+  - choosing the next popup platform
+  - defining the next popup tranche
+- Still Reusable For:
+  - harvesting small implementation details from historical POC work
+
+#### SA-002
+- Status: `SUPERSEDED`
+- Type: `SUPERSEDED ASSUMPTION`
+- Old Assumption:
+  - Home layout can keep being refined before nav, popup, and integrated UI / UX are decided.
+- Replaced By:
+  - The product-decision order is locked: nav, popup, integrated UI / UX, home layout.
+- Why It Matters:
+  - This was the main source of layout-first drift on the branch.
+- Do Not Use For:
+  - selecting the next major tranche
+  - treating overview composition as the current top priority
+- Still Reusable For:
+  - critiquing what is structurally wrong with the current overview
+
+#### SA-003
+- Status: `SUPERSEDED`
+- Type: `SUPERSEDED ASSUMPTION`
+- Old Assumption:
+  - Implemented in repo or deployed to HA means a product surface is effectively done.
+- Replaced By:
+  - Repo state, live HA state, and product state must be tracked separately.
+- Why It Matters:
+  - This project is design-led and daily-use quality matters as much as code existence.
+- Do Not Use For:
+  - claiming nav, popup, or home layout are product-complete because code exists
+- Still Reusable For:
+  - rollout tracking and operational validation
+
+### Product-Direction Decisions
+
+These are not defects. They are architecture or design decisions that still need explicit handling.
 
 #### FL-021
 - Status: `OPEN`
 - Severity: `DECISION`
+- Type: `PRODUCT-DIRECTION DECISION`
 - Files:
   - Architecture-level
 - Problem:
@@ -528,28 +769,31 @@ These grades are implementation-health grades, not value judgments. They reflect
   - Decision recorded in `plan.md`.
 
 #### FL-022
-- Status: `OPEN`
+- Status: `DONE / DIRECTION LOCKED`
 - Severity: `DECISION`
+- Type: `PRODUCT-DIRECTION DECISION`
 - Files:
   - Architecture-level
 - Problem:
-  - Popup standardization is unresolved:
-    - keep Bubble Card for Tunet quick-control popups
-    - or return to browser_mod for all cross-view popup behavior
+  - Older planning and POC material treated popup standardization as unresolved and preserved Bubble/hash popup language as if it were still an active product path.
 - Exact Fix:
-  - Decide based on the intended scope of popups:
-    - overview-only lightweight room quick controls: Bubble Card is acceptable
-    - reusable cross-view overlays: browser_mod is architecturally cleaner
+  - Lock the popup direction for the next tranche as:
+    - one popup per room
+    - Browser Mod preferred
+    - iOS-grade sheet / overlay quality
+    - quick actions + one primary interaction surface + route to deeper room view
+  - Treat Bubble/hash popups as historical POC material unless explicitly re-approved.
 - Why This Matters:
-  - This should be a deliberate platform choice, not an accidental mix.
+  - Popup behavior is a product-surface decision, not an implementation detail. Leaving the standard ambiguous allows future runs to drift back into brittle or lower-quality overlay behavior.
 - Dependency:
-  - Human architecture decision.
+  - None. The direction is already locked in the higher-precedence control docs.
 - Validation:
-  - One popup standard is documented in `plan.md`.
+  - `plan.md`, `FIX_LEDGER.md`, and `nav_popup_ux_direction.md` all agree that Browser Mod is the preferred next-popup direction.
 
 #### FL-023
 - Status: `OPEN`
 - Severity: `DECISION`
+- Type: `PRODUCT-DIRECTION DECISION`
 - Files:
   - `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
   - `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
@@ -567,6 +811,7 @@ These grades are implementation-health grades, not value judgments. They reflect
 #### FL-024
 - Status: `OPEN`
 - Severity: `DECISION`
+- Type: `PRODUCT-DIRECTION DECISION`
 - Files:
   - All V2 cards with `getGridOptions()`
 - Problem:
@@ -582,14 +827,24 @@ These grades are implementation-health grades, not value judgments. They reflect
 - Validation:
   - `plan.md` contains the explicit rule and the code follows it.
 
-## Recommended Execution Order
+## Recommended Remediation Order
+
+This order applies to active remediation items only. It does **not** imply that Product-Direction Decisions should be executed like bug tickets.
 
 1. FL-001, FL-002, FL-003, FL-004, FL-005, FL-006
 2. FL-007, FL-008, FL-009, FL-010
 3. FL-019, FL-020
 4. FL-011, FL-012, FL-013, FL-014, FL-015
 5. FL-016, FL-017
-6. FL-021, FL-022, FL-023, FL-024
+
+## Product-Direction Decision Set
+
+These items should be handled through tranche planning and explicit user decisions, not silently consumed through remediation order:
+
+1. FL-021
+2. FL-022
+3. FL-023
+4. FL-024
 
 ## “Done” Standard For This Project
 

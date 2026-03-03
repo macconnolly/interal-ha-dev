@@ -22,7 +22,7 @@ views:
               - /tunet-suite/kitchen
               - /tunet-suite/dining-room
               - /tunet-suite/bedroom
-            desktop_breakpoint: 9999
+            desktop_breakpoint: 1024
             show_settings: false
 
           - type: custom:tunet-actions-card
@@ -456,7 +456,7 @@ views:
               - /tunet-suite/kitchen
               - /tunet-suite/dining-room
               - /tunet-suite/bedroom
-            desktop_breakpoint: 9999
+            desktop_breakpoint: 1024
             show_settings: false
 
   # ======================================================================
@@ -509,7 +509,7 @@ views:
               - /tunet-suite/kitchen
               - /tunet-suite/dining-room
               - /tunet-suite/bedroom
-            desktop_breakpoint: 9999
+            desktop_breakpoint: 1024
             show_settings: false
 
   # ======================================================================
@@ -565,7 +565,7 @@ views:
               - /tunet-suite/kitchen
               - /tunet-suite/dining-room
               - /tunet-suite/bedroom
-            desktop_breakpoint: 9999
+            desktop_breakpoint: 1024
             show_settings: false
 
   - type: sections
@@ -600,7 +600,7 @@ views:
               - /tunet-suite/kitchen
               - /tunet-suite/dining-room
               - /tunet-suite/bedroom
-            desktop_breakpoint: 9999
+            desktop_breakpoint: 1024
             show_settings: false
 
   - type: sections
@@ -635,7 +635,7 @@ views:
               - /tunet-suite/kitchen
               - /tunet-suite/dining-room
               - /tunet-suite/bedroom
-            desktop_breakpoint: 9999
+            desktop_breakpoint: 1024
             show_settings: false
 
   - type: sections
@@ -670,5 +670,5 @@ views:
               - /tunet-suite/kitchen
               - /tunet-suite/dining-room
               - /tunet-suite/bedroom
-            desktop_breakpoint: 9999
+            desktop_breakpoint: 1024
             show_settings: false

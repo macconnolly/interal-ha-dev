@@ -200,6 +200,7 @@ views:
         cards:
           - type: custom:tunet-rooms-card
             name: Rooms
+            layout_variant: row
             rooms:
               - name: Living Room
                 icon: weekend
@@ -315,6 +316,45 @@ views:
                 grid-template-rows: min-content
                 grid-gap: 8px
               cards:
+                - type: custom:tunet-actions-card
+                  compact: true
+                  actions:
+                    - name: All On
+                      icon: lightbulb
+                      accent: amber
+                      service: light.turn_on
+                      service_data:
+                        entity_id:
+                          - light.living_room_couch_lamp
+                          - light.living_room_floor_lamp
+                          - light.living_room_spot_lights
+                          - light.living_room_credenza_light
+                          - light.office_desk_lamp
+                          - light.column_lights
+                    - name: All Off
+                      icon: power_settings_new
+                      accent: amber
+                      service: light.turn_off
+                      service_data:
+                        entity_id:
+                          - light.living_room_couch_lamp
+                          - light.living_room_floor_lamp
+                          - light.living_room_spot_lights
+                          - light.living_room_credenza_light
+                          - light.office_desk_lamp
+                          - light.column_lights
+                    - name: Reset
+                      icon: restart_alt
+                      accent: red
+                      service: script.turn_on
+                      service_data:
+                        entity_id: script.oal_reset_soft
+                - type: button
+                  name: Open Room
+                  icon: mdi:arrow-top-right
+                  tap_action:
+                    action: navigate
+                    navigation_path: /tunet-suite-storage/living-room
                 - type: custom:tunet-lighting-card
                   name: Living Room
                   surface: section
@@ -480,6 +520,7 @@ views:
         cards:
           - type: custom:tunet-rooms-card
             name: Rooms
+            layout_variant: row
             rooms:
               - name: Living Room
                 icon: weekend
@@ -647,12 +688,64 @@ views:
     sections:
       - type: grid
         cards:
+          - type: custom:tunet-actions-card
+            compact: true
+            actions:
+              - name: All On
+                icon: lightbulb
+                accent: amber
+                service: light.turn_on
+                service_data:
+                  entity_id:
+                    - light.living_room_couch_lamp
+                    - light.living_room_floor_lamp
+                    - light.living_room_spot_lights
+                    - light.living_room_credenza_light
+                    - light.office_desk_lamp
+                    - light.column_lights
+              - name: All Off
+                icon: power_settings_new
+                accent: amber
+                service: light.turn_off
+                service_data:
+                  entity_id:
+                    - light.living_room_couch_lamp
+                    - light.living_room_floor_lamp
+                    - light.living_room_spot_lights
+                    - light.living_room_credenza_light
+                    - light.office_desk_lamp
+                    - light.column_lights
+              - name: Reset
+                icon: restart_alt
+                accent: red
+                service: script.turn_on
+                service_data:
+                  entity_id: script.oal_reset_soft
+
+          - type: custom:tunet-scenes-card
+            name: Living Quick
+            show_header: false
+            compact: true
+            scenes:
+              - entity: script.oal_global_manual_brighter
+                name: Brighter
+                icon: add
+                accent: amber
+              - entity: script.oal_global_manual_dimmer
+                name: Dimmer
+                icon: remove
+                accent: blue
+              - entity: script.oal_reset_soft
+                name: Reset
+                icon: restart_alt
+                accent: red
+
           - type: custom:tunet-lighting-card
             name: Living Room
             surface: section
             layout: grid
             expand_groups: false
-            show_adaptive_toggle: false
+            show_adaptive_toggle: true
             tile_size: compact
             columns: 3
             column_breakpoints:
@@ -675,6 +768,9 @@ views:
               - entity: light.office_desk_lamp
                 name: Desk
                 icon: desk
+              - entity: light.column_lights
+                name: Columns
+                icon: view_column
 
           - type: custom:tunet-media-card
             entity: media_player.living_room

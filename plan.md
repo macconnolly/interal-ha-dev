@@ -1,6 +1,6 @@
 # Tunet Suite Dashboard - Implementation Plan (V2 Next)
 
-Working branch: `claude/dashboard-nav-research-QnOBs`
+Working branch: `codex/unified-microinteractions`
 Last updated: 2026-03-06
 
 ## Canonical Control Documents
@@ -28,6 +28,16 @@ If the control documents disagree, use this precedence order:
 5. `Dashboard/Tunet/CLAUDE.md`
 
 Contributors must not silently resolve these conflicts. Record them explicitly.
+
+## Sync Snapshot (2026-03-06)
+
+This sync captures what is now learned and locked before further UI changes:
+
+- lock the utility band as dual strips (`actions` + `scenes/chips`)
+- remove stale Bubble/hash popup instructions from active execution paths
+- keep popup platform lock as Browser Mod with one popup per room
+- lock room gesture contract as `tap -> toggle`, `hold -> Browser Mod popup`
+- enforce anti-drift governance so micro-interaction changes cannot bypass docs and validation
 
 ## Execution Reset (2026-03-06)
 
@@ -82,7 +92,7 @@ Contributors must not silently reorder these back into an older implementation-d
 
 ### Current Active Tranche
 
-`CP-01 - Control Plane + Layout Foundation`
+`CP-02 - Governance + Direction Sync (Docs/Plan Lock)`
 
 This tranche is intentionally bounded to stop execution drift before more card-level micro-interaction rollout.
 
@@ -90,6 +100,7 @@ This tranche is intentionally bounded to stop execution drift before more card-l
 
 - a mandatory change gate and WIP budget applied to every new Tunet change
 - a locked micro-interaction contract for room and light surfaces
+- a locked dual utility band contract (`actions + scenes/chips`)
 - a Sections-native layout research matrix and validated reference compositions
 - no ad-hoc popup/nav behavior changes outside the locked contract
 
@@ -201,6 +212,9 @@ These are active product-direction locks, not implementation facts:
   4. `HOME LAYOUT`
 - Browser Mod is the preferred direction for the next popup tranche.
 - One popup per room is the intended popup model.
+- Overview utility band is a dual-strip contract:
+  - strip 1: `custom:tunet-actions-card`
+  - strip 2: `custom:tunet-scenes-card`
 - The interaction quality bar is Apple-grade in the sense of:
   - one-touch primaries
   - low cognitive load
@@ -263,9 +277,11 @@ These are facts about what the product has and has not actually achieved yet. Th
 - PARTIAL PRODUCT.03: The custom nav exists, but it is not yet accepted as the real premium chrome experience.
 - PARTIAL PRODUCT.04: The overview is structurally better than the original vertical-stack state, but the home-screen product direction is not yet settled.
 - PARTIAL PRODUCT.05: Status-card parity work reduced one visible regression, but it did not solve the upper-overview product hierarchy.
-- TODO PRODUCT.06: Browser Mod room popups are not yet the working popup standard.
-- TODO PRODUCT.07: The V1 atmosphere / shell language has not yet been recovered in a Sections-compatible way.
-- TODO PRODUCT.08: The home hero and overview hierarchy are not yet accepted as the final daily-use product direction.
+- PARTIAL PRODUCT.06: Browser Mod room popup standard is implemented for Living + Kitchen; Dining + Bedroom still need completion.
+- DONE PRODUCT.07: Room micro-interaction contract is locked (`tap toggle`, `hold popup`) and enforced in control docs.
+- DONE PRODUCT.08: Utility-band direction is locked as dual strips (`actions + scenes/chips`).
+- TODO PRODUCT.09: The V1 atmosphere / shell language has not yet been recovered in a Sections-compatible way.
+- TODO PRODUCT.10: The home hero and overview hierarchy are not yet accepted as the final daily-use product direction.
 
 ## Supersession Register
 
@@ -298,9 +314,11 @@ This register exists so future work does not silently reuse displaced assumption
 
 ## Goals
 - Make `tunet-suite` a real HA dashboard: registered, visible, loads without red error cards or custom-element collisions.
-- Use Sections layout correctly: no forced vertical sizing; cards self-size by content; grid constraints use columns/min/max only.
+- Use Sections layout correctly: no forced vertical sizing; cards self-size by content; default grid hints use columns + min_columns (no hard max unless explicitly justified).
 - Establish navigation architecture with the custom `tunet-nav-card` as a real product surface, not a hidden POC.
 - Prefer Browser Mod for the next popup tranche rather than continuing to treat hash popups as canonical.
+- Lock and implement a dual utility band (`tunet-actions-card` + `tunet-scenes-card`) as the top control surface.
+- Prevent micro-interaction drift through mandatory contract + validation updates before behavior changes.
 - Start from ONE working popup proof, then converge on a repeatable pattern: minimal quick actions + one intentional interaction surface + clear route to deeper control.
 - Rollback stays easy: keep `v2_next` as staging; keep a stable resource root available for quick revert.
 
@@ -311,7 +329,7 @@ This register exists so future work does not silently reuse displaced assumption
 - Migrating every legacy HA Storage dashboard (only fix those blocking progress and known-bad entities like `sensor.aqi`).
 
 ## Constraints / Rules Of Engagement
-- Grid sizing strategy: do NOT force vertical rows; let Sections auto-size height; only use columns/min/max in `getGridOptions()` and avoid `rows:` in YAML configs.
+- Grid sizing strategy: do NOT force vertical rows; let Sections auto-size height; default to `columns` + `min_columns` in `getGridOptions()` and avoid `rows:` in YAML configs.
 - Popup strategy: Browser Mod is the preferred direction for the next popup tranche. Existing Bubble/hash work is historical POC material unless explicitly re-approved.
 - Popup content strategy: prefer ONE intentional interaction surface inside the popup (do not duplicate many `tunet-light-tile` cards).
 - Popup product strategy: one popup per room, polished like an iOS-grade overlay, no lazy default styling, no generic pill grabber.
@@ -322,15 +340,13 @@ This register exists so future work does not silently reuse displaced assumption
 
 ## Near-Term Tranche Sequence (Supersedes Older Near-Term Order)
 
-The historical phases below remain useful backlog, but the near-term product sequence is now:
+The near-term product sequence is now:
 
-1. `CP-01 - Control Plane + Layout Foundation`
-2. `LAY-01 - Sections Layout Research + Prototype Validation`
-3. `LAY-02 - Card Grid Policy Normalization`
-4. `INT-01 - Micro-Interaction Contract Enforcement`
-5. `POP-01 - Living Room Hold-to-Popup Browser Mod POC`
-6. `NAV-01 - Global Nav Expansion + Route/Offset Hardening`
-7. `POP-02 - Room Popup Pattern Scale-Out`
+1. `CP-02 - Governance + Direction Sync (Docs/Plan Lock)`
+2. `T-006 - Browser Mod popup completion + interaction contract finish`
+3. `T-007 - Integrated UI / UX utility-band implementation`
+4. `T-008 - Sections layout matrix runtime enforcement`
+5. `T-009 - Home layout and hero finalization`
 
 These tranches must be handled one at a time and verified before the next tranche starts.
 
@@ -345,6 +361,20 @@ These tranches must be handled one at a time and verified before the next tranch
   - hold semantics are per-control and must be documented where used
 - Popup platform:
   - Browser Mod only for active popup work unless an explicit exception is recorded
+
+### Micro-Interaction Drift Prevention (Locked)
+
+Any change that touches tap/hold/double-tap/navigation/popup behavior must include all of the following before merge or deploy:
+
+1. `Change ID` + touched interaction surfaces (`rooms`, `status`, `lighting`, `nav`, popup YAML)
+2. explicit before/after contract statement in this plan
+3. matching ledger entry update in `FIX_LEDGER.md` (`OPEN`, `PARTIAL`, or `DONE` with validation)
+4. live validation evidence across at least:
+   - one phone width
+   - one tablet width
+   - one desktop width
+
+If any one of those artifacts is missing, the interaction change is considered drift and must be rolled back or re-scoped.
 
 ### Sections Layout Research Contract (2026-03-06)
 
@@ -386,7 +416,7 @@ These tranches must be handled one at a time and verified before the next tranch
 - DONE P0.09: V2 JS is deployed to `/config/www/tunet/v2_next/`; Outcome: HA can serve the files; Verify: open `/local/tunet/v2_next/tunet_status_card.js` in a browser and see source.
 - TODO P0.10: Confirm `tunet_base.js` exists at `/config/www/tunet/v2_next/tunet_base.js`; Outcome: runtime imports succeed; Verify: open `/local/tunet/v2_next/tunet_base.js` and it loads (200).
 - DONE P0.11: Lovelace resources point to `/local/tunet/v2_next/...` and are `type: module`; Outcome: correct import semantics; Verify: Settings -> Dashboards -> Resources list.
-- DONE P0.12: Confirm Bubble Card resource is installed and loaded; Outcome: hash popups can render; Verify: Lovelace Resources includes `/hacsfiles/Bubble-Card/bubble-card.js`.
+- DONE P0.12: Confirm Browser Mod resource is installed and loaded; Outcome: popup-card and Browser Mod actions can render; Verify: Lovelace Resources includes `/browser_mod.js`.
 - TODO P0.13: Confirm there are no duplicate Tunet resources (V1 + V2) defining the same tag names; Outcome: no registry collisions; Verify: browser console has no `Failed to execute 'define'` errors mentioning `tunet-`.
 
 ### 0.4 - Cache Bust Strategy (So Testing Is Real)
@@ -395,7 +425,7 @@ These tranches must be handled one at a time and verified before the next tranch
 
 ### 0.5 - Grid Sizing Alignment (Sections Auto-Height)
 - DONE P0.31: Remove stale `rows:` constraints from Tunet YAML dashboards (`tunet-suite-config.yaml`, `tunet-overview-config.yaml`, `tunet-v2-test-config.yaml`); Outcome: lighting cards now use intrinsic height in Sections at the repo level; Verify: `rg -n "rows:\\s*2" Dashboard/Tunet/*.yaml` returns no matches.
-- DONE P0.32: V2 cards implement columns-only `getGridOptions()` (no `rows`, `min_rows`, `max_rows`); Outcome: Sections sizing hints follow policy; Verify: code search shows no `min_rows`/`max_rows` and `getGridOptions()` returns `{ columns, min_columns, max_columns }` only.
+- DONE P0.32: V2 cards implement columns-only `getGridOptions()` (no `rows`, `min_rows`, `max_rows`); Outcome: Sections sizing hints follow policy; Verify: code search shows no `min_rows`/`max_rows` and default hints use `{ columns, min_columns }` unless an explicit exception is documented.
 - TODO P0.33: Verify Sections auto-height visually on `/tunet-suite/overview`; Outcome: cards expand to fit content; Verify: no cut-off content in lighting/status/sensor cards at multiple viewport widths.
 
 ### 0.6 - Entity Inventory Audit (Prevent Red Error Cards)
@@ -427,119 +457,75 @@ These tranches must be handled one at a time and verified before the next tranch
 - TODO P0.V03: Browser console is clean of registry collisions and 404 module loads; Verify: no `customElements.define` collisions and no failed module imports.
 - TODO P0.V04: DevTools Network shows Tunet card modules loaded from `/local/tunet/v2_next/` with the latest `?v=`; Verify: every `tunet_*.js` resource request includes the bumped version.
 
-## Historical Phase Backlog Note
+## Phase 1 - Browser Mod Room Popup Standard (Active)
 
-The detailed phase sections below remain useful as implementation backlog, but they contain older popup and route language from the earlier POC path.
+### Definition Of Done (Working Contract)
+- all room popups use Browser Mod (`custom:popup-card` + `browser_mod.popup`)
+- one popup per room (`living-room`, `kitchen`, `dining-room`, `bedroom`)
+- room tile interaction is consistent:
+  - tap -> room toggle
+  - hold -> room popup (`fire-dom-event`, browser-scoped)
+- each popup stays intentionally narrow:
+  - quick actions
+  - one primary interaction surface
+  - route to full room view
 
-Interpret them with these overrides:
+### 1.1 - Current Progress Snapshot
+- DONE P1.01: Living Room popup-card exists and routes from room hold action.
+- DONE P1.02: Kitchen popup-card exists and routes from room hold action.
+- DONE P1.03: Popup cards use `initial_style` (no deprecated `size` field).
+- DONE P1.04: Living/Kitchen popups use one consolidated `tunet-lighting-card` each (no tile stacks).
+- DONE P1.05: Room tile interaction contract implemented in `tunet-rooms-card` (`tap toggle`, `hold popup`).
 
-- the near-term active product order is the tranche order above
-- Browser Mod is the preferred popup direction for the next popup tranche
-- references below to Bubble/hash popups are historical unless explicitly re-approved
-- do not let the older phase wording override the user-locked nav -> popup -> integrated UI / UX -> home layout sequence
-
-## HISTORICAL Phase 1 - Bubble/Hash Popup POC (Superseded By Current Popup Direction)
-
-This section is preserved as branch history only.
-
-It does **not** define the active popup implementation path for Tunet.
-
-Use it only for:
-
-- understanding what was prototyped
-- identifying what was already learned
-- reusing small implementation details if they still fit the current product direction
-
-Do **not** use this section as permission to:
-
-- keep Bubble/hash popups as the default popup model
-- treat `#living-room` routing as the active popup standard
-- bypass the current `T-006` Browser Mod popup direction
-
-### Definition Of Done (Walking Skeleton)
-- Living Room tile long-press opens the Browser Mod popup-card reliably.
-- Popup contains minimal actions and ONE consolidated, expandable lighting surface.
-- Room page navigation remains available through the persistent nav bar.
-- Popup does not duplicate many individual `tunet-light-tile` cards.
-
-### 1.1 - Living Room Popup (Prefer One Expandable Lighting Surface)
-- DONE P1.01: Living Room popup exists as a Browser Mod popup-card (`popup_card_id: living-room-popup`) in `tunet-suite-config.yaml`; Outcome: popup routing is wired; Verify: long-pressing Living Room tile opens the popup.
-- DONE P1.02: Room page route remains available via global nav; Outcome: users can still reach `/tunet-suite/living-room` without a room-tile navigation gesture; Verify: nav tap opens the subview.
-- DONE P1.03: Replace the multiple `custom:tunet-light-tile` cards in the Living Room popup with ONE `custom:tunet-lighting-card`; Outcome: a single lighting surface now replaces duplicated tiles at the repo and deployed YAML level; Verify: popup config contains one lighting card, not a vertical stack of many tiles.
-- DONE P1.04: Configure the popup lighting surface as one consolidated room card using explicit Living Room zones; Outcome: Couch/Floor/Spots/Credenza/Desk are modeled in one surface; Verify: popup lighting card zones list contains the five explicit Living Room lights.
-- DONE P1.05: Remove `rows:` limits from the popup lighting card config; Outcome: popup height is intrinsic and not clipped by explicit row limits; Verify: popup lighting card has no `rows:` key.
-- TODO P1.06: Keep one "All Off" action targeting `light.living_room_lights`; Outcome: one-tap off works; Verify: all Living Room lights turn off.
-- TODO P1.07: Ensure popup lighting surface density works at 390px and 520px widths; Outcome: no accidental horizontal overflow; Verify: mobile viewport has no sideways scroll in the popup.
-
-### 1.2 - Link To The Larger Subview (Keep Popup Minimal)
-- TODO P1.08: Ensure popup content is intentionally minimal (quick actions + lighting surface + Open Room) and does not replicate full-room media/sensors; Outcome: popup stays focused; Verify: subview has more content than popup.
-- TODO P1.09: Keep long-press on Living Room tile mapped to popup access (not direct navigation); Outcome: room gesture contract stays consistent; Verify: long-press opens popup while room navigation remains available via nav bar.
-
-### 1.3 - Deploy And Cache Bust
-- TODO P1.10: Deploy updated `Dashboard/Tunet/tunet-suite-config.yaml` to HA `/config/dashboards/tunet-suite.yaml`; Outcome: HA uses updated YAML; Verify: changes appear after refresh.
-- TODO P1.11: If lighting-card behavior changes are needed, deploy updated `/config/www/tunet/v2_next/` JS and bump `?v=`; Outcome: UI reflects new JS; Verify: DevTools Network shows new resource versions.
+### 1.2 - Remaining Room Popup Work
+- TODO P1.06: Add Dining room popup-card and wire hold action to `popup_card_id: dining-room-popup`.
+- TODO P1.07: Add Bedroom popup-card and wire hold action to `popup_card_id: bedroom-popup`.
+- TODO P1.08: Add explicit "Open Room" route action inside each popup surface.
+- TODO P1.09: Ensure each popup has quick actions without oversized controls.
+- TODO P1.10: Validate popup behavior at 390px and 520px widths (no horizontal overflow).
 
 ### Phase 1 Verification Checklist (Click/Observe)
-- TODO P1.V01: On `/tunet-suite/overview`, long-press Living Room; Verify: Browser Mod popup opens.
-- TODO P1.V02: In popup, confirm exactly one lighting surface exists; Verify: no duplicated stacks of `tunet-light-tile`.
-- TODO P1.V03: Toggle each Living Room light from inside the single lighting surface; Verify: HA states change and UI updates.
-- TODO P1.V04: Use nav to open `Living Room`; Verify: navigates to `/tunet-suite/living-room` while room-tile long-press remains popup-only.
+- TODO P1.V01: Long-press each room tile; verify matching room popup opens.
+- TODO P1.V02: In each popup, verify exactly one primary lighting surface.
+- TODO P1.V03: Tap popup "Open Room"; verify correct subview opens.
+- TODO P1.V04: Verify browser back/forward keeps nav and popup behavior coherent.
 
-## Phase 2 - Room Subviews (Living Room First, Then Kitchen/Dining/Bedroom)
+## Phase 2 - Room Subviews (Consolidation + Companion Surfaces)
 
-### 2.1 - Living Room Subview (Full Surface)
-- DONE P2.01: Convert Living Room subview from multiple `tunet-light-tile` cards to ONE `tunet-lighting-card`; Outcome: repo and deployed YAML now use consolidated room lighting; Verify: Living Room subview config contains one lighting card with explicit Living Room zones.
-- TODO P2.02: Add `tunet-actions-card` at top of Living Room subview (room-scoped actions); Outcome: room quick actions exist; Verify: actions affect intended entities only.
-- TODO P2.03: Keep/add `tunet-media-card` for `media_player.living_room`; Outcome: media controls accessible; Verify: play/pause works.
-- TODO P2.04: Add a minimal sensors/status surface only if entities exist (temp, humidity, motion); Outcome: context without empty shells; Verify: no missing entity error rows.
+### 2.1 - Living Room Subview
+- DONE P2.01: Living Room subview uses one consolidated `tunet-lighting-card`.
+- TODO P2.02: Add room-scoped actions row for Living Room.
+- TODO P2.03: Keep/add media companion for `media_player.living_room`.
+- TODO P2.04: Keep room companion sensors minimal and non-empty (no placeholder shells).
 
-### 2.2 - Kitchen Subview
-- TODO P2.05: Replace Kitchen subview tiles with one `tunet-lighting-card` for Kitchen lights; Outcome: consolidated lighting; Verify: pendants/main/under-cab appear in one surface.
-- TODO P2.06: Add `tunet-actions-card` for Kitchen (All Off/All On); Outcome: quick actions exist; Verify: actions work.
-- TODO P2.07: Add `tunet-media-card` for `media_player.kitchen` only if entity exists; Outcome: no red errors; Verify: card present only when entity exists.
+### 2.2 - Kitchen / Dining / Bedroom Subviews
+- TODO P2.05: Kitchen subview uses one consolidated `tunet-lighting-card`.
+- TODO P2.06: Dining subview uses one consolidated `tunet-lighting-card`.
+- TODO P2.07: Bedroom subview uses one consolidated `tunet-lighting-card`.
+- TODO P2.08: Keep Dining climate and validate Bedroom control capability-fit.
+- TODO P2.09: Add media companions only where entities exist.
 
-### 2.3 - Dining Room Subview
-- TODO P2.08: Replace Dining subview tiles with one `tunet-lighting-card` for Dining lights; Outcome: consolidated lighting; Verify: spots/columns appear.
-- TODO P2.09: Keep/add `tunet-climate-card` for `climate.dining_room`; Outcome: climate controls exist; Verify: setpoint changes persist.
-- TODO P2.10: Add media only if `media_player.dining_room` exists; Outcome: no missing media; Verify: card renders or is omitted.
-
-### 2.4 - Bedroom Subview
-- TODO P2.11: Replace Bedroom subview tiles with one `tunet-lighting-card` for Bedroom lights; Outcome: consolidated lighting; Verify: main/accent/table lamps appear.
-- TODO P2.12: Ensure Bedroom lighting UI does not expose unsupported controls for Govee (if applicable); Outcome: no broken sliders; Verify: controls match device capabilities.
-- TODO P2.13: Add media only if `media_player.bedroom` exists; Outcome: no missing media; Verify: card renders or is omitted.
-
-### 2.5 - Office Is Not A Room (Regression Guard)
-- DONE P2.14: Office merged into Living Room; Outcome: no Office view to implement; Verify: `tunet-suite-config.yaml` has no Office view path.
-- TODO P2.15: Ensure "Office" never appears as a room tile label; Outcome: nav remains consistent; Verify: room list only includes Living/Kitchen/Dining/Bedroom.
+### 2.3 - Regression Guard
+- DONE P2.10: Office remains merged into Living Room.
+- TODO P2.11: Ensure no room lists or nav items reintroduce Office.
 
 ### Phase 2 Verification Checklist (Click/Observe)
-- TODO P2.V01: Open each subview (`/tunet-suite/living-room`, `/kitchen`, `/dining-room`, `/bedroom`); Verify: no red error cards.
-- TODO P2.V02: In each subview, confirm exactly one lighting surface exists; Verify: lighting is consolidated per room.
-- TODO P2.V03: Toggle each room light; Verify: HA states update and UI reflects.
-- TODO P2.V04: Dining: adjust thermostat; Verify: climate responds.
-- TODO P2.V05: Living: play/pause media; Verify: media responds.
+- TODO P2.V01: Open each room subview and verify no red error cards.
+- TODO P2.V02: Verify one consolidated lighting surface per room subview.
+- TODO P2.V03: Verify room-level actions/media companions behave as configured.
 
-## HISTORICAL Phase 3 - Expand Bubble/Hash Popups (Superseded By Current Popup Direction)
+## Phase 3 - Utility Band And Integrated UI / UX Prep
 
-This section is also historical backlog only.
+### 3.1 - Utility Band Contract (Locked)
+- DONE P3.01: Utility band direction is dual-strip (`actions` + `scenes/chips`) in control docs.
+- TODO P3.02: Ensure repo storage config and live storage config both carry the dual strip consistently.
+- TODO P3.03: Define minimal sizing and spacing contract so strips remain compact on phone/tablet/desktop.
 
-Its room-popup structure may still contain reusable implementation details, but its popup platform assumptions are no longer the active product direction.
-
-### 3.1 - Popup Pattern Template (Shared)
-- TODO P3.01: Define a standard popup template (Bubble pop-up + quick actions + one lighting surface + Open Room link); Outcome: consistent UX; Verify: all room popups share structure and styles.
-- TODO P3.02: Ensure popup styles work in both light and dark modes; Outcome: readable in both; Verify: switch theme and re-test popups.
-
-### 3.2 - Implement Each Room Popup
-- TODO P3.03: Add Kitchen popup `#kitchen` using one expandable lighting surface (group expansion) and "Open Room" to `/tunet-suite/kitchen`; Outcome: kitchen popup works; Verify: tap tile opens popup and controls toggle lights.
-- TODO P3.04: Add Dining popup `#dining-room` (or `#dining`) using one lighting surface and "Open Room" to `/tunet-suite/dining-room`; Outcome: dining popup works; Verify: lights toggle.
-- TODO P3.05: Add Bedroom popup `#bedroom` using one lighting surface and "Open Room" to `/tunet-suite/bedroom`; Outcome: bedroom popup works; Verify: lights toggle.
-- TODO P3.06: Update `tunet-rooms-card` tile behavior: tap -> room toggle, hold -> room popup; Outcome: consistent one-touch behavior; Verify: tap/hold behavior matches across rooms.
-
-### Phase 3 Verification Checklist (Click/Observe)
-- TODO P3.V01: Tap each room tile on Overview; Verify: correct popup opens (hash matches room).
-- TODO P3.V02: In each popup, confirm exactly one lighting surface exists; Verify: no duplicated tile stacks.
-- TODO P3.V03: Tap "Open Room" from each popup; Verify: navigates to matching subview and popup closes.
-- TODO P3.V04: Use browser back; Verify: returns to Overview and hash popups behave correctly.
+### 3.2 - Integrated UI / UX Lessons To Carry Forward
+- Keep primary actions one-touch and obvious.
+- Keep overlays intentionally minimal and non-duplicative.
+- Keep section span decisions role-based, not card-size-driven.
+- Keep card-level `max_columns` as explicit exception only.
 
 ## Phase 4 - Navigation Card Hardening (Beyond POC)
 
@@ -594,7 +580,7 @@ Its room-popup structure may still contain reusable implementation details, but 
 ### Deploy Cards To HA (`v2_next`)
 - DONE DEP.01: V2 card JS is deployed to `/config/www/tunet/v2_next/`; Outcome: staging root exists; Verify: direct fetch works.
 - TODO DEP.02: Ensure deployed directory includes all `tunet_*.js` and `tunet_base.js`; Outcome: imports succeed; Verify: each file fetch returns 200.
-- TODO DEP.03: Ensure Lovelace resources are `type: module` and point at `/local/tunet/v2_next/` (plus Bubble Card resource); Outcome: correct loader; Verify: resource list matches.
+- TODO DEP.03: Ensure Lovelace resources are `type: module` and point at `/local/tunet/v2_next/` (plus Browser Mod resource); Outcome: correct loader; Verify: resource list matches.
 
 ### Deploy Dashboard YAML
 - DONE DEP.04: `Dashboard/Tunet/tunet-suite-config.yaml` is copied to `/config/dashboards/tunet-suite.yaml`; Outcome: YAML exists on HA; Verify: file present and readable.

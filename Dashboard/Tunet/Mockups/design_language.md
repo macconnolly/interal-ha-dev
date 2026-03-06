@@ -1549,7 +1549,7 @@ Only one production implementation per custom element type:
 - `custom:tunet-actions-card` -> `Dashboard/Tunet/Cards/tunet_actions_card.js` (canonical)
 - `custom:tunet-weather-card` -> `Dashboard/Tunet/Cards/tunet_weather_card.js` (canonical)
 - `custom:tunet-media-card` -> `Dashboard/Tunet/Cards/tunet_media_card.js` (canonical)
-- `custom:tunet-scenes-card` -> `Dashboard/Tunet/Cards/tunet_scenes_card.js` (available, not in overview baseline)
+- `custom:tunet-scenes-card` -> `Dashboard/Tunet/Cards/v2/tunet_scenes_card.js` (canonical utility-strip scenes surface)
 
 Alt and duplicate implementations are archived and must not be loaded as Lovelace resources.
 
@@ -1557,14 +1557,15 @@ Alt and duplicate implementations are archived and must not be loaded as Lovelac
 
 Required order:
 
-1. Compact top quick-actions strip (All On / All Off / Bedtime / Sleep Mode)
-2. Home Status (4 columns x 2 rows)
-3. Lighting Hero (curated top 5 zones)
-4. Environment row (Climate + Weather forecast)
-5. Media
-6. Rooms
+1. Compact top actions strip (All On / All Off / Bedtime / Sleep Mode)
+2. Compact top scenes/chips strip (preset triggers)
+3. Home Status (4 columns x 2 rows)
+4. Lighting Hero (curated top 5 zones)
+5. Environment row (Climate + Weather forecast)
+6. Media
+7. Rooms
 
-Standalone scenes card is not part of the overview baseline.
+Standalone scenes card is now part of the overview utility baseline as the second strip.
 
 ### 21.3 Hero Lighting Scope
 

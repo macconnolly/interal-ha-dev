@@ -1,6 +1,6 @@
 # Tunet Overview IA - Candidate Baseline
 
-Working branch: `claude/dashboard-nav-research-QnOBs`
+Working branch: `codex/unified-microinteractions`
 Purpose: preserve the current best candidate for Overview information architecture as a later home-layout decision target, not as permission to keep reworking the overview before nav, popup, and integrated UI / UX decisions are settled.
 
 This document is intentionally limited to:
@@ -40,7 +40,9 @@ If later nav, popup, or shell decisions materially change what the hero should b
 The Overview should likely have **four intentional bands**, in this order:
 
 1. **Top utility band**
-   - mode / actions / quick controls
+   - dual utility strips:
+     - actions strip (mode/system actions)
+     - scenes/chips strip (preset triggers)
    - thin, dense, full-width
    - visually first, but not dominant
 
@@ -68,7 +70,8 @@ This is the current best candidate desktop hierarchy:
 
 ```text
 +----------------------------------------------------------------------------------+
-| [ MODE / ACTION CHIPS / SCENES / QUICK CONTROLS ]                                |
+| [ ACTIONS STRIP: All On / All Off / Bedtime / Sleep ]                            |
+| [ SCENES/CHIPS STRIP: presets / contextual triggers ]                             |
 +----------------------------------------------------------------------------------+
 
 +----------------------------------------------------------+-----------------------+
@@ -183,11 +186,11 @@ This is the current candidate section plan for `Dashboard/Tunet/tunet-suite-stor
 
 - Content:
   - `custom:tunet-actions-card`
-  - optionally V1-style chips if the V2 actions strip cannot carry the needed density and visual language
+  - `custom:tunet-scenes-card`
 - Width:
   - full overview row
 - Intent:
-  - thin control strip
+  - dual thin control strips
   - should not consume dominant visual height
 
 ### Section 2 - Status Band Left

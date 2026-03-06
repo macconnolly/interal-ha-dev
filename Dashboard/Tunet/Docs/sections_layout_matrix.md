@@ -47,8 +47,10 @@ The project uses a 12-column mental model for composition planning.
 - `getGridOptions()` defaults:
   - `columns`: `'full'` or role-appropriate numeric minimum
   - `min_columns`: smallest reasonable value for content readability
-  - no hard `max_columns` by default
+  - do not emit `max_columns` in default card hints
+  - default shape is `{ columns, min_columns }`
 - exception process:
+  - add explicit reason for any `max_columns`
   - add change ID + rationale
   - specify target breakpoints
   - provide before/after validation screenshots

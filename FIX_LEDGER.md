@@ -1,6 +1,6 @@
 # Tunet Suite Fix Ledger
 
-Working branch: `claude/dashboard-nav-research-QnOBs`
+Working branch: `codex/unified-microinteractions`
 Last updated: 2026-03-06
 Scope: `/home/mac/HA/implementation_10`
 
@@ -635,7 +635,7 @@ These grades are implementation-health grades, not value judgments. They reflect
 ### Control Plane And Interaction Unification
 
 #### FL-027
-- Status: `OPEN`
+- Status: `DONE / PROCESS LOCKED`
 - Severity: `HIGH`
 - Requirement Alignment:
   - `REQ-CTRL-001`
@@ -656,12 +656,14 @@ These grades are implementation-health grades, not value judgments. They reflect
   - The project has planning docs but no enforced preflight gate, WIP budget, or change traceability discipline.
 - Exact Fix:
   - Add mandatory change-gate requirements (`Change ID`, impact map, validation checklist, rollback path) and one-tranche WIP limits to control docs.
+  - Add explicit micro-interaction drift-prevention contract to `plan.md` that blocks tap/hold/popup behavior changes without synchronized contract + ledger + validation updates.
 - Why This Matters:
   - Without enforcement, interaction and layout decisions regress through untracked “quick” changes.
 - Dependency:
   - None.
 - Validation:
-  - New Tunet changes include change IDs, impact statements, and validation evidence before implementation proceeds.
+  - `plan.md` includes mandatory `Micro-Interaction Drift Prevention (Locked)` requirements.
+  - `plan.md` now rejects stale Bubble/hash execution instructions and keeps Browser Mod as active popup path.
 
 #### FL-028
 - Status: `OPEN`
@@ -696,7 +698,7 @@ These grades are implementation-health grades, not value judgments. They reflect
   - Overview + one room subview pass matrix checks for phone/tablet/desktop compositions.
 
 #### FL-029
-- Status: `OPEN`
+- Status: `PARTIAL`
 - Severity: `MEDIUM-HIGH`
 - Requirement Alignment:
   - `REQ-LAY-002`
@@ -721,7 +723,9 @@ These grades are implementation-health grades, not value judgments. They reflect
 - Dependency:
   - FL-028 layout matrix decisions.
 - Validation:
-  - Card grid hints no longer apply rigid `max_columns` defaults.
+  - `sections_layout_matrix.md` explicitly locks default card hints to `{ columns, min_columns }`.
+  - `tunet_scenes_card.js` no longer emits `max_columns` in `getGridOptions()`.
+  - Remaining card audit for `max_columns` exceptions stays open until full suite verification is complete.
 
 #### FL-030
 - Status: `OPEN`
@@ -986,6 +990,7 @@ These are not defects. They are architecture or design decisions that still need
   - None. The direction is already locked in the higher-precedence control docs.
 - Validation:
   - `plan.md`, `FIX_LEDGER.md`, and `nav_popup_ux_direction.md` all agree that Browser Mod is the preferred next-popup direction.
+  - Active phase execution text no longer contains Bubble/hash popup instructions.
 
 #### FL-023
 - Status: `OPEN`

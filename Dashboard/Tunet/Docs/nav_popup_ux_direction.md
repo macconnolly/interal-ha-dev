@@ -1,6 +1,6 @@
 # Tunet Nav / Popup / Interaction Direction
 
-Working branch: `claude/dashboard-nav-research-QnOBs`
+Working branch: `codex/unified-microinteractions`
 Purpose: capture the currently locked product direction for nav, popups, and interaction language so future implementation tranches stop drifting back toward generic dashboard behavior.
 
 ## Product Standard
@@ -89,6 +89,20 @@ Each room popup should be intentionally narrow in scope:
 - route to deeper room view
 
 Do not treat popups as a place to duplicate the full room page.
+
+## Utility Band Direction (Locked)
+
+The overview utility band is now a dual-strip surface:
+
+- strip 1: `actions` (system/mode controls)
+- strip 2: `scenes/chips` (preset triggers)
+
+Design intent:
+
+- both strips stay compact and full-width
+- both strips remain one-touch first
+- scenes do not replace actions; they complement them
+- utility strips should feel dense and intentional, not like decorative filler
 
 ## Room-Surface Direction
 

@@ -15,10 +15,24 @@ Build and deploy a production-quality Tunet dashboard system with:
 User preference is explicit: prioritize complete, working UI surfaces first, then polish.
 
 ## 2) Environment / Working Context
-- Repo root: `/home/mac/HA/implementation_10/worktrees/unified-microinteractions`
-- Branch: `codex/unified-microinteractions`
+- Primary development worktree used in session:
+  - `/home/mac/HA/implementation_10/worktrees/unified-microinteractions`
+  - Branch: `codex/unified-microinteractions`
+- Also merged into root worktree branch:
+  - `/home/mac/HA/implementation_10`
+  - Branch: `claude/dashboard-nav-research-QnOBs`
+  - Both now include commit `7f1ad16`.
 - Active modified files are intentionally dirty (do not reset).
 - Home Assistant target is reachable and was actively deployed to during this session.
+
+### Merge/Oversight Correction
+- There was a branch/worktree continuity oversight during chat.
+- Final state correction:
+  - `codex/unified-microinteractions` was fast-forward merged into `claude/dashboard-nav-research-QnOBs`.
+  - `origin/claude/dashboard-nav-research-QnOBs` was pushed to `7f1ad16`.
+- During merge, one untracked file in root worktree would have been overwritten and was preserved as:
+  - `Dashboard/Tunet/Cards/v2/tunet_scenes_card.js.premerge_untracked_backup`
+  - Do not delete blindly; inspect/diff before cleanup.
 
 ## 3) Locked Product Direction (Docs Alignment)
 From `plan.md`, `FIX_LEDGER.md`, and `Dashboard/Tunet/Docs/nav_popup_ux_direction.md`:
@@ -178,11 +192,14 @@ If this is not reconciled, implementation drift will continue.
 ## 9) Fast Verification Checklist (Next Agent)
 Run immediately before coding:
 1. `git status --short`
-2. Open live `tunet-suite-storage` config via MCP and confirm hash.
-3. Confirm JS resources still point to `v=20260306_gallery01`.
-4. Verify whether `/tunet-suite/overview` blank is reproducible and collect browser console errors.
-5. Reproduce dropdown issue on status tile and identify whether card logic or z-index/overflow.
-6. Reproduce row-card tap/sub-button mismatch in `tunet-rooms-card`.
+2. Confirm current branch/worktree context:
+   - root branch expected: `claude/dashboard-nav-research-QnOBs`
+   - alt worktree branch expected: `codex/unified-microinteractions`
+3. Open live `tunet-suite-storage` config via MCP and confirm hash.
+4. Confirm JS resources still point to `v=20260306_gallery01`.
+5. Verify whether `/tunet-suite/overview` blank is reproducible and collect browser console errors.
+6. Reproduce dropdown issue on status tile and identify whether card logic or z-index/overflow.
+7. Reproduce row-card tap/sub-button mismatch in `tunet-rooms-card`.
 
 ## 10) Build / Validate / Deploy Commands
 

@@ -6,7 +6,7 @@
  *
  * Architecture:
  *   Shadow DOM custom element · Full token system (light + dark)
- *   Design-language header (info tile + toggle + selector)
+ *   Design-language header (info tile + toggles)
  *   Flexible layout: grid | scroll with full config
  *   Three entity patterns: rich YAML, group expansion, named zones
  *   Drag-to-dim · Floating pill · Manual-control dots
@@ -167,7 +167,7 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ═══════════════════════════════════════════════════
      HEADER (Design Language §5)
-     Info tile + spacer + toggles + selector
+     Info tile + spacer + toggles
      ═══════════════════════════════════════════════════ */
   .hdr {
     display: flex;
@@ -348,39 +348,6 @@ ${CARD_SURFACE_GLASS_STROKE}
   .toggle-wrap.has-manual .manual-badge { display: inline-flex; }
   .toggle-wrap { position: relative; }
   .toggle-wrap.hidden { display: none; }
-
-  /* ── Selector Button (§5.7) – All Off ────────────── */
-  .selector-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-height: 42px;
-    box-sizing: border-box;
-    padding: 0 8px;
-    border-radius: 10px;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-sub);
-    letter-spacing: 0.2px;
-    cursor: pointer;
-    transition: all .15s ease;
-  }
-  .selector-btn:hover { box-shadow: var(--shadow); }
-  .selector-btn:active { transform: scale(.97); }
-  .selector-btn:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
-  }
-  .selector-btn.active {
-    border-color: var(--amber-border);
-    color: var(--amber);
-    background: var(--amber-fill);
-    font-weight: 700;
-  }
 
   /* ═══════════════════════════════════════════════════
      TILE GRID (Design Language §3.5)
@@ -689,13 +656,6 @@ const LIGHTING_TEMPLATE = `
             <span class="icon icon-18">auto_awesome</span>
           </button>
         </div>
-
-        <!-- All On/Off Toggle Button (§5.7) -->
-        <button class="selector-btn" id="allOffBtn"
-                aria-label="Toggle all lights">
-          <span class="icon icon-16" id="allBtnIcon">power_settings_new</span>
-          <span id="allBtnLabel">All Off</span>
-        </button>
 
       </div>
 
@@ -1110,9 +1070,6 @@ class TunetLightingCard extends HTMLElement {
       adaptiveWrap:this.shadowRoot.getElementById('adaptiveWrap'),
       adaptiveBtn: this.shadowRoot.getElementById('adaptiveBtn'),
       manualBadge: this.shadowRoot.getElementById('manualBadge'),
-      allOffBtn:   this.shadowRoot.getElementById('allOffBtn'),
-      allBtnIcon:  this.shadowRoot.getElementById('allBtnIcon'),
-      allBtnLabel: this.shadowRoot.getElementById('allBtnLabel'),
       lightGrid:   this.shadowRoot.getElementById('lightGrid'),
     };
 
@@ -1222,9 +1179,6 @@ class TunetLightingCard extends HTMLElement {
         detail: { entityId },
       }));
     });
-
-    // All On/Off toggle button
-    this.$.allOffBtn.addEventListener('click', () => this._toggleAllLights());
 
     // Adaptive toggle (global for resolved adaptive entities).
     this.$.adaptiveBtn.addEventListener('click', () => this._toggleAdaptive());
@@ -1593,33 +1547,6 @@ class TunetLightingCard extends HTMLElement {
     request.catch(() => this._updateAll());
   }
 
-  _toggleAllLights() {
-    const entityIds = this._resolvedZones.map(zone => zone.entity).filter(Boolean);
-    if (!entityIds.length) return;
-
-    // If any light is on, turn all off; otherwise turn all on
-    const anyOn = entityIds.some(id => {
-      const e = this._getEntity(id);
-      return e && e.state === 'on';
-    });
-
-    if (anyOn) {
-      for (const entityId of entityIds) {
-        this._setCooldown(entityId);
-        const refs = this._tiles[entityId];
-        if (refs) this._updateTileUI(refs, 0);
-      }
-      this._callService('light', 'turn_off', { entity_id: entityIds })
-        .catch(() => this._updateAll());
-    } else {
-      for (const entityId of entityIds) {
-        this._setCooldown(entityId);
-      }
-      this._callService('light', 'turn_on', { entity_id: entityIds })
-        .catch(() => this._updateAll());
-    }
-  }
-
   _toggleAdaptive() {
     const adaptiveEntities = this._resolveAdaptiveEntities();
     if (!adaptiveEntities.length) return;
@@ -1731,9 +1658,6 @@ class TunetLightingCard extends HTMLElement {
     const anyOn = onCount > 0;
     this.$.card.dataset.anyOn = anyOn ? 'true' : 'false';
     this.$.card.dataset.allOff = (onCount === 0 && totalCount > 0) ? 'true' : 'false';
-    this.$.allOffBtn.classList.toggle('active', anyOn);
-    this.$.allBtnLabel.textContent = anyOn ? 'All Off' : 'All On';
-    this.$.allBtnIcon.textContent = anyOn ? 'power_settings_new' : 'lightbulb';
 
     // ── Header icon state (Principle #7: outlined off, filled on) ──
     if (anyOn) {

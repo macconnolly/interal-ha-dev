@@ -24,11 +24,34 @@ views:
             mode_entity: input_select.oal_active_configuration
 
       - type: grid
+        column_span: 12
+        cards:
+          - type: custom:tunet-scenes-card
+            name: Quick Actions
+            show_header: false
+            compact: true
+            allow_wrap: false
+            scenes:
+              - entity: script.oal_global_manual_brighter
+                name: Brighter
+                icon: add
+                accent: amber
+              - entity: script.oal_global_manual_dimmer
+                name: Dimmer
+                icon: remove
+                accent: blue
+              - entity: script.oal_reset_soft
+                name: Reset
+                icon: restart_alt
+                accent: red
+
+      - type: grid
         column_span: 7
         cards:
 
           - type: custom:tunet-status-card
             name: Home Status
+            show_header: false
             columns: 8
             column_breakpoints:
               - max_width: 640
@@ -232,6 +255,12 @@ views:
                 icon: restaurant
                 temperature_entity: sensor.dining_room_temperature
                 navigate_path: /tunet-suite-storage/dining-room
+                hold_action:
+                  action: fire-dom-event
+                  browser_mod:
+                    service: browser_mod.popup
+                    data:
+                      popup_card_id: dining-room-popup
                 lights:
                   - entity: light.dining_room_spot_lights
                     icon: highlight
@@ -243,6 +272,12 @@ views:
               - name: Bedroom
                 icon: bed
                 navigate_path: /tunet-suite-storage/bedroom
+                hold_action:
+                  action: fire-dom-event
+                  browser_mod:
+                    service: browser_mod.popup
+                    data:
+                      popup_card_id: bedroom-popup
                 lights:
                   - entity: light.bedroom_primary_lights
                     icon: bed
@@ -277,41 +312,9 @@ views:
               layout_type: custom:grid-layout
               layout:
                 grid-template-columns: 1fr
-                grid-template-rows: min-content min-content
+                grid-template-rows: min-content
                 grid-gap: 8px
               cards:
-                - type: grid
-                  columns: 2
-                  square: false
-                  cards:
-                    - type: button
-                      name: All Off
-                      icon: mdi:lightbulb-off-outline
-                      tap_action:
-                        action: call-service
-                        service: light.turn_off
-                        service_data:
-                          entity_id:
-                            - light.living_room_couch_lamp
-                            - light.living_room_floor_lamp
-                            - light.living_room_spot_lights
-                            - light.living_room_credenza_light
-                            - light.office_desk_lamp
-                            - light.column_lights
-                    - type: button
-                      name: All On
-                      icon: mdi:lightbulb-on-outline
-                      tap_action:
-                        action: call-service
-                        service: light.turn_on
-                        service_data:
-                          entity_id:
-                            - light.living_room_couch_lamp
-                            - light.living_room_floor_lamp
-                            - light.living_room_spot_lights
-                            - light.living_room_credenza_light
-                            - light.office_desk_lamp
-                            - light.column_lights
                 - type: custom:tunet-lighting-card
                   name: Living Room
                   surface: section
@@ -354,35 +357,9 @@ views:
               layout_type: custom:grid-layout
               layout:
                 grid-template-columns: 1fr
-                grid-template-rows: min-content min-content
+                grid-template-rows: min-content
                 grid-gap: 8px
               cards:
-                - type: grid
-                  columns: 2
-                  square: false
-                  cards:
-                    - type: button
-                      name: All Off
-                      icon: mdi:lightbulb-off-outline
-                      tap_action:
-                        action: call-service
-                        service: light.turn_off
-                        service_data:
-                          entity_id:
-                            - light.kitchen_island_pendants
-                            - light.kitchen_main_lights
-                            - light.kitchen_counter_cabinet_underlights
-                    - type: button
-                      name: All On
-                      icon: mdi:lightbulb-on-outline
-                      tap_action:
-                        action: call-service
-                        service: light.turn_on
-                        service_data:
-                          entity_id:
-                            - light.kitchen_island_pendants
-                            - light.kitchen_main_lights
-                            - light.kitchen_counter_cabinet_underlights
                 - type: custom:tunet-lighting-card
                   name: Kitchen
                   surface: section
@@ -405,6 +382,75 @@ views:
                     - entity: light.kitchen_counter_cabinet_underlights
                       name: Under-cab
                       icon: kitchen
+          - type: custom:popup-card
+            popup_card_id: dining-room-popup
+            popup_card_all_views: true
+            title: Dining Room
+            initial_style: wide
+            dismissable: true
+            card:
+              type: custom:layout-card
+              layout_type: custom:grid-layout
+              layout:
+                grid-template-columns: 1fr
+                grid-template-rows: min-content
+                grid-gap: 8px
+              cards:
+                - type: custom:tunet-lighting-card
+                  name: Dining Room
+                  surface: section
+                  layout: grid
+                  expand_groups: false
+                  show_adaptive_toggle: false
+                  tile_size: compact
+                  columns: 3
+                  column_breakpoints:
+                    - max_width: 640
+                      columns: 2
+                    - columns: 3
+                  zones:
+                    - entity: light.dining_room_spot_lights
+                      name: Spots
+                      icon: highlight
+                    - entity: light.dining_column_strip_light_matter
+                      name: Columns
+                      icon: view_column
+          - type: custom:popup-card
+            popup_card_id: bedroom-popup
+            popup_card_all_views: true
+            title: Bedroom
+            initial_style: wide
+            dismissable: true
+            card:
+              type: custom:layout-card
+              layout_type: custom:grid-layout
+              layout:
+                grid-template-columns: 1fr
+                grid-template-rows: min-content
+                grid-gap: 8px
+              cards:
+                - type: custom:tunet-lighting-card
+                  name: Bedroom
+                  surface: section
+                  layout: grid
+                  expand_groups: false
+                  show_adaptive_toggle: false
+                  tile_size: compact
+                  columns: 3
+                  column_breakpoints:
+                    - max_width: 640
+                      columns: 2
+                    - columns: 3
+                  zones:
+                    - entity: light.bedroom_primary_lights
+                      name: Main
+                      icon: bed
+                    - entity: light.master_bedroom_corner_accent_govee
+                      name: Accent
+                      icon: palette
+                    - entity: light.master_bedroom_table_lamps
+                      name: Table Lamps
+                      icon: table_lamp
 
       - type: grid
         column_span: 12
@@ -489,6 +535,12 @@ views:
                 icon: restaurant
                 temperature_entity: sensor.dining_room_temperature
                 navigate_path: /tunet-suite-storage/dining-room
+                hold_action:
+                  action: fire-dom-event
+                  browser_mod:
+                    service: browser_mod.popup
+                    data:
+                      popup_card_id: dining-room-popup
                 lights:
                   - entity: light.dining_room_spot_lights
                     icon: highlight
@@ -500,6 +552,12 @@ views:
               - name: Bedroom
                 icon: bed
                 navigate_path: /tunet-suite-storage/bedroom
+                hold_action:
+                  action: fire-dom-event
+                  browser_mod:
+                    service: browser_mod.popup
+                    data:
+                      popup_card_id: bedroom-popup
                 lights:
                   - entity: light.bedroom_primary_lights
                     icon: bed

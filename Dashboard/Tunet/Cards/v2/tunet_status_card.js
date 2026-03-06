@@ -138,6 +138,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     width: 100%;
     gap: 16px;
   }
+  .card.no-header {
+    gap: 10px;
+  }
 
   /* ── Header ──────────────────────────────────── */
   .hdr {
@@ -163,9 +166,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     background: var(--tile-bg);
     border-radius: var(--r-tile);
     box-shadow: var(--tile-shadow-rest);
-    padding: 26px 8px 10px;
+    padding: 22px 10px 12px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 4px;
+    gap: 5px;
     cursor: pointer;
     transition: all .15s ease;
     position: relative;
@@ -175,12 +178,12 @@ ${CARD_SURFACE_GLASS_STROKE}
     height: 100%;
   }
   :host([tile-size="compact"]) .tile {
-    padding: 16px 6px 7px;
-    gap: 2px;
+    padding: 12px 5px 6px;
+    gap: 1px;
   }
   :host([tile-size="large"]) .tile {
-    padding: 30px 10px 12px;
-    gap: 6px;
+    padding: 30px 12px 14px;
+    gap: 7px;
   }
   .tile:hover { box-shadow: var(--tile-shadow-lift); }
   .tile:active { transform: scale(.97); }
@@ -191,15 +194,34 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Tile Icon Accents ───────────────────────── */
   .tile-icon {
-    width: 28px; height: 28px;
+    width: 24px; height: 24px;
     display: grid; place-items: center;
     margin-bottom: 2px;
   }
+  .tile-icon .tile-icon-glyph {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    transform: translateX(-0.5px);
+  }
   :host([tile-size="compact"]) .tile-icon {
-    width: 21px; height: 21px;
+    width: 15px;
+    height: 15px;
+    margin-bottom: 1px;
+  }
+  :host([tile-size="compact"]) .tile-icon .tile-icon-glyph {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    transform: translateX(-0.75px);
   }
   :host([tile-size="large"]) .tile-icon {
     width: 30px; height: 30px;
+  }
+  :host([tile-size="large"]) .tile-icon .tile-icon-glyph {
+    font-size: 26px;
+    width: 26px;
+    height: 26px;
   }
   .tile[data-accent="amber"] .tile-icon { color: var(--amber); }
   .tile[data-accent="amber"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
@@ -215,7 +237,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     color: var(--text); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
-  :host([tile-size="compact"]) .tile-val { font-size: 12.5px; }
+  :host([tile-size="compact"]) .tile-val { font-size: 11px; }
   :host([tile-size="large"]) .tile-val { font-size: 20px; }
   .tile-val.is-text {
     white-space: normal;
@@ -228,14 +250,14 @@ ${CARD_SURFACE_GLASS_STROKE}
     max-height: 2.3em;
   }
   :host([tile-size="compact"]) .tile-val.is-text {
-    font-size: 10.5px;
+    font-size: 9.5px;
     max-height: 2.35em;
   }
   .tile-val.is-long {
     font-size: 12px;
   }
   :host([tile-size="compact"]) .tile-val.is-long {
-    font-size: 10px;
+    font-size: 9px;
   }
   .tile-label {
     font-size: 9px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
@@ -243,7 +265,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
   :host([tile-size="compact"]) .tile-label {
-    font-size: 7.5px;
+    font-size: 6.8px;
     letter-spacing: .18px;
     text-transform: none;
     white-space: normal;
@@ -265,7 +287,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     max-width: 100%; margin-top: -1px;
   }
   :host([tile-size="compact"]) .tile-secondary {
-    font-size: 7.5px;
+    font-size: 6.8px;
   }
   .tile-secondary:empty { display: none; }
 
@@ -309,6 +331,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     cursor: pointer;
     z-index: 2;
   }
+  .tile-aux[hidden] { display: none !important; }
   .tile.has-aux-visible {
     padding-top: 32px;
   }
@@ -599,6 +622,7 @@ class TunetStatusCard extends HTMLElement {
     return {
       schema: [
         { name: 'name', selector: { text: {} } },
+        { name: 'show_header', selector: { boolean: {} } },
         { name: 'columns', selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
         { name: 'column_breakpoints', selector: { object: {} } },
         { name: 'tile_size', selector: { select: { options: ['compact', 'standard', 'large'] } } },
@@ -613,6 +637,7 @@ class TunetStatusCard extends HTMLElement {
       ],
       computeLabel: (s) => ({
         name: 'Card Title',
+        show_header: 'Show Header',
         columns: 'Columns',
         column_breakpoints: 'Responsive Column Breakpoints',
         tile_size: 'Tile Size',
@@ -638,6 +663,7 @@ class TunetStatusCard extends HTMLElement {
     const columnBreakpoints = normalizeColumnBreakpoints(config.column_breakpoints);
     this._config = {
       name: config.name || 'Home Status',
+      show_header: config.show_header !== false,
       columns,
       column_breakpoints: columnBreakpoints,
       tile_size: tileSize,
@@ -776,17 +802,27 @@ class TunetStatusCard extends HTMLElement {
     this.shadowRoot.appendChild(tpl.content.cloneNode(true));
 
     this._titleEl = this.shadowRoot.getElementById('title');
+    this._hdrEl = this.shadowRoot.querySelector('.hdr');
+    this._cardEl = this.shadowRoot.querySelector('.card');
     this._gridEl = this.shadowRoot.getElementById('grid');
     this._activeColumns = this._resolveResponsiveColumns();
     this._applyGridColumns();
+    this._applyHeaderVisibility();
 
     this._buildGrid();
+  }
+
+  _applyHeaderVisibility() {
+    const showHeader = this._config.show_header !== false;
+    if (this._hdrEl) this._hdrEl.hidden = !showHeader;
+    if (this._cardEl) this._cardEl.classList.toggle('no-header', !showHeader);
   }
 
   _buildGrid() {
     if (!this._gridEl) return;
     this._gridEl.innerHTML = '';
     this._titleEl.textContent = this._config.name;
+    this._applyHeaderVisibility();
     this._applyGridColumns();
     // Refresh custom CSS on rebuild (covers config editor changes)
     if (this._customStyleEl) this._customStyleEl.textContent = this._config.custom_css || '';
@@ -802,7 +838,7 @@ class TunetStatusCard extends HTMLElement {
       switch (tile.type) {
         case 'alarm': {
           el.innerHTML = `
-            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${tile.icon || 'alarm'}</span></div>
+            <div class="tile-icon"><span class="icon tile-icon-glyph">${tile.icon || 'alarm'}</span></div>
             <span class="alarm-time-pill" id="val-${i}">--:--</span>
             <span class="tile-label">${tile.label}</span>
             <div class="alarm-actions" id="alarm-actions-${i}">
@@ -838,7 +874,7 @@ class TunetStatusCard extends HTMLElement {
         case 'indicator':
           el.innerHTML = `
             <div class="status-dot" id="dot-${i}"></div>
-            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon tile-icon-glyph">${tile.icon}</span></div>
             <span class="tile-val" id="val-${i}">--</span>
             <span class="tile-label">${tile.label}</span>
           `;
@@ -847,7 +883,7 @@ class TunetStatusCard extends HTMLElement {
 
         case 'timer':
           el.innerHTML = `
-            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon tile-icon-glyph">${tile.icon}</span></div>
             <span class="tile-val" id="val-${i}">--:--</span>
             <span class="tile-label">${tile.label}</span>
           `;
@@ -856,7 +892,7 @@ class TunetStatusCard extends HTMLElement {
 
         case 'dropdown':
           el.innerHTML = `
-            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon tile-icon-glyph">${tile.icon}</span></div>
             <div class="tile-dd-val" id="ddval-${i}" aria-expanded="false">
               <span class="dd-text" id="val-${i}">--</span>
               <span class="icon chevron">expand_more</span>
@@ -880,7 +916,7 @@ class TunetStatusCard extends HTMLElement {
           }
           el.innerHTML = `
             ${dotHTML}
-            <div class="tile-icon"><span class="icon" style="font-size:28px;width:28px;height:28px">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon tile-icon-glyph">${tile.icon}</span></div>
             <span class="tile-val" id="val-${i}">--</span>
             <span class="tile-secondary" id="sec-${i}"></span>
             <span class="tile-label">${tile.label}</span>

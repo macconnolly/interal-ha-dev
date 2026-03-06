@@ -86,12 +86,56 @@ const CARD_OVERRIDES = `
 const CARD_STYLES = `
   /* -- Section Header -- */
   .section-hdr {
-    display: flex; align-items: center; padding: 0 0.25em;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0 0.25em;
   }
   .section-title {
     font-size: 1.0625em; font-weight: 700; letter-spacing: -0.01em;
     color: var(--text);
   }
+  .section-hdr-spacer { flex: 1; }
+  .section-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38em;
+  }
+  .section-btn {
+    min-height: 2em;
+    padding: 0 0.56em;
+    border-radius: 999px;
+    border: 1px solid var(--ctrl-border);
+    background: var(--ctrl-bg);
+    box-shadow: var(--ctrl-sh);
+    color: var(--text-sub);
+    font-family: inherit;
+    font-size: 0.64em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.22em;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .section-btn:hover { box-shadow: var(--shadow); }
+  .section-btn:active { transform: scale(0.96); }
+  .section-btn .icon { font-size: 1.05em; width: 1.05em; height: 1.05em; }
+  .section-btn.all-on {
+    color: var(--amber);
+    border-color: var(--amber-border);
+    background: var(--amber-fill);
+  }
+  .section-btn.all-off {
+    color: var(--text-sub);
+  }
+  .section-btn.manual-reset {
+    color: var(--red);
+    border-color: rgba(239,68,68,0.32);
+    background: rgba(239,68,68,0.12);
+  }
+  .section-btn[hidden] { display: none !important; }
 
   /* -- Room Grid -- */
   .room-grid {
@@ -245,6 +289,12 @@ const CARD_STYLES = `
   }
   @media (max-width: 440px) {
     :host { font-size: 15px; }
+    .section-controls { gap: 0.3em; }
+    .section-btn {
+      min-height: 1.9em;
+      padding: 0 0.5em;
+      font-size: 0.62em;
+    }
     .room-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0.4em;
@@ -282,6 +332,18 @@ const ROOMS_TEMPLATE = `
     <div class="section-container">
       <div class="section-hdr">
         <span class="section-title" id="sectionTitle">Rooms</span>
+        <div class="section-hdr-spacer"></div>
+        <div class="section-controls">
+          <button type="button" class="section-btn manual-reset" id="manualResetBtn" hidden>
+            <span class="icon">restart_alt</span><span>Reset</span>
+          </button>
+          <button type="button" class="section-btn all-off" id="allOffBtn">
+            <span class="icon">power_settings_new</span><span>All Off</span>
+          </button>
+          <button type="button" class="section-btn all-on" id="allOnBtn">
+            <span class="icon">lightbulb</span><span>All On</span>
+          </button>
+        </div>
       </div>
       <div class="room-grid" id="roomGrid"></div>
     </div>
@@ -426,7 +488,26 @@ class TunetRoomsCard extends HTMLElement {
     this.$ = {
       roomGrid: this.shadowRoot.getElementById('roomGrid'),
       sectionTitle: this.shadowRoot.getElementById('sectionTitle'),
+      allOnBtn: this.shadowRoot.getElementById('allOnBtn'),
+      allOffBtn: this.shadowRoot.getElementById('allOffBtn'),
+      manualResetBtn: this.shadowRoot.getElementById('manualResetBtn'),
     };
+
+    this.$.allOnBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this._setAllLights('turn_on');
+    });
+    this.$.allOffBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this._setAllLights('turn_off');
+    });
+    this.$.manualResetBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this._resetManualControl();
+    });
   }
 
   _buildTiles() {
@@ -546,6 +627,68 @@ class TunetRoomsCard extends HTMLElement {
     }
   }
 
+  _allRoomLightIds() {
+    const ids = new Set();
+    for (const room of this._config.rooms || []) {
+      for (const light of room.lights || []) {
+        if (light.entity) ids.add(light.entity);
+      }
+    }
+    return Array.from(ids);
+  }
+
+  _setAllLights(service) {
+    if (!this._hass) return;
+    const entityIds = this._allRoomLightIds();
+    if (!entityIds.length) return;
+    this._hass.callService('light', service, { entity_id: entityIds });
+  }
+
+  _resolveAdaptiveEntitiesForRooms() {
+    if (!this._hass) return [];
+    const zoneSet = new Set(this._allRoomLightIds());
+    const candidates = [];
+    for (const key of Object.keys(this._hass.states)) {
+      if (!key.startsWith('switch.adaptive_lighting_')) continue;
+      const sw = this._hass.states[key];
+      const lights = sw?.attributes?.lights;
+      if (Array.isArray(lights) && lights.some((eid) => zoneSet.has(eid))) {
+        candidates.push(key);
+      }
+    }
+    if (candidates.length) return Array.from(new Set(candidates));
+    return Object.keys(this._hass.states).filter((k) => k.startsWith('switch.adaptive_lighting_'));
+  }
+
+  _getManualLights(adaptiveEntities) {
+    const deduped = new Set();
+    for (const entityId of adaptiveEntities) {
+      const sw = this._hass.states[entityId];
+      const manual = sw?.attributes?.manual_control;
+      if (!Array.isArray(manual)) continue;
+      for (const lightId of manual) deduped.add(lightId);
+    }
+    return deduped;
+  }
+
+  _resetManualControl() {
+    if (!this._hass) return;
+    const roomLights = new Set(this._allRoomLightIds());
+    const adaptiveEntities = this._resolveAdaptiveEntitiesForRooms()
+      .filter((entityId) => entityId.startsWith('switch.adaptive_lighting_'));
+    if (!adaptiveEntities.length) return;
+
+    const manualScoped = Array.from(this._getManualLights(adaptiveEntities))
+      .filter((lightId) => roomLights.has(lightId));
+    if (!manualScoped.length) return;
+
+    this._hass.callService('adaptive_lighting', 'set_manual_control', {
+      entity_id: adaptiveEntities,
+      manual_control: false,
+      lights: manualScoped,
+    });
+  }
+
   _handleRoomAction(actionConfig, roomCfg) {
     if (!actionConfig || !this._hass) return;
     const defaultEntityId = roomCfg?.lights?.[0]?.entity || roomCfg?.temperature_entity || '';
@@ -560,20 +703,37 @@ class TunetRoomsCard extends HTMLElement {
   _updateAll() {
     if (!this._hass || !this._rendered) return;
 
+    const adaptiveEntities = this._resolveAdaptiveEntitiesForRooms();
+    const manualSet = this._getManualLights(adaptiveEntities);
+    const allRoomLights = new Set(this._allRoomLightIds());
+    const manualScopedCount = Array.from(manualSet).filter((eid) => allRoomLights.has(eid)).length;
+    if (this.$.manualResetBtn) {
+      this.$.manualResetBtn.hidden = manualScopedCount === 0;
+    }
+
     for (const ref of this._tileRefs) {
       const lights = ref.cfg.lights || [];
       let onCount = 0;
+      let brightnessTotal = 0;
 
       for (const light of lights) {
         if (!light.entity) continue;
         const entity = this._hass.states[light.entity];
-        if (entity && entity.state === 'on') onCount++;
+        if (!entity || entity.state === 'unavailable') continue;
+        if (entity.state === 'on') {
+          onCount++;
+          const raw = Number(entity.attributes?.brightness);
+          const pct = Number.isFinite(raw)
+            ? Math.max(0, Math.min(100, Math.round((raw / 255) * 100)))
+            : 100;
+          brightnessTotal += pct;
+        }
       }
 
       const anyOn = onCount > 0;
       ref.el.classList.toggle('active', anyOn);
       if (ref.fillEl) {
-        const pct = lights.length ? Math.round((onCount / lights.length) * 100) : 0;
+        const pct = onCount > 0 ? Math.round(brightnessTotal / onCount) : 0;
         ref.fillEl.style.width = `${pct}%`;
       }
 
@@ -593,14 +753,7 @@ class TunetRoomsCard extends HTMLElement {
       let manualCount = 0;
       for (const light of lights) {
         if (!light.entity) continue;
-        for (const key of Object.keys(this._hass.states)) {
-          if (!key.startsWith('switch.adaptive_lighting_')) continue;
-          const sw = this._hass.states[key];
-          if (sw?.attributes?.manual_control?.includes(light.entity)) {
-            manualCount++;
-            break;
-          }
-        }
+        if (manualSet.has(light.entity)) manualCount++;
       }
       if (manualCount > 0) {
         parts.push(`<span class="manual-count">${manualCount} manual</span>`);

@@ -62,13 +62,17 @@ const NAV_STYLES = `
     box-sizing: border-box;
     display: grid;
     place-items: center;
-    gap: 4px;
+    gap: 2px;
     cursor: pointer;
-    color: rgba(255,255,255,0.62);
+    color: var(--text-muted);
     transition:
       color var(--motion-ui) var(--ease-standard),
       transform var(--motion-ui) var(--ease-standard),
       background var(--motion-ui) var(--ease-standard);
+  }
+
+  :host(.dark) .btn:not(.active) {
+    color: rgba(248,250,252, 0.55);
   }
 
   .btn:active { transform: scale(var(--press-scale)); }
@@ -82,6 +86,8 @@ const NAV_STYLES = `
     font-size: 22px;
     width: 22px;
     height: 22px;
+    line-height: 22px;
+    overflow: hidden;
   }
 
   .label {

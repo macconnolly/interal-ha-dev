@@ -94,9 +94,12 @@
       "Bash(echo === PRE-REUSE MEDIA CARD - header comments ===:*)",
       "Bash(xargs:*)",
       "Bash(cat:*)",
-      "Bash(echo === $f ===:*)"
+      "Bash(echo === $f ===:*)",
+      "mcp__codex-bridge__consult_codex",
+      "mcp__codex-bridge__consult_codex_with_stdin"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "outputStyle": "Explanatory"
 }

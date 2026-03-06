@@ -314,6 +314,10 @@ class TunetRoomsCard extends HTMLElement {
         {
           name: 'Living Room',
           icon: 'weekend',
+          tap_action: {
+            action: 'more-info',
+            entity: 'light.living_room',
+          },
           lights: [
             { entity: 'light.living_room', icon: 'lightbulb', name: 'Main' },
           ],
@@ -333,6 +337,7 @@ class TunetRoomsCard extends HTMLElement {
         icon: normalizeIcon(room.icon || 'home'),
         temperature_entity: room.temperature_entity || '',
         navigate_path: room.navigate_path || '',
+        tap_action: room.tap_action || null,
         lights: (room.lights || []).map((light) => ({
           entity: light.entity || '',
           icon: normalizeIcon(light.icon || 'lightbulb'),
@@ -454,8 +459,10 @@ class TunetRoomsCard extends HTMLElement {
       const onPointerUp = (e) => {
         clearTimeout(pressTimer);
         if (didLongPress) return;
-        // Short tap → navigate
-        if (roomCfg.navigate_path) {
+        // Short tap → room action if defined, otherwise navigate.
+        if (roomCfg.tap_action) {
+          this._handleTapAction(roomCfg.tap_action, roomCfg);
+        } else if (roomCfg.navigate_path) {
           history.pushState(null, '', roomCfg.navigate_path);
           window.dispatchEvent(new Event('location-changed'));
         } else if (roomCfg.lights.length && roomCfg.lights[0].entity) {
@@ -512,6 +519,55 @@ class TunetRoomsCard extends HTMLElement {
     if (result && typeof result.catch === 'function') {
       result.catch(() => this._updateAll());
     }
+  }
+
+  _handleTapAction(tapAction, roomCfg) {
+    if (!tapAction || !this._hass) return;
+    const action = tapAction.action || 'more-info';
+    const defaultEntityId = roomCfg?.lights?.[0]?.entity || roomCfg?.temperature_entity || '';
+
+    if (action === 'none') return;
+
+    if (action === 'more-info') {
+      const entityId = tapAction.entity || defaultEntityId;
+      if (!entityId) return;
+      this.dispatchEvent(new CustomEvent('hass-more-info', {
+        bubbles: true,
+        composed: true,
+        detail: { entityId },
+      }));
+      return;
+    }
+
+    if (action === 'navigate') {
+      const path = tapAction.navigation_path || roomCfg?.navigate_path;
+      if (!path) return;
+      history.pushState(null, '', path);
+      window.dispatchEvent(new Event('location-changed'));
+      return;
+    }
+
+    if (action === 'url') {
+      if (!tapAction.url_path) return;
+      window.open(tapAction.url_path, tapAction.new_tab ? '_blank' : '_self');
+      return;
+    }
+
+    if (action === 'call-service') {
+      const service = String(tapAction.service || '').trim();
+      const [domain, serviceName] = service.split('.');
+      if (!domain || !serviceName) return;
+      this._hass.callService(domain, serviceName, tapAction.service_data || {});
+      return;
+    }
+
+    const entityId = tapAction.entity || defaultEntityId;
+    if (!entityId) return;
+    this.dispatchEvent(new CustomEvent('hass-more-info', {
+      bubbles: true,
+      composed: true,
+      detail: { entityId },
+    }));
   }
 
   _updateAll() {

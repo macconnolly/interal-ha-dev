@@ -559,6 +559,65 @@ These grades are implementation-health grades, not value judgments. They reflect
 - Validation:
   - UI editor either renders a valid repeatable list or no longer pretends to support the field.
 
+#### FL-025
+- Status: `DONE`
+- Severity: `HIGH`
+- Requirement Alignment:
+  - `REQ-NAV-001`
+  - `REQ-NAV-002`
+  - `REQ-UX-002`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Item Type:
+  - `DEFECT`
+- Completion Standard:
+  - `CODE CHANGED`
+  - `DEPLOYED`
+  - `VISUALLY VALIDATED`
+- Files:
+  - `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
+- Problem:
+  - Inactive nav items were invisible — hardcoded `rgba(255,255,255,0.62)` (white at 62% opacity) on a near-white light-mode glass background. Bypassed the token system entirely. No `:host(.dark)` override existed.
+- Exact Fix:
+  - Replaced hardcoded color with `var(--text-muted)` for light mode.
+  - Added `:host(.dark) .btn:not(.active) { color: rgba(248,250,252, 0.55); }` for dark mode legibility.
+- Why This Matters:
+  - Nav items were literally invisible in light mode — users could only see the active (orange) item, making navigation impossible.
+- Dependency:
+  - None.
+- Validation:
+  - All three nav items (Home, Rooms, Media) are visible in both light and dark mode. Active item remains amber. User confirmed fix on 2026-03-06.
+
+#### FL-026
+- Status: `DONE`
+- Severity: `MEDIUM`
+- Requirement Alignment:
+  - `REQ-NAV-001`
+  - `REQ-UX-001`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Item Type:
+  - `DEFECT`
+- Completion Standard:
+  - `CODE CHANGED`
+  - `DEPLOYED`
+  - `VISUALLY VALIDATED`
+- Files:
+  - `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
+- Problem:
+  - Excessive spacing between nav icon and label. Material Symbols Rounded font metrics inflated the icon grid cell beyond 22px, and the grid `gap: 4px` measured from the inflated boundary.
+- Exact Fix:
+  - Added `line-height: 22px; overflow: hidden` to `.btn .icon` to contain font metrics.
+  - Reduced grid `gap` from `4px` to `2px`.
+- Why This Matters:
+  - Nav chrome should be tight and compact — excessive spacing made it look unfinished.
+- Dependency:
+  - None.
+- Validation:
+  - Icon-to-label spacing is visually tight and consistent across all three nav items. User confirmed fix on 2026-03-06.
+
 ### Performance And Update Behavior
 
 #### FL-014
@@ -832,7 +891,7 @@ These are not defects. They are architecture or design decisions that still need
 This order applies to active remediation items only. It does **not** imply that Product-Direction Decisions should be executed like bug tickets.
 
 1. FL-001, FL-002, FL-003, FL-004, FL-005, FL-006
-2. FL-007, FL-008, FL-009, FL-010
+2. FL-007, FL-008, FL-009, FL-010, FL-025, FL-026
 3. FL-019, FL-020
 4. FL-011, FL-012, FL-013, FL-014, FL-015
 5. FL-016, FL-017

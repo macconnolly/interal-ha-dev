@@ -157,6 +157,12 @@ views:
               - name: Kitchen
                 icon: kitchen
                 navigate_path: /tunet-suite/kitchen
+                hold_action:
+                  action: fire-dom-event
+                  browser_mod:
+                    service: browser_mod.popup
+                    data:
+                      popup_card_id: kitchen-popup
                 lights:
                   - entity: light.kitchen_island_pendants
                     icon: light
@@ -239,6 +245,49 @@ views:
                     - entity: light.office_desk_lamp
                       name: Desk
                       icon: desk
+
+          - type: custom:popup-card
+            popup_card_id: kitchen-popup
+            popup_card_all_views: true
+            title: Kitchen
+            initial_style: wide
+            dismissable: true
+            card:
+              type: vertical-stack
+              cards:
+                - type: button
+                  name: All Off
+                  icon: mdi:power
+                  tap_action:
+                    action: call-service
+                    service: light.turn_off
+                    service_data:
+                      entity_id:
+                        - light.kitchen_island_pendants
+                        - light.kitchen_main_lights
+                        - light.kitchen_counter_cabinet_underlights
+                - type: custom:tunet-lighting-card
+                  name: Kitchen
+                  surface: section
+                  layout: grid
+                  expand_groups: false
+                  show_adaptive_toggle: false
+                  tile_size: compact
+                  columns: 3
+                  column_breakpoints:
+                    - max_width: 640
+                      columns: 2
+                    - columns: 3
+                  zones:
+                    - entity: light.kitchen_island_pendants
+                      name: Pendants
+                      icon: light
+                    - entity: light.kitchen_main_lights
+                      name: Main
+                      icon: kitchen
+                    - entity: light.kitchen_counter_cabinet_underlights
+                      name: Under-cab
+                      icon: kitchen
 
       - type: grid
         cards:
@@ -403,6 +452,12 @@ views:
               - name: Kitchen
                 icon: kitchen
                 navigate_path: /tunet-suite/kitchen
+                hold_action:
+                  action: fire-dom-event
+                  browser_mod:
+                    service: browser_mod.popup
+                    data:
+                      popup_card_id: kitchen-popup
                 lights:
                   - entity: light.kitchen_island_pendants
                     icon: light

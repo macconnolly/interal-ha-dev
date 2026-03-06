@@ -1,7 +1,7 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-02
+Last updated: 2026-03-06
 Scope: `/home/mac/HA/implementation_10`
 
 ## Purpose
@@ -56,10 +56,14 @@ These requirement IDs are the stable intent model for the Tunet work. Ledger ite
 | `REQ-SEC-001` | Sections are organized by role, hierarchy, and one-touch value. | Sections is a product-architecture tool, not just a sizing grid. |
 | `REQ-SEC-002` | Width is a ratio decision, not the whole design decision. | Span alone does not determine whether a surface deserves prominence or placement. |
 | `REQ-SEC-003` | Vertical sizing should generally remain intrinsic. | Forced height should be the exception, not the default, in a modern Sections dashboard. |
+| `REQ-LAY-001` | Sections layout must be validated through breakpoint-aware composition rules. | The project needs a formal responsive model at view, section, and card levels instead of ad-hoc span tuning. |
+| `REQ-LAY-002` | Card-level hard width caps are exception-only. | Responsive behavior should be driven by proportional layout and intrinsic sizing, not rigid card caps. |
 | `REQ-SURF-001` | Storage/hybrid is the primary evaluation and UI-edit surface. | Product feel should be judged on the surface people can actually interact with and adjust. |
 | `REQ-SURF-002` | YAML suite is the repo-controlled architecture surface. | Long-term structure, reviewability, and deployment discipline still need a canonical branch-readable surface. |
 | `REQ-DONE-001` | Implemented is not done. | Repo state, live HA state, visual validation, and product acceptance must remain distinct. |
 | `REQ-V1-001` | Valuable V1 polish and interaction patterns should be recovered where compatible. | Migration to Sections must not discard the atmosphere and clarity that made the earlier dashboard feel premium. |
+| `REQ-CTRL-001` | Every change must pass a preflight change gate with traceability. | Prevents fast local fixes from reintroducing cross-card behavior drift. |
+| `REQ-INT-001` | Room interaction contract is tap-toggle / hold-popup. | Keeps primary room action one-touch while preserving premium popup access and nav-based deep-linking. |
 
 ### Four-Gate Interpretation Model
 
@@ -163,6 +167,16 @@ These items have already changed materially on this branch and must be verified 
 - Room strategy: Office is not a room; Office lighting is part of Living Room.
 - Popup strategy: Browser Mod is the preferred next-popup direction for Tunet. Existing Bubble/hash popup work is historical POC material only unless explicitly re-approved.
 - Card editor strategy: `getConfigForm()` remains acceptable for simple/scalar configs; nested array editing is not considered solved.
+- Interaction strategy: room tiles use `tap -> room toggle` and `hold -> popup`; room navigation remains available via global nav.
+
+## Execution Gate Register (2026-03-06)
+
+These are mandatory workflow constraints for active implementation:
+
+- each implementation change needs a `Change ID` and explicit surface scope
+- each change needs a cross-card impact check before coding
+- active work must remain inside one tranche at a time
+- no more than three active implementation items inside an active tranche
 
 ## How To Use This Ledger
 
@@ -617,6 +631,130 @@ These grades are implementation-health grades, not value judgments. They reflect
   - None.
 - Validation:
   - Icon-to-label spacing is visually tight and consistent across all three nav items. User confirmed fix on 2026-03-06.
+
+### Control Plane And Interaction Unification
+
+#### FL-027
+- Status: `OPEN`
+- Severity: `HIGH`
+- Requirement Alignment:
+  - `REQ-CTRL-001`
+  - `REQ-DONE-001`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Item Type:
+  - `DEFECT`
+- Completion Standard:
+  - `CODE CHANGED`
+  - `VISUALLY VALIDATED`
+  - `ACCEPTED AS PRODUCT DIRECTION`
+- Files:
+  - `plan.md`
+  - `FIX_LEDGER.md`
+- Problem:
+  - The project has planning docs but no enforced preflight gate, WIP budget, or change traceability discipline.
+- Exact Fix:
+  - Add mandatory change-gate requirements (`Change ID`, impact map, validation checklist, rollback path) and one-tranche WIP limits to control docs.
+- Why This Matters:
+  - Without enforcement, interaction and layout decisions regress through untracked “quick” changes.
+- Dependency:
+  - None.
+- Validation:
+  - New Tunet changes include change IDs, impact statements, and validation evidence before implementation proceeds.
+
+#### FL-028
+- Status: `OPEN`
+- Severity: `HIGH`
+- Requirement Alignment:
+  - `REQ-LAY-001`
+  - `REQ-SEC-001`
+  - `REQ-SEC-002`
+  - `REQ-SEC-003`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Item Type:
+  - `DEFECT`
+- Completion Standard:
+  - `CODE CHANGED`
+  - `VISUALLY VALIDATED`
+  - `ACCEPTED AS PRODUCT DIRECTION`
+- Files:
+  - `plan.md`
+  - `Dashboard/Tunet/tunet-suite-config.yaml`
+  - `Dashboard/Tunet/tunet-suite-storage-config.yaml`
+- Problem:
+  - Sections layout is not managed through a breakpoint-aware composition system; view/section/card sizing decisions drift by local edits.
+- Exact Fix:
+  - Define and enforce a layout matrix covering overall view width policy, section span strategy, and card span behavior across phone/tablet/desktop.
+- Why This Matters:
+  - Correct Sections usage is foundational; card polish is wasted if responsive composition is unstable.
+- Dependency:
+  - FL-027 control gate enforcement.
+- Validation:
+  - Overview + one room subview pass matrix checks for phone/tablet/desktop compositions.
+
+#### FL-029
+- Status: `OPEN`
+- Severity: `MEDIUM-HIGH`
+- Requirement Alignment:
+  - `REQ-LAY-002`
+  - `REQ-SEC-002`
+  - `REQ-SEC-003`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Item Type:
+  - `DEFECT`
+- Completion Standard:
+  - `CODE CHANGED`
+  - `VISUALLY VALIDATED`
+- Files:
+  - `Dashboard/Tunet/Cards/v2/` (cards with `getGridOptions()`)
+- Problem:
+  - Card-level hard `max_columns` caps are broadly applied, constraining proportional responsiveness.
+- Exact Fix:
+  - Remove hard `max_columns` defaults from card `getGridOptions()` and treat any future hard cap as a documented exception.
+- Why This Matters:
+  - Broad hard caps fight Sections-native layout and force avoidable breakpoint compromises.
+- Dependency:
+  - FL-028 layout matrix decisions.
+- Validation:
+  - Card grid hints no longer apply rigid `max_columns` defaults.
+
+#### FL-030
+- Status: `OPEN`
+- Severity: `HIGH`
+- Requirement Alignment:
+  - `REQ-INT-001`
+  - `REQ-POP-001`
+  - `REQ-UX-001`
+  - `REQ-UX-002`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Item Type:
+  - `DEFECT`
+- Completion Standard:
+  - `CODE CHANGED`
+  - `DEPLOYED`
+  - `VISUALLY VALIDATED`
+  - `ACCEPTED AS PRODUCT DIRECTION`
+- Files:
+  - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
+  - `Dashboard/Tunet/tunet-suite-config.yaml`
+  - `Dashboard/Tunet/tunet-suite-storage-config.yaml`
+- Problem:
+  - Room tile interaction behavior is inconsistent across docs/config/code (tap vs hold responsibilities and popup invocation path).
+- Exact Fix:
+  - Lock and implement `tap -> room toggle`, `hold -> Browser Mod popup` using browser-scoped `fire-dom-event` actions.
+- Why This Matters:
+  - Room interaction is a primary daily-use surface and must be predictable across all Tunet pages.
+- Dependency:
+  - FL-022 popup direction lock.
+- Validation:
+  - Room tiles toggle on tap and open Browser Mod popup on hold in both overview and rooms-directory surfaces.
 
 ### Performance And Update Behavior
 

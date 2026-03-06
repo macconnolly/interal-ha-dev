@@ -16,11 +16,13 @@ import {
   injectFonts,
   detectDarkMode,
   applyDarkClass,
+  navigatePath,
+  runCardAction,
   registerCard,
   logCardVersion,
 } from './tunet_base.js';
 
-const CARD_VERSION = '2.3.0';
+const CARD_VERSION = '2.4.0';
 
 // ═══════════════════════════════════════════════════════════
 // Icon helpers (card-specific)
@@ -314,9 +316,11 @@ class TunetRoomsCard extends HTMLElement {
         {
           name: 'Living Room',
           icon: 'weekend',
-          tap_action: {
-            action: 'more-info',
-            entity: 'light.living_room',
+          hold_action: {
+            action: 'fire-dom-event',
+            browser_mod: {
+              service: 'browser_mod.popup',
+            },
           },
           lights: [
             { entity: 'light.living_room', icon: 'lightbulb', name: 'Main' },
@@ -338,6 +342,7 @@ class TunetRoomsCard extends HTMLElement {
         temperature_entity: room.temperature_entity || '',
         navigate_path: room.navigate_path || '',
         tap_action: room.tap_action || null,
+        hold_action: room.hold_action || null,
         lights: (room.lights || []).map((light) => ({
           entity: light.entity || '',
           icon: normalizeIcon(light.icon || 'lightbulb'),
@@ -388,9 +393,8 @@ class TunetRoomsCard extends HTMLElement {
   // Sections view (12-column grid) sizing hints
   getGridOptions() {
     return {
-      columns: 12,
+      columns: 'full',
       min_columns: 6,
-      max_columns: 12,
     };
   }
 
@@ -439,32 +443,35 @@ class TunetRoomsCard extends HTMLElement {
 
       const statusEl = tile.querySelector(`#room-status-${i}`);
 
-      // Tap → navigate; long press → toggle all lights
-      let pressStart = 0;
+      // Tap → toggle all room lights (or custom tap action)
+      // Long press → configured hold action (typically popup)
       let pressTimer = null;
       let didLongPress = false;
 
-      const onPointerDown = (e) => {
-        pressStart = Date.now();
+      const onPointerDown = () => {
         didLongPress = false;
         pressTimer = setTimeout(() => {
           didLongPress = true;
-          this._toggleRoomGroup(roomCfg);
-          // Brief haptic feedback via scale
+          if (roomCfg.hold_action) {
+            this._handleRoomAction(roomCfg.hold_action, roomCfg);
+          } else if (roomCfg.navigate_path) {
+            navigatePath(roomCfg.navigate_path);
+          }
+
+          // Brief haptic feedback via scale.
           tile.style.transform = 'scale(0.9)';
           setTimeout(() => { tile.style.transform = ''; }, 120);
         }, 400);
       };
 
-      const onPointerUp = (e) => {
+      const onPointerUp = () => {
         clearTimeout(pressTimer);
         if (didLongPress) return;
-        // Short tap → room action if defined, otherwise navigate.
+        // Short tap → configured action, otherwise toggle room lights.
         if (roomCfg.tap_action) {
-          this._handleTapAction(roomCfg.tap_action, roomCfg);
-        } else if (roomCfg.navigate_path) {
-          history.pushState(null, '', roomCfg.navigate_path);
-          window.dispatchEvent(new Event('location-changed'));
+          this._handleRoomAction(roomCfg.tap_action, roomCfg);
+        } else if ((roomCfg.lights || []).length) {
+          this._toggleRoomGroup(roomCfg);
         } else if (roomCfg.lights.length && roomCfg.lights[0].entity) {
           this.dispatchEvent(new CustomEvent('hass-more-info', {
             bubbles: true, composed: true,
@@ -521,53 +528,15 @@ class TunetRoomsCard extends HTMLElement {
     }
   }
 
-  _handleTapAction(tapAction, roomCfg) {
-    if (!tapAction || !this._hass) return;
-    const action = tapAction.action || 'more-info';
+  _handleRoomAction(actionConfig, roomCfg) {
+    if (!actionConfig || !this._hass) return;
     const defaultEntityId = roomCfg?.lights?.[0]?.entity || roomCfg?.temperature_entity || '';
-
-    if (action === 'none') return;
-
-    if (action === 'more-info') {
-      const entityId = tapAction.entity || defaultEntityId;
-      if (!entityId) return;
-      this.dispatchEvent(new CustomEvent('hass-more-info', {
-        bubbles: true,
-        composed: true,
-        detail: { entityId },
-      }));
-      return;
-    }
-
-    if (action === 'navigate') {
-      const path = tapAction.navigation_path || roomCfg?.navigate_path;
-      if (!path) return;
-      history.pushState(null, '', path);
-      window.dispatchEvent(new Event('location-changed'));
-      return;
-    }
-
-    if (action === 'url') {
-      if (!tapAction.url_path) return;
-      window.open(tapAction.url_path, tapAction.new_tab ? '_blank' : '_self');
-      return;
-    }
-
-    if (action === 'call-service') {
-      const service = String(tapAction.service || '').trim();
-      const [domain, serviceName] = service.split('.');
-      if (!domain || !serviceName) return;
-      this._hass.callService(domain, serviceName, tapAction.service_data || {});
-      return;
-    }
-
-    const entityId = tapAction.entity || defaultEntityId;
-    if (!entityId) return;
-    this.dispatchEvent(new CustomEvent('hass-more-info', {
-      bubbles: true,
-      composed: true,
-      detail: { entityId },
-    }));
+    runCardAction({
+      element: this,
+      hass: this._hass,
+      actionConfig,
+      defaultEntityId,
+    });
   }
 
   _updateAll() {

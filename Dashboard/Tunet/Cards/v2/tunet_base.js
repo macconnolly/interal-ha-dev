@@ -732,6 +732,102 @@ export function fireEvent(element, type, detail = {}) {
 }
 
 /**
+ * Normalize a navigation path for Home Assistant routing.
+ * @param {string} value
+ * @returns {string}
+ */
+export function normalizePath(value) {
+  const raw = (value == null ? '' : String(value)).trim();
+  if (!raw) return '';
+  return raw.startsWith('/') || raw.startsWith('#') ? raw : `/${raw}`;
+}
+
+/**
+ * Navigate using HA's navigation event, with history fallback.
+ * @param {string} path
+ * @param {Object} options
+ * @param {boolean} options.replace
+ */
+export function navigatePath(path, { replace = false } = {}) {
+  const normalized = normalizePath(path);
+  if (!normalized) return;
+
+  const navEvent = new CustomEvent('hass-navigate', {
+    bubbles: true,
+    composed: true,
+    cancelable: true,
+    detail: { path: normalized, replace },
+  });
+  window.dispatchEvent(navEvent);
+  if (navEvent.defaultPrevented) return;
+
+  if (replace) {
+    window.history.replaceState(null, '', normalized);
+  } else {
+    window.history.pushState(null, '', normalized);
+  }
+  window.dispatchEvent(new Event('location-changed'));
+}
+
+/**
+ * Execute a Lovelace-style action object.
+ * Supports: more-info, navigate, url, call-service, fire-dom-event, none.
+ * @param {Object} args
+ * @param {HTMLElement} args.element
+ * @param {Object} args.hass
+ * @param {Object} args.actionConfig
+ * @param {string} args.defaultEntityId
+ * @returns {boolean}
+ */
+export function runCardAction({
+  element,
+  hass,
+  actionConfig,
+  defaultEntityId = '',
+} = {}) {
+  if (!element || !hass || !actionConfig) return false;
+
+  const action = actionConfig.action || 'more-info';
+  if (action === 'none') return true;
+
+  if (action === 'more-info') {
+    const entityId = actionConfig.entity || defaultEntityId;
+    if (!entityId) return false;
+    fireEvent(element, 'hass-more-info', { entityId });
+    return true;
+  }
+
+  if (action === 'navigate') {
+    navigatePath(actionConfig.navigation_path || actionConfig.path || '');
+    return true;
+  }
+
+  if (action === 'url') {
+    if (!actionConfig.url_path) return false;
+    window.open(actionConfig.url_path, actionConfig.new_tab ? '_blank' : '_self');
+    return true;
+  }
+
+  if (action === 'call-service') {
+    const service = String(actionConfig.service || '').trim();
+    const [domain, serviceName] = service.split('.');
+    if (!domain || !serviceName) return false;
+    hass.callService(domain, serviceName, actionConfig.service_data || {});
+    return true;
+  }
+
+  if (action === 'fire-dom-event') {
+    fireEvent(element, 'll-custom', actionConfig);
+    return true;
+  }
+
+  const fallbackEntityId = actionConfig.entity || defaultEntityId;
+  if (!fallbackEntityId) return false;
+  fireEvent(element, 'hass-more-info', { entityId: fallbackEntityId });
+  return true;
+}
+
+/**
  * Idempotent card registration with HA.
  * @param {string} tagName - Custom element tag (e.g. 'tunet-climate-card')
  * @param {Function} cardClass - The HTMLElement subclass

@@ -580,7 +580,6 @@ class TunetSpeakerGridCard extends HTMLElement {
     return {
       columns: 12,
       min_columns: 6,
-      max_columns: 12,
     };
   }
 

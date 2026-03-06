@@ -1,8 +1,7 @@
 /**
  * Tunet Nav Card (v2 – ES Module)
- * Persistent navigation chrome: bottom dock (mobile) + left rail (desktop)
- * POC: 3 destinations (Home / Rooms / Media) with active-route highlighting.
- * Version 0.1.0
+ * Persistent navigation chrome: bottom dock (mobile) + left rail (desktop).
+ * Version 0.2.0
  */
 
 import {
@@ -15,11 +14,23 @@ import {
   injectFonts,
   detectDarkMode,
   applyDarkClass,
+  normalizePath,
+  navigatePath,
   registerCard,
   logCardVersion,
 } from './tunet_base.js';
 
-const CARD_VERSION = '0.1.0';
+const CARD_VERSION = '0.2.0';
+
+const DEFAULT_ICONS = {
+  home: 'home',
+  rooms: 'meeting_room',
+  media: 'speaker',
+  'living-room': 'weekend',
+  kitchen: 'kitchen',
+  'dining-room': 'restaurant',
+  bedroom: 'bed',
+};
 
 const NAV_STYLES = `
   ${TOKENS}
@@ -30,10 +41,9 @@ const NAV_STYLES = `
 
   :host {
     display: block;
-    font-size: 16px; /* em anchor */
+    font-size: 16px;
   }
 
-  /* Card itself is a "portal"; the visible UI is fixed-position. */
   .wrap {
     position: fixed;
     z-index: 1000;
@@ -48,17 +58,12 @@ const NAV_STYLES = `
     box-shadow: var(--shadow), var(--inset);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    display: grid;
-    align-items: center;
-    justify-items: center;
     user-select: none;
     -webkit-user-select: none;
   }
 
   .btn {
     all: unset;
-    width: 100%;
-    height: 100%;
     box-sizing: border-box;
     display: grid;
     place-items: center;
@@ -95,6 +100,7 @@ const NAV_STYLES = `
     font-weight: 700;
     letter-spacing: 0.2px;
     line-height: 1;
+    white-space: nowrap;
   }
 
   .btn.active {
@@ -117,8 +123,30 @@ const NAV_STYLES = `
 
   :host([data-mode="mobile"]) .nav {
     height: 64px;
-    grid-template-columns: repeat(3, 1fr);
     border-radius: 22px;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(56px, 1fr);
+    align-items: center;
+    column-gap: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x proximity;
+    padding: 0 4px;
+  }
+  :host([data-mode="mobile"]) .nav::-webkit-scrollbar { display: none; }
+
+  :host([data-mode="mobile"]) .btn {
+    width: 100%;
+    height: 100%;
+    min-width: 56px;
+    scroll-snap-align: center;
+  }
+
+  :host([data-mode="mobile"]) .label {
+    display: none;
   }
 
   /* ── Desktop rail ──────────────────────────────────────────── */
@@ -130,13 +158,22 @@ const NAV_STYLES = `
   }
 
   :host([data-mode="desktop"]) .nav {
-    width: 72px;
+    width: 84px;
     height: calc(100vh - 24px);
-    grid-template-rows: repeat(3, 72px);
-    grid-template-columns: 1fr;
     border-radius: 28px;
     padding: 6px 0;
     gap: 6px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(var(--nav-item-count, 3), 72px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+  }
+
+  :host([data-mode="desktop"]) .btn {
+    width: 100%;
+    height: 72px;
   }
 `;
 
@@ -155,10 +192,69 @@ function ensureGlobalOffsetsStyle() {
   document.head.appendChild(style);
 }
 
-function safePath(value, fallback) {
-  const raw = (value == null ? '' : String(value)).trim();
-  if (!raw) return fallback;
-  return raw.startsWith('/') || raw.startsWith('#') ? raw : `/${raw}`;
+function slugFromPath(path) {
+  const normalized = normalizePath(path);
+  if (!normalized.startsWith('/')) return '';
+  const parts = normalized.split('/').filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : '';
+}
+
+function labelFromSlug(slug) {
+  if (!slug) return 'Item';
+  return slug
+    .split('-')
+    .filter(Boolean)
+    .map((p) => p[0].toUpperCase() + p.slice(1))
+    .join(' ');
+}
+
+function scopePrefix(path) {
+  const normalized = normalizePath(path);
+  if (!normalized.startsWith('/')) return '';
+  const parts = normalized.split('/').filter(Boolean);
+  if (!parts.length) return '';
+  return `/${parts[0]}/`;
+}
+
+function defaultNavItems(config) {
+  const items = [
+    { key: 'home', label: 'Home', icon: DEFAULT_ICONS.home, path: config.home_path },
+    { key: 'media', label: 'Media', icon: DEFAULT_ICONS.media, path: config.media_path },
+  ];
+
+  for (const roomPath of config.subview_paths) {
+    const slug = slugFromPath(roomPath);
+    if (!slug) continue;
+    items.push({
+      key: slug,
+      label: labelFromSlug(slug),
+      icon: DEFAULT_ICONS[slug] || 'meeting_room',
+      path: roomPath,
+    });
+  }
+
+  if (config.include_rooms_index) {
+    items.push({
+      key: 'rooms',
+      label: 'Rooms',
+      icon: DEFAULT_ICONS.rooms,
+      path: config.rooms_path,
+    });
+  }
+  return items;
+}
+
+function normalizeNavItem(item, idx) {
+  const key = String(item?.key || item?.id || `item-${idx}`).trim();
+  const path = normalizePath(item?.path || item?.navigation_path || '');
+  if (!key || !path) return null;
+  const label = String(item?.label || labelFromSlug(slugFromPath(path)) || key).trim();
+  const icon = String(item?.icon || DEFAULT_ICONS[key] || 'radio_button_unchecked').trim();
+  const match_paths = Array.isArray(item?.match_paths)
+    ? item.match_paths.map((p) => normalizePath(p)).filter(Boolean)
+    : [];
+
+  return { key, label, icon, path, match_paths };
 }
 
 class TunetNavCard extends HTMLElement {
@@ -170,6 +266,8 @@ class TunetNavCard extends HTMLElement {
     this._rendered = false;
     this._mql = null;
     this._btnEls = [];
+    this._navItems = [];
+    this._scopePrefixes = [];
     this._onLocationChange = this._onLocationChange.bind(this);
     this._onMqlChange = this._onMqlChange.bind(this);
     injectFonts();
@@ -185,19 +283,27 @@ class TunetNavCard extends HTMLElement {
         { name: 'media_path', selector: { text: {} } },
         {
           name: 'subview_paths',
-          selector: { object: {} }, // YAML-only in practice; UI editor won't handle arrays well.
+          selector: { object: {} },
+        },
+        {
+          name: 'include_rooms_index',
+          selector: { boolean: {} },
+        },
+        {
+          name: 'items',
+          selector: { object: {} },
         },
         { name: 'desktop_breakpoint', selector: { number: { min: 600, max: 1400, step: 10, mode: 'box' } } },
-        { name: 'show_settings', selector: { boolean: {} } },
       ],
       computeLabel: (s) => {
         const labels = {
           home_path: 'Home Path',
           rooms_path: 'Rooms Path',
           media_path: 'Media Path',
-          subview_paths: 'Subview Paths (advanced)',
+          subview_paths: 'Room Paths (advanced)',
+          include_rooms_index: 'Show Rooms Index Item',
+          items: 'Custom Nav Items (advanced)',
           desktop_breakpoint: 'Desktop Breakpoint (px)',
-          show_settings: 'Show Settings (unused in POC)',
         };
         return labels[s.name] || s.name;
       },
@@ -209,8 +315,14 @@ class TunetNavCard extends HTMLElement {
       home_path: '/tunet-suite/overview',
       rooms_path: '/tunet-suite/rooms',
       media_path: '/tunet-suite/media',
+      subview_paths: [
+        '/tunet-suite/living-room',
+        '/tunet-suite/kitchen',
+        '/tunet-suite/dining-room',
+        '/tunet-suite/bedroom',
+      ],
+      include_rooms_index: true,
       desktop_breakpoint: 900,
-      show_settings: false,
     };
   }
 
@@ -220,16 +332,29 @@ class TunetNavCard extends HTMLElement {
       : 900;
 
     this._config = {
-      home_path: safePath(config.home_path, '/tunet-suite/overview'),
-      rooms_path: safePath(config.rooms_path, '/tunet-suite/rooms'),
-      media_path: safePath(config.media_path, '/tunet-suite/media'),
-      subview_paths: Array.isArray(config.subview_paths) ? config.subview_paths.map(String) : [],
+      home_path: normalizePath(config.home_path || '/tunet-suite/overview'),
+      rooms_path: normalizePath(config.rooms_path || '/tunet-suite/rooms'),
+      media_path: normalizePath(config.media_path || '/tunet-suite/media'),
+      subview_paths: Array.isArray(config.subview_paths)
+        ? config.subview_paths.map((p) => normalizePath(p)).filter(Boolean)
+        : [],
+      include_rooms_index: config.include_rooms_index !== false,
+      items: Array.isArray(config.items) ? config.items : [],
       desktop_breakpoint: desktopBreakpoint,
-      show_settings: config.show_settings === true,
     };
 
+    const explicitItems = this._config.items
+      .map((item, idx) => normalizeNavItem(item, idx))
+      .filter(Boolean);
+    this._navItems = explicitItems.length ? explicitItems : defaultNavItems(this._config);
+    this._scopePrefixes = [...new Set(this._navItems.map((item) => scopePrefix(item.path)).filter(Boolean))];
+
     this._setupMql();
-    if (this._rendered) this._updateActive();
+    if (this._rendered) {
+      this._render();
+      this._updateActive();
+      this._applyOffsets();
+    }
   }
 
   set hass(hass) {
@@ -238,9 +363,7 @@ class TunetNavCard extends HTMLElement {
       this._render();
       this._rendered = true;
     }
-
-    const isDark = detectDarkMode(hass);
-    applyDarkClass(this, isDark);
+    applyDarkClass(this, detectDarkMode(hass));
   }
 
   getCardSize() {
@@ -250,8 +373,7 @@ class TunetNavCard extends HTMLElement {
   getGridOptions() {
     return {
       columns: 'full',
-      min_columns: 12,
-      max_columns: 12,
+      min_columns: 6,
     };
   }
 
@@ -260,8 +382,6 @@ class TunetNavCard extends HTMLElement {
     window.addEventListener('location-changed', this._onLocationChange);
     window.addEventListener('popstate', this._onLocationChange);
     this._setupMql();
-
-    // Simple shared instance count so offsets don't get cleared prematurely.
     window.__tunetNavCardCount = (window.__tunetNavCardCount || 0) + 1;
     this._applyOffsets();
     this._updateActive();
@@ -281,8 +401,7 @@ class TunetNavCard extends HTMLElement {
   }
 
   _setupMql() {
-    const bp = this._config.desktop_breakpoint || 900;
-    const query = `(min-width: ${bp}px)`;
+    const query = `(min-width: ${this._config.desktop_breakpoint || 900}px)`;
     if (this._mql && this._mql.media === query) return;
     if (this._mql) this._mql.removeEventListener('change', this._onMqlChange);
     this._mql = window.matchMedia(query);
@@ -295,42 +414,48 @@ class TunetNavCard extends HTMLElement {
     this._applyOffsets();
   }
 
+  _onLocationChange() {
+    this._updateActive();
+    this._applyOffsets();
+  }
+
   _applyMode() {
     const isDesktop = !!(this._mql && this._mql.matches);
     this.setAttribute('data-mode', isDesktop ? 'desktop' : 'mobile');
   }
 
-  _applyOffsets() {
-    const isDesktop = this.getAttribute('data-mode') === 'desktop';
-    // Conservative offsets; the goal is to prevent content from being obscured.
-    document.documentElement.style.setProperty('--tunet-nav-offset-left', isDesktop ? '96px' : '0px');
-    document.documentElement.style.setProperty('--tunet-nav-offset-bottom', isDesktop ? '0px' : '92px');
+  _isScopedRoute(pathname) {
+    if (!this._scopePrefixes.length) return true;
+    return this._scopePrefixes.some((prefix) => pathname.startsWith(prefix));
   }
 
-  _onLocationChange() {
-    this._updateActive();
+  _applyOffsets() {
+    const pathname = window.location.pathname || '';
+    if (!this._isScopedRoute(pathname)) {
+      document.documentElement.style.setProperty('--tunet-nav-offset-left', '0px');
+      document.documentElement.style.setProperty('--tunet-nav-offset-bottom', '0px');
+      return;
+    }
+
+    const isDesktop = this.getAttribute('data-mode') === 'desktop';
+    document.documentElement.style.setProperty('--tunet-nav-offset-left', isDesktop ? '108px' : '0px');
+    document.documentElement.style.setProperty('--tunet-nav-offset-bottom', isDesktop ? '0px' : '92px');
   }
 
   _updateActive() {
     if (!this._btnEls.length) return;
     const path = window.location.pathname || '';
-
-    const isSubview = this._config.subview_paths.some((p) => p && path.startsWith(p));
-    const activeKey = isSubview
-      ? 'rooms'
-      : (path.startsWith(this._config.media_path)
-        ? 'media'
-        : (path.startsWith(this._config.rooms_path) ? 'rooms' : 'home'));
-
+    const activeItem = this._navItems.find((item) =>
+      path.startsWith(item.path) || item.match_paths.some((mp) => path.startsWith(mp))
+    );
+    const activeKey = activeItem?.key || '';
     for (const btn of this._btnEls) {
       btn.classList.toggle('active', btn.dataset.key === activeKey);
     }
   }
 
   _navigate(targetPath) {
-    if (!targetPath) return;
-    history.pushState(null, '', targetPath);
-    window.dispatchEvent(new Event('location-changed'));
+    navigatePath(targetPath);
     this._updateActive();
   }
 
@@ -340,35 +465,30 @@ class TunetNavCard extends HTMLElement {
     this.shadowRoot.innerHTML = '';
     this.shadowRoot.appendChild(style);
 
+    const itemsHtml = this._navItems.map((item) => `
+      <button class="btn" data-key="${item.key}" type="button" aria-label="${item.label}" title="${item.label}">
+        <span class="icon">${item.icon}</span>
+        <span class="label">${item.label}</span>
+      </button>
+    `).join('');
+
     const tpl = document.createElement('template');
     tpl.innerHTML = FONT_LINKS + `
       <div class="wrap">
-        <nav class="nav" aria-label="Tunet Navigation">
-          <button class="btn" data-key="home" type="button" aria-label="Home">
-            <span class="icon filled">home</span>
-            <span class="label">Home</span>
-          </button>
-          <button class="btn" data-key="rooms" type="button" aria-label="Rooms">
-            <span class="icon">meeting_room</span>
-            <span class="label">Rooms</span>
-          </button>
-          <button class="btn" data-key="media" type="button" aria-label="Media">
-            <span class="icon">speaker</span>
-            <span class="label">Media</span>
-          </button>
+        <nav class="nav" aria-label="Tunet Navigation" style="--nav-item-count:${this._navItems.length || 1};">
+          ${itemsHtml}
         </nav>
       </div>
     `;
     this.shadowRoot.appendChild(tpl.content.cloneNode(true));
 
-    const btnHome = this.shadowRoot.querySelector('.btn[data-key="home"]');
-    const btnRooms = this.shadowRoot.querySelector('.btn[data-key="rooms"]');
-    const btnMedia = this.shadowRoot.querySelector('.btn[data-key="media"]');
-    this._btnEls = [btnHome, btnRooms, btnMedia].filter(Boolean);
-
-    if (btnHome) btnHome.addEventListener('click', () => this._navigate(this._config.home_path));
-    if (btnRooms) btnRooms.addEventListener('click', () => this._navigate(this._config.rooms_path));
-    if (btnMedia) btnMedia.addEventListener('click', () => this._navigate(this._config.media_path));
+    this._btnEls = [...this.shadowRoot.querySelectorAll('.btn')];
+    for (const btn of this._btnEls) {
+      const key = btn.dataset.key;
+      const item = this._navItems.find((it) => it.key === key);
+      if (!item) continue;
+      btn.addEventListener('click', () => this._navigate(item.path));
+    }
 
     this._applyMode();
     this._applyOffsets();

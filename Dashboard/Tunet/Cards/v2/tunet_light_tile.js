@@ -425,7 +425,6 @@ class TunetLightTile extends HTMLElement {
     return {
       columns: 3,
       min_columns: 3,
-      max_columns: 12,
     };
   }
 

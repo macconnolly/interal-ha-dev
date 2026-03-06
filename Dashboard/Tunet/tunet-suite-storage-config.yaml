@@ -13,10 +13,10 @@ views:
     title: Overview
     path: overview
     icon: mdi:home
-    max_columns: 5
+    max_columns: 12
     sections:
       - type: grid
-        column_span: 5
+        column_span: 12
         cards:
           - type: custom:tunet-actions-card
             variant: mode_strip
@@ -24,7 +24,7 @@ views:
             mode_entity: input_select.oal_active_configuration
 
       - type: grid
-        column_span: 3
+        column_span: 7
         cards:
 
           - type: custom:tunet-status-card
@@ -116,7 +116,7 @@ views:
                 format: integer
 
       - type: grid
-        column_span: 2
+        column_span: 5
         cards:
           - type: custom:tunet-climate-card
             entity: climate.dining_room
@@ -129,7 +129,7 @@ views:
             show_last_updated: false
 
       - type: grid
-        column_span: 5
+        column_span: 12
         cards:
           - type: custom:tunet-lighting-card
             name: Lighting
@@ -162,7 +162,7 @@ views:
                 icon: view_column
 
       - type: grid
-        column_span: 3
+        column_span: 7
         cards:
           - type: custom:tunet-rooms-card
             name: Rooms
@@ -171,63 +171,12 @@ views:
                 icon: weekend
                 temperature_entity: sensor.dining_room_temperature
                 navigate_path: /tunet-suite-storage/living-room
-                tap_action:
-                  action: call-service
-                  service: browser_mod.popup
-                  service_data:
-                    title: Living Room
-                    size: wide
-                    dismissable: true
-                    content:
-                      type: vertical-stack
-                      cards:
-                        - type: markdown
-                          content: "## Living Room"
-                        - type: horizontal-stack
-                          cards:
-                            - type: button
-                              name: All Off
-                              icon: mdi:lightbulb-off-outline
-                              tap_action:
-                                action: call-service
-                                service: light.turn_off
-                                service_data:
-                                  entity_id:
-                                    - light.living_room_couch_lamp
-                                    - light.living_room_floor_lamp
-                                    - light.living_room_spot_lights
-                                    - light.living_room_credenza_light
-                                    - light.office_desk_lamp
-                            - type: button
-                              name: Open Room
-                              icon: mdi:arrow-top-right
-                              tap_action:
-                                action: navigate
-                                navigation_path: /tunet-suite-storage/living-room
-                        - type: custom:tunet-lighting-card
-                          name: Living Room
-                          surface: section
-                          layout: grid
-                          expand_groups: false
-                          show_adaptive_toggle: false
-                          tile_size: compact
-                          columns: 3
-                          zones:
-                            - entity: light.living_room_couch_lamp
-                              name: Couch
-                              icon: table_lamp
-                            - entity: light.living_room_floor_lamp
-                              name: Floor
-                              icon: floor_lamp
-                            - entity: light.living_room_spot_lights
-                              name: Spots
-                              icon: highlight
-                            - entity: light.living_room_credenza_light
-                              name: Credenza
-                              icon: light
-                            - entity: light.office_desk_lamp
-                              name: Desk
-                              icon: desk
+                hold_action:
+                  action: fire-dom-event
+                  browser_mod:
+                    service: browser_mod.popup
+                    data:
+                      popup_card_id: living-room-popup
                 lights:
                   - entity: light.living_room_couch_lamp
                     icon: table_lamp
@@ -245,59 +194,9 @@ views:
                     icon: desk
                     name: Desk
 
-              # ── VARIANT A: Full chrome popup (header + buttons + lighting card) ──
               - name: Kitchen
                 icon: kitchen
                 navigate_path: /tunet-suite-storage/kitchen
-                tap_action:
-                  action: call-service
-                  service: browser_mod.popup
-                  service_data:
-                    title: Kitchen
-                    size: wide
-                    dismissable: true
-                    content:
-                      type: vertical-stack
-                      cards:
-                        - type: markdown
-                          content: "## Kitchen"
-                        - type: horizontal-stack
-                          cards:
-                            - type: button
-                              name: All Off
-                              icon: mdi:lightbulb-off-outline
-                              tap_action:
-                                action: call-service
-                                service: light.turn_off
-                                service_data:
-                                  entity_id:
-                                    - light.kitchen_island_pendants
-                                    - light.kitchen_main_lights
-                                    - light.kitchen_counter_cabinet_underlights
-                            - type: button
-                              name: Open Room
-                              icon: mdi:arrow-top-right
-                              tap_action:
-                                action: navigate
-                                navigation_path: /tunet-suite-storage/kitchen
-                        - type: custom:tunet-lighting-card
-                          name: Kitchen
-                          surface: section
-                          layout: grid
-                          expand_groups: false
-                          show_adaptive_toggle: false
-                          tile_size: compact
-                          columns: 3
-                          zones:
-                            - entity: light.kitchen_island_pendants
-                              name: Pendants
-                              icon: light
-                            - entity: light.kitchen_main_lights
-                              name: Main
-                              icon: kitchen
-                            - entity: light.kitchen_counter_cabinet_underlights
-                              name: Under-cab
-                              icon: kitchen
                 lights:
                   - entity: light.kitchen_island_pendants
                     icon: light
@@ -336,7 +235,7 @@ views:
                     name: Table Lamps
 
       - type: grid
-        column_span: 2
+        column_span: 5
         cards:
           - type: custom:tunet-media-card
             entity: media_player.living_room
@@ -345,7 +244,57 @@ views:
             active_group_sensor: sensor.sonos_active_group_coordinator
 
       - type: grid
-        column_span: 5
+        column_span: 1
+        cards:
+          - type: custom:popup-card
+            popup_card_id: living-room-popup
+            popup_card_all_views: true
+            title: Living Room
+            initial_style: wide
+            dismissable: true
+            card:
+              type: vertical-stack
+              cards:
+                - type: button
+                  name: All Off
+                  icon: mdi:lightbulb-off-outline
+                  tap_action:
+                    action: call-service
+                    service: light.turn_off
+                    service_data:
+                      entity_id:
+                        - light.living_room_couch_lamp
+                        - light.living_room_floor_lamp
+                        - light.living_room_spot_lights
+                        - light.living_room_credenza_light
+                        - light.office_desk_lamp
+                - type: custom:tunet-lighting-card
+                  name: Living Room
+                  surface: section
+                  layout: grid
+                  expand_groups: false
+                  show_adaptive_toggle: false
+                  tile_size: compact
+                  columns: 3
+                  zones:
+                    - entity: light.living_room_couch_lamp
+                      name: Couch
+                      icon: table_lamp
+                    - entity: light.living_room_floor_lamp
+                      name: Floor
+                      icon: floor_lamp
+                    - entity: light.living_room_spot_lights
+                      name: Spots
+                      icon: highlight
+                    - entity: light.living_room_credenza_light
+                      name: Credenza
+                      icon: light
+                    - entity: light.office_desk_lamp
+                      name: Desk
+                      icon: desk
+
+      - type: grid
+        column_span: 12
         cards:
           - type: custom:tunet-nav-card
             home_path: /tunet-suite-storage/overview
@@ -366,7 +315,7 @@ views:
     title: Rooms
     path: rooms
     icon: mdi:floor-plan
-    max_columns: 3
+    max_columns: 12
     sections:
       - type: grid
         cards:
@@ -377,6 +326,12 @@ views:
                 icon: weekend
                 temperature_entity: sensor.dining_room_temperature
                 navigate_path: /tunet-suite-storage/living-room
+                hold_action:
+                  action: fire-dom-event
+                  browser_mod:
+                    service: browser_mod.popup
+                    data:
+                      popup_card_id: living-room-popup
                 lights:
                   - entity: light.living_room_couch_lamp
                     icon: table_lamp
@@ -394,36 +349,9 @@ views:
                     icon: desk
                     name: Desk
 
-              # ── VARIANT B: Minimal popup (lighting card only, no chrome) ──
               - name: Kitchen
                 icon: kitchen
                 navigate_path: /tunet-suite-storage/kitchen
-                tap_action:
-                  action: call-service
-                  service: browser_mod.popup
-                  service_data:
-                    title: Kitchen
-                    size: normal
-                    dismissable: true
-                    content:
-                      type: custom:tunet-lighting-card
-                      name: Kitchen
-                      surface: section
-                      layout: grid
-                      expand_groups: false
-                      show_adaptive_toggle: false
-                      tile_size: compact
-                      columns: 3
-                      zones:
-                        - entity: light.kitchen_island_pendants
-                          name: Pendants
-                          icon: light
-                        - entity: light.kitchen_main_lights
-                          name: Main
-                          icon: kitchen
-                        - entity: light.kitchen_counter_cabinet_underlights
-                          name: Under-cab
-                          icon: kitchen
                 lights:
                   - entity: light.kitchen_island_pendants
                     icon: light
@@ -480,7 +408,7 @@ views:
     title: Media
     path: media
     icon: mdi:speaker
-    max_columns: 3
+    max_columns: 12
     sections:
       - type: grid
         cards:
@@ -535,7 +463,7 @@ views:
     icon: mdi:sofa
     subview: true
     back_path: /tunet-suite-storage/overview
-    max_columns: 3
+    max_columns: 12
     sections:
       - type: grid
         cards:
@@ -588,7 +516,7 @@ views:
     icon: mdi:countertop
     subview: true
     back_path: /tunet-suite-storage/overview
-    max_columns: 3
+    max_columns: 12
     sections:
       - type: grid
         cards:
@@ -623,7 +551,7 @@ views:
     icon: mdi:silverware-fork-knife
     subview: true
     back_path: /tunet-suite-storage/overview
-    max_columns: 3
+    max_columns: 12
     sections:
       - type: grid
         cards:
@@ -658,7 +586,7 @@ views:
     icon: mdi:bed
     subview: true
     back_path: /tunet-suite-storage/overview
-    max_columns: 3
+    max_columns: 12
     sections:
       - type: grid
         cards:

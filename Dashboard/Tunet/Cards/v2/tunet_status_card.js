@@ -9,6 +9,7 @@ import {
   CARD_SURFACE, CARD_SURFACE_GLASS_STROKE,
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
+  runCardAction,
   registerCard, logCardVersion,
 } from './tunet_base.js';
 
@@ -589,9 +590,8 @@ class TunetStatusCard extends HTMLElement {
 
   getGridOptions() {
     return {
-      columns: 12,
+      columns: 'full',
       min_columns: 6,
-      max_columns: 12,
     };
   }
 
@@ -855,40 +855,12 @@ class TunetStatusCard extends HTMLElement {
   }
 
   _handleTapAction(tapAction, defaultEntityId) {
-    if (!tapAction || !this._hass) return;
-    const action = tapAction.action || 'more-info';
-
-    if (action === 'none') return;
-
-    if (action === 'more-info') {
-      this._fireMoreInfo(tapAction.entity || defaultEntityId);
-      return;
-    }
-
-    if (action === 'navigate') {
-      const path = tapAction.navigation_path;
-      if (!path) return;
-      window.history.pushState(null, '', path);
-      window.dispatchEvent(new Event('location-changed'));
-      return;
-    }
-
-    if (action === 'url') {
-      if (!tapAction.url_path) return;
-      window.open(tapAction.url_path, tapAction.new_tab ? '_blank' : '_self');
-      return;
-    }
-
-    if (action === 'call-service') {
-      const service = tapAction.service || '';
-      const [domain, serviceName] = service.split('.');
-      if (!domain || !serviceName) return;
-      this._hass.callService(domain, serviceName, tapAction.service_data || {});
-      return;
-    }
-
-    // Fallback to more-info for unknown action type.
-    this._fireMoreInfo(tapAction.entity || defaultEntityId);
+    runCardAction({
+      element: this,
+      hass: this._hass,
+      actionConfig: tapAction,
+      defaultEntityId,
+    });
   }
 
   // ── Value Updates ──

@@ -1,7 +1,7 @@
 # Tunet Suite Dashboard - Implementation Plan (V2 Next)
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-02
+Last updated: 2026-03-06
 
 ## Canonical Control Documents
 
@@ -10,6 +10,7 @@ Last updated: 2026-03-02
 - `Dashboard/Tunet/Docs/agent_driver_pack.md` is the orchestration source of truth for multi-agent Tunet review runs.
 - `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md` and the tranche prompt docs are the execution source of truth once broad planning has selected a single slice.
 - `Dashboard/Tunet/Docs/nav_popup_ux_direction.md` is the design-direction source of truth for the next four product decisions: nav, popup, integrated UI / UX, and home layout.
+- `Dashboard/Tunet/Docs/sections_layout_matrix.md` is the responsive Sections layout source of truth (view/section/card width model).
 - `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md` is the deployment-path and staging-root reality source of truth.
 - `Dashboard/Tunet/CLAUDE.md` is the Tunet UI / UX quality bar.
 - If a contributor needs to know what to do next, start here.
@@ -28,9 +29,36 @@ If the control documents disagree, use this precedence order:
 
 Contributors must not silently resolve these conflicts. Record them explicitly.
 
+## Execution Reset (2026-03-06)
+
+This section is a mandatory execution override for all near-term Tunet work.
+
+### Change Gate (Mandatory Before Any Implementation)
+
+Every change must include:
+
+- a `Change ID` (for example: `CP-01`, `LAY-02`, `INT-01`, `POP-01`)
+- a cross-card impact statement (`nav`, `rooms`, `status`, `sensor`, and affected YAML surfaces)
+- a surface declaration (`Repo Architecture Surface` vs `Storage/Hybrid Evaluation Surface`)
+- a validation checklist (visual + interaction + regression)
+- a rollback/cache-bust path when frontend modules or dashboard config change
+
+If one of those is missing, implementation is not allowed to start.
+
+### WIP Budget (Mandatory)
+
+- One active tranche at a time.
+- Maximum three active implementation items inside that tranche.
+- No side-scope edits outside the active tranche objective.
+
+### Definition Of Ready / Done
+
+- `Ready`: decision-locked spec + impact map + concrete validation cases.
+- `Done`: code/config changed, deployed where required, visually validated, and synced in `plan.md` + `FIX_LEDGER.md`.
+
 ## Current Execution Tranche
 
-The control-plane hardening tranche is complete. The current work is now governed by a user-locked product-decision order rather than the older "layout first, polish later" sequence.
+The current work is a control + layout foundation tranche, then interaction implementation.
 
 ### User-Locked Next Decision Order
 
@@ -54,17 +82,16 @@ Contributors must not silently reorder these back into an older implementation-d
 
 ### Current Active Tranche
 
-`T-005 - Custom Nav Chrome Recovery POC`
+`CP-01 - Control Plane + Layout Foundation`
 
-This tranche is intentionally bounded to restore the custom Tunet nav as a first-class design decision before popup, shell-polish, and home-layout work continues.
+This tranche is intentionally bounded to stop execution drift before more card-level micro-interaction rollout.
 
 ### Tranche Deliverables
 
-- one working, intentional nav baseline
-- no more placeholder `desktop_breakpoint: 9999` behavior treated as the real product direction
-- clear phone vs desktop nav behavior the user can react to
-- at least one small, high-value live-state affordance direction captured or proven in nav
-- no popup, shell, or home-layout scope creep in this tranche
+- a mandatory change gate and WIP budget applied to every new Tunet change
+- a locked micro-interaction contract for room and light surfaces
+- a Sections-native layout research matrix and validated reference compositions
+- no ad-hoc popup/nav behavior changes outside the locked contract
 
 ## System State Model
 
@@ -297,12 +324,34 @@ This register exists so future work does not silently reuse displaced assumption
 
 The historical phases below remain useful backlog, but the near-term product sequence is now:
 
-1. `T-005 - Custom Nav Chrome Recovery POC`
-2. `T-006 - Browser Mod Popup POC`
-3. `T-007 - Integrated UI / UX Shell Recovery`
-4. `T-008 - Home Overview Layout And Hero Decision`
+1. `CP-01 - Control Plane + Layout Foundation`
+2. `LAY-01 - Sections Layout Research + Prototype Validation`
+3. `LAY-02 - Card Grid Policy Normalization`
+4. `INT-01 - Micro-Interaction Contract Enforcement`
+5. `POP-01 - Living Room Hold-to-Popup Browser Mod POC`
+6. `NAV-01 - Global Nav Expansion + Route/Offset Hardening`
+7. `POP-02 - Room Popup Pattern Scale-Out`
 
-These are large design decisions and must be handled one at a time, together with the user, not silently bundled into a broad "keep implementing the dashboard" stream.
+These tranches must be handled one at a time and verified before the next tranche starts.
+
+### Locked Micro-Interaction Contract (2026-03-06)
+
+- Room tile:
+  - tap -> toggle all room lights
+  - hold (>= 400ms) -> room popup (Browser Mod, `fire-dom-event`)
+  - room tile navigation gesture is not required because global nav provides room-page access
+- Light controls:
+  - keep tap-to-toggle behavior as default
+  - hold semantics are per-control and must be documented where used
+- Popup platform:
+  - Browser Mod only for active popup work unless an explicit exception is recorded
+
+### Sections Layout Research Contract (2026-03-06)
+
+- Native Sections responsiveness is mandatory.
+- Card-level hard width caps are disallowed by default.
+- `getGridOptions()` should prefer flexible sizing (no hard `max_columns`) unless a documented exception exists.
+- Layout decisions must be validated at phone, tablet, and desktop widths using role-based compositions (for example 60/40, 50/50, 1/3-2/3), not just one-card-per-section stacking.
 
 ### Directional Notes For The Next Four Decisions
 
@@ -408,14 +457,14 @@ Do **not** use this section as permission to:
 - bypass the current `T-006` Browser Mod popup direction
 
 ### Definition Of Done (Walking Skeleton)
-- Living Room tile opens a hash popup (`#living-room`) reliably.
+- Living Room tile long-press opens the Browser Mod popup-card reliably.
 - Popup contains minimal actions and ONE consolidated, expandable lighting surface.
-- Popup contains a clear "Open Room" navigation link to `/tunet-suite/living-room`.
+- Room page navigation remains available through the persistent nav bar.
 - Popup does not duplicate many individual `tunet-light-tile` cards.
 
 ### 1.1 - Living Room Popup (Prefer One Expandable Lighting Surface)
-- IN-PROGRESS P1.01: Living Room popup exists (`hash: '#living-room'`) in `tunet-suite-config.yaml`; Outcome: popup routing is wired; Verify: tapping Living Room tile changes URL hash and opens popup.
-- DONE P1.02: Popup includes "Open Room" navigate button to `/tunet-suite/living-room`; Outcome: popup links to full room subview; Verify: tap navigates to the subview.
+- DONE P1.01: Living Room popup exists as a Browser Mod popup-card (`popup_card_id: living-room-popup`) in `tunet-suite-config.yaml`; Outcome: popup routing is wired; Verify: long-pressing Living Room tile opens the popup.
+- DONE P1.02: Room page route remains available via global nav; Outcome: users can still reach `/tunet-suite/living-room` without a room-tile navigation gesture; Verify: nav tap opens the subview.
 - DONE P1.03: Replace the multiple `custom:tunet-light-tile` cards in the Living Room popup with ONE `custom:tunet-lighting-card`; Outcome: a single lighting surface now replaces duplicated tiles at the repo and deployed YAML level; Verify: popup config contains one lighting card, not a vertical stack of many tiles.
 - DONE P1.04: Configure the popup lighting surface as one consolidated room card using explicit Living Room zones; Outcome: Couch/Floor/Spots/Credenza/Desk are modeled in one surface; Verify: popup lighting card zones list contains the five explicit Living Room lights.
 - DONE P1.05: Remove `rows:` limits from the popup lighting card config; Outcome: popup height is intrinsic and not clipped by explicit row limits; Verify: popup lighting card has no `rows:` key.
@@ -424,17 +473,17 @@ Do **not** use this section as permission to:
 
 ### 1.2 - Link To The Larger Subview (Keep Popup Minimal)
 - TODO P1.08: Ensure popup content is intentionally minimal (quick actions + lighting surface + Open Room) and does not replicate full-room media/sensors; Outcome: popup stays focused; Verify: subview has more content than popup.
-- TODO P1.09: Add `hold_action` on Living Room tile to navigate directly to `/tunet-suite/living-room`; Outcome: power users can skip popup; Verify: long-press on room tile opens subview.
+- TODO P1.09: Keep long-press on Living Room tile mapped to popup access (not direct navigation); Outcome: room gesture contract stays consistent; Verify: long-press opens popup while room navigation remains available via nav bar.
 
 ### 1.3 - Deploy And Cache Bust
 - TODO P1.10: Deploy updated `Dashboard/Tunet/tunet-suite-config.yaml` to HA `/config/dashboards/tunet-suite.yaml`; Outcome: HA uses updated YAML; Verify: changes appear after refresh.
 - TODO P1.11: If lighting-card behavior changes are needed, deploy updated `/config/www/tunet/v2_next/` JS and bump `?v=`; Outcome: UI reflects new JS; Verify: DevTools Network shows new resource versions.
 
 ### Phase 1 Verification Checklist (Click/Observe)
-- TODO P1.V01: On `/tunet-suite/overview`, tap Living Room; Verify: popup opens and hash is `#living-room`.
+- TODO P1.V01: On `/tunet-suite/overview`, long-press Living Room; Verify: Browser Mod popup opens.
 - TODO P1.V02: In popup, confirm exactly one lighting surface exists; Verify: no duplicated stacks of `tunet-light-tile`.
 - TODO P1.V03: Toggle each Living Room light from inside the single lighting surface; Verify: HA states change and UI updates.
-- TODO P1.V04: Tap "Open Room"; Verify: navigates to `/tunet-suite/living-room` and popup closes.
+- TODO P1.V04: Use nav to open `Living Room`; Verify: navigates to `/tunet-suite/living-room` while room-tile long-press remains popup-only.
 
 ## Phase 2 - Room Subviews (Living Room First, Then Kitchen/Dining/Bedroom)
 
@@ -484,7 +533,7 @@ Its room-popup structure may still contain reusable implementation details, but 
 - TODO P3.03: Add Kitchen popup `#kitchen` using one expandable lighting surface (group expansion) and "Open Room" to `/tunet-suite/kitchen`; Outcome: kitchen popup works; Verify: tap tile opens popup and controls toggle lights.
 - TODO P3.04: Add Dining popup `#dining-room` (or `#dining`) using one lighting surface and "Open Room" to `/tunet-suite/dining-room`; Outcome: dining popup works; Verify: lights toggle.
 - TODO P3.05: Add Bedroom popup `#bedroom` using one lighting surface and "Open Room" to `/tunet-suite/bedroom`; Outcome: bedroom popup works; Verify: lights toggle.
-- TODO P3.06: Update `tunet-rooms-card` tile behavior: tap -> popup hash, hold -> subview path; Outcome: consistent nav; Verify: tap/hold behavior matches across rooms.
+- TODO P3.06: Update `tunet-rooms-card` tile behavior: tap -> room toggle, hold -> room popup; Outcome: consistent one-touch behavior; Verify: tap/hold behavior matches across rooms.
 
 ### Phase 3 Verification Checklist (Click/Observe)
 - TODO P3.V01: Tap each room tile on Overview; Verify: correct popup opens (hash matches room).

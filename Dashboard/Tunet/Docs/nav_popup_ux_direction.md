@@ -66,6 +66,12 @@ Popup direction is now:
 - visually polished overlay presentation
 - feels intentional and premium
 
+### Room tile gesture lock (2026-03-06)
+
+- `tap` on room tile: toggle that room's lights (primary one-touch action)
+- `hold` on room tile: open Browser Mod popup for that room
+- room page navigation: provided by the persistent nav bar (not required as a room-tile gesture)
+
 ### Styling direction
 
 - iOS-style sheet / overlay feeling
@@ -111,6 +117,7 @@ They are about:
 - supporting surfaces should not pretend to be heroes
 - do not create one-card-per-section vertical stacks unless the hierarchy truly calls for it
 - choose placement based on interaction role, not just card dimensions
+- avoid hard card-level width caps by default; use documented exceptions only
 
 ## One-Touch Standard
 

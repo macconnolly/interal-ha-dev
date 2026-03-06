@@ -218,8 +218,8 @@ function scopePrefix(path) {
 
 function defaultNavItems(config) {
   const items = [
-    { key: 'home', label: 'Home', icon: DEFAULT_ICONS.home, path: config.home_path },
-    { key: 'media', label: 'Media', icon: DEFAULT_ICONS.media, path: config.media_path },
+    { key: 'home', label: 'Home', icon: DEFAULT_ICONS.home, path: config.home_path, match_paths: [] },
+    { key: 'media', label: 'Media', icon: DEFAULT_ICONS.media, path: config.media_path, match_paths: [] },
   ];
 
   for (const roomPath of config.subview_paths) {
@@ -230,6 +230,7 @@ function defaultNavItems(config) {
       label: labelFromSlug(slug),
       icon: DEFAULT_ICONS[slug] || 'meeting_room',
       path: roomPath,
+      match_paths: [],
     });
   }
 
@@ -239,6 +240,7 @@ function defaultNavItems(config) {
       label: 'Rooms',
       icon: DEFAULT_ICONS.rooms,
       path: config.rooms_path,
+      match_paths: [],
     });
   }
   return items;
@@ -446,7 +448,7 @@ class TunetNavCard extends HTMLElement {
     if (!this._btnEls.length) return;
     const path = window.location.pathname || '';
     const activeItem = this._navItems.find((item) =>
-      path.startsWith(item.path) || item.match_paths.some((mp) => path.startsWith(mp))
+      path.startsWith(item.path) || (item.match_paths || []).some((mp) => path.startsWith(mp))
     );
     const activeKey = activeItem?.key || '';
     for (const btn of this._btnEls) {

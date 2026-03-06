@@ -32,7 +32,13 @@ views:
 
           - type: custom:tunet-status-card
             name: Home Status
-            columns: 4
+            columns: 8
+            column_breakpoints:
+              - max_width: 640
+                columns: 4
+              - max_width: 1024
+                columns: 6
+              - columns: 8
             tile_size: compact
             tiles:
               - type: value
@@ -213,6 +219,10 @@ views:
                   show_adaptive_toggle: false
                   tile_size: compact
                   columns: 3
+                  column_breakpoints:
+                    - max_width: 640
+                      columns: 2
+                    - columns: 3
                   zones:
                     - entity: light.living_room_couch_lamp
                       name: Couch
@@ -239,8 +249,13 @@ views:
             expand_groups: false
             show_adaptive_toggle: false
             tile_size: compact
-            columns: 3
-            adaptive_entity: switch.adaptive_lighting_main_living
+            columns: 4
+            column_breakpoints:
+              - max_width: 640
+                columns: 2
+              - max_width: 1024
+                columns: 3
+              - columns: 4
             primary_entity: sensor.oal_system_status
             zones:
               - entity: light.living_room_lights
@@ -511,6 +526,10 @@ views:
             show_adaptive_toggle: false
             tile_size: compact
             columns: 3
+            column_breakpoints:
+              - max_width: 640
+                columns: 2
+              - columns: 3
             zones:
               - entity: light.living_room_couch_lamp
                 name: Couch

@@ -1,5 +1,5 @@
 /**
- * Tunet Lighting Card  v3.3.0 (v2 migration)
+ * Tunet Lighting Card  v3.4.0 (v2 migration)
  * ──────────────────────────────────────────────────────────────
  * Complete rewrite aligned to Tunet Design Language v8.0 by Mac
  * Migrated to tunet_base.js shared module.
@@ -18,9 +18,13 @@
  *   name:             string       Card title (default: "Lighting")
  *   subtitle:         string       Optional static subtitle override
  *   primary_entity:   string       Entity for info-tile tap (hass-more-info)
- *   adaptive_entity:  string       Adaptive Lighting switch entity
+ *   adaptive_entity:  string       Legacy single adaptive entity (backward-compat)
+ *   adaptive_entities:[string[]]   Adaptive entities/switches for this card
+ *   show_adaptive_toggle: boolean  Show adaptive toggle control (default: true)
+ *   show_manual_reset: boolean     Show reset-manual control when needed (default: true)
  *   layout:           'grid'|'scroll'   Layout mode (default: grid)
- *   columns:          2-5          Grid columns (default: 3)
+ *   columns:          2-8          Grid columns (default: 3)
+ *   column_breakpoints: object|array  Responsive column rules by viewport width
  *   rows:             'auto'|2-6   Max visible rows in grid (default: auto)
  *   scroll_rows:      1-3          Rows in scroll mode (default: 2)
  *   tile_size:        'compact'|'standard'|'large'  Tile density preset (default: standard)
@@ -38,7 +42,51 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js';
 
-const CARD_VERSION = '3.3.0';
+const CARD_VERSION = '3.4.0';
+
+function clampInt(value, min, max, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+function normalizeColumnBreakpoints(raw) {
+  const parsed = [];
+  const pushRule = (rule) => {
+    if (!rule || typeof rule !== 'object') return;
+    const columns = clampInt(rule.columns, 2, 8, NaN);
+    if (!Number.isFinite(columns)) return;
+    const minWidth = Number.isFinite(Number(rule.min_width)) ? Math.max(0, Number(rule.min_width)) : null;
+    const maxWidth = Number.isFinite(Number(rule.max_width)) ? Math.max(0, Number(rule.max_width)) : null;
+    if (minWidth == null && maxWidth == null) return;
+    parsed.push({ columns, minWidth, maxWidth });
+  };
+
+  if (Array.isArray(raw)) {
+    raw.forEach((item) => pushRule(item));
+  } else if (raw && typeof raw === 'object') {
+    for (const [key, value] of Object.entries(raw)) {
+      if (key === 'default') continue;
+      const maxWidth = Number(key);
+      const columns = clampInt(value, 2, 8, NaN);
+      if (!Number.isFinite(maxWidth) || !Number.isFinite(columns)) continue;
+      parsed.push({ columns, minWidth: null, maxWidth });
+    }
+    if (Object.prototype.hasOwnProperty.call(raw, 'default')) {
+      const fallbackColumns = clampInt(raw.default, 2, 8, NaN);
+      if (Number.isFinite(fallbackColumns)) {
+        parsed.push({ columns: fallbackColumns, minWidth: null, maxWidth: null });
+      }
+    }
+  }
+
+  parsed.sort((a, b) => {
+    const aMax = a.maxWidth == null ? Number.POSITIVE_INFINITY : a.maxWidth;
+    const bMax = b.maxWidth == null ? Number.POSITIVE_INFINITY : b.maxWidth;
+    return aMax - bMax;
+  });
+  return parsed;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    CSS – Shared base + card-specific overrides
@@ -267,6 +315,18 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   .toggle-btn.hidden { display: none; }
 
+  .toggle-btn.manual-reset {
+    color: var(--red);
+    border-color: rgba(239,68,68,0.30);
+    background: rgba(239,68,68,0.10);
+  }
+  .toggle-btn.manual-reset .icon {
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+  }
+  .toggle-btn.manual-reset.hidden {
+    display: none;
+  }
+
   /* Manual count badge on adaptive toggle */
   .manual-badge {
     position: absolute;
@@ -285,8 +345,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: none;
     letter-spacing: 0.3px;
   }
-  .toggle-btn.has-manual .manual-badge { display: inline-flex; }
+  .toggle-wrap.has-manual .manual-badge { display: inline-flex; }
   .toggle-wrap { position: relative; }
+  .toggle-wrap.hidden { display: none; }
 
   /* ── Selector Button (§5.7) – All Off ────────────── */
   .selector-btn {
@@ -612,13 +673,21 @@ const LIGHTING_TEMPLATE = `
         <!-- Pagination dots (scroll mode only) -->
         <div class="header-dots" id="headerDots"></div>
 
+        <!-- Manual reset (shows only when manual overrides exist) -->
+        <div class="toggle-wrap" id="manualResetWrap">
+          <button class="toggle-btn manual-reset hidden" id="manualResetBtn"
+                  aria-label="Clear manual adaptive overrides">
+            <span class="icon icon-18">restart_alt</span>
+          </button>
+          <span class="manual-badge" id="manualBadge">0</span>
+        </div>
+
         <!-- Adaptive Lighting Toggle (§5.6) -->
         <div class="toggle-wrap" id="adaptiveWrap">
           <button class="toggle-btn hidden" id="adaptiveBtn"
                   aria-label="Toggle adaptive lighting">
             <span class="icon icon-18">auto_awesome</span>
           </button>
-          <span class="manual-badge" id="manualBadge">0</span>
         </div>
 
         <!-- All On/Off Toggle Button (§5.7) -->
@@ -653,14 +722,14 @@ class TunetLightingCard extends HTMLElement {
     this._dragState = null;
     this._serviceCooldown = {};
     this._cooldownTimers = {};
-    this._adaptivePressTimer = null;
-    this._adaptiveLongPress = false;
+    this._activeColumns = 3;
 
     injectFonts();
 
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerUp   = this._onPointerUp.bind(this);
     this._onPointerCancel = this._onPointerCancel.bind(this);
+    this._onResize = this._onResize.bind(this);
   }
 
   /* ═══════════════════════════════════════════════════
@@ -676,24 +745,24 @@ class TunetLightingCard extends HTMLElement {
           name: 'entities',
           selector: { entity: { multiple: true, filter: [{ domain: 'light' }] } },
         },
+        { name: 'zones', selector: { object: {} } },
         { name: 'name',            selector: { text: {} } },
         { name: 'primary_entity',  selector: { entity: { filter: [{ domain: 'light' }] } } },
         { name: 'adaptive_entity', selector: { entity: { filter: [{ domain: 'switch' }, { domain: 'automation' }, { domain: 'input_boolean' }] } } },
+        {
+          name: 'adaptive_entities',
+          selector: { entity: { multiple: true, filter: [{ domain: 'switch' }, { domain: 'automation' }, { domain: 'input_boolean' }] } },
+        },
+        { name: 'show_adaptive_toggle', selector: { boolean: {} } },
+        { name: 'show_manual_reset', selector: { boolean: {} } },
         { name: 'surface',         selector: { select: { options: ['card', 'section'] } } },
         { name: 'layout',          selector: { select: { options: ['grid', 'scroll'] } } },
-        {
-          name: '', type: 'grid', schema: [
-            { name: 'columns',     selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
-            { name: 'scroll_rows', selector: { number: { min: 1, max: 3, step: 1, mode: 'box' } } },
-          ],
-        },
-        {
-          name: '', type: 'grid', schema: [
-            { name: 'rows',        selector: { text: {} } },
-            { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
-            { name: 'expand_groups', selector: { boolean: {} } },
-          ],
-        },
+        { name: 'columns',     selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
+        { name: 'column_breakpoints', selector: { object: {} } },
+        { name: 'scroll_rows', selector: { number: { min: 1, max: 3, step: 1, mode: 'box' } } },
+        { name: 'rows',        selector: { text: {} } },
+        { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
+        { name: 'expand_groups', selector: { boolean: {} } },
         {
           type: 'expandable',
           title: 'Advanced',
@@ -705,12 +774,17 @@ class TunetLightingCard extends HTMLElement {
       ],
       computeLabel: (s) => ({
         entities:        'Light Entities (groups auto-expand)',
+        zones:           'Zones (objects with entity/name/icon)',
         name:            'Card Title',
         primary_entity:  'Primary Entity (info tile tap)',
-        adaptive_entity: 'Adaptive Lighting Switch',
+        adaptive_entity: 'Adaptive Entity (legacy single)',
+        adaptive_entities:'Adaptive Entities (multi-zone)',
+        show_adaptive_toggle: 'Show Adaptive Toggle',
+        show_manual_reset: 'Show Manual Reset Icon',
         surface:         'Surface Style',
         layout:          'Layout Mode',
         columns:         'Grid Columns',
+        column_breakpoints: 'Responsive Column Breakpoints',
         rows:            'Max Rows (auto or number)',
         scroll_rows:     'Scroll Rows',
         tile_size:       'Tile Size',
@@ -718,6 +792,9 @@ class TunetLightingCard extends HTMLElement {
         custom_css:      'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
       computeHelper: (s) => ({
+        zones: 'Optional rich zones: [{entity, name, icon}]',
+        adaptive_entities: 'If omitted, card auto-matches adaptive_lighting switches to current zones.',
+        column_breakpoints: 'Array/object rules. Example: [{max_width: 600, columns: 4}, {max_width: 1024, columns: 6}, {columns: 8}]',
         custom_css: 'CSS rules injected into shadow DOM. Use .light-grid, .l-tile, etc.',
       }[s.name] || ''),
     };
@@ -765,13 +842,19 @@ class TunetLightingCard extends HTMLElement {
       const n = Number(value);
       return Number.isFinite(n) ? n : fallback;
     };
-    const columns = Math.max(2, Math.min(5, Math.round(asFinite(config.columns, 3))));
-    const scrollRows = Math.max(1, Math.min(3, Math.round(asFinite(config.scroll_rows, 2))));
+    const columns = clampInt(config.columns, 2, 8, 3);
+    const scrollRows = clampInt(config.scroll_rows, 1, 3, 2);
     const layout = config.layout === 'scroll' ? 'scroll' : 'grid';
     const surface = config.surface === 'section' ? 'section' : 'card';
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
     const tileSize = tileSizeRaw === 'compact' ? 'compact' : (tileSizeRaw === 'large' ? 'large' : 'standard');
     const expandGroups = config.expand_groups !== false;
+    const showAdaptiveToggle = config.show_adaptive_toggle !== false;
+    const showManualReset = config.show_manual_reset !== false;
+    const adaptiveEntities = Array.from(new Set(
+      (Array.isArray(config.adaptive_entities) ? config.adaptive_entities : []).filter(Boolean)
+    ));
+    const columnBreakpoints = normalizeColumnBreakpoints(config.column_breakpoints);
     const rows = config.rows === 'auto' || config.rows == null
       ? null
       : (() => {
@@ -787,7 +870,11 @@ class TunetLightingCard extends HTMLElement {
       subtitle:        config.subtitle || '',
       primary_entity:  config.primary_entity || '',
       adaptive_entity: config.adaptive_entity || '',
+      adaptive_entities: adaptiveEntities,
+      show_adaptive_toggle: showAdaptiveToggle,
+      show_manual_reset: showManualReset,
       columns,
+      column_breakpoints: columnBreakpoints,
       layout,
       scroll_rows:     scrollRows,
       surface,
@@ -822,6 +909,7 @@ class TunetLightingCard extends HTMLElement {
 
     if (this._rendered && this._hass) {
       this._resolveZones();
+      this._activeColumns = this._resolveResponsiveColumns();
       this._buildGrid();
       this._updateAll();
     }
@@ -838,6 +926,7 @@ class TunetLightingCard extends HTMLElement {
     if (!this._rendered) {
       this._render();
       this._resolveZones();
+      this._activeColumns = this._resolveResponsiveColumns();
       this._buildGrid();
       this._setupListeners();
       this._rendered = true;
@@ -856,8 +945,11 @@ class TunetLightingCard extends HTMLElement {
     for (const zone of this._resolvedZones) {
       if (oldH.states[zone.entity] !== newH.states[zone.entity]) return true;
     }
-    const ae = this._config.adaptive_entity;
-    if (ae && oldH.states[ae] !== newH.states[ae]) return true;
+    for (const ae of (this._config.adaptive_entities || [])) {
+      if (oldH.states[ae] !== newH.states[ae]) return true;
+    }
+    const legacyAdaptive = this._config.adaptive_entity;
+    if (legacyAdaptive && oldH.states[legacyAdaptive] !== newH.states[legacyAdaptive]) return true;
     // Watch all AL switches for manual_control changes
     for (const key of Object.keys(newH.states)) {
       if (key.startsWith('switch.adaptive_lighting_') && oldH.states[key] !== newH.states[key]) return true;
@@ -869,7 +961,8 @@ class TunetLightingCard extends HTMLElement {
     if (this._config.layout === 'scroll') {
       return Math.max(2, 1 + (this._config.scroll_rows || 2) * 2);
     }
-    const computedRows = Math.ceil(this._resolvedZones.length / (this._config.columns || 3));
+    const cols = this._activeColumns || this._config.columns || 3;
+    const computedRows = Math.ceil(this._resolvedZones.length / cols);
     const visibleRows = this._config.rows || computedRows;
     return Math.max(2, 2 + visibleRows * 2);
   }
@@ -880,6 +973,18 @@ class TunetLightingCard extends HTMLElement {
       columns: 12,
       min_columns: 6,
     };
+  }
+
+  _resolveResponsiveColumns() {
+    const baseColumns = this._config.columns || 3;
+    const width = typeof window !== 'undefined' ? window.innerWidth : 1024;
+    const rules = Array.isArray(this._config.column_breakpoints) ? this._config.column_breakpoints : [];
+    for (const rule of rules) {
+      const minWidth = rule.minWidth == null ? Number.NEGATIVE_INFINITY : rule.minWidth;
+      const maxWidth = rule.maxWidth == null ? Number.POSITIVE_INFINITY : rule.maxWidth;
+      if (width >= minWidth && width <= maxWidth) return rule.columns;
+    }
+    return baseColumns;
   }
 
   /* ═══════════════════════════════════════════════════
@@ -950,19 +1055,28 @@ class TunetLightingCard extends HTMLElement {
     document.addEventListener('pointermove', this._onPointerMove);
     document.addEventListener('pointerup',   this._onPointerUp);
     document.addEventListener('pointercancel', this._onPointerCancel);
+    window.addEventListener('resize', this._onResize);
   }
 
   disconnectedCallback() {
     document.removeEventListener('pointermove', this._onPointerMove);
     document.removeEventListener('pointerup',   this._onPointerUp);
     document.removeEventListener('pointercancel', this._onPointerCancel);
-    clearTimeout(this._adaptivePressTimer);
-    this._adaptivePressTimer = null;
+    window.removeEventListener('resize', this._onResize);
     for (const timer of Object.values(this._cooldownTimers)) {
       clearTimeout(timer);
     }
     this._cooldownTimers = {};
     this._serviceCooldown = {};
+  }
+
+  _onResize() {
+    if (!this._rendered || this._config.layout === 'scroll') return;
+    const nextColumns = this._resolveResponsiveColumns();
+    if (nextColumns === this._activeColumns) return;
+    this._activeColumns = nextColumns;
+    this._buildGrid();
+    this._updateAll();
   }
 
   /* ═══════════════════════════════════════════════════
@@ -991,6 +1105,8 @@ class TunetLightingCard extends HTMLElement {
       hdrTitle:    this.shadowRoot.getElementById('hdrTitle'),
       hdrSub:      this.shadowRoot.getElementById('hdrSub'),
       headerDots:  this.shadowRoot.getElementById('headerDots'),
+      manualResetWrap:this.shadowRoot.getElementById('manualResetWrap'),
+      manualResetBtn:this.shadowRoot.getElementById('manualResetBtn'),
       adaptiveWrap:this.shadowRoot.getElementById('adaptiveWrap'),
       adaptiveBtn: this.shadowRoot.getElementById('adaptiveBtn'),
       manualBadge: this.shadowRoot.getElementById('manualBadge'),
@@ -999,6 +1115,8 @@ class TunetLightingCard extends HTMLElement {
       allBtnLabel: this.shadowRoot.getElementById('allBtnLabel'),
       lightGrid:   this.shadowRoot.getElementById('lightGrid'),
     };
+
+    this._activeColumns = this._resolveResponsiveColumns();
   }
 
   _buildGrid() {
@@ -1010,7 +1128,8 @@ class TunetLightingCard extends HTMLElement {
     if (this._customStyleEl) this._customStyleEl.textContent = this._config.custom_css || '';
 
     // Set CSS custom properties
-    grid.style.setProperty('--cols', this._config.columns);
+    const activeColumns = this._activeColumns || this._config.columns || 3;
+    grid.style.setProperty('--cols', activeColumns);
     grid.style.setProperty('--scroll-rows', this._config.scroll_rows);
     const rowHeight = this._config.tile_size === 'compact'
       ? '104px'
@@ -1018,7 +1137,7 @@ class TunetLightingCard extends HTMLElement {
     grid.style.setProperty('--grid-row', rowHeight);
 
     // Limit visible tiles when rows is set (avoids overflow:hidden clipping pill)
-    const cols = parseInt(this._config.columns, 10) || 3;
+    const cols = activeColumns;
     const maxRows = parseInt(this._config.rows, 10);
     const maxTiles = (maxRows > 0 && this._config.layout !== 'scroll')
       ? maxRows * cols
@@ -1107,45 +1226,14 @@ class TunetLightingCard extends HTMLElement {
     // All On/Off toggle button
     this.$.allOffBtn.addEventListener('click', () => this._toggleAllLights());
 
-    // Adaptive toggle + long-press reset-manual / more-info
-    this.$.adaptiveBtn.addEventListener('pointerdown', () => {
-      clearTimeout(this._adaptivePressTimer);
-      this._adaptiveLongPress = false;
-      this._adaptivePressTimer = setTimeout(() => {
-        clearTimeout(this._adaptivePressTimer);
-        this._adaptivePressTimer = null;
-        this._adaptiveLongPress = true;
-        const manualList = this._getManuallyControlled();
-        if (manualList.length > 0) {
-          // Reset all manual control across all AL switches
-          this._resetManualControl();
-        } else {
-          // No manual overrides — open more-info
-          const entityId = this._config.adaptive_entity;
-          if (!entityId) return;
-          this.dispatchEvent(new CustomEvent('hass-more-info', {
-            bubbles: true,
-            composed: true,
-            detail: { entityId },
-          }));
-        }
-      }, 500);
-    });
-    const clearAdaptivePress = () => {
-      clearTimeout(this._adaptivePressTimer);
-      this._adaptivePressTimer = null;
-    };
-    this.$.adaptiveBtn.addEventListener('pointerup', clearAdaptivePress);
-    this.$.adaptiveBtn.addEventListener('pointercancel', clearAdaptivePress);
-    this.$.adaptiveBtn.addEventListener('pointerleave', clearAdaptivePress);
-    this.$.adaptiveBtn.addEventListener('click', (e) => {
-      if (this._adaptiveLongPress) {
-        e.preventDefault();
-        e.stopPropagation();
-        this._adaptiveLongPress = false;
-        return;
-      }
-      this._toggleAdaptive();
+    // Adaptive toggle (global for resolved adaptive entities).
+    this.$.adaptiveBtn.addEventListener('click', () => this._toggleAdaptive());
+
+    // Explicit manual reset control (shows only when overrides exist).
+    this.$.manualResetBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this._resetManualControl();
     });
 
     // Tile pointer down (delegated)
@@ -1404,30 +1492,65 @@ class TunetLightingCard extends HTMLElement {
 
   /* ── Manual Control Detection ───────────────────── */
 
-  _getManuallyControlled() {
-    if (!this._hass) return [];
-    const manual = [];
-
-    // Check the single configured adaptive_entity (backward-compat)
-    const ae = this._config.adaptive_entity;
-    if (ae) {
-      const entity = this._getEntity(ae);
-      if (entity && entity.attributes && Array.isArray(entity.attributes.manual_control)) {
-        manual.push(...entity.attributes.manual_control);
+  _zoneEntitySet() {
+    const set = new Set();
+    for (const zone of this._resolvedZones) {
+      set.add(zone.entity);
+      const entity = this._getEntity(zone.entity);
+      const members = entity?.attributes?.entity_id;
+      if (Array.isArray(members)) {
+        for (const member of members) set.add(member);
       }
     }
+    return set;
+  }
 
-    // Scan ALL adaptive_lighting switches for manual_control
+  _resolveAdaptiveEntities() {
+    if (!this._hass) return [];
+    const explicit = Array.isArray(this._config.adaptive_entities)
+      ? this._config.adaptive_entities.filter(Boolean)
+      : [];
+    if (explicit.length) return Array.from(new Set(explicit));
+
+    const legacy = this._config.adaptive_entity ? [this._config.adaptive_entity] : [];
+
+    const zoneSet = this._zoneEntitySet();
+    const candidates = [];
     for (const key of Object.keys(this._hass.states)) {
       if (!key.startsWith('switch.adaptive_lighting_')) continue;
-      if (key === ae) continue; // already checked
       const sw = this._hass.states[key];
-      if (sw && sw.attributes && Array.isArray(sw.attributes.manual_control)) {
-        manual.push(...sw.attributes.manual_control);
+      const lights = sw?.attributes?.lights;
+      if (Array.isArray(lights) && lights.some((eid) => zoneSet.has(eid))) {
+        candidates.push(key);
       }
     }
 
-    return manual;
+    if (candidates.length) return Array.from(new Set(candidates));
+    if (legacy.length) return legacy;
+    const allAdaptive = Object.keys(this._hass.states).filter((k) => k.startsWith('switch.adaptive_lighting_'));
+    if (allAdaptive.length === 1) return allAdaptive;
+    return [];
+  }
+
+  _getManuallyControlled(adaptiveEntities = []) {
+    if (!this._hass) return [];
+    const deduped = new Set();
+    for (const entityId of adaptiveEntities) {
+      const entity = this._getEntity(entityId);
+      const manualControl = entity?.attributes?.manual_control;
+      if (!Array.isArray(manualControl)) continue;
+      for (const lightId of manualControl) deduped.add(lightId);
+    }
+    return [...deduped];
+  }
+
+  _isZoneManual(zone, manualSet) {
+    if (!zone?.entity || !manualSet || manualSet.size === 0) return false;
+    if (manualSet.has(zone.entity)) return true;
+    const entity = this._getEntity(zone.entity);
+    const members = entity?.attributes?.entity_id;
+    if (!Array.isArray(members)) return false;
+    return members.some((member) => manualSet.has(member));
   }
 
   /* ═══════════════════════════════════════════════════
@@ -1498,33 +1621,36 @@ class TunetLightingCard extends HTMLElement {
   }
 
   _toggleAdaptive() {
-    const ae = this._config.adaptive_entity;
-    if (!ae) return;
-    const entity = this._getEntity(ae);
-    if (!entity) return;
-    const domain = ae.split('.')[0];
-    if (domain === 'switch' || domain === 'input_boolean') {
-      this._callService('homeassistant', 'toggle', { entity_id: ae });
-    } else if (domain === 'automation') {
-      this._callService('automation', 'toggle', { entity_id: ae });
+    const adaptiveEntities = this._resolveAdaptiveEntities();
+    if (!adaptiveEntities.length) return;
+    const anyOn = adaptiveEntities.some((entityId) => this._getEntity(entityId)?.state === 'on');
+    const targetService = anyOn ? 'turn_off' : 'turn_on';
+
+    for (const entityId of adaptiveEntities) {
+      const domain = entityId.split('.')[0];
+      if (domain === 'switch' || domain === 'input_boolean') {
+        this._callService('homeassistant', targetService, { entity_id: entityId });
+      } else if (domain === 'automation') {
+        this._callService('automation', targetService, { entity_id: entityId });
+      }
     }
   }
 
   _resetManualControl() {
     if (!this._hass) return;
-    // Find all AL switches with manual_control entries
-    const switches = [];
-    for (const key of Object.keys(this._hass.states)) {
-      if (!key.startsWith('switch.adaptive_lighting_')) continue;
-      const sw = this._hass.states[key];
-      if (sw && sw.attributes && Array.isArray(sw.attributes.manual_control) && sw.attributes.manual_control.length > 0) {
-        switches.push(key);
-      }
-    }
-    if (switches.length === 0) return;
+    const adaptiveEntities = this._resolveAdaptiveEntities().filter((entityId) =>
+      entityId.startsWith('switch.adaptive_lighting_')
+    );
+    if (!adaptiveEntities.length) return;
+
+    const zoneSet = this._zoneEntitySet();
+    const manualScoped = this._getManuallyControlled(adaptiveEntities).filter((entityId) => zoneSet.has(entityId));
+    if (!manualScoped.length) return;
+
     this._callService('adaptive_lighting', 'set_manual_control', {
-      entity_id: switches,
+      entity_id: adaptiveEntities,
       manual_control: false,
+      lights: manualScoped,
     });
   }
 
@@ -1549,10 +1675,15 @@ class TunetLightingCard extends HTMLElement {
   _updateAll() {
     if (!this._hass || !this._rendered) return;
 
-    const manualList = this._getManuallyControlled();
+    const adaptiveEntities = this._resolveAdaptiveEntities();
+    const manualList = this._getManuallyControlled(adaptiveEntities);
+    const zoneSet = this._zoneEntitySet();
+    const manualScoped = manualList.filter((entityId) => zoneSet.has(entityId));
+    const manualSet = new Set(manualScoped);
     let onCount = 0;
     let totalCount = 0;
     let totalBrightness = 0;
+    let manualZoneCount = 0;
 
     for (const zone of this._resolvedZones) {
       const entity = this._getEntity(zone.entity);
@@ -1590,7 +1721,8 @@ class TunetLightingCard extends HTMLElement {
       refs.name.textContent = this._zoneName(zone);
 
       // Manual dot
-      const isManual = manualList.includes(zone.entity);
+      const isManual = this._isZoneManual(zone, manualSet);
+      if (isManual) manualZoneCount++;
       refs.el.dataset.manual = isManual ? 'true' : 'false';
 
     }
@@ -1620,46 +1752,49 @@ class TunetLightingCard extends HTMLElement {
       this.$.hdrSub.innerHTML = this._config.subtitle;
     } else {
       const avgBrt = onCount > 0 ? Math.round(totalBrightness / onCount) : 0;
-      const ae = this._config.adaptive_entity;
-      const aeEntity = ae ? this._getEntity(ae) : null;
-      const aeOn = aeEntity && aeEntity.state === 'on';
-      const manualCount = manualList.length;
+      const adaptiveAnyOn = adaptiveEntities.some((entityId) => this._getEntity(entityId)?.state === 'on');
+      const compactSubtitle = window.matchMedia('(max-width: 640px)').matches;
+      const manualCount = manualScoped.length;
 
       let parts = [];
 
       if (onCount === 0) {
         parts.push('All off');
       } else if (onCount === totalCount) {
-        parts.push(`<span class="amber-ic">All on</span> \u00b7 ${avgBrt}%`);
+        parts.push(`<span class="amber-ic">All on</span>`);
+        parts.push(`${avgBrt}%`);
       } else {
-        parts.push(`<span class="amber-ic">${onCount} on</span> \u00b7 ${avgBrt}%`);
+        parts.push(`<span class="amber-ic">${onCount} on</span>`);
+        parts.push(`${avgBrt}%`);
       }
 
-      if (aeOn && manualCount > 0) {
-        parts.push(`<span class="adaptive-ic">Adaptive</span> \u00b7 <span class="red-ic">${manualCount} manual</span>`);
-      } else if (aeOn) {
+      if (manualCount > 0) {
+        parts.push(`<span class="red-ic">${manualCount} manual</span>`);
+      } else if (adaptiveAnyOn && !compactSubtitle) {
         parts.push('<span class="adaptive-ic">Adaptive</span>');
       }
 
       this.$.hdrSub.innerHTML = parts.join(' \u00b7 ');
     }
 
-    // ── Adaptive toggle ──
-    const ae = this._config.adaptive_entity;
-    if (ae) {
+    // ── Adaptive controls ──
+    const hasAdaptiveTargets = adaptiveEntities.length > 0;
+    const adaptiveAnyOn = adaptiveEntities.some((entityId) => this._getEntity(entityId)?.state === 'on');
+    if (this._config.show_adaptive_toggle && hasAdaptiveTargets) {
+      this.$.adaptiveWrap.classList.remove('hidden');
       this.$.adaptiveBtn.classList.remove('hidden');
-      const aeEntity = this._getEntity(ae);
-      const aeOn = aeEntity && aeEntity.state === 'on';
-      this.$.adaptiveBtn.classList.toggle('on', aeOn);
-      this.$.adaptiveBtn.setAttribute('aria-pressed', aeOn ? 'true' : 'false');
-
-      // Manual count badge
-      const manualCount = manualList.length;
-      this.$.adaptiveBtn.classList.toggle('has-manual', manualCount > 0);
-      this.$.manualBadge.textContent = manualCount;
+      this.$.adaptiveBtn.classList.toggle('on', adaptiveAnyOn);
+      this.$.adaptiveBtn.setAttribute('aria-pressed', adaptiveAnyOn ? 'true' : 'false');
     } else {
       this.$.adaptiveBtn.classList.add('hidden');
+      this.$.adaptiveWrap.classList.add('hidden');
     }
+
+    const showManualReset = this._config.show_manual_reset && hasAdaptiveTargets && manualZoneCount > 0;
+    this.$.manualResetWrap.classList.toggle('hidden', !showManualReset);
+    this.$.manualResetBtn.classList.toggle('hidden', !showManualReset);
+    this.$.manualResetWrap.classList.toggle('has-manual', showManualReset);
+    this.$.manualBadge.textContent = String(manualScoped.length);
   }
 }
 

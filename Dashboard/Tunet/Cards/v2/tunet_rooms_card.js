@@ -2,7 +2,7 @@
  * Tunet Rooms Card (v2 – ES Module)
  * Compact room grid with SmartThings-inspired square tiles
  * Glassmorphism design language
- * Version 2.3.0
+ * Version 2.5.0
  */
 
 import {
@@ -22,7 +22,7 @@ import {
   logCardVersion,
 } from './tunet_base.js';
 
-const CARD_VERSION = '2.4.0';
+const CARD_VERSION = '2.5.0';
 
 // ═══════════════════════════════════════════════════════════
 // Icon helpers (card-specific)
@@ -96,24 +96,23 @@ const CARD_STYLES = `
   /* -- Room Grid -- */
   .room-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(4.5em, 1fr));
-    gap: 0.5em;
+    grid-template-columns: repeat(auto-fill, minmax(7.2em, 1fr));
+    gap: 0.6em;
   }
 
-  /* -- Room Tile (compact square) -- */
+  /* -- Room Tile (aligned to lighting tile language) -- */
   .room-tile {
-    aspect-ratio: 1;
-    border-radius: 0.875em;
-    background: var(--glass);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--ctrl-border);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 0.5px 1.5px rgba(0,0,0,0.06), var(--inset);
+    min-height: 7.9em;
+    border-radius: var(--r-tile);
+    background: var(--tile-bg);
+    border: 1px solid var(--border-ghost);
+    box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.2em;
-    padding: 0.5em 0.25em;
+    justify-content: flex-start;
+    gap: 0.18em;
+    padding: 0.7em 0.38em 1.1em;
     cursor: pointer;
     transition: all 0.18s ease;
     position: relative;
@@ -122,25 +121,8 @@ const CARD_STYLES = `
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Glass stroke */
-  .room-tile::before {
-    content: ""; position: absolute; inset: 0;
-    border-radius: 0.875em; padding: 1px;
-    pointer-events: none; z-index: 0;
-    background: linear-gradient(160deg,
-      rgba(255,255,255,0.50), rgba(255,255,255,0.08) 40%,
-      rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.20));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
-  }
-  :host(.dark) .room-tile::before {
-    background: linear-gradient(160deg,
-      rgba(255,255,255,0.14), rgba(255,255,255,0.03) 40%,
-      rgba(255,255,255,0.01) 60%, rgba(255,255,255,0.08));
-  }
-
   .room-tile:hover {
-    box-shadow: 0 6px 20px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06), var(--inset);
+    box-shadow: var(--shadow-up);
   }
   .room-tile:active { transform: scale(0.95); }
   .room-tile:focus-visible {
@@ -151,15 +133,21 @@ const CARD_STYLES = `
   /* Active (lights on) state */
   .room-tile.active {
     border-color: var(--amber-border);
-    background: linear-gradient(135deg, var(--amber-fill), var(--glass));
+    background: linear-gradient(145deg, var(--amber-fill), var(--tile-bg));
+  }
+  .room-tile.manual .room-tile-dot {
+    background: var(--red);
+    opacity: 1;
   }
 
   /* -- Icon wrap -- */
   .room-tile-icon {
-    width: 2em; height: 2em;
+    width: 2.35em; height: 2.35em;
     display: grid; place-items: center;
-    border-radius: 0.625em;
+    border-radius: 50%;
     transition: all 0.18s;
+    margin-top: 0.08em;
+    margin-bottom: 0.2em;
   }
   .room-tile:not(.active) .room-tile-icon {
     background: var(--gray-ghost);
@@ -174,12 +162,12 @@ const CARD_STYLES = `
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
   .room-tile-icon .icon {
-    font-size: 1.25em; width: 1.25em; height: 1.25em;
+    font-size: 1.3em; width: 1.3em; height: 1.3em;
   }
 
   /* -- Room name -- */
   .room-tile-name {
-    font-size: 0.625em;
+    font-size: 0.74em;
     font-weight: 600;
     color: var(--text);
     text-align: center;
@@ -192,7 +180,7 @@ const CARD_STYLES = `
 
   /* -- Status line (lights count + temp) -- */
   .room-tile-status {
-    font-size: 0.5em;
+    font-size: 0.64em;
     font-weight: 600;
     color: var(--text-muted);
     text-align: center;
@@ -214,11 +202,32 @@ const CARD_STYLES = `
     font-variant-numeric: tabular-nums;
   }
 
+  .room-progress-track {
+    position: absolute;
+    left: 0.78em;
+    right: 0.78em;
+    bottom: 0.52em;
+    height: 0.26em;
+    background: var(--track-bg);
+    border-radius: var(--r-track);
+    overflow: hidden;
+  }
+  .room-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: rgba(212,133,10,0.88);
+    border-radius: var(--r-track);
+    transition: width 0.15s ease;
+  }
+  :host(.dark) .room-progress-fill {
+    background: rgba(251,191,36,0.88);
+  }
+
   /* -- Toggle indicator dot -- */
   .room-tile-dot {
     position: absolute;
-    top: 0.375em; right: 0.375em;
-    width: 0.375em; height: 0.375em;
+    top: 0.46em; right: 0.46em;
+    width: 0.42em; height: 0.42em;
     border-radius: var(--r-pill);
     background: var(--amber);
     opacity: 0;
@@ -231,14 +240,18 @@ const CARD_STYLES = `
   /* -- Responsive -- */
   @media (min-width: 500px) {
     .room-grid {
-      grid-template-columns: repeat(auto-fill, minmax(5em, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(7.6em, 1fr));
     }
   }
   @media (max-width: 440px) {
     :host { font-size: 15px; }
     .room-grid {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0.4em;
+    }
+    .room-tile {
+      min-height: 7.35em;
+      padding: 0.62em 0.34em 0.98em;
     }
   }
 `;
@@ -439,9 +452,13 @@ class TunetRoomsCard extends HTMLElement {
         </div>
         <span class="room-tile-name">${roomCfg.name}</span>
         <span class="room-tile-status" id="room-status-${i}">--</span>
+        <div class="room-progress-track">
+          <div class="room-progress-fill" id="room-fill-${i}"></div>
+        </div>
       `;
 
       const statusEl = tile.querySelector(`#room-status-${i}`);
+      const fillEl = tile.querySelector(`#room-fill-${i}`);
 
       // Tap → toggle all room lights (or custom tap action)
       // Long press → configured hold action (typically popup)
@@ -472,10 +489,10 @@ class TunetRoomsCard extends HTMLElement {
           this._handleRoomAction(roomCfg.tap_action, roomCfg);
         } else if ((roomCfg.lights || []).length) {
           this._toggleRoomGroup(roomCfg);
-        } else if (roomCfg.lights.length && roomCfg.lights[0].entity) {
+        } else if (roomCfg.temperature_entity) {
           this.dispatchEvent(new CustomEvent('hass-more-info', {
             bubbles: true, composed: true,
-            detail: { entityId: roomCfg.lights[0].entity },
+            detail: { entityId: roomCfg.temperature_entity },
           }));
         }
       };
@@ -506,6 +523,7 @@ class TunetRoomsCard extends HTMLElement {
         el: tile,
         cfg: roomCfg,
         statusEl,
+        fillEl,
       });
     });
   }
@@ -554,6 +572,10 @@ class TunetRoomsCard extends HTMLElement {
 
       const anyOn = onCount > 0;
       ref.el.classList.toggle('active', anyOn);
+      if (ref.fillEl) {
+        const pct = lights.length ? Math.round((onCount / lights.length) * 100) : 0;
+        ref.fillEl.style.width = `${pct}%`;
+      }
 
       // Build status text
       let parts = [];
@@ -583,6 +605,7 @@ class TunetRoomsCard extends HTMLElement {
       if (manualCount > 0) {
         parts.push(`<span class="manual-count">${manualCount} manual</span>`);
       }
+      ref.el.classList.toggle('manual', manualCount > 0);
 
       // Temperature
       if (ref.cfg.temperature_entity) {

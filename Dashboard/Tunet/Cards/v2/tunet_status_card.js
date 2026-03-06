@@ -1,5 +1,5 @@
 /**
- * Tunet Status Card  v2.4.0 (v2 migration)
+ * Tunet Status Card  v2.6.0 (v2 migration)
  * Home status grid with typed tiles: indicator, timer, value, dropdown, alarm
  * Migrated to tunet_base.js shared module.
  */
@@ -13,7 +13,7 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js';
 
-const CARD_VERSION = '2.5.0';
+const CARD_VERSION = '2.6.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -30,6 +30,50 @@ function normalizeStatusIcon(icon) {
   const resolved = STATUS_ICON_ALIASES[raw] || raw;
   if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return 'info';
   return resolved;
+}
+
+function clampInt(value, min, max, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+function normalizeColumnBreakpoints(raw) {
+  const parsed = [];
+  const pushRule = (rule) => {
+    if (!rule || typeof rule !== 'object') return;
+    const columns = clampInt(rule.columns, 2, 8, NaN);
+    if (!Number.isFinite(columns)) return;
+    const minWidth = Number.isFinite(Number(rule.min_width)) ? Math.max(0, Number(rule.min_width)) : null;
+    const maxWidth = Number.isFinite(Number(rule.max_width)) ? Math.max(0, Number(rule.max_width)) : null;
+    if (minWidth == null && maxWidth == null) return;
+    parsed.push({ columns, minWidth, maxWidth });
+  };
+
+  if (Array.isArray(raw)) {
+    raw.forEach((item) => pushRule(item));
+  } else if (raw && typeof raw === 'object') {
+    for (const [key, value] of Object.entries(raw)) {
+      if (key === 'default') continue;
+      const maxWidth = Number(key);
+      const columns = clampInt(value, 2, 8, NaN);
+      if (!Number.isFinite(maxWidth) || !Number.isFinite(columns)) continue;
+      parsed.push({ columns, minWidth: null, maxWidth });
+    }
+    if (Object.prototype.hasOwnProperty.call(raw, 'default')) {
+      const fallbackColumns = clampInt(raw.default, 2, 8, NaN);
+      if (Number.isFinite(fallbackColumns)) {
+        parsed.push({ columns: fallbackColumns, minWidth: null, maxWidth: null });
+      }
+    }
+  }
+
+  parsed.sort((a, b) => {
+    const aMax = a.maxWidth == null ? Number.POSITIVE_INFINITY : a.maxWidth;
+    const bMax = b.maxWidth == null ? Number.POSITIVE_INFINITY : b.maxWidth;
+    return aMax - bMax;
+  });
+  return parsed;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -102,8 +146,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     height: 100%;
   }
   :host([tile-size="compact"]) .tile {
-    padding: 22px 8px 8px;
-    gap: 3px;
+    padding: 16px 6px 7px;
+    gap: 2px;
   }
   :host([tile-size="large"]) .tile {
     padding: 30px 10px 12px;
@@ -123,7 +167,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     margin-bottom: 2px;
   }
   :host([tile-size="compact"]) .tile-icon {
-    width: 24px; height: 24px;
+    width: 21px; height: 21px;
   }
   :host([tile-size="large"]) .tile-icon {
     width: 30px; height: 30px;
@@ -142,7 +186,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     color: var(--text); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
-  :host([tile-size="compact"]) .tile-val { font-size: 16px; }
+  :host([tile-size="compact"]) .tile-val { font-size: 14px; }
   :host([tile-size="large"]) .tile-val { font-size: 20px; }
   .tile-label {
     font-size: 9px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
@@ -150,8 +194,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
   :host([tile-size="compact"]) .tile-label {
-    font-size: 8.5px;
-    letter-spacing: .4px;
+    font-size: 8px;
+    letter-spacing: .3px;
   }
   :host([tile-size="large"]) .tile-label {
     font-size: 10px;
@@ -164,7 +208,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     max-width: 100%; margin-top: -1px;
   }
   :host([tile-size="compact"]) .tile-secondary {
-    font-size: 8.5px;
+    font-size: 8px;
   }
   .tile-secondary:empty { display: none; }
 
@@ -189,10 +233,10 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* ── Aux Action Button ───────────────────────── */
   .tile-aux {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 6px;
+    right: 6px;
     min-height: 24px;
-    padding: 0 8px;
+    padding: 0 7px;
     border-radius: 999px;
     border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg);
@@ -208,8 +252,19 @@ ${CARD_SURFACE_GLASS_STROKE}
     cursor: pointer;
     z-index: 2;
   }
+  .tile.has-aux-visible {
+    padding-top: 32px;
+  }
+  :host([tile-size="compact"]) .tile.has-aux-visible {
+    padding-top: 30px;
+  }
   .tile-aux:hover { box-shadow: var(--tile-shadow-rest); }
   .tile-aux:active { transform: scale(0.97); }
+  .tile-aux.danger {
+    color: var(--red);
+    border-color: rgba(239,68,68,0.32);
+    background: rgba(239,68,68,0.12);
+  }
 
   /* ── Timer Tile ──────────────────────────────── */
   .tile[data-type="timer"] .tile-val {
@@ -414,9 +469,8 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* ── Responsive ──────────────────────────────── */
   @media (max-width: 440px) {
     .card { padding: 16px; }
-    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .tile { min-height: 0; }
-    .tile-val { font-size: 16px; }
+    .tile-val { font-size: 14px; }
   }
 
 ${REDUCED_MOTION}
@@ -435,17 +489,47 @@ class TunetStatusCard extends HTMLElement {
     this._rendered = false;
     this._timerIntervals = [];
     this._openDropdown = null;
+    this._activeColumns = 4;
     this._onDocClick = this._onDocClick.bind(this);
+    this._onResize = this._onResize.bind(this);
     injectFonts();
   }
 
   connectedCallback() {
     document.addEventListener('click', this._onDocClick);
+    window.addEventListener('resize', this._onResize);
   }
 
   disconnectedCallback() {
     document.removeEventListener('click', this._onDocClick);
+    window.removeEventListener('resize', this._onResize);
     this._clearAllTimers();
+  }
+
+  _resolveResponsiveColumns() {
+    const baseColumns = this._config.columns || 4;
+    const width = typeof window !== 'undefined' ? window.innerWidth : 1024;
+    const rules = Array.isArray(this._config.column_breakpoints) ? this._config.column_breakpoints : [];
+    for (const rule of rules) {
+      const minWidth = rule.minWidth == null ? Number.NEGATIVE_INFINITY : rule.minWidth;
+      const maxWidth = rule.maxWidth == null ? Number.POSITIVE_INFINITY : rule.maxWidth;
+      if (width >= minWidth && width <= maxWidth) return rule.columns;
+    }
+    return baseColumns;
+  }
+
+  _applyGridColumns() {
+    if (!this._gridEl) return;
+    const cols = this._activeColumns || this._config.columns || 4;
+    this._gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  }
+
+  _onResize() {
+    if (!this._rendered) return;
+    const nextColumns = this._resolveResponsiveColumns();
+    if (nextColumns === this._activeColumns) return;
+    this._activeColumns = nextColumns;
+    this._applyGridColumns();
   }
 
   /* ═══════════════════════════════════════════════════
@@ -459,6 +543,7 @@ class TunetStatusCard extends HTMLElement {
       schema: [
         { name: 'name', selector: { text: {} } },
         { name: 'columns', selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
+        { name: 'column_breakpoints', selector: { object: {} } },
         { name: 'tile_size', selector: { select: { options: ['compact', 'standard', 'large'] } } },
         {
           type: 'expandable',
@@ -472,10 +557,12 @@ class TunetStatusCard extends HTMLElement {
       computeLabel: (s) => ({
         name: 'Card Title',
         columns: 'Columns',
+        column_breakpoints: 'Responsive Column Breakpoints',
         tile_size: 'Tile Size',
         custom_css: 'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
       computeHelper: (s) => ({
+        column_breakpoints: 'Example: [{max_width: 600, columns: 4}, {max_width: 1024, columns: 6}, {columns: 8}]',
         custom_css: 'CSS rules injected into shadow DOM. Use .grid, .tile, etc.',
       }[s.name] || ''),
     };
@@ -490,9 +577,12 @@ class TunetStatusCard extends HTMLElement {
     const tileSize = tileSizeRaw === 'regular'
       ? 'standard'
       : (tileSizeRaw === 'compact' || tileSizeRaw === 'large' ? tileSizeRaw : 'standard');
+    const columns = clampInt(config.columns, 2, 8, 4);
+    const columnBreakpoints = normalizeColumnBreakpoints(config.column_breakpoints);
     this._config = {
       name: config.name || 'Home Status',
-      columns: config.columns || 4,
+      columns,
+      column_breakpoints: columnBreakpoints,
       tile_size: tileSize,
       custom_css: config.custom_css || '',
       tiles: (config.tiles || []).map(t => {
@@ -543,6 +633,7 @@ class TunetStatusCard extends HTMLElement {
     };
     if (tileSize === 'compact' || tileSize === 'large') this.setAttribute('tile-size', tileSize);
     else this.removeAttribute('tile-size');
+    this._activeColumns = this._resolveResponsiveColumns();
     if (this._rendered) this._buildGrid();
   }
 
@@ -584,7 +675,8 @@ class TunetStatusCard extends HTMLElement {
   }
 
   getCardSize() {
-    const rows = Math.ceil(this._config.tiles.length / (this._config.columns || 4));
+    const cols = this._activeColumns || this._config.columns || 4;
+    const rows = Math.ceil(this._config.tiles.length / cols);
     return Math.max(2, rows + 1);
   }
 
@@ -628,7 +720,8 @@ class TunetStatusCard extends HTMLElement {
 
     this._titleEl = this.shadowRoot.getElementById('title');
     this._gridEl = this.shadowRoot.getElementById('grid');
-    this._gridEl.style.gridTemplateColumns = `repeat(${this._config.columns || 4}, minmax(0, 1fr))`;
+    this._activeColumns = this._resolveResponsiveColumns();
+    this._applyGridColumns();
 
     this._buildGrid();
   }
@@ -637,7 +730,7 @@ class TunetStatusCard extends HTMLElement {
     if (!this._gridEl) return;
     this._gridEl.innerHTML = '';
     this._titleEl.textContent = this._config.name;
-    this._gridEl.style.gridTemplateColumns = `repeat(${this._config.columns || 4}, minmax(0, 1fr))`;
+    this._applyGridColumns();
     // Refresh custom CSS on rebuild (covers config editor changes)
     if (this._customStyleEl) this._customStyleEl.textContent = this._config.custom_css || '';
     this._tileEls = [];
@@ -742,11 +835,14 @@ class TunetStatusCard extends HTMLElement {
 
       let auxEl = null;
       if (tile.aux_action) {
+        el.classList.add('has-aux');
         const auxBtn = document.createElement('button');
         auxBtn.type = 'button';
         auxBtn.className = 'tile-aux';
         const auxIcon = tile.aux_action.icon ? normalizeStatusIcon(tile.aux_action.icon) : '';
         const auxLabel = tile.aux_action.label || 'Action';
+        const looksDanger = String(auxLabel).toLowerCase().includes('reset');
+        if (looksDanger) auxBtn.classList.add('danger');
         auxBtn.innerHTML = auxIcon
           ? `<span class="icon" style="font-size:12px;width:12px;height:12px">${auxIcon}</span><span>${auxLabel}</span>`
           : `<span>${auxLabel}</span>`;
@@ -821,6 +917,7 @@ class TunetStatusCard extends HTMLElement {
           ? true
           : this._matchesShowWhen(this._hass.states[config.aux_show_when.entity], config.aux_show_when);
         auxEl.hidden = !(tileVisible && auxVisible);
+        el.classList.toggle('has-aux-visible', tileVisible && auxVisible);
       }
     }
   }
@@ -836,6 +933,9 @@ class TunetStatusCard extends HTMLElement {
       : entity.state;
     const actual = String(sourceValue ?? '');
     const target = String(expected ?? '');
+    const actualNum = Number(actual);
+    const targetNum = Number(target);
+    const bothNumeric = Number.isFinite(actualNum) && Number.isFinite(targetNum);
 
     switch (operator) {
       case 'contains':
@@ -843,14 +943,14 @@ class TunetStatusCard extends HTMLElement {
       case 'not_contains':
         return !actual.includes(target);
       case 'not_equals':
-        return actual !== target;
+        return bothNumeric ? actualNum !== targetNum : actual !== target;
       case 'gt':
-        return Number(actual) > Number(target);
+        return bothNumeric ? actualNum > targetNum : Number(actual) > Number(target);
       case 'lt':
-        return Number(actual) < Number(target);
+        return bothNumeric ? actualNum < targetNum : Number(actual) < Number(target);
       case 'equals':
       default:
-        return actual === target;
+        return bothNumeric ? actualNum === targetNum : actual === target;
     }
   }
 

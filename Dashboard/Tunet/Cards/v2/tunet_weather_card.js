@@ -77,7 +77,19 @@ const CARD_STYLES = `
     font-variant-numeric: tabular-nums; color: var(--text);
   }
   .deg { font-size: 0.6em; vertical-align: baseline; position: relative; top: -0.18em; margin-left: -1px; }
-  .weather-desc { font-size: 13px; font-weight: 600; color: var(--text-sub); margin-top: 4px; }
+  .weather-desc {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-top: 4px;
+    white-space: normal;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 12ch;
+  }
 
   .weather-details { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; }
   .weather-detail { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-sub); }
@@ -147,6 +159,15 @@ const CONDITION_ICONS = {
   'windy': 'air',
   'windy-variant': 'air',
 };
+
+function humanizeWeatherCondition(value) {
+  return String(value || '')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -371,7 +392,7 @@ class TunetWeatherCard extends HTMLElement {
       'snowy': 'Snowy', 'snowy-rainy': 'Sleet', 'sunny': 'Sunny',
       'windy': 'Windy', 'windy-variant': 'Windy', 'exceptional': 'Exceptional',
     };
-    this.$.condDesc.textContent = condNames[condition] || condition;
+    this.$.condDesc.textContent = condNames[condition] || humanizeWeatherCondition(condition);
 
     const lastUpdate = entity.last_updated;
     if (this._config.show_last_updated && lastUpdate) {

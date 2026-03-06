@@ -58,9 +58,9 @@ views:
                   operator: not_equals
                   state: Adaptive
                 aux_show_when:
-                  entity: sensor.oal_global_brightness_offset
-                  attribute: total_offset
-                  operator: not_equals
+                  entity: sensor.oal_system_status
+                  attribute: active_zonal_overrides
+                  operator: gt
                   state: 0
                 aux_action:
                   label: Reset
@@ -98,7 +98,7 @@ views:
                 format: state
 
               - type: value
-                entity: sensor.kitchen_humidity
+                entity: sensor.0x54ef4410016279b4_humidity
                 icon: water_drop
                 label: Humidity
                 accent: blue
@@ -204,6 +204,9 @@ views:
                   - entity: light.office_desk_lamp
                     icon: desk
                     name: Desk
+                  - entity: light.column_lights
+                    icon: view_column
+                    name: Columns
 
               - name: Kitchen
                 icon: kitchen
@@ -270,21 +273,45 @@ views:
             initial_style: wide
             dismissable: true
             card:
-              type: vertical-stack
+              type: custom:layout-card
+              layout_type: custom:grid-layout
+              layout:
+                grid-template-columns: 1fr
+                grid-template-rows: min-content min-content
+                grid-gap: 8px
               cards:
-                - type: button
-                  name: All Off
-                  icon: mdi:lightbulb-off-outline
-                  tap_action:
-                    action: call-service
-                    service: light.turn_off
-                    service_data:
-                      entity_id:
-                        - light.living_room_couch_lamp
-                        - light.living_room_floor_lamp
-                        - light.living_room_spot_lights
-                        - light.living_room_credenza_light
-                        - light.office_desk_lamp
+                - type: grid
+                  columns: 2
+                  square: false
+                  cards:
+                    - type: button
+                      name: All Off
+                      icon: mdi:lightbulb-off-outline
+                      tap_action:
+                        action: call-service
+                        service: light.turn_off
+                        service_data:
+                          entity_id:
+                            - light.living_room_couch_lamp
+                            - light.living_room_floor_lamp
+                            - light.living_room_spot_lights
+                            - light.living_room_credenza_light
+                            - light.office_desk_lamp
+                            - light.column_lights
+                    - type: button
+                      name: All On
+                      icon: mdi:lightbulb-on-outline
+                      tap_action:
+                        action: call-service
+                        service: light.turn_on
+                        service_data:
+                          entity_id:
+                            - light.living_room_couch_lamp
+                            - light.living_room_floor_lamp
+                            - light.living_room_spot_lights
+                            - light.living_room_credenza_light
+                            - light.office_desk_lamp
+                            - light.column_lights
                 - type: custom:tunet-lighting-card
                   name: Living Room
                   surface: section
@@ -313,6 +340,9 @@ views:
                     - entity: light.office_desk_lamp
                       name: Desk
                       icon: desk
+                    - entity: light.column_lights
+                      name: Columns
+                      icon: view_column
           - type: custom:popup-card
             popup_card_id: kitchen-popup
             popup_card_all_views: true
@@ -320,19 +350,39 @@ views:
             initial_style: wide
             dismissable: true
             card:
-              type: vertical-stack
+              type: custom:layout-card
+              layout_type: custom:grid-layout
+              layout:
+                grid-template-columns: 1fr
+                grid-template-rows: min-content min-content
+                grid-gap: 8px
               cards:
-                - type: button
-                  name: All Off
-                  icon: mdi:lightbulb-off-outline
-                  tap_action:
-                    action: call-service
-                    service: light.turn_off
-                    service_data:
-                      entity_id:
-                        - light.kitchen_island_pendants
-                        - light.kitchen_main_lights
-                        - light.kitchen_counter_cabinet_underlights
+                - type: grid
+                  columns: 2
+                  square: false
+                  cards:
+                    - type: button
+                      name: All Off
+                      icon: mdi:lightbulb-off-outline
+                      tap_action:
+                        action: call-service
+                        service: light.turn_off
+                        service_data:
+                          entity_id:
+                            - light.kitchen_island_pendants
+                            - light.kitchen_main_lights
+                            - light.kitchen_counter_cabinet_underlights
+                    - type: button
+                      name: All On
+                      icon: mdi:lightbulb-on-outline
+                      tap_action:
+                        action: call-service
+                        service: light.turn_on
+                        service_data:
+                          entity_id:
+                            - light.kitchen_island_pendants
+                            - light.kitchen_main_lights
+                            - light.kitchen_counter_cabinet_underlights
                 - type: custom:tunet-lighting-card
                   name: Kitchen
                   surface: section
@@ -411,6 +461,9 @@ views:
                   - entity: light.office_desk_lamp
                     icon: desk
                     name: Desk
+                  - entity: light.column_lights
+                    icon: view_column
+                    name: Columns
 
               - name: Kitchen
                 icon: kitchen

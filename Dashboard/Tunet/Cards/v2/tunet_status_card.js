@@ -76,6 +76,35 @@ function normalizeColumnBreakpoints(raw) {
   return parsed;
 }
 
+function humanizeStateValue(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return '—';
+
+  const known = {
+    partlycloudy: 'Partly Cloudy',
+    clearnight: 'Clear Night',
+    sunny: 'Sunny',
+    cloudy: 'Cloudy',
+    rainy: 'Rainy',
+    pouring: 'Heavy Rain',
+    lightning: 'Thunderstorm',
+    lightningrainy: 'Storm + Rain',
+    snowy: 'Snowy',
+    snowy_rainy: 'Snow + Rain',
+    fog: 'Fog',
+    windy: 'Windy',
+    windy_variant: 'Windy',
+  };
+  if (known[text]) return known[text];
+
+  return text
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
 /* ═══════════════════════════════════════════════════════════════
    CSS – Shared base + card-specific overrides
    ═══════════════════════════════════════════════════════════════ */
@@ -186,16 +215,44 @@ ${CARD_SURFACE_GLASS_STROKE}
     color: var(--text); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
-  :host([tile-size="compact"]) .tile-val { font-size: 14px; }
+  :host([tile-size="compact"]) .tile-val { font-size: 12.5px; }
   :host([tile-size="large"]) .tile-val { font-size: 20px; }
+  .tile-val.is-text {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.1;
+    text-align: center;
+    font-size: 13.5px;
+    max-height: 2.3em;
+  }
+  :host([tile-size="compact"]) .tile-val.is-text {
+    font-size: 10.5px;
+    max-height: 2.35em;
+  }
+  .tile-val.is-long {
+    font-size: 12px;
+  }
+  :host([tile-size="compact"]) .tile-val.is-long {
+    font-size: 10px;
+  }
   .tile-label {
     font-size: 9px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
     color: var(--text-muted); line-height: 1; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
   :host([tile-size="compact"]) .tile-label {
-    font-size: 8px;
-    letter-spacing: .3px;
+    font-size: 7.5px;
+    letter-spacing: .18px;
+    text-transform: none;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.05;
+    text-align: center;
+    min-height: 2.05em;
   }
   :host([tile-size="large"]) .tile-label {
     font-size: 10px;
@@ -208,7 +265,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     max-width: 100%; margin-top: -1px;
   }
   :host([tile-size="compact"]) .tile-secondary {
-    font-size: 8px;
+    font-size: 7.5px;
   }
   .tile-secondary:empty { display: none; }
 
@@ -1010,6 +1067,8 @@ class TunetStatusCard extends HTMLElement {
       const numStr = String(val).replace(/%/g, '').trim();
       val = Number(numStr).toFixed(1);
       if (val === 'NaN') val = '—';
+    } else if (config.format === 'state') {
+      val = humanizeStateValue(val);
     }
 
     this._renderValWithUnit(valEl, val, unit);
@@ -1075,6 +1134,11 @@ class TunetStatusCard extends HTMLElement {
   }
 
   _renderValWithUnit(valEl, val, unit) {
+    const textValue = String(val ?? '');
+    const isNumericText = /^-?\d+(\.\d+)?$/.test(textValue.trim());
+    valEl.classList.toggle('is-text', !unit && !isNumericText);
+    valEl.classList.toggle('is-long', textValue.length > 10);
+
     if (unit === '°F' || unit === '°C' || unit === '°') {
       valEl.innerHTML = `${val}<span class="tile-deg">&deg;</span>${unit === '°F' ? 'F' : unit === '°C' ? 'C' : ''}`;
     } else if (unit) {

@@ -133,7 +133,7 @@ const CARD_STYLES = `
   /* Active (lights on) state */
   .room-tile.active {
     border-color: var(--amber-border);
-    background: linear-gradient(145deg, var(--amber-fill), var(--tile-bg));
+    background: var(--tile-bg);
   }
   .room-tile.manual .room-tile-dot {
     background: var(--red);

@@ -18,6 +18,85 @@ views:
       - type: grid
         column_span: 12
         cards:
+          - type: custom:tunet-status-card
+            name: Quick Chips
+            show_header: false
+            columns: 6
+            column_breakpoints:
+              - max_width: 640
+                columns: 3
+              - max_width: 960
+                columns: 4
+              - max_width: 1280
+                columns: 5
+              - columns: 6
+            tile_size: compact
+            custom_css: |
+              .card { padding: 12px 14px; }
+              .grid { gap: 8px; }
+              .tile {
+                border-radius: 999px;
+                padding: 10px 9px 7px;
+                min-height: 46px;
+              }
+            tiles:
+              - type: value
+                entity: person.mac_connolly
+                icon: home
+                label: Home
+                accent: green
+                format: state
+                dot_rules:
+                  - match: Home
+                    dot: green
+                  - match: "*"
+                    dot: red
+              - type: value
+                entity: sensor.oal_system_status
+                icon: front_hand
+                label: Manual
+                accent: red
+                attribute: active_zonal_overrides
+                format: integer
+              - type: value
+                entity: sensor.sun_next_setting
+                icon: weather_sunset_down
+                label: Sunset
+                accent: amber
+                format: time
+              - type: value
+                entity: sensor.dining_room_temperature
+                icon: thermostat
+                label: Temp
+                accent: amber
+                unit: °F
+                format: integer
+              - type: value
+                entity: sensor.0x54ef4410016279b4_humidity
+                icon: water_drop
+                label: Humidity
+                accent: blue
+                unit: '%'
+                format: integer
+              - type: value
+                entity: sensor.hero_media_state
+                icon: speaker
+                label: Media
+                accent: green
+                attribute: room
+                format: state
+                show_when:
+                  entity: sensor.hero_media_state
+                  attribute: is_playing
+                  operator: equals
+                  state: "true"
+                tap_action:
+                  action: navigate
+                  navigation_path: /tunet-suite-storage/media
+
+      - type: grid
+        column_span: 12
+        cards:
           - type: custom:tunet-actions-card
             variant: mode_strip
             compact: true
@@ -319,6 +398,24 @@ views:
                 - type: custom:tunet-actions-card
                   compact: true
                   actions:
+                    - name: Room
+                      icon: open_in_new
+                      accent: muted
+                      tap_action:
+                        action: navigate
+                        navigation_path: /tunet-suite-storage/living-room
+                    - name: Brighter
+                      icon: add
+                      accent: amber
+                      service: script.turn_on
+                      service_data:
+                        entity_id: script.oal_global_manual_brighter
+                    - name: Dimmer
+                      icon: remove
+                      accent: blue
+                      service: script.turn_on
+                      service_data:
+                        entity_id: script.oal_global_manual_dimmer
                     - name: All On
                       icon: lightbulb
                       accent: amber
@@ -349,18 +446,22 @@ views:
                       service: script.turn_on
                       service_data:
                         entity_id: script.oal_reset_soft
-                - type: button
-                  name: Open Room
-                  icon: mdi:arrow-top-right
-                  tap_action:
-                    action: navigate
-                    navigation_path: /tunet-suite-storage/living-room
+                      show_when:
+                        entity: sensor.oal_system_status
+                        attribute: active_zonal_overrides
+                        operator: gt
+                        state: 0
                 - type: custom:tunet-lighting-card
                   name: Living Room
                   surface: section
                   layout: grid
                   expand_groups: false
-                  show_adaptive_toggle: false
+                  show_adaptive_toggle: true
+                  show_manual_reset: true
+                  adaptive_entities:
+                    - switch.adaptive_lighting_main_living
+                    - switch.adaptive_lighting_accent_spots
+                    - switch.adaptive_lighting_column_lights
                   tile_size: compact
                   columns: 3
                   column_breakpoints:
@@ -405,7 +506,11 @@ views:
                   surface: section
                   layout: grid
                   expand_groups: false
-                  show_adaptive_toggle: false
+                  show_adaptive_toggle: true
+                  show_manual_reset: true
+                  adaptive_entities:
+                    - switch.adaptive_lighting_kitchen_island
+                    - switch.adaptive_lighting_kitchen_undercabinet
                   tile_size: compact
                   columns: 3
                   column_breakpoints:
@@ -441,7 +546,11 @@ views:
                   surface: section
                   layout: grid
                   expand_groups: false
-                  show_adaptive_toggle: false
+                  show_adaptive_toggle: true
+                  show_manual_reset: true
+                  adaptive_entities:
+                    - switch.adaptive_lighting_accent_spots
+                    - switch.adaptive_lighting_column_lights
                   tile_size: compact
                   columns: 3
                   column_breakpoints:
@@ -474,7 +583,10 @@ views:
                   surface: section
                   layout: grid
                   expand_groups: false
-                  show_adaptive_toggle: false
+                  show_adaptive_toggle: true
+                  show_manual_reset: true
+                  adaptive_entities:
+                    - switch.adaptive_lighting_bedroom_primary
                   tile_size: compact
                   columns: 3
                   column_breakpoints:

@@ -1,10 +1,10 @@
 /**
- * Tunet Media Card v3.1.0
+ * Tunet Media Card v3.2.1
  * Sonos media player with transport, volume, and dual-purpose speaker dropdown
  * Dual-entity model: coordinator for media/transport, active entity for volume
  * Auto-detects speakers from active-group or playing-group Sonos binaries
  *
- * v3.1.0 – Migrated to tunet_base.js shared module
+ * v3.2.1 – Extra-compact speaker dropdown rows (single-line status)
  */
 
 import {
@@ -14,9 +14,9 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
-} from './tunet_base.js';
+} from './tunet_base.js?v=20260306g1';
 
-const CARD_VERSION = '3.1.0';
+const CARD_VERSION = '3.2.1';
 
 /* ===============================================================
    CSS — Card-specific overrides + unique styles
@@ -99,10 +99,10 @@ const CARD_STYLES = `
   .speaker-wrap { position: relative; z-index: 4000; }
   .speaker-btn {
     display: flex; align-items: center; gap: 4px;
-    min-height: 42px; padding: 0 10px;
-    border-radius: 10px; border: 1px solid var(--ctrl-border);
+    min-height: 31px; padding: 0 7px;
+    border-radius: 9px; border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg); box-shadow: var(--ctrl-sh);
-    font-family: inherit; font-size: 12px; font-weight: 600;
+    font-family: inherit; font-size: 11px; font-weight: 600;
     color: var(--text-sub); letter-spacing: .2px;
     cursor: pointer; transition: all .15s ease;
   }
@@ -114,7 +114,7 @@ const CARD_STYLES = `
   /* -- Dropdown Menu (absolute to .speaker-wrap) -- */
   .dd-menu {
     position: absolute; top: calc(100% + 6px); right: 0;
-    min-width: 220px; padding: 4px; border-radius: 14px;
+    min-width: 194px; padding: 3px; border-radius: 12px;
     background: rgba(255,255,255, 1);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--dd-border); box-shadow: var(--shadow-up);
@@ -131,8 +131,8 @@ const CARD_STYLES = `
 
   /* Speaker option row */
   .dd-option {
-    padding: 7px 10px; border-radius: 10px;
-    font-size: 13px; font-weight: 600; color: var(--text);
+    padding: 4px 7px; border-radius: 9px;
+    font-size: 11px; font-weight: 600; color: var(--text);
     display: flex; align-items: center; gap: 8px;
     cursor: pointer; transition: background .1s;
     user-select: none; border: none; background: transparent;
@@ -145,17 +145,24 @@ const CARD_STYLES = `
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
 
-  .spk-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-  .spk-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .spk-text { display: flex; align-items: center; gap: 0.22em; flex: 1; min-width: 0; }
+  .spk-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; max-width: 74px; }
   .spk-now-playing {
-    font-size: 10.5px; font-weight: 500; color: var(--text-muted);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
+    font-size: 9.5px; font-weight: 600; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-top: 0;
+    flex: 1;
+  }
+  .spk-now-playing::before {
+    content: "·";
+    margin-right: 0.25em;
+    opacity: 0.7;
   }
   .dd-option.selected .spk-now-playing { color: var(--green); opacity: 0.7; }
 
   /* Group checkbox */
   .grp-check {
-    width: 20px; height: 20px; border-radius: 999px; flex-shrink: 0;
+    width: 18px; height: 18px; border-radius: 999px; flex-shrink: 0;
     border: 1.5px solid var(--text-muted); display: grid; place-items: center;
     transition: all .15s ease; cursor: pointer; position: relative; z-index: 2;
   }
@@ -172,7 +179,7 @@ const CARD_STYLES = `
   .dd-option.action:hover { color: var(--text); }
   .dd-option.action .icon { color: var(--green); }
 
-  .dd-divider { height: 1px; background: var(--divider); margin: 3px 8px; }
+  .dd-divider { height: 1px; background: var(--divider); margin: 2px 6px; }
 
   /* -- Media Body (view switching) -- */
   .media-body { position: relative; overflow: hidden; }
@@ -646,6 +653,14 @@ class TunetMediaCard extends HTMLElement {
       : `binary_sensor.sonos_${room}_in_playing_group`;
   }
 
+  _firstWordName(label) {
+    const raw = String(label || '').trim();
+    if (!raw) return '';
+    const cleaned = raw.replace(/\s+Sonos$/i, '').trim();
+    const parts = cleaned.split(/\s+/).filter(Boolean);
+    return parts.length ? parts[0] : cleaned;
+  }
+
   get _coordinator() {
     if (!this._hass) return this._activeEntity || this._config.entity;
     const sensor = this._hass.states[this._config.coordinator_sensor];
@@ -669,6 +684,10 @@ class TunetMediaCard extends HTMLElement {
    */
   get _transportTarget() {
     return this._activeEntity || this._coordinator;
+  }
+
+  get _volumeTarget() {
+    return this._coordinator || this._activeEntity || this._config.entity;
   }
 
   _callTransport(service) {
@@ -826,13 +845,14 @@ class TunetMediaCard extends HTMLElement {
       this._setView('track');
     });
 
-    // Mute toggle -> active entity
+    // Mute toggle -> volume target (coordinator/group when available)
     $.muteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const entity = this._hass && this._hass.states[this._activeEntity];
+      const volumeTarget = this._volumeTarget;
+      const entity = this._hass && this._hass.states[volumeTarget];
       if (entity) {
         this._callService('volume_mute', {
-          entity_id: this._activeEntity,
+          entity_id: volumeTarget,
           is_volume_muted: !entity.attributes.is_volume_muted,
         });
       }
@@ -870,8 +890,9 @@ class TunetMediaCard extends HTMLElement {
 
       clearTimeout(this._volDebounce);
       this._volDebounce = setTimeout(() => {
+        const volumeTarget = this._volumeTarget;
         this._callService('volume_set', {
-          entity_id: this._activeEntity,
+          entity_id: volumeTarget,
           volume_level: pct / 100,
         });
         this._serviceCooldown = true;
@@ -955,16 +976,18 @@ class TunetMediaCard extends HTMLElement {
       const isActive = spk.entity === this._activeEntity;
       const inGroup = this._isSpeakerInActiveGroup(spk.entity);
 
-      const nowPlaying = entity.attributes.media_title
-        ? `${entity.attributes.media_title}${entity.attributes.media_artist ? ' \u2013 ' + entity.attributes.media_artist : ''}`
-        : entity.state === 'playing' ? 'Playing' : 'Not playing';
+      const nowPlaying = entity.state === 'playing'
+        ? 'Playing'
+        : entity.state === 'paused'
+          ? 'Paused'
+          : 'Idle';
 
       const opt = document.createElement('button');
       opt.className = `dd-option${isActive ? ' selected' : ''}`;
 
       const iconEl = document.createElement('span');
       iconEl.className = 'icon spk-icon';
-      iconEl.style.fontSize = '18px';
+      iconEl.style.fontSize = '16px';
       iconEl.textContent = spk.icon || 'speaker';
       opt.appendChild(iconEl);
 
@@ -972,7 +995,7 @@ class TunetMediaCard extends HTMLElement {
       textWrap.className = 'spk-text';
       const nameEl = document.createElement('span');
       nameEl.className = 'spk-name';
-      nameEl.textContent = spk.name || entity.attributes.friendly_name || spk.entity;
+      nameEl.textContent = this._firstWordName(spk.name || entity.attributes.friendly_name || spk.entity);
       textWrap.appendChild(nameEl);
       const nowEl = document.createElement('span');
       nowEl.className = 'spk-now-playing';
@@ -984,7 +1007,7 @@ class TunetMediaCard extends HTMLElement {
       check.className = `grp-check${inGroup ? ' in-group' : ''}`;
       const checkIcon = document.createElement('span');
       checkIcon.className = 'icon';
-      checkIcon.style.fontSize = '14px';
+      checkIcon.style.fontSize = '12px';
       checkIcon.textContent = 'check';
       check.appendChild(checkIcon);
       opt.appendChild(check);
@@ -1055,6 +1078,7 @@ class TunetMediaCard extends HTMLElement {
     const coordId = this._coordinator;
     const coordEntity = this._hass.states[coordId];
     const activeEntity = this._hass.states[this._activeEntity];
+    const volumeEntity = this._hass.states[this._volumeTarget];
 
     if (!coordEntity && !activeEntity) {
       $.card.dataset.state = 'unavailable';
@@ -1083,7 +1107,7 @@ class TunetMediaCard extends HTMLElement {
         $.hdrSub.appendChild(document.createTextNode(` \u00b7 ${groupedCount} grouped`));
       } else {
         const activeSpk = (this._cachedSpeakers || []).find(s => s.entity === this._activeEntity);
-        const spkName = activeSpk ? activeSpk.name :
+        const spkName = activeSpk ? this._firstWordName(activeSpk.name) :
           (activeEntity && activeEntity.attributes.friendly_name) || '';
         if (spkName) $.hdrSub.appendChild(document.createTextNode(` \u00b7 ${spkName}`));
       }
@@ -1092,7 +1116,7 @@ class TunetMediaCard extends HTMLElement {
         $.hdrSub.textContent = `Paused \u00b7 ${groupedCount} grouped`;
       } else {
         const activeSpk = (this._cachedSpeakers || []).find(s => s.entity === this._activeEntity);
-        const spkName = activeSpk ? activeSpk.name :
+        const spkName = activeSpk ? this._firstWordName(activeSpk.name) :
           (activeEntity && activeEntity.attributes.friendly_name) || '';
         $.hdrSub.textContent = spkName ? `Paused \u00b7 ${spkName}` : 'Paused';
       }
@@ -1148,12 +1172,12 @@ class TunetMediaCard extends HTMLElement {
     $.progDur.textContent = duration ? this._formatTime(duration) : '--';
     this._updateProgress();
 
-    // Volume from active entity
-    if (!this._volDragging && activeEntity) {
-      const vol = Math.round((activeEntity.attributes.volume_level || 0) * 100);
+    // Volume from coordinator/group target
+    if (!this._volDragging && volumeEntity) {
+      const vol = Math.round((volumeEntity.attributes.volume_level || 0) * 100);
       this._renderVolume(vol);
 
-      const muted = activeEntity.attributes.is_volume_muted;
+      const muted = volumeEntity.attributes.is_volume_muted;
       const volIcon = muted ? 'volume_off' : vol < 40 ? 'volume_down' : 'volume_up';
       $.volMuteIcon.textContent = volIcon;
       $.volShowIcon.textContent = volIcon;
@@ -1163,8 +1187,8 @@ class TunetMediaCard extends HTMLElement {
     if ($.spkLabel) {
       const activeSpk = (this._cachedSpeakers || []).find(s => s.entity === this._activeEntity);
       $.spkLabel.textContent = activeSpk
-        ? activeSpk.name
-        : (activeEntity && activeEntity.attributes.friendly_name) || this._config.name;
+        ? this._firstWordName(activeSpk.name)
+        : this._firstWordName((activeEntity && activeEntity.attributes.friendly_name) || this._config.name);
     }
 
     // Progress timer management

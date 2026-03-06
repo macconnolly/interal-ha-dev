@@ -2,7 +2,7 @@
  * Tunet Rooms Card (v2 – ES Module)
  * Compact room grid with SmartThings-inspired square tiles
  * Glassmorphism design language
- * Version 2.6.0
+ * Version 2.8.0
  */
 
 import {
@@ -20,9 +20,9 @@ import {
   runCardAction,
   registerCard,
   logCardVersion,
-} from './tunet_base.js';
+} from './tunet_base.js?v=20260306g1';
 
-const CARD_VERSION = '2.6.0';
+const CARD_VERSION = '2.8.0';
 
 // ═══════════════════════════════════════════════════════════
 // Icon helpers (card-specific)
@@ -148,6 +148,11 @@ const CARD_STYLES = `
     display: flex;
     flex-direction: column;
     gap: 0.52em;
+  }
+
+  /* Slim mobile-first row variant */
+  .room-grid.row-mode.slim-mode {
+    gap: 0.34em;
   }
 
   /* -- Room Tile (aligned to lighting tile language) -- */
@@ -313,8 +318,50 @@ const CARD_STYLES = `
   .room-row-controls {
     display: inline-flex;
     align-items: center;
-    gap: 0.38em;
+    gap: 0.32em;
     flex-shrink: 0;
+  }
+  .room-room-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2em;
+  }
+  .room-action-btn {
+    height: 1.78em;
+    min-width: 1.78em;
+    border-radius: 9px;
+    border: 1px solid var(--ctrl-border);
+    background: var(--tile-bg-off);
+    color: var(--text-muted);
+    box-shadow: var(--ctrl-sh);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.16s ease;
+    padding: 0 0.34em;
+    font-size: 0.66em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .room-action-btn .icon {
+    font-size: 1.15em;
+    width: 1.15em;
+    height: 1.15em;
+  }
+  .room-action-btn.on {
+    color: var(--green);
+    border-color: var(--green-border);
+    background: var(--green-fill);
+  }
+  .room-action-btn.off {
+    color: var(--text-muted);
+  }
+  .room-action-btn:hover {
+    box-shadow: var(--shadow);
+  }
+  .room-action-btn:active {
+    transform: scale(0.95);
   }
   .room-orbs {
     display: inline-flex;
@@ -356,33 +403,79 @@ const CARD_STYLES = `
   .room-orb.manual {
     box-shadow: 0 0 0 1px rgba(239,68,68,0.42), 0 0 0 3px rgba(239,68,68,0.14);
   }
-  .room-switch {
-    width: 2.78em;
+  .room-chevron {
+    width: 1.56em;
     height: 1.56em;
     border-radius: var(--r-pill);
     border: 1px solid transparent;
-    background: var(--toggle-off);
+    color: var(--text-muted);
     display: inline-flex;
     align-items: center;
-    padding: 0.1em;
-    cursor: pointer;
-    transition: background 0.16s ease, border-color 0.16s ease;
+    justify-content: center;
+    flex-shrink: 0;
   }
-  .room-switch-knob {
-    width: 1.3em;
-    height: 1.3em;
-    border-radius: var(--r-pill);
-    background: var(--toggle-knob);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.18);
-    transform: translateX(0);
-    transition: transform 0.16s ease;
+  .room-grid.row-mode .room-tile.active .room-chevron {
+    color: var(--amber);
   }
-  .room-switch.on {
-    background: var(--toggle-on);
-    border-color: rgba(52,199,89,0.28);
+
+  .room-grid.row-mode.slim-mode .room-tile {
+    padding: 0.44em 0.56em;
+    gap: 0.42em;
+    border-radius: 13px;
   }
-  .room-switch.on .room-switch-knob {
-    transform: translateX(1.2em);
+  .room-grid.row-mode.slim-mode .room-row-main {
+    gap: 0.42em;
+  }
+  .room-grid.row-mode.slim-mode .room-tile-icon {
+    width: 1.62em;
+    height: 1.62em;
+    border-radius: 9px;
+  }
+  .room-grid.row-mode.slim-mode .room-tile-icon .icon {
+    font-size: 1.08em;
+    width: 1.08em;
+    height: 1.08em;
+  }
+  .room-grid.row-mode.slim-mode .room-row-info {
+    gap: 0.06em;
+  }
+  .room-grid.row-mode.slim-mode .room-tile-name {
+    font-size: 0.68em;
+    letter-spacing: 0.01em;
+  }
+  .room-grid.row-mode.slim-mode .room-tile-status {
+    font-size: 0.56em;
+  }
+  .room-grid.row-mode.slim-mode .room-row-controls {
+    gap: 0.2em;
+  }
+  .room-grid.row-mode.slim-mode .room-orbs {
+    gap: 0.14em;
+  }
+  .room-grid.row-mode.slim-mode .room-orb {
+    width: 1.46em;
+    height: 1.46em;
+    border-radius: 8px;
+  }
+  .room-grid.row-mode.slim-mode .room-orb .icon {
+    font-size: 0.9em;
+    width: 0.9em;
+    height: 0.9em;
+  }
+  .room-grid.row-mode.slim-mode .room-action-btn {
+    height: 1.46em;
+    min-width: 1.46em;
+    border-radius: 8px;
+    padding: 0 0.24em;
+  }
+  .room-grid.row-mode.slim-mode .room-action-btn .icon {
+    font-size: 1em;
+    width: 1em;
+    height: 1em;
+  }
+  .room-grid.row-mode.slim-mode .room-chevron {
+    width: 1.28em;
+    height: 1.28em;
   }
 
   /* -- Toggle indicator dot -- */
@@ -433,16 +526,27 @@ const CARD_STYLES = `
       height: 1.64em;
       border-radius: 9px;
     }
-    .room-grid.row-mode .room-switch {
-      width: 2.55em;
-      height: 1.46em;
+    .room-grid.row-mode .room-action-btn {
+      height: 1.64em;
+      min-width: 1.64em;
     }
-    .room-grid.row-mode .room-switch-knob {
-      width: 1.2em;
-      height: 1.2em;
+    .room-grid.row-mode.slim-mode .room-tile {
+      padding: 0.4em 0.5em;
+      gap: 0.36em;
     }
-    .room-grid.row-mode .room-switch.on .room-switch-knob {
-      transform: translateX(1.02em);
+    .room-grid.row-mode.slim-mode .room-tile-name {
+      font-size: 0.64em;
+    }
+    .room-grid.row-mode.slim-mode .room-tile-status {
+      font-size: 0.53em;
+    }
+    .room-grid.row-mode.slim-mode .room-orb {
+      width: 1.34em;
+      height: 1.34em;
+    }
+    .room-grid.row-mode.slim-mode .room-action-btn {
+      height: 1.34em;
+      min-width: 1.34em;
     }
   }
 `;
@@ -513,7 +617,7 @@ class TunetRoomsCard extends HTMLElement {
     return {
       schema: [
         { name: 'name', selector: { text: {} } },
-        { name: 'layout_variant', selector: { select: { options: ['tiles', 'row'] } } },
+        { name: 'layout_variant', selector: { select: { options: ['tiles', 'row', 'slim'] } } },
         { name: 'rooms', selector: { object: {} } },
       ],
       computeLabel: (schema) => {
@@ -555,7 +659,9 @@ class TunetRoomsCard extends HTMLElement {
     }
     this._config = {
       name: config.name || 'Rooms',
-      layout_variant: config.layout_variant === 'row' ? 'row' : 'tiles',
+      layout_variant: (config.layout_variant === 'row' || config.layout_variant === 'slim')
+        ? config.layout_variant
+        : 'tiles',
       rooms: config.rooms.map((room) => ({
         name: room.name || 'Room',
         icon: normalizeIcon(room.icon || 'home'),
@@ -605,7 +711,7 @@ class TunetRoomsCard extends HTMLElement {
 
   getCardSize() {
     const roomCount = (this._config.rooms || []).length;
-    if (this._config.layout_variant === 'row') {
+    if (this._config.layout_variant === 'row' || this._config.layout_variant === 'slim') {
       return Math.max(2, roomCount + 1);
     }
     const rows = Math.ceil(roomCount / 4);
@@ -665,8 +771,10 @@ class TunetRoomsCard extends HTMLElement {
     const grid = this.$.roomGrid;
     grid.innerHTML = '';
     this._tileRefs = [];
-    const isRowVariant = this._config.layout_variant === 'row';
+    const isRowVariant = this._config.layout_variant === 'row' || this._config.layout_variant === 'slim';
+    const isSlimVariant = this._config.layout_variant === 'slim';
     grid.classList.toggle('row-mode', isRowVariant);
+    grid.classList.toggle('slim-mode', isSlimVariant);
 
     this._config.rooms.forEach((roomCfg, i) => {
       const tile = document.createElement('div');
@@ -698,9 +806,15 @@ class TunetRoomsCard extends HTMLElement {
           </div>
           <div class="room-row-controls">
             <div class="room-orbs" id="room-orbs-${i}">${orbs}</div>
-            <button type="button" class="room-switch" id="room-switch-${i}" aria-label="Toggle ${roomCfg.name}" aria-pressed="false">
-              <span class="room-switch-knob"></span>
-            </button>
+            <div class="room-room-actions">
+              <button type="button" class="room-action-btn off" id="room-off-${i}" aria-label="All off ${roomCfg.name}">
+                <span class="icon">power_settings_new</span>
+              </button>
+              <button type="button" class="room-action-btn on" id="room-on-${i}" aria-label="All on ${roomCfg.name}">
+                <span class="icon">lightbulb</span>
+              </button>
+            </div>
+            <span class="icon room-chevron">chevron_right</span>
           </div>
           <div class="room-progress-track">
             <div class="room-progress-fill" id="room-fill-${i}"></div>
@@ -722,22 +836,35 @@ class TunetRoomsCard extends HTMLElement {
 
       const statusEl = tile.querySelector(`#room-status-${i}`);
       const fillEl = tile.querySelector(`#room-fill-${i}`);
-      const switchEl = isRowVariant ? tile.querySelector(`#room-switch-${i}`) : null;
+      const offBtn = isRowVariant ? tile.querySelector(`#room-off-${i}`) : null;
+      const onBtn = isRowVariant ? tile.querySelector(`#room-on-${i}`) : null;
       const orbRefs = isRowVariant
         ? [...tile.querySelectorAll('.room-orb')]
             .map((el) => ({ el, entity: String(el.dataset.entity || '') }))
             .filter((ref) => !!ref.entity)
         : [];
 
-      if (switchEl) {
+      if (offBtn) {
         const stopBubble = (e) => e.stopPropagation();
-        switchEl.addEventListener('pointerdown', stopBubble);
-        switchEl.addEventListener('pointerup', stopBubble);
-        switchEl.addEventListener('pointercancel', stopBubble);
-        switchEl.addEventListener('click', (e) => {
+        offBtn.addEventListener('pointerdown', stopBubble);
+        offBtn.addEventListener('pointerup', stopBubble);
+        offBtn.addEventListener('pointercancel', stopBubble);
+        offBtn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          this._toggleRoomGroup(roomCfg);
+          this._setRoomGroup(roomCfg, false);
+        });
+      }
+
+      if (onBtn) {
+        const stopBubble = (e) => e.stopPropagation();
+        onBtn.addEventListener('pointerdown', stopBubble);
+        onBtn.addEventListener('pointerup', stopBubble);
+        onBtn.addEventListener('pointercancel', stopBubble);
+        onBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this._setRoomGroup(roomCfg, true);
         });
       }
 
@@ -753,8 +880,9 @@ class TunetRoomsCard extends HTMLElement {
         });
       }
 
-      // Tap → toggle all room lights (or custom tap action)
-      // Long press → configured hold action (typically popup)
+      // Row mode interaction parity:
+      // tap -> popup/navigate; long press -> toggle room.
+      // Tile mode keeps legacy tap/hold behavior.
       let pressTimer = null;
       let didLongPress = false;
 
@@ -762,10 +890,14 @@ class TunetRoomsCard extends HTMLElement {
         didLongPress = false;
         pressTimer = setTimeout(() => {
           didLongPress = true;
-          if (roomCfg.hold_action) {
-            this._handleRoomAction(roomCfg.hold_action, roomCfg);
-          } else if (roomCfg.navigate_path) {
-            navigatePath(roomCfg.navigate_path);
+          if (isRowVariant && (roomCfg.lights || []).length) {
+            this._toggleRoomGroup(roomCfg);
+          } else {
+            if (roomCfg.hold_action) {
+              this._handleRoomAction(roomCfg.hold_action, roomCfg);
+            } else if (roomCfg.navigate_path) {
+              navigatePath(roomCfg.navigate_path);
+            }
           }
 
           // Brief haptic feedback via scale.
@@ -777,7 +909,18 @@ class TunetRoomsCard extends HTMLElement {
       const onPointerUp = () => {
         clearTimeout(pressTimer);
         if (didLongPress) return;
-        // Short tap → configured action, otherwise toggle room lights.
+        if (isRowVariant) {
+          if (roomCfg.tap_action) {
+            this._handleRoomAction(roomCfg.tap_action, roomCfg);
+          } else if (roomCfg.navigate_path) {
+            navigatePath(roomCfg.navigate_path);
+          } else if (roomCfg.hold_action) {
+            this._handleRoomAction(roomCfg.hold_action, roomCfg);
+          }
+          return;
+        }
+
+        // Tile mode short tap -> configured action, otherwise toggle room lights.
         if (roomCfg.tap_action) {
           this._handleRoomAction(roomCfg.tap_action, roomCfg);
         } else if ((roomCfg.lights || []).length) {
@@ -817,7 +960,8 @@ class TunetRoomsCard extends HTMLElement {
         cfg: roomCfg,
         statusEl,
         fillEl,
-        switchEl,
+        onBtn,
+        offBtn,
         orbRefs,
       });
     });
@@ -845,6 +989,17 @@ class TunetRoomsCard extends HTMLElement {
     }
 
     const service = anyOn ? 'turn_off' : 'turn_on';
+    const result = this._hass.callService('light', service, { entity_id: entityIds });
+    if (result && typeof result.catch === 'function') {
+      result.catch(() => this._updateAll());
+    }
+  }
+
+  _setRoomGroup(roomCfg, turnOn) {
+    if (!this._hass) return;
+    const entityIds = (roomCfg.lights || []).map((l) => l.entity).filter(Boolean);
+    if (!entityIds.length) return;
+    const service = turnOn ? 'turn_on' : 'turn_off';
     const result = this._hass.callService('light', service, { entity_id: entityIds });
     if (result && typeof result.catch === 'function') {
       result.catch(() => this._updateAll());
@@ -956,10 +1111,6 @@ class TunetRoomsCard extends HTMLElement {
 
       const anyOn = onCount > 0;
       ref.el.classList.toggle('active', anyOn);
-      if (ref.switchEl) {
-        ref.switchEl.classList.toggle('on', anyOn);
-        ref.switchEl.setAttribute('aria-pressed', anyOn ? 'true' : 'false');
-      }
       if (ref.fillEl) {
         const pct = onCount > 0 ? Math.round(brightnessTotal / onCount) : 0;
         ref.fillEl.style.width = `${pct}%`;

@@ -16,11 +16,12 @@ import {
   injectFonts,
   detectDarkMode,
   applyDarkClass,
+  runCardAction,
   registerCard,
   logCardVersion,
-} from './tunet_base.js';
+} from './tunet_base.js?v=20260306g1';
 
-const CARD_VERSION = '2.3.0';
+const CARD_VERSION = '2.4.0';
 
 // ═══════════════════════════════════════════════════════════
 // Default action configs (card-specific)
@@ -133,6 +134,29 @@ function normalizeIcon(icon) {
   return ICON_ALIASES[raw] || raw || 'lightbulb';
 }
 
+function evaluateCondition(hass, condition) {
+  if (!hass || !condition || !condition.entity) return true;
+  const entity = hass.states[condition.entity];
+  if (!entity) return false;
+
+  const attr = condition.attribute;
+  const actualRaw = attr ? entity.attributes?.[attr] : entity.state;
+  const expectedRaw = condition.state;
+  const actual = String(actualRaw ?? '');
+  const expected = String(expectedRaw ?? '');
+  const op = String(condition.operator || 'equals');
+  const actualNum = Number(actualRaw);
+  const expectedNum = Number(expectedRaw);
+
+  if (op === 'not_equals') return actual !== expected;
+  if (op === 'contains') return actual.includes(expected);
+  if (op === 'gt') return Number.isFinite(actualNum) && Number.isFinite(expectedNum) && actualNum > expectedNum;
+  if (op === 'gte') return Number.isFinite(actualNum) && Number.isFinite(expectedNum) && actualNum >= expectedNum;
+  if (op === 'lt') return Number.isFinite(actualNum) && Number.isFinite(expectedNum) && actualNum < expectedNum;
+  if (op === 'lte') return Number.isFinite(actualNum) && Number.isFinite(expectedNum) && actualNum <= expectedNum;
+  return actual === expected;
+}
+
 // ═══════════════════════════════════════════════════════════
 // Card-specific CSS overrides
 // ═══════════════════════════════════════════════════════════
@@ -200,6 +224,7 @@ const CARD_STYLES = `
     outline-offset: 2px;
   }
   .action-chip .icon { font-size: 1.25em; width: 1.25em; height: 1.25em; color: var(--text-muted); }
+  .action-chip.hidden { display: none !important; }
 
   /* Active state: default (amber) */
   .action-chip.active {
@@ -315,6 +340,8 @@ class TunetActionsCard extends HTMLElement {
         state_entity: a.state_entity || '',
         active_when: a.active_when || 'on',
         active_when_operator: a.active_when_operator || 'equals',
+        show_when: a.show_when || null,
+        tap_action: a.tap_action || null,
       })),
     };
     if (this._rendered) {
@@ -391,7 +418,7 @@ class TunetActionsCard extends HTMLElement {
       const iconName = normalizeIcon(action.icon || 'circle');
       chip.innerHTML = `<span class="icon">${iconName}</span> ${action.name}`;
 
-      chip.addEventListener('click', () => this._callService(action));
+      chip.addEventListener('click', () => this._runAction(action));
 
       this._row.appendChild(chip);
       this._chipEls.push({ el: chip, action });
@@ -404,6 +431,9 @@ class TunetActionsCard extends HTMLElement {
     if (!this._hass || !this._chipEls) return;
 
     for (const { el, action } of this._chipEls) {
+      const shouldShow = evaluateCondition(this._hass, action.show_when);
+      el.classList.toggle('hidden', !shouldShow);
+
       if (!action.state_entity) {
         el.classList.remove('active');
         continue;
@@ -438,6 +468,22 @@ class TunetActionsCard extends HTMLElement {
     const [domain, service] = action.service.split('.');
     const serviceData = { ...action.service_data };
     this._hass.callService(domain, service, serviceData);
+  }
+
+  _runAction(action) {
+    if (!this._hass || !action) return;
+
+    if (action.tap_action && typeof action.tap_action === 'object') {
+      const ran = runCardAction({
+        element: this,
+        hass: this._hass,
+        actionConfig: action.tap_action,
+        defaultEntityId: action.state_entity || '',
+      });
+      if (ran) return;
+    }
+
+    this._callService(action);
   }
 }
 

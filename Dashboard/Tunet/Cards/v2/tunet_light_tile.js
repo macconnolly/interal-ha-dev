@@ -30,7 +30,7 @@ import {
   registerCard,
   logCardVersion,
   clamp,
-} from './tunet_base.js';
+} from './tunet_base.js?v=20260306g1';
 
 
 // ═══════════════════════════════════════════════════════════

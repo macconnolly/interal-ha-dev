@@ -1,5 +1,5 @@
 /**
- * Tunet Status Card  v2.6.0 (v2 migration)
+ * Tunet Status Card  v2.6.2 (v2 migration)
  * Home status grid with typed tiles: indicator, timer, value, dropdown, alarm
  * Migrated to tunet_base.js shared module.
  */
@@ -11,9 +11,9 @@ import {
   injectFonts, detectDarkMode, applyDarkClass,
   runCardAction,
   registerCard, logCardVersion,
-} from './tunet_base.js';
+} from './tunet_base.js?v=20260306g1';
 
-const CARD_VERSION = '2.6.0';
+const CARD_VERSION = '2.6.2';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -22,6 +22,8 @@ const STATUS_ICON_ALIASES = {
   floor_lamp: 'lamp',
   table_lamp: 'lamp',
   light_group: 'lightbulb',
+  weather_sunset_down: 'wb_twilight',
+  weather_sunset_up: 'sunny_snowing',
 };
 
 function normalizeStatusIcon(icon) {
@@ -1103,6 +1105,8 @@ class TunetStatusCard extends HTMLElement {
       const numStr = String(val).replace(/%/g, '').trim();
       val = Number(numStr).toFixed(1);
       if (val === 'NaN') val = '—';
+    } else if (config.format === 'time') {
+      val = this._formatLocalTime(val);
     } else if (config.format === 'state') {
       val = humanizeStateValue(val);
     }
@@ -1181,6 +1185,28 @@ class TunetStatusCard extends HTMLElement {
       valEl.innerHTML = `${val}<span class="tile-deg">${unit}</span>`;
     } else {
       valEl.textContent = val;
+    }
+  }
+
+  _formatLocalTime(rawValue) {
+    if (rawValue == null || rawValue === '') return '—';
+
+    let date = new Date(rawValue);
+    if (Number.isNaN(date.getTime())) {
+      const numeric = Number(rawValue);
+      if (Number.isFinite(numeric)) {
+        date = new Date(numeric > 1e12 ? numeric : numeric * 1000);
+      }
+    }
+    if (Number.isNaN(date.getTime())) return String(rawValue);
+
+    try {
+      return new Intl.DateTimeFormat(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(date);
+    } catch (_) {
+      return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     }
   }
 

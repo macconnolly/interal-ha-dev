@@ -10,7 +10,7 @@
  *   Drag L/R   = volume control (200px = full range)
  *   Hold 500ms = open more-info dialog
  *
- * Version 3.1.0
+ * Version 3.1.1
  */
 
 import {
@@ -27,9 +27,9 @@ import {
   applyDarkClass,
   registerCard,
   logCardVersion,
-} from './tunet_base.js';
+} from './tunet_base.js?v=20260306g1';
 
-const CARD_VERSION = '3.1.0';
+const CARD_VERSION = '3.1.1';
 
 // ═══════════════════════════════════════════════════════════
 // Card-specific CSS overrides
@@ -169,10 +169,8 @@ const CARD_STYLES = `
       padding: 8px 6px 12px;
       min-height: 84px;
     }
-    .tile-icon-wrap {
-      margin-top: 1px;
-      margin-bottom: 1px;
-    }
+    /* Tiny tiles: hide icon block so text stack never collides. */
+    .tile-icon-wrap { display: none; }
     .spk-text {
       width: 100%;
       align-items: center;

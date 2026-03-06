@@ -18,7 +18,7 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
-} from './tunet_base.js';
+} from './tunet_base.js?v=20260306g1';
 
 const CARD_VERSION = '1.1.0';
 
@@ -442,12 +442,21 @@ class TunetSensorCard extends HTMLElement {
           show_range: true,
         },
         {
-          entity: 'sensor.outdoor_temperature',
-          label: 'Outside',
-          icon: 'device_thermostat',
-          accent: 'blue',
-          unit: '\u00b0F',
+          entity: 'weather.home',
+          label: 'Outdoor Conditions',
+          icon: 'cloud',
+          accent: 'green',
           precision: 0,
+          state_styles: [
+            { state: 'sunny', style: 'success' },
+            { state: 'partlycloudy', style: 'success' },
+            { state: 'cloudy', style: 'warning' },
+            { state: 'rainy', style: 'warning' },
+            { state: 'pouring', style: 'error' },
+            { state: 'snowy', style: 'warning' },
+            { state: 'lightning', style: 'error' },
+            { state: 'lightning-rainy', style: 'error' },
+          ],
           show_range: true,
         },
       ],

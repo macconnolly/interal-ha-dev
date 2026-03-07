@@ -1,7 +1,7 @@
 /**
  * Tunet Actions Card (v2 – ES Module)
  * Quick action chips with state reflection and glassmorphism design
- * Version 2.2.0
+ * Version 2.4.4
  */
 
 import {
@@ -19,9 +19,9 @@ import {
   runCardAction,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260306g1';
+} from './tunet_base.js?v=20260307p08';
 
-const CARD_VERSION = '2.4.0';
+const CARD_VERSION = '2.4.4';
 
 // ═══════════════════════════════════════════════════════════
 // Default action configs (card-specific)
@@ -185,12 +185,13 @@ const CARD_STYLES = `
   /* Action chip row */
   .actions-row {
     display: flex;
-    gap: 0.375em;
+    gap: 0.42em;
   }
   .actions-row.mode-strip .action-chip {
-    padding: 0.5em 0.25em;
+    min-height: 2.52em;
+    padding: 0.56em 0.34em;
     border-radius: 0.875em;
-    font-size: 0.6875em;
+    font-size: var(--type-chip, 12.5px);
     font-weight: 700;
   }
 
@@ -200,13 +201,14 @@ const CARD_STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.3em;
-    padding: 0.5em 0.25em;
+    gap: 0.36em;
+    min-height: 2.52em;
+    padding: 0.56em 0.34em;
     border-radius: 0.875em;
     background: var(--tile-bg);
     box-shadow: var(--tile-shadow-rest);
     font-family: inherit;
-    font-size: 0.6875em;
+    font-size: var(--type-chip, 12.5px);
     font-weight: 600;
     color: var(--text-sub);
     letter-spacing: 0.01em;
@@ -223,7 +225,7 @@ const CARD_STYLES = `
     outline: 2px solid var(--blue);
     outline-offset: 2px;
   }
-  .action-chip .icon { font-size: 1.25em; width: 1.25em; height: 1.25em; color: var(--text-muted); }
+  .action-chip .icon { font-size: 1.3em; width: 1.3em; height: 1.3em; color: var(--text-muted); }
   .action-chip.hidden { display: none !important; }
 
   /* Active state: default (amber) */
@@ -252,9 +254,9 @@ const CARD_STYLES = `
   .action-chip[data-accent="purple"].active .icon { color: var(--purple); }
 
   @media (max-width: 440px) {
-    :host { font-size: 15px; }
-    .card.compact { padding: 0.5em; }
-    .action-chip { gap: 0.2em; }
+    :host { font-size: 16px; }
+    .card.compact { padding: 0.56em; }
+    .action-chip { gap: 0.32em; }
   }
 `;
 

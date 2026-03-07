@@ -1,7 +1,7 @@
 /**
  * Tunet Scenes Card (v2 – ES Module)
  * Quick scene/script/automation chips in a compact strip layout.
- * Version 0.1.0
+ * Version 0.1.2
  */
 
 import {
@@ -18,9 +18,9 @@ import {
   applyDarkClass,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260306g1';
+} from './tunet_base.js?v=20260307p08';
 
-const CARD_VERSION = '0.1.0';
+const CARD_VERSION = '0.1.2';
 
 const ACCENTS = ['amber', 'blue', 'green', 'purple', 'red'];
 const OPERATORS = ['equals', 'contains', 'not_equals'];
@@ -102,7 +102,7 @@ const CARD_OVERRIDES = `
   }
 
   .card.compact {
-    padding: 12px;
+    padding: 10px;
     border-radius: 20px;
   }
 `;
@@ -133,7 +133,7 @@ const CARD_STYLES = `
   }
 
   .hdr-title {
-    font-size: 12px;
+    font-size: var(--type-label, 12.5px);
     font-weight: 700;
     letter-spacing: 0.2px;
     color: var(--text-sub);
@@ -167,9 +167,9 @@ const CARD_STYLES = `
     align-items: center;
     gap: 6px;
     min-height: 36px;
-    padding: 7px 12px 7px 8px;
+    padding: 6px 12px 6px 9px;
     font-family: inherit;
-    font-size: 12px;
+    font-size: var(--type-chip, 12.5px);
     font-weight: 600;
     line-height: 1;
     letter-spacing: 0.1px;
@@ -180,9 +180,9 @@ const CARD_STYLES = `
   }
 
   .card.compact .scene-chip {
-    min-height: 32px;
-    padding: 6px 10px 6px 7px;
-    font-size: 11px;
+    min-height: 34px;
+    padding: 6px 11px 6px 8px;
+    font-size: var(--type-chip, 13px);
     gap: 5px;
   }
 
@@ -200,8 +200,8 @@ const CARD_STYLES = `
   }
 
   .scene-chip .icon-wrap {
-    width: 22px;
-    height: 22px;
+    width: 21px;
+    height: 21px;
     border-radius: 7px;
     display: grid;
     place-items: center;
@@ -217,9 +217,9 @@ const CARD_STYLES = `
   }
 
   .scene-chip .icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
   }
 
   .card.compact .scene-chip .icon {

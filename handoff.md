@@ -1,8 +1,170 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-03-06 (America/Denver)  
+Last updated: 2026-03-07 (America/Denver)  
 Intended reader: next Codex run in a new chat  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
+
+## 0I) Mobile Conventions Lock (New Standard)
+
+This is now a **locked implementation convention** for all Tunet v2 cards:
+
+- Mobile density and type should be driven from **central styling tokens** in:
+  - `Dashboard/Tunet/Cards/v2/tunet_base.js`
+- Prefer token/system fixes over one-off per-card font/spacing patches whenever possible.
+- Mobile goal:
+  - **minimize edge whitespace** around/inside cards
+  - **maximize readability** (labels/values/status text) without oversized/shouty UI
+  - maintain hierarchy (title/value/subtext) and avoid clipping/overlap
+
+### Current standard targets (from latest pass)
+
+- Mobile label baseline target: `13px` equivalent.
+- Row card status text is allowed to use up to **2 lines** (readability over truncation).
+- Row-card interaction lock:
+  - sub-buttons toggle individual lights
+  - room all-toggle is a single right-side control
+  - tapping card body navigates to room page
+
+### Central token direction (implemented)
+
+`tunet_base.js` now includes semantic type roles intended for cross-card use:
+
+- `--type-label`, `--type-sub`, `--type-value`, `--type-chip`
+- `--type-row-title`, `--type-row-status`
+- mobile counterparts:
+  - `--type-label-mobile`, `--type-sub-mobile`, `--type-value-mobile`, `--type-chip-mobile`
+  - `--type-row-title-mobile`, `--type-row-status-mobile`
+- row readability helpers:
+  - `--row-line-height-title`, `--row-line-height-status`, `--row-status-max-lines`
+
+### Changes landed in this pass
+
+- `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - added semantic typography roles + mobile mappings in responsive token layer
+- `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
+  - row-mode text now references semantic row tokens
+  - row status allows wrapped readability (2-line clamp)
+  - retained locked interaction model (card-body navigate, sub-buttons own toggles)
+  - room config supports optional `humidity_entity` in row status display
+- `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+  - value/label/secondary typography moved to semantic type token usage
+- `Dashboard/Tunet/Cards/v2/tunet_actions_card.js`
+  - chip text now references semantic chip token
+- `Dashboard/Tunet/Cards/v2/tunet_scenes_card.js`
+  - chip/header text now references semantic type/chip tokens
+- `Dashboard/Tunet/Cards/v2/tunet_sensor_card.js`
+  - label/sub/value/unit tied to semantic type roles (sensor remains readability reference)
+- `Dashboard/Tunet/Cards/v2/tunet_weather_card.js`
+  - significant refactor landed (precip fallback robustness, tighter layout, readability, toggle containment)
+
+### Carry-forward rule for next agent
+
+- If readability/whitespace issues recur across more than one card family:
+  1. adjust `tunet_base.js` tokens first,
+  2. then apply minimal card-level overrides only where required.
+- Avoid introducing another isolated “card-local typography system.”
+
+## 0H) Session Delta (2026-03-07, T-010C.2)
+
+Focused reliability tranche implemented and deployed:
+
+- `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - `navigatePath()` hardened for popup/navigation reliability:
+    - dispatches `hass-navigate` from card element, then document, then window
+    - retains history/location fallback for environments where event listeners do not intercept
+  - `runCardAction()` now passes source element into `navigatePath()` for both:
+    - `action: navigate`
+    - in-app `action: url` paths (`/path` and `#hash`)
+- `Dashboard/Tunet/Cards/v2/tunet_actions_card.js` (`v2.4.3`)
+  - base import bumped to `tunet_base.js?v=20260307p05`
+- `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` (`v2.8.6`)
+  - base import bumped to `tunet_base.js?v=20260307p05`
+
+Live deploy completed:
+- uploaded changed files to `/config/www/tunet/v2_next/`
+- HA resources cache-busted:
+  - `/local/tunet/v2_next/tunet_actions_card.js?v=20260307_p06`
+  - `/local/tunet/v2_next/tunet_rooms_card.js?v=20260307_p06`
+
+Validation:
+- `node --check` passed for all touched JS files in this tranche.
+
+## 0G) Session Delta (2026-03-07, T-010B)
+
+Focused P0 tranche implemented and deployed:
+
+- `Dashboard/Tunet/Cards/v2/tunet_nav_card.js` (`v0.2.3`)
+  - expanded global bottom-offset styling to include Sections and non-`hui-view` hosts
+  - added resize-mode/offset reflow and measured mobile dock clearance
+  - replaced hardcoded `+48px` offset math with measured/configured max + safe area
+- `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - increased centralized room-row control tokens (orb/toggle/header all-toggle) for mobile readability
+- `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` (`v2.8.5`)
+  - fixed row control sizing mismatch:
+    - `.room-action-btn` no longer downscales icon lane relative to orb controls
+    - `.room-orb` now has fixed flex/min-width sizing parity with row toggle button
+- `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js` (`v3.4.4`)
+  - increased compact/mobile lane spacing and progress clearance to reduce value/name overlap
+- `Dashboard/Tunet/Cards/v2/tunet_light_tile.js` (`v1.0.2`)
+  - reinforced vertical lane spacing (name/value/progress relationship)
+
+Live deploy completed:
+- uploaded changed files to `/config/www/tunet/v2_next/`
+- HA resources cache-busted:
+  - `/local/tunet/v2_next/tunet_nav_card.js?v=20260307_p04`
+  - `/local/tunet/v2_next/tunet_rooms_card.js?v=20260307_p04`
+  - `/local/tunet/v2_next/tunet_lighting_card.js?v=20260307_p04`
+  - `/local/tunet/v2_next/tunet_light_tile.js?v=20260307_p04`
+
+Validation:
+- `node --check` passed for all touched files in this tranche.
+
+## 0E) Session Delta (2026-03-07, T-010A)
+
+Focused `P0-1` tranche implemented and deployed (`shared density/icon/readability`):
+
+- `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - icon baseline normalized (`wght/GRAD/opsz`, line-height, overflow visible)
+  - mobile density tokens adjusted for control/dropdown readability
+- `Dashboard/Tunet/Cards/v2/tunet_status_card.js` (`v2.6.4`)
+  - increased compact/standard/large tile vertical budgets to reduce clipping
+  - improved compact dropdown value text readability
+  - fixed responsive column source to use rendered card/container width via `ResizeObserver` (instead of viewport width)
+  - base import bumped to `tunet_base.js?v=20260307p01`
+- `Dashboard/Tunet/Cards/v2/tunet_scenes_card.js` (`v0.1.1`)
+  - increased compact chip typography/icon sizing
+  - reduced over-tight compact density
+  - base import bumped to `tunet_base.js?v=20260307p01`
+- `Dashboard/Tunet/Cards/v2/tunet_actions_card.js` (`v2.4.1`)
+  - increased action-strip chip text/icon size and touchable height
+  - base import bumped to `tunet_base.js?v=20260307p01`
+
+Live deploy completed:
+- uploaded updated files to `/config/www/tunet/v2_next/`
+- HA dashboard resources cache-busted:
+  - `/local/tunet/v2_next/tunet_status_card.js?v=20260307_p01`
+  - `/local/tunet/v2_next/tunet_scenes_card.js?v=20260307_p01`
+  - `/local/tunet/v2_next/tunet_actions_card.js?v=20260307_p01`
+
+Validation:
+- `node --check` passed for all touched files:
+  - `tunet_base.js`, `tunet_status_card.js`, `tunet_scenes_card.js`, `tunet_actions_card.js`
+
+## 0F) Session Delta (2026-03-07, T-010A.1)
+
+Focused follow-up micro-fix:
+
+- `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` (`v2.8.2`)
+  - increased Rooms header `All On/All Off` button size (desktop + mobile)
+  - no behavior/interaction contract changes in this slice
+
+Live deploy:
+- uploaded `tunet_rooms_card.js` to `/config/www/tunet/v2_next/`
+- resource cache-bust:
+  - `/local/tunet/v2_next/tunet_rooms_card.js?v=20260307_p02`
+
+Validation:
+- `node --check Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` passed
 
 ## 0B) Session Delta (2026-03-06 Late 3)
 
@@ -301,6 +463,10 @@ This is the authoritative unresolved matrix from the user’s latest requirement
   - Resource version/cache mismatch, registration mismatch, or runtime card error causing render abort.
 
 #### `ISSUE-003` Popup “Room/Open Room” route inconsistency
+- Status update (2026-03-07, `T-010C.2`):
+  - shared navigation dispatch in `Dashboard/Tunet/Cards/v2/tunet_base.js` hardened to emit `hass-navigate` from element/document/window before history fallback.
+  - `Dashboard/Tunet/Cards/v2/tunet_actions_card.js` and `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` moved to base import `?v=20260307p05`.
+  - Remaining work: live HA verification from popup context for all room routes.
 - Where to look:
   - `Dashboard/Tunet/tunet-suite-storage-config.yaml` popup action strips
   - `Dashboard/Tunet/Cards/v2/tunet_actions_card.js` action routing
@@ -332,6 +498,9 @@ This is the authoritative unresolved matrix from the user’s latest requirement
   - Coordinator resolution mismatch, slider-to-service mapping issue, or stale entity-target wiring.
 
 #### `ISSUE-005` Rooms row variant interaction contract drift
+- Status update (2026-03-07, `T-010B`):
+  - control-size parity and row button/orb sizing consistency improved in `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` + shared tokens in `tunet_base.js`.
+  - Remaining work: lock card-body primary action contract in docs/code (`tap->navigate|popup` vs legacy tap-toggle lock conflict).
 - Where to look:
   - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
   - `Dashboard/Tunet/tunet-suite-storage-config.yaml` rooms card configs
@@ -366,6 +535,22 @@ This is the authoritative unresolved matrix from the user’s latest requirement
 - Likely root cause:
   - Missing breakpoint orchestration at dashboard composition level.
 
+#### `ISSUE-016` Mobile bottom-nav overlap clips last card
+- Status update (2026-03-07, `T-010B`):
+  - nav offset injection and clearance logic hardened in `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`.
+  - Remaining work: live verify that final cards can scroll fully above nav dock on all subviews.
+- Where to look:
+  - `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
+  - `Dashboard/Tunet/tunet-suite-storage-config.yaml` (`mobile_bottom_offset` on footer nav card)
+- Repro:
+  - On mobile, open room/overview pages and scroll to the last card.
+- Current wrong behavior:
+  - Bottom nav covers lower portion of final card.
+- Desired behavior:
+  - Last card is fully visible and scrollable above nav dock.
+- Likely root cause:
+  - Offset styles not consistently applied to all HA view host types and/or insufficient mobile dock clearance.
+
 #### `ISSUE-007` Bedroom next Sonos alarm tile missing
 - Status update (2026-03-06, `T-008B`):
   - Bedroom subview now includes both `sensor.sonos_alarm_bedroom_display` (context strip) and `sensor.sonos_next_alarm` (alarm panel) in `Dashboard/Tunet/tunet-suite-storage-config.yaml`.
@@ -396,6 +581,9 @@ This is the authoritative unresolved matrix from the user’s latest requirement
   - Missing `show_when` state gating for sun condition.
 
 #### `ISSUE-009` Lighting compact+scroll brightness overlap
+- Status update (2026-03-07, `T-010B`):
+  - compact/mobile spacing and track clearance adjusted in `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`.
+  - Remaining work: live HA verification on narrow mobile widths with real entities.
 - Where to look:
   - `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
 - Repro:
@@ -408,6 +596,13 @@ This is the authoritative unresolved matrix from the user’s latest requirement
   - Tight compact spacing and progress-track offset in scroll mode.
 
 #### `ISSUE-015` Cross-tile vertical lane alignment regression (name/value/bar)
+- Status update (2026-03-07, `T-010B`):
+  - lane-spacing adjustments applied in:
+    - `Dashboard/Tunet/Cards/v2/tunet_light_tile.js`
+    - `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
+    - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
+    - `Dashboard/Tunet/Cards/v2/tunet_base.js` (shared density tokens)
+  - Remaining work: full cross-surface phone/tablet validation and any final fine-tuning pass.
 - Where to look:
   - `Dashboard/Tunet/Cards/v2/tunet_base.js`
   - `Dashboard/Tunet/Cards/v2/tunet_light_tile.js`

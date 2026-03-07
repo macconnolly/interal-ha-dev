@@ -1,5 +1,5 @@
 /**
- * Tunet Sensor Card v1.1.0
+ * Tunet Sensor Card v1.1.1
  * ──────────────────────────────────────────────────────────────
  * Dedicated environment sensor detail panel:
  *   Section-container wrapper  ·  Row-based sensor readings
@@ -7,7 +7,7 @@
  *   Threshold-based accent switching  ·  Dirty-diff updates
  *   HA entity integration  ·  Configurable sensor rows
  *
- * v1.1.0 – Migrated to tunet_base.js shared module
+ * v1.1.1 – Shared typography token adoption
  * ──────────────────────────────────────────────────────────────
  */
 
@@ -18,9 +18,9 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260306g1';
+} from './tunet_base.js?v=20260307p08';
 
-const CARD_VERSION = '1.1.0';
+const CARD_VERSION = '1.1.1';
 
 /* ═══════════════════════════════════════════════════════════════
    CSS — Card-specific overrides + unique styles
@@ -179,12 +179,12 @@ const CARD_STYLES = `
     display: flex; flex-direction: column; gap: 2px;
   }
   .sensor-label {
-    font-size: 13px; font-weight: 600;
+    font-size: var(--type-label, 13px); font-weight: 600;
     color: var(--text); line-height: 1.2;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .sensor-sub {
-    font-size: 11px; font-weight: 500;
+    font-size: var(--type-sub, 11px); font-weight: 500;
     color: var(--text-muted); line-height: 1.2;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     display: flex; align-items: center; gap: 4px;
@@ -199,14 +199,14 @@ const CARD_STYLES = `
     flex-shrink: 0;
   }
   .sensor-val {
-    font-size: 20px; font-weight: 700;
+    font-size: calc(var(--type-value, 18px) + 2px); font-weight: 700;
     letter-spacing: -0.3px; line-height: 1;
     color: var(--text);
     font-variant-numeric: tabular-nums;
     transition: color 0.2s;
   }
   .sensor-unit {
-    font-size: 11px; font-weight: 600;
+    font-size: var(--type-sub, 11px); font-weight: 600;
     color: var(--text-sub);
     letter-spacing: 0.2px;
   }
@@ -268,7 +268,9 @@ const CARD_STYLES = `
   @media (max-width: 440px) {
     .section-container { padding: 16px; }
     .sensor-row { gap: 10px; padding: 10px 2px; }
-    .sensor-val { font-size: 18px; }
+    .sensor-label { font-size: var(--type-label, 13px); }
+    .sensor-sub, .sensor-unit { font-size: var(--type-sub, 11.5px); }
+    .sensor-val { font-size: var(--type-value, 18px); }
     .sensor-spark { width: 40px; height: 20px; }
   }
 `;

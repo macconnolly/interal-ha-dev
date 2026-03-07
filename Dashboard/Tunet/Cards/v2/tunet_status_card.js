@@ -1,5 +1,5 @@
 /**
- * Tunet Status Card  v2.6.2 (v2 migration)
+ * Tunet Status Card  v2.6.6 (v2 migration)
  * Home status grid with typed tiles: indicator, timer, value, dropdown, alarm
  * Migrated to tunet_base.js shared module.
  */
@@ -11,9 +11,9 @@ import {
   injectFonts, detectDarkMode, applyDarkClass,
   runCardAction,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260306g1';
+} from './tunet_base.js?v=20260307p08';
 
-const CARD_VERSION = '2.6.2';
+const CARD_VERSION = '2.6.6';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -124,10 +124,21 @@ ${CARD_SURFACE_GLASS_STROKE}
     /* Tile physics (not in base tokens) */
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-    --tile-row-h: auto;
+    --tile-row-h: 94px;
     /* Dropdown menu tokens */
     --dd-bg: rgba(255,255,255,0.92);
     --dd-border: rgba(255,255,255,0.60);
+    position: relative;
+    z-index: 1;
+  }
+  :host(.dd-open) {
+    z-index: 9000;
+  }
+  :host([tile-size="compact"]) {
+    --tile-row-h: 88px;
+  }
+  :host([tile-size="large"]) {
+    --tile-row-h: 114px;
   }
 
   :host(.dark) {
@@ -138,7 +149,13 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* ── Card surface overrides ─────────────────── */
   .card {
     width: 100%;
-    gap: 16px;
+    gap: 12px;
+    /* Allow dropdown menus to escape tile/card bounds */
+    overflow: visible;
+    isolation: isolate;
+  }
+  .wrap {
+    overflow: visible;
   }
   .card.no-header {
     gap: 10px;
@@ -158,9 +175,11 @@ ${CARD_SURFACE_GLASS_STROKE}
   .grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-auto-rows: auto;
+    grid-auto-rows: var(--tile-row-h);
     align-items: stretch;
-    gap: 10px;
+    gap: 8px;
+    overflow: visible;
+    isolation: isolate;
   }
 
   /* ── Tile Surface ────────────────────────────── */
@@ -168,7 +187,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     background: var(--tile-bg);
     border-radius: var(--r-tile);
     box-shadow: var(--tile-shadow-rest);
-    padding: 22px 10px 12px;
+    padding: 14px 8px 8px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 5px;
     cursor: pointer;
@@ -176,12 +195,21 @@ ${CARD_SURFACE_GLASS_STROKE}
     position: relative;
     overflow: visible;
     min-width: 0;
-    min-height: 0;
-    height: 100%;
+    min-height: var(--tile-row-h);
+    height: var(--tile-row-h);
+  }
+  .tile[data-type="dropdown"] {
+    z-index: 1;
+  }
+  .tile[data-type="dropdown"].dropdown-open {
+    z-index: 2000;
+  }
+  .tile[data-type="dropdown"].dropdown-open .tile-dd-menu {
+    z-index: 6100;
   }
   :host([tile-size="compact"]) .tile {
-    padding: 12px 5px 6px;
-    gap: 1px;
+    padding: 9px 7px 7px;
+    gap: 3px;
   }
   :host([tile-size="large"]) .tile {
     padding: 30px 12px 14px;
@@ -196,26 +224,26 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Tile Icon Accents ───────────────────────── */
   .tile-icon {
-    width: 24px; height: 24px;
+    width: 25px; height: 25px;
     display: grid; place-items: center;
     margin-bottom: 2px;
   }
   .tile-icon .tile-icon-glyph {
-    font-size: 22px;
-    width: 22px;
-    height: 22px;
-    transform: translateX(-0.5px);
+    font-size: 21px;
+    width: 21px;
+    height: 21px;
+    transform: none;
   }
   :host([tile-size="compact"]) .tile-icon {
-    width: 15px;
-    height: 15px;
-    margin-bottom: 1px;
+    width: 21px;
+    height: 21px;
+    margin-bottom: 2px;
   }
   :host([tile-size="compact"]) .tile-icon .tile-icon-glyph {
-    font-size: 14px;
-    width: 14px;
-    height: 14px;
-    transform: translateX(-0.75px);
+    font-size: 19px;
+    width: 19px;
+    height: 19px;
+    transform: none;
   }
   :host([tile-size="large"]) .tile-icon {
     width: 30px; height: 30px;
@@ -235,11 +263,11 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Tile Values & Labels ────────────────────── */
   .tile-val {
-    font-size: 18px; font-weight: 700; letter-spacing: -.2px; line-height: 1;
+    font-size: var(--type-value, 18px); font-weight: 700; letter-spacing: -.2px; line-height: 1.06;
     color: var(--text); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
-  :host([tile-size="compact"]) .tile-val { font-size: 11px; }
+  :host([tile-size="compact"]) .tile-val { font-size: var(--type-value, 18px); line-height: 1.08; }
   :host([tile-size="large"]) .tile-val { font-size: 20px; }
   .tile-val.is-text {
     white-space: normal;
@@ -248,35 +276,33 @@ ${CARD_SURFACE_GLASS_STROKE}
     -webkit-box-orient: vertical;
     line-height: 1.1;
     text-align: center;
-    font-size: 13.5px;
+    font-size: 15px;
     max-height: 2.3em;
   }
   :host([tile-size="compact"]) .tile-val.is-text {
-    font-size: 9.5px;
+    font-size: 13.4px;
     max-height: 2.35em;
   }
   .tile-val.is-long {
     font-size: 12px;
   }
   :host([tile-size="compact"]) .tile-val.is-long {
-    font-size: 9px;
+    font-size: 12.8px;
   }
   .tile-label {
-    font-size: 9px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
-    color: var(--text-muted); line-height: 1; text-align: center; white-space: nowrap;
+    font-size: var(--type-label, 12.5px); font-weight: 600; letter-spacing: .2px; text-transform: uppercase;
+    color: var(--text-muted); line-height: 1.12; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
   :host([tile-size="compact"]) .tile-label {
-    font-size: 6.8px;
-    letter-spacing: .18px;
+    font-size: var(--type-label, 13px);
+    letter-spacing: .1px;
     text-transform: none;
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    line-height: 1.05;
+    white-space: nowrap;
+    display: block;
+    line-height: 1.2;
     text-align: center;
-    min-height: 2.05em;
+    min-height: 1.2em;
   }
   :host([tile-size="large"]) .tile-label {
     font-size: 10px;
@@ -284,12 +310,12 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   .tile-deg { font-size: 0.6em; vertical-align: baseline; position: relative; top: -0.18em; margin-left: -1px; }
   .tile-secondary {
-    font-size: 9px; font-weight: 500; color: var(--text-sub); line-height: 1;
+    font-size: var(--type-sub, 11px); font-weight: 500; color: var(--text-sub); line-height: 1.12;
     text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     max-width: 100%; margin-top: -1px;
   }
   :host([tile-size="compact"]) .tile-secondary {
-    font-size: 6.8px;
+    font-size: var(--type-sub, 11.5px);
   }
   .tile-secondary:empty { display: none; }
 
@@ -357,9 +383,9 @@ ${CARD_SURFACE_GLASS_STROKE}
   .tile-dd-val {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 2px;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text);
     white-space: nowrap;
@@ -368,6 +394,11 @@ ${CARD_SURFACE_GLASS_STROKE}
     max-width: 100%;
     width: 100%;
     min-width: 0;
+    padding: 0 2px;
+  }
+  :host([tile-size="compact"]) .tile-dd-val {
+    font-size: 14.8px;
+    gap: 3px;
   }
   .tile-dd-val .dd-text {
     overflow: hidden;
@@ -400,7 +431,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--dd-border);
     box-shadow: var(--shadow-up);
-    z-index: 20;
+    z-index: 6100;
     display: none;
     flex-direction: column;
     gap: 1px;
@@ -419,7 +450,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     border: none;
     background: transparent;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text);
     text-align: left;
@@ -550,9 +581,15 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Responsive ──────────────────────────────── */
   @media (max-width: 440px) {
-    .card { padding: 16px; }
-    .tile { min-height: 0; }
-    .tile-val { font-size: 14px; }
+    .card { padding: var(--card-pad, 14px); }
+    .tile { min-height: var(--tile-row-h); }
+    :host([tile-size="compact"]) .tile {
+      padding: 9px 7px 7px;
+      gap: 3px;
+    }
+    :host([tile-size="compact"]) .tile-val { font-size: 17px; }
+    :host([tile-size="compact"]) .tile-label { font-size: 11.2px; }
+    :host([tile-size="compact"]) .tile-secondary { font-size: 10.2px; }
   }
 
 ${REDUCED_MOTION}
@@ -572,25 +609,38 @@ class TunetStatusCard extends HTMLElement {
     this._timerIntervals = [];
     this._openDropdown = null;
     this._activeColumns = 4;
+    this._haCardEl = null;
+    this._haCardPrevPosition = null;
+    this._haCardPrevZIndex = null;
+    this._elevatedNodes = [];
     this._onDocClick = this._onDocClick.bind(this);
     this._onResize = this._onResize.bind(this);
+    this._onHostResize = this._onHostResize.bind(this);
+    this._resizeObserver = null;
     injectFonts();
   }
 
   connectedCallback() {
     document.addEventListener('click', this._onDocClick);
     window.addEventListener('resize', this._onResize);
+    this._setupResizeObserver();
   }
 
   disconnectedCallback() {
     document.removeEventListener('click', this._onDocClick);
     window.removeEventListener('resize', this._onResize);
+    this._teardownResizeObserver();
     this._clearAllTimers();
+    this._resetHostCardElevation();
   }
 
-  _resolveResponsiveColumns() {
+  _resolveResponsiveColumns(widthHint = null) {
     const baseColumns = this._config.columns || 4;
-    const width = typeof window !== 'undefined' ? window.innerWidth : 1024;
+    const width = Number.isFinite(Number(widthHint))
+      ? Number(widthHint)
+      : (this._cardEl?.getBoundingClientRect?.().width
+        || this.getBoundingClientRect?.().width
+        || (typeof window !== 'undefined' ? window.innerWidth : 1024));
     const rules = Array.isArray(this._config.column_breakpoints) ? this._config.column_breakpoints : [];
     for (const rule of rules) {
       const minWidth = rule.minWidth == null ? Number.NEGATIVE_INFINITY : rule.minWidth;
@@ -600,6 +650,29 @@ class TunetStatusCard extends HTMLElement {
     return baseColumns;
   }
 
+  _setupResizeObserver() {
+    if (this._resizeObserver || typeof ResizeObserver === 'undefined') return;
+    this._resizeObserver = new ResizeObserver((entries) => {
+      const width = entries?.[0]?.contentRect?.width;
+      this._onHostResize(width);
+    });
+    this._resizeObserver.observe(this);
+  }
+
+  _teardownResizeObserver() {
+    if (!this._resizeObserver) return;
+    this._resizeObserver.disconnect();
+    this._resizeObserver = null;
+  }
+
+  _onHostResize(widthHint) {
+    if (!this._rendered) return;
+    const nextColumns = this._resolveResponsiveColumns(widthHint);
+    if (nextColumns === this._activeColumns) return;
+    this._activeColumns = nextColumns;
+    this._applyGridColumns();
+  }
+
   _applyGridColumns() {
     if (!this._gridEl) return;
     const cols = this._activeColumns || this._config.columns || 4;
@@ -607,11 +680,7 @@ class TunetStatusCard extends HTMLElement {
   }
 
   _onResize() {
-    if (!this._rendered) return;
-    const nextColumns = this._resolveResponsiveColumns();
-    if (nextColumns === this._activeColumns) return;
-    this._activeColumns = nextColumns;
-    this._applyGridColumns();
+    this._onHostResize(this._cardEl?.getBoundingClientRect?.().width);
   }
 
   /* ═══════════════════════════════════════════════════
@@ -1327,9 +1396,12 @@ class TunetStatusCard extends HTMLElement {
     this._closeAllDropdowns();
 
     if (!isOpen) {
+      this._elevateHostCard();
+      this.classList.add('dd-open');
       tile.ddMenuEl.classList.add('open');
       tile.ddValEl.setAttribute('aria-expanded', 'true');
       tile.el.setAttribute('aria-expanded', 'true');
+      tile.el.classList.add('dropdown-open');
       this._openDropdown = index;
 
       // Viewport-aware positioning: prefer below, flip above only if more space
@@ -1360,7 +1432,10 @@ class TunetStatusCard extends HTMLElement {
 
   _closeAllDropdowns() {
     if (!this._tileEls) return;
+    this.classList.remove('dd-open');
+    this._resetHostCardElevation();
     for (const tile of this._tileEls) {
+      tile.el.classList.remove('dropdown-open');
       if (tile.ddMenuEl) {
         tile.ddMenuEl.classList.remove('open');
         tile.ddMenuEl.style.top = '';
@@ -1375,13 +1450,33 @@ class TunetStatusCard extends HTMLElement {
     this._openDropdown = null;
   }
 
-  _selectDropdownOption(entityId, option, tileIndex) {
+  async _selectDropdownOption(entityId, option, tileIndex) {
     if (!this._hass) return;
-    this._hass.callService('input_select', 'select_option', {
-      entity_id: entityId,
-      option: option,
-    });
+    const tile = this._tileEls[tileIndex];
+    if (tile?.ddValEl) {
+      const labelEl = tile.ddValEl.querySelector('.dd-text');
+      if (labelEl) labelEl.textContent = option;
+    }
     this._closeAllDropdowns();
+
+    const rawEntity = String(entityId || '').trim();
+    const domainFromEntity = rawEntity.split('.')[0] || '';
+    const domainOrder = domainFromEntity === 'input_select'
+      ? ['input_select', 'select']
+      : (domainFromEntity === 'select' ? ['select', 'input_select'] : ['input_select', 'select']);
+
+    for (const domain of domainOrder) {
+      try {
+        await Promise.resolve(this._hass.callService(domain, 'select_option', {
+          entity_id: rawEntity,
+          option: String(option),
+        }));
+        return;
+      } catch (_) {
+        // Try the next supported domain
+      }
+    }
+    // Preserve optimistic UI text; state reconciliation will occur on next HA update.
   }
 
   _onDocClick(e) {
@@ -1391,6 +1486,42 @@ class TunetStatusCard extends HTMLElement {
     if (tile && !path.includes(tile.el)) {
       this._closeAllDropdowns();
     }
+  }
+
+  _elevateHostCard() {
+    this._resetHostCardElevation();
+    const candidates = [
+      this.closest('ha-card'),
+      this.closest('hui-card'),
+      this.closest('hui-section'),
+    ].filter(Boolean);
+    this._elevatedNodes = candidates.map((node) => ({
+      node,
+      position: node.style.position,
+      zIndex: node.style.zIndex,
+      overflow: node.style.overflow,
+    }));
+    for (const entry of this._elevatedNodes) {
+      const node = entry.node;
+      if (!node.style.position) node.style.position = 'relative';
+      node.style.zIndex = '9100';
+      node.style.overflow = 'visible';
+    }
+    this._haCardEl = this._elevatedNodes[0]?.node || null;
+    this._haCardPrevPosition = this._elevatedNodes[0]?.position || null;
+    this._haCardPrevZIndex = this._elevatedNodes[0]?.zIndex || null;
+  }
+
+  _resetHostCardElevation() {
+    for (const entry of (this._elevatedNodes || [])) {
+      entry.node.style.position = entry.position || '';
+      entry.node.style.zIndex = entry.zIndex || '';
+      entry.node.style.overflow = entry.overflow || '';
+    }
+    this._elevatedNodes = [];
+    this._haCardEl = null;
+    this._haCardPrevPosition = null;
+    this._haCardPrevZIndex = null;
   }
 }
 

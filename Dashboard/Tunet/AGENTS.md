@@ -1,0 +1,162 @@
+# AGENTS.md (Dashboard/Tunet Scope)
+
+Applies to all files under `Dashboard/Tunet/**`.
+
+This file is the Codex execution contract for Tunet work.  
+When in doubt: prioritize correctness, consistency, and docs-sync over speed.
+
+## 1) Mandatory Review Pack (Read First, In Order)
+
+Before implementing any Tunet change, read:
+
+1. `Dashboard/Tunet/Mockups/design_language.md`
+2. `Dashboard/Tunet/CLAUDE.md`
+3. `plan.md`
+4. `FIX_LEDGER.md`
+5. `handoff.md`
+6. `Dashboard/Tunet/Docs/sections_layout_matrix.md`
+
+Important:
+- Treat `sections_layout_matrix.md` as provisional until sections research + live tuning loop is completed and documented.
+- Treat `Dashboard/Tunet/Docs/nav_popup_ux_direction.md` as historical reference only unless explicitly re-activated.
+
+## 2) Design/Execution Precedence
+
+Use this precedence when files disagree:
+
+1. `plan.md`
+2. `FIX_LEDGER.md`
+3. `handoff.md`
+4. `Dashboard/Tunet/Docs/sections_layout_matrix.md` (provisional)
+5. `Dashboard/Tunet/CLAUDE.md`
+6. `Dashboard/Tunet/Mockups/design_language.md`
+7. Other docs in `Dashboard/Tunet/Docs/` (reference/historical unless explicitly active)
+
+Do not silently resolve contradictions. Record the conflict and chosen interpretation in your update.
+
+## 3) Locked Direction Rules
+
+- Keep decision order intact:
+  1. NAV
+  2. POPUP
+  3. Integrated UI/UX
+  4. HOME LAYOUT
+- Popup direction remains locked to Browser Mod.
+- Popup triggers on card interactions should be browser-scoped (`fire-dom-event`) unless an explicit exception is requested.
+- One-popup-per-room model remains active.
+- `layout-card` is allowed and encouraged for breakpoint-specific compositions (example: desktop rooms tiles vs mobile rooms row).
+- Prefer Home Assistant `2026.3` UI configuration capabilities wherever practical before YAML-only solutions.
+
+## 4) Workflow / Scope Discipline
+
+- Use one active tranche at a time.
+- Keep each tranche tight and testable (usually 1-3 files when possible).
+- No opportunistic refactors outside tranche scope.
+- If a blocker requires widening scope, stop and document blocker + options.
+
+## 5) Required Docs Sync After Any Meaningful Change
+
+If behavior, architecture, or priorities changed, update these in the same session:
+
+- `plan.md`
+- `FIX_LEDGER.md`
+- `handoff.md`
+
+At minimum, update status, file paths, acceptance checks, and remaining work.
+
+## 6) Validation Requirements
+
+Before claiming completion:
+
+- Run syntax checks for changed JS files:
+  - `node --check <file>`
+- Parse-check changed YAML:
+  - `python3` + `yaml.safe_load`
+- Validate behavior against explicit acceptance checks from `plan.md`/`handoff.md`.
+- For UI issues, include exact repro path and observed result.
+
+## 7) Sections Layout Research Requirement
+
+There is a known gap in Sections layout mastery.
+
+Required approach:
+- Perform deep internet research (current HA behavior/best practices, primary sources).
+- Execute live iterative tuning with the user:
+  - user sets/observes values
+  - agent captures outcomes
+  - update `Dashboard/Tunet/Docs/sections_layout_matrix.md` with validated rules.
+
+### Sections Sizing Model (Non-Negotiable)
+
+The Sections dashboard sizing model is **not pixel-based**.
+
+Do not reason about layout using pixel heights or viewport math as the primary model.
+Home Assistant Sections use a 3-tier abstraction:
+
+1. Page level: `max_columns` (cap on section columns across the view)
+2. Section level: `column_span` / `row_span` (how many page columns a section occupies)
+3. Card level: `getGridOptions()` returning columns out of `12 * section_span` internal grid columns
+
+Correct layout reasoning must use these abstract units.
+Example: a `column_span: 3` section in a `max_columns: 4` view gets `36` internal grid columns (`12 × 3`).
+Cards inside that section declare how many of those `36` columns they consume.
+
+## 7A) Centralized Styling System (Non-Negotiable)
+
+Tunet v2 styling must remain centralized.
+
+Primary style system:
+- `Dashboard/Tunet/Cards/v2/tunet_base.js`
+
+Rules:
+- Shared visual language (tokens, surfaces, density, shadows, radii, typography baselines, control sizing) must be defined in `tunet_base.js`.
+- Card files should consume shared tokens/surfaces first, then add minimal card-specific overrides.
+- Do not introduce isolated per-card style systems that duplicate or fork base semantics unless explicitly approved and documented as an exception.
+- If a visual issue appears across multiple card families, investigate/fix base-layer primitives first before patching individual cards.
+- Any intentional card-local exception must be documented in `handoff.md` with rationale and impacted breakpoints.
+
+## 7B) Sections Design Workflow (Mandatory for Final Dashboard)
+
+The final dashboard must be designed deliberately view-by-view, not by incremental span tweaks.
+
+Workflow:
+1. Page-level intent:
+   - Define what appears first, and what is hero vs companion vs support.
+   - Set `max_columns`/`dense_section_placement` for that page.
+2. Section-level composition:
+   - Assign `column_span`/`row_span` per section according to page intent.
+   - Decide where full-width sections are required vs side-by-side sections.
+3. Card-level placement/sizing:
+   - Set per-card `grid_options` (and only then tune card internals).
+   - Explicitly decide where two cards share a row vs one card takes full section width.
+4. Interaction-first validation:
+   - Verify first-touch actions and scan order at phone/tablet/desktop.
+5. Record outcomes:
+   - Update `Dashboard/Tunet/Docs/sections_layout_matrix.md` and `handoff.md` with concrete per-view decisions.
+
+## 8) Card Parameter Documentation Requirement
+
+There is a required backlog item for complete custom-card parameter documentation.
+
+Target deliverable:
+- `Dashboard/Tunet/Docs/cards_reference.md`
+
+Coverage expectation:
+- every Tunet custom card
+- every parameter
+- type, default, accepted values, examples, caveats
+- UI editor notes (`getConfigForm`/UI config limitations) where relevant
+
+## 9) Safety / Environment Rules
+
+- Use the single project worktree:
+  - `/home/mac/HA/implementation_10`
+- Do not create additional worktrees unless user explicitly requests it.
+- Do not use destructive git commands unless user explicitly requests it.
+- Do not revert unrelated local changes.
+
+## 10) Practical Working Notes
+
+- Keep implementation and docs aligned with `handoff.md` Issue Matrix.
+- If issue scope is unclear, add a precise issue entry first (where/repro/current/desired/root cause), then implement.
+- Prefer solutions that are robust in both desktop and mobile sections layouts.

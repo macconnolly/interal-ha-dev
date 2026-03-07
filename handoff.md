@@ -583,6 +583,10 @@ This is the authoritative unresolved matrix from the user’s latest requirement
     - page-level `max_columns`
     - section-level `column_span` / `row_span`
     - card-level `grid_options`
+  - Execute a deliberate Page -> Section -> Card orchestration pass for every final surface:
+    - decide hero vs companion vs support first
+    - then decide where cards should be full-width vs side-by-side
+    - then set per-card `grid_options` and validate at phone/tablet/desktop
   - Produce locked per-view orchestration specs (hero/companion/support + interaction contracts) before broad UI polish.
   - Then execute implementation + live iterative breakpoint validation loop with user.
 - Likely root cause:
@@ -597,6 +601,10 @@ The following patterns have repeatedly worked and should remain baseline:
 - Shared axis-locked drag pattern (`pan-y` + horizontal lock) for iOS-safe scroll/drag coexistence.
 - Shared base density token approach in `tunet_base.js` (requires full-family adoption, but direction is correct).
 - Storage dashboard as primary live evaluation surface with YAML architecture surface in repo.
+
+Centralized styling reminder:
+- v2 objective is a centralized style system.
+- Cross-family style/density fixes should land in `Dashboard/Tunet/Cards/v2/tunet_base.js` first, with minimal card-local exceptions.
 
 ## 7) Current Behavior Drift / Decision Conflicts
 - Docs/plan lock says room `tap -> toggle`, `hold -> popup`.

@@ -606,6 +606,62 @@ Centralized styling reminder:
 - v2 objective is a centralized style system.
 - Cross-family style/density fixes should land in `Dashboard/Tunet/Cards/v2/tunet_base.js` first, with minimal card-local exceptions.
 
+## 6B) Standardization Execution Order (One Surface At A Time)
+
+Use this exact order for layout standardization:
+
+1. One room page (pilot: Living Room)
+2. Matching room popup (Living Room popup)
+3. Overview page
+4. Media page
+5. Remaining room pages (Bedroom/Kitchen/Dining), applying locked template
+
+Each surface follows: `Design -> Implement -> Live Test -> Iterate -> Lock`.
+
+Do not run cross-surface polish while one of the above is still unresolved.
+
+## 6C) First Target Template (Room + Popup Pair)
+
+This is the first deliberate layout template to execute and validate.
+
+### Room Page Template (Living Room Pilot)
+
+Page intent:
+- one-touch light control first
+- media/alarm/context as companions
+
+Section orchestration:
+- Hero section (full width on phone, dominant on tablet/desktop):
+  - room context chips/status line
+- Primary control section:
+  - lighting control card as dominant interaction surface
+- Companion section:
+  - media control + room-specific utility (alarms/scene shortcuts)
+
+Sizing method:
+- set view-level behavior first (`max_columns`, `dense_section_placement`)
+- assign section spans by role (hero > primary > companion)
+- then tune card `grid_options` for readable side-by-side vs full-width behavior
+
+Validation checkpoints:
+- phone: clear scan order, no clipped controls
+- tablet: intentional side-by-side where useful
+- desktop: no accidental narrow cards due to span mismatch
+
+### Popup Template (Living Room Pair)
+
+Popup intent:
+- quick control overlay, not full page replacement
+
+Popup composition:
+- compact action strip + room lighting controls
+- optional room navigation affordance
+
+Interaction contract:
+- popup trigger uses Browser Mod direction lock
+- browser-scoped popup action path
+- align popup controls with room-page control language
+
 ## 7) Current Behavior Drift / Decision Conflicts
 - Docs/plan lock says room `tap -> toggle`, `hold -> popup`.
 - User now requests row-card body tap navigation/open popup and dedicated sub-control toggles.

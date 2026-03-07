@@ -134,6 +134,36 @@ Workflow:
 5. Record outcomes:
    - Update `Dashboard/Tunet/Docs/sections_layout_matrix.md` and `handoff.md` with concrete per-view decisions.
 
+## 7C) Surface-By-Surface Standardization Program (Required)
+
+Do not attempt global dashboard polish in one pass.
+Use this sequence and complete each surface fully before moving to the next:
+
+1. Room page (single room)
+2. Matching room popup
+3. Overview page
+4. Media page
+5. Remaining room pages (apply locked template + room-specific deltas)
+
+For each surface, run this loop:
+1. Design:
+   - define hero/companion/support sections
+   - define interaction contract (tap/hold/sub-controls)
+   - define page/section/card sizing (`max_columns`, `column_span`, `grid_options`)
+2. Implement:
+   - apply config/code for that surface only
+3. Live test:
+   - phone/tablet/desktop checks with user feedback
+4. Iterate:
+   - tune spans/placement/tokens based on observed behavior
+5. Lock:
+   - mark the surface “locked template” in `handoff.md`
+   - record reusable rules in `sections_layout_matrix.md`
+
+Constraint:
+- At most one active surface in-flight at a time.
+- Do not start the next surface until the current one is validated and documented.
+
 ## 8) Card Parameter Documentation Requirement
 
 There is a required backlog item for complete custom-card parameter documentation.

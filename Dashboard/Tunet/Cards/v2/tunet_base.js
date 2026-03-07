@@ -154,15 +154,15 @@ export const TOKENS = `
     --dd-option-font-size: 13px;
     --dd-option-pad-y: 9px;
     --dd-option-pad-x: 12px;
-    --rooms-row-btn-size: 3.4em;
+    --rooms-row-btn-size: 3.16em;
     --rooms-row-btn-radius: 12px;
-    --rooms-row-btn-icon-size: 1.76em;
-    --rooms-row-btn-size-slim: 2.96em;
-    --rooms-row-btn-icon-size-slim: 1.56em;
-    --rooms-all-toggle-min-h: 2.82em;
-    --rooms-all-toggle-min-w: 7.36em;
-    --rooms-all-toggle-font: 0.9em;
-    --rooms-all-toggle-icon: 1.34em;
+    --rooms-row-btn-icon-size: 1.62em;
+    --rooms-row-btn-size-slim: 2.76em;
+    --rooms-row-btn-icon-size-slim: 1.42em;
+    --rooms-all-toggle-min-h: 2.62em;
+    --rooms-all-toggle-min-w: 6.5em;
+    --rooms-all-toggle-font: 0.82em;
+    --rooms-all-toggle-icon: 1.2em;
 
     /* Semantic type roles (desktop) */
     --type-label: 12.5px;
@@ -186,14 +186,14 @@ export const TOKENS = `
     --density-mobile-dd-font: 13px;
     --density-mobile-dd-pad-y: 8px;
     --density-mobile-dd-pad-x: 10px;
-    --density-mobile-rooms-row-btn-size: 3.56em;
-    --density-mobile-rooms-row-btn-icon-size: 1.88em;
-    --density-mobile-rooms-row-btn-size-slim: 3.08em;
-    --density-mobile-rooms-row-btn-icon-size-slim: 1.62em;
-    --density-mobile-rooms-all-toggle-min-h: 2.9em;
-    --density-mobile-rooms-all-toggle-min-w: 7.6em;
-    --density-mobile-rooms-all-toggle-font: 0.9em;
-    --density-mobile-rooms-all-toggle-icon: 1.38em;
+    --density-mobile-rooms-row-btn-size: 2.82em;
+    --density-mobile-rooms-row-btn-icon-size: 1.44em;
+    --density-mobile-rooms-row-btn-size-slim: 2.52em;
+    --density-mobile-rooms-row-btn-icon-size-slim: 1.28em;
+    --density-mobile-rooms-all-toggle-min-h: 2.34em;
+    --density-mobile-rooms-all-toggle-min-w: 5.62em;
+    --density-mobile-rooms-all-toggle-font: 0.74em;
+    --density-mobile-rooms-all-toggle-icon: 1.06em;
 
     /* Semantic type roles (mobile baseline) */
     --type-label-mobile: 13px;
@@ -205,6 +205,7 @@ export const TOKENS = `
 
     color-scheme: light;
     display: block;
+    container-type: inline-size;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
@@ -707,7 +708,7 @@ export const REDUCED_MOTION = `
 `;
 
 export const RESPONSIVE_BASE = `
-  @media (max-width: 440px) {
+  @container (max-width: 440px) {
     :host {
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
@@ -739,6 +740,42 @@ export const RESPONSIVE_BASE = `
     .card { padding: var(--card-pad); }
     .section-container { padding: var(--section-pad); border-radius: 24px; }
     .tile { padding: var(--tile-pad); gap: var(--tile-gap); }
+  }
+
+  @supports not (container-type: inline-size) {
+    @media (max-width: 440px) {
+      :host {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        --card-pad: var(--density-mobile-card-pad, 14px);
+        --section-pad: var(--density-mobile-section-pad, 14px);
+        --tile-pad: var(--density-mobile-tile-pad, 10px);
+        --tile-gap: var(--density-mobile-tile-gap, 4px);
+        --ctrl-min-h: var(--density-mobile-ctrl-min-h, 38px);
+        --ctrl-font-size: var(--density-mobile-ctrl-font, 12px);
+        --ctrl-pad-x: var(--density-mobile-ctrl-pad-x, 10px);
+        --dd-option-font-size: var(--density-mobile-dd-font, 12px);
+        --dd-option-pad-y: var(--density-mobile-dd-pad-y, 8px);
+        --dd-option-pad-x: var(--density-mobile-dd-pad-x, 10px);
+        --rooms-row-btn-size: var(--density-mobile-rooms-row-btn-size, 3.4em);
+        --rooms-row-btn-icon-size: var(--density-mobile-rooms-row-btn-icon-size, 1.76em);
+        --rooms-row-btn-size-slim: var(--density-mobile-rooms-row-btn-size-slim, 2.96em);
+        --rooms-row-btn-icon-size-slim: var(--density-mobile-rooms-row-btn-icon-size-slim, 1.56em);
+        --rooms-all-toggle-min-h: var(--density-mobile-rooms-all-toggle-min-h, 2.62em);
+        --rooms-all-toggle-min-w: var(--density-mobile-rooms-all-toggle-min-w, 6.96em);
+        --rooms-all-toggle-font: var(--density-mobile-rooms-all-toggle-font, 0.84em);
+        --rooms-all-toggle-icon: var(--density-mobile-rooms-all-toggle-icon, 1.26em);
+        --type-label: var(--type-label-mobile, 13px);
+        --type-sub: var(--type-sub-mobile, 11.5px);
+        --type-value: var(--type-value-mobile, 18px);
+        --type-chip: var(--type-chip-mobile, 13px);
+        --type-row-title: var(--type-row-title-mobile, 18px);
+        --type-row-status: var(--type-row-status-mobile, 15.5px);
+      }
+      .card { padding: var(--card-pad); }
+      .section-container { padding: var(--section-pad); border-radius: 24px; }
+      .tile { padding: var(--tile-pad); gap: var(--tile-gap); }
+    }
   }
 `;
 

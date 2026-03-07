@@ -3,6 +3,30 @@
 Working branch: `claude/dashboard-nav-research-QnOBs`
 Last updated: 2026-03-07
 
+## Session Delta (2026-03-07, T-011A.4)
+
+Tranche marker: `T-011A.4` (container-width migration, prerequisite gate `G0` partial)
+
+- `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - enabled container query readiness at host level (`container-type: inline-size`)
+  - switched `RESPONSIVE_BASE` primary mobile density path from viewport media query to `@container (max-width: 440px)`
+  - kept viewport media query only as fallback when container queries are unsupported
+- `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+  - removed default `window.resize` dependency for responsive columns
+  - now uses `ResizeObserver` as primary path, with `window.resize` only as fallback when `ResizeObserver` is unavailable
+- `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
+  - migrated responsive width resolution to container/card-first measurement
+  - replaced viewport-based column/row-height/subtitle checks with host-width bucket logic (`<=440`, `<=640`)
+  - added `ResizeObserver`-driven host resize path with `window.resize` fallback only when `ResizeObserver` is unavailable
+- Validation:
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_base.js` passed
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_status_card.js` passed
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_lighting_card.js` passed
+- Scope:
+  - no YAML/dashboard structure changes
+  - no deploy/cache-bust actions in this tranche
+  - nav global offset isolation prerequisite remains open
+
 ## Session Delta (2026-03-07, T-011A.3)
 
 Tranche marker: `T-011A.3` (card-unification path lock, docs-only)

@@ -614,21 +614,30 @@ class TunetStatusCard extends HTMLElement {
     this._haCardPrevZIndex = null;
     this._elevatedNodes = [];
     this._onDocClick = this._onDocClick.bind(this);
-    this._onResize = this._onResize.bind(this);
+    this._onWindowResize = this._onWindowResize.bind(this);
     this._onHostResize = this._onHostResize.bind(this);
     this._resizeObserver = null;
+    this._usingWindowResizeFallback = false;
     injectFonts();
   }
 
   connectedCallback() {
     document.addEventListener('click', this._onDocClick);
-    window.addEventListener('resize', this._onResize);
     this._setupResizeObserver();
+    if (typeof ResizeObserver === 'undefined') {
+      this._usingWindowResizeFallback = true;
+      window.addEventListener('resize', this._onWindowResize);
+    } else {
+      this._usingWindowResizeFallback = false;
+    }
   }
 
   disconnectedCallback() {
     document.removeEventListener('click', this._onDocClick);
-    window.removeEventListener('resize', this._onResize);
+    if (this._usingWindowResizeFallback) {
+      window.removeEventListener('resize', this._onWindowResize);
+      this._usingWindowResizeFallback = false;
+    }
     this._teardownResizeObserver();
     this._clearAllTimers();
     this._resetHostCardElevation();
@@ -679,7 +688,7 @@ class TunetStatusCard extends HTMLElement {
     this._gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
   }
 
-  _onResize() {
+  _onWindowResize() {
     this._onHostResize(this._cardEl?.getBoundingClientRect?.().width);
   }
 

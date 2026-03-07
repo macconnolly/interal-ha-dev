@@ -39,10 +39,11 @@ import {
   CARD_SURFACE, CARD_SURFACE_GLASS_STROKE,
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
+  createAxisLockedDrag,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260306g1';
+} from './tunet_base.js?v=20260307p03';
 
-const CARD_VERSION = '3.4.0';
+const CARD_VERSION = '3.4.4';
 
 function clampInt(value, min, max, fallback) {
   const n = Number(value);
@@ -357,7 +358,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   .light-grid {
     display: grid;
     grid-template-columns: repeat(var(--cols, 3), minmax(0, 180px));
-    grid-auto-rows: var(--grid-row, 124px);
+    grid-auto-rows: var(--grid-row, 110px);
     gap: 10px;
     width: 100%;
     min-width: 0;
@@ -376,6 +377,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     grid-auto-columns: calc(32% - 10px);
     overflow-x: auto;
     overflow-y: visible;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: auto;
     scroll-snap-type: x mandatory;
     scroll-padding-left: 4px;
     row-gap: 14px;
@@ -389,6 +392,7 @@ ${CARD_SURFACE_GLASS_STROKE}
      LIGHT TILE (Design Language §3.5 Tile Surface)
      ═══════════════════════════════════════════════════ */
   .l-tile {
+    --tile-icon-size: 2.35em;
     background: var(--tile-bg);
     border-radius: var(--r-tile);
     box-shadow: var(--shadow);
@@ -399,43 +403,68 @@ ${CARD_SURFACE_GLASS_STROKE}
     position: relative;
     cursor: pointer;
     user-select: none;
-    touch-action: none;
+    touch-action: pan-y;
     border: 1px solid var(--border-ghost);
-    overflow: visible;
+    overflow: hidden;
     min-height: 0;
     height: 100%;
-    transition:
-      transform var(--motion-ui) var(--ease-emphasized),
-      box-shadow var(--motion-ui) var(--ease-standard),
-      border-color var(--motion-ui) var(--ease-standard),
-      background-color var(--motion-surface) var(--ease-standard);
+    gap: 0.14em;
+    padding: 0.62em 0.34em 1.04em;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.18s ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .l-tile:hover {
+      box-shadow: var(--shadow-up);
+    }
+  }
+  .l-tile:active {
+    transform: scale(var(--press-scale-strong));
   }
 
   /* Compact tile variant */
   :host([tile-size="compact"]) .l-tile {
-    padding: 8px 6px 20px;
+    --tile-icon-size: 1.92em;
+    gap: 0.06em;
+    padding: 0.46em 0.26em 1.22em;
   }
   :host([tile-size="compact"]) .tile-icon-wrap {
-    width: 38px;
-    height: 38px;
-    margin-bottom: 4px;
-    border-radius: 50%;
+    margin-top: 0;
+    margin-bottom: 0.14em;
   }
   :host([tile-size="compact"]) .zone-name {
-    font-size: 12px;
-    max-width: 95%;
+    font-size: 12.2px;
+    max-width: 96%;
+    min-height: 1.12em;
+    line-height: 1.06;
+    margin-bottom: 0;
   }
   :host([tile-size="compact"]) .zone-val {
-    font-size: 11.5px;
+    font-size: 11.6px;
+    line-height: 1.04;
+    margin-top: 0;
+    margin-bottom: 5px;
+  }
+  :host([tile-size="compact"][dense-compact]) .l-tile {
+    --tile-icon-size: 1.72em;
+    padding: 0.42em 0.22em 1.24em;
+  }
+  :host([tile-size="compact"][dense-compact]) .zone-name {
+    font-size: 11.6px;
+  }
+  :host([tile-size="compact"][dense-compact]) .zone-val {
+    font-size: 11px;
+    margin-bottom: 6px;
   }
   :host([tile-size="large"]) .l-tile {
     padding: 12px 10px 18px;
   }
 
   /* Scroll layout tile additions */
-  :host([layout="scroll"]) .l-tile {
-    scroll-snap-align: start;
-    touch-action: pan-y;
+  :host([layout="scroll"]) .l-tile { scroll-snap-align: start; }
+  :host([layout="scroll"][tile-size="compact"]) .l-tile {
+    padding-bottom: 30px;
   }
 
   /* Focus visible on tiles */
@@ -449,7 +478,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   .l-tile.off .tile-icon-wrap {
     background: var(--gray-ghost);
     color: var(--text-muted);
-    border: 1px solid transparent;
+    border: 1px solid var(--ctrl-border);
   }
   .l-tile.off .zone-name { color: var(--text-sub); }
   .l-tile.off .zone-val { color: var(--text-sub); opacity: 0.5; }
@@ -463,7 +492,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   .l-tile.unavailable .tile-icon-wrap {
     background: var(--track-bg);
     color: var(--text-muted);
-    border: 1px solid transparent;
+    border: 1px solid var(--ctrl-border);
   }
   .l-tile.unavailable .zone-val {
     color: var(--text-muted);
@@ -517,13 +546,28 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Tile Content ────────────────────────────────── */
   .tile-icon-wrap {
-    width: 44px;
-    height: 44px;
+    width: var(--tile-icon-size, 2.35em);
+    height: var(--tile-icon-size, 2.35em);
+    min-width: var(--tile-icon-size, 2.35em);
+    min-height: var(--tile-icon-size, 2.35em);
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
     display: grid;
     place-items: center;
-    margin-bottom: 6px;
+    margin-top: 0.08em;
+    margin-bottom: 0.2em;
     transition: all .2s ease;
+  }
+  .tile-icon-wrap .icon {
+    width: 1.3em;
+    height: 1.3em;
+    font-size: 1.3em;
+    line-height: 1;
+  }
+  :host([tile-size="compact"]) .tile-icon-wrap .icon {
+    width: 1.02em;
+    height: 1.02em;
+    font-size: 1.02em;
   }
 
   .zone-name {
@@ -544,6 +588,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.1px;
+    line-height: 1.15;
     transition: color .2s;
     font-variant-numeric: tabular-nums;
   }
@@ -559,6 +604,12 @@ ${CARD_SURFACE_GLASS_STROKE}
     border-radius: var(--r-track);
     overflow: hidden;
     transition: height .2s ease;
+  }
+  :host([tile-size="compact"]) .progress-track {
+    bottom: 6px;
+    left: 10px;
+    right: 10px;
+    height: 3px;
   }
   .progress-fill {
     height: 100%;
@@ -592,11 +643,22 @@ ${REDUCED_MOTION}
      ═══════════════════════════════════════════════════ */
   @media (max-width: 440px) {
     .card {
-      padding: 16px;
+      padding: var(--card-pad, 14px);
       --r-track: 999px;
     }
-    .light-grid { gap: 8px; }
-    .l-tile { min-height: 88px; }
+    .light-grid { gap: 6px; }
+    .l-tile { min-height: 82px; }
+    :host([tile-size="compact"]) .zone-name {
+      font-size: 12.2px;
+      line-height: 1.08;
+      min-height: 1.15em;
+      margin-bottom: 1px;
+    }
+    :host([tile-size="compact"]) .zone-val {
+      font-size: 11.8px;
+      line-height: 1.08;
+      margin-top: 2px;
+    }
 
     :host([layout="scroll"]) .light-grid {
       grid-auto-columns: calc(44% - 6px);
@@ -679,17 +741,18 @@ class TunetLightingCard extends HTMLElement {
     this._rendered = false;
     this._resolvedZones = [];  // [{entity, name, icon}, ...]
     this._tiles = {};
-    this._dragState = null;
     this._serviceCooldown = {};
     this._cooldownTimers = {};
     this._activeColumns = 3;
+    this._tileDragController = null;
+    this._resizeObserver = null;
+    this._usingWindowResizeFallback = false;
+    this._widthBucket440 = null;
+    this._widthBucket640 = null;
 
     injectFonts();
-
-    this._onPointerMove = this._onPointerMove.bind(this);
-    this._onPointerUp   = this._onPointerUp.bind(this);
-    this._onPointerCancel = this._onPointerCancel.bind(this);
-    this._onResize = this._onResize.bind(this);
+    this._onWindowResize = this._onWindowResize.bind(this);
+    this._onHostResize = this._onHostResize.bind(this);
   }
 
   /* ═══════════════════════════════════════════════════
@@ -935,9 +998,26 @@ class TunetLightingCard extends HTMLElement {
     };
   }
 
-  _resolveResponsiveColumns() {
+  _getHostWidth(widthHint = null) {
+    const parsed = Number(widthHint);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    const cardWidth = Number(this.$?.card?.getBoundingClientRect?.().width);
+    if (Number.isFinite(cardWidth) && cardWidth > 0) return cardWidth;
+    const hostWidth = Number(this.getBoundingClientRect?.().width);
+    if (Number.isFinite(hostWidth) && hostWidth > 0) return hostWidth;
+    if (typeof window !== 'undefined' && Number.isFinite(Number(window.innerWidth))) {
+      return Number(window.innerWidth);
+    }
+    return 1024;
+  }
+
+  _isWidthAtMost(maxWidth, widthHint = null) {
+    return this._getHostWidth(widthHint) <= maxWidth;
+  }
+
+  _resolveResponsiveColumns(widthHint = null) {
     const baseColumns = this._config.columns || 3;
-    const width = typeof window !== 'undefined' ? window.innerWidth : 1024;
+    const width = this._getHostWidth(widthHint);
     const rules = Array.isArray(this._config.column_breakpoints) ? this._config.column_breakpoints : [];
     for (const rule of rules) {
       const minWidth = rule.minWidth == null ? Number.NEGATIVE_INFINITY : rule.minWidth;
@@ -1012,17 +1092,25 @@ class TunetLightingCard extends HTMLElement {
      ═══════════════════════════════════════════════════ */
 
   connectedCallback() {
-    document.addEventListener('pointermove', this._onPointerMove);
-    document.addEventListener('pointerup',   this._onPointerUp);
-    document.addEventListener('pointercancel', this._onPointerCancel);
-    window.addEventListener('resize', this._onResize);
+    this._setupResizeObserver();
+    if (typeof ResizeObserver === 'undefined') {
+      this._usingWindowResizeFallback = true;
+      window.addEventListener('resize', this._onWindowResize);
+    } else {
+      this._usingWindowResizeFallback = false;
+    }
   }
 
   disconnectedCallback() {
-    document.removeEventListener('pointermove', this._onPointerMove);
-    document.removeEventListener('pointerup',   this._onPointerUp);
-    document.removeEventListener('pointercancel', this._onPointerCancel);
-    window.removeEventListener('resize', this._onResize);
+    if (this._tileDragController) {
+      this._tileDragController.destroy();
+      this._tileDragController = null;
+    }
+    if (this._usingWindowResizeFallback) {
+      window.removeEventListener('resize', this._onWindowResize);
+      this._usingWindowResizeFallback = false;
+    }
+    this._teardownResizeObserver();
     for (const timer of Object.values(this._cooldownTimers)) {
       clearTimeout(timer);
     }
@@ -1030,13 +1118,39 @@ class TunetLightingCard extends HTMLElement {
     this._serviceCooldown = {};
   }
 
-  _onResize() {
-    if (!this._rendered || this._config.layout === 'scroll') return;
-    const nextColumns = this._resolveResponsiveColumns();
-    if (nextColumns === this._activeColumns) return;
+  _setupResizeObserver() {
+    if (this._resizeObserver || typeof ResizeObserver === 'undefined') return;
+    this._resizeObserver = new ResizeObserver((entries) => {
+      const width = entries?.[0]?.contentRect?.width;
+      this._onHostResize(width);
+    });
+    this._resizeObserver.observe(this);
+  }
+
+  _teardownResizeObserver() {
+    if (!this._resizeObserver) return;
+    this._resizeObserver.disconnect();
+    this._resizeObserver = null;
+  }
+
+  _onHostResize(widthHint = null) {
+    if (!this._rendered) return;
+    const width = this._getHostWidth(widthHint);
+    const nextColumns = this._resolveResponsiveColumns(width);
+    const nextBucket440 = this._isWidthAtMost(440, width);
+    const nextBucket640 = this._isWidthAtMost(640, width);
+    const columnsChanged = nextColumns !== this._activeColumns;
+    const bucketChanged = nextBucket440 !== this._widthBucket440 || nextBucket640 !== this._widthBucket640;
+    if (!columnsChanged && !bucketChanged) return;
     this._activeColumns = nextColumns;
+    this._widthBucket440 = nextBucket440;
+    this._widthBucket640 = nextBucket640;
     this._buildGrid();
     this._updateAll();
+  }
+
+  _onWindowResize() {
+    this._onHostResize(this._getHostWidth());
   }
 
   /* ═══════════════════════════════════════════════════
@@ -1073,7 +1187,10 @@ class TunetLightingCard extends HTMLElement {
       lightGrid:   this.shadowRoot.getElementById('lightGrid'),
     };
 
-    this._activeColumns = this._resolveResponsiveColumns();
+    const width = this._getHostWidth();
+    this._activeColumns = this._resolveResponsiveColumns(width);
+    this._widthBucket440 = this._isWidthAtMost(440, width);
+    this._widthBucket640 = this._isWidthAtMost(640, width);
   }
 
   _buildGrid() {
@@ -1088,9 +1205,19 @@ class TunetLightingCard extends HTMLElement {
     const activeColumns = this._activeColumns || this._config.columns || 3;
     grid.style.setProperty('--cols', activeColumns);
     grid.style.setProperty('--scroll-rows', this._config.scroll_rows);
+    if (this._config.tile_size === 'compact' && activeColumns >= 5) {
+      this.setAttribute('dense-compact', '');
+    } else {
+      this.removeAttribute('dense-compact');
+    }
+    const isMobile = this._widthBucket440 == null
+      ? this._isWidthAtMost(440)
+      : this._widthBucket440;
     const rowHeight = this._config.tile_size === 'compact'
-      ? '104px'
-      : (this._config.tile_size === 'large' ? '136px' : '116px');
+      ? (isMobile ? '94px' : '100px')
+      : (this._config.tile_size === 'large'
+        ? (isMobile ? '124px' : '132px')
+        : (isMobile ? '102px' : '110px'));
     grid.style.setProperty('--grid-row', rowHeight);
 
     // Limit visible tiles when rows is set (avoids overflow:hidden clipping pill)
@@ -1190,37 +1317,7 @@ class TunetLightingCard extends HTMLElement {
       this._resetManualControl();
     });
 
-    // Tile pointer down (delegated)
-    this.$.lightGrid.addEventListener('pointerdown', (e) => {
-      const tile = e.target.closest('.l-tile');
-      if (!tile) return;
-      if (!e.isPrimary) return;
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      try {
-        tile.setPointerCapture(e.pointerId);
-      } catch (_) {
-        // Some WebViews/Safari contexts can reject capture; fall back to document listeners.
-      }
-
-      const pointerType = e.pointerType || 'mouse';
-      const isTouch = pointerType === 'touch';
-
-      this._dragState = {
-        entity:      tile.dataset.entity,
-        startX:      e.clientX,
-        startY:      e.clientY,
-        startBright: parseInt(tile.dataset.brightness) || 0,
-        tileEl:      tile,
-        pointerType,
-        dragThreshold: isTouch ? 5 : 10,
-        axisBias: isTouch ? 2 : 5,
-        dragGain: isTouch ? 1.12 : 0.95,
-        axisLocked:  false,
-        ignoreTap:   false,
-        moved:       false,
-        pointerId:   e.pointerId,
-      };
-    });
+    this._initTileDrag();
 
     // Keyboard on tiles (Design Language §11.3)
     this.$.lightGrid.addEventListener('keydown', (e) => {
@@ -1257,119 +1354,100 @@ class TunetLightingCard extends HTMLElement {
   }
 
   /* ═══════════════════════════════════════════════════
-     POINTER HANDLERS – Horizontal drag-to-dim
-     Threshold + axis lock to avoid accidental toggles on touch/desktop
+     POINTER HANDLERS – axis-locked drag helper
      ═══════════════════════════════════════════════════ */
 
-  _onPointerMove(e) {
-    if (!this._dragState) return;
-    const ds = this._dragState;
-    if (ds.pointerId !== e.pointerId) return;
-
-    const dx = e.clientX - ds.startX;
-    const dy = e.clientY - ds.startY;
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-
-    if (!ds.axisLocked) {
-      if (absDx < ds.dragThreshold && absDy < ds.dragThreshold) return;
-
-      // Vertical intent: don't treat as tap/toggle fallback.
-      if (absDy > absDx + ds.axisBias) {
-        ds.ignoreTap = true;
-        this._dragState = null;
-        return;
-      }
-
-      ds.axisLocked = true;
+  _initTileDrag() {
+    if (!this.$?.lightGrid) return;
+    if (this._tileDragController) {
+      this._tileDragController.destroy();
+      this._tileDragController = null;
     }
 
-    if (!ds.moved && absDx < ds.dragThreshold) return;
+    this._tileDragController = createAxisLockedDrag({
+      element: this.$.lightGrid,
+      deadzone: 8,
+      axisBias: 1.3,
+      pointerCapture: false,
+      shouldStart: (event) => !!event.target.closest('.l-tile'),
+      getContext: (event) => {
+        const tileEl = event.target.closest('.l-tile');
+        if (!tileEl) return false;
+        const entity = tileEl.dataset.entity;
+        if (!entity) return false;
+        return {
+          tileEl,
+          entity,
+          pointerType: event.pointerType || 'mouse',
+          startBright: parseInt(tileEl.dataset.brightness, 10) || 0,
+          currentBright: parseInt(tileEl.dataset.brightness, 10) || 0,
+        };
+      },
+      onDragStart: (_event, payload) => {
+        const ctx = payload && payload.context;
+        if (!ctx || !ctx.tileEl) return;
+        ctx.tileEl.classList.add('sliding');
+        document.body.style.cursor = 'grabbing';
+        if (this._config.layout === 'scroll') {
+          this.$.lightGrid.style.scrollSnapType = 'none';
+        }
+      },
+      onDragMove: (event, payload) => {
+        const ctx = payload && payload.context;
+        if (!ctx || !ctx.tileEl) return;
+        const refs = this._tiles[ctx.entity];
+        if (!refs) return;
 
-    if (!ds.moved) {
-      ds.moved = true;
-      ds.tileEl.classList.add('sliding');
-      document.body.style.cursor = 'grabbing';
-      if (this._config.layout === 'scroll') this.$.lightGrid.style.scrollSnapType = 'none';
-    }
+        const width = Math.max(ctx.tileEl.offsetWidth, 1);
+        const dragRange = ctx.pointerType === 'touch'
+          ? Math.max(width * 0.82, 110)
+          : Math.max(width * 1.20, 185);
+        const dragGain = ctx.pointerType === 'touch' ? 1.12 : 0.95;
+        const change = (payload.dx / dragRange) * 100 * dragGain;
+        const newBrt = Math.round(Math.max(0, Math.min(100, ctx.startBright + change)));
+        if (newBrt === ctx.currentBright) return;
 
-    // Map horizontal movement to brightness change
-    if (e.cancelable) e.preventDefault();
-    const width = Math.max(ds.tileEl.offsetWidth, 1);
-    const dragRange = ds.pointerType === 'touch'
-      ? Math.max(width * 0.82, 110)
-      : Math.max(width * 1.20, 185);
-    const change = (dx / dragRange) * 100 * ds.dragGain;
-    const newBrt = Math.round(Math.max(0, Math.min(100, ds.startBright + change)));
-    if (newBrt === ds.currentBright) return;
+        if (event.cancelable) event.preventDefault();
 
-    // Optimistic UI update (no transition during drag)
-    const refs = this._tiles[ds.entity];
-    if (!refs) return;
+        refs.fill.style.transition = 'none';
+        refs.fill.style.width = `${newBrt}%`;
+        refs.val.textContent = newBrt > 0 ? `${newBrt}%` : 'Off';
 
-    refs.fill.style.transition = 'none';
-    refs.fill.style.width = newBrt + '%';
-    refs.val.textContent = newBrt > 0 ? newBrt + '%' : 'Off';
+        if (newBrt > 0) {
+          refs.el.classList.remove('off');
+          refs.el.classList.add('on');
+        } else {
+          refs.el.classList.remove('on');
+          refs.el.classList.add('off');
+        }
 
-    if (newBrt > 0) {
-      refs.el.classList.remove('off');
-      refs.el.classList.add('on');
-    } else {
-      refs.el.classList.remove('on');
-      refs.el.classList.add('off');
-    }
-
-    refs.el.dataset.brightness = newBrt;
-    refs.el.setAttribute('aria-valuenow', newBrt);
-    refs.el.setAttribute('aria-valuetext', newBrt > 0 ? newBrt + ' percent' : 'Off');
-    ds.currentBright = newBrt;
-  }
-
-  _onPointerUp(e) {
-    if (!this._dragState) return;
-    const ds = this._dragState;
-    if (ds.pointerId !== e.pointerId) return;
-    this._finishDrag(ds, {
-      commit: ds.moved && ds.currentBright !== undefined,
-      toggleTap: !ds.moved && !ds.ignoreTap,
+        refs.el.dataset.brightness = String(newBrt);
+        refs.el.setAttribute('aria-valuenow', String(newBrt));
+        refs.el.setAttribute('aria-valuetext', newBrt > 0 ? `${newBrt} percent` : 'Off');
+        ctx.currentBright = newBrt;
+      },
+      onDragEnd: (_event, payload) => {
+        const ctx = payload && payload.context;
+        if (!ctx) return;
+        const refs = this._tiles[ctx.entity];
+        if (refs) {
+          refs.el.classList.remove('sliding');
+          refs.fill.style.transition = '';
+        }
+        document.body.style.cursor = '';
+        if (this._config.layout === 'scroll') {
+          this.$.lightGrid.style.scrollSnapType = 'x mandatory';
+        }
+        if (payload.committed) {
+          this._setBrightness(ctx.entity, ctx.currentBright);
+        }
+      },
+      onTap: (_event, payload) => {
+        const ctx = payload && payload.context;
+        if (!ctx) return;
+        this._toggleLight(ctx.entity);
+      },
     });
-  }
-
-  _onPointerCancel(e) {
-    if (!this._dragState) return;
-    const ds = this._dragState;
-    if (ds.pointerId !== e.pointerId) return;
-    this._finishDrag(ds, { commit: false, toggleTap: false });
-  }
-
-  _finishDrag(ds, { commit, toggleTap }) {
-    const refs = this._tiles[ds.entity];
-
-    if (refs) {
-      refs.el.classList.remove('sliding');
-      refs.fill.style.transition = '';
-      try {
-        refs.el.releasePointerCapture(ds.pointerId);
-      } catch (_) {
-        // Ignore release failures on environments without active capture.
-      }
-    }
-
-    // Reset cursor
-    document.body.style.cursor = '';
-
-    // Restore scroll snapping in scroll mode
-    if (this._config.layout === 'scroll') this.$.lightGrid.style.scrollSnapType = 'x mandatory';
-
-    if (commit) {
-      // Drag completed – set brightness
-      this._setBrightness(ds.entity, ds.currentBright);
-    } else if (toggleTap) {
-      // Tap – toggle on/off
-      this._toggleLight(ds.entity);
-    }
-
-    this._dragState = null;
   }
 
   /* ═══════════════════════════════════════════════════
@@ -1677,7 +1755,9 @@ class TunetLightingCard extends HTMLElement {
     } else {
       const avgBrt = onCount > 0 ? Math.round(totalBrightness / onCount) : 0;
       const adaptiveAnyOn = adaptiveEntities.some((entityId) => this._getEntity(entityId)?.state === 'on');
-      const compactSubtitle = window.matchMedia('(max-width: 640px)').matches;
+      const compactSubtitle = this._widthBucket640 == null
+        ? this._isWidthAtMost(640)
+        : this._widthBucket640;
       const manualCount = manualScoped.length;
 
       let parts = [];

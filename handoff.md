@@ -8,6 +8,31 @@ Source filter for this run:
 - ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
 
+## 0O) Session Delta (2026-03-07, T-011A.4)
+
+Container-width prerequisite work started (`G0` partial, code + docs sync):
+
+- Updated files:
+  - `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+  - `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
+- What changed:
+  - base responsive density now uses `@container (max-width: 440px)` as primary path
+  - base keeps viewport media query only as fallback when container queries are not supported
+  - status card responsive columns now use `ResizeObserver` primary and only fall back to `window.resize` when `ResizeObserver` is unavailable
+  - lighting card now resolves responsive columns and compact thresholds (`<=440`, `<=640`) from host/container width, not viewport `innerWidth`/`matchMedia`
+  - lighting host resize now uses `ResizeObserver` primary with `window.resize` fallback only when needed
+- Validation:
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_base.js` passed
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_status_card.js` passed
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_lighting_card.js` passed
+- Scope:
+  - no YAML/deploy/cache-bust actions in this slice
+
+Carry-forward:
+- `G0` is still open until nav global offset isolation is completed in `tunet_nav_card.js` (`ensureGlobalOffsetsStyle` scope control)
+- after nav isolation, next step is `G1` profile primitives in `tunet_base.js`
+
 ## 0N) Session Delta (2026-03-07, T-011A.3 prep)
 
 Decision-path planning for card-size unification was advanced (docs only, no runtime behavior change):

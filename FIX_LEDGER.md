@@ -4,6 +4,28 @@ Working branch: `claude/dashboard-nav-research-QnOBs`
 Last updated: 2026-03-07
 Scope: `/home/mac/HA/implementation_10`
 
+## Session Delta (2026-03-07, T-011A.4)
+
+Change marker: `T-011A.4`
+
+- `CODE-DONE (G0 PARTIAL)`
+  - container-width migration tranche completed for profile-target sizing paths:
+    - `Dashboard/Tunet/Cards/v2/tunet_base.js`
+    - `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+    - `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
+  - changes:
+    - base responsive density now uses container query path first (`@container`) with viewport fallback only when needed
+    - status card responsive columns now use `ResizeObserver` primary, `window.resize` fallback-only
+    - lighting card columns/row-height/subtitle compaction now resolve from host/container width buckets instead of viewport `innerWidth`/`matchMedia`
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_base.js` passed
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_status_card.js` passed
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_lighting_card.js` passed
+- `SCOPE`
+  - no YAML changes
+  - no deploy/cache-bust in this slice
+  - nav global layout mutation isolation prerequisite remains open
+
 ## Session Delta (2026-03-07, T-011A.3)
 
 Change marker: `T-011A.3`

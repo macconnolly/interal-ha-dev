@@ -4,6 +4,189 @@ Last updated: 2026-03-07 (America/Denver)
 Intended reader: next Codex run in a new chat  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
+Source filter for this run:
+- ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
+- use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
+
+## 0N) Session Delta (2026-03-07, T-011A.3 prep)
+
+Decision-path planning for card-size unification was advanced (docs only, no runtime behavior change):
+
+- Updated:
+  - `Dashboard/Tunet/Agent-Reviews/type_profile_consumption_options.md`
+- Added decision-ready framing:
+  - weighted option scoring applied (`A/B/C/D`), with `Option C` locked at `8.5/10`
+  - recommended path: `Option C` (family profile consumption), with gated rollout
+  - explicit dependency order before profile work:
+    1. container-first width-source migration
+    2. nav global layout mutation isolation (`ensureGlobalOffsetsStyle`)
+    3. phased profile rollout gates
+  - explicit gate sequence (`G0`..`G5`) and acceptance checks
+  - profile contract draft (`schema v1`) + width-source standardization requirement (container-first)
+  - explicit conflict interpretation for parity-lock pathing (`Cards/` vs active `Cards/v2/`)
+  - explicit direction lock: rooms `row/slim` modeled as one family profile with modifiers
+  - explicit direction lock: skip Option B pilot; run Option C pilot directly
+  - added post-pilot `getCardSize()`/`getGridOptions()` calibration gate
+
+Scope:
+- no JS/YAML changes
+- no deploy/cache-bust actions
+- no interaction contract changes
+
+Carry-forward:
+- do not begin broad profile migration while current surface lock work is active
+- next eligible step is `G0` prerequisites (container-width + nav offset isolation), then `G1` base-profile primitives
+
+## 0M) Session Delta (2026-03-07, T-011A.2)
+
+Focused rooms row-mode cleanup landed:
+
+- `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - rooms-row mobile density tokens now scale down (instead of larger-than-desktop)
+  - section all-toggle mobile token sizing reduced for readability
+- `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` (`v2.9.2`)
+  - row all-toggle button + per-light orbs share matched box-model sizing
+  - row main icon reduced so text lane has more readable space
+  - row status precedence fix:
+    - if `humidity_entity` or `temperature_entity` is configured, unlabeled brightness `%` is suppressed
+    - brightness appears as labeled `bri` only when ambient entities are not configured
+
+Scope:
+- no nav/popup contract changes
+- no dashboard YAML structure changes
+
+Live deploy:
+- `/config/www/tunet/v2_next/tunet_base.js` uploaded
+- `/config/www/tunet/v2_next/tunet_rooms_card.js` uploaded
+- resource cache-bust set:
+  - `/local/tunet/v2_next/tunet_rooms_card.js?v=20260307_p09`
+
+Validation:
+- `node --check Dashboard/Tunet/Cards/v2/tunet_base.js` passed
+- `node --check Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` passed
+
+## 0L) Session Delta (2026-03-07, T-011A.1)
+
+Focused visual parity update landed for lighting tiles:
+
+- `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
+  - aligned lighting tile hover/press polish with rooms tile behavior
+  - enforced circular icon-wrap geometry and icon sizing parity
+  - strengthened off/unavailable icon-wrap circle visibility
+  - compact/condensed tiles now scale proportionally:
+    - icon lane shrinks first
+    - name/value/progress lanes are protected from overlap
+    - dense compact grids (`columns >= 5`) apply tighter compact scaling
+
+Scope:
+- no interaction-model changes
+- no nav/popup behavior changes
+- no dashboard YAML layout changes
+
+Live deploy:
+- `/config/www/tunet/v2_next/tunet_lighting_card.js` uploaded
+- resource cache-bust set:
+  - `/local/tunet/v2_next/tunet_lighting_card.js?v=20260307_p08`
+
+Validation:
+- `node --check Dashboard/Tunet/Cards/v2/tunet_lighting_card.js` passed
+
+## 0K) Next Execution Queue (Top Priority, Active)
+
+Use this queue first. Do not start multi-surface polish until Surface 1 is locked.
+
+### `P0` (Do Next)
+
+1. **Surface 1: Living Room page orchestration lock**
+   - Produce a concrete page spec using the Sections 3-layer model:
+     - page level: `max_columns`, `dense_section_placement`
+     - section level: `column_span` / `row_span`
+     - card level: `grid_options`
+   - Define explicit `hero` / `companion` / `support` roles and first-touch interaction order.
+   - Validate at: `390x844`, `768x1024`, `1024x1366`, `1440x900`.
+   - Record lock outcome in:
+     - `Dashboard/Tunet/Docs/sections_layout_matrix.md`
+     - `handoff.md`
+
+2. **Surface 2: Living Room popup (matching pair)**
+   - Lock popup composition to complement the room page (quick controls, not page replacement).
+   - Keep Browser Mod + browser-scoped popup triggers direction lock.
+   - Validate paired behavior with room page across phone/tablet/desktop.
+
+3. **Surface 3: Overview page orchestration**
+   - Build a deliberate overview composition from roles first, not local span tweaks.
+   - Lock scan order and first-touch priorities, then set section/card sizing.
+   - Validate against same breakpoint matrix and record decisions.
+
+### `P1` (After P0)
+
+1. **Surface 4: Media page orchestration lock**
+2. **Surface 5: Remaining room pages (`Bedroom`, `Kitchen`, `Dining`)**
+   - apply locked template from Surface 1
+   - document only room-specific deltas
+
+### Active interpretation note
+
+- Earlier `P0` items around token/readability/rooms-row/weather were heavily implemented in card code.
+- Treat those items as verification/backlog unless a concrete regression is reproduced.
+
+## 0J) Prior Queue (Verification Backlog)
+
+Use this queue for validation and residual cleanup after `0K/P0` surface locks.
+
+### `P0` (Do Next)
+
+1. **Mobile conventions live verification + tuning (token-first)**
+   - Validate new readability standards on real mobile views (overview + rooms + one room subview).
+   - Apply fixes in `Dashboard/Tunet/Cards/v2/tunet_base.js` first; use per-card overrides only if unavoidable.
+   - Focus checks:
+     - edge whitespace reduction
+     - readable labels/values/status text
+     - no clipping/overlap
+     - row status readable with max 2 lines
+
+2. **Rooms row interaction lock verification**
+   - Confirm behavior matches lock everywhere row variant is used:
+     - sub-buttons toggle individual lights only
+     - right-side control toggles all room lights
+     - card-body tap navigates to room page
+   - If drift appears, fix contract in `tunet_rooms_card.js` (not dashboard-local hacks).
+
+3. **Weather live validation under real provider data**
+   - Verify precipitation mode with current weather provider output:
+     - non-zero precip fallback behavior
+     - hourly precip count parity with `forecast_days`
+     - compact toggle/layout containment on narrow mobile widths
+   - If provider schema differs, patch fallback mapping in `tunet_weather_card.js`.
+
+### `P1` (After P0)
+
+1. **Complete semantic typography token adoption across remaining card families**
+   - Migrate remaining v2 cards still using hardcoded mobile type scales.
+   - Keep central token ownership in `tunet_base.js`; track intentional exceptions only.
+
+2. **Cross-surface mobile density unification pass**
+   - Normalize compact/standard readability and whitespace across:
+     - lighting/light-tile/media/sonos/speaker-grid/climate/nav.
+   - Ensure consistent perceived size hierarchy across cards.
+
+3. **Sections orchestration lock (view-by-view)**
+   - Continue deliberate Page -> Section -> Card design loop using `sections_layout_matrix.md`.
+   - Lock one surface at a time with live breakpoint validation.
+
+### Scope Filter (Important)
+
+- There are many historical in-flight edits/artifacts in this worktree.
+- Do **not** pull old unrelated WIP into current execution by default.
+- Before each tranche, take a backup snapshot (commit or branch point), then run a quick WIP triage:
+  - classify each candidate item as:
+    - `continue` (active and required for current tranche),
+    - `finish-now` (nearly done and should be closed immediately),
+    - `archive` (historical/no longer aligned).
+- For each non-trivial historical item, explicitly ask:
+  - **“Do you want to continue this, finish it now, or archive it?”**
+- Only carry forward items explicitly marked `continue` or `finish-now`.
+
 ## 0I) Mobile Conventions Lock (New Standard)
 
 This is now a **locked implementation convention** for all Tunet v2 cards:

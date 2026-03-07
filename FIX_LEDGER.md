@@ -1,8 +1,251 @@
 # Tunet Suite Fix Ledger
 
-Working branch: `codex/unified-microinteractions`
-Last updated: 2026-03-06
+Working branch: `claude/dashboard-nav-research-QnOBs`
+Last updated: 2026-03-07
 Scope: `/home/mac/HA/implementation_10`
+
+## Session Delta (2026-03-07, T-011A.3)
+
+Change marker: `T-011A.3`
+
+- `DECISION-LOCK (DOCS)`
+  - card-unification direction: `Option C` (family profile consumption), planning score lock `8.5/10`
+  - prerequisite ordering locked:
+    1. container-first width-source migration
+    2. nav global layout mutation isolation (`ensureGlobalOffsetsStyle` scope control)
+    3. phased profile rollout
+- `ROLL-OUT LOCKS`
+  - `rooms-row` + `rooms-row-slim` are one profile family with modifiers
+  - skip Option B pilot comparison; execute direct Option C pilot
+  - add post-pilot calibration gate for `getCardSize()` and `getGridOptions()`
+- `SCOPE`
+  - docs-only planning update in `Dashboard/Tunet/Agent-Reviews/type_profile_consumption_options.md`
+  - no runtime JS/YAML changes
+
+## Session Delta (2026-03-07, T-011A.2)
+
+Change marker: `T-011A.2`
+
+- `CODE-DONE`
+  - rooms row control proportionality + status precedence hardening:
+    - `Dashboard/Tunet/Cards/v2/tunet_base.js`
+    - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` (`v2.9.2`)
+  - fixes included:
+    - mobile rooms-row controls scale down relative to desktop
+    - row all-toggle and per-light orbs share matched sizing box model
+    - row main icon reduced to preserve text lane readability
+    - status line suppresses unlabeled brightness `%` when ambient entities are configured
+- `SCOPE`
+  - no nav/popup contract changes
+  - no YAML structure changes
+- `DEPLOYMENT`
+  - uploaded:
+    - `/config/www/tunet/v2_next/tunet_base.js`
+    - `/config/www/tunet/v2_next/tunet_rooms_card.js`
+  - resource version-bumped:
+    - `/local/tunet/v2_next/tunet_rooms_card.js?v=20260307_p09`
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_base.js` passed
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` passed
+
+## Session Delta (2026-03-07, T-011A.1)
+
+Change marker: `T-011A.1`
+
+- `CODE-DONE`
+  - Lighting tile visual polish parity update:
+    - `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
+  - parity adjustments:
+    - explicit rooms-style hover/press feedback on lighting tiles
+    - explicit circular icon-wrap geometry + icon sizing parity
+    - off/unavailable icon-wrap styling retains visible circular container treatment
+    - compact/condensed tile lane protection:
+      - icon lane scales down first
+      - name/value/progress lanes keep separation under compact pressure
+      - dense compact mode (`columns >= 5`) applies tighter proportional scaling
+- `SCOPE`
+  - no navigation/popup/interaction-contract behavior changes
+  - no YAML layout changes
+- `DEPLOYMENT`
+  - uploaded `/config/www/tunet/v2_next/tunet_lighting_card.js`
+  - resource version-bumped:
+    - `/local/tunet/v2_next/tunet_lighting_card.js?v=20260307_p08`
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_lighting_card.js` passed
+
+## Session Delta (2026-03-07, T-011A)
+
+Change marker: `T-011A`
+
+- `PRIORITY-RESET`
+  - active remediation focus is now surface-by-surface layout orchestration (`Page -> Section -> Card`) per `Dashboard/Tunet/AGENTS.md` sections `7B` and `7C`
+  - prior bug-fix-heavy `P0` queue items that are already implemented in card sources move to verification backlog unless regressions are reproduced
+- `DOC-SYNC`
+  - planning control docs now prioritize:
+    1. Living Room page lock
+    2. Matching Living Room popup lock
+    3. Overview lock
+    4. Media lock
+    5. Remaining room pages via locked template deltas
+
+## Session Delta (2026-03-07, T-010C.2)
+
+Change marker: `T-010C.2`
+
+- `CODE-DONE / DEPLOYED / HA-VERIFY`
+  - Popup/navigation action dispatch hardening in shared action router:
+    - `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - Cache-safe adoption of updated shared router:
+    - `Dashboard/Tunet/Cards/v2/tunet_actions_card.js` (`v2.4.3`)
+    - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` (`v2.8.6`)
+
+- `DEPLOYMENT`
+  - uploaded:
+    - `/config/www/tunet/v2_next/tunet_base.js`
+    - `/config/www/tunet/v2_next/tunet_actions_card.js`
+    - `/config/www/tunet/v2_next/tunet_rooms_card.js`
+  - resource version-bumped:
+    - `/local/tunet/v2_next/tunet_actions_card.js?v=20260307_p06`
+    - `/local/tunet/v2_next/tunet_rooms_card.js?v=20260307_p06`
+
+- `VALIDATION`
+  - `node --check` passed:
+    - `Dashboard/Tunet/Cards/v2/tunet_base.js`
+    - `Dashboard/Tunet/Cards/v2/tunet_actions_card.js`
+    - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
+
+## Session Delta (2026-03-07, T-010C.1)
+
+Change marker: `T-010C.1`
+
+- `CODE-DONE / DEPLOYED / HA-VERIFY`
+  - Status dropdown reliability hardening:
+    - `Dashboard/Tunet/Cards/v2/tunet_status_card.js` (`v2.6.5`)
+  - Popup room-link action reliability normalization:
+    - `Dashboard/Tunet/tunet-suite-storage-config.yaml` (living popup Room action -> `navigate`)
+    - `Dashboard/Tunet/tunet-suite-config.yaml` parity updates for popup Room actions
+
+- `DEPLOYMENT`
+  - uploaded:
+    - `/config/www/tunet/v2_next/tunet_status_card.js`
+    - `/config/www/tunet/v2_next/tunet_base.js`
+  - resource version-bumped:
+    - `/local/tunet/v2_next/tunet_status_card.js?v=20260307_p05`
+  - live storage dashboard transform applied:
+    - `tunet-suite-storage` living popup `Room` action now uses `action: navigate`
+
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_status_card.js` passed
+  - YAML parse checks passed for modified Tunet suite YAML files
+
+## Session Delta (2026-03-07, T-010B)
+
+Change marker: `T-010B`
+
+- `CODE-DONE / DEPLOYED / HA-VERIFY`
+  - Nav clearance hardening for sections/mobile footer overlap:
+    - `Dashboard/Tunet/Cards/v2/tunet_nav_card.js` (`v0.2.3`)
+  - Centralized rooms row density token increase:
+    - `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - Rooms row control parity fix (orb vs toggle sizing consistency):
+    - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` (`v2.8.5`)
+  - Light tile lane-spacing refinements (name/value/bar separation):
+    - `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js` (`v3.4.4`)
+    - `Dashboard/Tunet/Cards/v2/tunet_light_tile.js` (`v1.0.2`)
+
+- `DEPLOYMENT`
+  - uploaded updated files to `/config/www/tunet/v2_next/`
+  - dashboard resources version-bumped:
+    - `/local/tunet/v2_next/tunet_nav_card.js?v=20260307_p04`
+    - `/local/tunet/v2_next/tunet_rooms_card.js?v=20260307_p04`
+    - `/local/tunet/v2_next/tunet_lighting_card.js?v=20260307_p04`
+    - `/local/tunet/v2_next/tunet_light_tile.js?v=20260307_p04`
+
+- `VALIDATION`
+  - `node --check` pass:
+    - `tunet_base.js`
+    - `tunet_nav_card.js`
+    - `tunet_rooms_card.js`
+    - `tunet_lighting_card.js`
+    - `tunet_light_tile.js`
+
+## Session Delta (2026-03-07)
+
+Change marker: `T-010A`
+
+- `CODE-DONE / DEPLOYED / HA-VERIFY`
+  - Shared icon/density baseline tuning:
+    - `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - Status compact/standard clipping/readability stabilization + container-width responsive columns:
+    - `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+  - Scenes chip compact readability sizing pass:
+    - `Dashboard/Tunet/Cards/v2/tunet_scenes_card.js`
+  - Actions strip compact readability sizing pass:
+    - `Dashboard/Tunet/Cards/v2/tunet_actions_card.js`
+- `DEPLOYMENT`
+  - uploaded the four files to `/config/www/tunet/v2_next/`
+  - dashboard resources version-bumped:
+    - `/local/tunet/v2_next/tunet_status_card.js?v=20260307_p01`
+    - `/local/tunet/v2_next/tunet_scenes_card.js?v=20260307_p01`
+    - `/local/tunet/v2_next/tunet_actions_card.js?v=20260307_p01`
+- `VALIDATION`
+  - `node --check` pass:
+    - `tunet_base.js`
+    - `tunet_status_card.js`
+    - `tunet_scenes_card.js`
+    - `tunet_actions_card.js`
+
+## Session Delta (2026-03-07, follow-up)
+
+Change marker: `T-010A.1`
+
+- `CODE-DONE / DEPLOYED / HA-VERIFY`
+  - Rooms header all-toggle control sizing increase:
+    - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
+- `DEPLOYMENT`
+  - uploaded to `/config/www/tunet/v2_next/tunet_rooms_card.js`
+  - dashboard resource bumped:
+    - `/local/tunet/v2_next/tunet_rooms_card.js?v=20260307_p02`
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` passed
+
+## Session Delta (2026-03-06 Late 2)
+
+Change marker: `T-009E`
+
+- `CODE-DONE / HA-VERIFY`
+  - Centralized mobile density baseline in shared card system:
+    - `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - Focused adoption pass for high-visibility mobile tiles:
+    - `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
+    - `Dashboard/Tunet/Cards/v2/tunet_light_tile.js`
+    - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
+    - `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+- `CACHE-BUSTING`
+  - all v2 cards now reference `tunet_base.js?v=20260306g3`
+- `DOCS-ADDED`
+  - `Dashboard/Tunet/Docs/mobile_density_audit_weather_climate.md`
+  - `Dashboard/Tunet/Docs/mobile_density_audit_media_audio.md`
+  - `Dashboard/Tunet/Docs/mobile_density_audit_sensor_actions_scenes.md`
+  - `Dashboard/Tunet/Docs/mobile_density_crosscard_gap_review.md`
+  - `Dashboard/Tunet/Docs/mobile_density_master_matrix.md`
+
+## Session Delta (2026-03-06 Late)
+
+Change marker: `T-009D`
+
+- `CODE-DONE / HA-VERIFY`
+  - Status card compact readability + dropdown layering hardening:
+    - `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+  - Rooms row/slim mobile control sizing increase:
+    - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
+- `DOCS-ADDED`
+  - Weather refactor plan matrix:
+    - `Dashboard/Tunet/Docs/weather_card_refactor_plan.md`
+  - Status/chips resolution guide:
+    - `Dashboard/Tunet/Docs/status_chips_resolution_guide.md`
+  - Brightness alignment RCA:
+    - `Dashboard/Tunet/Docs/brightness_alignment_rca.md`
 
 ## Purpose
 
@@ -145,12 +388,52 @@ Do not silently smooth over conflicts. Record them explicitly in planning output
   - `FIXED IN REPO BUT NOT DEPLOYED`
   - `FIXED IN YAML BUT NOT STORAGE`
 
+## Session Delta (2026-03-06)
+
+### FL-033
+- Status: `CODE-DONE / HA-VERIFY`
+- Severity: `HIGH`
+- Type: `DEFECT`
+- Summary:
+  - Home status compact readability and tile density were mis-scaled (text too small, perceived whitespace too high).
+  - Dropdown visibility required host-level elevation during open state.
+- Files:
+  - `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+  - `Dashboard/Tunet/Cards/v2/tunet_scenes_card.js`
+  - `Dashboard/Tunet/Docs/status_chips_resolution_guide.md`
+- Validation:
+  - `node --check` passed for both card files.
+
+### FL-034
+- Status: `CODE-DONE / HA-VERIFY`
+- Severity: `MEDIUM`
+- Type: `DEFECT`
+- Summary:
+  - Rooms row variant controls were too small on mobile.
+  - Increased row-mode mobile sizing for room icon, orb controls, toggle control, and text scale.
+- Files:
+  - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
+- Validation:
+  - `node --check` passed.
+
+### FL-035
+- Status: `ANALYZED`
+- Severity: `MEDIUM`
+- Type: `VALIDATION TASK`
+- Summary:
+  - Brightness/status vertical alignment drift investigated for lighting + rooms surfaces.
+  - Root-cause and fix options documented for follow-up implementation tranche.
+- Files:
+  - `Dashboard/Tunet/Docs/brightness_alignment_rca.md`
+  - `Dashboard/Tunet/Docs/weather_card_refactor_plan.md`
+
 ## Reconciled Findings That Must Not Be Reopened Blindly
 
 These items have already changed materially on this branch and must be verified before being repeated as active blockers:
 
 - `back_path` is already present on Tunet suite subviews.
 - the storage Living Room popup already uses one consolidated `tunet-lighting-card`.
+- the storage Bedroom subview source now uses one consolidated `tunet-lighting-card` with companion Sonos/alarm panels and a full-width context strip (`T-008B`); live breakpoint validation is still required.
 - `tunet_sensor_card.js` `value_attribute` support.
 - nav active color token drift in `tunet_nav_card.js`.
 
@@ -492,6 +775,7 @@ These grades are implementation-health grades, not value judgments. They reflect
   - `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
 - Problem:
   - `tunet-nav-card` injects global `hui-view` offsets and document-root CSS variables from every card instance on every view.
+  - Storage views now use native `footer.card` placement for nav, but JS-global offset injection still exists and can leak outside Tunet routes.
 - Exact Fix:
   - Scope nav layout offsets so they only affect the Tunet dashboard and only once.
   - Acceptable patterns:
@@ -503,6 +787,7 @@ These grades are implementation-health grades, not value judgments. They reflect
 - Dependency:
   - None, but architectural care is required.
 - Validation:
+  - `tunet-suite-storage-config.yaml` places nav in view `footer.card` for all sections views.
   - Open a non-Tunet dashboard after loading Tunet and confirm no extra left or bottom spacing remains.
 
 #### FL-012
@@ -666,7 +951,7 @@ These grades are implementation-health grades, not value judgments. They reflect
   - `plan.md` now rejects stale Bubble/hash execution instructions and keeps Browser Mod as active popup path.
 
 #### FL-028
-- Status: `OPEN`
+- Status: `PARTIAL`
 - Severity: `HIGH`
 - Requirement Alignment:
   - `REQ-LAY-001`
@@ -684,18 +969,30 @@ These grades are implementation-health grades, not value judgments. They reflect
   - `ACCEPTED AS PRODUCT DIRECTION`
 - Files:
   - `plan.md`
+  - `Dashboard/Tunet/Docs/sections_layout_matrix.md`
   - `Dashboard/Tunet/tunet-suite-config.yaml`
   - `Dashboard/Tunet/tunet-suite-storage-config.yaml`
 - Problem:
-  - Sections layout is not managed through a breakpoint-aware composition system; view/section/card sizing decisions drift by local edits.
+  - Sections layout is not yet fully managed through a breakpoint-aware composition system; view/section/card sizing decisions still drift by local edits.
+  - Prior guidance mixed a 12-column mental model with incomplete runtime interpretation of Sections page-column behavior.
 - Exact Fix:
-  - Define and enforce a layout matrix covering overall view width policy, section span strategy, and card span behavior across phone/tablet/desktop.
+  - Define and enforce a layout matrix covering:
+    - page/view width policy
+    - section span strategy
+    - card span behavior
+    across phone/tablet/desktop.
+  - Ground matrix rules in current HA controls (`max_columns`, `dense_section_placement`, `column_span`, `row_span`, `grid_options` / `getGridOptions()`).
 - Why This Matters:
   - Correct Sections usage is foundational; card polish is wasted if responsive composition is unstable.
 - Dependency:
   - FL-027 control gate enforcement.
 - Validation:
-  - Overview + one room subview pass matrix checks for phone/tablet/desktop compositions.
+  - `Dashboard/Tunet/Docs/sections_layout_matrix.md` now contains the explicit 3-layer control model and tuning order.
+  - `Dashboard/Tunet/tunet-suite-storage-config.yaml` now applies the model:
+    - explicit `max_columns: 4` + `dense_section_placement: false` for all sections views
+    - normalized overview span semantics (`4/3/1`)
+    - one concrete subview composition example (`living-room` split `3/1`)
+  - Overview + one room subview still need live matrix checks at phone/tablet/desktop compositions before item can be marked `DONE`.
 
 #### FL-029
 - Status: `PARTIAL`
@@ -759,6 +1056,80 @@ These grades are implementation-health grades, not value judgments. They reflect
   - FL-022 popup direction lock.
 - Validation:
   - Room tiles toggle on tap and open Browser Mod popup on hold in both overview and rooms-directory surfaces.
+
+#### FL-031
+- Status: `PARTIAL (CODE-DONE / HA-VERIFY)`
+- Severity: `HIGH`
+- Requirement Alignment:
+  - `REQ-UX-001`
+  - `REQ-UX-002`
+  - `REQ-DONE-001`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Item Type:
+  - `DEFECT`
+- Completion Standard:
+  - `CODE CHANGED`
+  - `DEPLOYED`
+  - `VISUALLY VALIDATED`
+- Files:
+  - `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+  - `Dashboard/Tunet/tunet-suite-storage-config.yaml`
+- Problem:
+  - Status mode dropdown could appear beneath nearby tiles and selection was not reliably applied across `input_select`/`select` domains.
+- Exact Fix:
+  - Keep dropdown surfaces above sibling tiles (`dropdown-open` z-index behavior).
+  - Allow dropdown menus to escape card/grid bounds by forcing status card overflow visibility.
+  - Use async service selection with `input_select.select_option` primary and `select.select_option` fallback.
+- Why This Matters:
+  - Mode selection is a primary global control in the overview status surface and must be visually reliable and deterministic.
+- Dependency:
+  - None.
+- Validation:
+  - Open overview status mode dropdown and confirm menu overlays adjacent tiles.
+  - Select each option and confirm entity state transitions in HA.
+  - Confirm no dropdown clipping at row edges on mobile and desktop.
+
+#### FL-032
+- Status: `PARTIAL (CODE-DONE / HA-VERIFY)`
+- Severity: `HIGH`
+- Requirement Alignment:
+  - `REQ-UX-001`
+  - `REQ-UX-002`
+  - `REQ-DONE-001`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Item Type:
+  - `DEFECT`
+- Completion Standard:
+  - `CODE CHANGED`
+  - `DEPLOYED`
+  - `VISUALLY VALIDATED`
+- Files:
+  - `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  - `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
+  - `Dashboard/Tunet/Cards/v2/tunet_light_tile.js`
+  - `Dashboard/Tunet/Cards/v2/tunet_speaker_grid_card.js`
+- Problem:
+  - Drag-enabled tile surfaces were stealing touch gestures on iOS/WKWebView (`touch-action: none` + mixed pointer handling), causing vertical page scroll stalls and interaction jitter.
+- Exact Fix:
+  - Add shared axis-lock utility (`createAxisLockedDrag`) with:
+    - deadzone + axis-bias gesture intent detection
+    - vertical/ambiguous gesture passthrough (no drag lock)
+    - horizontal drag lock with conditional `preventDefault()`
+  - Switch high-impact tile surfaces to `touch-action: pan-y`.
+  - Refactor lighting/light-tile/speaker-grid drag paths to use the shared helper.
+- Why This Matters:
+  - Scroll starvation on primary interaction surfaces is a core usability failure on mobile and blocks reliable one-touch control.
+- Dependency:
+  - None.
+- Validation:
+  - On iOS phone, vertical swipe beginning on any lighting/speaker tile scrolls the page.
+  - Horizontal drag still updates brightness/volume controls.
+  - Long-press/tap behavior remains intact on refactored tiles.
+  - `node --check` passes for all touched card modules.
 
 ### Performance And Update Behavior
 
@@ -1033,11 +1404,12 @@ These are not defects. They are architecture or design decisions that still need
 
 This order applies to active remediation items only. It does **not** imply that Product-Direction Decisions should be executed like bug tickets.
 
-1. FL-001, FL-002, FL-003, FL-004, FL-005, FL-006
-2. FL-007, FL-008, FL-009, FL-010, FL-025, FL-026
-3. FL-019, FL-020
-4. FL-011, FL-012, FL-013, FL-014, FL-015
-5. FL-016, FL-017
+1. FL-038 (surface-by-surface orchestration lock)
+2. FL-001, FL-002, FL-003, FL-004, FL-005, FL-006
+3. FL-007, FL-008, FL-009, FL-010, FL-025, FL-026
+4. FL-019, FL-020
+5. FL-011, FL-012, FL-013, FL-014, FL-015
+6. FL-016, FL-017
 
 ## Product-Direction Decision Set
 
@@ -1057,3 +1429,118 @@ An item is only actually done when all of the following are true:
 - Resources are cache-busted if frontend JS changed.
 - The validation step in this ledger is completed.
 - `plan.md` no longer contradicts the repo state.
+
+### FL-033
+- Status: `CODE-DONE / HA-VERIFY`
+- Severity: `HIGH`
+- Requirement Alignment:
+  - `REQ-UX-001`, `REQ-UX-003`
+- Surface Scope:
+  - `Storage/Hybrid Evaluation Surface`
+- Type:
+  - `DEFECT`
+- Summary:
+  - Home status compact tiles were difficult to read and visually inconsistent.
+- Exact Fix:
+  - Increased compact icon/value/label typography and normalized tile min-height using `--tile-row-h` in `Dashboard/Tunet/Cards/v2/tunet_status_card.js`.
+- Validation:
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_status_card.js`
+  - Live verify readability on phone/tablet.
+
+### FL-034
+- Status: `CODE-DONE / HA-VERIFY`
+- Severity: `HIGH`
+- Requirement Alignment:
+  - `REQ-UX-001`, `REQ-DONE-001`
+- Surface Scope:
+  - `Storage/Hybrid Evaluation Surface`
+- Type:
+  - `DEFECT`
+- Summary:
+  - Home status dropdown could render under adjacent cards.
+- Exact Fix:
+  - Added host-level dropdown stacking context (`:host(.dd-open)`) and open/close host class toggling in `Dashboard/Tunet/Cards/v2/tunet_status_card.js`.
+- Validation:
+  - Open adaptive mode dropdown in dense grid with cards above/below; ensure menu remains visible/selectable.
+
+### FL-035
+- Status: `CODE-DONE / HA-VERIFY`
+- Severity: `MEDIUM`
+- Requirement Alignment:
+  - `REQ-UX-001`, `REQ-SEC-001`
+- Surface Scope:
+  - `Storage/Hybrid Evaluation Surface`
+- Type:
+  - `DEFECT`
+- Summary:
+  - Rooms row/slim mobile controls were undersized.
+- Exact Fix:
+  - Increased row/slim icon/button/orb dimensions and spacing in `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`.
+- Validation:
+  - `node --check Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
+  - Live verify row/slim tap targets on mobile.
+
+### FL-036
+- Status: `DOC-DONE`
+- Severity: `MEDIUM`
+- Requirement Alignment:
+  - `REQ-UX-003`, `REQ-DONE-001`
+- Surface Scope:
+  - `Repo Architecture Surface`
+- Type:
+  - `VALIDATION TASK`
+- Summary:
+  - Weather card requires refactor plan before code changes.
+- Exact Fix:
+  - Added `Dashboard/Tunet/Docs/weather_card_refactor_plan.md` with mode matrix, data-source normalization, density strategy, and acceptance checklist.
+
+### FL-037
+- Status: `DOC-DONE`
+- Severity: `MEDIUM`
+- Requirement Alignment:
+  - `REQ-UX-003`, `REQ-DONE-001`
+- Surface Scope:
+  - `Repo Architecture Surface`
+- Type:
+  - `VALIDATION TASK`
+- Summary:
+  - Brightness alignment regression required concrete RCA.
+- Exact Fix:
+  - Added `Dashboard/Tunet/Docs/brightness_alignment_rca.md` with repro, root causes, options A/B, and recommended option.
+
+### FL-038
+- Status: `OPEN (ACTIVE PRIORITY)`
+- Severity: `HIGH`
+- Requirement Alignment:
+  - `REQ-LAY-001`
+  - `REQ-SEC-001`
+  - `REQ-SURF-001`
+  - `REQ-DONE-001`
+- Surface Scope:
+  - `Repo Architecture Surface`
+  - `Storage/Hybrid Evaluation Surface`
+- Type:
+  - `VALIDATION TASK`
+- Summary:
+  - Surface orchestration is not yet locked one page at a time; work has drifted across multiple pages without a single active surface gate.
+- Exact Fix:
+  - Execute the mandatory one-surface loop and record decisions in control docs:
+    1. Living Room page
+    2. Living Room popup
+    3. Overview
+    4. Media
+    5. Remaining room pages
+  - For each surface, capture:
+    - page intent (`hero` / `companion` / `support`)
+    - interaction contract
+    - page-level controls (`max_columns`, `dense_section_placement`)
+    - section-level composition (`column_span`, `row_span`)
+    - card-level placement (`grid_options`)
+    - breakpoint validation checklist (`390x844`, `768x1024`, `1024x1366`, `1440x900`)
+- Why This Matters:
+  - Without a locked per-surface sequence, layout and interaction decisions continue to regress through cross-surface partial edits.
+- Dependency:
+  - FL-028 matrix baseline remains prerequisite context.
+- Validation:
+  - `plan.md`, `handoff.md`, and `sections_layout_matrix.md` all show the same active one-surface queue and lock criteria.
+  - At least Surface 1 (Living Room page) is marked locked with documented breakpoint outcomes before Surface 2 begins.

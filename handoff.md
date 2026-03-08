@@ -8,6 +8,54 @@ Source filter for this run:
 - ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
 
+## 0Q) Session Delta (2026-03-07, T-011A.6)
+
+Profile consumption architecture finalized to v3.0 — implementation-ready with Codex prompt:
+
+- Created files:
+  - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (v3.0, 1100 lines) — sole architecture authority
+  - `Dashboard/Tunet/Agent-Reviews/start.md` (428 lines) — Codex implementation prompt for G1-G6
+  - 14 additional Agent-Reviews artifacts from multi-agent review wave
+  - 9 additional Docs files (mobile density audits, sections matrix, popup fix, weather refactor)
+- Architecture decisions locked (D1–D17):
+  - D2: 5 families (`tile-grid`, `speaker-tile`, `rooms-row`, `indicator-tile`, `indicator-row`)
+  - D4: Two-function API (`selectProfileSize` decides family+size, `resolveSizeProfile` is pure lookup)
+  - D5: Resolver accepts `{ family, size }` only — no widthHint, no densityMode
+  - D8: Three sizes only (`compact`, `standard`, `large`); compact IS dense mode; no separate density axis
+  - D9: Two-name CSS var protection (`--profile-*` public hooks, `--_tunet-*` internal aliases consumed by tile-core)
+  - D12: Feature flag `use_profiles: true|false` with `_applyLegacyScaling()` rollback preserved until G6
+  - D13: Version handshake failure renders visible in-card error via `_renderError()`
+  - D15: Two-tier versioning (public config keys get migration shims; internal registry tokens get unit tests only)
+- Gate model finalized:
+  - G0: Documentation prerequisites (done)
+  - G1: Base primitives in `tunet_base.js` + width-source fixes (21 unit test assertions specified)
+  - G2: Two-card pilot (`tunet_lighting_card.js` + `tunet_speaker_grid_card.js`)
+  - G3: Interaction-heavy families (`tunet_status_card.js` + `tunet_rooms_card.js`); requires nav neutralization pre-gate
+  - G4: Standalone tile alignment (`tunet_light_tile.js`)
+  - G5: Sections size-hint calibration
+  - G6: Cleanup — remove legacy code after 30-day soak
+- Key architecture clarifications resolved via gap review:
+  - Profile resolver sits downstream of deepMerge pass (read-only consumer of merged config)
+  - `PRESET_FAMILY_MAP` is a static lookup; rooms preset maps to `tile-grid` or `rooms-row` based on `mergedConfig.layout`
+  - tile-core is exclusive consumer of core `--_tunet-*` lane tokens; family components read only extension tokens
+  - `_setProfileVars()` clears all `--_tunet-*` then sets new family tokens on `this` (card host, not shadowRoot)
+  - `_applyProfile()` is single convergence point for both setConfig and ResizeObserver triggers
+  - Profiles are mode-agnostic (geometry only, no color/opacity/dark-light branching)
+- Open issues noted in review (non-blocking for G1):
+  - `orbSize` numeric conflict between registry (32px standard) and G3 exit criteria (26px) — needs reconciliation
+  - Missing cards from §2 out-of-scope table (climate, scenes, actions, sensor)
+  - Slim scaling mechanism unspecified (CSS class vs calc vs hardcoded)
+  - `getComputedStyle` in bridge code forces layout reflow (acceptable if infrequent)
+- Scope:
+  - docs + architecture only
+  - no card runtime behavior changes
+  - no deploy/cache-bust actions
+
+Carry-forward:
+- Next step: G1 implementation in `tunet_base.js` (add profile registry, resolver, deepMerge, width-source fixes)
+- `start.md` is the Codex-ready implementation prompt — hand off to Codex or implement directly
+- Reconcile the 4 open issues above before or during G1
+
 ## 0P) Session Delta (2026-03-07, T-011A.5)
 
 Design-guideline documentation was fully rewritten and re-structured (docs-only tranche):

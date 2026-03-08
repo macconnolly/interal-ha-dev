@@ -1,0 +1,1252 @@
+/**
+ * Tunet Base Module
+ * Shared tokens, CSS blocks, and utilities for the Tunet card suite
+ * Version 1.0.0
+ *
+ * Architecture: String exports, not inheritance.
+ * Each card remains a standalone HTMLElement subclass.
+ * Cards import CSS strings and concatenate them into their shadow DOM <style>.
+ */
+
+// ═══════════════════════════════════════════════════════════
+// TOKENS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Complete token system: light mode (spec §2.1) + dark mode (spec §2.2).
+ * Source: design_language.md v8.3
+ */
+export const TOKENS = `
+  :host {
+    /* Glass Surfaces */
+    --glass: rgba(255,255,255, 0.68);
+    --glass-border: rgba(255,255,255, 0.45);
+
+    /* Shadows (two-layer: contact + ambient) */
+    --shadow: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
+    --shadow-up: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
+    --inset: inset 0 0 0 0.5px rgba(0,0,0, 0.06);
+
+    /* Text */
+    --text: #1C1C1E;
+    --text-sub: #8E8E93;
+    --text-muted: #8E8E93;
+
+    /* Accent: Amber */
+    --amber: #D4850A;
+    --amber-fill: rgba(212,133,10, 0.10);
+    --amber-border: rgba(212,133,10, 0.22);
+
+    /* Accent: Blue */
+    --blue: #007AFF;
+    --blue-fill: rgba(0,122,255, 0.09);
+    --blue-border: rgba(0,122,255, 0.18);
+
+    /* Accent: Green */
+    --green: #34C759;
+    --green-fill: rgba(52,199,89, 0.12);
+    --green-border: rgba(52,199,89, 0.15);
+
+    /* Accent: Purple */
+    --purple: #AF52DE;
+    --purple-fill: rgba(175,82,222, 0.10);
+    --purple-border: rgba(175,82,222, 0.18);
+
+    /* Accent: Red */
+    --red: #FF3B30;
+    --red-fill: rgba(255,59,48, 0.10);
+    --red-border: rgba(255,59,48, 0.22);
+
+    /* Track / Slider */
+    --track-bg: rgba(0,0,0, 0.06);
+    --track-h: 44px;
+
+    /* Thumb */
+    --thumb-bg: #fff;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
+
+    /* Radii */
+    --r-card: 24px;
+    --r-section: 32px;
+    --r-tile: 16px;
+    --r-pill: 999px;
+    --r-track: 14px;
+
+    /* Surface Blur */
+    --blur-card: 24px;
+    --blur-section: 20px;
+    --blur-menu: 24px;
+
+    /* Motion + Interaction */
+    --motion-fast: 0.12s;
+    --motion-ui: 0.18s;
+    --motion-surface: 0.28s;
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --ease-emphasized: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --press-scale: 0.97;
+    --press-scale-strong: 0.95;
+    --lift-scale: 1.03;
+    --drag-scale: 1.05;
+
+    /* Focus */
+    --focus-ring-color: var(--blue);
+    --focus-ring-width: 2px;
+    --focus-ring-offset: 3px;
+
+    /* Controls */
+    --ctrl-bg: rgba(255,255,255, 0.52);
+    --ctrl-border: rgba(0,0,0, 0.05);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
+
+    /* Chips */
+    --chip-bg: rgba(255,255,255, 0.48);
+    --chip-border: rgba(0,0,0, 0.05);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.04);
+
+    /* Dropdown Menu */
+    --dd-bg: rgba(255,255,255, 0.84);
+    --dd-border: rgba(255,255,255, 0.60);
+
+    /* Dividers */
+    --divider: rgba(28,28,30, 0.07);
+
+    /* Toggle Switch */
+    --toggle-off: rgba(28,28,30, 0.10);
+    --toggle-on: rgba(52,199,89, 0.28);
+    --toggle-knob: rgba(255,255,255, 0.96);
+
+    /* Tile Surfaces */
+    --tile-bg: rgba(255,255,255, 0.92);
+    --tile-bg-off: rgba(28,28,30, 0.04);
+    --gray-ghost: rgba(0, 0, 0, 0.03);
+    --border-ghost: transparent;
+
+    /* Icon Surfaces */
+    --icon-wrap-size: 44px;
+    --icon-wrap-size-sm: 24px;
+    --icon-wrap-radius: 16px;
+    --icon-wrap-radius-sm: 6px;
+    --icon-wrap-bg-off: var(--gray-ghost);
+    --icon-wrap-fg-off: var(--text-muted);
+    --icon-wrap-bg-on: var(--amber-fill);
+    --icon-wrap-fg-on: var(--amber);
+    --icon-wrap-border-on: var(--amber-border);
+
+    /* Semantic glow usage: alert/group/override only */
+    --glow-manual: 0 0 12px rgba(255,82,82,0.60);
+    --glow-group: 0 0 10px rgba(0,122,255,0.45);
+
+    /* Section Container */
+    --section-bg: rgba(255,255,255, 0.45);
+    --section-gap: 16px;
+    --shadow-section: 0 8px 40px rgba(0,0,0,0.10);
+    --section-shadow: var(--shadow-section);
+
+    /* Density controls (global defaults) */
+    --card-pad: 20px;
+    --section-pad: 20px;
+    --tile-pad: 14px;
+    --tile-gap: 6px;
+    --ctrl-min-h: 42px;
+    --ctrl-font-size: 12px;
+    --ctrl-pad-x: 12px;
+    --dd-option-font-size: 13px;
+    --dd-option-pad-y: 9px;
+    --dd-option-pad-x: 12px;
+    --rooms-row-btn-size: 3.16em;
+    --rooms-row-btn-radius: 12px;
+    --rooms-row-btn-icon-size: 1.62em;
+    --rooms-row-btn-size-slim: 2.76em;
+    --rooms-row-btn-icon-size-slim: 1.42em;
+    --rooms-all-toggle-min-h: 2.62em;
+    --rooms-all-toggle-min-w: 6.5em;
+    --rooms-all-toggle-font: 0.82em;
+    --rooms-all-toggle-icon: 1.2em;
+
+    /* Semantic type roles (desktop) */
+    --type-label: 12.5px;
+    --type-sub: 11px;
+    --type-value: 18px;
+    --type-chip: 12.5px;
+    --type-row-title: 16.5px;
+    --type-row-status: 14.5px;
+    --row-line-height-title: 1.16;
+    --row-line-height-status: 1.14;
+    --row-status-max-lines: 2;
+
+    /* Density controls (mobile baseline) */
+    --density-mobile-card-pad: 13px;
+    --density-mobile-section-pad: 13px;
+    --density-mobile-tile-pad: 10px;
+    --density-mobile-tile-gap: 4px;
+    --density-mobile-ctrl-min-h: 40px;
+    --density-mobile-ctrl-font: 12.5px;
+    --density-mobile-ctrl-pad-x: 11px;
+    --density-mobile-dd-font: 13px;
+    --density-mobile-dd-pad-y: 8px;
+    --density-mobile-dd-pad-x: 10px;
+    --density-mobile-rooms-row-btn-size: 2.82em;
+    --density-mobile-rooms-row-btn-icon-size: 1.44em;
+    --density-mobile-rooms-row-btn-size-slim: 2.52em;
+    --density-mobile-rooms-row-btn-icon-size-slim: 1.28em;
+    --density-mobile-rooms-all-toggle-min-h: 2.34em;
+    --density-mobile-rooms-all-toggle-min-w: 5.62em;
+    --density-mobile-rooms-all-toggle-font: 0.74em;
+    --density-mobile-rooms-all-toggle-icon: 1.06em;
+
+    /* Semantic type roles (mobile baseline) */
+    --type-label-mobile: 13px;
+    --type-sub-mobile: 11.5px;
+    --type-value-mobile: 18px;
+    --type-chip-mobile: 13px;
+    --type-row-title-mobile: 18px;
+    --type-row-status-mobile: 15.5px;
+
+    color-scheme: light;
+    display: block;
+    container-type: inline-size;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  :host(.dark) {
+    --glass: rgba(30,41,59, 0.72);
+    --glass-border: rgba(255,255,255, 0.10);
+
+    --shadow: 0 4px 20px rgba(0,0,0,0.30), 0 1px 3px rgba(0,0,0,0.50);
+    --shadow-up: 0 20px 40px rgba(0,0,0,0.60), 0 4px 15px rgba(0,0,0,0.40);
+    --inset: inset 0 0 0 0.5px rgba(255,255,255, 0.06);
+
+    --text: #F8FAFC;
+    --text-sub: rgba(248,250,252, 0.65);
+    --text-muted: rgba(248,250,252, 0.45);
+
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36, 0.12);
+    --amber-border: rgba(251,191,36, 0.25);
+
+    --blue: #0A84FF;
+    --blue-fill: rgba(10,132,255, 0.13);
+    --blue-border: rgba(10,132,255, 0.22);
+
+    --green: #30D158;
+    --green-fill: rgba(48,209,88, 0.14);
+    --green-border: rgba(48,209,88, 0.18);
+
+    --purple: #BF5AF2;
+    --purple-fill: rgba(191,90,242, 0.14);
+    --purple-border: rgba(191,90,242, 0.22);
+
+    --red: #FF453A;
+    --red-fill: rgba(255,69,58, 0.14);
+    --red-border: rgba(255,69,58, 0.25);
+
+    --track-bg: rgba(255,255,255, 0.06);
+    --blur-card: 24px;
+    --blur-section: 20px;
+    --blur-menu: 24px;
+    --thumb-bg: #F5F5F7;
+    --thumb-sh: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18);
+    --thumb-sh-a: 0 2px 4px rgba(0,0,0,0.40), 0 8px 20px rgba(0,0,0,0.25);
+
+    --ctrl-bg: rgba(255,255,255, 0.08);
+    --ctrl-border: rgba(255,255,255, 0.08);
+    --ctrl-sh: 0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+
+    --chip-bg: rgba(58,58,60, 0.50);
+    --chip-border: rgba(255,255,255, 0.06);
+    --chip-sh: 0 1px 3px rgba(0,0,0,0.18);
+
+    --dd-bg: rgba(58,58,60, 0.88);
+    --dd-border: rgba(255,255,255, 0.08);
+
+    --divider: rgba(255,255,255, 0.06);
+
+    --toggle-off: rgba(255,255,255, 0.10);
+    --toggle-on: rgba(48,209,88, 0.30);
+    --toggle-knob: rgba(255,255,255, 0.92);
+
+    --tile-bg: rgba(30,41,59, 0.92);
+    --tile-bg-off: rgba(255,255,255, 0.04);
+    --gray-ghost: rgba(255,255,255, 0.04);
+    --border-ghost: rgba(255,255,255, 0.05);
+    --icon-wrap-bg-off: var(--gray-ghost);
+    --icon-wrap-fg-off: var(--text-muted);
+    --icon-wrap-bg-on: var(--amber-fill);
+    --icon-wrap-fg-on: var(--amber);
+    --icon-wrap-border-on: var(--amber-border);
+    --glow-group: 0 0 10px rgba(10,132,255,0.50);
+
+    --section-bg: rgba(30,41,59, 0.60);
+    --shadow-section: 0 8px 40px rgba(0,0,0,0.35);
+    --section-shadow: var(--shadow-section);
+
+    color-scheme: dark;
+  }
+
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:focus-visible,
+  .focus-ring:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  @media (prefers-contrast: more) {
+    :host {
+      --text-sub: rgba(28,28,30, 0.78);
+      --text-muted: rgba(28,28,30, 0.64);
+      --ctrl-border: rgba(0,0,0, 0.14);
+      --chip-border: rgba(0,0,0, 0.14);
+      --border-ghost: rgba(0,0,0, 0.12);
+      --divider: rgba(28,28,30, 0.14);
+      --focus-ring-width: 3px;
+    }
+    :host(.dark) {
+      --text-sub: rgba(248,250,252, 0.86);
+      --text-muted: rgba(248,250,252, 0.66);
+      --ctrl-border: rgba(255,255,255, 0.20);
+      --chip-border: rgba(255,255,255, 0.18);
+      --border-ghost: rgba(255,255,255, 0.16);
+      --divider: rgba(255,255,255, 0.16);
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    :host {
+      --glass: rgba(255,255,255, 0.94);
+      --section-bg: rgba(255,255,255, 0.92);
+      --dd-bg: rgba(255,255,255, 0.96);
+      --ctrl-bg: rgba(255,255,255, 0.88);
+      --chip-bg: rgba(255,255,255, 0.86);
+      --blur-card: 0px;
+      --blur-section: 0px;
+      --blur-menu: 0px;
+    }
+    :host(.dark) {
+      --glass: rgba(30,41,59, 0.92);
+      --section-bg: rgba(30,41,59, 0.88);
+      --dd-bg: rgba(30,41,59, 0.94);
+      --ctrl-bg: rgba(30,41,59, 0.78);
+      --chip-bg: rgba(30,41,59, 0.76);
+    }
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :host {
+      --glass: rgba(255,255,255, 0.94);
+      --section-bg: rgba(255,255,255, 0.92);
+      --dd-bg: rgba(255,255,255, 0.96);
+    }
+    :host(.dark) {
+      --glass: rgba(30,41,59, 0.92);
+      --section-bg: rgba(30,41,59, 0.88);
+      --dd-bg: rgba(30,41,59, 0.94);
+    }
+  }
+`;
+
+/**
+ * Midnight Navy dark mode override.
+ * Append AFTER TOKENS to override dark mode with navy palette.
+ * Used by: lighting card only.
+ * Source: lighting-section-mockup-polish.html + parity lock values.
+ */
+export const TOKENS_MIDNIGHT = `
+  :host(.dark) {
+    /* Midnight Navy - Parity Lock baseline */
+    --glass: rgba(30,41,59, 0.72);
+    --glass-border: rgba(255,255,255, 0.10);
+
+    --text: #F8FAFC;
+    --text-sub: rgba(248,250,252, 0.65);
+    --text-muted: rgba(248,250,252, 0.45);
+
+    --amber: #fbbf24;
+    --amber-fill: rgba(251,191,36, 0.12);
+    --amber-border: rgba(251,191,36, 0.25);
+
+    --tile-bg: rgba(255,255,255, 0.08);
+    --tile-bg-off: rgba(255,255,255, 0.04);
+    --gray-ghost: rgba(255,255,255, 0.04);
+    --border-ghost: rgba(255,255,255, 0.05);
+
+    --section-bg: rgba(30,41,59, 0.60);
+
+    --track-bg: rgba(255,255,255, 0.08);
+    --shadow: 0 4px 20px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.5);
+    --shadow-up: 0 20px 40px rgba(0,0,0,0.60), 0 4px 15px rgba(0,0,0,0.40);
+  }
+`;
+
+// ═══════════════════════════════════════════════════════════
+// SHARED CSS BLOCKS
+// ═══════════════════════════════════════════════════════════
+
+export const RESET = `
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+`;
+
+export const BASE_FONT = `
+  .wrap, .card-wrap {
+    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+`;
+
+/**
+ * Material Symbols Rounded icon base.
+ * Uses CSS custom properties for font-variation-settings.
+ * Font-family: Rounded only (not Outlined).
+ */
+export const ICON_BASE = `
+  .icon {
+    font-family: 'Material Symbols Rounded';
+    font-weight: normal;
+    font-style: normal;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.1;
+    text-transform: none;
+    letter-spacing: normal;
+    white-space: nowrap;
+    direction: ltr;
+    vertical-align: middle;
+    flex-shrink: 0;
+    overflow: visible;
+    -webkit-font-smoothing: antialiased;
+    --ms-fill: 0;
+    --ms-wght: 400;
+    --ms-grad: 0;
+    --ms-opsz: 24;
+    font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
+  }
+  .icon.filled { --ms-fill: 1; }
+  .icon-28 { font-size: 28px; width: 28px; height: 28px; }
+  .icon-24 { font-size: 24px; width: 24px; height: 24px; }
+  .icon-20 { font-size: 20px; width: 20px; height: 20px; }
+  .icon-18 { font-size: 18px; width: 18px; height: 18px; }
+  .icon-16 { font-size: 16px; width: 16px; height: 16px; }
+  .icon-14 { font-size: 14px; width: 14px; height: 14px; }
+`;
+
+/** Universal glass card shell. Spec §3.1 */
+export const CARD_SURFACE = `
+  .card {
+    position: relative;
+    border-radius: var(--r-card);
+    background: var(--glass);
+    backdrop-filter: blur(var(--blur-card));
+    -webkit-backdrop-filter: blur(var(--blur-card));
+    border: 1px solid var(--ctrl-border);
+    box-shadow: var(--shadow), var(--inset);
+    padding: var(--card-pad, 20px);
+    display: flex;
+    flex-direction: column;
+    transition:
+      background var(--motion-surface) var(--ease-standard),
+      border-color var(--motion-surface) var(--ease-standard),
+      box-shadow var(--motion-surface) var(--ease-standard),
+      opacity var(--motion-surface) var(--ease-standard),
+      transform var(--motion-ui) var(--ease-standard);
+    overflow: hidden;
+  }
+`;
+
+/** Glass stroke pseudo-element for card surface. Spec §3.2 */
+export const CARD_SURFACE_GLASS_STROKE = `
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--r-card);
+    padding: 1px;
+    pointer-events: none;
+    z-index: 0;
+    background: linear-gradient(
+      160deg,
+      rgba(255,255,255, 0.60),
+      rgba(255,255,255, 0.10) 40%,
+      rgba(255,255,255, 0.02) 60%,
+      rgba(255,255,255, 0.25)
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  :host(.dark) .card::before {
+    background: linear-gradient(
+      160deg,
+      rgba(255,255,255, 0.12),
+      rgba(255,255,255, 0.03) 40%,
+      rgba(255,255,255, 0.01) 60%,
+      rgba(255,255,255, 0.06)
+    );
+  }
+`;
+
+/** Section container surface (status, lighting cards) */
+export const SECTION_SURFACE = `
+  .section-container {
+    border-radius: var(--r-section);
+    background: var(--section-bg);
+    backdrop-filter: blur(var(--blur-section));
+    -webkit-backdrop-filter: blur(var(--blur-section));
+    border: 1px solid var(--ctrl-border);
+    box-shadow: var(--section-shadow);
+    padding: var(--section-pad, 20px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--section-gap);
+  }
+`;
+
+/** Base tile surface for status, lighting, sensor tiles */
+export const TILE_SURFACE = `
+  .tile {
+    border-radius: var(--r-tile);
+    background: var(--tile-bg);
+    border: 1px solid var(--border-ghost);
+    box-shadow: var(--shadow);
+    padding: var(--tile-pad, 14px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--tile-gap, 6px);
+    transition:
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      transform var(--motion-ui) var(--ease-emphasized);
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  @media (hover: hover) {
+    .tile:hover {
+      box-shadow: var(--shadow-up);
+    }
+  }
+
+  .tile:active {
+    transform: scale(var(--press-scale));
+  }
+
+  .tile.dragging {
+    transform: scale(var(--drag-scale));
+    box-shadow: var(--shadow-up);
+  }
+
+  .tile:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .tile.off {
+    background: var(--tile-bg-off);
+    box-shadow: none;
+  }
+
+  .tile.off .tile-icon {
+    background: var(--gray-ghost);
+    color: var(--text-muted);
+  }
+`;
+
+/** Shared section header row */
+export const HEADER_PATTERN = `
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 28px;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: var(--text-sub);
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+`;
+
+/** Shared control button surface (info tile, toggle buttons, selectors) */
+export const CTRL_SURFACE = `
+  .ctrl-btn {
+    min-height: var(--ctrl-min-h, 42px);
+    border-radius: 10px;
+    border: 1px solid var(--ctrl-border);
+    background: var(--ctrl-bg);
+    box-shadow: var(--ctrl-sh);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 var(--ctrl-pad-x, 12px);
+    cursor: pointer;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-emphasized),
+      color var(--motion-fast) var(--ease-standard);
+    font-family: inherit;
+    font-size: var(--ctrl-font-size, 12px);
+    font-weight: 600;
+    color: var(--text-sub);
+  }
+
+  @media (hover: hover) {
+    .ctrl-btn:hover {
+      box-shadow: var(--shadow);
+    }
+  }
+
+  .ctrl-btn:active {
+    transform: scale(var(--press-scale-strong));
+  }
+
+  .ctrl-btn:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+`;
+
+/** Shared dropdown menu */
+export const DROPDOWN_MENU = `
+  .dd-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    padding: 5px;
+    border-radius: var(--r-tile);
+    background: var(--dd-bg);
+    backdrop-filter: blur(var(--blur-menu));
+    -webkit-backdrop-filter: blur(var(--blur-menu));
+    border: 1px solid var(--dd-border);
+    box-shadow: var(--shadow-up);
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .dd-menu.open {
+    display: flex;
+    animation: menuIn var(--motion-fast) var(--ease-standard) forwards;
+  }
+
+  @keyframes menuIn {
+    from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .dd-option {
+    padding: var(--dd-option-pad-y, 9px) var(--dd-option-pad-x, 12px);
+    border-radius: 11px;
+    font-size: var(--dd-option-font-size, 13px);
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-emphasized);
+    user-select: none;
+  }
+
+  @media (hover: hover) {
+    .dd-option:hover {
+      background: var(--track-bg);
+    }
+  }
+
+  .dd-option:active {
+    transform: scale(var(--press-scale));
+  }
+
+  .dd-option:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: calc(var(--focus-ring-offset) - 1px);
+  }
+
+  .dd-divider {
+    height: 1px;
+    background: var(--divider);
+    margin: 3px 8px;
+  }
+`;
+
+export const REDUCED_MOTION = `
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+`;
+
+export const RESPONSIVE_BASE = `
+  @container (max-width: 440px) {
+    :host {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      --card-pad: var(--density-mobile-card-pad, 14px);
+      --section-pad: var(--density-mobile-section-pad, 14px);
+      --tile-pad: var(--density-mobile-tile-pad, 10px);
+      --tile-gap: var(--density-mobile-tile-gap, 4px);
+      --ctrl-min-h: var(--density-mobile-ctrl-min-h, 38px);
+      --ctrl-font-size: var(--density-mobile-ctrl-font, 12px);
+      --ctrl-pad-x: var(--density-mobile-ctrl-pad-x, 10px);
+      --dd-option-font-size: var(--density-mobile-dd-font, 12px);
+      --dd-option-pad-y: var(--density-mobile-dd-pad-y, 8px);
+      --dd-option-pad-x: var(--density-mobile-dd-pad-x, 10px);
+      --rooms-row-btn-size: var(--density-mobile-rooms-row-btn-size, 3.4em);
+      --rooms-row-btn-icon-size: var(--density-mobile-rooms-row-btn-icon-size, 1.76em);
+      --rooms-row-btn-size-slim: var(--density-mobile-rooms-row-btn-size-slim, 2.96em);
+      --rooms-row-btn-icon-size-slim: var(--density-mobile-rooms-row-btn-icon-size-slim, 1.56em);
+      --rooms-all-toggle-min-h: var(--density-mobile-rooms-all-toggle-min-h, 2.62em);
+      --rooms-all-toggle-min-w: var(--density-mobile-rooms-all-toggle-min-w, 6.96em);
+      --rooms-all-toggle-font: var(--density-mobile-rooms-all-toggle-font, 0.84em);
+      --rooms-all-toggle-icon: var(--density-mobile-rooms-all-toggle-icon, 1.26em);
+      --type-label: var(--type-label-mobile, 13px);
+      --type-sub: var(--type-sub-mobile, 11.5px);
+      --type-value: var(--type-value-mobile, 18px);
+      --type-chip: var(--type-chip-mobile, 13px);
+      --type-row-title: var(--type-row-title-mobile, 18px);
+      --type-row-status: var(--type-row-status-mobile, 15.5px);
+    }
+    .card { padding: var(--card-pad); }
+    .section-container { padding: var(--section-pad); border-radius: 24px; }
+    .tile { padding: var(--tile-pad); gap: var(--tile-gap); }
+  }
+
+  @supports not (container-type: inline-size) {
+    @media (max-width: 440px) {
+      :host {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        --card-pad: var(--density-mobile-card-pad, 14px);
+        --section-pad: var(--density-mobile-section-pad, 14px);
+        --tile-pad: var(--density-mobile-tile-pad, 10px);
+        --tile-gap: var(--density-mobile-tile-gap, 4px);
+        --ctrl-min-h: var(--density-mobile-ctrl-min-h, 38px);
+        --ctrl-font-size: var(--density-mobile-ctrl-font, 12px);
+        --ctrl-pad-x: var(--density-mobile-ctrl-pad-x, 10px);
+        --dd-option-font-size: var(--density-mobile-dd-font, 12px);
+        --dd-option-pad-y: var(--density-mobile-dd-pad-y, 8px);
+        --dd-option-pad-x: var(--density-mobile-dd-pad-x, 10px);
+        --rooms-row-btn-size: var(--density-mobile-rooms-row-btn-size, 3.4em);
+        --rooms-row-btn-icon-size: var(--density-mobile-rooms-row-btn-icon-size, 1.76em);
+        --rooms-row-btn-size-slim: var(--density-mobile-rooms-row-btn-size-slim, 2.96em);
+        --rooms-row-btn-icon-size-slim: var(--density-mobile-rooms-row-btn-icon-size-slim, 1.56em);
+        --rooms-all-toggle-min-h: var(--density-mobile-rooms-all-toggle-min-h, 2.62em);
+        --rooms-all-toggle-min-w: var(--density-mobile-rooms-all-toggle-min-w, 6.96em);
+        --rooms-all-toggle-font: var(--density-mobile-rooms-all-toggle-font, 0.84em);
+        --rooms-all-toggle-icon: var(--density-mobile-rooms-all-toggle-icon, 1.26em);
+        --type-label: var(--type-label-mobile, 13px);
+        --type-sub: var(--type-sub-mobile, 11.5px);
+        --type-value: var(--type-value-mobile, 18px);
+        --type-chip: var(--type-chip-mobile, 13px);
+        --type-row-title: var(--type-row-title-mobile, 18px);
+        --type-row-status: var(--type-row-status-mobile, 15.5px);
+      }
+      .card { padding: var(--card-pad); }
+      .section-container { padding: var(--section-pad); border-radius: 24px; }
+      .tile { padding: var(--tile-pad); gap: var(--tile-gap); }
+    }
+  }
+`;
+
+// ═══════════════════════════════════════════════════════════
+// FONT INJECTION
+// ═══════════════════════════════════════════════════════════
+
+let _fontsInjected = false;
+
+/**
+ * Inject Google Fonts links into document.head (idempotent).
+ * Call once from any card's constructor.
+ */
+export function injectFonts() {
+  if (_fontsInjected) return;
+  _fontsInjected = true;
+  const links = [
+    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap' },
+  ];
+  for (const cfg of links) {
+    if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
+    const link = document.createElement('link');
+    link.rel = cfg.rel;
+    link.href = cfg.href;
+    if (cfg.crossOrigin !== undefined) link.crossOrigin = cfg.crossOrigin;
+    document.head.appendChild(link);
+  }
+}
+
+/**
+ * Font link tags for injection into shadow DOM.
+ * Use inside the card's _render() template.
+ */
+export const FONT_LINKS = `
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+`;
+
+// ═══════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Standardized dark mode detection.
+ * @param {Object} hass - Home Assistant instance
+ * @returns {boolean}
+ */
+export function detectDarkMode(hass) {
+  if (!hass?.themes) return false;
+  const theme = hass.themes?.darkMode;
+  if (typeof theme === 'boolean') return theme;
+  const selected = hass.themes?.theme;
+  if (selected && selected.toLowerCase().includes('dark')) return true;
+  return false;
+}
+
+/**
+ * Apply or remove .dark class on host element.
+ * @param {HTMLElement} element - The custom element (this)
+ * @param {boolean} isDark
+ */
+export function applyDarkClass(element, isDark) {
+  element.classList.toggle('dark', isDark);
+}
+
+/**
+ * Fire a custom event (for hass-more-info, etc.).
+ * @param {HTMLElement} element
+ * @param {string} type - Event type
+ * @param {Object} detail - Event detail payload
+ */
+export function fireEvent(element, type, detail = {}) {
+  element.dispatchEvent(new CustomEvent(type, {
+    bubbles: true,
+    composed: true,
+    detail,
+  }));
+}
+
+/**
+ * Normalize a navigation path for Home Assistant routing.
+ * @param {string} value
+ * @returns {string}
+ */
+export function normalizePath(value) {
+  const raw = (value == null ? '' : String(value)).trim();
+  if (!raw) return '';
+  return raw.startsWith('/') || raw.startsWith('#') ? raw : `/${raw}`;
+}
+
+/**
+ * Navigate using HA's navigation event, with history fallback.
+ * @param {string} path
+ * @param {Object} options
+ * @param {boolean} options.replace
+ * @param {HTMLElement|null} options.sourceEl
+ */
+export function navigatePath(path, { replace = false, sourceEl = null } = {}) {
+  const normalized = normalizePath(path);
+  if (!normalized) return;
+
+  const targets = [];
+  if (sourceEl && typeof sourceEl.dispatchEvent === 'function') targets.push(sourceEl);
+  if (document && typeof document.dispatchEvent === 'function') targets.push(document);
+  if (window && typeof window.dispatchEvent === 'function') targets.push(window);
+
+  for (const target of targets) {
+    const navEvent = new CustomEvent('hass-navigate', {
+      bubbles: true,
+      composed: true,
+      cancelable: true,
+      detail: { path: normalized, replace },
+    });
+    const notCanceled = target.dispatchEvent(navEvent);
+    if (!notCanceled || navEvent.defaultPrevented) return;
+  }
+
+  if (replace) {
+    window.history.replaceState(null, '', normalized);
+  } else {
+    window.history.pushState(null, '', normalized);
+  }
+  window.dispatchEvent(new Event('location-changed'));
+}
+
+/**
+ * Execute a Lovelace-style action object.
+ * Supports: more-info, navigate, url, call-service, fire-dom-event, none.
+ * @param {Object} args
+ * @param {HTMLElement} args.element
+ * @param {Object} args.hass
+ * @param {Object} args.actionConfig
+ * @param {string} args.defaultEntityId
+ * @returns {boolean}
+ */
+export function runCardAction({
+  element,
+  hass,
+  actionConfig,
+  defaultEntityId = '',
+} = {}) {
+  if (!element || !hass || !actionConfig) return false;
+
+  const action = actionConfig.action || 'more-info';
+  if (action === 'none') return true;
+
+  if (action === 'more-info') {
+    const entityId = actionConfig.entity || defaultEntityId;
+    if (!entityId) return false;
+    fireEvent(element, 'hass-more-info', { entityId });
+    return true;
+  }
+
+  if (action === 'navigate') {
+    navigatePath(actionConfig.navigation_path || actionConfig.path || '', { sourceEl: element });
+    return true;
+  }
+
+  if (action === 'url') {
+    if (!actionConfig.url_path) return false;
+    const target = String(actionConfig.url_path).trim();
+    if (!target) return false;
+    if (actionConfig.new_tab) {
+      window.open(target, '_blank');
+      return true;
+    }
+    if (target.startsWith('/') || target.startsWith('#')) {
+      navigatePath(target, { sourceEl: element });
+      return true;
+    }
+    window.location.assign(target);
+    return true;
+  }
+
+  if (action === 'call-service') {
+    const service = String(actionConfig.service || '').trim();
+    const [domain, serviceName] = service.split('.');
+    if (!domain || !serviceName) return false;
+    hass.callService(domain, serviceName, actionConfig.service_data || {});
+    return true;
+  }
+
+  if (action === 'fire-dom-event') {
+    fireEvent(element, 'll-custom', actionConfig);
+    return true;
+  }
+
+  const fallbackEntityId = actionConfig.entity || defaultEntityId;
+  if (!fallbackEntityId) return false;
+  fireEvent(element, 'hass-more-info', { entityId: fallbackEntityId });
+  return true;
+}
+
+/**
+ * Shared axis-locked drag helper for touch/pointer interactions.
+ * Vertical/ambiguous gestures pass through for native page scroll.
+ * Horizontal gestures lock drag and can call preventDefault() safely.
+ *
+ * @param {Object} options
+ * @param {HTMLElement} options.element
+ * @param {Function} [options.shouldStart] - (event) => boolean
+ * @param {Function} [options.getContext] - (event) => any context object (return false to abort)
+ * @param {Function} [options.onDragStart] - (event, payload) => void
+ * @param {Function} [options.onDragMove] - (event, payload) => void
+ * @param {Function} [options.onDragEnd] - (event, payload) => void
+ * @param {Function} [options.onTap] - (event, payload) => void
+ * @param {Function} [options.onLongPress] - (event, payload) => void
+ * @param {number} [options.deadzone=8]
+ * @param {number} [options.axisBias=1.3]
+ * @param {number} [options.longPressMs=500]
+ * @param {boolean} [options.pointerCapture=false]
+ * @returns {{destroy: Function}}
+ */
+export function createAxisLockedDrag(options = {}) {
+  const {
+    element,
+    shouldStart,
+    getContext,
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    onTap,
+    onLongPress,
+    deadzone = 8,
+    axisBias = 1.3,
+    longPressMs = 500,
+    pointerCapture = false,
+  } = options;
+
+  if (!element) {
+    return { destroy() {} };
+  }
+
+  let state = null;
+
+  const clearLongPress = () => {
+    if (!state || !state.longPressTimer) return;
+    clearTimeout(state.longPressTimer);
+    state.longPressTimer = null;
+  };
+
+  const releaseCapture = () => {
+    if (!state || !pointerCapture) return;
+    const captureEl = state.captureEl;
+    if (!captureEl || typeof captureEl.releasePointerCapture !== 'function') return;
+    try {
+      if (captureEl.hasPointerCapture && captureEl.hasPointerCapture(state.pointerId)) {
+        captureEl.releasePointerCapture(state.pointerId);
+      }
+    } catch (_) {
+      // Ignore release failures on platforms without active pointer capture.
+    }
+  };
+
+  const removeDocumentListeners = () => {
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
+    document.removeEventListener('pointercancel', onPointerCancel);
+  };
+
+  const cleanup = () => {
+    clearLongPress();
+    releaseCapture();
+    removeDocumentListeners();
+    state = null;
+  };
+
+  const payloadFromEvent = (event) => {
+    if (!state) return null;
+    const dx = event.clientX - state.startX;
+    const dy = event.clientY - state.startY;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    return {
+      context: state.context,
+      pointerId: state.pointerId,
+      pointerType: state.pointerType,
+      startX: state.startX,
+      startY: state.startY,
+      dx,
+      dy,
+      absDx,
+      absDy,
+      phase: state.phase,
+    };
+  };
+
+  const endDrag = (event, { committed = false, cancelled = false } = {}) => {
+    if (!state) return;
+    const wasDrag = state.phase === 'drag';
+    const payload = payloadFromEvent(event);
+    cleanup();
+    if (wasDrag && typeof onDragEnd === 'function') {
+      onDragEnd(event, { ...payload, committed, cancelled });
+    }
+  };
+
+  function onPointerMove(event) {
+    if (!state || event.pointerId !== state.pointerId) return;
+    const payload = payloadFromEvent(event);
+    if (!payload) return;
+
+    if (state.phase === 'pending') {
+      const traveled = Math.hypot(payload.dx, payload.dy);
+      if (traveled < deadzone) return;
+
+      clearLongPress();
+
+      if (payload.absDy > payload.absDx * axisBias) {
+        cleanup();
+        return;
+      }
+
+      if (payload.absDx >= payload.absDy * axisBias) {
+        state.phase = 'drag';
+        if (typeof onDragStart === 'function') {
+          onDragStart(event, { ...payload, phase: 'drag' });
+        }
+      } else {
+        cleanup();
+        return;
+      }
+    }
+
+    if (!state || state.phase !== 'drag') return;
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    if (typeof onDragMove === 'function') {
+      onDragMove(event, { ...payload, phase: 'drag' });
+    }
+  }
+
+  function onPointerUp(event) {
+    if (!state || event.pointerId !== state.pointerId) return;
+
+    if (state.phase === 'drag') {
+      endDrag(event, { committed: true, cancelled: false });
+      return;
+    }
+
+    const payload = payloadFromEvent(event);
+    const longPressFired = !!state.longPressFired;
+    cleanup();
+    if (!longPressFired && typeof onTap === 'function') {
+      onTap(event, payload);
+    }
+  }
+
+  function onPointerCancel(event) {
+    if (!state || event.pointerId !== state.pointerId) return;
+    endDrag(event, { committed: false, cancelled: true });
+  }
+
+  const onPointerDown = (event) => {
+    if (state) return;
+    if (!event.isPrimary) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (typeof shouldStart === 'function' && !shouldStart(event)) return;
+
+    const context = typeof getContext === 'function' ? getContext(event) : {};
+    if (context === false) return;
+
+    const captureEl = context && context.captureEl instanceof HTMLElement
+      ? context.captureEl
+      : element;
+
+    state = {
+      pointerId: event.pointerId,
+      pointerType: event.pointerType || 'mouse',
+      startX: event.clientX,
+      startY: event.clientY,
+      phase: 'pending',
+      context,
+      captureEl,
+      longPressTimer: null,
+      longPressFired: false,
+    };
+
+    if (pointerCapture && captureEl && typeof captureEl.setPointerCapture === 'function') {
+      try {
+        captureEl.setPointerCapture(event.pointerId);
+      } catch (_) {
+        // Ignore capture failures in contexts that reject pointer capture.
+      }
+    }
+
+    if (typeof onLongPress === 'function' && longPressMs > 0) {
+      state.longPressTimer = setTimeout(() => {
+        if (!state || state.phase !== 'pending') return;
+        state.longPressFired = true;
+        const payload = {
+          context: state.context,
+          pointerId: state.pointerId,
+          pointerType: state.pointerType,
+          startX: state.startX,
+          startY: state.startY,
+          dx: 0,
+          dy: 0,
+          absDx: 0,
+          absDy: 0,
+          phase: state.phase,
+        };
+        onLongPress(event, payload);
+        cleanup();
+      }, longPressMs);
+    }
+
+    document.addEventListener('pointermove', onPointerMove, { passive: false });
+    document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerCancel);
+  };
+
+  element.addEventListener('pointerdown', onPointerDown);
+
+  return {
+    destroy() {
+      cleanup();
+      element.removeEventListener('pointerdown', onPointerDown);
+    },
+  };
+}
+
+/**
+ * Idempotent card registration with HA.
+ * @param {string} tagName - Custom element tag (e.g. 'tunet-climate-card')
+ * @param {Function} cardClass - The HTMLElement subclass
+ * @param {Object} meta - { name, description, documentationURL? }
+ */
+export function registerCard(tagName, cardClass, meta) {
+  if (!customElements.get(tagName)) {
+    customElements.define(tagName, cardClass);
+  }
+  window.customCards = window.customCards || [];
+  if (!window.customCards.some(c => c.type === tagName)) {
+    window.customCards.push({
+      type: tagName,
+      preview: true,
+      ...meta,
+    });
+  }
+}
+
+/**
+ * Console branding for card version logging.
+ * @param {string} name - Display name (e.g. 'TUNET-CLIMATE')
+ * @param {string} version - Version string
+ * @param {string} color - Hex color for badge
+ */
+export function logCardVersion(name, version, color = '#D4850A') {
+  const lightBg = color + '20';
+  console.info(
+    `%c ${name} %c v${version} `,
+    `color: #fff; background: ${color}; font-weight: 700; padding: 2px 6px; border-radius: 4px 0 0 4px;`,
+    `color: ${color}; background: ${lightBg}; font-weight: 700; padding: 2px 6px; border-radius: 0 4px 4px 0;`
+  );
+}
+
+/**
+ * Clamp a number between min and max.
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+export function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}

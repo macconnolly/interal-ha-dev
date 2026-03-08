@@ -381,6 +381,441 @@ export const TOKENS_MIDNIGHT = `
 `;
 
 // ═══════════════════════════════════════════════════════════
+// PROFILE REGISTRY + RESOLUTION (G1)
+// ═══════════════════════════════════════════════════════════
+
+export const PROFILE_SCHEMA_VERSION = 'v1-20260308';
+
+export const FAMILY_KEYS = ['tile-grid', 'speaker-tile', 'rooms-row', 'indicator-tile', 'indicator-row'];
+export const SIZE_KEYS = ['compact', 'standard', 'large'];
+
+const VALID_SIZES = new Set(SIZE_KEYS);
+
+export const PRESET_FAMILY_MAP = {
+  lighting: 'tile-grid',
+  speakers: 'speaker-tile',
+  rooms: 'tile-grid',
+  'rooms-row': 'rooms-row',
+  status: 'indicator-tile',
+  environment: 'indicator-row',
+};
+
+export const PROFILE_BASE = {
+  compact: {
+    cardPad: '0.875em',
+    sectionPad: '0.875em',
+    sectionGap: '0.75em',
+    headerHeight: '2.375em',
+    headerFont: '0.75em',
+    sectionFont: '0.8125em',
+    tilePad: '0.625em',
+    tileGap: '0.25em',
+    tileRadius: '0.75em',
+    ddRadius: '0.4375em',
+    iconBox: '2.125em',
+    iconGlyph: '1.0625em',
+    nameFont: '0.75em',
+    valueFont: '1.0625em',
+    subFont: '0.6875em',
+    unitFont: '0.6875em',
+    ctrlMinH: '2.375em',
+    ctrlPadX: '0.625em',
+    ctrlIconSize: '1.125em',
+    ddOptionFont: '0.75em',
+    ddOptionPadY: '0.5em',
+    ddOptionPadX: '0.625em',
+    dropdownMinH: '7.5em',
+    dropdownMaxH: '13.75em',
+    progressH: '0.375em',
+  },
+  standard: {
+    cardPad: '1.25em',
+    sectionPad: '1.25em',
+    sectionGap: '1em',
+    headerHeight: '2.625em',
+    headerFont: '0.8125em',
+    sectionFont: '0.875em',
+    tilePad: '0.875em',
+    tileGap: '0.375em',
+    tileRadius: '0.875em',
+    ddRadius: '0.5em',
+    iconBox: '2.375em',
+    iconGlyph: '1.1875em',
+    nameFont: '0.8125em',
+    valueFont: '1.125em',
+    subFont: '0.6875em',
+    unitFont: '0.6875em',
+    ctrlMinH: '2.625em',
+    ctrlPadX: '0.75em',
+    ctrlIconSize: '1.25em',
+    ddOptionFont: '0.8125em',
+    ddOptionPadY: '0.5625em',
+    ddOptionPadX: '0.75em',
+    dropdownMinH: '7.5em',
+    dropdownMaxH: '15em',
+    progressH: '0.5em',
+  },
+  large: {
+    cardPad: '1.5em',
+    sectionPad: '1.5em',
+    sectionGap: '1.25em',
+    headerHeight: '2.75em',
+    headerFont: '0.875em',
+    sectionFont: '1em',
+    tilePad: '1em',
+    tileGap: '0.5em',
+    tileRadius: '1em',
+    ddRadius: '0.5625em',
+    iconBox: '2.75em',
+    iconGlyph: '1.375em',
+    nameFont: '0.875em',
+    valueFont: '1.25em',
+    subFont: '0.75em',
+    unitFont: '0.75em',
+    ctrlMinH: '2.75em',
+    ctrlPadX: '0.875em',
+    ctrlIconSize: '1.375em',
+    ddOptionFont: '0.875em',
+    ddOptionPadY: '0.625em',
+    ddOptionPadX: '0.875em',
+    dropdownMinH: '8em',
+    dropdownMaxH: '17.5em',
+    progressH: '0.625em',
+  },
+};
+
+export const SIZE_PROFILES = {
+  'tile-grid': {
+    compact: { ...PROFILE_BASE.compact, tileMinH: '5.125em' },
+    standard: { ...PROFILE_BASE.standard, tileMinH: '5.75em' },
+    large: { ...PROFILE_BASE.large, tileMinH: '6.375em' },
+  },
+
+  'speaker-tile': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      tilePad: '0.5em',
+      tileGap: '0.25em',
+      tileMinH: '5.25em',
+      progressH: '0.375em',
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      tilePad: '0.625em',
+      tileGap: '0.3125em',
+      tileMinH: '5.875em',
+      subFont: '0.71875em',
+      progressH: '0.4375em',
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      tilePad: '0.75em',
+      tileGap: '0.4375em',
+      tileMinH: '6.5em',
+      progressH: '0.5625em',
+    },
+  },
+
+  'rooms-row': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      sectionFont: '0.96875em',
+      rowMinH: '6.8125em',
+      rowGap: '0.34em',
+      rowTitleFont: '0.9375em',
+      rowStatusFont: '0.8125em',
+      orbSize: '2.96em',
+      orbIcon: '1.56em',
+      toggleSize: '2.96em',
+      toggleIcon: '1.56em',
+      chevronSize: '1.28em',
+      rowBtnRadius: '0.5625em',
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      sectionFont: '1.0625em',
+      rowMinH: '7.3125em',
+      rowGap: '0.52em',
+      rowTitleFont: '1.03125em',
+      rowStatusFont: '0.90625em',
+      orbSize: '3.16em',
+      orbIcon: '1.62em',
+      toggleSize: '3.16em',
+      toggleIcon: '1.62em',
+      chevronSize: '1.56em',
+      rowBtnRadius: '0.75em',
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      sectionFont: '1.125em',
+      rowMinH: '7.875em',
+      rowGap: '0.625em',
+      rowTitleFont: '1.125em',
+      rowStatusFont: '0.96875em',
+      orbSize: '3.4em',
+      orbIcon: '1.76em',
+      toggleSize: '3.4em',
+      toggleIcon: '1.76em',
+      chevronSize: '1.7em',
+      rowBtnRadius: '0.8125em',
+    },
+  },
+
+  'indicator-tile': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      headerFont: '0.875em',
+      sectionFont: '0.875em',
+      tileMinH: '5.5em',
+      timerFont: '1.0625em',
+      timerLetterSpacing: '0.02em',
+      alarmPillFont: '0.875em',
+      alarmBtnH: '1.125em',
+      alarmBtnFont: '0.5em',
+      alarmIconSize: '0.625em',
+      dropdownMaxH: '13.75em',
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      headerFont: '1em',
+      sectionFont: '0.9375em',
+      tileMinH: '5.875em',
+      timerFont: '1.125em',
+      timerLetterSpacing: '0.03125em',
+      alarmPillFont: '0.9375em',
+      alarmBtnH: '1.25em',
+      alarmBtnFont: '0.5625em',
+      alarmIconSize: '0.6875em',
+      dropdownMaxH: '15em',
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      headerFont: '1.125em',
+      sectionFont: '1em',
+      tileMinH: '7.125em',
+      timerFont: '1.25em',
+      timerLetterSpacing: '0.04em',
+      alarmPillFont: '1em',
+      alarmBtnH: '1.375em',
+      alarmBtnFont: '0.625em',
+      alarmIconSize: '0.75em',
+      dropdownMaxH: '17.5em',
+    },
+  },
+
+  'indicator-row': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      sectionFont: '0.875em',
+      rowMinH: '3em',
+      rowGap: '0.625em',
+      rowPadY: '0.625em',
+      rowPadX: '0.125em',
+      iconBox: '2em',
+      iconGlyph: '1.125em',
+      nameFont: '0.75em',
+      subFont: '0.6875em',
+      valueFont: '1.125em',
+      unitFont: '0.6875em',
+      sparklineW: '2.5em',
+      sparklineH: '1.25em',
+      trendBox: '1.125em',
+      trendGlyph: '0.875em',
+      sparkStroke: '0.09375em',
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      sectionFont: '0.9375em',
+      rowMinH: '3.5em',
+      rowGap: '0.75em',
+      rowPadY: '0.75em',
+      rowPadX: '0.25em',
+      iconBox: '2.25em',
+      iconGlyph: '1.25em',
+      nameFont: '0.8125em',
+      subFont: '0.6875em',
+      valueFont: '1.25em',
+      unitFont: '0.6875em',
+      sparklineW: '3em',
+      sparklineH: '1.5em',
+      trendBox: '1.25em',
+      trendGlyph: '1em',
+      sparkStroke: '0.09375em',
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      sectionFont: '1em',
+      rowMinH: '4em',
+      rowGap: '0.875em',
+      rowPadY: '0.875em',
+      rowPadX: '0.3125em',
+      iconBox: '2.5em',
+      iconGlyph: '1.375em',
+      nameFont: '0.875em',
+      subFont: '0.75em',
+      valueFont: '1.375em',
+      unitFont: '0.75em',
+      sparklineW: '3.5em',
+      sparklineH: '1.75em',
+      trendBox: '1.375em',
+      trendGlyph: '1.125em',
+      sparkStroke: '0.109375em',
+    },
+  },
+};
+
+export const TOKEN_MAP = {
+  cardPad: '--_tunet-card-pad',
+  sectionPad: '--_tunet-section-pad',
+  sectionGap: '--_tunet-section-gap',
+  headerHeight: '--_tunet-header-height',
+  headerFont: '--_tunet-header-font',
+  sectionFont: '--_tunet-section-font',
+  tilePad: '--_tunet-tile-pad',
+  tileGap: '--_tunet-tile-gap',
+  tileRadius: '--_tunet-tile-radius',
+  tileMinH: '--_tunet-tile-min-h',
+  iconBox: '--_tunet-icon-box',
+  iconGlyph: '--_tunet-icon-glyph',
+  nameFont: '--_tunet-name-font',
+  valueFont: '--_tunet-value-font',
+  subFont: '--_tunet-sub-font',
+  unitFont: '--_tunet-unit-font',
+  progressH: '--_tunet-progress-h',
+  ctrlMinH: '--_tunet-ctrl-min-h',
+  ctrlPadX: '--_tunet-ctrl-pad-x',
+  ctrlIconSize: '--_tunet-ctrl-icon-size',
+  ddRadius: '--_tunet-dd-radius',
+  ddOptionFont: '--_tunet-dd-option-font',
+  ddOptionPadY: '--_tunet-dd-option-pad-y',
+  ddOptionPadX: '--_tunet-dd-option-pad-x',
+  dropdownMinH: '--_tunet-dropdown-min-h',
+  dropdownMaxH: '--_tunet-dropdown-max-h',
+  rowMinH: '--_tunet-row-min-h',
+  rowGap: '--_tunet-row-gap',
+  rowTitleFont: '--_tunet-row-title-font',
+  rowStatusFont: '--_tunet-row-status-font',
+  orbSize: '--_tunet-orb-size',
+  orbIcon: '--_tunet-orb-icon',
+  toggleSize: '--_tunet-toggle-size',
+  toggleIcon: '--_tunet-toggle-icon',
+  chevronSize: '--_tunet-chevron-size',
+  rowBtnRadius: '--_tunet-row-btn-radius',
+  timerFont: '--_tunet-timer-font',
+  timerLetterSpacing: '--_tunet-timer-ls',
+  alarmPillFont: '--_tunet-alarm-pill-font',
+  alarmBtnH: '--_tunet-alarm-btn-h',
+  alarmBtnFont: '--_tunet-alarm-btn-font',
+  alarmIconSize: '--_tunet-alarm-icon-size',
+  rowPadY: '--_tunet-row-pad-y',
+  rowPadX: '--_tunet-row-pad-x',
+  sparklineW: '--_tunet-sparkline-w',
+  sparklineH: '--_tunet-sparkline-h',
+  trendBox: '--_tunet-trend-box',
+  trendGlyph: '--_tunet-trend-glyph',
+  sparkStroke: '--_tunet-spark-stroke',
+};
+
+export const OVERRIDE_PAIRS = [
+  ['--profile-card-pad', '--_tunet-card-pad'],
+  ['--profile-tile-pad', '--_tunet-tile-pad'],
+  ['--profile-tile-gap', '--_tunet-tile-gap'],
+  ['--profile-icon-box', '--_tunet-icon-box'],
+  ['--profile-name-font', '--_tunet-name-font'],
+  ['--profile-value-font', '--_tunet-value-font'],
+  ['--profile-header-font', '--_tunet-header-font'],
+  ['--profile-section-font', '--_tunet-section-font'],
+  ['--profile-progress-h', '--_tunet-progress-h'],
+];
+
+let _warnedLegacyResolverWidthHint = false;
+
+function normalizeSize(size) {
+  if (size == null) return '';
+  return String(size).trim().toLowerCase();
+}
+
+export function autoSizeFromWidth(widthPx) {
+  const width = Number(widthPx);
+  if (!Number.isFinite(width) || width <= 0) return 'standard';
+  if (width < 600) return 'compact';
+  return 'standard';
+}
+
+export function bucketFromWidth(widthPx) {
+  const width = Number(widthPx);
+  if (!Number.isFinite(width) || width <= 0) return 'md';
+  if (width < 400) return 'xs';
+  if (width < 600) return 'sm';
+  if (width < 800) return 'md';
+  return 'lg';
+}
+
+export function selectProfileSize({ preset, layout, widthHint, userSize } = {}) {
+  const normalizedPreset = String(preset || '').trim().toLowerCase();
+  const normalizedLayout = String(layout || '').trim().toLowerCase();
+  const rowMode = normalizedPreset === 'rooms' && (normalizedLayout === 'row' || normalizedLayout === 'slim');
+  const mapKey = rowMode ? 'rooms-row' : normalizedPreset;
+  const family = PRESET_FAMILY_MAP[mapKey];
+  const explicitSize = normalizeSize(userSize);
+  const sizeFromUser = VALID_SIZES.has(explicitSize) ? explicitSize : '';
+
+  if (explicitSize && !sizeFromUser) {
+    console.warn(`[TunetProfile] Unknown userSize "${userSize}". Falling back to auto size.`);
+  }
+
+  if (!family) {
+    console.warn(`[TunetProfile] Unknown preset "${preset}" (layout: "${layout}"). Falling back to tile-grid.`);
+    return { family: 'tile-grid', size: sizeFromUser || autoSizeFromWidth(widthHint) };
+  }
+
+  return { family, size: sizeFromUser || autoSizeFromWidth(widthHint) };
+}
+
+export function resolveSizeProfile({ family, size, widthHint } = {}) {
+  if (widthHint !== undefined && !_warnedLegacyResolverWidthHint) {
+    _warnedLegacyResolverWidthHint = true;
+    console.warn('[TunetProfile] resolveSizeProfile(widthHint) is deprecated. Width-based size selection belongs in selectProfileSize().');
+  }
+
+  const normalizedFamily = String(family || '').trim();
+  const normalizedSize = normalizeSize(size) || 'standard';
+  const familyProfiles = SIZE_PROFILES[normalizedFamily];
+
+  if (!familyProfiles) {
+    console.warn(`[TunetProfile] Unknown family "${family}". Falling back to tile-grid standard.`);
+    return { ...SIZE_PROFILES['tile-grid'].standard };
+  }
+
+  if (!familyProfiles[normalizedSize]) {
+    console.warn(`[TunetProfile] Unknown size "${size}" for family "${family}". Falling back to standard.`);
+    return { ...familyProfiles.standard };
+  }
+
+  return { ...familyProfiles[normalizedSize] };
+}
+
+export function _setProfileVars(hostElement, profile = {}, { bridgePublicOverrides = true } = {}) {
+  if (!hostElement || !hostElement.style) return;
+
+  for (const propName of [...hostElement.style]) {
+    if (propName.startsWith('--_tunet-')) hostElement.style.removeProperty(propName);
+  }
+
+  for (const [key, cssVar] of Object.entries(TOKEN_MAP)) {
+    if (profile[key] !== undefined) hostElement.style.setProperty(cssVar, profile[key]);
+  }
+
+  if (!bridgePublicOverrides || typeof getComputedStyle !== 'function') return;
+
+  const computed = getComputedStyle(hostElement);
+  for (const [publicVar, privateVar] of OVERRIDE_PAIRS) {
+    const override = computed.getPropertyValue(publicVar).trim();
+    if (override) hostElement.style.setProperty(privateVar, override);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // SHARED CSS BLOCKS
 // ═══════════════════════════════════════════════════════════
 

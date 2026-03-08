@@ -4,6 +4,24 @@ Working branch: `claude/dashboard-nav-research-QnOBs`
 Last updated: 2026-03-08
 Scope: `/home/mac/HA/implementation_10`
 
+## Session Delta (2026-03-08, T-011A.10)
+
+Change marker: `T-011A.10`
+
+- `CONFLICT-RECORDED`
+  - docs still lock implementation authority to `Dashboard/Tunet/Cards/v2/`
+  - user directed active tranche execution in `Dashboard/Tunet/Cards/v3/`
+- `INTERPRETATION-LOCK`
+  - `v3` is the active G1 sandbox by user override
+  - `v2` remains production authority until explicit cutover decision
+- `CODE-DONE`
+  - committed baseline v3 copy from v2 (`32dde28`)
+  - added G1 profile primitives and resolver utilities in `Dashboard/Tunet/Cards/v3/tunet_base.js`
+  - added resolver unit tests in `Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js`
+- `VALIDATION`
+  - `node --check` passed for both changed JS files
+  - `node --test Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js` passed (`8/8`)
+
 ## Session Delta (2026-03-08, T-011A.9)
 
 Change marker: `T-011A.9`

@@ -8,6 +8,34 @@ Source filter for this run:
 - ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
 
+## 0U) Session Delta (2026-03-08, T-011A.10)
+
+v3 sandbox bootstrap + G1 base primitives start:
+
+- Conflict recorded:
+  - docs lock `Dashboard/Tunet/Cards/v2/` as implementation authority
+  - user explicitly directed active work to proceed from `Dashboard/Tunet/Cards/v3/`
+- Chosen interpretation:
+  - `v3` is active G1 sandbox path by user override
+  - `v2` remains canonical production authority until explicit promotion/cutover
+- Completed:
+  - committed v3 baseline copy:
+    - `32dde28` `chore(cards): bootstrap v3 from v2 baseline`
+  - implemented G1 primitives in:
+    - `Dashboard/Tunet/Cards/v3/tunet_base.js`
+      - `PROFILE_SCHEMA_VERSION`
+      - `PROFILE_BASE` + `SIZE_PROFILES` (all-em, 5 families, 3 sizes)
+      - `PRESET_FAMILY_MAP`, `autoSizeFromWidth`, `bucketFromWidth`
+      - `selectProfileSize({ preset, layout, widthHint, userSize? })`
+      - `resolveSizeProfile({ family, size })` with one-gate `widthHint` shim warning
+      - `_setProfileVars()` full clear+set for `--_tunet-*`
+  - added unit tests:
+    - `Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js`
+- Validation:
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_base.js` passed
+  - `node --check Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js` passed
+  - `node --test Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js` passed (8/8)
+
 ## 0T) Session Delta (2026-03-08, T-011A.9)
 
 Design-language registry-shape consistency sync:

@@ -3,6 +3,31 @@
 Working branch: `claude/dashboard-nav-research-QnOBs`
 Last updated: 2026-03-08
 
+## Session Delta (2026-03-08, T-011A.10)
+
+Tranche marker: `T-011A.10` (v3 sandbox bootstrap + G1 start)
+
+- `CONFLICT-RECORDED`
+  - design/control docs still state `Dashboard/Tunet/Cards/v2/` as implementation authority
+  - user explicitly directed work to proceed in `Dashboard/Tunet/Cards/v3/`
+- `CHOSEN-INTERPRETATION`
+  - treat `Cards/v3/` as active G1 sandbox path by user override
+  - keep `Cards/v2/` as canonical production authority until explicit promotion/cutover decision
+- `CODE-DONE`
+  - baseline copy committed:
+    - `32dde28` `chore(cards): bootstrap v3 from v2 baseline`
+  - G1 primitives added in:
+    - `Dashboard/Tunet/Cards/v3/tunet_base.js`
+    - profile schema/version + 5-family all-em registry + selector/resolver split
+    - internal alias token writer `_setProfileVars()` with full clear+set
+    - one-gate resolver shim warning for legacy `widthHint` arg
+  - resolver tests added:
+    - `Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js`
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_base.js` passed
+  - `node --check Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js` passed
+  - `node --test Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js` passed (8/8)
+
 ## Session Delta (2026-03-08, T-011A.9)
 
 Tranche marker: `T-011A.9` (design-language registry-shape consistency sync)

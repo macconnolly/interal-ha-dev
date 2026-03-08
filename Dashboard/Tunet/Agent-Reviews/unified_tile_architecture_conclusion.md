@@ -1,8 +1,8 @@
 # Tunet Profile Consumption Architecture
-**Version:** 3.0 — Finalized (5-Family Expansion)
-**Status:** Implementation-ready  
-**Implementation authority:** `Dashboard/Tunet/Cards/v2/`  
-**Design-intent reference:** `design_language.md` and `Cards/` (read-only; `v2/` governs behavior)  
+**Version:** 3.1 — All-Em Density Expansion
+**Status:** Implementation-ready
+**Implementation authority:** `Dashboard/Tunet/Cards/v2/`
+**Design-intent reference:** `design_language.md` and `Cards/` (read-only; `v2/` governs behavior)
 **Schema version:** `PROFILE_SCHEMA_VERSION = 'v1-YYYYMMDD'`
 **Tranche owner:** Mac Connolly
 
@@ -14,9 +14,11 @@ This document is the single authoritative reference for the Tunet family profile
 
 Covers:
 - Profile pipeline position and data flow
-- 5-family registry with `PROFILE_BASE` shared inheritance
+- 5-family registry with size-indexed `PROFILE_BASE` shared inheritance (all-em values)
 - Preset-to-family mapping and two-function API (`selectProfileSize` + `resolveSizeProfile`)
+- End-to-end density scaling: card chrome, tile internals, control surfaces, radii, spacing, typography, status subtypes
 - CSS custom property protection model and token consumer boundaries
+- Token ownership rules for registry maintenance
 - Lifecycle, trigger model, and instance state
 - Feature flag and rollback strategy
 - Base API / version handshake
@@ -40,6 +42,10 @@ Three distinct states. All excluded cards must be explicitly classified.
 | `tunet_media_card.js` | Excluded | Excluded | None |
 | `tunet_sonos_card.js` | Excluded | Excluded | None |
 | `tunet_weather_card.js` | Excluded | Excluded | None |
+| `tunet_climate_card.js` | Excluded | Excluded | None — gold standard card, profile adoption deferred until post-G6 |
+| `tunet_actions_card.js` | Excluded | Excluded | None — strip layout, not tile-based |
+| `tunet_scenes_card.js` | Excluded | Excluded | None — strip layout, not tile-based |
+| `tunet_sensor_card.js` | Excluded | Excluded | None — may adopt `indicator-row` family in future gate |
 
 Regression failures in excluded cards do not block gate passage but must be logged.
 
@@ -68,6 +74,11 @@ All contested decisions locked here. Do not re-open without a written tranche-ow
 | D15 | Two-tier versioning: `v1-YYYYMMDD`; public config keys get migration shims; internal registry tokens get unit test coverage only | User YAML is not cache-busted by resource URL changes — public keys are a persisted API surface |
 | D16 | `slim` is a layout variant flag, not a size key | Different DOM structure, not a sizing variant |
 | D17 | Rooms preset maps to `tile-grid` or `rooms-row` based on `mergedConfig.layout` post-merge | Layout is resolved during merge; family lookup must happen after |
+| D18 | All token values are em strings, not raw px numbers | Single `font-size` on `:host` becomes a master density lever; proportions stay coherent at any base size; responsive scaling via `font-size: clamp(...)` becomes trivially possible |
+| D19 | Size-indexed `PROFILE_BASE`: `{ compact: {...}, standard: {...}, large: {...} }` | Each family spreads the correct size's base and only overrides what diverges — no ambiguity about which base applies |
+| D20 | Status subtype internals (timer, alarm, dropdown options) are profile-controlled, not card-local | Compact must feel coherent end-to-end; fixed subtype controls at standard size while tiles shrink creates visual inconsistency |
+| D21 | End-to-end density surface: card chrome, control surfaces, radii, spacing, dropdown geometry, secondary typography all scale with profile | Profiles own the entire density experience, not just tile-core geometry |
+| D22 | `ddRadius` added to PROFILE_BASE (dropdown border-radius, 0.5em standard) | Dropdowns need tighter radius than tiles; fixed radius at varying density breaks visual coherence |
 
 ---
 
@@ -218,63 +229,318 @@ export function bucketFromWidth(widthPx) {
 
 ## 7. SIZE_PROFILES Registry
 
-Lives in `tunet_base.js`. All values are raw numbers (no units). Applied as `${value}px`.
+Lives in `tunet_base.js`. All values are pre-formatted CSS em strings. No raw numbers, no px — everything scales from the card host's `font-size`.
+
+### Unit Rule (D18)
+
+| Category | Unit | Rationale |
+|---|---|---|
+| Typography (fonts) | em | Cascading scale from host font-size |
+| Geometry (padding, gaps, heights, sizes) | em | Proportional density at any base size |
+| Radii | em | Scales with density to maintain visual coherence |
+| Letter-spacing | em | Relative to text context |
+| Line-height | unitless ratio | Standard CSS best practice |
+
+### PROFILE_BASE (size-indexed, D19)
+
+Shared across all families per size. Override only where a family genuinely diverges — spread first, then override explicitly.
 
 ```js
 export const FAMILY_KEYS = ['tile-grid', 'speaker-tile', 'rooms-row', 'indicator-tile', 'indicator-row'];
-export const SIZE_KEYS    = ['compact', 'standard', 'large'];
+export const SIZE_KEYS   = ['compact', 'standard', 'large'];
 
-// Shared typography/icon base — geometry diverges per family
-// Override only where a family genuinely differs; spread first, then override
 const PROFILE_BASE = {
-  iconBox: 38, iconGlyph: 19, nameFont: 13, valueFont: 18,
+  compact: {
+    cardPad: '0.875em',
+    sectionPad: '0.875em',
+    sectionGap: '0.75em',
+    headerHeight: '2.375em',
+    headerFont: '0.75em',
+    sectionFont: '0.8125em',
+    tilePad: '0.625em',
+    tileGap: '0.25em',
+    tileRadius: '0.75em',
+    ddRadius: '0.4375em',
+    iconBox: '2.125em',
+    iconGlyph: '1.0625em',
+    nameFont: '0.75em',
+    valueFont: '1.0625em',
+    subFont: '0.6875em',
+    unitFont: '0.6875em',
+    ctrlMinH: '2.375em',
+    ctrlPadX: '0.625em',
+    ctrlIconSize: '1.125em',
+    ddOptionFont: '0.75em',
+    ddOptionPadY: '0.5em',
+    ddOptionPadX: '0.625em',
+    dropdownMinH: '7.5em',
+    dropdownMaxH: '13.75em',
+    progressH: '0.375em'
+  },
+  standard: {
+    cardPad: '1.25em',
+    sectionPad: '1.25em',
+    sectionGap: '1em',
+    headerHeight: '2.625em',
+    headerFont: '0.8125em',
+    sectionFont: '0.875em',
+    tilePad: '0.875em',
+    tileGap: '0.375em',
+    tileRadius: '0.875em',
+    ddRadius: '0.5em',
+    iconBox: '2.375em',
+    iconGlyph: '1.1875em',
+    nameFont: '0.8125em',
+    valueFont: '1.125em',
+    subFont: '0.6875em',
+    unitFont: '0.6875em',
+    ctrlMinH: '2.625em',
+    ctrlPadX: '0.75em',
+    ctrlIconSize: '1.25em',
+    ddOptionFont: '0.8125em',
+    ddOptionPadY: '0.5625em',
+    ddOptionPadX: '0.75em',
+    dropdownMinH: '7.5em',
+    dropdownMaxH: '15em',
+    progressH: '0.5em'
+  },
+  large: {
+    cardPad: '1.5em',
+    sectionPad: '1.5em',
+    sectionGap: '1.25em',
+    headerHeight: '2.75em',
+    headerFont: '0.875em',
+    sectionFont: '1em',
+    tilePad: '1em',
+    tileGap: '0.5em',
+    tileRadius: '1em',
+    ddRadius: '0.5625em',
+    iconBox: '2.75em',
+    iconGlyph: '1.375em',
+    nameFont: '0.875em',
+    valueFont: '1.25em',
+    subFont: '0.75em',
+    unitFont: '0.75em',
+    ctrlMinH: '2.75em',
+    ctrlPadX: '0.875em',
+    ctrlIconSize: '1.375em',
+    ddOptionFont: '0.875em',
+    ddOptionPadY: '0.625em',
+    ddOptionPadX: '0.875em',
+    dropdownMinH: '8em',
+    dropdownMaxH: '17.5em',
+    progressH: '0.625em'
+  }
 };
+```
 
+### SIZE_PROFILES (family entries)
+
+Each family spreads `PROFILE_BASE[size]` and overrides only diverging values.
+
+```js
 export const SIZE_PROFILES = {
 
   // Interactive grid tiles — lighting, rooms (grid mode)
   'tile-grid': {
-    compact:  { ...PROFILE_BASE, tilePad: 10, tileGap: 4, progressH: 7 },
-    standard: { ...PROFILE_BASE, tilePad: 14, tileGap: 6, progressH: 8 },
-    large:    { ...PROFILE_BASE, iconBox: 44, iconGlyph: 22, tilePad: 16, tileGap: 8, progressH: 10 },
+    compact:  { ...PROFILE_BASE.compact,  tileMinH: '5.125em' },
+    standard: { ...PROFILE_BASE.standard, tileMinH: '5.75em'  },
+    large:    { ...PROFILE_BASE.large,    tileMinH: '6.375em' }
   },
 
   // Speaker grid tiles — same tile-core, tighter geometry for audio density
   'speaker-tile': {
-    compact:  { ...PROFILE_BASE, tilePad: 8,  tileGap: 4, progressH: 6 },
-    standard: { ...PROFILE_BASE, tilePad: 12, tileGap: 6, progressH: 8 },
-    large:    { ...PROFILE_BASE, iconBox: 44, iconGlyph: 22, tilePad: 16, tileGap: 8, progressH: 10 },
+    compact: {
+      ...PROFILE_BASE.compact,
+      tilePad: '0.5em',
+      tileGap: '0.25em',
+      tileMinH: '5.25em',
+      progressH: '0.375em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      tilePad: '0.625em',
+      tileGap: '0.3125em',
+      tileMinH: '5.875em',
+      subFont: '0.71875em',
+      progressH: '0.4375em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      tilePad: '0.75em',
+      tileGap: '0.4375em',
+      tileMinH: '6.5em',
+      progressH: '0.5625em'
+    }
   },
 
   // Rooms row layout — core tile lane + row-specific controls
   'rooms-row': {
-    compact:  { ...PROFILE_BASE, tilePad: 8,  tileGap: 4, progressH: 6, rowHeight: 48, orbSize: 28, orbGap: 3, toggleSize: 36, chevronSize: 20 },
-    standard: { ...PROFILE_BASE, tilePad: 12, tileGap: 6, progressH: 7, rowHeight: 56, orbSize: 32, orbGap: 4, toggleSize: 42, chevronSize: 24 },
-    large:    { ...PROFILE_BASE, iconBox: 44, iconGlyph: 22, tilePad: 16, tileGap: 8, progressH: 9, rowHeight: 72, orbSize: 40, orbGap: 5, toggleSize: 52, chevronSize: 28 },
+    compact: {
+      ...PROFILE_BASE.compact,
+      sectionFont: '0.96875em',
+      rowMinH: '6.8125em',
+      rowGap: '0.34em',
+      rowTitleFont: '0.9375em',
+      rowStatusFont: '0.8125em',
+      orbSize: '2.96em',
+      orbIcon: '1.56em',
+      toggleSize: '2.96em',
+      toggleIcon: '1.56em',
+      chevronSize: '1.28em',
+      rowBtnRadius: '0.5625em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      sectionFont: '1.0625em',
+      rowMinH: '7.3125em',
+      rowGap: '0.52em',
+      rowTitleFont: '1.03125em',
+      rowStatusFont: '0.90625em',
+      orbSize: '3.16em',
+      orbIcon: '1.62em',
+      toggleSize: '3.16em',
+      toggleIcon: '1.62em',
+      chevronSize: '1.56em',
+      rowBtnRadius: '0.75em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      sectionFont: '1.125em',
+      rowMinH: '7.875em',
+      rowGap: '0.625em',
+      rowTitleFont: '1.125em',
+      rowStatusFont: '0.96875em',
+      orbSize: '3.4em',
+      orbIcon: '1.76em',
+      toggleSize: '3.4em',
+      toggleIcon: '1.76em',
+      chevronSize: '1.7em',
+      rowBtnRadius: '0.8125em'
+    }
   },
 
-  // Status indicator tiles — grid, interactive subtypes (dropdown, alarm, timer)
-  // progressH: 0 — no progress bar at profile level; subtype geometry is card-local
+  // Status indicator tiles — interactive subtypes (dropdown, alarm, timer)
+  // All subtype internals now profile-controlled (D20)
   'indicator-tile': {
-    compact:  { ...PROFILE_BASE, tilePad: 8,  tileGap: 4, progressH: 0, dropdownPad: 6,  auxActionSize: 32 },
-    standard: { ...PROFILE_BASE, tilePad: 12, tileGap: 6, progressH: 0, dropdownPad: 8,  auxActionSize: 38 },
-    large:    { ...PROFILE_BASE, iconBox: 44, iconGlyph: 22, tilePad: 16, tileGap: 8, progressH: 0, dropdownPad: 10, auxActionSize: 44 },
+    compact: {
+      ...PROFILE_BASE.compact,
+      headerFont: '0.875em',
+      sectionFont: '0.875em',
+      tileMinH: '5.5em',
+      timerFont: '1.0625em',
+      timerLetterSpacing: '0.02em',
+      alarmPillFont: '0.875em',
+      alarmBtnH: '1.125em',
+      alarmBtnFont: '0.5em',
+      alarmIconSize: '0.625em',
+      dropdownMaxH: '13.75em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      headerFont: '1em',
+      sectionFont: '0.9375em',
+      tileMinH: '5.875em',
+      timerFont: '1.125em',
+      timerLetterSpacing: '0.03125em',
+      alarmPillFont: '0.9375em',
+      alarmBtnH: '1.25em',
+      alarmBtnFont: '0.5625em',
+      alarmIconSize: '0.6875em',
+      dropdownMaxH: '15em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      headerFont: '1.125em',
+      sectionFont: '1em',
+      tileMinH: '7.125em',
+      timerFont: '1.25em',
+      timerLetterSpacing: '0.04em',
+      alarmPillFont: '1em',
+      alarmBtnH: '1.375em',
+      alarmBtnFont: '0.625em',
+      alarmIconSize: '0.75em',
+      dropdownMaxH: '17.5em'
+    }
   },
 
   // Sensor / environment rows — horizontal list, sparkline, trend arrow
   'indicator-row': {
-    compact:  { ...PROFILE_BASE, tilePad: 6,  tileGap: 4, progressH: 0, sparklineH: 24, trendSize: 16 },
-    standard: { ...PROFILE_BASE, tilePad: 10, tileGap: 6, progressH: 0, sparklineH: 32, trendSize: 20 },
-    large:    { ...PROFILE_BASE, iconBox: 44, iconGlyph: 22, tilePad: 14, tileGap: 8, progressH: 0, sparklineH: 40, trendSize: 24 },
-  },
+    compact: {
+      ...PROFILE_BASE.compact,
+      sectionFont: '0.875em',
+      rowMinH: '3em',
+      rowGap: '0.625em',
+      rowPadY: '0.625em',
+      rowPadX: '0.125em',
+      iconBox: '2em',
+      iconGlyph: '1.125em',
+      nameFont: '0.75em',
+      subFont: '0.6875em',
+      valueFont: '1.125em',
+      unitFont: '0.6875em',
+      sparklineW: '2.5em',
+      sparklineH: '1.25em',
+      trendBox: '1.125em',
+      trendGlyph: '0.875em',
+      sparkStroke: '0.09375em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      sectionFont: '0.9375em',
+      rowMinH: '3.5em',
+      rowGap: '0.75em',
+      rowPadY: '0.75em',
+      rowPadX: '0.25em',
+      iconBox: '2.25em',
+      iconGlyph: '1.25em',
+      nameFont: '0.8125em',
+      subFont: '0.6875em',
+      valueFont: '1.25em',
+      unitFont: '0.6875em',
+      sparklineW: '3em',
+      sparklineH: '1.5em',
+      trendBox: '1.25em',
+      trendGlyph: '1em',
+      sparkStroke: '0.09375em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      sectionFont: '1em',
+      rowMinH: '4em',
+      rowGap: '0.875em',
+      rowPadY: '0.875em',
+      rowPadX: '0.3125em',
+      iconBox: '2.5em',
+      iconGlyph: '1.375em',
+      nameFont: '0.875em',
+      subFont: '0.75em',
+      valueFont: '1.375em',
+      unitFont: '0.75em',
+      sparklineW: '3.5em',
+      sparklineH: '1.75em',
+      trendBox: '1.375em',
+      trendGlyph: '1.125em',
+      sparkStroke: '0.109375em'
+    }
+  }
 };
 ```
 
-**`PROFILE_BASE` discipline:** Do not add color, opacity, or theme-conditional values to `PROFILE_BASE`. Geometry only. Override `iconBox`/`iconGlyph` in the large entry only — spread first, then override explicitly.
+### Registry Discipline
 
-**Status subtype geometry:** Alarm button sizing, dropdown overflow height, and timer display dimensions are card-local CSS layered on top of `indicator-tile` profile vars. The profile registry owns structural geometry only.
+- **No color, opacity, or theme-conditional values** in `PROFILE_BASE` or any family entry. Geometry and typography only. (D17 dark mode policy)
+- **All values are em strings** — the resolver returns them as-is. `_setProfileVars()` sets them directly with no unit conversion.
+- **Override only where a family genuinely diverges** from `PROFILE_BASE[size]`. If a family entry has 0 overrides at a given size, it still explicitly spreads the base for readability.
+- **`ddRadius` (D22):** Dropdown border-radius, slightly tighter than `tileRadius`. Available to any family that renders dropdown surfaces.
 
-**Slim variant:** Not in the registry. `layout_variant: 'slim'` triggers a CSS class in `tunet_rooms_card.js` that scales `rowHeight` to ~70% and hides secondary controls. The resolver is not involved.
+### Status Subtype Geometry (D20)
+
+Timer, alarm, and dropdown option geometry are now fully profile-controlled via `indicator-tile` family extensions. No card-local CSS overrides for these metrics — they scale with the profile.
+
+### Slim Variant
+
+Not in the registry. `layout_variant: 'slim'` triggers a CSS class in `tunet_rooms_card.js` that scales `rowMinH` to ~70% and hides secondary controls. The resolver is not involved.
 
 ---
 
@@ -288,7 +554,7 @@ export const SIZE_PROFILES = {
  *
  * @param {string} params.family  - Key from FAMILY_KEYS
  * @param {string} params.size    - 'compact' | 'standard' | 'large'
- * @returns {Object} Flat geometry values (raw numbers, no units)
+ * @returns {Object} Flat token map — all values are pre-formatted CSS strings (e.g. '0.875em')
  */
 export function resolveSizeProfile({ family, size }) {
   const familyProfiles = SIZE_PROFILES[family];
@@ -342,68 +608,124 @@ Public hooks (`--profile-*`) are the declared override surface. Internal aliases
 
 Applied to `this` (the card host element), not `this.shadowRoot`. Must target the host so vars cascade through shadow boundaries into tile-core.
 
+Since all registry values are pre-formatted em strings (D18), the implementation is a data-driven loop — no unit conversion, no family-conditional blocks.
+
 ```js
+// Static token map: registry key → CSS custom property name
+// Family-specific tokens are only present in their family's profile objects,
+// so the undefined check naturally handles family filtering.
+const TOKEN_MAP = {
+  // Card chrome
+  cardPad:      '--_tunet-card-pad',
+  sectionPad:   '--_tunet-section-pad',
+  sectionGap:   '--_tunet-section-gap',
+  headerHeight: '--_tunet-header-height',
+  headerFont:   '--_tunet-header-font',
+  sectionFont:  '--_tunet-section-font',
+  // Tile core
+  tilePad:      '--_tunet-tile-pad',
+  tileGap:      '--_tunet-tile-gap',
+  tileRadius:   '--_tunet-tile-radius',
+  tileMinH:     '--_tunet-tile-min-h',
+  iconBox:      '--_tunet-icon-box',
+  iconGlyph:    '--_tunet-icon-glyph',
+  nameFont:     '--_tunet-name-font',
+  valueFont:    '--_tunet-value-font',
+  subFont:      '--_tunet-sub-font',
+  unitFont:     '--_tunet-unit-font',
+  progressH:    '--_tunet-progress-h',
+  // Control surfaces
+  ctrlMinH:     '--_tunet-ctrl-min-h',
+  ctrlPadX:     '--_tunet-ctrl-pad-x',
+  ctrlIconSize: '--_tunet-ctrl-icon-size',
+  // Dropdown (shared)
+  ddRadius:     '--_tunet-dd-radius',
+  ddOptionFont: '--_tunet-dd-option-font',
+  ddOptionPadY: '--_tunet-dd-option-pad-y',
+  ddOptionPadX: '--_tunet-dd-option-pad-x',
+  dropdownMinH: '--_tunet-dropdown-min-h',
+  dropdownMaxH: '--_tunet-dropdown-max-h',
+  // rooms-row extensions
+  rowMinH:       '--_tunet-row-min-h',
+  rowGap:        '--_tunet-row-gap',
+  rowTitleFont:  '--_tunet-row-title-font',
+  rowStatusFont: '--_tunet-row-status-font',
+  orbSize:       '--_tunet-orb-size',
+  orbIcon:       '--_tunet-orb-icon',
+  toggleSize:    '--_tunet-toggle-size',
+  toggleIcon:    '--_tunet-toggle-icon',
+  chevronSize:   '--_tunet-chevron-size',
+  rowBtnRadius:  '--_tunet-row-btn-radius',
+  // indicator-tile extensions
+  timerFont:          '--_tunet-timer-font',
+  timerLetterSpacing: '--_tunet-timer-ls',
+  alarmPillFont:      '--_tunet-alarm-pill-font',
+  alarmBtnH:          '--_tunet-alarm-btn-h',
+  alarmBtnFont:       '--_tunet-alarm-btn-font',
+  alarmIconSize:      '--_tunet-alarm-icon-size',
+  // indicator-row extensions
+  rowPadY:      '--_tunet-row-pad-y',
+  rowPadX:      '--_tunet-row-pad-x',
+  sparklineW:   '--_tunet-sparkline-w',
+  sparklineH:   '--_tunet-sparkline-h',
+  trendBox:     '--_tunet-trend-box',
+  trendGlyph:   '--_tunet-trend-glyph',
+  sparkStroke:  '--_tunet-spark-stroke',
+};
+
 _setProfileVars(profile) {
-  // Step 1: Clear all existing internal aliases — prevents stale tokens on family switch
+  // Step 1: Clear all existing internal aliases — prevents stale tokens on family switch (D11)
   for (const prop of [...this.style]) {
     if (prop.startsWith('--_tunet-')) this.style.removeProperty(prop);
   }
 
-  // Step 2: Set core lane tokens (all families share these)
-  this.style.setProperty('--_tunet-tile-pad',   `${profile.tilePad}px`);
-  this.style.setProperty('--_tunet-tile-gap',   `${profile.tileGap}px`);
-  this.style.setProperty('--_tunet-icon-box',   `${profile.iconBox}px`);
-  this.style.setProperty('--_tunet-icon-glyph', `${profile.iconGlyph}px`);
-  this.style.setProperty('--_tunet-name-font',  `${profile.nameFont}px`);
-  this.style.setProperty('--_tunet-value-font', `${profile.valueFont}px`);
-  this.style.setProperty('--_tunet-progress-h', `${profile.progressH}px`);
-
-  // Step 3: Set family-specific extension tokens (only present in their family)
-  if (profile.rowHeight !== undefined) {       // rooms-row
-    this.style.setProperty('--_tunet-row-height',   `${profile.rowHeight}px`);
-    this.style.setProperty('--_tunet-orb-size',     `${profile.orbSize}px`);
-    this.style.setProperty('--_tunet-orb-gap',      `${profile.orbGap}px`);
-    this.style.setProperty('--_tunet-toggle-size',  `${profile.toggleSize}px`);
-    this.style.setProperty('--_tunet-chevron-size', `${profile.chevronSize}px`);
-  }
-  if (profile.dropdownPad !== undefined) {     // indicator-tile
-    this.style.setProperty('--_tunet-dropdown-pad',    `${profile.dropdownPad}px`);
-    this.style.setProperty('--_tunet-aux-action-size', `${profile.auxActionSize}px`);
-  }
-  if (profile.sparklineH !== undefined) {      // indicator-row
-    this.style.setProperty('--_tunet-sparkline-h', `${profile.sparklineH}px`);
-    this.style.setProperty('--_tunet-trend-size',  `${profile.trendSize}px`);
+  // Step 2: Set all tokens present in this profile — data-driven, no conditionals
+  // Values are pre-formatted em strings — set directly, no unit conversion
+  for (const [key, cssVar] of Object.entries(TOKEN_MAP)) {
+    if (profile[key] !== undefined) {
+      this.style.setProperty(cssVar, profile[key]);
+    }
   }
 
-  // Step 4: Bridge public hooks — if user has set --profile-*, let it win
-  const overridePairs = [
-    ['--profile-tile-pad',   '--_tunet-tile-pad'],
-    ['--profile-icon-box',   '--_tunet-icon-box'],
-    ['--profile-name-font',  '--_tunet-name-font'],
-    ['--profile-value-font', '--_tunet-value-font'],
-    ['--profile-progress-h', '--_tunet-progress-h'],
+  // Step 3: Bridge public hooks — if user has set --profile-*, let it win
+  const OVERRIDE_PAIRS = [
+    ['--profile-card-pad',     '--_tunet-card-pad'],
+    ['--profile-tile-pad',     '--_tunet-tile-pad'],
+    ['--profile-tile-gap',     '--_tunet-tile-gap'],
+    ['--profile-icon-box',     '--_tunet-icon-box'],
+    ['--profile-name-font',    '--_tunet-name-font'],
+    ['--profile-value-font',   '--_tunet-value-font'],
+    ['--profile-header-font',  '--_tunet-header-font'],
+    ['--profile-section-font', '--_tunet-section-font'],
+    ['--profile-progress-h',   '--_tunet-progress-h'],
   ];
   const computed = getComputedStyle(this);
-  for (const [pub, priv] of overridePairs) {
+  for (const [pub, priv] of OVERRIDE_PAIRS) {
     const override = computed.getPropertyValue(pub).trim();
     if (override) this.style.setProperty(priv, override);
   }
 }
 ```
 
+**Public hook surface:** Only core layout tokens are exposed as `--profile-*` overrides. Family-specific extension tokens (timer, alarm, orb, sparkline) stay internal-only — users override those by changing the size (`tile_size: compact`), not individual tokens.
+
 ### tile-core CSS Contract
 
-tile-core shadow root consumes internal aliases with fallback values. Never references `--profile-*`.
+tile-core shadow root consumes internal aliases with em fallback values. Never references `--profile-*`.
 
 ```css
 /* tile-core shadow root — consume-only */
-:host        { padding:   var(--_tunet-tile-pad,     12px); }
-.icon-wrap   { width:     var(--_tunet-icon-box,     40px);
-               height:    var(--_tunet-icon-box,     40px); }
-.icon        { font-size: var(--_tunet-icon-glyph,   20px); }
-.name        { font-size: var(--_tunet-name-font,    13px); }
-.value       { font-size: var(--_tunet-value-font,   18px); }
-.progress    { height:    var(--_tunet-progress-h,    7px); }
+:host        { padding:    var(--_tunet-tile-pad,     0.875em);
+               min-height: var(--_tunet-tile-min-h,   5.75em);
+               border-radius: var(--_tunet-tile-radius, 0.875em); }
+.icon-wrap   { width:      var(--_tunet-icon-box,     2.375em);
+               height:     var(--_tunet-icon-box,     2.375em); }
+.icon        { font-size:  var(--_tunet-icon-glyph,   1.1875em); }
+.name        { font-size:  var(--_tunet-name-font,    0.8125em); }
+.value       { font-size:  var(--_tunet-value-font,   1.125em); }
+.sub         { font-size:  var(--_tunet-sub-font,     0.6875em); }
+.unit        { font-size:  var(--_tunet-unit-font,    0.6875em); }
+.progress    { height:     var(--_tunet-progress-h,   0.5em); }
 ```
 
 ### Token Namespace Rule
@@ -427,19 +749,55 @@ Explicit per component and per family. These are interface boundaries -- violati
 | **indicator-row** | Core lane tokens + indicator-row extension tokens | Nothing |
 | **tunet-tile** (tile-grid, speaker-tile) | Passes core tokens through via CSS cascade | Nothing -- does not reinterpret |
 
-### Core Lane Tokens (all families)
+### Token Lanes
 
-Consumed by `tile-core` only. Every family profile entry must include all 7.
+Organized by consumption scope. Every token in a lane must be present in the profile object for families that use that lane.
+
+**Card Chrome Lane (all families via PROFILE_BASE):**
+
+| Token | Consumed by | Source key |
+|---|---|---|
+| `--_tunet-card-pad` | Card host outer padding | `cardPad` |
+| `--_tunet-section-pad` | Section container padding | `sectionPad` |
+| `--_tunet-section-gap` | Gap between card sections | `sectionGap` |
+| `--_tunet-header-height` | Card header bar min-height | `headerHeight` |
+| `--_tunet-header-font` | Card title font-size | `headerFont` |
+| `--_tunet-section-font` | Section title font-size | `sectionFont` |
+
+**Tile Core Lane (all families via PROFILE_BASE):**
 
 | Token | Consumed by | Source key |
 |---|---|---|
 | `--_tunet-tile-pad` | `tile-core :host` padding | `tilePad` |
 | `--_tunet-tile-gap` | `tile-core` lane gap | `tileGap` |
+| `--_tunet-tile-radius` | Tile border-radius | `tileRadius` |
+| `--_tunet-tile-min-h` | Tile minimum height | `tileMinH` |
 | `--_tunet-icon-box` | `.icon-wrap` width/height | `iconBox` |
 | `--_tunet-icon-glyph` | `.icon` font-size | `iconGlyph` |
 | `--_tunet-name-font` | `.name` font-size | `nameFont` |
 | `--_tunet-value-font` | `.value` font-size | `valueFont` |
+| `--_tunet-sub-font` | `.sub` secondary text font-size | `subFont` |
+| `--_tunet-unit-font` | `.unit` suffix font-size | `unitFont` |
 | `--_tunet-progress-h` | `.progress` height | `progressH` |
+
+**Control Surface Lane (all families via PROFILE_BASE):**
+
+| Token | Consumed by | Source key |
+|---|---|---|
+| `--_tunet-ctrl-min-h` | Button/toggle/chip min-height | `ctrlMinH` |
+| `--_tunet-ctrl-pad-x` | Horizontal padding inside controls | `ctrlPadX` |
+| `--_tunet-ctrl-icon-size` | Icon size inside controls | `ctrlIconSize` |
+
+**Dropdown Lane (all families via PROFILE_BASE):**
+
+| Token | Consumed by | Source key |
+|---|---|---|
+| `--_tunet-dd-radius` | Dropdown border-radius | `ddRadius` |
+| `--_tunet-dd-option-font` | Dropdown option font-size | `ddOptionFont` |
+| `--_tunet-dd-option-pad-y` | Dropdown option vertical padding | `ddOptionPadY` |
+| `--_tunet-dd-option-pad-x` | Dropdown option horizontal padding | `ddOptionPadX` |
+| `--_tunet-dropdown-min-h` | Dropdown minimum height | `dropdownMinH` |
+| `--_tunet-dropdown-max-h` | Dropdown maximum height | `dropdownMaxH` |
 
 ### Family Extension Tokens
 
@@ -449,25 +807,39 @@ Consumed only by the component that uses them. Not set for other families.
 
 | Token | Consumed by | Source key |
 |---|---|---|
-| `--_tunet-row-height` | Row container min-height | `rowHeight` |
+| `--_tunet-row-min-h` | Row container min-height | `rowMinH` |
+| `--_tunet-row-gap` | Gap between rows | `rowGap` |
+| `--_tunet-row-title-font` | Room name font-size | `rowTitleFont` |
+| `--_tunet-row-status-font` | Room status text font-size | `rowStatusFont` |
 | `--_tunet-orb-size` | Orb button width/height | `orbSize` |
-| `--_tunet-orb-gap` | Orb row gap | `orbGap` |
+| `--_tunet-orb-icon` | Icon size inside orbs | `orbIcon` |
 | `--_tunet-toggle-size` | All-toggle button size | `toggleSize` |
+| `--_tunet-toggle-icon` | Icon size inside toggle | `toggleIcon` |
 | `--_tunet-chevron-size` | Chevron icon size | `chevronSize` |
+| `--_tunet-row-btn-radius` | Row button border-radius | `rowBtnRadius` |
 
-**`indicator-tile` family → consumed by `indicator-tile` component only:**
-
-| Token | Consumed by | Source key |
-|---|---|---|
-| `--_tunet-dropdown-pad` | Dropdown menu internal padding | `dropdownPad` |
-| `--_tunet-aux-action-size` | Alarm/timer action button size | `auxActionSize` |
-
-**`indicator-row` family → consumed by `indicator-row` component only:**
+**`indicator-tile` family → consumed by status card subtypes:**
 
 | Token | Consumed by | Source key |
 |---|---|---|
+| `--_tunet-timer-font` | Timer countdown font-size | `timerFont` |
+| `--_tunet-timer-ls` | Timer letter-spacing | `timerLetterSpacing` |
+| `--_tunet-alarm-pill-font` | Alarm pill label font-size | `alarmPillFont` |
+| `--_tunet-alarm-btn-h` | Alarm action button height | `alarmBtnH` |
+| `--_tunet-alarm-btn-font` | Alarm button font-size | `alarmBtnFont` |
+| `--_tunet-alarm-icon-size` | Alarm button icon size | `alarmIconSize` |
+
+**`indicator-row` family → consumed by sensor/environment row:**
+
+| Token | Consumed by | Source key |
+|---|---|---|
+| `--_tunet-row-pad-y` | Row vertical padding | `rowPadY` |
+| `--_tunet-row-pad-x` | Row horizontal padding | `rowPadX` |
+| `--_tunet-sparkline-w` | Sparkline chart width | `sparklineW` |
 | `--_tunet-sparkline-h` | Sparkline chart height | `sparklineH` |
-| `--_tunet-trend-size` | Trend arrow icon size | `trendSize` |
+| `--_tunet-trend-box` | Trend arrow container size | `trendBox` |
+| `--_tunet-trend-glyph` | Trend arrow icon size | `trendGlyph` |
+| `--_tunet-spark-stroke` | Sparkline stroke width | `sparkStroke` |
 
 ### Composition Rule
 
@@ -609,6 +981,49 @@ Document this explicitly in `tunet_speaker_grid_card.js` code comments so future
 
 ---
 
+## 10b. Token Ownership
+
+Rules for who can add, modify, or remove tokens from the registry. These prevent drift as cards are added or profiles are tuned.
+
+### Ownership Rules
+
+| Action | Owner | Review required |
+|---|---|---|
+| Add token to `PROFILE_BASE` | Architecture (this doc) | Yes — affects all 5 families × 3 sizes |
+| Add family extension token | Card owner + architecture review | Yes — must not collide with PROFILE_BASE keys |
+| Modify `PROFILE_BASE` value | Architecture (this doc) | Yes — regression check all families |
+| Modify family extension value | Card owner | Regression check that family only |
+| Remove any token | Architecture (this doc) | Yes — two-tier versioning (D15) applies |
+| Add new family to `SIZE_PROFILES` | Architecture (this doc) | Yes — requires new `FAMILY_KEYS` entry + `PRESET_FAMILY_MAP` routing |
+
+### Where Tokens Live
+
+| Scope | Definition site | Consumption site |
+|---|---|---|
+| PROFILE_BASE tokens | `tunet_base.js` → `PROFILE_BASE` | Any family via spread |
+| Family extension tokens | `tunet_base.js` → `SIZE_PROFILES[family]` | Only that family's card/component |
+| TOKEN_MAP (key→CSS var) | `tunet_base.js` → `TOKEN_MAP` constant | `_setProfileVars()` loop |
+| Public override hooks | `_setProfileVars()` → `OVERRIDE_PAIRS` | User CSS on card host |
+
+### Adding a New Token
+
+1. Decide scope: PROFILE_BASE (all families) or family extension (one family)
+2. Add the key+value to all 3 sizes (compact/standard/large)
+3. Add the `key → '--_tunet-*'` mapping to `TOKEN_MAP`
+4. If user-overridable, add a `['--profile-*', '--_tunet-*']` pair to `OVERRIDE_PAIRS`
+5. Add the `var(--_tunet-*, fallback)` consumption in the target CSS
+6. Update the token lane table in §10 of this document
+7. Update unit tests to verify the new key returns a value for all family×size combinations
+
+### Naming Conventions
+
+- Registry keys: camelCase (`tilePad`, `orbIcon`, `rowBtnRadius`)
+- CSS custom properties: kebab-case with `--_tunet-` prefix (`--_tunet-tile-pad`, `--_tunet-orb-icon`)
+- Public hooks: kebab-case with `--profile-` prefix (`--profile-tile-pad`)
+- No abbreviations except established ones: `dd` (dropdown), `ctrl` (control), `btn` (button), `h` (height), `w` (width), `ls` (letter-spacing), `lh` (line-height)
+
+---
+
 ## 11. Feature Flag and Rollback
 
 ### Config Schema
@@ -714,6 +1129,43 @@ When `PROFILE_SCHEMA_VERSION` increments:
 2. Renamed keys are supported under both old and new names for one version with `console.warn`
 3. Removed keys produce `console.warn` naming the key and its replacement
 4. Every version bump requires an entry in `CHANGELOG.md` and an update to this document
+
+---
+
+## 12b. Sections Layout Engine API Reference
+
+Research from HA frontend source (2026-03-08). Used to inform G5 and `getGridOptions()` implementation.
+
+### `getGridOptions()` — Current API (Sections View)
+
+```ts
+interface LovelaceGridOptions {
+  columns?: number | "full";    // default 12; "full" = grid-column: 1/-1
+  rows?: number | "auto";       // default "auto" = intrinsic CSS height
+  min_columns?: number;         // constrain editor resize handles
+  max_columns?: number;
+  min_rows?: number;
+  max_rows?: number;
+  fixed_rows?: boolean;         // if true, user cannot resize vertically
+  fixed_columns?: boolean;
+}
+```
+
+Grid dimensions: each section is a **12-column** CSS grid. Row height is **56px** (`--row-height`), gap is **8px** (`--row-gap`). N rows = `N * 64 - 8` pixels.
+
+### `getCardSize()` — Masonry Only
+
+Returns a number (1 unit ≈ 50px). Used **only** by masonry view for column distribution. **Not used by sections.**
+
+### `getLayoutOptions()` — Deprecated
+
+Used a 4-column grid. Auto-migrated via `migrateLayoutToGridOptions()` which multiplies column values by 3. Both `layout_options:` and `grid_options:` accepted in YAML; `grid_options` takes priority.
+
+### Reactivity
+
+`getGridOptions()` is called inside `hui-grid-section`'s `render()`, re-read on section re-renders. **No `grid-options-changed` event exists.** Section re-renders are triggered by `cards` array changes or config changes — not by entity state or card-internal changes.
+
+**Consequence:** A card that changes its grid options at runtime will **not** cause sections to re-allocate. Use `rows: "auto"` so intrinsic CSS height governs — profile changes then work naturally.
 
 ---
 
@@ -908,15 +1360,17 @@ Profile parity (devtools inspection):
 
 *Note: lighting uses `tile-grid` family; speakers uses `speaker-tile` family. Core lane tokens from `PROFILE_BASE` are shared. `tilePad` differs by design.*
 
-- [ ] At 390px: lighting card shows `--_tunet-icon-box: 38px` (PROFILE_BASE compact, tile-grid)
-- [ ] At 390px: speaker card shows `--_tunet-icon-box: 38px` (PROFILE_BASE compact, speaker-tile)
-- [ ] At 390px: lighting card shows `--_tunet-tile-pad: 10px` (tile-grid compact)
-- [ ] At 390px: speaker card shows `--_tunet-tile-pad: 8px` (speaker-tile compact -- intentionally differs)
-- [ ] At 390px: lighting card shows `--_tunet-progress-h: 7px` (tile-grid compact)
-- [ ] At 390px: speaker card shows `--_tunet-progress-h: 6px` (speaker-tile compact -- intentionally differs)
-- [ ] At 700px: lighting card shows `--_tunet-icon-box: 38px` (PROFILE_BASE standard -- no override)
-- [ ] At 700px: speaker card shows `--_tunet-icon-box: 38px` (same)
-- [ ] With `tile_size: large` explicit in lighting config: `--_tunet-icon-box: 44px` regardless of container width
+- [ ] At 390px: lighting card shows `--_tunet-icon-box: 2.125em` (PROFILE_BASE compact)
+- [ ] At 390px: speaker card shows `--_tunet-icon-box: 2.125em` (PROFILE_BASE compact)
+- [ ] At 390px: lighting card shows `--_tunet-tile-pad: 0.625em` (tile-grid compact, same as PROFILE_BASE)
+- [ ] At 390px: speaker card shows `--_tunet-tile-pad: 0.5em` (speaker-tile compact — intentionally tighter)
+- [ ] At 390px: lighting card shows `--_tunet-progress-h: 0.375em` (tile-grid compact, same as PROFILE_BASE)
+- [ ] At 390px: speaker card shows `--_tunet-progress-h: 0.375em` (speaker-tile compact — same value, different source)
+- [ ] At 700px: lighting card shows `--_tunet-icon-box: 2.375em` (PROFILE_BASE standard)
+- [ ] At 700px: speaker card shows `--_tunet-icon-box: 2.375em` (same)
+- [ ] With `tile_size: large` explicit in lighting config: `--_tunet-icon-box: 2.75em` regardless of container width
+- [ ] At 390px: both cards show `--_tunet-card-pad: 0.875em` (PROFILE_BASE compact)
+- [ ] At 700px: both cards show `--_tunet-ctrl-min-h: 2.625em` (PROFILE_BASE standard)
 
 Interaction regression:
 - [ ] Lighting drag-to-brightness gesture: works at all 4 breakpoints (manual test)
@@ -947,9 +1401,10 @@ Screenshot regression:
 
 `tunet_status_card.js`:
 - Add profile consumption pattern (same as G2 cards)
-- Profile applies to base lane geometry from `indicator-tile` family: `tilePad`, `iconBox`, `nameFont`, `valueFont`
-- Subtype geometry (dropdown overflow height, alarm button sizing, timer display) remains in card-local CSS
-- `progressH: 0` from `indicator-tile` profile -- status cards have no profile-level progress bar
+- Profile applies to base lane geometry from `indicator-tile` family: all PROFILE_BASE tokens + indicator-tile extensions
+- Subtype geometry (timer, alarm, dropdown options) is now profile-controlled (D20) — no card-local CSS overrides for these metrics
+- Convert existing hardcoded alarm em values to consume `--_tunet-alarm-*` vars
+- Convert existing timer font/spacing to consume `--_tunet-timer-*` vars
 
 `tunet_rooms_card.js`:
 - Grid layout mode: `selectProfileSize` returns family `tile-grid`
@@ -960,16 +1415,19 @@ Screenshot regression:
 
 **Exit criteria:**
 
-Status subtypes:
-- [ ] Dropdown overflow height unchanged from pre-G3 baseline at all 4 breakpoints (screenshot)
-- [ ] Alarm buttons render at correct hit target size at compact and standard — measured devtools `offsetHeight` matches pre-G3
+Status subtypes (D20 — profile-controlled):
+- [ ] Timer font consumes `--_tunet-timer-font` — devtools shows `1.125em` at standard
+- [ ] Timer letter-spacing consumes `--_tunet-timer-ls` — devtools shows `0.03125em` at standard
+- [ ] Alarm pill font consumes `--_tunet-alarm-pill-font` — devtools shows `0.9375em` at standard
+- [ ] Alarm button height consumes `--_tunet-alarm-btn-h` — devtools shows `1.25em` at standard
+- [ ] Dropdown max-height consumes `--_tunet-dropdown-max-h` — devtools shows `15em` at standard
 - [ ] Timer countdown continues live countdown after migration
 
 Rooms row:
-- [ ] `--_tunet-orb-size` computed on card host is `26px` at standard, `20px` at compact (devtools)
-- [ ] `--_tunet-row-height` is `68px` at standard (devtools)
-- [ ] Rooms grid layout: `--_tunet-icon-box` is `40px` at standard (tile-grid, not rooms-row value)
-- [ ] Slim variant row height is approximately 70% of standard row height (measured)
+- [ ] `--_tunet-orb-size` computed on card host is `3.16em` at standard (devtools)
+- [ ] `--_tunet-row-min-h` is `7.3125em` at standard (devtools)
+- [ ] Rooms grid layout: `--_tunet-icon-box` is `2.375em` at standard (tile-grid, not rooms-row value)
+- [ ] Slim variant row height is approximately 70% of standard `rowMinH` (measured)
 - [ ] Orb toggles function after migration
 - [ ] Room navigation on row tap functions after migration
 - [ ] All-toggle button functions after migration
@@ -997,19 +1455,27 @@ Nav neutralization:
 
 ---
 
-### G5: Sections Size-Hint Calibration
+### G5: Sections Integration Validation
 
-**Files changed:** All pilot tranche cards (minor adjustments to `getCardSize()` and `getGridOptions()`)
+**Research finding (2026-03-08):** HA sections uses `getGridOptions()` with a 12-column CSS grid (row height = 56px, gap = 8px). `getCardSize()` is masonry-only and irrelevant for sections. There is **no reactive mechanism** for cards to announce size changes — `getGridOptions()` is re-read on section re-render, but section re-renders are triggered by config changes, not card state changes.
+
+**Implication:** `rows: "auto"` (intrinsic height) is the correct strategy for profile-driven cards. When profiles change token values, CSS height changes naturally, and sections renders the card at its new intrinsic height. No `_hint` values needed in SIZE_PROFILES.
+
+**Files changed:** All pilot tranche cards (minor — ensure `getGridOptions()` returns correct static values)
 
 **Changes:**
-- Measure actual rendered card heights at each profile size in a real Sections layout (not estimated)
-- Update `getCardSize()` return values to match measured heights
-- Update `getGridOptions()` min/max row constraints to match profile lane heights
+- Ensure all pilot cards return `getGridOptions()` with `rows: "auto"` (intrinsic height)
+- Set `columns` and `min_columns` for horizontal constraints
+- Set `min_rows` / `max_rows` to constrain UI editor resize handles
+- Keep `getCardSize()` returning a static reasonable value for masonry compatibility
+- No dynamic size-hint updates — unnecessary with `rows: "auto"`
 
 **Exit criteria:**
-- [ ] Cards in Sections layout do not clip or overflow their allocated rows at any profile size at all 4 breakpoints
-- [ ] `getCardSize()` return values within 10% of actual measured card height
-- [ ] No stacking or overlap regressions in multi-card Sections views
+- [ ] All pilot cards return `getGridOptions()` with `rows: "auto"` or omit `rows`
+- [ ] Cards in sections do not clip or overflow at any profile size at all 4 breakpoints
+- [ ] Profile size switch (compact↔standard↔large) causes smooth height transition, no layout jump
+- [ ] No stacking or overlap regressions in multi-card sections views
+- [ ] `getCardSize()` returns sensible static value for masonry view compatibility
 
 ---
 

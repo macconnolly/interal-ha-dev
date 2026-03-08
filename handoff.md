@@ -8,13 +8,27 @@ Source filter for this run:
 - ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
 
+## 0R) Session Delta (2026-03-07, T-011A.6b)
+
+Interaction-contract reconciliation lock:
+
+- Active room interaction contract:
+  - card-body tap = primary route action (`navigate` preferred)
+  - explicit controls/orbs/buttons = toggle actions
+  - hold = optional secondary popup behavior only where configured
+- Any legacy `tap-toggle / hold-popup` wording is historical and non-authoritative.
+- If lower sections conflict with this lock, this `0R` section wins.
+- Scope:
+  - docs reconciliation only
+  - no runtime behavior changes in this slice
+
 ## 0Q) Session Delta (2026-03-07, T-011A.6)
 
 Profile consumption architecture finalized to v3.0 — implementation-ready with Codex prompt:
 
 - Created files:
   - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (v3.0, 1100 lines) — sole architecture authority
-  - `Dashboard/Tunet/Agent-Reviews/start.md` (428 lines) — Codex implementation prompt for G1-G6
+  - `Dashboard/Tunet/Agent-Reviews/start.md` — start guide for profile rollout execution
   - 14 additional Agent-Reviews artifacts from multi-agent review wave
   - 9 additional Docs files (mobile density audits, sections matrix, popup fix, weather refactor)
 - Architecture decisions locked (D1–D17):
@@ -42,19 +56,19 @@ Profile consumption architecture finalized to v3.0 — implementation-ready with
   - `_applyProfile()` is single convergence point for both setConfig and ResizeObserver triggers
   - Profiles are mode-agnostic (geometry only, no color/opacity/dark-light branching)
 - Open issues noted in review (non-blocking for G1):
-  - `orbSize` numeric conflict between registry (32px standard) and G3 exit criteria (26px) — needs reconciliation
-  - Missing cards from §2 out-of-scope table (climate, scenes, actions, sensor)
-  - Slim scaling mechanism unspecified (CSS class vs calc vs hardcoded)
-  - `getComputedStyle` in bridge code forces layout reflow (acceptable if infrequent)
+  - `orbSize` numeric conflict between registry (32px standard) and G3 exit criteria (26px) — reconciled in v3.1 (now em-based, scales with profile size)
+  - Missing cards from §2 out-of-scope table (climate, scenes, actions, sensor) — added in v3.1
+  - Slim scaling mechanism unspecified (CSS class vs calc vs hardcoded) — unchanged, remains CSS class approach
+  - `getComputedStyle` in bridge code forces layout reflow (acceptable if infrequent) — unchanged
 - Scope:
   - docs + architecture only
   - no card runtime behavior changes
   - no deploy/cache-bust actions
 
 Carry-forward:
-- Next step: G1 implementation in `tunet_base.js` (add profile registry, resolver, deepMerge, width-source fixes)
+- Profile architecture v3.1 finalized. G0 documentation prerequisites are pending tranche owner sign-off. Next implementation step: G1 base primitives in `tunet_base.js`.
 - `start.md` is the Codex-ready implementation prompt — hand off to Codex or implement directly
-- Reconcile the 4 open issues above before or during G1
+- v3.1 expanded the registry to all-em with size-indexed `PROFILE_BASE` (D18-D22). The orbSize conflict and missing out-of-scope cards are resolved. Remaining open items (slim mechanism, getComputedStyle) are non-blocking for G1.
 
 ## 0P) Session Delta (2026-03-07, T-011A.5)
 
@@ -105,6 +119,8 @@ Carry-forward:
 
 ## 0N) Session Delta (2026-03-07, T-011A.3 prep)
 
+> **Superseded:** Architecture decisions in this section were finalized in `unified_tile_architecture_conclusion.md` v3.1. Values and structure here are historical.
+
 Decision-path planning for card-size unification was advanced (docs only, no runtime behavior change):
 
 - Updated:
@@ -129,8 +145,7 @@ Scope:
 - no interaction contract changes
 
 Carry-forward:
-- do not begin broad profile migration while current surface lock work is active
-- next eligible step is `G0` prerequisites (container-width + nav offset isolation), then `G1` base-profile primitives
+- Profile architecture v3.1 finalized. G0 documentation prerequisites are pending tranche owner sign-off. Next implementation step: G1 base primitives in `tunet_base.js`.
 
 ## 0M) Session Delta (2026-03-07, T-011A.2)
 
@@ -594,7 +609,7 @@ Required implications for implementation:
 - Prefer Home Assistant `2026.3` native UI configuration capabilities wherever they can replace brittle YAML-only patterns.
 
 Important: there is behavior drift between plan lock and latest user intent.  
-Plan currently states room tile `tap -> toggle`, `hold -> popup`.  
+Plan previously stated legacy room tile `tap -> toggle`, `hold -> popup`.  
 Latest user intent now leans toward row cards where:
 - row sub-buttons toggle individual lights
 - tapping main room card should navigate/open popup
@@ -778,7 +793,7 @@ This is the authoritative unresolved matrix from the user’s latest requirement
 #### `ISSUE-005` Rooms row variant interaction contract drift
 - Status update (2026-03-07, `T-010B`):
   - control-size parity and row button/orb sizing consistency improved in `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` + shared tokens in `tunet_base.js`.
-  - Remaining work: lock card-body primary action contract in docs/code (`tap->navigate|popup` vs legacy tap-toggle lock conflict).
+  - Remaining work: confirm card-body primary route-action contract remains aligned across docs/code.
 - Where to look:
   - `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
   - `Dashboard/Tunet/tunet-suite-storage-config.yaml` rooms card configs
@@ -1136,7 +1151,7 @@ Interaction contract:
 - align popup controls with room-page control language
 
 ## 7) Current Behavior Drift / Decision Conflicts
-- Docs/plan lock says room `tap -> toggle`, `hold -> popup`.
+- Docs/plan previously contained legacy room `tap -> toggle`, `hold -> popup` wording.
 - User now requests row-card body tap navigation/open popup and dedicated sub-control toggles.
 - Before implementing more interaction changes:
   - update `plan.md` interaction contract section

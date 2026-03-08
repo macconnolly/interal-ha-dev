@@ -1,7 +1,44 @@
 # Tunet Suite Dashboard - Implementation Plan (V2 Next)
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-07
+Last updated: 2026-03-08
+
+## Session Delta (2026-03-08, T-011A.7)
+
+Tranche marker: `T-011A.7` (profile registry v3.1 — all-em density expansion)
+
+- Profile architecture expanded from v3.0 to v3.1:
+  - **All-em unit system (D18):** Every token is a pre-formatted em string. No px, no raw numbers. Single `font-size` on `:host` becomes a master density lever.
+  - **Size-indexed PROFILE_BASE (D19):** `{ compact: {...}, standard: {...}, large: {...} }` — each family spreads the correct size's base.
+  - **End-to-end density (D20, D21):** Card chrome (cardPad, sectionPad, sectionGap, headerHeight, headerFont, sectionFont), control surfaces (ctrlMinH, ctrlPadX, ctrlIconSize), radii (tileRadius, ddRadius), dropdown options (ddOptionFont/PadY/PadX, dropdownMinH/MaxH), secondary typography (subFont, unitFont), and status subtype internals (timerFont, alarmPillFont, alarmBtnH, etc.) all scale with profile.
+  - **ddRadius (D22):** Dropdown border-radius at 0.5em standard (8px equivalent).
+  - Token ownership section (§10b) added — rules for adding/modifying/removing tokens.
+  - Out-of-scope table updated: `tunet_climate_card.js`, `tunet_actions_card.js`, `tunet_scenes_card.js`, `tunet_sensor_card.js` now explicitly listed.
+- Updated files:
+  - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (v3.1)
+  - `Dashboard/Tunet/design.md` (v1.1)
+- Full SIZE_PROFILES registry (5 families × 3 sizes) is the canonical reference in `unified_tile_architecture_conclusion.md` §7.
+- Carry-forward:
+  - Profile architecture v3.1 finalized. G0 documentation prerequisites are pending tranche owner sign-off.
+  - Next implementation step: G1 base primitives in `tunet_base.js`.
+  - Open research: `getCardSize()` / `getGridOptions()` / `getLayoutOptions()` API behavior in HA sections — needed for G5 size-hint calibration.
+  - `progressH` for `indicator-tile` and `indicator-row`: old design used `0`; new registry inherits PROFILE_BASE non-zero value. Confirm intent before G3.
+- Scope:
+  - docs only, no JS/YAML runtime changes
+
+## Session Delta (2026-03-07, T-011A.6)
+
+Tranche marker: `T-011A.6` (interaction-contract docs reconciliation)
+
+- Control-doc interaction lock reconciled to current direction:
+  - room card-body tap is the primary route action (`navigate` preferred)
+  - explicit room controls/orbs/buttons own toggle behavior
+  - hold is optional secondary behavior only (for configured popup flows), not the global baseline
+- Legacy `tap-toggle / hold-popup` wording is now historical and non-authoritative when it conflicts with the lock above.
+- If any older section in this file conflicts with this lock, this `T-011A.6` section wins.
+- Scope:
+  - docs reconciliation only
+  - no JS/YAML runtime behavior changes in this slice
 
 ## Session Delta (2026-03-07, T-011A.5)
 
@@ -49,6 +86,8 @@ Tranche marker: `T-011A.4` (container-width migration, prerequisite gate `G0` pa
   - nav global offset isolation prerequisite remains open
 
 ## Session Delta (2026-03-07, T-011A.3)
+
+> **Superseded:** Architecture decisions in this section were finalized in `unified_tile_architecture_conclusion.md` v3.1. Values and structure here are historical.
 
 Tranche marker: `T-011A.3` (card-unification path lock, docs-only)
 
@@ -351,7 +390,7 @@ This sync captures what is now learned and locked before further UI changes:
 - lock the utility band as dual strips (`actions` + `scenes/chips`)
 - remove stale Bubble/hash popup instructions from active execution paths
 - keep popup platform lock as Browser Mod with one popup per room
-- lock room gesture contract as `tap -> toggle`, `hold -> Browser Mod popup`
+- lock room gesture contract to route-first body tap with explicit control-owned toggles
 - enforce anti-drift governance so micro-interaction changes cannot bypass docs and validation
 
 ### Session Delta (2026-03-06, post-deploy follow-up)
@@ -502,7 +541,7 @@ This tranche applied the 3-layer sections model directly to `tunet-suite-storage
 
 ### Open Lock Conflict (Must Reconcile Before FL-030 Closure)
 
-- `plan.md` + `FIX_LEDGER.md` still lock room interactions to `tap -> toggle` and `hold -> popup`.
+- `plan.md` + `FIX_LEDGER.md` previously locked room interactions to legacy tap-toggle language.
 - `handoff.md` and latest user direction include row-variant behavior where card-body primary action may be popup/navigation while sub-controls handle toggles.
 - This conflict is intentionally not resolved inside `T-006A`; it must be reconciled in the next room-interaction tranche.
 
@@ -692,7 +731,7 @@ These are facts about what the product has and has not actually achieved yet. Th
 - PARTIAL PRODUCT.04: The overview is structurally better than the original vertical-stack state, but the home-screen product direction is not yet settled.
 - PARTIAL PRODUCT.05: Status-card parity work reduced one visible regression, but it did not solve the upper-overview product hierarchy.
 - PARTIAL PRODUCT.06: Browser Mod room popup standard is implemented for Living + Kitchen; Dining + Bedroom still need completion.
-- DONE PRODUCT.07: Room micro-interaction contract is locked (`tap toggle`, `hold popup`) and enforced in control docs.
+- DONE PRODUCT.07: Room micro-interaction contract is locked to route-first body tap with explicit control-owned toggles and enforced in control docs.
 - DONE PRODUCT.08: Utility-band direction is locked as dual strips (`actions + scenes/chips`).
 - TODO PRODUCT.09: The V1 atmosphere / shell language has not yet been recovered in a Sections-compatible way.
 - TODO PRODUCT.10: The home hero and overview hierarchy are not yet accepted as the final daily-use product direction.
@@ -764,12 +803,12 @@ The near-term product sequence is now:
 
 These tranches must be handled one at a time and verified before the next tranche starts.
 
-### Locked Micro-Interaction Contract (2026-03-06)
+### Locked Micro-Interaction Contract (Superseded 2026-03-07)
 
-- Room tile:
-  - tap -> toggle all room lights
-  - hold (>= 400ms) -> room popup (Browser Mod, `fire-dom-event`)
-  - room tile navigation gesture is not required because global nav provides room-page access
+- Room tile (active lock):
+  - card-body tap -> primary route action (`navigate` preferred)
+  - explicit controls/orbs/buttons -> toggles
+  - hold (>= 400ms) -> optional popup behavior only where configured
 - Light controls:
   - keep tap-to-toggle behavior as default
   - hold semantics are per-control and must be documented where used
@@ -883,8 +922,9 @@ If any one of those artifacts is missing, the interaction change is considered d
 - all room popups use Browser Mod (`custom:popup-card` + `browser_mod.popup`)
 - one popup per room (`living-room`, `kitchen`, `dining-room`, `bedroom`)
 - room tile interaction is consistent:
-  - tap -> room toggle
-  - hold -> room popup (`fire-dom-event`, browser-scoped)
+  - card-body tap -> route action
+  - explicit controls -> toggle actions
+  - hold -> popup only where configured (`fire-dom-event`, browser-scoped)
 - each popup stays intentionally narrow:
   - quick actions
   - one primary interaction surface
@@ -895,7 +935,7 @@ If any one of those artifacts is missing, the interaction change is considered d
 - DONE P1.02: Kitchen popup-card exists and routes from room hold action.
 - DONE P1.03: Popup cards use `initial_style` (no deprecated `size` field).
 - DONE P1.04: Living/Kitchen popups use one consolidated `tunet-lighting-card` each (no tile stacks).
-- DONE P1.05: Room tile interaction contract implemented in `tunet-rooms-card` (`tap toggle`, `hold popup`).
+- DONE P1.05: Room tile interaction contract implemented in `tunet-rooms-card` (route-first body tap + explicit control-owned toggles).
 
 ### 1.2 - Remaining Room Popup Work
 - TODO P1.06: Add Dining room popup-card and wire hold action to `popup_card_id: dining-room-popup`.

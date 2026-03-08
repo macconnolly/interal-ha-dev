@@ -1,6 +1,6 @@
 # Tunet V2 Design Documentation Structure
 
-Version 1.0 - 2026-03-07  
+Version 1.1 - 2026-03-08
 Status: Active index for Tunet V2 design/architecture docs
 
 This file is the documentation map for Tunet V2. It is intentionally concise and points to the canonical contracts.
@@ -15,9 +15,11 @@ This file is the documentation map for Tunet V2. It is intentionally concise and
 - sections page/section/card sizing model
 - breakpoint validation workflow
 
-3. `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md`
+3. `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (v3.1)
 - detailed profile architecture rationale and implementation contract
 - gate-by-gate migration details and enforcement decisions
+- **full SIZE_PROFILES registry** with all-em values (D18), size-indexed PROFILE_BASE (D19)
+- token ownership rules (§10b) and TOKEN_MAP reference
 
 4. `plan.md`, `FIX_LEDGER.md`, `handoff.md`
 - active tranche state, issue ledger, and session-level operational truth
@@ -47,6 +49,10 @@ Use this order when docs conflict:
 - `resolveSizeProfile({ family, size })`
 6. `tile-core` is the exclusive consumer of core profile lane tokens
 7. Profiles are mode-agnostic; dark/light handling stays in theme tokens
+8. All token values are em strings — no px, no raw numbers (D18)
+9. `PROFILE_BASE` is size-indexed: `{ compact: {...}, standard: {...}, large: {...} }` (D19)
+10. Status subtype internals (timer, alarm, dropdown) are profile-controlled (D20)
+11. Token ownership rules in §10b of architecture doc — follow for any registry changes
 
 ## 3. Expected Documentation Pattern
 

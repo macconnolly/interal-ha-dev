@@ -1,8 +1,65 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-07
+Last updated: 2026-03-08
 Scope: `/home/mac/HA/implementation_10`
+
+## Session Delta (2026-03-08, T-011A.9)
+
+Change marker: `T-011A.9`
+
+- `DOC-ALIGNED`
+  - corrected stale numeric `PROFILE_BASE` snippet in:
+    - `Dashboard/Tunet/Mockups/design_language.md` §5.5
+  - aligned that section to locked all-em, size-indexed registry contract and canonical v3.1 reference
+- `SCOPE`
+  - docs-only consistency patch
+  - no runtime code changes
+
+## Session Delta (2026-03-08, T-011A.8)
+
+Change marker: `T-011A.8`
+
+- `DOC-ALIGNED`
+  - execution-order conflict is now explicit:
+    - `T-011A` one-surface orchestration remains required
+    - immediate next implementation pass is `G1` profile base primitives after `G0` closeout decisions
+  - chosen sequencing:
+    1. `G0` closeout decisions/docs sync
+    2. `G1` base primitives in `Dashboard/Tunet/Cards/v2/tunet_base.js`
+    3. resume `FL-038` surface-by-surface lock sequence
+- `SCOPE`
+  - docs reconciliation only
+  - no runtime code changes
+
+## Session Delta (2026-03-08, T-011A.7)
+
+Change marker: `T-011A.7`
+
+- `DOC-DONE`
+  - profile architecture expanded to v3.1 all-em registry contract:
+    - size-indexed `PROFILE_BASE`
+    - end-to-end density ownership (D18-D22)
+    - expanded out-of-scope table and token ownership rules
+  - canonical architecture reference is:
+    - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (v3.1)
+- `SCOPE`
+  - docs only, no runtime code changes
+
+## Session Delta (2026-03-07, T-011A.6)
+
+Change marker: `T-011A.6`
+
+- `DOC-RECONCILED`
+  - interaction contract baseline aligned to current direction:
+    - room card-body tap is route-first (`navigate` preferred)
+    - explicit controls/orbs/buttons own toggles
+    - hold is optional secondary popup behavior only where configured
+  - legacy global `tap-toggle / hold-popup` language is historical when it conflicts with this lock
+  - when lower sections conflict, this session-delta lock is authoritative
+- `SCOPE`
+  - docs reconciliation only
+  - no runtime code changes
 
 ## Session Delta (2026-03-07, T-011A.5)
 
@@ -49,13 +106,13 @@ Change marker: `T-011A.4`
 Change marker: `T-011A.3`
 
 - `DECISION-LOCK (DOCS)`
-  - card-unification direction: `Option C` (family profile consumption), planning score lock `8.5/10`
+  - card-unification direction: `Option C` (family profile consumption), planning score lock `8.15/10`
   - prerequisite ordering locked:
     1. container-first width-source migration
     2. nav global layout mutation isolation (`ensureGlobalOffsetsStyle` scope control)
     3. phased profile rollout
 - `ROLL-OUT LOCKS`
-  - `rooms-row` + `rooms-row-slim` are one profile family with modifiers
+  - `rooms-row` is a single family; `slim` is a layout variant modifier (not a family key)
   - skip Option B pilot comparison; execute direct Option C pilot
   - add post-pilot calibration gate for `getCardSize()` and `getGridOptions()`
 - `SCOPE`
@@ -346,7 +403,7 @@ These requirement IDs are the stable intent model for the Tunet work. Ledger ite
 | `REQ-DONE-001` | Implemented is not done. | Repo state, live HA state, visual validation, and product acceptance must remain distinct. |
 | `REQ-V1-001` | Valuable V1 polish and interaction patterns should be recovered where compatible. | Migration to Sections must not discard the atmosphere and clarity that made the earlier dashboard feel premium. |
 | `REQ-CTRL-001` | Every change must pass a preflight change gate with traceability. | Prevents fast local fixes from reintroducing cross-card behavior drift. |
-| `REQ-INT-001` | Room interaction contract is tap-toggle / hold-popup. | Keeps primary room action one-touch while preserving premium popup access and nav-based deep-linking. |
+| `REQ-INT-001` | Room interaction contract is route-first body tap with explicit control-owned toggles. | Keeps primary intent one-touch while preserving predictable toggles and optional premium popup access. |
 
 ### Four-Gate Interpretation Model
 
@@ -490,7 +547,7 @@ These items have already changed materially on this branch and must be verified 
 - Room strategy: Office is not a room; Office lighting is part of Living Room.
 - Popup strategy: Browser Mod is the preferred next-popup direction for Tunet. Existing Bubble/hash popup work is historical POC material only unless explicitly re-approved.
 - Card editor strategy: `getConfigForm()` remains acceptable for simple/scalar configs; nested array editing is not considered solved.
-- Interaction strategy: room tiles use `tap -> room toggle` and `hold -> popup`; room navigation remains available via global nav.
+- Interaction strategy: room card-body uses route-first tap; explicit controls own toggles; hold-popup is optional where configured.
 
 ## Execution Gate Register (2026-03-06)
 
@@ -1087,15 +1144,15 @@ These grades are implementation-health grades, not value judgments. They reflect
   - `Dashboard/Tunet/tunet-suite-config.yaml`
   - `Dashboard/Tunet/tunet-suite-storage-config.yaml`
 - Problem:
-  - Room tile interaction behavior is inconsistent across docs/config/code (tap vs hold responsibilities and popup invocation path).
+  - Room tile interaction behavior was inconsistent across docs/config/code (legacy tap-toggle language vs route-first behavior).
 - Exact Fix:
-  - Lock and implement `tap -> room toggle`, `hold -> Browser Mod popup` using browser-scoped `fire-dom-event` actions.
+  - Lock and implement route-first body tap with explicit control-owned toggles; keep popup as optional secondary behavior using browser-scoped `fire-dom-event` where configured.
 - Why This Matters:
   - Room interaction is a primary daily-use surface and must be predictable across all Tunet pages.
 - Dependency:
   - FL-022 popup direction lock.
 - Validation:
-  - Room tiles toggle on tap and open Browser Mod popup on hold in both overview and rooms-directory surfaces.
+  - Room body tap routes consistently; explicit controls toggle consistently; popup opens on hold only where configured.
 
 #### FL-031
 - Status: `PARTIAL (CODE-DONE / HA-VERIFY)`
@@ -1444,12 +1501,14 @@ These are not defects. They are architecture or design decisions that still need
 
 This order applies to active remediation items only. It does **not** imply that Product-Direction Decisions should be executed like bug tickets.
 
-1. FL-038 (surface-by-surface orchestration lock)
-2. FL-001, FL-002, FL-003, FL-004, FL-005, FL-006
-3. FL-007, FL-008, FL-009, FL-010, FL-025, FL-026
-4. FL-019, FL-020
-5. FL-011, FL-012, FL-013, FL-014, FL-015
-6. FL-016, FL-017
+1. G0 closeout decisions + control-doc sync lock (`T-011A.8`)
+2. G1 base primitives (`tunet_base.js`) and unit checks
+3. FL-038 (surface-by-surface orchestration lock)
+4. FL-001, FL-002, FL-003, FL-004, FL-005, FL-006
+5. FL-007, FL-008, FL-009, FL-010, FL-025, FL-026
+6. FL-019, FL-020
+7. FL-011, FL-012, FL-013, FL-014, FL-015
+8. FL-016, FL-017
 
 ## Product-Direction Decision Set
 
@@ -1549,7 +1608,7 @@ An item is only actually done when all of the following are true:
   - Added `Dashboard/Tunet/Docs/brightness_alignment_rca.md` with repro, root causes, options A/B, and recommended option.
 
 ### FL-038
-- Status: `OPEN (ACTIVE PRIORITY)`
+- Status: `OPEN (QUEUED AFTER G1)`
 - Severity: `HIGH`
 - Requirement Alignment:
   - `REQ-LAY-001`

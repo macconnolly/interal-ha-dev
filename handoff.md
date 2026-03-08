@@ -1,12 +1,41 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-03-07 (America/Denver)  
+Last updated: 2026-03-08 (America/Denver)  
 Intended reader: next Codex run in a new chat  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Source filter for this run:
 - ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
+
+## 0T) Session Delta (2026-03-08, T-011A.9)
+
+Design-language registry-shape consistency sync:
+
+- Conflict fixed:
+  - `Dashboard/Tunet/Mockups/design_language.md` §5.5 still showed an old numeric `PROFILE_BASE` snippet
+  - active architecture lock (`unified_tile_architecture_conclusion.md` v3.1) requires size-indexed, all-em `PROFILE_BASE`
+- Resolution:
+  - replaced §5.5 snippet with size-indexed all-em base example
+  - added explicit pointer to canonical full registry table in architecture doc §7
+- Scope:
+  - docs only
+  - no runtime code changes
+
+## 0S) Session Delta (2026-03-08, T-011A.8)
+
+Control-doc alignment + tranche-order reconciliation:
+
+- Conflict recorded:
+  - this file's active queue emphasizes one-surface orchestration (`0K`)
+  - latest profile architecture carry-forward states next implementation step is `G1` base primitives
+- Chosen interpretation for next run:
+  1. close remaining `G0` doc decisions/sign-off items
+  2. execute `G1` in `Dashboard/Tunet/Cards/v2/tunet_base.js`
+  3. resume one-surface `FL-038` loop (Living Room page -> popup -> overview -> media -> remaining rooms)
+- Scope:
+  - docs sync only
+  - no runtime code changes
 
 ## 0R) Session Delta (2026-03-07, T-011A.6b)
 
@@ -24,14 +53,14 @@ Interaction-contract reconciliation lock:
 
 ## 0Q) Session Delta (2026-03-07, T-011A.6)
 
-Profile consumption architecture finalized to v3.0 — implementation-ready with Codex prompt:
+Profile consumption architecture finalized (later expanded to v3.1) — implementation-ready with Codex prompt:
 
 - Created files:
-  - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (v3.0, 1100 lines) — sole architecture authority
+  - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (v3.1, 1565 lines) — sole architecture authority
   - `Dashboard/Tunet/Agent-Reviews/start.md` — start guide for profile rollout execution
   - 14 additional Agent-Reviews artifacts from multi-agent review wave
   - 9 additional Docs files (mobile density audits, sections matrix, popup fix, weather refactor)
-- Architecture decisions locked (D1–D17):
+- Architecture decisions locked (D1–D22):
   - D2: 5 families (`tile-grid`, `speaker-tile`, `rooms-row`, `indicator-tile`, `indicator-row`)
   - D4: Two-function API (`selectProfileSize` decides family+size, `resolveSizeProfile` is pure lookup)
   - D5: Resolver accepts `{ family, size }` only — no widthHint, no densityMode
@@ -41,12 +70,12 @@ Profile consumption architecture finalized to v3.0 — implementation-ready with
   - D13: Version handshake failure renders visible in-card error via `_renderError()`
   - D15: Two-tier versioning (public config keys get migration shims; internal registry tokens get unit tests only)
 - Gate model finalized:
-  - G0: Documentation prerequisites (done)
+  - G0: Documentation prerequisites (pending owner sign-off)
   - G1: Base primitives in `tunet_base.js` + width-source fixes (21 unit test assertions specified)
   - G2: Two-card pilot (`tunet_lighting_card.js` + `tunet_speaker_grid_card.js`)
   - G3: Interaction-heavy families (`tunet_status_card.js` + `tunet_rooms_card.js`); requires nav neutralization pre-gate
   - G4: Standalone tile alignment (`tunet_light_tile.js`)
-  - G5: Sections size-hint calibration
+  - G5: Sections integration validation (`getGridOptions()` with `rows: auto` strategy)
   - G6: Cleanup — remove legacy code after 30-day soak
 - Key architecture clarifications resolved via gap review:
   - Profile resolver sits downstream of deepMerge pass (read-only consumer of merged config)
@@ -126,7 +155,7 @@ Decision-path planning for card-size unification was advanced (docs only, no run
 - Updated:
   - `Dashboard/Tunet/Agent-Reviews/type_profile_consumption_options.md`
 - Added decision-ready framing:
-  - weighted option scoring applied (`A/B/C/D`), with `Option C` locked at `8.5/10`
+  - weighted option scoring applied (`A/B/C/D`), with `Option C` locked at `8.15/10`
   - recommended path: `Option C` (family profile consumption), with gated rollout
   - explicit dependency order before profile work:
     1. container-first width-source migration
@@ -993,7 +1022,7 @@ This is the authoritative unresolved matrix from the user’s latest requirement
 - Likely root cause:
   - Insufficient formalized research + insufficient closed-loop breakpoint testing against real hardware.
 
-#### `ISSUE-013` 2026.3 UI-configuration-first utilization gap
+#### `ISSUE-018` 2026.3 UI-configuration-first utilization gap
 - Where to look:
   - `Dashboard/Tunet/tunet-suite-storage-config.yaml`
   - `Dashboard/Tunet/Cards/v2/*` (`getConfigForm`, selectors, defaults)
@@ -1026,7 +1055,7 @@ This is the authoritative unresolved matrix from the user’s latest requirement
 - Likely root cause:
   - Combination of `getGridOptions()` hints, internal wrappers/min-height/padding, and Sections equalization behavior not yet tuned as a system.
 
-#### `ISSUE-016` Cross-family card sizing/readability consistency remains unresolved
+#### `ISSUE-019` Cross-family card sizing/readability consistency remains unresolved
 - Where to look:
   - `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
   - `Dashboard/Tunet/Cards/v2/tunet_scenes_card.js`
@@ -1257,18 +1286,18 @@ Use:
 - Prioritize working UX over perfect abstraction.
 
 ## 12) Suggested Immediate Execution Order
-1. Stabilize overview route rendering and status dropdown behavior.
-2. Fix popup room-link navigation reliability.
-3. Refactor rooms row interaction model to match current user intent.
-4. Add desktop/mobile rooms split via layout-card breakpoints.
-5. Add sunrise/sunset dynamic chip and bedroom next-alarm tile.
-6. Fix compact scroll brightness overlap.
-7. Add weather daily/hourly + precipitation/temperature variant.
-8. Re-run live test loop with user.
-9. Create full custom-card parameter reference doc (`ISSUE-011`) after behavior stabilizes.
-10. Run deep sections-layout research + live iterative breakpoint tuning with user (`ISSUE-012`).
-11. Drive a `2026.3` UI-configuration-first pass for high-frequency composition flows (`ISSUE-013`).
-12. Diagnose and resolve outer-card height reporting mismatch before final layout polish (`ISSUE-014`).
+1. Close remaining `G0` documentation decisions/sign-off items.
+2. Execute `G1` base primitives in `Dashboard/Tunet/Cards/v2/tunet_base.js` with the architecture-defined unit checks.
+3. Resolve `progressH` intent for `indicator-*` families before `G3`.
+4. Resume `FL-038` one-surface sequence: Living Room page lock first.
+5. After Surface 1 lock, execute matching Living Room popup lock.
+6. Then lock Overview surface composition.
+7. Then lock Media surface composition.
+8. Then apply locked template to remaining room pages (`Bedroom`, `Kitchen`, `Dining`) with room-specific deltas.
+9. Run live breakpoint loop with user (`390x844`, `768x1024`, `1024x1366`, `1440x900`) and record outcomes.
+10. Keep card-parameter reference deliverable (`ISSUE-011`) queued behind behavior/layout stabilization.
+11. Keep `2026.3` UI-configuration-first pass (`ISSUE-018`) in the post-lock optimization queue.
+12. Keep outer-card height mismatch (`ISSUE-014`) and cross-family sizing consistency (`ISSUE-019`) as downstream hardening tasks.
 
 ## 13) Latest Update (2026-03-06): T-009B
 

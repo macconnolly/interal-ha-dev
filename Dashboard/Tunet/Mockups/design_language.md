@@ -132,24 +132,39 @@ Rules:
 - unknown size -> warn + `<family>/standard`
 4. If temporary compatibility exists for legacy args, it is one-gate only and must warn
 
-### 5.5 Registry Shape
+### 5.5 Registry Shape (All-em, Size-Indexed)
 
-Required shared base layer:
+Required shared base layer is size-indexed and em-only:
 
 ```js
 const PROFILE_BASE = {
-  iconBox: 38,
-  iconGlyph: 19,
-  nameFont: 13,
-  valueFont: 18,
+  compact: {
+    iconBox: '2.125em',
+    iconGlyph: '1.0625em',
+    nameFont: '0.75em',
+    valueFont: '1.0625em',
+  },
+  standard: {
+    iconBox: '2.375em',
+    iconGlyph: '1.1875em',
+    nameFont: '0.8125em',
+    valueFont: '1.125em',
+  },
+  large: {
+    iconBox: '2.75em',
+    iconGlyph: '1.375em',
+    nameFont: '0.875em',
+    valueFont: '1.25em',
+  },
 };
 ```
 
 Rules:
-1. Shared typography/icon scale tokens live in `PROFILE_BASE`
-2. Family geometry diverges in family entries
-3. Large size may override base values explicitly
+1. Shared typography/icon scale tokens live in `PROFILE_BASE[size]`
+2. Family geometry diverges in family entries via spread-then-override
+3. Token values are CSS-ready strings (`em`, unitless ratios where needed) — no px, no raw numbers
 4. Registry keys are internal implementation keys, not user config API
+5. Canonical full table for all families and lanes is in `Agent-Reviews/unified_tile_architecture_conclusion.md` §7
 
 ## 6. Token Ownership and CSS Precedence
 

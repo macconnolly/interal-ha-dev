@@ -3,6 +3,33 @@
 Working branch: `claude/dashboard-nav-research-QnOBs`
 Last updated: 2026-03-08
 
+## Session Delta (2026-03-08, T-011A.9)
+
+Tranche marker: `T-011A.9` (design-language registry-shape consistency sync)
+
+- `DOC-ALIGNED`
+  - `Dashboard/Tunet/Mockups/design_language.md` section `5.5` was updated from stale numeric `PROFILE_BASE` example to the locked size-indexed all-em shape.
+  - Added explicit pointer to canonical full registry table in:
+    - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` §7
+- `SCOPE`
+  - docs-only consistency patch
+  - no JS/YAML runtime changes
+
+## Session Delta (2026-03-08, T-011A.8)
+
+Tranche marker: `T-011A.8` (control-doc alignment + execution-order reconciliation)
+
+- Conflict recorded (do not silently resolve):
+  - `T-011A` surface-by-surface orchestration is marked active in this file.
+  - `T-011A.7` carry-forward also states next implementation step is `G1` base primitives.
+- Chosen interpretation for the next execution pass:
+  - immediate active tranche is docs alignment + profile-foundation sequencing (`G0` closeout decisions -> `G1` in `tunet_base.js`)
+  - `FL-038` one-surface orchestration remains locked and required, but is queued immediately after `G1` completion
+- Sync targets:
+  - `plan.md`, `FIX_LEDGER.md`, `handoff.md`, and Tunet scoped instructions (`Dashboard/Tunet/AGENTS.md`, `Dashboard/Tunet/Agent-Reviews/start.md`)
+- Scope:
+  - docs only, no JS/YAML runtime changes
+
 ## Session Delta (2026-03-08, T-011A.7)
 
 Tranche marker: `T-011A.7` (profile registry v3.1 — all-em density expansion)
@@ -21,7 +48,7 @@ Tranche marker: `T-011A.7` (profile registry v3.1 — all-em density expansion)
 - Carry-forward:
   - Profile architecture v3.1 finalized. G0 documentation prerequisites are pending tranche owner sign-off.
   - Next implementation step: G1 base primitives in `tunet_base.js`.
-  - Open research: `getCardSize()` / `getGridOptions()` / `getLayoutOptions()` API behavior in HA sections — needed for G5 size-hint calibration.
+  - Sections API research is completed in `unified_tile_architecture_conclusion.md` §12b; G5 should follow the `rows: auto` integration-validation path.
   - `progressH` for `indicator-tile` and `indicator-row`: old design used `0`; new registry inherits PROFILE_BASE non-zero value. Confirm intent before G3.
 - Scope:
   - docs only, no JS/YAML runtime changes
@@ -93,7 +120,7 @@ Tranche marker: `T-011A.3` (card-unification path lock, docs-only)
 
 - Decision lock:
   - selected unification direction is `Option C` (family profile consumption)
-  - fit score lock for planning: `8.5/10`
+  - fit score lock for planning: `8.15/10`
 - Dependency ordering lock (must be completed in this order before profile rollout):
   1. container-width standardization on profile-target families
      - eliminate viewport-primary sizing paths in `tunet_lighting_card.js`
@@ -103,7 +130,7 @@ Tranche marker: `T-011A.3` (card-unification path lock, docs-only)
      - `tunet_nav_card.js` `ensureGlobalOffsetsStyle()` must not pollute non-target layout validation
   3. execute phased profile rollout (`G1`..`G5`)
 - Additional direction locks:
-  - `rooms-row` and `rooms-row-slim` are one family profile with modifiers, not separate families
+  - `rooms-row` is one family profile; `slim` remains a layout variant modifier, not a separate family
   - skip Option B pilot comparison; run direct Option C pilot
   - add `getCardSize()` / `getGridOptions()` calibration gate immediately after pilot tranche (`G5`)
 - Scope:
@@ -436,11 +463,11 @@ If one of those is missing, implementation is not allowed to start.
 ### Definition Of Ready / Done
 
 - `Ready`: decision-locked spec + impact map + concrete validation cases.
-- `Done`: code/config changed, deployed where required, visually validated, and synced in `plan.md` + `FIX_LEDGER.md`.
+- `Done`: code/config changed, deployed where required, visually validated, and synced in `plan.md` + `FIX_LEDGER.md` + `handoff.md`.
 
 ## Current Execution Tranche
 
-The current work is a control + layout foundation tranche, then interaction implementation.
+The current work is a control-doc alignment and profile-foundation tranche, then one-surface layout execution.
 
 ### User-Locked Next Decision Order
 
@@ -464,9 +491,20 @@ Contributors must not silently reorder these back into an older implementation-d
 
 ### Current Active Tranche
 
+`T-011A.8 - Control-Doc Alignment + Profile Foundation (G0 Closeout -> G1)`
+
+This tranche is docs-first and execution-order focused:
+
+- resolve control-doc contradictions explicitly
+- lock immediate next implementation step as `G1` base primitives in `Dashboard/Tunet/Cards/v2/tunet_base.js`
+- keep `FL-038` one-surface sequence locked, but queued until `G1` passes
+- preserve one-active-tranche discipline and avoid cross-scope edits
+
+### T-011A Status (Queued After G1)
+
 `T-011A - Surface-By-Surface Layout Planning (Living Room -> Popup -> Overview)`
 
-This tranche is planning-first and layout-system focused:
+This tranche remains locked and required for final dashboard orchestration:
 
 - lock one active surface at a time using the Sections 3-layer model (Page -> Section -> Card)
 - produce implementation-ready per-surface layout specs before further cross-surface polish

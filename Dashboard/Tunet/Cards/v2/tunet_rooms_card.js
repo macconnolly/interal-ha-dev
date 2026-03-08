@@ -21,9 +21,9 @@ import {
   runCardAction,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260307p08';
+} from './tunet_base.js?v=20260307p09';
 
-const CARD_VERSION = '2.9.1';
+const CARD_VERSION = '2.9.2';
 
 // ═══════════════════════════════════════════════════════════
 // Icon helpers (card-specific)
@@ -270,6 +270,10 @@ const CARD_STYLES = `
   .room-tile-status .humidity {
     font-variant-numeric: tabular-nums;
   }
+  .room-tile-status .brightness {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-sub);
+  }
 
   .room-progress-track {
     position: relative;
@@ -341,16 +345,16 @@ const CARD_STYLES = `
     overflow: hidden;
   }
   .room-grid.row-mode .room-tile-icon {
-    width: 2.34em;
-    height: 2.34em;
+    width: 2.16em;
+    height: 2.16em;
     margin: 0;
-    border-radius: 12px;
+    border-radius: 10px;
     flex: 0 0 auto;
   }
   .room-grid.row-mode .room-tile-icon .icon {
-    font-size: 1.36em;
-    width: 1.36em;
-    height: 1.36em;
+    font-size: 1.22em;
+    width: 1.22em;
+    height: 1.22em;
   }
   .room-row-controls {
     display: inline-flex;
@@ -380,6 +384,8 @@ const CARD_STYLES = `
     font-size: 1em;
     font-weight: 700;
     letter-spacing: 0.02em;
+    box-sizing: border-box;
+    line-height: 1;
   }
   .room-action-btn .icon {
     font-size: var(--row-btn-icon-size);
@@ -419,6 +425,7 @@ const CARD_STYLES = `
     flex: 0 0 var(--row-btn-size);
     cursor: pointer;
     transition: all 0.16s ease;
+    box-sizing: border-box;
   }
   .room-orb .icon {
     font-size: var(--row-btn-icon-size);
@@ -578,8 +585,8 @@ const CARD_STYLES = `
       font-size: var(--type-row-status, 15.5px);
     }
     .room-grid.row-mode .room-row-controls {
-      --row-btn-size: var(--rooms-row-btn-size, 3.56em);
-      --row-btn-icon-size: var(--rooms-row-btn-icon-size, 1.88em);
+      --row-btn-size: var(--rooms-row-btn-size, 2.82em);
+      --row-btn-icon-size: var(--rooms-row-btn-icon-size, 1.44em);
       --row-btn-radius: 12px;
     }
     .room-grid.row-mode.slim-mode .room-tile {
@@ -593,8 +600,8 @@ const CARD_STYLES = `
       font-size: 0.66em;
     }
     .room-grid.row-mode.slim-mode .room-row-controls {
-      --row-btn-size: var(--rooms-row-btn-size-slim, 3.08em);
-      --row-btn-icon-size: var(--rooms-row-btn-icon-size-slim, 1.62em);
+      --row-btn-size: var(--rooms-row-btn-size-slim, 2.52em);
+      --row-btn-icon-size: var(--rooms-row-btn-icon-size-slim, 1.28em);
       --row-btn-radius: 9px;
     }
   }
@@ -1174,13 +1181,16 @@ class TunetRoomsCard extends HTMLElement {
       // Build status text
       let parts = [];
       const avgBrt = onCount > 0 ? Math.round(brightnessTotal / onCount) : 0;
+      const hasAmbientSensors = !!(ref.cfg.humidity_entity || ref.cfg.temperature_entity);
       if (anyOn) {
         if (onCount === lights.length) {
           parts.push(`<span class="on-count">On</span>`);
         } else {
           parts.push(`<span class="on-count">${onCount}/${lights.length}</span>`);
         }
-        parts.push(`${avgBrt}%`);
+        if (!hasAmbientSensors) {
+          parts.push(`<span class="brightness">${avgBrt}% bri</span>`);
+        }
       } else if (lights.length > 0) {
         parts.push('Off');
       }

@@ -3,6 +3,27 @@
 Working branch: `claude/dashboard-nav-research-QnOBs`
 Last updated: 2026-03-07
 
+## Session Delta (2026-03-07, T-011A.5)
+
+Tranche marker: `T-011A.5` (design-guideline rewrite + doc-structure translation)
+
+- `Dashboard/Tunet/Mockups/design_language.md`
+  - fully rewritten as V2 contract spec (`v9.0`)
+  - canonical-source lock updated to `Dashboard/Tunet/Cards/v2/` implementation authority
+  - profile-system contracts integrated:
+    - 5 family keys (`tile-grid`, `speaker-tile`, `rooms-row`, `indicator-tile`, `indicator-row`)
+    - `PRESET_FAMILY_MAP` + rooms layout-aware family routing
+    - API split lock: `selectProfileSize(...)` vs `resolveSizeProfile({ family, size })`
+    - token ownership/consumption boundaries (`tile-core` core-lane ownership)
+    - container-first width-source contract + sections compatibility expectations
+    - mode-agnostic profile policy and test/gate requirements
+- `Dashboard/Tunet/design.md`
+  - rewritten as concise V2 documentation-structure index
+  - maps canonical sources, precedence, and update workflow to prevent doc drift
+- Scope:
+  - docs only (no JS/YAML runtime behavior changes)
+  - no deploy/cache-bust actions
+
 ## Session Delta (2026-03-07, T-011A.4)
 
 Tranche marker: `T-011A.4` (container-width migration, prerequisite gate `G0` partial)

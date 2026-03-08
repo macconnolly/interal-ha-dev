@@ -8,6 +8,28 @@ Source filter for this run:
 - ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
 
+## 0P) Session Delta (2026-03-07, T-011A.5)
+
+Design-guideline documentation was fully rewritten and re-structured (docs-only tranche):
+
+- Updated files:
+  - `Dashboard/Tunet/Mockups/design_language.md`
+  - `Dashboard/Tunet/design.md`
+- What changed:
+  - canonical design spec was rewritten as V2 implementation contract (`v9.0`)
+  - canonical source lock now explicitly names `Dashboard/Tunet/Cards/v2/` as implementation authority
+  - profile-system direction locks are embedded directly in design guidance:
+    - five family keys (`tile-grid`, `speaker-tile`, `rooms-row`, `indicator-tile`, `indicator-row`)
+    - rooms family routing depends on merged layout (`row` vs grid)
+    - API split lock: `selectProfileSize(...)` decides family+size; `resolveSizeProfile({ family, size })` is pure lookup
+    - token ownership lock: card host writes, `tile-core` consumes core lanes, family extensions consumed only by owning components
+    - container-first width source, sections compatibility contract, and mode-agnostic profile policy
+  - `Dashboard/Tunet/design.md` now acts as a concise documentation map to prevent guidance drift
+- Scope:
+  - docs only
+  - no card runtime behavior changes
+  - no deploy/cache-bust actions
+
 ## 0O) Session Delta (2026-03-07, T-011A.4)
 
 Container-width prerequisite work started (`G0` partial, code + docs sync):

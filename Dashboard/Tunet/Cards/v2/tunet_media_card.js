@@ -1,10 +1,10 @@
 /**
- * Tunet Media Card v3.2.1
+ * Tunet Media Card v3.2.2
  * Sonos media player with transport, volume, and dual-purpose speaker dropdown
  * Dual-entity model: coordinator for media/transport, active entity for volume
  * Auto-detects speakers from active-group or playing-group Sonos binaries
  *
- * v3.2.1 – Extra-compact speaker dropdown rows (single-line status)
+ * v3.2.2 – Mobile density/readability tuning
  */
 
 import {
@@ -14,9 +14,9 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260306g1';
+} from './tunet_base.js?v=20260306g3';
 
-const CARD_VERSION = '3.2.1';
+const CARD_VERSION = '3.2.2';
 
 /* ===============================================================
    CSS — Card-specific overrides + unique styles
@@ -45,7 +45,7 @@ const CARD_OVERRIDES = `
 
 const CARD_STYLES = `
   /* -- Header -- */
-  .media-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .media-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 
   .info-tile {
     display: flex; align-items: center; gap: 8px;
@@ -77,7 +77,7 @@ const CARD_STYLES = `
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .hdr-sub {
-    font-size: 10.5px; font-weight: 600; color: var(--text-muted);
+    font-size: 11.5px; font-weight: 600; color: var(--text-muted);
     letter-spacing: 0.1px; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
@@ -90,7 +90,7 @@ const CARD_STYLES = `
     padding: 3px 8px; border-radius: 8px;
     background: var(--ctrl-bg); border: 1px solid var(--ctrl-border);
     box-shadow: var(--ctrl-sh);
-    font-size: 10px; font-weight: 700; color: var(--text-muted);
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
     letter-spacing: .3px; flex-shrink: 0;
   }
   .tv-badge.visible { display: inline-flex; }
@@ -99,10 +99,10 @@ const CARD_STYLES = `
   .speaker-wrap { position: relative; z-index: 4000; }
   .speaker-btn {
     display: flex; align-items: center; gap: 4px;
-    min-height: 31px; padding: 0 7px;
+    min-height: var(--ctrl-min-h, 34px); padding: 0 9px;
     border-radius: 9px; border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg); box-shadow: var(--ctrl-sh);
-    font-family: inherit; font-size: 11px; font-weight: 600;
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
     color: var(--text-sub); letter-spacing: .2px;
     cursor: pointer; transition: all .15s ease;
   }
@@ -114,7 +114,7 @@ const CARD_STYLES = `
   /* -- Dropdown Menu (absolute to .speaker-wrap) -- */
   .dd-menu {
     position: absolute; top: calc(100% + 6px); right: 0;
-    min-width: 194px; padding: 3px; border-radius: 12px;
+    min-width: 210px; padding: 4px; border-radius: 12px;
     background: rgba(255,255,255, 1);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--dd-border); box-shadow: var(--shadow-up);
@@ -131,8 +131,8 @@ const CARD_STYLES = `
 
   /* Speaker option row */
   .dd-option {
-    padding: 4px 7px; border-radius: 9px;
-    font-size: 11px; font-weight: 600; color: var(--text);
+    padding: 6px 8px; border-radius: 9px;
+    font-size: 12px; font-weight: 600; color: var(--text);
     display: flex; align-items: center; gap: 8px;
     cursor: pointer; transition: background .1s;
     user-select: none; border: none; background: transparent;
@@ -146,9 +146,9 @@ const CARD_STYLES = `
   }
 
   .spk-text { display: flex; align-items: center; gap: 0.22em; flex: 1; min-width: 0; }
-  .spk-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; max-width: 74px; }
+  .spk-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; max-width: 88px; }
   .spk-now-playing {
-    font-size: 9.5px; font-weight: 600; color: var(--text-muted);
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     margin-top: 0;
     flex: 1;
@@ -217,7 +217,7 @@ const CARD_STYLES = `
   /* Progress bar */
   .progress-wrap { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
   .progress-time {
-    font-size: 10px; font-weight: 600; color: var(--text-muted);
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
     font-variant-numeric: tabular-nums; letter-spacing: .3px;
     flex-shrink: 0; min-width: 28px;
   }
@@ -346,9 +346,11 @@ const CARD_STYLES = `
 
   /* -- Responsive -- */
   @media (max-width: 440px) {
-    .card { padding: 16px; }
+    .card { padding: var(--card-pad, 14px); }
     .album-art { width: 48px; height: 48px; }
     .track-name { font-size: 14px; }
+    .speaker-btn { min-height: 32px; font-size: 12px; }
+    .dd-option { font-size: 12px; }
     .transport { gap: 2px; }
     .t-btn { width: 34px; height: 34px; }
     .t-btn.play { width: 38px; height: 38px; }

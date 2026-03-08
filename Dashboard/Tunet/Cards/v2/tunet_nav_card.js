@@ -1,7 +1,7 @@
 /**
  * Tunet Nav Card (v2 – ES Module)
  * Persistent navigation chrome: bottom dock (mobile) + left rail (desktop).
- * Version 0.2.0
+ * Version 0.2.3
  */
 
 import {
@@ -18,9 +18,9 @@ import {
   navigatePath,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260306g1';
+} from './tunet_base.js?v=20260307p03';
 
-const CARD_VERSION = '0.2.0';
+const CARD_VERSION = '0.2.3';
 
 const DEFAULT_ICONS = {
   home: 'home',
@@ -184,9 +184,21 @@ function ensureGlobalOffsetsStyle() {
   const style = document.createElement('style');
   style.id = GLOBAL_STYLE_ID;
   style.textContent = `
-    hui-view {
+    hui-view,
+    hui-sections-view,
+    hui-grid-view,
+    hui-masonry-view,
+    hui-panel-view {
       margin-left: var(--tunet-nav-offset-left, 0px);
-      margin-bottom: var(--tunet-nav-offset-bottom, 0px);
+      margin-bottom: var(--tunet-nav-offset-bottom, 0px) !important;
+      padding-bottom: var(--tunet-nav-offset-bottom, 0px) !important;
+      scroll-padding-bottom: var(--tunet-nav-offset-bottom, 0px) !important;
+      box-sizing: border-box;
+    }
+
+    hui-view {
+      display: block;
+      min-height: calc(100% + var(--tunet-nav-offset-bottom, 0px));
     }
   `;
   document.head.appendChild(style);
@@ -272,6 +284,7 @@ class TunetNavCard extends HTMLElement {
     this._scopePrefixes = [];
     this._onLocationChange = this._onLocationChange.bind(this);
     this._onMqlChange = this._onMqlChange.bind(this);
+    this._onWindowResize = this._onWindowResize.bind(this);
     injectFonts();
   }
 
@@ -296,6 +309,8 @@ class TunetNavCard extends HTMLElement {
           selector: { object: {} },
         },
         { name: 'desktop_breakpoint', selector: { number: { min: 600, max: 1400, step: 10, mode: 'box' } } },
+        { name: 'desktop_left_offset', selector: { number: { min: 72, max: 220, step: 2, mode: 'box' } } },
+        { name: 'mobile_bottom_offset', selector: { number: { min: 84, max: 220, step: 2, mode: 'box' } } },
       ],
       computeLabel: (s) => {
         const labels = {
@@ -306,6 +321,8 @@ class TunetNavCard extends HTMLElement {
           include_rooms_index: 'Show Rooms Index Item',
           items: 'Custom Nav Items (advanced)',
           desktop_breakpoint: 'Desktop Breakpoint (px)',
+          desktop_left_offset: 'Desktop Left Offset (px)',
+          mobile_bottom_offset: 'Mobile Bottom Offset (px)',
         };
         return labels[s.name] || s.name;
       },
@@ -325,6 +342,8 @@ class TunetNavCard extends HTMLElement {
       ],
       include_rooms_index: true,
       desktop_breakpoint: 900,
+      desktop_left_offset: 108,
+      mobile_bottom_offset: 108,
     };
   }
 
@@ -332,6 +351,12 @@ class TunetNavCard extends HTMLElement {
     const desktopBreakpoint = Number.isFinite(Number(config.desktop_breakpoint))
       ? Math.max(600, Math.min(1400, Number(config.desktop_breakpoint)))
       : 900;
+    const desktopLeftOffset = Number.isFinite(Number(config.desktop_left_offset))
+      ? Math.max(72, Math.min(220, Number(config.desktop_left_offset)))
+      : 108;
+    const mobileBottomOffset = Number.isFinite(Number(config.mobile_bottom_offset))
+      ? Math.max(84, Math.min(220, Number(config.mobile_bottom_offset)))
+      : 108;
 
     this._config = {
       home_path: normalizePath(config.home_path || '/tunet-suite/overview'),
@@ -343,6 +368,8 @@ class TunetNavCard extends HTMLElement {
       include_rooms_index: config.include_rooms_index !== false,
       items: Array.isArray(config.items) ? config.items : [],
       desktop_breakpoint: desktopBreakpoint,
+      desktop_left_offset: desktopLeftOffset,
+      mobile_bottom_offset: mobileBottomOffset,
     };
 
     const explicitItems = this._config.items
@@ -383,6 +410,7 @@ class TunetNavCard extends HTMLElement {
     ensureGlobalOffsetsStyle();
     window.addEventListener('location-changed', this._onLocationChange);
     window.addEventListener('popstate', this._onLocationChange);
+    window.addEventListener('resize', this._onWindowResize, { passive: true });
     this._setupMql();
     window.__tunetNavCardCount = (window.__tunetNavCardCount || 0) + 1;
     this._applyOffsets();
@@ -392,6 +420,7 @@ class TunetNavCard extends HTMLElement {
   disconnectedCallback() {
     window.removeEventListener('location-changed', this._onLocationChange);
     window.removeEventListener('popstate', this._onLocationChange);
+    window.removeEventListener('resize', this._onWindowResize);
     if (this._mql) this._mql.removeEventListener('change', this._onMqlChange);
 
     const next = Math.max(0, (window.__tunetNavCardCount || 1) - 1);
@@ -421,6 +450,11 @@ class TunetNavCard extends HTMLElement {
     this._applyOffsets();
   }
 
+  _onWindowResize() {
+    this._applyMode();
+    this._applyOffsets();
+  }
+
   _applyMode() {
     const isDesktop = !!(this._mql && this._mql.matches);
     this.setAttribute('data-mode', isDesktop ? 'desktop' : 'mobile');
@@ -432,16 +466,27 @@ class TunetNavCard extends HTMLElement {
   }
 
   _applyOffsets() {
-    const pathname = window.location.pathname || '';
-    if (!this._isScopedRoute(pathname)) {
-      document.documentElement.style.setProperty('--tunet-nav-offset-left', '0px');
-      document.documentElement.style.setProperty('--tunet-nav-offset-bottom', '0px');
-      return;
-    }
-
     const isDesktop = this.getAttribute('data-mode') === 'desktop';
-    document.documentElement.style.setProperty('--tunet-nav-offset-left', isDesktop ? '108px' : '0px');
-    document.documentElement.style.setProperty('--tunet-nav-offset-bottom', isDesktop ? '0px' : '92px');
+    const left = Number(this._config.desktop_left_offset) || 108;
+    const configuredBottom = Number(this._config.mobile_bottom_offset) || 108;
+    const measuredBottom = isDesktop ? 0 : this._measureMobileDockClearance();
+    const bottom = Math.max(configuredBottom, measuredBottom);
+    document.documentElement.style.setProperty('--tunet-nav-offset-left', isDesktop ? `${left}px` : '0px');
+    document.documentElement.style.setProperty(
+      '--tunet-nav-offset-bottom',
+      isDesktop ? '0px' : `calc(${bottom}px + env(safe-area-inset-bottom))`
+    );
+  }
+
+  _measureMobileDockClearance() {
+    const wrap = this.shadowRoot?.querySelector('.wrap');
+    const nav = this.shadowRoot?.querySelector('.nav');
+    if (!wrap || !nav) return 0;
+    const wrapStyle = window.getComputedStyle(wrap);
+    const navRect = nav.getBoundingClientRect();
+    const padTop = Number.parseFloat(wrapStyle.paddingTop || '0') || 0;
+    const padBottom = Number.parseFloat(wrapStyle.paddingBottom || '0') || 0;
+    return Math.ceil(navRect.height + padTop + padBottom + 12);
   }
 
   _updateActive() {
@@ -495,6 +540,7 @@ class TunetNavCard extends HTMLElement {
     this._applyMode();
     this._applyOffsets();
     this._updateActive();
+    requestAnimationFrame(() => this._applyOffsets());
   }
 }
 

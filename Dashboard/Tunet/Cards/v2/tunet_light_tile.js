@@ -26,11 +26,12 @@ import {
   injectFonts,
   detectDarkMode,
   applyDarkClass,
+  createAxisLockedDrag,
   fireEvent,
   registerCard,
   logCardVersion,
   clamp,
-} from './tunet_base.js?v=20260306g1';
+} from './tunet_base.js?v=20260307p03';
 
 
 // ═══════════════════════════════════════════════════════════
@@ -42,6 +43,8 @@ const TILE_CSS = `
   :host {
     display: block;
     contain: layout style;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   /* ── Shared tile tokens ── */
@@ -63,7 +66,7 @@ const TILE_CSS = `
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: none;
+    touch-action: pan-y;
     overflow: visible;
     transition:
       transform var(--motion-ui, 0.18s) var(--ease-emphasized, cubic-bezier(0.34, 1.56, 0.64, 1)),
@@ -78,32 +81,33 @@ const TILE_CSS = `
 
   /* ── Vertical variant (default) ── */
   .lt.vertical {
-    aspect-ratio: 1 / 0.95;
+    aspect-ratio: 1 / 0.9;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    padding: 9px 0 8px;
+    gap: 2px;
   }
 
   @media (max-width: 440px) {
-    .lt.vertical { aspect-ratio: 1 / 1.05; }
+    .lt.vertical { aspect-ratio: 1 / 0.98; }
   }
 
   /* ── Horizontal variant ── */
   .lt.horizontal {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px 14px 10px;
-    min-height: 62px;
+    gap: 8px;
+    padding: 8px 10px 12px 8px;
+    min-height: 56px;
   }
 
   @media (max-width: 440px) {
     .lt.horizontal {
-      min-height: 56px;
-      padding: 8px 10px 12px 8px;
-      gap: 8px;
+      min-height: 52px;
+      padding: 7px 9px 10px 7px;
+      gap: 7px;
     }
   }
 
@@ -154,7 +158,7 @@ const TILE_CSS = `
 
   /* ── Name ── */
   .name {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     letter-spacing: 0.1px;
     line-height: 1.15;
@@ -168,27 +172,33 @@ const TILE_CSS = `
   .lt.vertical .name {
     margin-bottom: 1px;
     text-align: center;
+    min-height: 1.12em;
+    line-height: 1.12;
   }
 
   @media (max-width: 440px) {
-    .lt.horizontal .name { font-size: 13px; }
+    .lt.horizontal .name { font-size: 14px; }
   }
 
   /* ── Value ── */
   .val {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     transition: color var(--motion-ui, 0.18s);
   }
 
   .lt.horizontal .val {
-    font-size: 14px;
+    font-size: 15px;
     letter-spacing: 0.1px;
+  }
+  .lt.vertical .val {
+    line-height: 1.12;
+    margin-top: 1px;
   }
 
   @media (max-width: 440px) {
-    .lt.horizontal .val { font-size: 13px; }
+    .lt.horizontal .val { font-size: 14px; }
   }
 
   /* ── Progress bar ── */
@@ -202,6 +212,16 @@ const TILE_CSS = `
     border-radius: 99px;
     overflow: hidden;
     transition: height var(--motion-ui, 0.18s) ease;
+  }
+
+  /* Keep vertical variant content lane naturally centered with progress in flow */
+  .lt.vertical .progress-track {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: calc(100% - (var(--bar-inset) * 2));
+    margin-top: 7px;
   }
 
   .lt.horizontal .progress-track {
@@ -368,7 +388,7 @@ const TILE_CSS = `
 // ═══════════════════════════════════════════════════════════
 
 const TAG = 'tunet-light-tile';
-const VERSION = '1.0.0';
+const VERSION = '1.0.2';
 
 class TunetLightTile extends HTMLElement {
 
@@ -434,10 +454,7 @@ class TunetLightTile extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._hass = null;
     this._config = null;
-    this._isDragging = false;
-    this._startX = 0;
-    this._startBrt = 0;
-    this._dragThreshold = 6;
+    this._dragController = null;
     this._rendered = false;
     this._cooldownUntil = 0;
   }
@@ -615,98 +632,63 @@ class TunetLightTile extends HTMLElement {
 
   // ── Pointer interaction ──────────────────────────
   _setupPointerListeners() {
-    this._onPointerDown = this._handlePointerDown.bind(this);
-    this._onPointerMove = this._handlePointerMove.bind(this);
-    this._onPointerUp = this._handlePointerUp.bind(this);
-    this._onPointerCancel = this._handlePointerCancel.bind(this);
     this._onKeyDown = this._handleKeyDown.bind(this);
+    this._onContextMenu = (e) => e.preventDefault();
 
-    this._tile.addEventListener('pointerdown', this._onPointerDown);
-    this._tile.addEventListener('pointermove', this._onPointerMove);
-    this._tile.addEventListener('pointerup', this._onPointerUp);
-    this._tile.addEventListener('pointercancel', this._onPointerCancel);
     this._tile.addEventListener('keydown', this._onKeyDown);
+    this._tile.addEventListener('contextmenu', this._onContextMenu);
 
-    // Long press for more-info
-    this._longPressTimer = null;
-    this._tile.addEventListener('contextmenu', (e) => e.preventDefault());
+    this._dragController = createAxisLockedDrag({
+      element: this._tile,
+      deadzone: 8,
+      axisBias: 1.3,
+      longPressMs: 500,
+      pointerCapture: false,
+      getContext: () => ({
+        startBright: parseInt(this._tile.dataset.brightness, 10) || 0,
+        currentBright: parseInt(this._tile.dataset.brightness, 10) || 0,
+        width: Math.max(this._tile.offsetWidth, 1),
+      }),
+      onDragStart: () => {
+        this._tile.classList.add('sliding');
+      },
+      onDragMove: (event, payload) => {
+        const ctx = payload && payload.context;
+        if (!ctx) return;
+        const change = (payload.dx / ctx.width) * 100;
+        const newBrt = Math.round(clamp(ctx.startBright + change, 0, 100));
+        if (newBrt === ctx.currentBright) return;
+        if (event.cancelable) event.preventDefault();
+        this._updateTileUI(newBrt);
+        ctx.currentBright = newBrt;
+      },
+      onDragEnd: (_event, payload) => {
+        const ctx = payload && payload.context;
+        this._tile.classList.remove('sliding');
+        if (payload && payload.committed && ctx) {
+          this._callService(ctx.currentBright);
+        }
+      },
+      onTap: () => {
+        const current = parseInt(this._tile.dataset.brightness, 10) || 0;
+        const target = current > 0 ? 0 : 100;
+        this._updateTileUI(target);
+        this._callService(target);
+      },
+      onLongPress: () => {
+        this._openMoreInfo();
+      },
+    });
   }
 
   _removePointerListeners() {
     if (!this._tile) return;
-    this._tile.removeEventListener('pointerdown', this._onPointerDown);
-    this._tile.removeEventListener('pointermove', this._onPointerMove);
-    this._tile.removeEventListener('pointerup', this._onPointerUp);
-    this._tile.removeEventListener('pointercancel', this._onPointerCancel);
     this._tile.removeEventListener('keydown', this._onKeyDown);
-  }
-
-  _handlePointerDown(e) {
-    this._startX = e.clientX;
-    this._startBrt = parseInt(this._tile.dataset.brightness) || 0;
-    this._isDragging = false;
-    this._tile.setPointerCapture(e.pointerId);
-
-    // Long-press timer for more-info
-    this._longPressTimer = setTimeout(() => {
-      this._openMoreInfo();
-      this._longPressTimer = null;
-    }, 500);
-  }
-
-  _handlePointerMove(e) {
-    if (!e.buttons) return;
-    const dx = e.clientX - this._startX;
-
-    // Cancel long-press if moving
-    if (Math.abs(dx) > 3 && this._longPressTimer) {
-      clearTimeout(this._longPressTimer);
-      this._longPressTimer = null;
+    this._tile.removeEventListener('contextmenu', this._onContextMenu);
+    if (this._dragController) {
+      this._dragController.destroy();
+      this._dragController = null;
     }
-
-    if (!this._isDragging && Math.abs(dx) > this._dragThreshold) {
-      this._isDragging = true;
-      this._tile.classList.add('sliding');
-    }
-
-    if (this._isDragging) {
-      const width = this._tile.offsetWidth;
-      const change = (dx / width) * 100;
-      const newBrt = Math.round(clamp(this._startBrt + change, 0, 100));
-      this._updateTileUI(newBrt);
-    }
-  }
-
-  _handlePointerUp(e) {
-    // Clear long-press
-    if (this._longPressTimer) {
-      clearTimeout(this._longPressTimer);
-      this._longPressTimer = null;
-    }
-
-    if (!this._isDragging) {
-      // Tap-to-toggle
-      const current = parseInt(this._tile.dataset.brightness) || 0;
-      const target = current > 0 ? 0 : 100;
-      this._updateTileUI(target);
-      this._callService(target);
-    } else {
-      // Drag complete — send final brightness
-      const finalBrt = parseInt(this._tile.dataset.brightness) || 0;
-      this._callService(finalBrt);
-    }
-
-    this._tile.classList.remove('sliding');
-    this._isDragging = false;
-  }
-
-  _handlePointerCancel() {
-    if (this._longPressTimer) {
-      clearTimeout(this._longPressTimer);
-      this._longPressTimer = null;
-    }
-    this._tile.classList.remove('sliding');
-    this._isDragging = false;
   }
 
   _handleKeyDown(e) {

@@ -438,8 +438,37 @@ views:
         cards:
           - type: custom:tunet-climate-card
             entity: climate.dining_room
+            name: Climate (section)
+            surface: section
+            humidity_entity: sensor.kitchen_humidity
+            grid_options:
+              columns: 18
+              rows: auto
+
+          - type: custom:tunet-weather-card
+            entity: weather.home
+            name: Weather (5-day)
+            forecast_days: 5
+            grid_options:
+              columns: 18
+              rows: auto
+            forecast_view: auto
+            forecast_metric: auto
+            show_view_toggle: false
+            show_metric_toggle: false
+            auto_precip_threshold: 20
+            forecast_hours: 5
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:tunet-climate-card
+            entity: climate.dining_room
             name: Climate Standard
             variant: standard
+            grid_options:
+              columns: full
+              rows: auto
 
       - type: grid
         column_span: 4
@@ -448,6 +477,9 @@ views:
             entity: climate.dining_room
             name: Climate Thin
             variant: thin
+            grid_options:
+              columns: full
+              rows: auto
 
       - type: grid
         column_span: 4
@@ -497,15 +529,9 @@ views:
             name: Weather (3 day)
             forecast_days: 3
             show_last_updated: false
-
-      - type: grid
-        column_span: 6
-        cards:
-          - type: custom:tunet-weather-card
-            entity: weather.home
-            name: Weather (5 day + updated)
-            forecast_days: 5
-            show_last_updated: true
+            grid_options:
+              columns: full
+              rows: auto
 
       - type: grid
         column_span: 6
@@ -517,6 +543,9 @@ views:
             columns: 5
             tile_size: compact
             show_group_actions: true
+            grid_options:
+              columns: full
+              rows: auto
             speakers:
               - entity: media_player.living_room
                 name: Living Room Sonos
@@ -538,6 +567,9 @@ views:
             coordinator_sensor: sensor.sonos_smart_coordinator
             active_group_sensor: sensor.sonos_active_group_coordinator
             show_progress: true
+            grid_options:
+              columns: 36
+              rows: auto
 
           - type: custom:tunet-media-card
             entity: media_player.living_room
@@ -545,6 +577,9 @@ views:
             coordinator_sensor: sensor.sonos_smart_coordinator
             active_group_sensor: sensor.sonos_active_group_coordinator
             show_progress: false
+            grid_options:
+              columns: 36
+              rows: auto
 
       - type: grid
         column_span: 12
@@ -558,11 +593,17 @@ views:
             entity: light.living_room_couch_lamp
             name: Vertical Tile
             variant: vertical
+            grid_options:
+              columns: 68
+              rows: auto
 
           - type: custom:tunet-light-tile
             entity: light.kitchen_main_lights
             name: Horizontal Tile
             variant: horizontal
+            grid_options:
+              columns: 68
+              rows: auto
 
       - type: grid
         column_span: 12
@@ -842,7 +883,7 @@ views:
             popup_card_id: living-room-popup
             popup_card_all_views: true
             title: Living Room
-            initial_style: wide
+            initial_style: normal
             dismissable: true
             card:
               type: custom:layout-card
@@ -949,7 +990,7 @@ views:
             popup_card_id: kitchen-popup
             popup_card_all_views: true
             title: Kitchen
-            initial_style: wide
+            initial_style: normal
             dismissable: true
             card:
               type: custom:layout-card
@@ -1120,6 +1161,9 @@ views:
           - type: custom:tunet-climate-card
             entity: climate.dining_room
             name: Climate
+            grid_options:
+              columns: full
+              rows: auto
 
       - type: grid
         cards:
@@ -1128,6 +1172,9 @@ views:
             name: Environment
             forecast_days: 5
             show_last_updated: false
+            grid_options:
+              columns: full
+              rows: auto
 
       - type: grid
         cards:
@@ -1136,6 +1183,9 @@ views:
             name: Sonos
             coordinator_sensor: sensor.sonos_smart_coordinator
             active_group_sensor: sensor.sonos_active_group_coordinator
+            grid_options:
+              columns: full
+              rows: auto
             speakers:
               - entity: media_player.living_room
                 name: Living Room

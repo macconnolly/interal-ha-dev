@@ -25,6 +25,59 @@ Important:
 - `4/3/1` is a composition pattern for specific surfaces (for example Overview hero/support rows), not a universal rule for every view.
 - Each page/subview must use role-based placement decisions per section (hero, companion, support) instead of blindly inheriting one ratio.
 
+## Surface-By-Surface Queue (T-011A Active)
+
+This queue is the active execution order. Only one surface may be in-flight at a time.
+
+| Order | Surface | Status | Goal |
+|---|---|---|---|
+| 1 | Living Room page | `ACTIVE` | lock the reusable room-page template |
+| 2 | Living Room popup | `PENDING` | lock popup companion pattern for the room template |
+| 3 | Overview page | `PENDING` | lock home scan order and hero/support balance |
+| 4 | Media page | `PENDING` | lock media-first composition and companions |
+| 5 | Bedroom, Kitchen, Dining pages | `PENDING` | apply room template + document room-specific deltas |
+
+### Surface Spec Template (Required Before Implementation)
+
+For each surface, document all fields below before changing layout code/config:
+
+- Page intent:
+  - primary action users should complete in one touch
+  - ordered scan path (phone then tablet/desktop)
+- Interaction contract:
+  - card body behavior
+  - sub-control behavior
+  - popup/navigation relationship
+- Page-level settings:
+  - `max_columns`
+  - `dense_section_placement`
+- Section-level composition:
+  - section list with `hero` / `companion` / `support` role tags
+  - `column_span` / `row_span` per section
+- Card-level placement:
+  - per-card `grid_options`
+  - explicit rules for `columns: full` vs shared-row placement
+- Breakpoint checks:
+  - `390x844`
+  - `768x1024`
+  - `1024x1366`
+  - `1440x900`
+
+### Surface 1 Planning Baseline (Living Room Page)
+
+- Intent:
+  - one-touch room lighting first
+  - media/context as companions
+- First-pass composition target:
+  - view: `max_columns: 4`, `dense_section_placement: false`
+  - hero section: room status/chips + primary lighting control
+  - companion section: media + utility/context card(s)
+- Breakpoint behavior target:
+  - phone: hero and companions stack full-width
+  - tablet/desktop: hero remains dominant, companions side-by-side only if readability stays intact
+- Lock rule:
+  - do not start Surface 2 until Living Room page has documented breakpoint outcomes and accepted section/card sizing decisions
+
 ## Canonical 3-Layer Model
 
 ### Layer 1: View (Page-Level Width Budget)

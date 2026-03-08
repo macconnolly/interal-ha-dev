@@ -3157,13 +3157,14 @@ automation:
       - platform: homeassistant
         event: start
       - platform: state
-        entity_id: sensor.living_room_presence_light_sensor_light_level
-      - platform: state
         entity_id: weather.home
       - platform: state
         entity_id: input_boolean.oal_environmental_boost_enabled
       - platform: time_pattern
         minutes: "/5"
+      - platform: state
+        entity_id: sensor.living_room_presence_light_sensor_light_level
+        for: "00:02:00"
     condition:
       - condition: state
         entity_id: input_boolean.oal_system_paused
@@ -3236,14 +3237,12 @@ automation:
           {{ [50, base_boost] | min | round(0) }}
         {% endif %}
       final_boost: >
-        {# Smart hysteresis: quicker to brighten, slower to dim #}
+        {# Gradual stepping: max +3 per cycle up, max -5 per cycle down #}
         {% set delta = calculated_boost - current_boost %}
-        {% if delta > 0 and delta >= 2 %}
-          {{ calculated_boost }}
-        {% elif delta < 0 and (delta | abs) >= 6 %}
-          {{ calculated_boost }}
-        {% elif current_boost == 0 and calculated_boost > 0 %}
-          {{ calculated_boost }}
+        {% if delta > 0 %}
+          {{ [current_boost + 3, calculated_boost] | min }}
+        {% elif delta < -2 %}
+          {{ [current_boost - 5, calculated_boost] | max }}
         {% else %}
           {{ current_boost }}
         {% endif %}

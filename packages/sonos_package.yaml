@@ -173,6 +173,22 @@ input_text:
   # ---------------------------------------------------------------------------
   # ALARM EDIT HELPERS - Track which alarm is being edited
   # ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # ACTIVE ALARM CONTEXT - Stored at notification time to prevent race/template bugs
+  # Dismiss/snooze scripts read these instead of re-scanning at tap time
+  # ---------------------------------------------------------------------------
+  sonos_alarm_active_speaker:
+    name: "Sonos Active Alarm Speaker"
+    icon: mdi:speaker
+    mode: text
+    initial: ""
+
+  sonos_alarm_active_entity:
+    name: "Sonos Active Alarm Entity"
+    icon: mdi:alarm
+    mode: text
+    initial: ""
+
   sonos_alarm_edit_id:
     name: "Sonos Editing Alarm ID"
     max: 10
@@ -232,411 +248,481 @@ group:
 #  TEMPLATE SENSORS        #
 ############################
 template:
-  sensor:
-    - name: "Sonos Alarms for Tomorrow"
-      unique_id: sonos_alarms_for_tomorrow
-      icon: mdi:alarm-multiple
-      state: >
-        {{ state_attr('sensor.sonos_alarms_for_tomorrow', 'alarm_count') | default(0) }} alarm(s) scheduled for tomorrow.
-      attributes:
-        all_alarms_data: >
-          {%- set tomorrow_date_obj = (now() + timedelta(days=1)).date() -%}
-          {%- set ns = namespace(collected_alarms_for_tomorrow = []) -%}
-          {%- set now_dt = now() -%}
-
-          {# Iterate through Sonos alarm switches that are 'on' and have a 'time' attribute (lowercase) #}
-          {%- for alarm_entity in states.switch
-              | selectattr('entity_id','search','sonos_alarm_')
-              | selectattr('state','eq','on') -%}
-            {%- set time_str = alarm_entity.attributes.get('time') -%}
-            {%- if not time_str %}{% continue %}{% endif -%}
-
-            {%- set recurrence = (alarm_entity.attributes.get('recurrence') | default('DAILY')) | upper -%}
-            {%- set base_time = today_at(time_str) -%}
-
-            {# Check recurrence for up to 7 days ahead #}
-            {%- for i in range(7) -%}
-              {%- set check_datetime = base_time + timedelta(days=i) -%}
-              {%- set weekday_sonos = check_datetime.isoweekday() % 7 -%} {# 0=Sun, 1=Mon, ..., 6=Sat #}
-              {%- set day_matches_recurrence = false -%}
-
-              {%- if recurrence == 'DAILY' %}{% set day_matches_recurrence = true %}{% endif -%}
-              {%- if recurrence == 'WEEKDAYS' and 1 <= weekday_sonos <= 5 %}{% set day_matches_recurrence = true %}{% endif -%}
-              {%- if recurrence == 'WEEKENDS' and (weekday_sonos == 0 or weekday_sonos == 6) %}{% set day_matches_recurrence = true %}{% endif -%}
-              {%- if recurrence.startswith('ON_') -%}
-                {%- set days_in_recurrence = recurrence.split('_',1)[1] -%}
-                {%- if weekday_sonos|string in days_in_recurrence %}{% set day_matches_recurrence = true %}{% endif -%}
-              {%- endif -%}
-
-              {# If the alarm is scheduled for this checked day and is in the future #}
-              {%- if day_matches_recurrence and check_datetime > now_dt -%}
-                {# If this checked day is tomorrow #}
-                {%- if check_datetime.date() == tomorrow_date_obj -%}
-                  {%- set existing_entity_ids = ns.collected_alarms_for_tomorrow | map(attribute='entity_id') | list -%}
-                  {%- if alarm_entity.entity_id not in existing_entity_ids -%}
-                    {%- set alarm_item = {
-                        'entity_id': alarm_entity.entity_id,
-                        'time': time_str,
-                        'friendly_name': alarm_entity.attributes.get('friendly_name') | default(alarm_entity.name),
-                        'timestamp': check_datetime.timestamp(),
-                        'room': area_name(alarm_entity.entity_id) | default('Unknown')
-                    } -%}
-                    {%- set ns.collected_alarms_for_tomorrow = ns.collected_alarms_for_tomorrow + [alarm_item] -%}
-                  {%- endif -%}
-                  {# Only break if we found a match for tomorrow #}
-                  {%- break -%}
+  - sensor:
+      - name: "Sonos Alarms for Tomorrow"
+        unique_id: sonos_alarms_for_tomorrow
+        icon: mdi:alarm-multiple
+        state: >
+          {{ state_attr('sensor.sonos_alarms_for_tomorrow', 'alarm_count') | default(0) }} alarm(s) scheduled for tomorrow.
+        attributes:
+          all_alarms_data: >
+            {%- set tomorrow_date_obj = (now() + timedelta(days=1)).date() -%}
+            {%- set ns = namespace(collected_alarms_for_tomorrow = []) -%}
+            {%- set now_dt = now() -%}
+  
+            {# Iterate through Sonos alarm switches that are 'on' and have a 'time' attribute (lowercase) #}
+            {%- for alarm_entity in states.switch
+                | selectattr('entity_id','search','sonos_alarm_')
+                | selectattr('state','eq','on') -%}
+              {%- set time_str = alarm_entity.attributes.get('time') -%}
+              {%- if not time_str %}{% continue %}{% endif -%}
+  
+              {%- set recurrence = (alarm_entity.attributes.get('recurrence') | default('DAILY')) | upper -%}
+              {%- set base_time = today_at(time_str) -%}
+  
+              {# Check recurrence for up to 7 days ahead #}
+              {%- for i in range(7) -%}
+                {%- set check_datetime = base_time + timedelta(days=i) -%}
+                {%- set weekday_sonos = check_datetime.isoweekday() % 7 -%} {# 0=Sun, 1=Mon, ..., 6=Sat #}
+                {%- set day_matches_recurrence = false -%}
+  
+                {%- if recurrence == 'DAILY' %}{% set day_matches_recurrence = true %}{% endif -%}
+                {%- if recurrence == 'WEEKDAYS' and 1 <= weekday_sonos <= 5 %}{% set day_matches_recurrence = true %}{% endif -%}
+                {%- if recurrence == 'WEEKENDS' and (weekday_sonos == 0 or weekday_sonos == 6) %}{% set day_matches_recurrence = true %}{% endif -%}
+                {%- if recurrence.startswith('ON_') -%}
+                  {%- set days_in_recurrence = recurrence.split('_',1)[1] -%}
+                  {%- if weekday_sonos|string in days_in_recurrence %}{% set day_matches_recurrence = true %}{% endif -%}
                 {%- endif -%}
-              {%- endif -%}
-            {%- endfor -%} {# End of i in range(7) loop #}
-          {%- endfor -%} {# End of alarm_entity loop #}
-
-          {# Post-loop processing #}
-          {%- set sorted_alarms = ns.collected_alarms_for_tomorrow | sort(attribute='timestamp') -%}
-
-          {%- set earliest_alarm_item = (sorted_alarms | first) if sorted_alarms else none -%}
-          {%- set earliest_ts = earliest_alarm_item.timestamp if earliest_alarm_item else none -%}
-          {%- set earliest_dt_local = as_datetime(earliest_ts) if earliest_ts is not none else none %}
-
-          {%- set output_data = {
-              'alarm_count': sorted_alarms | length,
-              'alarm_entities': sorted_alarms | map(attribute='entity_id') | list,
-              'friendly_names': sorted_alarms | map(attribute='friendly_name') | list,
-              'rooms': sorted_alarms | map(attribute='room') | unique | list,
-              'earliest_alarm_timestamp_tomorrow': earliest_ts,
-              'earliest_alarm_time_tomorrow': as_local(as_datetime(earliest_ts)).strftime('%H:%M:%S') if earliest_ts is not none else 'None',
-              'raw_alarm_list_sorted': sorted_alarms,
-              'debug_tomorrow_date_obj': tomorrow_date_obj.isoformat(),
-              'debug_processing_time_utc': now().isoformat()
-          } -%}
-          {{- output_data -}}
-        alarm_count: >
-          {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
-          {{ data.get('alarm_count', 0) if data is mapping else 0 }}
-        alarm_entities: >
-          {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
-          {{ data.get('alarm_entities', []) if data is mapping else [] }}
-        friendly_names: >
-          {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
-          {{ data.get('friendly_names', []) if data is mapping else [] }}
-        earliest_alarm_time_tomorrow: >
-          {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
-          {{ data.get('earliest_alarm_time_tomorrow', 'None') if data is mapping else 'None' }}
-        earliest_alarm_timestamp_tomorrow: >
-          {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
-          {{ data.get('earliest_alarm_timestamp_tomorrow', none) if data is mapping else none }}
-        debug_info: >
-          {% set all_data_dict = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
-          {% set output_dict = {} %}
-          {% if all_data_dict is mapping %}
-            {% set output_dict = {
-                'retrieved_alarm_count': all_data_dict.get('alarm_count', 'Error: key missing'),
-                'retrieved_earliest_time': all_data_dict.get('earliest_alarm_time_tomorrow', 'Error: key missing'),
-                'retrieved_entities_sample': (all_data_dict.get('alarm_entities', []) | list | first) if (all_data_dict.get('alarm_entities', []) | list | length > 0) else 'No entities',
-                'all_alarms_data_is_map': true,
-                'all_alarms_data_keys': all_data_dict.keys() | list,
-                'current_sensor_state': states('sensor.sonos_alarms_for_tomorrow')
-               } %}
-          {% else %}
-            {% set output_dict = {
-                'retrieved_alarm_count': 'Error: all_alarms_data not a map',
-                'retrieved_earliest_time': 'Error',
-                'retrieved_entities_sample': 'Error',
-                'all_alarms_data_is_map': false,
-                'current_sensor_state': states('sensor.sonos_alarms_for_tomorrow')
-               } %}
-          {% endif %}
-          {{ output_dict | to_json }}
-        rooms: >
-          {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
-          {{ data.get('rooms', []) if data is mapping else [] }}
-
-    - name: "Sonos Upcoming Alarms"
-      unique_id: sonos_upcoming_alarms
-      icon: mdi:alarm-multiple
-      state: >
-        {{ state_attr('sensor.sonos_upcoming_alarms', 'alarm_count') | default(0) }} upcoming alarm(s).
-      attributes:
-        all_alarms_data: >
-          {%- set today_date_obj = now().date() -%}
-          {%- set tomorrow_date_obj = (now() + timedelta(days=1)).date() -%}
-          {%- set ns = namespace(collected_alarms = []) -%}
-          {%- set now_dt = now() -%}
-
-          {# DEBUG: Collect all sonos_alarm_ entities and their attributes for troubleshooting #}
-          {%- set debug_alarm_entities = states.switch
-              | selectattr('entity_id','search','sonos_alarm_')
-              | map(attribute='attributes')
-              | list -%}
-
-          {# Iterate through Sonos alarm switches that have a 'time' attribute and are enabled #}
-          {%- for alarm_entity in states.switch
-              | selectattr('entity_id','search','sonos_alarm_')
-              | selectattr('state','eq','on') -%}
-            {%- set time_str = alarm_entity.attributes.get('time') -%}
-            {%- if not time_str %}{% continue %}{% endif -%}
-
-            {%- set recurrence = (alarm_entity.attributes.get('recurrence') | default('DAILY')) | upper -%}
-            {%- set base_time = today_at(time_str) -%}
-
-            {# Check recurrence for today and tomorrow only #}
-            {%- for i in range(2) -%}
-              {%- set check_datetime = base_time + timedelta(days=i) -%}
-              {%- set weekday_sonos = check_datetime.isoweekday() % 7 -%} {# 0=Sun, 1=Mon, ..., 6=Sat #}
-              {%- set day_matches_recurrence = false -%}
-
-              {%- if recurrence == 'DAILY' %}{% set day_matches_recurrence = true %}{% endif -%}
-              {%- if recurrence == 'WEEKDAYS' and 1 <= weekday_sonos <= 5 %}{% set day_matches_recurrence = true %}{% endif -%}
-              {%- if recurrence == 'WEEKENDS' and (weekday_sonos == 0 or weekday_sonos == 6) %}{% set day_matches_recurrence = true %}{% endif -%}
-              {%- if recurrence.startswith('ON_') -%}
-                {%- set days_in_recurrence = recurrence.split('_',1)[1] -%}
-                {%- if weekday_sonos|string in days_in_recurrence %}{% set day_matches_recurrence = true %}{% endif -%}
-              {%- endif -%}
-
-              {# If the alarm is scheduled for this checked day and is in the future #}
-              {%- if day_matches_recurrence and check_datetime > now_dt -%}
-                {%- set alarm_item = {
-                    'entity_id': alarm_entity.entity_id,
-                    'time': time_str,
-                    'friendly_name': alarm_entity.attributes.get('friendly_name') | default(alarm_entity.name),
-                    'timestamp': check_datetime.timestamp(),
-                    'date': check_datetime.date().isoformat(),
-                    'recurrence': recurrence,
-                    'room': area_name(alarm_entity.entity_id) | default('Unknown')
-                } -%}
-                {%- set ns.collected_alarms = ns.collected_alarms + [alarm_item] -%}
-              {%- endif -%}
+  
+                {# If the alarm is scheduled for this checked day and is in the future #}
+                {%- if day_matches_recurrence and check_datetime > now_dt -%}
+                  {# If this checked day is tomorrow #}
+                  {%- if check_datetime.date() == tomorrow_date_obj -%}
+                    {%- set existing_entity_ids = ns.collected_alarms_for_tomorrow | map(attribute='entity_id') | list -%}
+                    {%- if alarm_entity.entity_id not in existing_entity_ids -%}
+                      {%- set alarm_item = {
+                          'entity_id': alarm_entity.entity_id,
+                          'time': time_str,
+                          'friendly_name': alarm_entity.attributes.get('friendly_name') | default(alarm_entity.name),
+                          'timestamp': check_datetime.timestamp(),
+                          'room': area_name(alarm_entity.entity_id) | default('Unknown')
+                      } -%}
+                      {%- set ns.collected_alarms_for_tomorrow = ns.collected_alarms_for_tomorrow + [alarm_item] -%}
+                    {%- endif -%}
+                    {# Only break if we found a match for tomorrow #}
+                    {%- break -%}
+                  {%- endif -%}
+                {%- endif -%}
+              {%- endfor -%} {# End of i in range(7) loop #}
+            {%- endfor -%} {# End of alarm_entity loop #}
+  
+            {# Post-loop processing #}
+            {%- set sorted_alarms = ns.collected_alarms_for_tomorrow | sort(attribute='timestamp') -%}
+  
+            {%- set earliest_alarm_item = (sorted_alarms | first) if sorted_alarms else none -%}
+            {%- set earliest_ts = earliest_alarm_item.timestamp if earliest_alarm_item else none -%}
+            {%- set earliest_dt_local = as_datetime(earliest_ts) if earliest_ts is not none else none %}
+  
+            {%- set output_data = {
+                'alarm_count': sorted_alarms | length,
+                'alarm_entities': sorted_alarms | map(attribute='entity_id') | list,
+                'friendly_names': sorted_alarms | map(attribute='friendly_name') | list,
+                'rooms': sorted_alarms | map(attribute='room') | unique | list,
+                'earliest_alarm_timestamp_tomorrow': earliest_ts,
+                'earliest_alarm_time_tomorrow': as_local(as_datetime(earliest_ts)).strftime('%H:%M:%S') if earliest_ts is not none else 'None',
+                'raw_alarm_list_sorted': sorted_alarms,
+                'debug_tomorrow_date_obj': tomorrow_date_obj.isoformat(),
+                'debug_processing_time_utc': now().isoformat()
+            } -%}
+            {{- output_data -}}
+          alarm_count: >
+            {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
+            {{ data.get('alarm_count', 0) if data is mapping else 0 }}
+          alarm_entities: >
+            {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
+            {{ data.get('alarm_entities', []) if data is mapping else [] }}
+          friendly_names: >
+            {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
+            {{ data.get('friendly_names', []) if data is mapping else [] }}
+          earliest_alarm_time_tomorrow: >
+            {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
+            {{ data.get('earliest_alarm_time_tomorrow', 'None') if data is mapping else 'None' }}
+          earliest_alarm_timestamp_tomorrow: >
+            {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
+            {{ data.get('earliest_alarm_timestamp_tomorrow', none) if data is mapping else none }}
+          debug_info: >
+            {% set all_data_dict = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
+            {% set output_dict = {} %}
+            {% if all_data_dict is mapping %}
+              {% set output_dict = {
+                  'retrieved_alarm_count': all_data_dict.get('alarm_count', 'Error: key missing'),
+                  'retrieved_earliest_time': all_data_dict.get('earliest_alarm_time_tomorrow', 'Error: key missing'),
+                  'retrieved_entities_sample': (all_data_dict.get('alarm_entities', []) | list | first) if (all_data_dict.get('alarm_entities', []) | list | length > 0) else 'No entities',
+                  'all_alarms_data_is_map': true,
+                  'all_alarms_data_keys': all_data_dict.keys() | list,
+                  'current_sensor_state': states('sensor.sonos_alarms_for_tomorrow')
+                 } %}
+            {% else %}
+              {% set output_dict = {
+                  'retrieved_alarm_count': 'Error: all_alarms_data not a map',
+                  'retrieved_earliest_time': 'Error',
+                  'retrieved_entities_sample': 'Error',
+                  'all_alarms_data_is_map': false,
+                  'current_sensor_state': states('sensor.sonos_alarms_for_tomorrow')
+                 } %}
+            {% endif %}
+            {{ output_dict | to_json }}
+          rooms: >
+            {% set data = state_attr('sensor.sonos_alarms_for_tomorrow', 'all_alarms_data') %}
+            {{ data.get('rooms', []) if data is mapping else [] }}
+  
+      - name: "Sonos Upcoming Alarms"
+        unique_id: sonos_upcoming_alarms
+        icon: mdi:alarm-multiple
+        state: >
+          {{ state_attr('sensor.sonos_upcoming_alarms', 'alarm_count') | default(0) }} upcoming alarm(s).
+        attributes:
+          all_alarms_data: >
+            {%- set today_date_obj = now().date() -%}
+            {%- set tomorrow_date_obj = (now() + timedelta(days=1)).date() -%}
+            {%- set ns = namespace(collected_alarms = []) -%}
+            {%- set now_dt = now() -%}
+  
+            {# DEBUG: Collect all sonos_alarm_ entities and their attributes for troubleshooting #}
+            {%- set debug_alarm_entities = states.switch
+                | selectattr('entity_id','search','sonos_alarm_')
+                | map(attribute='attributes')
+                | list -%}
+  
+            {# Iterate through Sonos alarm switches that have a 'time' attribute and are enabled #}
+            {%- for alarm_entity in states.switch
+                | selectattr('entity_id','search','sonos_alarm_')
+                | selectattr('state','eq','on') -%}
+              {%- set time_str = alarm_entity.attributes.get('time') -%}
+              {%- if not time_str %}{% continue %}{% endif -%}
+  
+              {%- set recurrence = (alarm_entity.attributes.get('recurrence') | default('DAILY')) | upper -%}
+              {%- set base_time = today_at(time_str) -%}
+  
+              {# Check recurrence for today and tomorrow only #}
+              {%- for i in range(2) -%}
+                {%- set check_datetime = base_time + timedelta(days=i) -%}
+                {%- set weekday_sonos = check_datetime.isoweekday() % 7 -%} {# 0=Sun, 1=Mon, ..., 6=Sat #}
+                {%- set day_matches_recurrence = false -%}
+  
+                {%- if recurrence == 'DAILY' %}{% set day_matches_recurrence = true %}{% endif -%}
+                {%- if recurrence == 'WEEKDAYS' and 1 <= weekday_sonos <= 5 %}{% set day_matches_recurrence = true %}{% endif -%}
+                {%- if recurrence == 'WEEKENDS' and (weekday_sonos == 0 or weekday_sonos == 6) %}{% set day_matches_recurrence = true %}{% endif -%}
+                {%- if recurrence.startswith('ON_') -%}
+                  {%- set days_in_recurrence = recurrence.split('_',1)[1] -%}
+                  {%- if weekday_sonos|string in days_in_recurrence %}{% set day_matches_recurrence = true %}{% endif -%}
+                {%- endif -%}
+  
+                {# If the alarm is scheduled for this checked day and is in the future #}
+                {%- if day_matches_recurrence and check_datetime > now_dt -%}
+                  {%- set alarm_item = {
+                      'entity_id': alarm_entity.entity_id,
+                      'time': time_str,
+                      'friendly_name': alarm_entity.attributes.get('friendly_name') | default(alarm_entity.name),
+                      'timestamp': check_datetime.timestamp(),
+                      'date': check_datetime.date().isoformat(),
+                      'recurrence': recurrence,
+                      'room': area_name(alarm_entity.entity_id) | default('Unknown')
+                  } -%}
+                  {%- set ns.collected_alarms = ns.collected_alarms + [alarm_item] -%}
+                {%- endif -%}
+              {%- endfor -%}
             {%- endfor -%}
-          {%- endfor -%}
-
-          {# Post-loop processing #}
-          {%- set sorted_alarms = ns.collected_alarms | sort(attribute='timestamp') -%}
-          {%- set earliest_alarm_item = (sorted_alarms | first) if sorted_alarms else none -%}
-          {%- set earliest_ts = earliest_alarm_item.timestamp if earliest_alarm_item else none -%}
-          {%- set earliest_dt_local = as_datetime(earliest_ts) if earliest_ts is not none else none %}
-
-          {%- set output_data = {
-              'alarm_count': sorted_alarms | length,
-              'alarm_entities': sorted_alarms | map(attribute='entity_id') | list,
-              'friendly_names': sorted_alarms | map(attribute='friendly_name') | list,
-              'rooms': sorted_alarms | map(attribute='room') | unique | list,
-              'earliest_alarm_timestamp': earliest_ts,
-              'earliest_alarm_time': earliest_dt_local.strftime('%Y-%m-%d %H:%M:%S') if earliest_dt_local else 'None',
-              'raw_alarm_list_sorted': sorted_alarms,
-              'debug_today_date_obj': today_date_obj.isoformat(),
-              'debug_tomorrow_date_obj': tomorrow_date_obj.isoformat(),
-              'debug_processing_time_utc': now().isoformat(),
-              'debug_all_alarm_entities': debug_alarm_entities
-          } -%}
-          {{- output_data -}}
-        alarm_count: >
-          {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-          {{ data.get('alarm_count', 0) if data is mapping else 0 }}
-        alarm_entities: >
-          {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-          {{ data.get('alarm_entities', []) if data is mapping else [] }}
-        friendly_names: >
-          {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-          {{ data.get('friendly_names', []) if data is mapping else [] }}
-        earliest_alarm_time: >
-          {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-          {{ data.get('earliest_alarm_time', 'None') if data is mapping else 'None' }}
-        earliest_alarm_timestamp: >
-          {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-          {{ data.get('earliest_alarm_timestamp', none) if data is mapping else none }}
-        earliest_alarm_room: >
-          {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-          {% set alarms = data.get('raw_alarm_list_sorted', []) if data is mapping else [] %}
-          {{ alarms[0].room if alarms | length > 0 and alarms[0] is mapping else 'Unknown' }}
-        rooms: >
-          {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-          {{ data.get('rooms', []) if data is mapping else [] }}
-        debug_info: >
-          {% set all_data_dict = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
-          {% set output_dict = {} %}
-          {% if all_data_dict is mapping %}
-            {% set output_dict = {
-                'retrieved_alarm_count': all_data_dict.get('alarm_count', 'Error: key missing'),
-                'retrieved_earliest_time': all_data_dict.get('earliest_alarm_time', 'Error: key missing'),
-                'retrieved_entities_sample': (all_data_dict.get('alarm_entities', []) | list | first) if (all_data_dict.get('alarm_entities', []) | list | length > 0) else 'No entities',
-                'all_alarms_data_is_map': true,
-                'all_alarms_data_keys': all_data_dict.keys() | list,
-                'current_sensor_state': states('sensor.sonos_upcoming_alarms')
-               } %}
-          {% else %}
-            {% set output_dict = {
-                'retrieved_alarm_count': 'Error: all_alarms_data not a map',
-                'retrieved_earliest_time': 'Error',
-                'retrieved_entities_sample': 'Error',
-                'all_alarms_data_is_map': false,
-                'current_sensor_state': states('sensor.sonos_upcoming_alarms')
-               } %}
-          {% endif %}
-          {{ output_dict | to_json }}
-
-    - name: "Soonest Sonos Alarm Info"
-      unique_id: soonest_sonos_alarm_info
-      icon: mdi:alarm
-      state: >
-        {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
-        {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
-        {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
-        {{ soonest.time if soonest is mapping and 'time' in soonest else 'unknown' }}
-      attributes:
-        entity_id: >
+  
+            {# Post-loop processing #}
+            {%- set sorted_alarms = ns.collected_alarms | sort(attribute='timestamp') -%}
+            {%- set earliest_alarm_item = (sorted_alarms | first) if sorted_alarms else none -%}
+            {%- set earliest_ts = earliest_alarm_item.timestamp if earliest_alarm_item else none -%}
+            {%- set earliest_dt_local = as_datetime(earliest_ts) if earliest_ts is not none else none %}
+  
+            {%- set output_data = {
+                'alarm_count': sorted_alarms | length,
+                'alarm_entities': sorted_alarms | map(attribute='entity_id') | list,
+                'friendly_names': sorted_alarms | map(attribute='friendly_name') | list,
+                'rooms': sorted_alarms | map(attribute='room') | unique | list,
+                'earliest_alarm_timestamp': earliest_ts,
+                'earliest_alarm_time': earliest_dt_local.strftime('%Y-%m-%d %H:%M:%S') if earliest_dt_local else 'None',
+                'raw_alarm_list_sorted': sorted_alarms,
+                'debug_today_date_obj': today_date_obj.isoformat(),
+                'debug_tomorrow_date_obj': tomorrow_date_obj.isoformat(),
+                'debug_processing_time_utc': now().isoformat(),
+                'debug_all_alarm_entities': debug_alarm_entities
+            } -%}
+            {{- output_data -}}
+          alarm_count: >
+            {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {{ data.get('alarm_count', 0) if data is mapping else 0 }}
+          alarm_entities: >
+            {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {{ data.get('alarm_entities', []) if data is mapping else [] }}
+          friendly_names: >
+            {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {{ data.get('friendly_names', []) if data is mapping else [] }}
+          earliest_alarm_time: >
+            {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {{ data.get('earliest_alarm_time', 'None') if data is mapping else 'None' }}
+          earliest_alarm_timestamp: >
+            {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {{ data.get('earliest_alarm_timestamp', none) if data is mapping else none }}
+          earliest_alarm_room: >
+            {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {% set alarms = data.get('raw_alarm_list_sorted', []) if data is mapping else [] %}
+            {{ alarms[0].room if alarms | length > 0 and alarms[0] is mapping else 'Unknown' }}
+          rooms: >
+            {% set data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {{ data.get('rooms', []) if data is mapping else [] }}
+          debug_info: >
+            {% set all_data_dict = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
+            {% set output_dict = {} %}
+            {% if all_data_dict is mapping %}
+              {% set output_dict = {
+                  'retrieved_alarm_count': all_data_dict.get('alarm_count', 'Error: key missing'),
+                  'retrieved_earliest_time': all_data_dict.get('earliest_alarm_time', 'Error: key missing'),
+                  'retrieved_entities_sample': (all_data_dict.get('alarm_entities', []) | list | first) if (all_data_dict.get('alarm_entities', []) | list | length > 0) else 'No entities',
+                  'all_alarms_data_is_map': true,
+                  'all_alarms_data_keys': all_data_dict.keys() | list,
+                  'current_sensor_state': states('sensor.sonos_upcoming_alarms')
+                 } %}
+            {% else %}
+              {% set output_dict = {
+                  'retrieved_alarm_count': 'Error: all_alarms_data not a map',
+                  'retrieved_earliest_time': 'Error',
+                  'retrieved_entities_sample': 'Error',
+                  'all_alarms_data_is_map': false,
+                  'current_sensor_state': states('sensor.sonos_upcoming_alarms')
+                 } %}
+            {% endif %}
+            {{ output_dict | to_json }}
+  
+      - name: "Soonest Sonos Alarm Info"
+        unique_id: soonest_sonos_alarm_info
+        icon: mdi:alarm
+        state: >
           {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
           {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
           {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
-          {{ soonest.entity_id if soonest is mapping and 'entity_id' in soonest else none }}
-        friendly_name: >
-          {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
-          {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
-          {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
-          {{ soonest.friendly_name if soonest is mapping and 'friendly_name' in soonest else 'Soonest Sonos Alarm Info' }}
-        room: >
-          {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
-          {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
-          {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
-          {{ soonest.room if soonest is mapping and 'room' in soonest else 'Unknown' }}
-        timestamp: >
-          {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
-          {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
-          {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
-          {{ soonest.timestamp if soonest is mapping and 'timestamp' in soonest else none }}
-        debug_info: >
-          {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
-          {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
-          {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
-          {{ soonest | to_json if soonest is mapping else '{}' }}
-
-    # -----------------------------------------------------------------------
-    # Next Alarm Chip Status - for dashboard toggle chip
-    # Shows the next alarm time and whether it's enabled/disabled
-    # -----------------------------------------------------------------------
-    - name: "Sonos Next Alarm Chip"
-      unique_id: sonos_next_alarm_chip
-      icon: >
-        {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
-        {% if entity_id and states(entity_id) == 'on' %}
-          mdi:alarm
-        {% elif entity_id and states(entity_id) == 'off' %}
-          mdi:alarm-off
-        {% else %}
-          mdi:alarm-note-off
-        {% endif %}
-      state: >
-        {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
-        {% set time_str = states('sensor.soonest_sonos_alarm_info') %}
-        {% if entity_id and time_str not in ['unknown', 'unavailable', ''] %}
-          {% if states(entity_id) == 'on' %}
-            {{ time_str }}
-          {% else %}
-            Off
-          {% endif %}
-        {% else %}
-          None
-        {% endif %}
-      attributes:
-        entity_id: >
-          {{ state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') }}
-        is_enabled: >
+          {{ soonest.time if soonest is mapping and 'time' in soonest else 'unknown' }}
+        attributes:
+          entity_id: >
+            {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
+            {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
+            {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
+            {{ soonest.entity_id if soonest is mapping and 'entity_id' in soonest else none }}
+          friendly_name: >
+            {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
+            {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
+            {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
+            {{ soonest.friendly_name if soonest is mapping and 'friendly_name' in soonest else 'Soonest Sonos Alarm Info' }}
+          room: >
+            {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
+            {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
+            {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
+            {{ soonest.room if soonest is mapping and 'room' in soonest else 'Unknown' }}
+          timestamp: >
+            {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
+            {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
+            {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
+            {{ soonest.timestamp if soonest is mapping and 'timestamp' in soonest else none }}
+          debug_info: >
+            {%- set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) -%}
+            {%- set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] -%}
+            {%- set soonest = alarms[0] if alarms|length > 0 else none -%}
+            {{ soonest | to_json if soonest is mapping else '{}' }}
+  
+      # -----------------------------------------------------------------------
+      # Next Alarm Chip Status - for dashboard toggle chip
+      # Shows the next alarm time and whether it's enabled/disabled
+      # -----------------------------------------------------------------------
+      - name: "Sonos Next Alarm Chip"
+        unique_id: sonos_next_alarm_chip
+        icon: >
           {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
-          {{ entity_id and states(entity_id) == 'on' }}
-        time: >
-          {{ states('sensor.soonest_sonos_alarm_info') }}
-        room: >
-          {{ state_attr('sensor.soonest_sonos_alarm_info', 'room') | default('Unknown') }}
-        friendly_name: >
-          {{ state_attr('sensor.soonest_sonos_alarm_info', 'friendly_name') | default('No alarm') }}
-        timestamp: >
-          {{ state_attr('sensor.soonest_sonos_alarm_info', 'timestamp') }}
-        hours_until: >
-          {% set ts = state_attr('sensor.soonest_sonos_alarm_info', 'timestamp') %}
-          {% if ts %}
-            {{ ((ts - now().timestamp()) / 3600) | round(1) }}
+          {% if entity_id and states(entity_id) == 'on' %}
+            mdi:alarm
+          {% elif entity_id and states(entity_id) == 'off' %}
+            mdi:alarm-off
           {% else %}
-            0
+            mdi:alarm-note-off
           {% endif %}
-        was_manually_disabled: >
-          {% set toggled = states('input_text.sonos_manually_toggled_alarm') %}
-          {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
-          {{ toggled == entity_id and entity_id and states(entity_id) == 'off' }}
-        display_text: >
+        state: >
           {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
           {% set time_str = states('sensor.soonest_sonos_alarm_info') %}
-          {% set room = state_attr('sensor.soonest_sonos_alarm_info', 'room') | default('') %}
           {% if entity_id and time_str not in ['unknown', 'unavailable', ''] %}
             {% if states(entity_id) == 'on' %}
-              ⏰ {{ time_str }}{% if room %} ({{ room }}){% endif %}
+              {{ time_str }}
             {% else %}
-              🔕 {{ time_str }} OFF
+              Off
             {% endif %}
           {% else %}
-            No alarms
+            None
           {% endif %}
-
-    # ------------------------------------------------------------------
-    # Sonos Enabled Alarm Count
-    # Shows total number of enabled alarms
-    # ------------------------------------------------------------------
-    - name: "Sonos Enabled Alarm Count"
-      unique_id: sonos_enabled_alarm_count
-      icon: >
-        {{ 'mdi:alarm-check' if this.state | int(0) > 0 else 'mdi:alarm-off' }}
-      state: >
-        {{ states.switch 
-           | selectattr('entity_id', 'match', 'switch.sonos_alarm_')
-           | selectattr('state', 'eq', 'on')
-           | list | count }}
-      attributes:
-        enabled_list: >
+        attributes:
+          entity_id: >
+            {{ state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') }}
+          is_enabled: >
+            {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
+            {{ entity_id and states(entity_id) == 'on' }}
+          time: >
+            {{ states('sensor.soonest_sonos_alarm_info') }}
+          room: >
+            {{ state_attr('sensor.soonest_sonos_alarm_info', 'room') | default('Unknown') }}
+          friendly_name: >
+            {{ state_attr('sensor.soonest_sonos_alarm_info', 'friendly_name') | default('No alarm') }}
+          timestamp: >
+            {{ state_attr('sensor.soonest_sonos_alarm_info', 'timestamp') }}
+          hours_until: >
+            {% set ts = state_attr('sensor.soonest_sonos_alarm_info', 'timestamp') %}
+            {% if ts %}
+              {{ ((ts - now().timestamp()) / 3600) | round(1) }}
+            {% else %}
+              0
+            {% endif %}
+          was_manually_disabled: >
+            {% set toggled = states('input_text.sonos_manually_toggled_alarm') %}
+            {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
+            {{ toggled == entity_id and entity_id and states(entity_id) == 'off' }}
+          display_text: >
+            {% set entity_id = state_attr('sensor.soonest_sonos_alarm_info', 'entity_id') %}
+            {% set time_str = states('sensor.soonest_sonos_alarm_info') %}
+            {% set room = state_attr('sensor.soonest_sonos_alarm_info', 'room') | default('') %}
+            {% if entity_id and time_str not in ['unknown', 'unavailable', ''] %}
+              {% if states(entity_id) == 'on' %}
+                ⏰ {{ time_str }}{% if room %} ({{ room }}){% endif %}
+              {% else %}
+                🔕 {{ time_str }} OFF
+              {% endif %}
+            {% else %}
+              No alarms
+            {% endif %}
+  
+      # ------------------------------------------------------------------
+      # Sonos Enabled Alarm Count
+      # Shows total number of enabled alarms
+      # ------------------------------------------------------------------
+      - name: "Sonos Enabled Alarm Count"
+        unique_id: sonos_enabled_alarm_count
+        icon: >
+          {{ 'mdi:alarm-check' if this.state | int(0) > 0 else 'mdi:alarm-off' }}
+        state: >
           {{ states.switch 
              | selectattr('entity_id', 'match', 'switch.sonos_alarm_')
              | selectattr('state', 'eq', 'on')
-             | map(attribute='entity_id')
-             | list }}
-
-    # ------------------------------------------------------------------
-    # Sonos Edit Alarm Display
-    # Provides computed display info for the edit popup
-    # ------------------------------------------------------------------
-    - name: "Sonos Edit Alarm Display"
-      unique_id: sonos_edit_alarm_display
-      icon: mdi:alarm-plus
-      state: >
-        {% set entity = states('input_text.sonos_alarm_edit_entity') %}
-        {% if entity and entity != 'unknown' and entity != '' %}
-          {% set time = state_attr(entity, 'time') | default('--:--') %}
-          {{ time[:5] if time | length >= 5 else time }}
-        {% else %}
-          --:--
-        {% endif %}
-      attributes:
-        alarm_id: "{{ states('input_text.sonos_alarm_edit_id') }}"
-        entity_id: "{{ states('input_text.sonos_alarm_edit_entity') }}"
-        speaker: "{{ states('input_text.sonos_alarm_edit_speaker') }}"
-        friendly_name: "{{ states('input_text.sonos_alarm_edit_name') }}"
-        current_time: >
+             | list | count }}
+        attributes:
+          enabled_list: >
+            {{ states.switch 
+               | selectattr('entity_id', 'match', 'switch.sonos_alarm_')
+               | selectattr('state', 'eq', 'on')
+               | map(attribute='entity_id')
+               | list }}
+  
+      # ------------------------------------------------------------------
+      # Sonos Edit Alarm Display
+      # Provides computed display info for the edit popup
+      # ------------------------------------------------------------------
+      - name: "Sonos Edit Alarm Display"
+        unique_id: sonos_edit_alarm_display
+        icon: mdi:alarm-plus
+        state: >
           {% set entity = states('input_text.sonos_alarm_edit_entity') %}
-          {% if entity and entity not in ['unknown', ''] %}
-            {{ state_attr(entity, 'time') | default('00:00:00') }}
+          {% if entity and entity != 'unknown' and entity != '' %}
+            {% set time = state_attr(entity, 'time') | default('--:--') %}
+            {{ time[:5] if time | length >= 5 else time }}
           {% else %}
-            00:00:00
+            --:--
           {% endif %}
-        current_volume: >
-          {% set entity = states('input_text.sonos_alarm_edit_entity') %}
-          {% if entity and entity not in ['unknown', ''] %}
-            {{ (state_attr(entity, 'volume') | default(0.25) * 100) | int }}
+        attributes:
+          alarm_id: "{{ states('input_text.sonos_alarm_edit_id') }}"
+          entity_id: "{{ states('input_text.sonos_alarm_edit_entity') }}"
+          speaker: "{{ states('input_text.sonos_alarm_edit_speaker') }}"
+          friendly_name: "{{ states('input_text.sonos_alarm_edit_name') }}"
+          current_time: >
+            {% set entity = states('input_text.sonos_alarm_edit_entity') %}
+            {% if entity and entity not in ['unknown', ''] %}
+              {{ state_attr(entity, 'time') | default('00:00:00') }}
+            {% else %}
+              00:00:00
+            {% endif %}
+          current_volume: >
+            {% set entity = states('input_text.sonos_alarm_edit_entity') %}
+            {% if entity and entity not in ['unknown', ''] %}
+              {{ (state_attr(entity, 'volume') | default(0.25) * 100) | int }}
+            {% else %}
+              25
+            {% endif %}
+          recurrence: >
+            {% set entity = states('input_text.sonos_alarm_edit_entity') %}
+            {% if entity and entity not in ['unknown', ''] %}
+              {{ state_attr(entity, 'recurrence') | default('DAILY') }}
+            {% else %}
+              DAILY
+            {% endif %}
+          recurrence_display: >
+            {% set entity = states('input_text.sonos_alarm_edit_entity') %}
+            {% set recurrence = state_attr(entity, 'recurrence') | default('') %}
+            {% set map = {
+              'DAILY': 'Every day',
+              'WEEKDAYS': 'Weekdays',
+              'WEEKENDS': 'Weekends',
+              'ONCE': 'Once',
+              'ON_0': 'Sunday',
+              'ON_1': 'Monday',
+              'ON_2': 'Tuesday',
+              'ON_3': 'Wednesday',
+              'ON_4': 'Thursday',
+              'ON_5': 'Friday',
+              'ON_6': 'Saturday',
+              'ON_12345': 'Mon-Fri'
+            } %}
+            {{ map.get(recurrence, recurrence) }}
+          include_linked_zones: >
+            {% set entity = states('input_text.sonos_alarm_edit_entity') %}
+            {% if entity and entity not in ['unknown', ''] %}
+              {{ state_attr(entity, 'include_linked_zones') | default(false) }}
+            {% else %}
+              false
+            {% endif %}
+  
+      # ------------------------------------------------------------------
+      # Next Alarm Sensor (for popup header)
+      # ------------------------------------------------------------------
+      - name: "Sonos Next Alarm"
+        unique_id: sonos_next_alarm
+        icon: mdi:alarm
+        state: >
+          {% set ns = namespace(next_time='99:99:99', next_entity=none, next_room='') %}
+          {% for entity in states.switch %}
+            {% if entity.entity_id.startswith('switch.sonos_alarm_') and entity.state == 'on' %}
+              {% set alarm_time = state_attr(entity.entity_id, 'time') | default('99:99:99') %}
+              {% if alarm_time < ns.next_time %}
+                {% set ns.next_time = alarm_time %}
+                {% set ns.next_entity = entity.entity_id %}
+                {% set friendly = state_attr(entity.entity_id, 'friendly_name') | default('') %}
+                {% set ns.next_room = friendly.split(' ')[0] %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {% if ns.next_entity %}
+            {{ ns.next_time[:5] }} · {{ ns.next_room }}
           {% else %}
-            25
+            No alarms
           {% endif %}
-        recurrence: >
-          {% set entity = states('input_text.sonos_alarm_edit_entity') %}
-          {% if entity and entity not in ['unknown', ''] %}
-            {{ state_attr(entity, 'recurrence') | default('DAILY') }}
-          {% else %}
-            DAILY
-          {% endif %}
-        recurrence_display: >
+        attributes:
+          next_alarm_entity: >
+            {% set ns = namespace(next_time='99:99:99', next_entity=none) %}
+            {% for entity in states.switch %}
+              {% if entity.entity_id.startswith('switch.sonos_alarm_') and entity.state == 'on' %}
+                {% set alarm_time = state_attr(entity.entity_id, 'time') | default('99:99:99') %}
+                {% if alarm_time < ns.next_time %}
+                  {% set ns.next_time = alarm_time %}
+                  {% set ns.next_entity = entity.entity_id %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.next_entity }}
+  
+      # ------------------------------------------------------------------
+      # Recurrence Display (Human-readable for edit popup)
+      # ------------------------------------------------------------------
+      - name: "Sonos Edit Recurrence Display"
+        unique_id: sonos_edit_recurrence_display
+        icon: mdi:calendar-repeat
+        state: >
           {% set entity = states('input_text.sonos_alarm_edit_entity') %}
           {% set recurrence = state_attr(entity, 'recurrence') | default('') %}
           {% set map = {
@@ -651,144 +737,19 @@ template:
             'ON_4': 'Thursday',
             'ON_5': 'Friday',
             'ON_6': 'Saturday',
+            'ON_123456': 'Mon-Sat',
             'ON_12345': 'Mon-Fri'
           } %}
           {{ map.get(recurrence, recurrence) }}
-        include_linked_zones: >
-          {% set entity = states('input_text.sonos_alarm_edit_entity') %}
-          {% if entity and entity not in ['unknown', ''] %}
-            {{ state_attr(entity, 'include_linked_zones') | default(false) }}
-          {% else %}
-            false
-          {% endif %}
-
-    # ------------------------------------------------------------------
-    # Next Alarm Sensor (for popup header)
-    # ------------------------------------------------------------------
-    - name: "Sonos Next Alarm"
-      unique_id: sonos_next_alarm
-      icon: mdi:alarm
-      state: >
-        {% set ns = namespace(next_time='99:99:99', next_entity=none, next_room='') %}
-        {% for entity in states.switch %}
-          {% if entity.entity_id.startswith('switch.sonos_alarm_') and entity.state == 'on' %}
-            {% set alarm_time = state_attr(entity.entity_id, 'time') | default('99:99:99') %}
-            {% if alarm_time < ns.next_time %}
-              {% set ns.next_time = alarm_time %}
-              {% set ns.next_entity = entity.entity_id %}
-              {% set friendly = state_attr(entity.entity_id, 'friendly_name') | default('') %}
-              {% set ns.next_room = friendly.split(' ')[0] %}
-            {% endif %}
-          {% endif %}
-        {% endfor %}
-        {% if ns.next_entity %}
-          {{ ns.next_time[:5] }} · {{ ns.next_room }}
-        {% else %}
-          No alarms
-        {% endif %}
-      attributes:
-        next_alarm_entity: >
-          {% set ns = namespace(next_time='99:99:99', next_entity=none) %}
-          {% for entity in states.switch %}
-            {% if entity.entity_id.startswith('switch.sonos_alarm_') and entity.state == 'on' %}
-              {% set alarm_time = state_attr(entity.entity_id, 'time') | default('99:99:99') %}
-              {% if alarm_time < ns.next_time %}
-                {% set ns.next_time = alarm_time %}
-                {% set ns.next_entity = entity.entity_id %}
-              {% endif %}
-            {% endif %}
-          {% endfor %}
-          {{ ns.next_entity }}
-
-    # ------------------------------------------------------------------
-    # Recurrence Display (Human-readable for edit popup)
-    # ------------------------------------------------------------------
-    - name: "Sonos Edit Recurrence Display"
-      unique_id: sonos_edit_recurrence_display
-      icon: mdi:calendar-repeat
-      state: >
-        {% set entity = states('input_text.sonos_alarm_edit_entity') %}
-        {% set recurrence = state_attr(entity, 'recurrence') | default('') %}
-        {% set map = {
-          'DAILY': 'Every day',
-          'WEEKDAYS': 'Weekdays',
-          'WEEKENDS': 'Weekends',
-          'ONCE': 'Once',
-          'ON_0': 'Sunday',
-          'ON_1': 'Monday',
-          'ON_2': 'Tuesday',
-          'ON_3': 'Wednesday',
-          'ON_4': 'Thursday',
-          'ON_5': 'Friday',
-          'ON_6': 'Saturday',
-          'ON_123456': 'Mon-Sat',
-          'ON_12345': 'Mon-Fri'
-        } %}
-        {{ map.get(recurrence, recurrence) }}
-
-    # ------------------------------------------------------------------
-    # Alarm Time Display Sensors - For Bubble Card popup display
-    # ------------------------------------------------------------------
-    - name: "Sonos Alarm Bedroom Display"
-      unique_id: sonos_alarm_bedroom_display
-      icon: mdi:alarm
-      state: >
-        {% set time = state_attr('switch.sonos_alarm_bedroom', 'time') %}
-        {{ time[:5] if time else '--:--' }}
-      attributes:
-        recurrence: "{{ state_attr('switch.sonos_alarm_bedroom', 'recurrence') | default('Daily') }}"
-
-    - name: "Sonos Alarm Living Room Display"
-      unique_id: sonos_alarm_living_room_display
-      icon: mdi:alarm
-      state: >
-        {% set time = state_attr('switch.sonos_alarm_living_room', 'time') %}
-        {{ time[:5] if time else '--:--' }}
-      attributes:
-        recurrence: "{{ state_attr('switch.sonos_alarm_living_room', 'recurrence') | default('Daily') }}"
-
-    - name: "Sonos Alarm Kitchen Display"
-      unique_id: sonos_alarm_kitchen_display
-      icon: mdi:alarm
-      state: >
-        {% set time = state_attr('switch.sonos_alarm_kitchen', 'time') %}
-        {{ time[:5] if time else '--:--' }}
-      attributes:
-        recurrence: "{{ state_attr('switch.sonos_alarm_kitchen', 'recurrence') | default('Daily') }}"
-
-    - name: "Sonos Alarm Bath Display"
-      unique_id: sonos_alarm_bath_display
-      icon: mdi:alarm
-      state: >
-        {% set time = state_attr('switch.sonos_alarm_bath', 'time') %}
-        {{ time[:5] if time else '--:--' }}
-      attributes:
-        recurrence: "{{ state_attr('switch.sonos_alarm_bath', 'recurrence') | default('Daily') }}"
-
-    # ------------------------------------------------------------------
-    # Sonos Alarm Playing Sensor
-    # Detects if any Sonos is currently playing an alarm
-    # ------------------------------------------------------------------
-    - name: "Sonos Alarm Playing"
-      unique_id: sonos_alarm_playing
-      icon: mdi:alarm-bell
-      state: >
-        {% set speakers = [
-          'media_player.bedroom',
-          'media_player.bath', 
-          'media_player.kitchen',
-          'media_player.living_room',
-          'media_player.dining_room'
-        ] %}
-        {% set ns = namespace(playing=none) %}
-        {% for speaker in speakers %}
-          {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
-            {% set ns.playing = speaker %}
-          {% endif %}
-        {% endfor %}
-        {{ ns.playing is not none }}
-      attributes:
-        speaker: >
+  
+      # ------------------------------------------------------------------
+      # Sonos Alarm Playing Sensor
+      # Detects if any Sonos is currently playing an alarm
+      # ------------------------------------------------------------------
+      - name: "Sonos Alarm Playing"
+        unique_id: sonos_alarm_playing
+        icon: mdi:alarm-bell
+        state: >
           {% set speakers = [
             'media_player.bedroom',
             'media_player.bath', 
@@ -796,453 +757,39 @@ template:
             'media_player.living_room',
             'media_player.dining_room'
           ] %}
+          {% set ns = namespace(playing=none) %}
           {% for speaker in speakers %}
             {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
-              {{ speaker }}
+              {% set ns.playing = speaker %}
             {% endif %}
           {% endfor %}
-
-    # ------------------------------------------------------------------
-    # Sonos Current Playing Group Coordinator
-    # Returns the coordinator of the LARGEST playing group
-    # Coordinator is always group_members[0] in Sonos
-    # ------------------------------------------------------------------
-    - name: "Sonos Current Playing Group Coordinator"
-      unique_id: sonos_current_playing_group
-      icon: mdi:speaker-multiple
-      state: >-
-        {% set speakers = [
-          'media_player.living_room',
-          'media_player.kitchen',
-          'media_player.bedroom',
-          'media_player.bath',
-          'media_player.dining_room'
-        ] %}
-        {% set playing = speakers | select('is_state', 'playing') | list %}
-        {% if playing | length == 0 %}
-          none
-        {% else %}
-          {% set ns = namespace(best_coord='none', best_size=0) %}
-          {% for speaker in playing %}
-            {% set members = state_attr(speaker, 'group_members') or [] %}
-            {% if members | length > ns.best_size %}
-              {% set ns.best_coord = members[0] %}
-              {% set ns.best_size = members | length %}
-            {% endif %}
-          {% endfor %}
-          {{ ns.best_coord if ns.best_coord != 'none' else playing[0] }}
-        {% endif %}
-      attributes:
-        playing_state: >
-          {% set coord = this.state %}
-          {{ states(coord) if coord and coord != 'none' else 'idle' }}
-        media_title: >
-          {% set coord = this.state %}
-          {{ state_attr(coord, 'media_title') | default('', true) if coord and coord != 'none' else '' }}
-        media_artist: >
-          {% set coord = this.state %}
-          {{ state_attr(coord, 'media_artist') | default('', true) if coord and coord != 'none' else '' }}
-        source: >
-          {% set coord = this.state %}
-          {{ state_attr(coord, 'source') | default('', true) if coord and coord != 'none' else '' }}
-        room: >
-          {% set coord = this.state %}
-          {{ state_attr(coord, 'friendly_name') | default('', true) if coord and coord != 'none' else '' }}
-        volume: >
-          {% set coord = this.state %}
-          {{ state_attr(coord, 'volume_level') | float(0) if coord and coord != 'none' else 0 }}
-        group_members: >
-          {% set coord = this.state %}
-          {{ state_attr(coord, 'group_members') | default([], true) if coord and coord != 'none' else [] }}
-
-    # ------------------------------------------------------------------
-    # Sonos Smart Coordinator (DRY - used by ZEN32 and other controllers)
-    # Wraps sonos_current_playing_group_coordinator with TV mode fallback:
-    # When Living Room is in TV mode (SPDIF input), it cannot accept music
-    # commands, so we route to Kitchen instead.
-    # ------------------------------------------------------------------
-    - name: "Sonos Smart Coordinator"
-      unique_id: sonos_smart_coordinator
-      icon: mdi:speaker-multiple
-      state: >
-        {% set living_room_on_tv = state_attr('media_player.living_room', 'source') == 'TV'
-           and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] %}
-        {% set smart_fallback = 'media_player.kitchen' if living_room_on_tv else 'media_player.living_room' %}
-        {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
-        {% if living_room_on_tv and raw == 'media_player.living_room' %}
-          {{ smart_fallback }}
-        {% elif raw not in ['none', 'unknown', 'unavailable', ''] %}
-          {{ raw }}
-        {% else %}
-          {{ smart_fallback }}
-        {% endif %}
-      attributes:
-        is_tv_mode: >
-          {{ state_attr('media_player.living_room', 'source') == 'TV'
-             and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] }}
-        raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
-        using_fallback: >
-          {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
-          {{ raw in ['none', 'unknown', 'unavailable', ''] }}
-        fallback_reason: >
-          {% set living_room_on_tv = state_attr('media_player.living_room', 'source') == 'TV'
-             and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] %}
-          {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
-          {% if living_room_on_tv and raw == 'media_player.living_room' %}
-            tv_mode_redirect
-          {% elif raw in ['none', 'unknown', 'unavailable', ''] %}
-            no_playing_group
-          {% else %}
-            none
-          {% endif %}
-        group_members: >
-          {% set coord = this.state %}
-          {% if coord in ['none', 'unknown', 'unavailable', ''] %}
-            []
-          {% else %}
-            {{ state_attr(coord, 'group_members') | default([coord], true) }}
-          {% endif %}
-        grouped_count: >
-          {% set coord = this.state %}
-          {% if coord in ['none', 'unknown', 'unavailable', ''] %}
-            0
-          {% else %}
-            {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
-            {{ members | length }}
-          {% endif %}
-
-    # ------------------------------------------------------------------
-    # Sonos Active Group Coordinator
-    # Stable grouping source for UI (works even when nothing is playing)
-    # ------------------------------------------------------------------
-    - name: "Sonos Active Group Coordinator"
-      unique_id: sonos_active_group_coordinator
-      icon: mdi:speaker-multiple
-      state: >
-        {% set speakers = [
-          'media_player.living_room',
-          'media_player.kitchen',
-          'media_player.bedroom',
-          'media_player.bath',
-          'media_player.dining_room'
-        ] %}
-        {% set ns = namespace(best='none', size=0) %}
-        {% for speaker in speakers %}
-          {% if states(speaker) not in ['unknown', 'unavailable'] %}
-            {% set members = state_attr(speaker, 'group_members') | default([speaker], true) %}
-            {% set coord = members[0] if (members | length) > 0 else speaker %}
-            {% set size = members | length %}
-            {% if size > ns.size %}
-              {% set ns.best = coord %}
-              {% set ns.size = size %}
-            {% endif %}
-          {% endif %}
-        {% endfor %}
-        {% if ns.best in ['none', 'unknown', 'unavailable', ''] %}
-          media_player.living_room
-        {% else %}
-          {{ ns.best }}
-        {% endif %}
-      attributes:
-        group_members: >
-          {% set coord = this.state %}
-          {% if coord in ['none', 'unknown', 'unavailable', ''] %}
-            []
-          {% else %}
-            {{ state_attr(coord, 'group_members') | default([coord], true) }}
-          {% endif %}
-        grouped_count: >
-          {% set coord = this.state %}
-          {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
-          {{ members | length }}
-        is_playing_group: >
-          {% set coord = this.state %}
-          {{ states(coord) == 'playing' if coord not in ['none', 'unknown', 'unavailable', ''] else false }}
-
-    # ------------------------------------------------------------------
-    # Sonos Active Group Members
-    # UI-first grouping sensor: provides stable group_members list
-    # with fallback to smart coordinator when active-group signal is weak.
-    # ------------------------------------------------------------------
-    - name: "Sonos Active Group Members"
-      unique_id: sonos_active_group_members
-      icon: mdi:account-multiple-outline
-      state: >
-        {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
-        {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
-        {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
-        {% set coord = active_coord if active_coord not in invalid else smart_coord %}
-        {% if coord in invalid %}
-          0
-        {% else %}
-          {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
-          {{ members | length }}
-        {% endif %}
-      attributes:
-        coordinator: >
-          {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
-          {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
-          {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
-          {{ active_coord if active_coord not in invalid else smart_coord }}
-        source: >
-          {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
-          {% if active_coord not in ['none', 'unknown', 'unavailable', ''] %}
-            active_group_coordinator
-          {% else %}
-            smart_coordinator_fallback
-          {% endif %}
-        group_members: >
-          {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
-          {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
-          {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
-          {% set coord = active_coord if active_coord not in invalid else smart_coord %}
-          {% if coord in invalid %}
-            []
-          {% else %}
-            {{ state_attr(coord, 'group_members') | default([coord], true) }}
-          {% endif %}
-        member_names: >
-          {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
-          {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
-          {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
-          {% set coord = active_coord if active_coord not in invalid else smart_coord %}
-          {% if coord in invalid %}
-            []
-          {% else %}
-            {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
-            {{ expand(members) | map(attribute='name') | list }}
-          {% endif %}
-
-    - name: "Sonos Living Room Group Label"
-      unique_id: sonos_living_room_group_label
-      icon: mdi:account-multiple-outline
-      state: >
-        {% set group = state_attr('media_player.living_room', 'group_members') or [] %}
-        {% if group | length <= 1 %}
-          Not grouped
-        {% else %}
-          {% set others = group | reject('eq', 'media_player.living_room') | list %}
-          {% set names = expand(others) | map(attribute='name') | list %}
-          In group with: {{ names | join(', ') }}
-        {% endif %}
-
-    - name: "Sonos Dining Room Group Label"
-      unique_id: sonos_dining_room_group_label
-      icon: mdi:account-multiple-outline
-      state: >
-        {% set group = state_attr('media_player.dining_room', 'group_members') or [] %}
-        {% if group | length <= 1 %}
-          Not grouped
-        {% else %}
-          {% set others = group | reject('eq', 'media_player.dining_room') | list %}
-          {% set names = expand(others) | map(attribute='name') | list %}
-          In group with: {{ names | join(', ') }}
-        {% endif %}
-
-    - name: "Sonos Kitchen Group Label"
-      unique_id: sonos_kitchen_group_label
-      icon: mdi:account-multiple-outline
-      state: >
-        {% set group = state_attr('media_player.kitchen', 'group_members') or [] %}
-        {% if group | length <= 1 %}
-          Not grouped
-        {% else %}
-          {% set others = group | reject('eq', 'media_player.kitchen') | list %}
-          {% set names = expand(others) | map(attribute='name') | list %}
-          In group with: {{ names | join(', ') }}
-        {% endif %}
-
-    - name: "Sonos Bath Group Label"
-      unique_id: sonos_bath_group_label
-      icon: mdi:account-multiple-outline
-      state: >
-        {% set group = state_attr('media_player.bath', 'group_members') or [] %}
-        {% if group | length <= 1 %}
-          Not grouped
-        {% else %}
-          {% set others = group | reject('eq', 'media_player.bath') | list %}
-          {% set names = expand(others) | map(attribute='name') | list %}
-          In group with: {{ names | join(', ') }}
-        {% endif %}
-
-    - name: "Sonos Bedroom Group Label"
-      unique_id: sonos_bedroom_group_label
-      icon: mdi:account-multiple-outline
-      state: >
-        {% set group = state_attr('media_player.bedroom', 'group_members') or [] %}
-        {% if group | length <= 1 %}
-          Not grouped
-        {% else %}
-          {% set others = group | reject('eq', 'media_player.bedroom') | list %}
-          {% set names = expand(others) | map(attribute='name') | list %}
-          In group with: {{ names | join(', ') }}
-        {% endif %}
-
-  binary_sensor:
-    # ------------------------------------------------------------------
-    # Legacy "playing-group" binaries (backward compatibility only)
-    # New UI grouping uses sensor.sonos_active_group_* + *_in_active_group.
-    # ------------------------------------------------------------------
-    - name: "Sonos Living Room In Playing Group"
-      unique_id: sonos_living_room_in_playing_group
-      icon: mdi:speaker
-      state: >
-        {% set target = 'media_player.living_room' %}
-        {% set main_group = states('sensor.sonos_current_playing_group_coordinator') %}
-        {% if not main_group or main_group in ['none', 'unknown', 'unavailable', ''] %}
-          false
-        {% else %}
-          {% set members = state_attr(main_group, 'group_members') or [] %}
-          {{ target in members }}
-        {% endif %}
-
-    - name: "Sonos Dining Room In Playing Group"
-      unique_id: sonos_dining_room_in_playing_group
-      icon: mdi:speaker
-      state: >
-        {% set target = 'media_player.dining_room' %}
-        {% set main_group = states('sensor.sonos_current_playing_group_coordinator') %}
-        {% if not main_group or main_group in ['none', 'unknown', 'unavailable', ''] %}
-          false
-        {% else %}
-          {% set members = state_attr(main_group, 'group_members') or [] %}
-          {{ target in members }}
-        {% endif %}
-
-    - name: "Sonos Kitchen In Playing Group"
-      unique_id: sonos_kitchen_in_playing_group
-      icon: mdi:speaker
-      state: >
-        {% set target = 'media_player.kitchen' %}
-        {% set main_group = states('sensor.sonos_current_playing_group_coordinator') %}
-        {% if not main_group or main_group in ['none', 'unknown', 'unavailable', ''] %}
-          false
-        {% else %}
-          {% set members = state_attr(main_group, 'group_members') or [] %}
-          {{ target in members }}
-        {% endif %}
-
-    - name: "Sonos Bath In Playing Group"
-      unique_id: sonos_bath_in_playing_group
-      icon: mdi:speaker
-      state: >
-        {% set target = 'media_player.bath' %}
-        {% set main_group = states('sensor.sonos_current_playing_group_coordinator') %}
-        {% if not main_group or main_group in ['none', 'unknown', 'unavailable', ''] %}
-          false
-        {% else %}
-          {% set members = state_attr(main_group, 'group_members') or [] %}
-          {{ target in members }}
-        {% endif %}
-
-    - name: "Sonos Bedroom In Playing Group"
-      unique_id: sonos_bedroom_in_playing_group
-      icon: mdi:speaker
-      state: >
-        {% set target = 'media_player.bedroom' %}
-        {% set main_group = states('sensor.sonos_current_playing_group_coordinator') %}
-        {% if not main_group or main_group in ['none', 'unknown', 'unavailable', ''] %}
-          false
-        {% else %}
-          {% set members = state_attr(main_group, 'group_members') or [] %}
-          {{ target in members }}
-        {% endif %}
-
-    - name: "Sonos Living Room In Active Group"
-      unique_id: sonos_living_room_in_active_group
-      icon: mdi:speaker
-      state: >
-        {% set target = 'media_player.living_room' %}
-        {% set active_group = states('sensor.sonos_active_group_coordinator') %}
-        {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
-          false
-        {% else %}
-          {% set members = state_attr(active_group, 'group_members') | default([], true) %}
-          {{ target in members }}
-        {% endif %}
-
-    - name: "Sonos Dining Room In Active Group"
-      unique_id: sonos_dining_room_in_active_group
-      icon: mdi:speaker
-      state: >
-        {% set target = 'media_player.dining_room' %}
-        {% set active_group = states('sensor.sonos_active_group_coordinator') %}
-        {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
-          false
-        {% else %}
-          {% set members = state_attr(active_group, 'group_members') | default([], true) %}
-          {{ target in members }}
-        {% endif %}
-
-    - name: "Sonos Kitchen In Active Group"
-      unique_id: sonos_kitchen_in_active_group
-      icon: mdi:speaker
-      state: >
-        {% set target = 'media_player.kitchen' %}
-        {% set active_group = states('sensor.sonos_active_group_coordinator') %}
-        {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
-          false
-        {% else %}
-          {% set members = state_attr(active_group, 'group_members') | default([], true) %}
-          {{ target in members }}
-        {% endif %}
-
-    - name: "Sonos Bath In Active Group"
-      unique_id: sonos_bath_in_active_group
-      icon: mdi:speaker
-      state: >
-        {% set target = 'media_player.bath' %}
-        {% set active_group = states('sensor.sonos_active_group_coordinator') %}
-        {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
-          false
-        {% else %}
-          {% set members = state_attr(active_group, 'group_members') | default([], true) %}
-          {{ target in members }}
-        {% endif %}
-
-    - name: "Sonos Bedroom In Active Group"
-      unique_id: sonos_bedroom_in_active_group
-      icon: mdi:speaker
-      state: >
-        {% set target = 'media_player.bedroom' %}
-        {% set active_group = states('sensor.sonos_active_group_coordinator') %}
-        {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
-          false
-        {% else %}
-          {% set members = state_attr(active_group, 'group_members') | default([], true) %}
-          {{ target in members }}
-        {% endif %}
-
-    # ------------------------------------------------------------------
-    # Sonos Playing Status (for OAL dashboard)
-    # Uses explicit speaker list for reliability
-    # ------------------------------------------------------------------
-    - name: "Sonos Playing Status"
-      unique_id: sonos_playing_status
-      icon: mdi:speaker-multiple
-      state: >
-        {% set speakers = {
-          'media_player.living_room': 'Living',
-          'media_player.kitchen': 'Kitchen',
-          'media_player.bedroom': 'Bedroom',
-          'media_player.bath': 'Bath',
-          'media_player.dining_room': 'Dining'
-        } %}
-        {% set playing = namespace(rooms=[]) %}
-        {% for entity_id, name in speakers.items() %}
-          {% if is_state(entity_id, 'playing') %}
-            {% set playing.rooms = playing.rooms + [name] %}
-          {% endif %}
-        {% endfor %}
-        {% if playing.rooms | length == 0 %}
-          Off
-        {% elif playing.rooms | length == 1 %}
-          {{ playing.rooms[0] }}
-        {% else %}
-          {{ playing.rooms | length }} rooms
-        {% endif %}
-      attributes:
-        playing_rooms: >
+          {{ ns.playing is not none }}
+        attributes:
+          speaker: >
+            {% set speakers = [
+              'media_player.bedroom',
+              'media_player.bath',
+              'media_player.kitchen',
+              'media_player.living_room',
+              'media_player.dining_room'
+            ] %}
+            {% set ns = namespace(found='') %}
+            {% for speaker in speakers %}
+              {% if not ns.found and states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
+                {% set ns.found = speaker %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.found }}
+  
+      # ------------------------------------------------------------------
+      # Sonos Current Playing Group Coordinator
+      # Returns the coordinator of the LARGEST playing group
+      # Coordinator is always group_members[0] in Sonos
+      # ------------------------------------------------------------------
+      - name: "Sonos Current Playing Group Coordinator"
+        unique_id: sonos_current_playing_group
+        icon: mdi:speaker-multiple
+        state: >-
           {% set speakers = [
             'media_player.living_room',
             'media_player.kitchen',
@@ -1250,19 +797,531 @@ template:
             'media_player.bath',
             'media_player.dining_room'
           ] %}
-          {% set playing = namespace(rooms=[]) %}
-          {% for entity_id in speakers %}
-            {% if is_state(entity_id, 'playing') %}
-              {% set playing.rooms = playing.rooms + [entity_id] %}
+          {% set playing = speakers | select('is_state', 'playing') | list %}
+          {% if playing | length == 0 %}
+            none
+          {% else %}
+            {% set ns = namespace(best_coord='none', best_size=0) %}
+            {% for speaker in playing %}
+              {% set members = state_attr(speaker, 'group_members') or [] %}
+              {% if members | length > ns.best_size %}
+                {% set ns.best_coord = members[0] %}
+                {% set ns.best_size = members | length %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.best_coord if ns.best_coord != 'none' else playing[0] }}
+          {% endif %}
+        attributes:
+          playing_state: >
+            {% set coord = this.state %}
+            {{ states(coord) if coord and coord != 'none' else 'idle' }}
+          media_title: >
+            {% set coord = this.state %}
+            {{ state_attr(coord, 'media_title') | default('', true) if coord and coord != 'none' else '' }}
+          media_artist: >
+            {% set coord = this.state %}
+            {{ state_attr(coord, 'media_artist') | default('', true) if coord and coord != 'none' else '' }}
+          source: >
+            {% set coord = this.state %}
+            {{ state_attr(coord, 'source') | default('', true) if coord and coord != 'none' else '' }}
+          room: >
+            {% set coord = this.state %}
+            {{ state_attr(coord, 'friendly_name') | default('', true) if coord and coord != 'none' else '' }}
+          volume: >
+            {% set coord = this.state %}
+            {{ state_attr(coord, 'volume_level') | float(0) if coord and coord != 'none' else 0 }}
+          group_members: >
+            {% set coord = this.state %}
+            {{ state_attr(coord, 'group_members') | default([], true) if coord and coord != 'none' else [] }}
+  
+      # ------------------------------------------------------------------
+      # Sonos Smart Coordinator (DRY - used by ZEN32 and other controllers)
+      # Wraps sonos_current_playing_group_coordinator with TV mode fallback:
+      # When Living Room is in TV mode (SPDIF input), it cannot accept music
+      # commands, so we route to Kitchen instead.
+      # ------------------------------------------------------------------
+      - name: "Sonos Smart Coordinator"
+        unique_id: sonos_smart_coordinator
+        icon: mdi:speaker-multiple
+        state: >
+          {% set living_room_on_tv = state_attr('media_player.living_room', 'source') == 'TV'
+             and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] %}
+          {% set smart_fallback = 'media_player.kitchen' if living_room_on_tv else 'media_player.living_room' %}
+          {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+          {% if living_room_on_tv and raw == 'media_player.living_room' %}
+            {{ smart_fallback }}
+          {% elif raw not in ['none', 'unknown', 'unavailable', ''] %}
+            {{ raw }}
+          {% else %}
+            {{ smart_fallback }}
+          {% endif %}
+        attributes:
+          is_tv_mode: >
+            {{ state_attr('media_player.living_room', 'source') == 'TV'
+               and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] }}
+          raw_coordinator: "{{ states('sensor.sonos_current_playing_group_coordinator') }}"
+          using_fallback: >
+            {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+            {{ raw in ['none', 'unknown', 'unavailable', ''] }}
+          fallback_reason: >
+            {% set living_room_on_tv = state_attr('media_player.living_room', 'source') == 'TV'
+               and states('media_player.living_room_apple_tv') not in ['off', 'unavailable', 'unknown'] %}
+            {% set raw = states('sensor.sonos_current_playing_group_coordinator') %}
+            {% if living_room_on_tv and raw == 'media_player.living_room' %}
+              tv_mode_redirect
+            {% elif raw in ['none', 'unknown', 'unavailable', ''] %}
+              no_playing_group
+            {% else %}
+              none
+            {% endif %}
+          group_members: >
+            {% set coord = this.state %}
+            {% if coord in ['none', 'unknown', 'unavailable', ''] %}
+              []
+            {% else %}
+              {{ state_attr(coord, 'group_members') | default([coord], true) }}
+            {% endif %}
+          grouped_count: >
+            {% set coord = this.state %}
+            {% if coord in ['none', 'unknown', 'unavailable', ''] %}
+              0
+            {% else %}
+              {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
+              {{ members | length }}
+            {% endif %}
+  
+      # ------------------------------------------------------------------
+      # Sonos Active Group Coordinator
+      # Stable grouping source for UI (works even when nothing is playing)
+      # ------------------------------------------------------------------
+      - name: "Sonos Active Group Coordinator"
+        unique_id: sonos_active_group_coordinator
+        icon: mdi:speaker-multiple
+        state: >
+          {% set speakers = [
+            'media_player.living_room',
+            'media_player.kitchen',
+            'media_player.bedroom',
+            'media_player.bath',
+            'media_player.dining_room'
+          ] %}
+          {% set ns = namespace(best='none', size=0) %}
+          {% for speaker in speakers %}
+            {% if states(speaker) not in ['unknown', 'unavailable'] %}
+              {% set members = state_attr(speaker, 'group_members') | default([speaker], true) %}
+              {% set coord = members[0] if (members | length) > 0 else speaker %}
+              {% set size = members | length %}
+              {% if size > ns.size %}
+                {% set ns.best = coord %}
+                {% set ns.size = size %}
+              {% endif %}
             {% endif %}
           {% endfor %}
-          {{ playing.rooms }}
-        is_playing: >
-          {{ is_state('media_player.living_room', 'playing')
-             or is_state('media_player.kitchen', 'playing')
-             or is_state('media_player.bedroom', 'playing')
-             or is_state('media_player.bath', 'playing')
-             or is_state('media_player.dining_room', 'playing') }}
+          {% if ns.best in ['none', 'unknown', 'unavailable', ''] %}
+            media_player.living_room
+          {% else %}
+            {{ ns.best }}
+          {% endif %}
+        attributes:
+          group_members: >
+            {% set coord = this.state %}
+            {% if coord in ['none', 'unknown', 'unavailable', ''] %}
+              []
+            {% else %}
+              {{ state_attr(coord, 'group_members') | default([coord], true) }}
+            {% endif %}
+          grouped_count: >
+            {% set coord = this.state %}
+            {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
+            {{ members | length }}
+          is_playing_group: >
+            {% set coord = this.state %}
+            {{ states(coord) == 'playing' if coord not in ['none', 'unknown', 'unavailable', ''] else false }}
+  
+      # ------------------------------------------------------------------
+      # Sonos Active Group Members
+      # UI-first grouping sensor: provides stable group_members list
+      # with fallback to smart coordinator when active-group signal is weak.
+      # ------------------------------------------------------------------
+      - name: "Sonos Active Group Members"
+        unique_id: sonos_active_group_members
+        icon: mdi:account-multiple-outline
+        state: >
+          {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
+          {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
+          {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
+          {% set coord = active_coord if active_coord not in invalid else smart_coord %}
+          {% if coord in invalid %}
+            0
+          {% else %}
+            {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
+            {{ members | length }}
+          {% endif %}
+        attributes:
+          coordinator: >
+            {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
+            {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
+            {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
+            {{ active_coord if active_coord not in invalid else smart_coord }}
+          source: >
+            {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
+            {% if active_coord not in ['none', 'unknown', 'unavailable', ''] %}
+              active_group_coordinator
+            {% else %}
+              smart_coordinator_fallback
+            {% endif %}
+          group_members: >
+            {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
+            {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
+            {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
+            {% set coord = active_coord if active_coord not in invalid else smart_coord %}
+            {% if coord in invalid %}
+              []
+            {% else %}
+              {{ state_attr(coord, 'group_members') | default([coord], true) }}
+            {% endif %}
+          member_names: >
+            {% set active_coord = states('sensor.sonos_active_group_coordinator') %}
+            {% set smart_coord = states('sensor.sonos_smart_coordinator') %}
+            {% set invalid = ['none', 'unknown', 'unavailable', ''] %}
+            {% set coord = active_coord if active_coord not in invalid else smart_coord %}
+            {% if coord in invalid %}
+              []
+            {% else %}
+              {% set members = state_attr(coord, 'group_members') | default([coord], true) %}
+              {{ expand(members) | map(attribute='name') | list }}
+            {% endif %}
+  
+      - name: "Sonos Living Room Group Label"
+        unique_id: sonos_living_room_group_label
+        icon: mdi:account-multiple-outline
+        state: >
+          {% set group = state_attr('media_player.living_room', 'group_members') or [] %}
+          {% if group | length <= 1 %}
+            Not grouped
+          {% else %}
+            {% set others = group | reject('eq', 'media_player.living_room') | list %}
+            {% set names = expand(others) | map(attribute='name') | list %}
+            In group with: {{ names | join(', ') }}
+          {% endif %}
+  
+      - name: "Sonos Dining Room Group Label"
+        unique_id: sonos_dining_room_group_label
+        icon: mdi:account-multiple-outline
+        state: >
+          {% set group = state_attr('media_player.dining_room', 'group_members') or [] %}
+          {% if group | length <= 1 %}
+            Not grouped
+          {% else %}
+            {% set others = group | reject('eq', 'media_player.dining_room') | list %}
+            {% set names = expand(others) | map(attribute='name') | list %}
+            In group with: {{ names | join(', ') }}
+          {% endif %}
+  
+      - name: "Sonos Kitchen Group Label"
+        unique_id: sonos_kitchen_group_label
+        icon: mdi:account-multiple-outline
+        state: >
+          {% set group = state_attr('media_player.kitchen', 'group_members') or [] %}
+          {% if group | length <= 1 %}
+            Not grouped
+          {% else %}
+            {% set others = group | reject('eq', 'media_player.kitchen') | list %}
+            {% set names = expand(others) | map(attribute='name') | list %}
+            In group with: {{ names | join(', ') }}
+          {% endif %}
+  
+      - name: "Sonos Bath Group Label"
+        unique_id: sonos_bath_group_label
+        icon: mdi:account-multiple-outline
+        state: >
+          {% set group = state_attr('media_player.bath', 'group_members') or [] %}
+          {% if group | length <= 1 %}
+            Not grouped
+          {% else %}
+            {% set others = group | reject('eq', 'media_player.bath') | list %}
+            {% set names = expand(others) | map(attribute='name') | list %}
+            In group with: {{ names | join(', ') }}
+          {% endif %}
+  
+      - name: "Sonos Bedroom Group Label"
+        unique_id: sonos_bedroom_group_label
+        icon: mdi:account-multiple-outline
+        state: >
+          {% set group = state_attr('media_player.bedroom', 'group_members') or [] %}
+          {% if group | length <= 1 %}
+            Not grouped
+          {% else %}
+            {% set others = group | reject('eq', 'media_player.bedroom') | list %}
+            {% set names = expand(others) | map(attribute='name') | list %}
+            In group with: {{ names | join(', ') }}
+          {% endif %}
+  
+  - binary_sensor:
+      # ------------------------------------------------------------------
+      # Legacy "playing-group" binaries (backward compatibility only)
+      # New UI grouping uses sensor.sonos_active_group_* + *_in_active_group.
+      # ------------------------------------------------------------------
+      - name: "Sonos Living Room In Playing Group"
+        unique_id: sonos_living_room_in_playing_group
+        icon: mdi:speaker
+        state: >
+          {% set target = 'media_player.living_room' %}
+          {% set main_group = states('sensor.sonos_current_playing_group_coordinator') %}
+          {% if not main_group or main_group in ['none', 'unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set members = state_attr(main_group, 'group_members') or [] %}
+            {{ target in members }}
+          {% endif %}
+  
+      - name: "Sonos Dining Room In Playing Group"
+        unique_id: sonos_dining_room_in_playing_group
+        icon: mdi:speaker
+        state: >
+          {% set target = 'media_player.dining_room' %}
+          {% set main_group = states('sensor.sonos_current_playing_group_coordinator') %}
+          {% if not main_group or main_group in ['none', 'unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set members = state_attr(main_group, 'group_members') or [] %}
+            {{ target in members }}
+          {% endif %}
+  
+      - name: "Sonos Kitchen In Playing Group"
+        unique_id: sonos_kitchen_in_playing_group
+        icon: mdi:speaker
+        state: >
+          {% set target = 'media_player.kitchen' %}
+          {% set main_group = states('sensor.sonos_current_playing_group_coordinator') %}
+          {% if not main_group or main_group in ['none', 'unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set members = state_attr(main_group, 'group_members') or [] %}
+            {{ target in members }}
+          {% endif %}
+  
+      - name: "Sonos Bath In Playing Group"
+        unique_id: sonos_bath_in_playing_group
+        icon: mdi:speaker
+        state: >
+          {% set target = 'media_player.bath' %}
+          {% set main_group = states('sensor.sonos_current_playing_group_coordinator') %}
+          {% if not main_group or main_group in ['none', 'unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set members = state_attr(main_group, 'group_members') or [] %}
+            {{ target in members }}
+          {% endif %}
+  
+      - name: "Sonos Bedroom In Playing Group"
+        unique_id: sonos_bedroom_in_playing_group
+        icon: mdi:speaker
+        state: >
+          {% set target = 'media_player.bedroom' %}
+          {% set main_group = states('sensor.sonos_current_playing_group_coordinator') %}
+          {% if not main_group or main_group in ['none', 'unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set members = state_attr(main_group, 'group_members') or [] %}
+            {{ target in members }}
+          {% endif %}
+  
+      - name: "Sonos Living Room In Active Group"
+        unique_id: sonos_living_room_in_active_group
+        icon: mdi:speaker
+        state: >
+          {% set target = 'media_player.living_room' %}
+          {% set active_group = states('sensor.sonos_active_group_coordinator') %}
+          {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set members = state_attr(active_group, 'group_members') | default([], true) %}
+            {{ target in members }}
+          {% endif %}
+  
+      - name: "Sonos Dining Room In Active Group"
+        unique_id: sonos_dining_room_in_active_group
+        icon: mdi:speaker
+        state: >
+          {% set target = 'media_player.dining_room' %}
+          {% set active_group = states('sensor.sonos_active_group_coordinator') %}
+          {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set members = state_attr(active_group, 'group_members') | default([], true) %}
+            {{ target in members }}
+          {% endif %}
+  
+      - name: "Sonos Kitchen In Active Group"
+        unique_id: sonos_kitchen_in_active_group
+        icon: mdi:speaker
+        state: >
+          {% set target = 'media_player.kitchen' %}
+          {% set active_group = states('sensor.sonos_active_group_coordinator') %}
+          {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set members = state_attr(active_group, 'group_members') | default([], true) %}
+            {{ target in members }}
+          {% endif %}
+  
+      - name: "Sonos Bath In Active Group"
+        unique_id: sonos_bath_in_active_group
+        icon: mdi:speaker
+        state: >
+          {% set target = 'media_player.bath' %}
+          {% set active_group = states('sensor.sonos_active_group_coordinator') %}
+          {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set members = state_attr(active_group, 'group_members') | default([], true) %}
+            {{ target in members }}
+          {% endif %}
+  
+      - name: "Sonos Bedroom In Active Group"
+        unique_id: sonos_bedroom_in_active_group
+        icon: mdi:speaker
+        state: >
+          {% set target = 'media_player.bedroom' %}
+          {% set active_group = states('sensor.sonos_active_group_coordinator') %}
+          {% if active_group in ['none', 'unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set members = state_attr(active_group, 'group_members') | default([], true) %}
+            {{ target in members }}
+          {% endif %}
+  
+      # ------------------------------------------------------------------
+      # Sonos Playing Status (for OAL dashboard)
+      # Uses explicit speaker list for reliability
+      # ------------------------------------------------------------------
+      - name: "Sonos Playing Status"
+        unique_id: sonos_playing_status
+        icon: mdi:speaker-multiple
+        state: >
+          {% set speakers = {
+            'media_player.living_room': 'Living',
+            'media_player.kitchen': 'Kitchen',
+            'media_player.bedroom': 'Bedroom',
+            'media_player.bath': 'Bath',
+            'media_player.dining_room': 'Dining'
+          } %}
+          {% set playing = namespace(rooms=[]) %}
+          {% for entity_id, name in speakers.items() %}
+            {% if is_state(entity_id, 'playing') %}
+              {% set playing.rooms = playing.rooms + [name] %}
+            {% endif %}
+          {% endfor %}
+          {% if playing.rooms | length == 0 %}
+            Off
+          {% elif playing.rooms | length == 1 %}
+            {{ playing.rooms[0] }}
+          {% else %}
+            {{ playing.rooms | length }} rooms
+          {% endif %}
+        attributes:
+          playing_rooms: >
+            {% set speakers = [
+              'media_player.living_room',
+              'media_player.kitchen',
+              'media_player.bedroom',
+              'media_player.bath',
+              'media_player.dining_room'
+            ] %}
+            {% set playing = namespace(rooms=[]) %}
+            {% for entity_id in speakers %}
+              {% if is_state(entity_id, 'playing') %}
+                {% set playing.rooms = playing.rooms + [entity_id] %}
+              {% endif %}
+            {% endfor %}
+            {{ playing.rooms }}
+          is_playing: >
+            {{ is_state('media_player.living_room', 'playing')
+               or is_state('media_player.kitchen', 'playing')
+               or is_state('media_player.bedroom', 'playing')
+               or is_state('media_player.bath', 'playing')
+               or is_state('media_player.dining_room', 'playing') }}
+
+  # ------------------------------------------------------------------
+  # Per-Room Alarm Display Sensors (trigger-based)
+  # Each room has a weekday + weekend alarm switch. The sensor picks
+  # whichever fires today (scheduled_today attr), or whichever is
+  # enabled, tie-breaking by earlier time.
+  # ------------------------------------------------------------------
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: state
+        entity_id:
+          - switch.sonos_alarm_bedroom
+          - switch.sonos_alarm_bedroom_weekend
+    variables:
+      wd: "switch.sonos_alarm_bedroom"
+      we: "switch.sonos_alarm_bedroom_weekend"
+      wd_on: "{{ is_state(wd, 'on') }}"
+      we_on: "{{ is_state(we, 'on') }}"
+      wd_today: "{{ wd_on and state_attr(wd, 'scheduled_today') }}"
+      we_today: "{{ we_on and state_attr(we, 'scheduled_today') }}"
+      wd_t: "{{ state_attr(wd, 'time') or '99:99:99' }}"
+      we_t: "{{ state_attr(we, 'time') or '99:99:99' }}"
+      active: >
+        {% if wd_today and not we_today %}{{ wd }}
+        {% elif we_today and not wd_today %}{{ we }}
+        {% elif wd_today and we_today %}{{ wd if wd_t <= we_t else we }}
+        {% elif wd_on and not we_on %}{{ wd }}
+        {% elif we_on and not wd_on %}{{ we }}
+        {% elif wd_on and we_on %}{{ wd if wd_t <= we_t else we }}
+        {% else %}{{ '' }}{% endif %}
+    sensor:
+      - name: "Sonos Alarm Bedroom Display"
+        unique_id: sonos_alarm_bedroom_display
+        icon: mdi:alarm
+        state: >
+          {% set t = state_attr(active, 'time') %}
+          {{ t[:5] if t else '--:--' }}
+        attributes:
+          active_entity: "{{ active }}"
+          recurrence: "{{ state_attr(active, 'recurrence') if active else 'OFF' }}"
+          weekday_enabled: "{{ wd_on }}"
+          weekend_enabled: "{{ we_on }}"
+
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: state
+        entity_id:
+          - switch.sonos_alarm_bath
+          - switch.sonos_alarm_bath_weekend
+    variables:
+      wd: "switch.sonos_alarm_bath"
+      we: "switch.sonos_alarm_bath_weekend"
+      wd_on: "{{ is_state(wd, 'on') }}"
+      we_on: "{{ is_state(we, 'on') }}"
+      wd_today: "{{ wd_on and state_attr(wd, 'scheduled_today') }}"
+      we_today: "{{ we_on and state_attr(we, 'scheduled_today') }}"
+      wd_t: "{{ state_attr(wd, 'time') or '99:99:99' }}"
+      we_t: "{{ state_attr(we, 'time') or '99:99:99' }}"
+      active: >
+        {% if wd_today and not we_today %}{{ wd }}
+        {% elif we_today and not wd_today %}{{ we }}
+        {% elif wd_today and we_today %}{{ wd if wd_t <= we_t else we }}
+        {% elif wd_on and not we_on %}{{ wd }}
+        {% elif we_on and not wd_on %}{{ we }}
+        {% elif wd_on and we_on %}{{ wd if wd_t <= we_t else we }}
+        {% else %}{{ '' }}{% endif %}
+    sensor:
+      - name: "Sonos Alarm Bath Display"
+        unique_id: sonos_alarm_bath_display
+        icon: mdi:alarm
+        state: >
+          {% set t = state_attr(active, 'time') %}
+          {{ t[:5] if t else '--:--' }}
+        attributes:
+          active_entity: "{{ active }}"
+          recurrence: "{{ state_attr(active, 'recurrence') if active else 'OFF' }}"
+          weekday_enabled: "{{ wd_on }}"
+          weekend_enabled: "{{ we_on }}"
 
 ############################
 #  SCRIPTS                 #
@@ -2176,8 +2235,8 @@ script:
       - action: switch.turn_on
         target:
           entity_id:
-            - switch.sonos_alarm_182   # Bedroom Weekdays 05:15
-            - switch.sonos_alarm_1381  # Bath Daily 09:59
+            - switch.sonos_alarm_bedroom
+            - switch.sonos_alarm_bath
 
   sonos_enable_weekend_alarms:
     alias: "Sonos - Enable Weekend Alarms"
@@ -2188,7 +2247,8 @@ script:
       - action: switch.turn_on
         target:
           entity_id:
-            - switch.sonos_alarm_42    # Bedroom Mon-Sat 17:38
+            - switch.sonos_alarm_bedroom_weekend
+            - switch.sonos_alarm_bath_weekend
 
   sonos_disable_all_alarms:
     alias: "Sonos - Disable All Alarms"
@@ -2199,9 +2259,10 @@ script:
       - action: switch.turn_off
         target:
           entity_id:
-            - switch.sonos_alarm_182
-            - switch.sonos_alarm_42
-            - switch.sonos_alarm_1381
+            - switch.sonos_alarm_bedroom
+            - switch.sonos_alarm_bedroom_weekend
+            - switch.sonos_alarm_bath
+            - switch.sonos_alarm_bath_weekend
 
   sonos_snooze_next_alarm:
     alias: "Sonos - Snooze Next Alarm"
@@ -2226,37 +2287,12 @@ script:
     sequence:
       - variables:
           snooze_mins: "{{ minutes | default(15) | int }}"
-          # Check if an alarm is currently playing
-          alarm_is_playing: "{{ states('sensor.sonos_alarm_playing') == 'True' }}"
-          playing_speaker: "{{ state_attr('sensor.sonos_alarm_playing', 'speaker') | default('') | trim }}"
-          # Map speaker to room keyword for matching alarm friendly_name
-          playing_room: >
-            {% if playing_speaker == 'media_player.bedroom' %}Bedroom
-            {% elif playing_speaker == 'media_player.bath' %}Bath
-            {% elif playing_speaker == 'media_player.kitchen' %}Kitchen
-            {% elif playing_speaker == 'media_player.living_room' %}Living
-            {% elif playing_speaker == 'media_player.dining_room' %}Dining
-            {% else %}{% endif %}
-          # Find the alarm switch for the playing speaker (matches room and is enabled)
-          playing_alarm: >
-            {% if alarm_is_playing and playing_room %}
-              {% set ns = namespace(found=none) %}
-              {% for entity in states.switch %}
-                {% if entity.entity_id.startswith('switch.sonos_alarm_') and entity.state == 'on' %}
-                  {% set fname = state_attr(entity.entity_id, 'friendly_name') | default('') %}
-                  {% if playing_room in fname %}
-                    {% set ns.found = entity.entity_id %}
-                  {% endif %}
-                {% endif %}
-              {% endfor %}
-              {{ ns.found }}
-            {% else %}
-              {{ none }}
-            {% endif %}
-          # Fall back to sensor.sonos_next_alarm if no alarm is actively playing
+          # Prefer stored alarm entity from notification, fallback to next_alarm sensor
+          stored_entity: "{{ states('input_text.sonos_alarm_active_entity') | trim }}"
+          stored_speaker: "{{ states('input_text.sonos_alarm_active_speaker') | trim }}"
           target_alarm: >
-            {% if playing_alarm not in [none, '', 'None'] %}
-              {{ playing_alarm }}
+            {% if stored_entity not in ['', 'unknown', 'unavailable'] %}
+              {{ stored_entity }}
             {% else %}
               {{ state_attr('sensor.sonos_next_alarm', 'next_alarm_entity') }}
             {% endif %}
@@ -2272,14 +2308,18 @@ script:
           total_mins: "{{ (parts[0] | int) * 60 + (parts[1] | int) + snooze_mins }}"
           new_mins: "{{ total_mins if total_mins < 1440 else total_mins - 1440 }}"
           new_time: "{{ '%02d:%02d:00' | format(new_mins // 60, new_mins % 60) }}"
+          # Prefer stored speaker, fallback to friendly_name lookup
           speaker: >
-            {% set name = state_attr(target_alarm, 'friendly_name') %}
-            {% if 'Bedroom' in name %}media_player.bedroom
-            {% elif 'Bath' in name %}media_player.bath
-            {% elif 'Kitchen' in name %}media_player.kitchen
-            {% elif 'Living' in name %}media_player.living_room
-            {% else %}media_player.dining_room{% endif %}
-          # Room key for snoozed alarm helper (matches input_text suffix)
+            {% if stored_speaker not in ['', 'unknown', 'unavailable'] %}
+              {{ stored_speaker }}
+            {% else %}
+              {% set name = state_attr(target_alarm, 'friendly_name') %}
+              {% if 'Bedroom' in name %}media_player.bedroom
+              {% elif 'Bath' in name %}media_player.bath
+              {% elif 'Kitchen' in name %}media_player.kitchen
+              {% elif 'Living' in name %}media_player.living_room
+              {% else %}media_player.dining_room{% endif %}
+            {% endif %}
           room_key: >
             {% set name = state_attr(target_alarm, 'friendly_name') %}
             {% if 'Bedroom' in name %}bedroom
@@ -2288,6 +2328,8 @@ script:
             {% elif 'Living' in name %}living_room
             {% else %}dining_room{% endif %}
           snoozed_helper: "input_text.sonos_snoozed_alarm_{{ room_key }}"
+          members: "{{ state_attr(speaker, 'group_members') | default([], true) }}"
+          stop_targets: "{{ ([speaker] + members) | unique | list }}"
 
       # Store original time before snoozing (only if not already snoozed)
       - if: "{{ states(snoozed_helper) in ['', 'unknown', 'unavailable'] }}"
@@ -2303,7 +2345,7 @@ script:
         then:
           - action: media_player.media_stop
             target:
-              entity_id: "{{ playing_speaker if playing_speaker else speaker }}"
+              entity_id: "{{ stop_targets }}"
 
       - action: sonos.update_alarm
         data:
@@ -2314,38 +2356,71 @@ script:
 
       - action: system_log.write
         data:
-          message: "Sonos Snooze: Alarm {{ target_alarm }} snoozed from {{ current }} to {{ new_time }} ({{ snooze_mins }} min). Playing: {{ alarm_is_playing }}, Speaker: {{ playing_speaker }}"
+          message: "Sonos Snooze: Alarm {{ target_alarm }} snoozed from {{ current }} to {{ new_time }} ({{ snooze_mins }} min). Speaker: {{ speaker }}"
           level: info
+
+      # Clear stored context after snooze
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.sonos_alarm_active_speaker
+        data:
+          value: ""
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.sonos_alarm_active_entity
+        data:
+          value: ""
 
   # -----------------------------------------------------------------------
   # Dismiss Alarm - Stop current alarm playback
   # -----------------------------------------------------------------------
   sonos_dismiss_alarm:
     alias: "Sonos - Dismiss Alarm"
-    description: "Stop alarm playback on the currently playing speaker"
+    description: "Stop alarm playback on the stored alarm speaker (or live scan fallback)"
     icon: mdi:alarm-off
     mode: single
     sequence:
       - variables:
-          # Find which speaker is currently playing the alarm
+          # Prefer stored speaker from notification, fallback to live scan
+          stored: "{{ states('input_text.sonos_alarm_active_speaker') | trim }}"
           playing_speaker: >
-            {% set speakers = [
-              'media_player.bedroom',
-              'media_player.bath',
-              'media_player.kitchen',
-              'media_player.living_room',
-              'media_player.dining_room'
-            ] %}
-            {% for speaker in speakers %}
-              {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
-                {{ speaker }}
-              {% endif %}
-            {% endfor %}
+            {% if stored not in ['', 'unknown', 'unavailable'] %}
+              {{ stored }}
+            {% else %}
+              {% set speakers = [
+                'media_player.bedroom',
+                'media_player.bath',
+                'media_player.kitchen',
+                'media_player.living_room',
+                'media_player.dining_room'
+              ] %}
+              {% set ns = namespace(found='') %}
+              {% for speaker in speakers %}
+                {% if not ns.found and states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
+                  {% set ns.found = speaker %}
+                {% endif %}
+              {% endfor %}
+              {{ ns.found }}
+            {% endif %}
+          # Get group members so we stop linked zones too
+          members: "{{ state_attr(playing_speaker, 'group_members') | default([], true) }}"
+          targets: "{{ ([playing_speaker] + members) | unique | list }}"
       - condition: template
-        value_template: "{{ playing_speaker is not none and playing_speaker != '' }}"
+        value_template: "{{ playing_speaker not in ['', 'unknown', 'unavailable', none] }}"
       - action: media_player.media_stop
         target:
-          entity_id: "{{ playing_speaker }}"
+          entity_id: "{{ targets }}"
+      # Clear stored context after dismiss
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.sonos_alarm_active_speaker
+        data:
+          value: ""
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.sonos_alarm_active_entity
+        data:
+          value: ""
 
   # -----------------------------------------------------------------------
   # Reset Snoozed Alarm - Restore original time after snooze
@@ -2786,8 +2861,34 @@ automation:
           dev_id: "{{ states('input_text.notify_target_device_id') }}"
           alarm_speaker: "{{ state_attr('sensor.sonos_alarm_playing', 'speaker') | trim }}"
           room_name: "{{ state_attr(alarm_speaker, 'friendly_name') | default('Sonos', true) }}"
+          # Find the alarm switch entity for this speaker
+          alarm_entity: >
+            {% set ns = namespace(found='') %}
+            {% for entity in states.switch %}
+              {% if not ns.found and entity.entity_id.startswith('switch.sonos_alarm_')
+                 and entity.state == 'on'
+                 and state_attr(entity.entity_id, 'scheduled_today') %}
+                {% set fname = entity.attributes.get('friendly_name', '') %}
+                {% set room = alarm_speaker.split('.')[1] | replace('_', ' ') | title %}
+                {% if room in fname or fname.split(' ')[0] | lower in alarm_speaker %}
+                  {% set ns.found = entity.entity_id %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.found }}
       - condition: template
         value_template: "{{ dev_id != '' and dev_id != none and dev_id != 'unavailable' }}"
+      # Store alarm context in helpers BEFORE sending notification
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.sonos_alarm_active_speaker
+        data:
+          value: "{{ alarm_speaker }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.sonos_alarm_active_entity
+        data:
+          value: "{{ alarm_entity }}"
       - action: notify.notify
         data:
           title: "⏰ Alarm - {{ room_name }}"

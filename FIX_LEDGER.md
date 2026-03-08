@@ -4,6 +4,24 @@ Working branch: `claude/dashboard-nav-research-QnOBs`
 Last updated: 2026-03-07
 Scope: `/home/mac/HA/implementation_10`
 
+## Session Delta (2026-03-07, T-011A.5)
+
+Change marker: `T-011A.5`
+
+- `DOC-DONE`
+  - V2 design-guideline rewrite + structure translation completed:
+    - `Dashboard/Tunet/Mockups/design_language.md` rewritten as canonical V2 contract (`v9.0`)
+    - `Dashboard/Tunet/design.md` rewritten as documentation-structure index
+  - direction locks documented in canonical design spec:
+    - implementation authority is `Dashboard/Tunet/Cards/v2/`
+    - profile family split is 5 keys (`tile-grid`, `speaker-tile`, `rooms-row`, `indicator-tile`, `indicator-row`)
+    - selector/resolver API split lock (`selectProfileSize` vs pure `resolveSizeProfile`)
+    - token consumer boundary lock (`tile-core` core lanes; family extensions owned by composing family components)
+    - container-first width-source requirement and mode-agnostic profile policy
+- `SCOPE`
+  - docs only, no runtime code changes
+  - no deployment/cache-bust actions
+
 ## Session Delta (2026-03-07, T-011A.4)
 
 Change marker: `T-011A.4`

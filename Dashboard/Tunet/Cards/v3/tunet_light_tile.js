@@ -12,6 +12,8 @@
  *   name:     display name override
  *   icon:     Material Symbols ligature override
  *   variant:  "vertical" (default) | "horizontal"
+ *   tile_size: "compact" | "standard" | "large" (default: standard)
+ *   use_profiles: boolean (default: true)
  */
 
 import {
@@ -28,10 +30,13 @@ import {
   applyDarkClass,
   createAxisLockedDrag,
   fireEvent,
+  selectProfileSize,
+  resolveSizeProfile,
+  _setProfileVars,
   registerCard,
   logCardVersion,
   clamp,
-} from './tunet_base.js?v=20260307p03';
+} from './tunet_base.js?v=20260309g3';
 
 
 // ═══════════════════════════════════════════════════════════
@@ -45,21 +50,23 @@ const TILE_CSS = `
     contain: layout style;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    --card-pad: var(--_tunet-card-pad, 1.25em);
+    --r-tile: var(--_tunet-tile-radius, 0.875em);
   }
 
   /* ── Shared tile tokens ── */
   .lt {
-    --icon-size: 44px;
-    --icon-radius: 16px;
-    --bar-h: 4px;
-    --bar-h-active: 6px;
-    --bar-inset: 14px;
-    --bar-bottom: 10px;
+    --icon-size: var(--_tunet-icon-box, 2.375em);
+    --icon-radius: calc(var(--_tunet-tile-radius, 0.875em) * 0.9);
+    --bar-h: var(--_tunet-progress-h, 0.5em);
+    --bar-h-active: calc(var(--_tunet-progress-h, 0.5em) * 1.25);
+    --bar-inset: var(--_tunet-tile-pad, 0.875em);
+    --bar-bottom: calc(var(--_tunet-tile-pad, 0.875em) * 0.72);
     --pill-shadow: 0 10px 30px rgba(0,0,0,0.3);
     --pill-border: 1px solid rgba(255,255,255,0.1);
 
     position: relative;
-    border-radius: var(--r-tile, 16px);
+    border-radius: var(--_tunet-tile-radius, var(--r-tile, 0.875em));
     background: var(--tile-bg);
     border: 1px solid var(--border-ghost, transparent);
     box-shadow: var(--shadow);
@@ -86,25 +93,33 @@ const TILE_CSS = `
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 9px 0 8px;
-    gap: 2px;
+    min-height: var(--_tunet-tile-min-h, 5.75em);
+    padding:
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.7)
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.39)
+      calc(var(--_tunet-tile-pad, 0.875em) * 1.03);
+    gap: calc(var(--_tunet-tile-gap, 0.375em) * 0.4);
   }
 
   @media (max-width: 440px) {
-    .lt.vertical { aspect-ratio: 1 / 0.98; }
+    :host(:not([use-profiles])) .lt.vertical { aspect-ratio: 1 / 0.98; }
   }
 
   /* ── Horizontal variant ── */
   .lt.horizontal {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 10px 12px 8px;
-    min-height: 56px;
+    gap: calc(var(--_tunet-tile-gap, 0.375em) * 1.4);
+    padding:
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.64)
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.78)
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.92)
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.64);
+    min-height: max(calc(var(--_tunet-tile-min-h, 5.75em) * 0.9), 3.5em);
   }
 
   @media (max-width: 440px) {
-    .lt.horizontal {
+    :host(:not([use-profiles])) .lt.horizontal {
       min-height: 52px;
       padding: 7px 9px 10px 7px;
       gap: 7px;
@@ -116,12 +131,12 @@ const TILE_CSS = `
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: calc(var(--_tunet-tile-gap, 0.375em) * 0.25);
   }
 
   .lt.horizontal .val {
     flex-shrink: 0;
-    min-width: 36px;
+    min-width: calc(var(--_tunet-icon-box, 2.375em) * 0.9);
     text-align: right;
   }
 
@@ -137,7 +152,7 @@ const TILE_CSS = `
   }
 
   .lt.vertical .icon-wrap {
-    margin-bottom: 6px;
+    margin-bottom: calc(var(--_tunet-tile-gap, 0.375em) * 0.5);
   }
 
   .lt.horizontal .icon-wrap {
@@ -145,7 +160,7 @@ const TILE_CSS = `
   }
 
   @media (max-width: 440px) {
-    .lt.horizontal .icon-wrap {
+    :host(:not([use-profiles])) .lt.horizontal .icon-wrap {
       width: 36px;
       height: 36px;
       border-radius: 10px;
@@ -153,14 +168,16 @@ const TILE_CSS = `
   }
 
   .tile-icon {
-    font-size: 24px;
+    font-size: var(--_tunet-icon-glyph, 1.1875em);
+    width: var(--_tunet-icon-glyph, 1.1875em);
+    height: var(--_tunet-icon-glyph, 1.1875em);
   }
 
   /* ── Name ── */
   .name {
-    font-size: 15px;
+    font-size: var(--_tunet-name-font, 0.8125em);
     font-weight: 600;
-    letter-spacing: 0.1px;
+    letter-spacing: 0.00625em;
     line-height: 1.15;
     color: var(--text);
     white-space: nowrap;
@@ -170,35 +187,35 @@ const TILE_CSS = `
   }
 
   .lt.vertical .name {
-    margin-bottom: 1px;
+    margin-bottom: calc(var(--_tunet-tile-gap, 0.375em) * 0.2);
     text-align: center;
     min-height: 1.12em;
     line-height: 1.12;
   }
 
   @media (max-width: 440px) {
-    .lt.horizontal .name { font-size: 14px; }
+    :host(:not([use-profiles])) .lt.horizontal .name { font-size: 14px; }
   }
 
   /* ── Value ── */
   .val {
-    font-size: 14px;
+    font-size: var(--_tunet-value-font, 1.125em);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     transition: color var(--motion-ui, 0.18s);
   }
 
   .lt.horizontal .val {
-    font-size: 15px;
-    letter-spacing: 0.1px;
+    font-size: calc(var(--_tunet-value-font, 1.125em) * 1.05);
+    letter-spacing: 0.00625em;
   }
   .lt.vertical .val {
     line-height: 1.12;
-    margin-top: 1px;
+    margin-top: calc(var(--_tunet-tile-gap, 0.375em) * 0.2);
   }
 
   @media (max-width: 440px) {
-    .lt.horizontal .val { font-size: 14px; }
+    :host(:not([use-profiles])) .lt.horizontal .val { font-size: 14px; }
   }
 
   /* ── Progress bar ── */
@@ -221,14 +238,14 @@ const TILE_CSS = `
     right: auto;
     bottom: auto;
     width: calc(100% - (var(--bar-inset) * 2));
-    margin-top: 7px;
+    margin-top: calc(var(--_tunet-tile-gap, 0.375em) * 1.2);
   }
 
   .lt.horizontal .progress-track {
-    bottom: 6px;
-    left: 10px;
-    right: 10px;
-    height: 3px;
+    bottom: calc(var(--_tunet-tile-pad, 0.875em) * 0.5);
+    left: calc(var(--_tunet-tile-pad, 0.875em) * 0.78);
+    right: calc(var(--_tunet-tile-pad, 0.875em) * 0.78);
+    height: calc(var(--_tunet-progress-h, 0.5em) * 0.75);
   }
 
   .progress-fill {
@@ -241,10 +258,10 @@ const TILE_CSS = `
   /* ── Manual override dot ── */
   .manual-dot {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 8px;
-    height: 8px;
+    top: calc(var(--_tunet-tile-pad, 0.875em) * 0.72);
+    right: calc(var(--_tunet-tile-pad, 0.875em) * 0.72);
+    width: 0.5em;
+    height: 0.5em;
     background: var(--red, #FF3B30);
     border-radius: 50%;
     display: none;
@@ -253,8 +270,8 @@ const TILE_CSS = `
   }
 
   .lt.horizontal .manual-dot {
-    top: 8px;
-    right: 8px;
+    top: calc(var(--_tunet-tile-pad, 0.875em) * 0.6);
+    right: calc(var(--_tunet-tile-pad, 0.875em) * 0.6);
   }
 
   .lt[data-manual="true"] .manual-dot {
@@ -329,7 +346,7 @@ const TILE_CSS = `
   }
 
   .lt.horizontal.sliding .progress-track {
-    height: 5px;
+    height: calc(var(--bar-h-active) * 0.8);
   }
 
   .lt.sliding .progress-fill {
@@ -344,9 +361,9 @@ const TILE_CSS = `
     transform: translate(-50%, -50%);
     color: var(--amber);
     font-weight: 700;
-    font-size: 15px;
+    font-size: calc(var(--_tunet-value-font, 1.125em) * 0.95);
     background: var(--tile-bg, #fff);
-    padding: 6px 20px;
+    padding: 0.375em 1.25em;
     border-radius: 99px;
     box-shadow: var(--pill-shadow);
     z-index: 101;
@@ -358,14 +375,14 @@ const TILE_CSS = `
   /* Floating pill — horizontal */
   .lt.horizontal.sliding .val {
     position: absolute;
-    top: -4px;
+    top: -0.25em;
     left: 50%;
     transform: translate(-50%, -100%);
     color: var(--amber);
     font-weight: 700;
-    font-size: 14px;
+    font-size: calc(var(--_tunet-value-font, 1.125em) * 0.88);
     background: var(--tile-bg, #fff);
-    padding: 5px 14px;
+    padding: 0.3125em 0.875em;
     border-radius: 99px;
     box-shadow: var(--pill-shadow);
     z-index: 101;
@@ -388,7 +405,7 @@ const TILE_CSS = `
 // ═══════════════════════════════════════════════════════════
 
 const TAG = 'tunet-light-tile';
-const VERSION = '1.0.2';
+const VERSION = '1.1.0';
 
 class TunetLightTile extends HTMLElement {
 
@@ -404,10 +421,18 @@ class TunetLightTile extends HTMLElement {
     if (!config.entity) {
       throw new Error(`${TAG}: 'entity' is required`);
     }
+    const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
+    const tileSize = tileSizeRaw === 'compact'
+      ? 'compact'
+      : (tileSizeRaw === 'large' ? 'large' : 'standard');
+    const useProfiles = config.use_profiles !== false;
     this._config = {
       variant: 'vertical',
       ...config,
+      tile_size: tileSize,
+      use_profiles: useProfiles,
     };
+    this._applyProfile(this._getHostWidth());
     if (this._hass) this._render();
   }
 
@@ -445,6 +470,9 @@ class TunetLightTile extends HTMLElement {
     return {
       columns: 3,
       min_columns: 3,
+      rows: 'auto',
+      min_rows: 1,
+      max_rows: 4,
     };
   }
 
@@ -457,15 +485,96 @@ class TunetLightTile extends HTMLElement {
     this._dragController = null;
     this._rendered = false;
     this._cooldownUntil = 0;
+    this._profileSelection = null;
+    this._resizeObserver = null;
+    this._usingWindowResizeFallback = false;
+    this._onWindowResize = this._onWindowResize.bind(this);
+    this._onHostResize = this._onHostResize.bind(this);
   }
 
   connectedCallback() {
     injectFonts(this.shadowRoot);
     this._buildShell();
+    this._setupResizeObserver();
+    if (typeof ResizeObserver === 'undefined') {
+      this._usingWindowResizeFallback = true;
+      window.addEventListener('resize', this._onWindowResize);
+    } else {
+      this._usingWindowResizeFallback = false;
+    }
   }
 
   disconnectedCallback() {
     this._removePointerListeners();
+    if (this._usingWindowResizeFallback) {
+      window.removeEventListener('resize', this._onWindowResize);
+      this._usingWindowResizeFallback = false;
+    }
+    this._teardownResizeObserver();
+  }
+
+  _getHostWidth(widthHint = null) {
+    const parsed = Number(widthHint);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    const hostWidth = Number(this.getBoundingClientRect?.().width);
+    if (Number.isFinite(hostWidth) && hostWidth > 0) return hostWidth;
+    return 1024;
+  }
+
+  _setLegacyTileSizeAttr(size) {
+    if (size === 'compact' || size === 'large') this.setAttribute('tile-size', size);
+    else this.removeAttribute('tile-size');
+  }
+
+  _applyProfile(widthHint = null) {
+    const useProfiles = this._config?.use_profiles !== false;
+    if (!useProfiles) {
+      this._profileSelection = null;
+      _setProfileVars(this, {}, { bridgePublicOverrides: false });
+      this.removeAttribute('use-profiles');
+      this.removeAttribute('profile-family');
+      this.removeAttribute('profile-size');
+      this._setLegacyTileSizeAttr(this._config?.tile_size || 'standard');
+      return;
+    }
+
+    const width = this._getHostWidth(widthHint);
+    const selection = selectProfileSize({
+      preset: 'lighting',
+      layout: 'grid',
+      widthHint: width,
+      userSize: this._config?.tile_size,
+    });
+    const profile = resolveSizeProfile(selection);
+    this._profileSelection = selection;
+    _setProfileVars(this, profile);
+    this.setAttribute('use-profiles', '');
+    this.setAttribute('profile-family', selection.family);
+    this.setAttribute('profile-size', selection.size);
+    this._setLegacyTileSizeAttr(selection.size);
+  }
+
+  _setupResizeObserver() {
+    if (this._resizeObserver || typeof ResizeObserver === 'undefined') return;
+    this._resizeObserver = new ResizeObserver((entries) => {
+      const width = entries?.[0]?.contentRect?.width;
+      this._onHostResize(width);
+    });
+    this._resizeObserver.observe(this);
+  }
+
+  _teardownResizeObserver() {
+    if (!this._resizeObserver) return;
+    this._resizeObserver.disconnect();
+    this._resizeObserver = null;
+  }
+
+  _onHostResize(widthHint = null) {
+    this._applyProfile(widthHint);
+  }
+
+  _onWindowResize() {
+    this._onHostResize(this._getHostWidth());
   }
 
   // ── Build static shell ───────────────────────────
@@ -494,6 +603,7 @@ class TunetLightTile extends HTMLElement {
     this._tile.setAttribute('tabindex', '0');
     this._tile.setAttribute('role', 'button');
     this.shadowRoot.appendChild(this._tile);
+    this._applyProfile(this._getHostWidth());
 
     this._setupPointerListeners();
 
@@ -760,12 +870,16 @@ class TunetLightTile extends HTMLElement {
         { name: 'name', selector: { text: {} } },
         { name: 'icon', selector: { text: {} } },
         { name: 'variant', selector: { select: { options: ['vertical', 'horizontal'] } } },
+        { name: 'tile_size', selector: { select: { options: ['compact', 'standard', 'large'] } } },
+        { name: 'use_profiles', selector: { boolean: {} } },
       ],
       computeLabel: (s) => ({
         entity: 'Light Entity',
         name: 'Display Name',
         icon: 'Icon (Material Symbols)',
         variant: 'Layout Variant',
+        tile_size: 'Tile Size',
+        use_profiles: 'Use Profile Sizing',
       }[s.name] || s.name),
     };
   }
@@ -774,6 +888,8 @@ class TunetLightTile extends HTMLElement {
     return {
       entity: 'light.living_room',
       variant: 'vertical',
+      tile_size: 'standard',
+      use_profiles: true,
     };
   }
 }

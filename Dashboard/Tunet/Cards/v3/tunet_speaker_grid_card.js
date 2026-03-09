@@ -121,10 +121,17 @@ const CARD_STYLES = `
     letter-spacing: 0.1px; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  :host([use-profiles]) .hdr-title {
+    /* Match lighting profile readability uplift for top-left title lane. */
+    font-size: max(calc(var(--_tunet-header-font, 13px) * 1.1), 0.95em);
+  }
   .hdr-sub {
     font-size: var(--_tunet-sub-font, 11.5px); font-weight: 600; color: var(--text-muted);
     letter-spacing: 0.1px; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  :host([use-profiles]) .hdr-sub {
+    font-size: max(calc(var(--_tunet-sub-font, 11.5px) * 1.1), 0.82em);
   }
   .hdr-spacer { flex: 1; }
 
@@ -252,6 +259,9 @@ const CARD_STYLES = `
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     transition: color .15s ease;
   }
+  :host([use-profiles]) .spk-name {
+    font-size: max(calc(var(--_tunet-name-font, 13px) * 1.28), 1em);
+  }
   :host(:not([use-profiles])[tile-size="compact"]) .spk-name { font-size: 13px; }
 
   .spk-meta {
@@ -261,6 +271,9 @@ const CARD_STYLES = `
     -webkit-box-orient: vertical;
     overflow: hidden;
     transition: color .15s ease;
+  }
+  :host([use-profiles]) .spk-meta {
+    font-size: max(calc(var(--_tunet-sub-font, 11.5px) * 1.14), 0.82em);
   }
   :host(:not([use-profiles])[tile-size="compact"]) .spk-meta { font-size: 11.25px; }
 
@@ -272,6 +285,9 @@ const CARD_STYLES = `
     flex-shrink: 0;
     min-width: 36px; text-align: right;
     transition: color .15s ease;
+  }
+  :host([use-profiles]) .spk-vol {
+    font-size: max(calc(var(--_tunet-value-font, 14px) * 1.05), 0.95em);
   }
   :host(:not([use-profiles])[tile-size="compact"]) .spk-vol { font-size: 13px; }
 
@@ -398,6 +414,10 @@ const CARD_STYLES = `
     font-size: 13px; font-weight: 600; color: var(--text-sub);
     cursor: pointer; transition: background .1s;
     user-select: none;
+  }
+  :host([use-profiles]) .action-btn {
+    font-size: max(calc(var(--_tunet-sub-font, 13px) * 1.15), 0.88em);
+    padding: 10px 14px;
   }
   .action-btn:hover { background: var(--track-bg); color: var(--text); }
   .action-btn:active { transform: scale(.97); }
@@ -660,6 +680,9 @@ class TunetSpeakerGridCard extends HTMLElement {
     return {
       columns: 12,
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 2,
+      max_rows: 12,
     };
   }
 
@@ -670,9 +693,6 @@ class TunetSpeakerGridCard extends HTMLElement {
     if (Number.isFinite(cardWidth) && cardWidth > 0) return cardWidth;
     const hostWidth = Number(this.getBoundingClientRect?.().width);
     if (Number.isFinite(hostWidth) && hostWidth > 0) return hostWidth;
-    if (typeof window !== 'undefined' && Number.isFinite(Number(window.innerWidth))) {
-      return Number(window.innerWidth);
-    }
     return 1024;
   }
 

@@ -17,13 +17,16 @@ import {
   injectFonts,
   detectDarkMode,
   applyDarkClass,
+  selectProfileSize,
+  resolveSizeProfile,
+  _setProfileVars,
   navigatePath,
   runCardAction,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260307p09';
+} from './tunet_base.js?v=20260309g3';
 
-const CARD_VERSION = '2.9.2';
+const CARD_VERSION = '3.0.0';
 
 // ═══════════════════════════════════════════════════════════
 // Icon helpers (card-specific)
@@ -54,10 +57,24 @@ const CARD_OVERRIDES = `
   :host {
     display: block;
     font-size: 16px; /* em anchor */
+    --section-pad: var(--_tunet-section-pad, 1.25em);
+    --section-gap: var(--_tunet-section-gap, 1em);
+    --r-tile: var(--_tunet-tile-radius, 0.875em);
+    --type-sub: var(--_tunet-sub-font, 0.6875em);
+    --type-row-title: var(--_tunet-row-title-font, 1.03125em);
+    --type-row-status: var(--_tunet-row-status-font, 0.90625em);
+    --rooms-row-btn-size: var(--_tunet-orb-size, 3.16em);
+    --rooms-row-btn-icon-size: var(--_tunet-orb-icon, 1.62em);
+    --rooms-row-btn-radius: var(--_tunet-row-btn-radius, 0.75em);
+    --rooms-row-btn-size-slim: calc(var(--_tunet-orb-size, 3.16em) * 0.7);
+    --rooms-row-btn-icon-size-slim: calc(var(--_tunet-orb-icon, 1.62em) * 0.7);
+    --rooms-all-toggle-min-h: var(--_tunet-ctrl-min-h, 2.625em);
+    --rooms-all-toggle-font: calc(var(--_tunet-name-font, 0.8125em) * 1.03);
+    --rooms-all-toggle-icon: var(--_tunet-ctrl-icon-size, 1.25em);
   }
   .section-container {
     position: relative;
-    gap: 1em;
+    gap: var(--_tunet-section-gap, 1em);
     width: 100%;
     box-shadow: var(--section-shadow), var(--inset);
   }
@@ -93,7 +110,7 @@ const CARD_STYLES = `
     padding: 0 0.25em;
   }
   .section-title {
-    font-size: 1.0625em; font-weight: 700; letter-spacing: -0.01em;
+    font-size: var(--_tunet-section-font, 1.0625em); font-weight: 700; letter-spacing: -0.01em;
     color: var(--text);
   }
   .section-hdr-spacer { flex: 1; }
@@ -103,15 +120,15 @@ const CARD_STYLES = `
     gap: 0.38em;
   }
   .section-btn {
-    min-height: 2em;
-    padding: 0 0.56em;
+    min-height: calc(var(--_tunet-ctrl-min-h, 2.625em) * 0.76);
+    padding: 0 calc(var(--_tunet-ctrl-pad-x, 0.75em) * 0.75);
     border-radius: 999px;
     border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg);
     box-shadow: var(--ctrl-sh);
     color: var(--text-sub);
     font-family: inherit;
-    font-size: 0.64em;
+    font-size: calc(var(--_tunet-sub-font, 0.6875em) * 0.95);
     font-weight: 700;
     letter-spacing: 0.02em;
     display: inline-flex;
@@ -152,24 +169,24 @@ const CARD_STYLES = `
   .room-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(7.2em, 1fr));
-    gap: 0.6em;
+    gap: var(--_tunet-tile-gap, 0.375em);
   }
 
   .room-grid.row-mode {
     display: flex;
     flex-direction: column;
-    gap: 0.52em;
+    gap: var(--_tunet-row-gap, 0.52em);
   }
 
   /* Slim mobile-first row variant */
   .room-grid.row-mode.slim-mode {
-    gap: 0.34em;
+    gap: calc(var(--_tunet-row-gap, 0.52em) * 0.65);
   }
 
   /* -- Room Tile (aligned to lighting tile language) -- */
   .room-tile {
-    min-height: 7.3em;
-    border-radius: var(--r-tile);
+    min-height: var(--_tunet-tile-min-h, 5.75em);
+    border-radius: var(--_tunet-tile-radius, var(--r-tile));
     background: var(--tile-bg);
     border: 1px solid var(--border-ghost);
     box-shadow: var(--shadow);
@@ -177,8 +194,11 @@ const CARD_STYLES = `
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.14em;
-    padding: 0.62em 0.34em 0.9em;
+    gap: calc(var(--_tunet-tile-gap, 0.375em) * 0.4);
+    padding:
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.7)
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.39)
+      calc(var(--_tunet-tile-pad, 0.875em) * 1.03);
     cursor: pointer;
     transition: all 0.18s ease;
     position: relative;
@@ -208,7 +228,7 @@ const CARD_STYLES = `
 
   /* -- Icon wrap -- */
   .room-tile-icon {
-    width: 2.35em; height: 2.35em;
+    width: var(--_tunet-icon-box, 2.375em); height: var(--_tunet-icon-box, 2.375em);
     display: grid; place-items: center;
     border-radius: 50%;
     transition: all 0.18s;
@@ -228,12 +248,12 @@ const CARD_STYLES = `
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
   .room-tile-icon .icon {
-    font-size: 1.3em; width: 1.3em; height: 1.3em;
+    font-size: var(--_tunet-icon-glyph, 1.1875em); width: var(--_tunet-icon-glyph, 1.1875em); height: var(--_tunet-icon-glyph, 1.1875em);
   }
 
   /* -- Room name -- */
   .room-tile-name {
-    font-size: 0.8em;
+    font-size: var(--_tunet-name-font, 0.8125em);
     font-weight: 600;
     color: var(--text);
     text-align: center;
@@ -246,7 +266,7 @@ const CARD_STYLES = `
 
   /* -- Status line (lights count + temp) -- */
   .room-tile-status {
-    font-size: var(--type-sub, 11px);
+    font-size: var(--type-sub, 0.6875em);
     font-weight: 600;
     color: var(--text-muted);
     text-align: center;
@@ -280,9 +300,9 @@ const CARD_STYLES = `
     left: auto;
     right: auto;
     bottom: auto;
-    width: calc(100% - 1.56em);
-    margin-top: 0.24em;
-    height: 0.26em;
+    width: calc(100% - (var(--_tunet-tile-pad, 0.875em) * 1.8));
+    margin-top: calc(var(--_tunet-tile-gap, 0.375em) * 0.64);
+    height: var(--_tunet-progress-h, 0.5em);
     background: var(--track-bg);
     border-radius: var(--r-track);
     overflow: hidden;
@@ -300,13 +320,13 @@ const CARD_STYLES = `
 
   /* -- Row Variant (mockup parity mode) -- */
   .room-grid.row-mode .room-tile {
-    min-height: auto;
+    min-height: var(--_tunet-row-min-h, 7.3125em);
     border-radius: calc(var(--r-tile) + 2px);
     padding: 0.9em 0.96em;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    gap: 0.84em;
+    gap: var(--_tunet-row-gap, 0.52em);
   }
   .room-grid.row-mode .room-progress-track {
     display: none;
@@ -314,7 +334,7 @@ const CARD_STYLES = `
   .room-row-main {
     display: inline-flex;
     align-items: center;
-    gap: 0.8em;
+    gap: calc(var(--_tunet-row-gap, 0.52em) * 1.54);
     min-width: 0;
     flex: 1;
   }
@@ -322,19 +342,19 @@ const CARD_STYLES = `
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.14em;
+    gap: calc(var(--_tunet-row-gap, 0.52em) * 0.27);
   }
   .room-grid.row-mode .room-tile-name,
   .room-grid.row-mode .room-tile-status {
     text-align: left;
   }
   .room-grid.row-mode .room-tile-name {
-    font-size: var(--type-row-title, 16.5px);
+    font-size: var(--type-row-title, 1.03125em);
     font-weight: 700;
     line-height: var(--row-line-height-title, 1.16);
   }
   .room-grid.row-mode .room-tile-status {
-    font-size: var(--type-row-status, 14.5px);
+    font-size: var(--type-row-status, 0.90625em);
     font-weight: 700;
     color: var(--text-sub);
     line-height: var(--row-line-height-status, 1.14);
@@ -345,25 +365,25 @@ const CARD_STYLES = `
     overflow: hidden;
   }
   .room-grid.row-mode .room-tile-icon {
-    width: 2.16em;
-    height: 2.16em;
+    width: calc(var(--_tunet-orb-size, 3.16em) * 0.68);
+    height: calc(var(--_tunet-orb-size, 3.16em) * 0.68);
     margin: 0;
-    border-radius: 10px;
+    border-radius: calc(var(--rooms-row-btn-radius, 0.75em) * 0.83);
     flex: 0 0 auto;
   }
   .room-grid.row-mode .room-tile-icon .icon {
-    font-size: 1.22em;
-    width: 1.22em;
-    height: 1.22em;
+    font-size: calc(var(--_tunet-orb-icon, 1.62em) * 0.75);
+    width: calc(var(--_tunet-orb-icon, 1.62em) * 0.75);
+    height: calc(var(--_tunet-orb-icon, 1.62em) * 0.75);
   }
   .room-row-controls {
     display: inline-flex;
     align-items: center;
-    gap: 0.44em;
+    gap: calc(var(--_tunet-row-gap, 0.52em) * 0.85);
     flex-shrink: 0;
-    --row-btn-size: var(--rooms-row-btn-size, 3.4em);
-    --row-btn-radius: var(--rooms-row-btn-radius, 12px);
-    --row-btn-icon-size: var(--rooms-row-btn-icon-size, 1.76em);
+    --row-btn-size: var(--rooms-row-btn-size, 3.16em);
+    --row-btn-radius: var(--rooms-row-btn-radius, 0.75em);
+    --row-btn-icon-size: var(--rooms-row-btn-icon-size, 1.62em);
   }
   .room-action-btn {
     width: var(--row-btn-size);
@@ -409,7 +429,7 @@ const CARD_STYLES = `
   .room-orbs {
     display: inline-flex;
     align-items: center;
-    gap: 0.3em;
+    gap: calc(var(--_tunet-row-gap, 0.52em) * 0.58);
   }
   .room-orb {
     width: var(--row-btn-size);
@@ -450,8 +470,8 @@ const CARD_STYLES = `
     box-shadow: 0 0 0 1px rgba(239,68,68,0.42), 0 0 0 3px rgba(239,68,68,0.14);
   }
   .room-chevron {
-    width: 1.56em;
-    height: 1.56em;
+    width: var(--_tunet-chevron-size, 1.56em);
+    height: var(--_tunet-chevron-size, 1.56em);
     border-radius: var(--r-pill);
     border: 1px solid transparent;
     color: var(--text-muted);
@@ -465,6 +485,7 @@ const CARD_STYLES = `
   }
 
   .room-grid.row-mode.slim-mode .room-tile {
+    min-height: calc(var(--_tunet-row-min-h, 7.3125em) * 0.7);
     padding: 0.64em 0.76em;
     gap: 0.58em;
     border-radius: 13px;
@@ -473,14 +494,14 @@ const CARD_STYLES = `
     gap: 0.52em;
   }
   .room-grid.row-mode.slim-mode .room-tile-icon {
-    width: 2em;
-    height: 2em;
-    border-radius: 9px;
+    width: calc(var(--_tunet-orb-size, 3.16em) * 0.63);
+    height: calc(var(--_tunet-orb-size, 3.16em) * 0.63);
+    border-radius: calc(var(--rooms-row-btn-radius, 0.75em) * 0.75);
   }
   .room-grid.row-mode.slim-mode .room-tile-icon .icon {
-    font-size: 1.2em;
-    width: 1.2em;
-    height: 1.2em;
+    font-size: calc(var(--_tunet-orb-icon, 1.62em) * 0.74);
+    width: calc(var(--_tunet-orb-icon, 1.62em) * 0.74);
+    height: calc(var(--_tunet-orb-icon, 1.62em) * 0.74);
   }
   .room-grid.row-mode.slim-mode .room-row-info {
     gap: 0.06em;
@@ -494,9 +515,9 @@ const CARD_STYLES = `
   }
   .room-grid.row-mode.slim-mode .room-row-controls {
     gap: 0.26em;
-    --row-btn-size: var(--rooms-row-btn-size-slim, 2.96em);
+    --row-btn-size: var(--rooms-row-btn-size-slim, 2.21em);
     --row-btn-radius: 9px;
-    --row-btn-icon-size: var(--rooms-row-btn-icon-size-slim, 1.56em);
+    --row-btn-icon-size: var(--rooms-row-btn-icon-size-slim, 1.13em);
   }
   .room-grid.row-mode.slim-mode .room-orbs {
     gap: 0.2em;
@@ -551,55 +572,55 @@ const CARD_STYLES = `
   @media (max-width: 440px) {
     :host { font-size: 16px; }
     .section-controls { gap: 0.3em; }
-    .section-btn {
+    :host(:not([use-profiles])) .section-btn {
       min-height: 1.9em;
       padding: 0 0.5em;
       font-size: 0.62em;
     }
-    .section-btn.all-toggle { padding: 0 0.96em; gap: 0.34em; }
+    :host(:not([use-profiles])) .section-btn.all-toggle { padding: 0 0.96em; gap: 0.34em; }
     .room-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0.4em;
     }
-    .room-tile {
+    :host(:not([use-profiles])) .room-tile {
       min-height: 6.8em;
       padding: 0.54em 0.3em 0.82em;
     }
-    .room-tile-name {
+    :host(:not([use-profiles])) .room-tile-name {
       font-size: 0.82em;
     }
-    .room-tile-status {
+    :host(:not([use-profiles])) .room-tile-status {
       font-size: 0.72em;
     }
-    .room-grid.row-mode .room-tile {
+    :host(:not([use-profiles])) .room-grid.row-mode .room-tile {
       padding: 0.9em 0.94em;
       gap: 0.82em;
     }
-    .room-grid.row-mode .room-row-main {
+    :host(:not([use-profiles])) .room-grid.row-mode .room-row-main {
       gap: 0.74em;
     }
-    .room-grid.row-mode .room-tile-name {
+    :host(:not([use-profiles])) .room-grid.row-mode .room-tile-name {
       font-size: var(--type-row-title, 18px);
     }
-    .room-grid.row-mode .room-tile-status {
+    :host(:not([use-profiles])) .room-grid.row-mode .room-tile-status {
       font-size: var(--type-row-status, 15.5px);
     }
-    .room-grid.row-mode .room-row-controls {
+    :host(:not([use-profiles])) .room-grid.row-mode .room-row-controls {
       --row-btn-size: var(--rooms-row-btn-size, 2.82em);
       --row-btn-icon-size: var(--rooms-row-btn-icon-size, 1.44em);
       --row-btn-radius: 12px;
     }
-    .room-grid.row-mode.slim-mode .room-tile {
+    :host(:not([use-profiles])) .room-grid.row-mode.slim-mode .room-tile {
       padding: 0.58em 0.68em;
       gap: 0.54em;
     }
-    .room-grid.row-mode.slim-mode .room-tile-name {
+    :host(:not([use-profiles])) .room-grid.row-mode.slim-mode .room-tile-name {
       font-size: 0.76em;
     }
-    .room-grid.row-mode.slim-mode .room-tile-status {
+    :host(:not([use-profiles])) .room-grid.row-mode.slim-mode .room-tile-status {
       font-size: 0.66em;
     }
-    .room-grid.row-mode.slim-mode .room-row-controls {
+    :host(:not([use-profiles])) .room-grid.row-mode.slim-mode .room-row-controls {
       --row-btn-size: var(--rooms-row-btn-size-slim, 2.52em);
       --row-btn-icon-size: var(--rooms-row-btn-icon-size-slim, 1.28em);
       --row-btn-radius: 9px;
@@ -662,6 +683,11 @@ class TunetRoomsCard extends HTMLElement {
     this._rendered = false;
     this._tileRefs = [];
     this._longPressTimer = null;
+    this._profileSelection = null;
+    this._resizeObserver = null;
+    this._usingWindowResizeFallback = false;
+    this._onWindowResize = this._onWindowResize.bind(this);
+    this._onHostResize = this._onHostResize.bind(this);
     injectFonts();
   }
 
@@ -672,12 +698,16 @@ class TunetRoomsCard extends HTMLElement {
       schema: [
         { name: 'name', selector: { text: {} } },
         { name: 'layout_variant', selector: { select: { options: ['tiles', 'row', 'slim'] } } },
+        { name: 'tile_size', selector: { select: { options: ['compact', 'standard', 'large'] } } },
+        { name: 'use_profiles', selector: { boolean: {} } },
         { name: 'rooms', selector: { object: {} } },
       ],
       computeLabel: (schema) => {
         const labels = {
           name: 'Card Name',
           layout_variant: 'Layout Variant',
+          tile_size: 'Tile Size',
+          use_profiles: 'Use Profile Sizing',
           rooms: 'Rooms Config',
         };
         return labels[schema.name] || schema.name;
@@ -689,6 +719,8 @@ class TunetRoomsCard extends HTMLElement {
     return {
       name: 'Rooms',
       layout_variant: 'tiles',
+      tile_size: 'standard',
+      use_profiles: true,
       rooms: [
         {
           name: 'Living Room',
@@ -711,11 +743,18 @@ class TunetRoomsCard extends HTMLElement {
     if (!config.rooms || !Array.isArray(config.rooms) || config.rooms.length === 0) {
       throw new Error('Please define at least one room');
     }
+    const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
+    const tileSize = tileSizeRaw === 'compact'
+      ? 'compact'
+      : (tileSizeRaw === 'large' ? 'large' : 'standard');
+    const useProfiles = config.use_profiles !== false;
     this._config = {
       name: config.name || 'Rooms',
       layout_variant: (config.layout_variant === 'row' || config.layout_variant === 'slim')
         ? config.layout_variant
         : 'tiles',
+      tile_size: tileSize,
+      use_profiles: useProfiles,
       rooms: config.rooms.map((room) => ({
         name: room.name || 'Room',
         icon: normalizeIcon(room.icon || 'home'),
@@ -731,6 +770,9 @@ class TunetRoomsCard extends HTMLElement {
         })),
       })),
     };
+    if (useProfiles) this.setAttribute('use-profiles', '');
+    else this.removeAttribute('use-profiles');
+    this._applyProfile(this._getHostWidth());
     if (this._rendered) {
       this._buildTiles();
       this._updateAll();
@@ -777,14 +819,94 @@ class TunetRoomsCard extends HTMLElement {
   // Sections view (12-column grid) sizing hints
   getGridOptions() {
     return {
-      columns: 'full',
+      columns: 12,
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 2,
+      max_rows: 12,
     };
   }
 
-  connectedCallback() {}
+  _getHostWidth(widthHint = null) {
+    const parsed = Number(widthHint);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    const hostWidth = Number(this.getBoundingClientRect?.().width);
+    if (Number.isFinite(hostWidth) && hostWidth > 0) return hostWidth;
+    return 1024;
+  }
+
+  _setLegacyTileSizeAttr(size) {
+    if (size === 'compact' || size === 'large') this.setAttribute('tile-size', size);
+    else this.removeAttribute('tile-size');
+  }
+
+  _applyProfile(widthHint = null) {
+    const useProfiles = this._config.use_profiles !== false;
+    if (!useProfiles) {
+      this._profileSelection = null;
+      _setProfileVars(this, {}, { bridgePublicOverrides: false });
+      this.removeAttribute('profile-family');
+      this.removeAttribute('profile-size');
+      this._setLegacyTileSizeAttr(this._config.tile_size || 'standard');
+      return;
+    }
+
+    const width = this._getHostWidth(widthHint);
+    const layout = this._config.layout_variant === 'tiles' ? 'grid' : this._config.layout_variant;
+    const selection = selectProfileSize({
+      preset: 'rooms',
+      layout,
+      widthHint: width,
+      userSize: this._config.tile_size,
+    });
+    const profile = resolveSizeProfile(selection);
+    this._profileSelection = selection;
+    _setProfileVars(this, profile);
+    this.setAttribute('profile-family', selection.family);
+    this.setAttribute('profile-size', selection.size);
+    this._setLegacyTileSizeAttr(selection.size);
+  }
+
+  _setupResizeObserver() {
+    if (this._resizeObserver || typeof ResizeObserver === 'undefined') return;
+    this._resizeObserver = new ResizeObserver((entries) => {
+      const width = entries?.[0]?.contentRect?.width;
+      this._onHostResize(width);
+    });
+    this._resizeObserver.observe(this);
+  }
+
+  _teardownResizeObserver() {
+    if (!this._resizeObserver) return;
+    this._resizeObserver.disconnect();
+    this._resizeObserver = null;
+  }
+
+  _onHostResize(widthHint = null) {
+    if (!this._rendered) return;
+    this._applyProfile(widthHint);
+  }
+
+  _onWindowResize() {
+    this._onHostResize(this._getHostWidth());
+  }
+
+  connectedCallback() {
+    this._setupResizeObserver();
+    if (typeof ResizeObserver === 'undefined') {
+      this._usingWindowResizeFallback = true;
+      window.addEventListener('resize', this._onWindowResize);
+    } else {
+      this._usingWindowResizeFallback = false;
+    }
+  }
   disconnectedCallback() {
     clearTimeout(this._longPressTimer);
+    if (this._usingWindowResizeFallback) {
+      window.removeEventListener('resize', this._onWindowResize);
+      this._usingWindowResizeFallback = false;
+    }
+    this._teardownResizeObserver();
   }
 
   _render() {
@@ -800,6 +922,7 @@ class TunetRoomsCard extends HTMLElement {
       allToggleBtn: this.shadowRoot.getElementById('allToggleBtn'),
       manualResetBtn: this.shadowRoot.getElementById('manualResetBtn'),
     };
+    this._applyProfile(this._getHostWidth());
 
     this.$.allToggleBtn?.addEventListener('click', (e) => {
       e.preventDefault();

@@ -8,6 +8,128 @@ Source filter for this run:
 - ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
 
+## 0Z) Session Delta (2026-03-09, T-011A.15)
+
+v3 G3 + G4 + G5 rollout tranche completed (code + validation, no live deploy in this slice):
+
+- Completed (G3):
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - profile pipeline wired (`selectProfileSize` + `resolveSizeProfile` + `_setProfileVars`)
+    - added config controls: `use_profiles`, `tile_size`
+    - profile applies on setConfig + first render + host resize
+    - width source for responsive columns is now container/host only (`window.innerWidth` removed)
+    - status subtype geometry moved to profile token lanes:
+      - timer font/letter-spacing -> `--_tunet-timer-font`, `--_tunet-timer-ls`
+      - alarm pill/buttons -> `--_tunet-alarm-pill-font`, `--_tunet-alarm-btn-h`, `--_tunet-alarm-btn-font`, `--_tunet-alarm-icon-size`
+      - dropdown max-height/options -> `--_tunet-dropdown-max-h` + dd option/radius tokens
+  - `Dashboard/Tunet/Cards/v3/tunet_rooms_card.js`
+    - profile pipeline wired with layout-aware family routing:
+      - `layout_variant: 'tiles'` -> `tile-grid`
+      - `layout_variant: 'row'|'slim'` -> `rooms-row`
+    - added config controls: `use_profiles`, `tile_size`
+    - profile applies on setConfig + render + host resize
+    - row/grid geometry now consumes `--_tunet-*` lanes (icon/text/row/orb/toggle/chevron)
+    - slim variant row min-height now derives from profile row height (`~70%` target)
+- Completed (G4):
+  - `Dashboard/Tunet/Cards/v3/tunet_light_tile.js`
+    - standalone tile now consumes `tile-grid` profile tokens on host
+    - added config controls: `tile_size`, `use_profiles`
+    - `_applyProfile()` pattern added with host var writes
+    - drag/tap/hold behavior preserved
+    - host resize observer added for profile auto-size updates
+- Completed (G5 hardening):
+  - `getGridOptions()` now returns intrinsic rows (`rows: 'auto'`) with static row bounds on:
+    - `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js`
+    - `Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+    - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - `Dashboard/Tunet/Cards/v3/tunet_rooms_card.js`
+    - `Dashboard/Tunet/Cards/v3/tunet_light_tile.js`
+  - removed viewport fallback from profile width helpers in:
+    - `tunet_lighting_card.js`
+    - `tunet_speaker_grid_card.js`
+- Validation:
+  - `node --check` passed:
+    - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - `Dashboard/Tunet/Cards/v3/tunet_rooms_card.js`
+    - `Dashboard/Tunet/Cards/v3/tunet_light_tile.js`
+    - `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js`
+    - `Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - `node --test Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js` passed (`8/8`)
+
+Carry-forward:
+- Nav offset neutralization for strict G3 section-baseline verification remains operationally required in live test runs (`tunet_nav_card.js` was not changed in this tranche).
+- Environment/indicator-row profile adoption (`tunet_sensor_card.js`) is still outside this completed tranche.
+
+## 0W) Session Delta (2026-03-09, T-011A.12)
+
+v3 G2 lab dashboard deployment + lighting profile regression fixes:
+
+- Completed:
+  - created repo lab dashboard:
+    - `Dashboard/Tunet/tunet-g2-lab-v3.yaml`
+  - uploaded to HA:
+    - `/homeassistant/dashboards/tunet-g2-lab-v3.yaml`
+  - registered new HA YAML dashboard:
+    - key: `tunet-g2-lab-v3`
+    - route: `/tunet-g2-lab-v3/g2-profiles-lab`
+  - uploaded active v3 modules to HA:
+    - `/homeassistant/www/tunet/v3/tunet_base.js`
+    - `/homeassistant/www/tunet/v3/tunet_lighting_card.js`
+    - `/homeassistant/www/tunet/v3/tunet_speaker_grid_card.js`
+- Temporary resource conflict isolation (for clean v3 lab):
+  - removed conflicting v2_next resources:
+    - lighting resource id `87583f8b00bb48f095e55cc4799fe320`
+    - speaker resource id `7b2db9a10be04e80b7f662ead83194ef`
+  - active v3 resources:
+    - `/local/tunet/v3/tunet_lighting_card.js?v=20260309_g2_lab_fix1`
+    - `/local/tunet/v3/tunet_speaker_grid_card.js?v=20260309_g2_lab`
+- User-reported lighting fixes applied:
+  - `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js`
+    - profile mode tile names no longer collapse (minimum profile tile height floor + non-shrinking name/value lanes)
+    - drag bubble pill no longer clipped at top (sliding overflow visible + pill position adjustment)
+    - profile mode brightness value lane scaled down slightly
+- Validation:
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_lighting_card.js` passed
+  - HA `check_config` valid
+  - HA restart completed successfully
+
+## 0X) Session Delta (2026-03-09, T-011A.13)
+
+v3 lighting profile mode follow-up fixes (lane sizing + overlap):
+
+- `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js`
+  - fixed profile-mode desktop tile overlap:
+    - profile grid row height now matches tile min-height floor (`max(var(--_tunet-tile-min-h, 110px), 6.25em)`)
+  - fixed mode leakage:
+    - lane stability constraints are now profile-scoped only (`:host([use-profiles])`) to avoid legacy-mode side effects
+  - profile readability tuning retained:
+    - larger profile tile name
+    - slightly smaller profile lower value lane
+- Live deploy:
+  - uploaded `/homeassistant/www/tunet/v3/tunet_lighting_card.js`
+  - active resource bumped:
+    - `/local/tunet/v3/tunet_lighting_card.js?v=20260309_g2_lab_fix3`
+- Validation:
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_lighting_card.js` passed
+
+## 0Y) Session Delta (2026-03-09, T-011A.14)
+
+Speaker profile readability parity pass:
+
+- `Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - increased profile-only typography for:
+    - top-left header title/subtitle
+    - speaker tile name/meta/value lanes
+    - group action strip button text
+  - legacy mode remains untouched (`:not([use-profiles])` behavior preserved)
+- Live deploy:
+  - uploaded `/homeassistant/www/tunet/v3/tunet_speaker_grid_card.js`
+  - active resources:
+    - lighting `/local/tunet/v3/tunet_lighting_card.js?v=20260309_g2_lab_fix4`
+    - speaker `/local/tunet/v3/tunet_speaker_grid_card.js?v=20260309_g2_lab_fix1`
+- Validation:
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js` passed
+
 ## 0V) Session Delta (2026-03-09, T-011A.11)
 
 v3 G2 pilot wiring (lighting + speaker profile consumption):

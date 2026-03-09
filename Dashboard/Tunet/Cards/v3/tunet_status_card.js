@@ -9,11 +9,12 @@ import {
   CARD_SURFACE, CARD_SURFACE_GLASS_STROKE,
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
+  selectProfileSize, resolveSizeProfile, _setProfileVars,
   runCardAction,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260307p08';
+} from './tunet_base.js?v=20260309g3';
 
-const CARD_VERSION = '2.6.6';
+const CARD_VERSION = '3.0.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -121,11 +122,14 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Status-specific token overrides ────────── */
   :host {
-    /* Tile physics (not in base tokens) */
+    --card-pad: var(--_tunet-card-pad, 1.25em);
+    --r-tile: var(--_tunet-tile-radius, 0.875em);
+    --type-label: var(--_tunet-name-font, 0.8125em);
+    --type-sub: var(--_tunet-sub-font, 0.6875em);
+    --type-value: var(--_tunet-value-font, 1.125em);
+    --tile-row-h: var(--_tunet-tile-min-h, 5.875em);
     --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
-    --tile-row-h: 94px;
-    /* Dropdown menu tokens */
     --dd-bg: rgba(255,255,255,0.92);
     --dd-border: rgba(255,255,255,0.60);
     position: relative;
@@ -134,11 +138,11 @@ ${CARD_SURFACE_GLASS_STROKE}
   :host(.dd-open) {
     z-index: 9000;
   }
-  :host([tile-size="compact"]) {
-    --tile-row-h: 88px;
+  :host(:not([use-profiles])[tile-size="compact"]) {
+    --tile-row-h: 5.5em;
   }
-  :host([tile-size="large"]) {
-    --tile-row-h: 114px;
+  :host(:not([use-profiles])[tile-size="large"]) {
+    --tile-row-h: 7.125em;
   }
 
   :host(.dark) {
@@ -149,8 +153,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* ── Card surface overrides ─────────────────── */
   .card {
     width: 100%;
-    gap: 12px;
-    /* Allow dropdown menus to escape tile/card bounds */
+    gap: var(--_tunet-section-gap, 0.75em);
     overflow: visible;
     isolation: isolate;
   }
@@ -158,16 +161,24 @@ ${CARD_SURFACE_GLASS_STROKE}
     overflow: visible;
   }
   .card.no-header {
-    gap: 10px;
+    gap: calc(var(--_tunet-section-gap, 0.75em) * 0.8);
   }
 
   /* ── Header ──────────────────────────────────── */
   .hdr {
-    display: flex; align-items: center; justify-content: space-between; padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0.25em;
+    min-height: var(--_tunet-header-height, 2.625em);
   }
   .hdr-title {
-    font-size: 16px; font-weight: 700; color: var(--text);
-    display: flex; align-items: center; gap: 8px;
+    font-size: var(--_tunet-header-font, 1em);
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
   }
   .hdr-title .icon { color: var(--blue); }
 
@@ -177,7 +188,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-auto-rows: var(--tile-row-h);
     align-items: stretch;
-    gap: 8px;
+    gap: var(--_tunet-tile-gap, 0.375em);
     overflow: visible;
     isolation: isolate;
   }
@@ -185,11 +196,17 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* ── Tile Surface ────────────────────────────── */
   .tile {
     background: var(--tile-bg);
-    border-radius: var(--r-tile);
+    border-radius: var(--_tunet-tile-radius, var(--r-tile));
     box-shadow: var(--tile-shadow-rest);
-    padding: 14px 8px 8px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 5px;
+    padding:
+      var(--_tunet-tile-pad, 0.875em)
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.57)
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.57);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--_tunet-tile-gap, 0.375em) * 0.85);
     cursor: pointer;
     transition: all .15s ease;
     position: relative;
@@ -207,11 +224,11 @@ ${CARD_SURFACE_GLASS_STROKE}
   .tile[data-type="dropdown"].dropdown-open .tile-dd-menu {
     z-index: 6100;
   }
-  :host([tile-size="compact"]) .tile {
+  :host(:not([use-profiles])[tile-size="compact"]) .tile {
     padding: 9px 7px 7px;
     gap: 3px;
   }
-  :host([tile-size="large"]) .tile {
+  :host(:not([use-profiles])[tile-size="large"]) .tile {
     padding: 30px 12px 14px;
     gap: 7px;
   }
@@ -224,31 +241,33 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Tile Icon Accents ───────────────────────── */
   .tile-icon {
-    width: 25px; height: 25px;
-    display: grid; place-items: center;
-    margin-bottom: 2px;
+    width: var(--_tunet-icon-box, 2.375em);
+    height: var(--_tunet-icon-box, 2.375em);
+    display: grid;
+    place-items: center;
+    margin-bottom: calc(var(--_tunet-tile-gap, 0.375em) * 0.3);
   }
   .tile-icon .tile-icon-glyph {
-    font-size: 21px;
-    width: 21px;
-    height: 21px;
+    font-size: var(--_tunet-icon-glyph, 1.1875em);
+    width: var(--_tunet-icon-glyph, 1.1875em);
+    height: var(--_tunet-icon-glyph, 1.1875em);
     transform: none;
   }
-  :host([tile-size="compact"]) .tile-icon {
+  :host(:not([use-profiles])[tile-size="compact"]) .tile-icon {
     width: 21px;
     height: 21px;
     margin-bottom: 2px;
   }
-  :host([tile-size="compact"]) .tile-icon .tile-icon-glyph {
+  :host(:not([use-profiles])[tile-size="compact"]) .tile-icon .tile-icon-glyph {
     font-size: 19px;
     width: 19px;
     height: 19px;
     transform: none;
   }
-  :host([tile-size="large"]) .tile-icon {
+  :host(:not([use-profiles])[tile-size="large"]) .tile-icon {
     width: 30px; height: 30px;
   }
-  :host([tile-size="large"]) .tile-icon .tile-icon-glyph {
+  :host(:not([use-profiles])[tile-size="large"]) .tile-icon .tile-icon-glyph {
     font-size: 26px;
     width: 26px;
     height: 26px;
@@ -263,12 +282,12 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Tile Values & Labels ────────────────────── */
   .tile-val {
-    font-size: var(--type-value, 18px); font-weight: 700; letter-spacing: -.2px; line-height: 1.06;
+    font-size: var(--type-value, 1.125em); font-weight: 700; letter-spacing: -.0125em; line-height: 1.06;
     color: var(--text); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
-  :host([tile-size="compact"]) .tile-val { font-size: var(--type-value, 18px); line-height: 1.08; }
-  :host([tile-size="large"]) .tile-val { font-size: 20px; }
+  :host(:not([use-profiles])[tile-size="compact"]) .tile-val { font-size: var(--type-value, 1.0625em); line-height: 1.08; }
+  :host(:not([use-profiles])[tile-size="large"]) .tile-val { font-size: 1.25em; }
   .tile-val.is-text {
     white-space: normal;
     display: -webkit-box;
@@ -276,25 +295,25 @@ ${CARD_SURFACE_GLASS_STROKE}
     -webkit-box-orient: vertical;
     line-height: 1.1;
     text-align: center;
-    font-size: 15px;
+    font-size: var(--_tunet-name-font, 0.8125em);
     max-height: 2.3em;
   }
-  :host([tile-size="compact"]) .tile-val.is-text {
+  :host(:not([use-profiles])[tile-size="compact"]) .tile-val.is-text {
     font-size: 13.4px;
     max-height: 2.35em;
   }
   .tile-val.is-long {
     font-size: 12px;
   }
-  :host([tile-size="compact"]) .tile-val.is-long {
+  :host(:not([use-profiles])[tile-size="compact"]) .tile-val.is-long {
     font-size: 12.8px;
   }
   .tile-label {
-    font-size: var(--type-label, 12.5px); font-weight: 600; letter-spacing: .2px; text-transform: uppercase;
+    font-size: var(--type-label, 0.8125em); font-weight: 600; letter-spacing: .0125em; text-transform: uppercase;
     color: var(--text-muted); line-height: 1.12; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
-  :host([tile-size="compact"]) .tile-label {
+  :host(:not([use-profiles])[tile-size="compact"]) .tile-label {
     font-size: var(--type-label, 13px);
     letter-spacing: .1px;
     text-transform: none;
@@ -304,17 +323,17 @@ ${CARD_SURFACE_GLASS_STROKE}
     text-align: center;
     min-height: 1.2em;
   }
-  :host([tile-size="large"]) .tile-label {
+  :host(:not([use-profiles])[tile-size="large"]) .tile-label {
     font-size: 10px;
     letter-spacing: .55px;
   }
   .tile-deg { font-size: 0.6em; vertical-align: baseline; position: relative; top: -0.18em; margin-left: -1px; }
   .tile-secondary {
-    font-size: var(--type-sub, 11px); font-weight: 500; color: var(--text-sub); line-height: 1.12;
+    font-size: var(--type-sub, 0.6875em); font-weight: 500; color: var(--text-sub); line-height: 1.12;
     text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     max-width: 100%; margin-top: -1px;
   }
-  :host([tile-size="compact"]) .tile-secondary {
+  :host(:not([use-profiles])[tile-size="compact"]) .tile-secondary {
     font-size: var(--type-sub, 11.5px);
   }
   .tile-secondary:empty { display: none; }
@@ -340,30 +359,30 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* ── Aux Action Button ───────────────────────── */
   .tile-aux {
     position: absolute;
-    top: 6px;
-    right: 6px;
-    min-height: 24px;
-    padding: 0 7px;
+    top: calc(var(--_tunet-tile-pad, 0.875em) * 0.45);
+    right: calc(var(--_tunet-tile-pad, 0.875em) * 0.45);
+    min-height: calc(var(--_tunet-ctrl-min-h, 2.625em) * 0.7);
+    padding: 0 calc(var(--_tunet-ctrl-pad-x, 0.75em) * 0.66);
     border-radius: 999px;
     border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg);
     box-shadow: var(--ctrl-sh);
     color: var(--text-sub);
     font-family: inherit;
-    font-size: 10px;
+    font-size: calc(var(--_tunet-sub-font, 0.6875em) * 0.95);
     font-weight: 700;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.0125em;
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: 0.1875em;
     cursor: pointer;
     z-index: 2;
   }
   .tile-aux[hidden] { display: none !important; }
   .tile.has-aux-visible {
-    padding-top: 32px;
+    padding-top: calc(var(--_tunet-ctrl-min-h, 2.625em) + 0.5em);
   }
-  :host([tile-size="compact"]) .tile.has-aux-visible {
+  :host(:not([use-profiles])[tile-size="compact"]) .tile.has-aux-visible {
     padding-top: 30px;
   }
   .tile-aux:hover { box-shadow: var(--tile-shadow-rest); }
@@ -376,7 +395,8 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Timer Tile ──────────────────────────────── */
   .tile[data-type="timer"] .tile-val {
-    letter-spacing: 0.5px;
+    font-size: var(--_tunet-timer-font, 1.125em);
+    letter-spacing: var(--_tunet-timer-ls, 0.03125em);
   }
 
   /* ── Dropdown Tile ───────────────────────────── */
@@ -384,8 +404,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 2px;
-    font-size: 15px;
+    gap: 0.125em;
+    font-size: var(--_tunet-value-font, 1.125em);
     font-weight: 600;
     color: var(--text);
     white-space: nowrap;
@@ -394,9 +414,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     max-width: 100%;
     width: 100%;
     min-width: 0;
-    padding: 0 2px;
+    padding: 0 0.125em;
   }
-  :host([tile-size="compact"]) .tile-dd-val {
+  :host(:not([use-profiles])[tile-size="compact"]) .tile-dd-val {
     font-size: 14.8px;
     gap: 3px;
   }
@@ -406,7 +426,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     min-width: 0;
   }
   .tile-dd-val .chevron {
-    font-size: 14px; width: 14px; height: 14px;
+    font-size: var(--_tunet-ctrl-icon-size, 1.25em);
+    width: var(--_tunet-ctrl-icon-size, 1.25em);
+    height: var(--_tunet-ctrl-icon-size, 1.25em);
     color: var(--text-muted);
     transition: transform .2s ease;
     flex-shrink: 0;
@@ -421,12 +443,13 @@ ${CARD_SURFACE_GLASS_STROKE}
     top: calc(100% + 4px);
     left: 50%;
     transform: translateX(-50%);
-    min-width: 140px;
-    max-width: 200px;
-    max-height: 240px;
+    min-width: 8.75em;
+    max-width: 12.5em;
+    max-height: var(--_tunet-dropdown-max-h, 15em);
+    min-height: var(--_tunet-dropdown-min-h, 7.5em);
     overflow-y: auto;
-    padding: 5px;
-    border-radius: var(--r-tile);
+    padding: 0.3125em;
+    border-radius: var(--_tunet-dd-radius, 0.5em);
     background: var(--dd-bg);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--dd-border);
@@ -445,12 +468,12 @@ ${CARD_SURFACE_GLASS_STROKE}
     to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
   }
   .tile-dd-opt {
-    padding: 8px 10px;
-    border-radius: 11px;
+    padding: var(--_tunet-dd-option-pad-y, 0.5625em) var(--_tunet-dd-option-pad-x, 0.75em);
+    border-radius: var(--_tunet-dd-radius, 0.5em);
     border: none;
     background: transparent;
     font-family: inherit;
-    font-size: 14px;
+    font-size: var(--_tunet-dd-option-font, 0.8125em);
     font-weight: 600;
     color: var(--text);
     text-align: left;
@@ -479,10 +502,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     align-items: center;
     padding: 0.15em 0.5em;
     border-radius: var(--r-pill);
-    font-size: 15px;
+    font-size: var(--_tunet-alarm-pill-font, 0.9375em);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.01875em;
     line-height: 1.3;
     background: var(--blue-fill);
     color: var(--blue);
@@ -532,7 +555,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: none;
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    padding: 0.375em 0.375em;
+    padding: 0.375em;
     gap: 0.25em;
     justify-content: center;
     background: linear-gradient(to top, var(--tile-bg) 60%, transparent);
@@ -549,17 +572,23 @@ ${CARD_SURFACE_GLASS_STROKE}
   .alarm-btn {
     border: none;
     border-radius: var(--r-pill);
+    min-height: var(--_tunet-alarm-btn-h, 1.25em);
     padding: 0.25em 0.625em;
     font-family: inherit;
-    font-size: 0.5625em;
+    font-size: var(--_tunet-alarm-btn-font, 0.5625em);
     font-weight: 700;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.01875em;
     text-transform: uppercase;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 0.2em;
     transition: all 0.12s ease;
+  }
+  .alarm-btn .icon {
+    font-size: var(--_tunet-alarm-icon-size, 0.6875em);
+    width: var(--_tunet-alarm-icon-size, 0.6875em);
+    height: var(--_tunet-alarm-icon-size, 0.6875em);
   }
   .alarm-btn:active { transform: scale(0.95); }
   .alarm-btn.snooze {
@@ -576,20 +605,20 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* When ringing, push tile content up to make room for buttons */
   .tile[data-type="alarm"].alarm-ringing {
-    padding-bottom: 2.125em;
+    padding-bottom: calc(var(--_tunet-alarm-btn-h, 1.25em) + 0.875em);
   }
 
   /* ── Responsive ──────────────────────────────── */
   @media (max-width: 440px) {
-    .card { padding: var(--card-pad, 14px); }
+    :host(:not([use-profiles])) .card { padding: var(--card-pad, 14px); }
     .tile { min-height: var(--tile-row-h); }
-    :host([tile-size="compact"]) .tile {
+    :host(:not([use-profiles])[tile-size="compact"]) .tile {
       padding: 9px 7px 7px;
       gap: 3px;
     }
-    :host([tile-size="compact"]) .tile-val { font-size: 17px; }
-    :host([tile-size="compact"]) .tile-label { font-size: 11.2px; }
-    :host([tile-size="compact"]) .tile-secondary { font-size: 10.2px; }
+    :host(:not([use-profiles])[tile-size="compact"]) .tile-val { font-size: 17px; }
+    :host(:not([use-profiles])[tile-size="compact"]) .tile-label { font-size: 11.2px; }
+    :host(:not([use-profiles])[tile-size="compact"]) .tile-secondary { font-size: 10.2px; }
   }
 
 ${REDUCED_MOTION}
@@ -618,6 +647,7 @@ class TunetStatusCard extends HTMLElement {
     this._onHostResize = this._onHostResize.bind(this);
     this._resizeObserver = null;
     this._usingWindowResizeFallback = false;
+    this._profileSelection = null;
     injectFonts();
   }
 
@@ -649,7 +679,7 @@ class TunetStatusCard extends HTMLElement {
       ? Number(widthHint)
       : (this._cardEl?.getBoundingClientRect?.().width
         || this.getBoundingClientRect?.().width
-        || (typeof window !== 'undefined' ? window.innerWidth : 1024));
+        || 1024);
     const rules = Array.isArray(this._config.column_breakpoints) ? this._config.column_breakpoints : [];
     for (const rule of rules) {
       const minWidth = rule.minWidth == null ? Number.NEGATIVE_INFINITY : rule.minWidth;
@@ -676,6 +706,7 @@ class TunetStatusCard extends HTMLElement {
 
   _onHostResize(widthHint) {
     if (!this._rendered) return;
+    this._applyProfile(widthHint);
     const nextColumns = this._resolveResponsiveColumns(widthHint);
     if (nextColumns === this._activeColumns) return;
     this._activeColumns = nextColumns;
@@ -706,6 +737,7 @@ class TunetStatusCard extends HTMLElement {
         { name: 'columns', selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
         { name: 'column_breakpoints', selector: { object: {} } },
         { name: 'tile_size', selector: { select: { options: ['compact', 'standard', 'large'] } } },
+        { name: 'use_profiles', selector: { boolean: {} } },
         {
           type: 'expandable',
           title: 'Advanced',
@@ -721,17 +753,19 @@ class TunetStatusCard extends HTMLElement {
         columns: 'Columns',
         column_breakpoints: 'Responsive Column Breakpoints',
         tile_size: 'Tile Size',
+        use_profiles: 'Use Profile Sizing',
         custom_css: 'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
       computeHelper: (s) => ({
         column_breakpoints: 'Example: [{max_width: 600, columns: 4}, {max_width: 1024, columns: 6}, {columns: 8}]',
+        use_profiles: 'When enabled, geometry is sourced from the indicator-tile profile family.',
         custom_css: 'CSS rules injected into shadow DOM. Use .grid, .tile, etc.',
       }[s.name] || ''),
     };
   }
 
   static getStubConfig() {
-    return { name: 'Home Status', tile_size: 'compact', tiles: [] };
+    return { name: 'Home Status', tile_size: 'standard', use_profiles: true, tiles: [] };
   }
 
   setConfig(config) {
@@ -739,6 +773,7 @@ class TunetStatusCard extends HTMLElement {
     const tileSize = tileSizeRaw === 'regular'
       ? 'standard'
       : (tileSizeRaw === 'compact' || tileSizeRaw === 'large' ? tileSizeRaw : 'standard');
+    const useProfiles = config.use_profiles !== false;
     const columns = clampInt(config.columns, 2, 8, 4);
     const columnBreakpoints = normalizeColumnBreakpoints(config.column_breakpoints);
     this._config = {
@@ -747,6 +782,7 @@ class TunetStatusCard extends HTMLElement {
       columns,
       column_breakpoints: columnBreakpoints,
       tile_size: tileSize,
+      use_profiles: useProfiles,
       custom_css: config.custom_css || '',
       tiles: (config.tiles || []).map(t => {
         const type = t.type || 'value';
@@ -794,8 +830,9 @@ class TunetStatusCard extends HTMLElement {
         return base;
       }),
     };
-    if (tileSize === 'compact' || tileSize === 'large') this.setAttribute('tile-size', tileSize);
-    else this.removeAttribute('tile-size');
+    if (useProfiles) this.setAttribute('use-profiles', '');
+    else this.removeAttribute('use-profiles');
+    this._applyProfile(this._getHostWidth());
     this._activeColumns = this._resolveResponsiveColumns();
     if (this._rendered) this._buildGrid();
   }
@@ -845,9 +882,53 @@ class TunetStatusCard extends HTMLElement {
 
   getGridOptions() {
     return {
-      columns: 'full',
+      columns: 12,
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 2,
+      max_rows: 12,
     };
+  }
+
+  _getHostWidth(widthHint = null) {
+    const parsed = Number(widthHint);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    const cardWidth = Number(this._cardEl?.getBoundingClientRect?.().width);
+    if (Number.isFinite(cardWidth) && cardWidth > 0) return cardWidth;
+    const hostWidth = Number(this.getBoundingClientRect?.().width);
+    if (Number.isFinite(hostWidth) && hostWidth > 0) return hostWidth;
+    return 1024;
+  }
+
+  _setLegacyTileSizeAttr(size) {
+    if (size === 'compact' || size === 'large') this.setAttribute('tile-size', size);
+    else this.removeAttribute('tile-size');
+  }
+
+  _applyProfile(widthHint = null) {
+    const useProfiles = this._config.use_profiles !== false;
+    if (!useProfiles) {
+      this._profileSelection = null;
+      _setProfileVars(this, {}, { bridgePublicOverrides: false });
+      this.removeAttribute('profile-family');
+      this.removeAttribute('profile-size');
+      this._setLegacyTileSizeAttr(this._config.tile_size || 'standard');
+      return;
+    }
+
+    const width = this._getHostWidth(widthHint);
+    const selection = selectProfileSize({
+      preset: 'status',
+      layout: 'grid',
+      widthHint: width,
+      userSize: this._config.tile_size,
+    });
+    const profile = resolveSizeProfile(selection);
+    this._profileSelection = selection;
+    _setProfileVars(this, profile);
+    this.setAttribute('profile-family', selection.family);
+    this.setAttribute('profile-size', selection.size);
+    this._setLegacyTileSizeAttr(selection.size);
   }
 
   /* ═══════════════════════════════════════════════════
@@ -885,6 +966,7 @@ class TunetStatusCard extends HTMLElement {
     this._hdrEl = this.shadowRoot.querySelector('.hdr');
     this._cardEl = this.shadowRoot.querySelector('.card');
     this._gridEl = this.shadowRoot.getElementById('grid');
+    this._applyProfile(this._getHostWidth());
     this._activeColumns = this._resolveResponsiveColumns();
     this._applyGridColumns();
     this._applyHeaderVisibility();
@@ -922,8 +1004,8 @@ class TunetStatusCard extends HTMLElement {
             <span class="alarm-time-pill" id="val-${i}">--:--</span>
             <span class="tile-label">${tile.label}</span>
             <div class="alarm-actions" id="alarm-actions-${i}">
-              ${tile.snooze_action ? `<button type="button" class="alarm-btn snooze" id="alarm-snooze-${i}"><span class="icon" style="font-size:11px;width:11px;height:11px">snooze</span>Snooze</button>` : ''}
-              ${tile.dismiss_action ? `<button type="button" class="alarm-btn dismiss" id="alarm-dismiss-${i}"><span class="icon" style="font-size:11px;width:11px;height:11px">alarm_off</span>Stop</button>` : ''}
+              ${tile.snooze_action ? `<button type="button" class="alarm-btn snooze" id="alarm-snooze-${i}"><span class="icon">snooze</span>Snooze</button>` : ''}
+              ${tile.dismiss_action ? `<button type="button" class="alarm-btn dismiss" id="alarm-dismiss-${i}"><span class="icon">alarm_off</span>Stop</button>` : ''}
             </div>
           `;
           // Snooze button handler

@@ -247,6 +247,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  :host([use-profiles]) .hdr-title {
+    /* Slight profile-mode bump for top-left title readability. */
+    font-size: max(calc(var(--_tunet-header-font, 13px) * 1.1), 0.95em);
+  }
   .hdr-sub {
     font-size: var(--_tunet-sub-font, 10.5px);
     font-weight: 600;
@@ -256,6 +260,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  :host([use-profiles]) .hdr-sub {
+    /* Match subtitle readability with the profile title bump. */
+    font-size: max(calc(var(--_tunet-sub-font, 10.5px) * 1.1), 0.82em);
   }
   .hdr-sub .amber-ic    { color: var(--amber); }
   .hdr-sub .adaptive-ic { color: var(--text-muted); }
@@ -392,6 +400,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
+  :host([use-profiles]) .light-grid {
+    /* Reserve a little vertical headroom so drag pill can float above first row cleanly. */
+    padding-top: 0.4em;
+  }
   :host([layout="scroll"]) .light-grid::-webkit-scrollbar { display: none; }
 
   /* ═══════════════════════════════════════════════════
@@ -423,7 +435,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     transition: all 0.18s ease;
   }
   :host([use-profiles]) .l-tile {
-    min-height: var(--_tunet-tile-min-h, 0);
+    min-height: max(var(--_tunet-tile-min-h, 0px), 6.25em);
+    /* Keep text/progress lanes visible in compact profile mode. */
+    padding-bottom: calc(var(--_tunet-tile-pad, 0.62em) * 1.95);
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -531,15 +545,16 @@ ${CARD_SURFACE_GLASS_STROKE}
     box-shadow: var(--shadow-up);
     z-index: 100;
     border-color: var(--amber) !important;
+    overflow: visible;
     transition: none;
   }
 
   /* Floating pill – .zone-val repositions during slide */
   .l-tile.sliding .zone-val {
     position: absolute;
-    top: 0;
+    top: 0.48em;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -72%);
     color: var(--amber);
     font-weight: 700;
     font-size: 15px;
@@ -552,6 +567,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     border: 1px solid rgba(255,255,255,0.1);
     opacity: 1;
     white-space: nowrap;
+    pointer-events: none;
   }
 
   .l-tile.sliding .progress-track { height: 6px; }
@@ -595,6 +611,12 @@ ${CARD_SURFACE_GLASS_STROKE}
     line-height: 1.15;
     margin-bottom: 1px;
   }
+  :host([use-profiles]) .zone-name {
+    /* Restore readable name lane in profile mode across compact/standard/large. */
+    font-size: max(calc(var(--_tunet-name-font, 14px) * 1.38), 1.02em);
+    min-height: 1.1em;
+    flex: 0 0 auto;
+  }
 
   .zone-val {
     font-size: var(--_tunet-value-font, 13px);
@@ -603,6 +625,11 @@ ${CARD_SURFACE_GLASS_STROKE}
     line-height: 1.15;
     transition: color .2s;
     font-variant-numeric: tabular-nums;
+  }
+  :host([use-profiles]) .zone-val {
+    /* Slightly soften profile-mode value size in the lower lane. */
+    font-size: calc(var(--_tunet-value-font, 13px) * 0.92);
+    flex: 0 0 auto;
   }
 
   /* ── Progress Track (bottom inset) ───────────────── */
@@ -1016,6 +1043,9 @@ class TunetLightingCard extends HTMLElement {
     return {
       columns: 12,
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 2,
+      max_rows: 12,
     };
   }
 
@@ -1026,9 +1056,6 @@ class TunetLightingCard extends HTMLElement {
     if (Number.isFinite(cardWidth) && cardWidth > 0) return cardWidth;
     const hostWidth = Number(this.getBoundingClientRect?.().width);
     if (Number.isFinite(hostWidth) && hostWidth > 0) return hostWidth;
-    if (typeof window !== 'undefined' && Number.isFinite(Number(window.innerWidth))) {
-      return Number(window.innerWidth);
-    }
     return 1024;
   }
 
@@ -1269,7 +1296,7 @@ class TunetLightingCard extends HTMLElement {
     }
     const isMobile = this._widthBucket440 == null ? this._isWidthAtMost(440) : this._widthBucket440;
     const rowHeight = useProfiles
-      ? 'var(--_tunet-tile-min-h, 110px)'
+      ? 'max(var(--_tunet-tile-min-h, 110px), 6.25em)'
       : (activeTileSize === 'compact'
         ? (isMobile ? '94px' : '100px')
         : (activeTileSize === 'large'

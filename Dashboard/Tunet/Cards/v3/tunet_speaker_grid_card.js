@@ -25,12 +25,15 @@ import {
   injectFonts,
   detectDarkMode,
   applyDarkClass,
+  selectProfileSize,
+  resolveSizeProfile,
+  _setProfileVars,
   createAxisLockedDrag,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260306g3';
+} from './tunet_base.js?v=20260309g2';
 
-const CARD_VERSION = '3.1.3';
+const CARD_VERSION = '3.2.0';
 
 // ═══════════════════════════════════════════════════════════
 // Card-specific CSS overrides
@@ -72,6 +75,7 @@ const CARD_OVERRIDES = `
     width: 100%;
     gap: 0;
     overflow: visible;
+    padding: var(--_tunet-card-pad, var(--card-pad, 20px));
     transition: background .3s, border-color .3s, box-shadow .3s, opacity .3s;
   }
 `;
@@ -86,11 +90,18 @@ const CARD_STYLES = `
   .icon-18 { font-size: 18px; --ms-opsz: 20; }
 
   /* ── Header ─────────────────────────────────────── */
-  .grid-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .grid-hdr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: var(--_tunet-section-gap, 12px);
+    min-height: var(--_tunet-header-height, 0px);
+  }
 
   .info-tile {
     display: flex; align-items: center; gap: 8px;
-    padding: 6px 10px 6px 6px; min-height: var(--ctrl-min-h, 42px);
+    padding: 6px var(--_tunet-ctrl-pad-x, 10px) 6px 6px;
+    min-height: var(--_tunet-ctrl-min-h, var(--ctrl-min-h, 42px));
     border-radius: 10px; border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg); box-shadow: var(--ctrl-sh);
     cursor: pointer; transition: all .15s ease; min-width: 0;
@@ -106,12 +117,12 @@ const CARD_STYLES = `
 
   .hdr-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .hdr-title {
-    font-weight: 700; font-size: 13px; color: var(--text-sub);
+    font-weight: 700; font-size: var(--_tunet-header-font, 13px); color: var(--text-sub);
     letter-spacing: 0.1px; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .hdr-sub {
-    font-size: 11.5px; font-weight: 600; color: var(--text-muted);
+    font-size: var(--_tunet-sub-font, 11.5px); font-weight: 600; color: var(--text-muted);
     letter-spacing: 0.1px; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
@@ -121,7 +132,7 @@ const CARD_STYLES = `
   .spk-grid {
     display: grid;
     grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
-    gap: 10px;
+    gap: var(--_tunet-tile-gap, 10px);
     width: 100%; min-width: 0;
   }
 
@@ -132,15 +143,19 @@ const CARD_STYLES = `
     position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px 12px 8px;
-    border-radius: var(--r-tile);
+    gap: var(--_tunet-tile-gap, 10px);
+    padding:
+      var(--_tunet-tile-pad, 8px)
+      var(--_tunet-tile-pad, 10px)
+      calc(var(--_tunet-tile-pad, 8px) + var(--_tunet-progress-h, 3px) + 1px)
+      var(--_tunet-tile-pad, 8px);
+    border-radius: var(--_tunet-tile-radius, var(--r-tile));
     background: var(--tile-bg);
     border: 1px solid transparent;
     box-shadow: var(--tile-shadow-rest);
     cursor: pointer; user-select: none;
     touch-action: pan-y;
-    min-height: 58px;
+    min-height: var(--_tunet-tile-min-h, 58px);
     min-width: 0;
     overflow: visible;
     container-type: inline-size;
@@ -152,8 +167,8 @@ const CARD_STYLES = `
   }
 
   /* Size presets via host attribute */
-  :host([tile-size="compact"]) .spk-tile { padding: 7px 9px 10px 7px; min-height: 52px; gap: 6px; }
-  :host([tile-size="large"]) .spk-tile { padding: 12px 14px 16px 12px; min-height: 68px; }
+  :host(:not([use-profiles])[tile-size="compact"]) .spk-tile { padding: 7px 9px 10px 7px; min-height: 52px; gap: 6px; }
+  :host(:not([use-profiles])[tile-size="large"]) .spk-tile { padding: 12px 14px 16px 12px; min-height: 68px; }
 
   /* Tile-width breakpoint: switch to stacked layout when each tile gets narrow */
   @container (max-width: 128px) {
@@ -165,7 +180,7 @@ const CARD_STYLES = `
       padding: 8px 6px 11px;
       min-height: 84px;
     }
-    :host([tile-size="compact"]) .spk-tile {
+    :host(:not([use-profiles])[tile-size="compact"]) .spk-tile {
       gap: 4px;
       padding: 7px 6px 10px;
       min-height: 72px;
@@ -212,16 +227,17 @@ const CARD_STYLES = `
 
   /* ── Icon circle (left) ──────────────────────── */
   .tile-icon-wrap {
-    width: 40px; height: 40px;
+    width: var(--_tunet-icon-box, 40px); height: var(--_tunet-icon-box, 40px);
     border-radius: 12px;
     display: grid; place-items: center;
     flex-shrink: 0;
     transition: all .2s ease;
   }
-  :host([tile-size="compact"]) .tile-icon-wrap { width: 36px; height: 36px; border-radius: 10px; }
-  :host([tile-size="large"]) .tile-icon-wrap { width: 44px; height: 44px; }
+  :host(:not([use-profiles])[tile-size="compact"]) .tile-icon-wrap { width: 36px; height: 36px; border-radius: 10px; }
+  :host(:not([use-profiles])[tile-size="large"]) .tile-icon-wrap { width: 44px; height: 44px; }
 
   .tile-icon-wrap .icon {
+    font-size: var(--_tunet-icon-glyph, 20px);
     color: inherit;
     transition: color .15s ease;
   }
@@ -232,38 +248,40 @@ const CARD_STYLES = `
     display: flex; flex-direction: column; gap: 2px;
   }
   .spk-name {
-    font-size: 13px; font-weight: 600; line-height: 1.15;
+    font-size: var(--_tunet-name-font, 13px); font-weight: 600; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     transition: color .15s ease;
   }
-  :host([tile-size="compact"]) .spk-name { font-size: 13px; }
+  :host(:not([use-profiles])[tile-size="compact"]) .spk-name { font-size: 13px; }
 
   .spk-meta {
-    font-size: 11.5px; font-weight: 500; line-height: 1.25;
+    font-size: var(--_tunet-sub-font, 11.5px); font-weight: 500; line-height: 1.25;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     transition: color .15s ease;
   }
-  :host([tile-size="compact"]) .spk-meta { font-size: 11.25px; }
+  :host(:not([use-profiles])[tile-size="compact"]) .spk-meta { font-size: 11.25px; }
 
   /* ── Volume % (right) ────────────────────────── */
   .spk-vol {
-    font-size: 14px; font-weight: 700;
+    font-size: var(--_tunet-value-font, 14px); font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.1px;
     flex-shrink: 0;
     min-width: 36px; text-align: right;
     transition: color .15s ease;
   }
-  :host([tile-size="compact"]) .spk-vol { font-size: 13px; }
+  :host(:not([use-profiles])[tile-size="compact"]) .spk-vol { font-size: 13px; }
 
   /* ── Volume bar (bottom inset) ───────────────── */
   .vol-track {
     position: absolute;
-    bottom: 6px; left: 10px; right: 10px;
-    height: 3px;
+    bottom: calc(var(--_tunet-tile-pad, 8px) * 0.75);
+    left: var(--_tunet-tile-pad, 10px);
+    right: var(--_tunet-tile-pad, 10px);
+    height: var(--_tunet-progress-h, 3px);
     background: var(--track-bg);
     border-radius: var(--r-track);
     overflow: hidden;
@@ -387,12 +405,12 @@ const CARD_STYLES = `
 
   /* ── Responsive ────────────────────────────────── */
   @media (max-width: 440px) {
-    .card { padding: var(--card-pad, 14px); --r-card: 20px; }
-    .spk-grid {
+    :host(:not([use-profiles])) .card { padding: var(--card-pad, 14px); --r-card: 20px; }
+    :host(:not([use-profiles])) .spk-grid {
       grid-template-columns: repeat(var(--cols-sm, 2), minmax(0, 1fr));
       gap: 8px;
     }
-    .spk-tile {
+    :host(:not([use-profiles])) .spk-tile {
       min-height: 68px;
       padding: 7px 6px 10px;
       gap: 4px;
@@ -400,12 +418,12 @@ const CARD_STYLES = `
       align-items: center;
       justify-content: flex-start;
     }
-    .tile-icon-wrap { width: 36px; height: 36px; border-radius: 10px; }
-    .spk-text { width: 100%; align-items: center; text-align: center; gap: 1px; }
-    .spk-name { font-size: 13px; text-align: center; }
-    .spk-meta { font-size: 11.5px; text-align: center; }
-    .spk-vol { font-size: 13px; width: 100%; min-width: 0; text-align: center; }
-    .vol-track { left: 8px; right: 8px; }
+    :host(:not([use-profiles])) .tile-icon-wrap { width: 36px; height: 36px; border-radius: 10px; }
+    :host(:not([use-profiles])) .spk-text { width: 100%; align-items: center; text-align: center; gap: 1px; }
+    :host(:not([use-profiles])) .spk-name { font-size: 13px; text-align: center; }
+    :host(:not([use-profiles])) .spk-meta { font-size: 11.5px; text-align: center; }
+    :host(:not([use-profiles])) .spk-vol { font-size: 13px; width: 100%; min-width: 0; text-align: center; }
+    :host(:not([use-profiles])) .vol-track { left: 8px; right: 8px; }
   }
 `;
 
@@ -483,8 +501,13 @@ class TunetSpeakerGridCard extends HTMLElement {
     this._tileRefs = new Map();
     this._tileDragControllers = [];
     this._volDebounce = null;
+    this._resizeObserver = null;
+    this._usingWindowResizeFallback = false;
+    this._profileSelection = null;
 
     injectFonts();
+    this._onWindowResize = this._onWindowResize.bind(this);
+    this._onHostResize = this._onHostResize.bind(this);
   }
 
   /* ── Config ─────────────────────────────────────── */
@@ -508,6 +531,7 @@ class TunetSpeakerGridCard extends HTMLElement {
           name: '', type: 'grid', schema: [
             { name: 'columns',     selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
             { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
+            { name: 'use_profiles', selector: { boolean: {} } },
           ],
         },
         { name: 'show_group_actions', selector: { boolean: {} } },
@@ -526,10 +550,12 @@ class TunetSpeakerGridCard extends HTMLElement {
         coordinator_sensor: 'Coordinator Sensor',
         columns:            'Grid Columns',
         tile_size:          'Tile Size',
+        use_profiles:       'Use Profile Sizing',
         show_group_actions: 'Show Group/Ungroup Buttons',
         custom_css:         'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
       computeHelper: (s) => ({
+        use_profiles: 'When enabled, geometry comes from the speaker profile family instead of legacy tile-size CSS variants.',
         custom_css: 'CSS rules injected into shadow DOM. Use .spk-grid, .spk-tile, etc.',
       }[s.name] || ''),
     };
@@ -542,6 +568,7 @@ class TunetSpeakerGridCard extends HTMLElement {
       coordinator_sensor: 'sensor.sonos_smart_coordinator',
       columns: 4,
       tile_size: 'standard',
+      use_profiles: true,
       show_group_actions: true,
       speakers: [],
     };
@@ -556,6 +583,7 @@ class TunetSpeakerGridCard extends HTMLElement {
     const columns = Math.max(2, Math.min(8, Math.round(asFinite(config.columns, 4))));
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
     const tileSize = tileSizeRaw === 'compact' ? 'compact' : (tileSizeRaw === 'large' ? 'large' : 'standard');
+    const useProfiles = config.use_profiles !== false;
 
     this._config = {
       entity: config.entity,
@@ -564,11 +592,14 @@ class TunetSpeakerGridCard extends HTMLElement {
       coordinator_sensor: config.coordinator_sensor || 'sensor.sonos_smart_coordinator',
       columns,
       tile_size: tileSize,
+      use_profiles: useProfiles,
       show_group_actions: config.show_group_actions !== false,
       custom_css: config.custom_css || '',
     };
 
-    this.setAttribute('tile-size', tileSize);
+    if (useProfiles) this.setAttribute('use-profiles', '');
+    else this.removeAttribute('use-profiles');
+    this._applyProfile(this._getHostWidth());
 
     this._cachedSpeakers = null;
     if (this._rendered) {
@@ -585,6 +616,7 @@ class TunetSpeakerGridCard extends HTMLElement {
 
     if (!this._rendered) {
       this._render();
+      this._applyProfile(this._getHostWidth());
       this._setupListeners();
       this._rendered = true;
       this._buildGrid();
@@ -631,10 +663,87 @@ class TunetSpeakerGridCard extends HTMLElement {
     };
   }
 
+  _getHostWidth(widthHint = null) {
+    const parsed = Number(widthHint);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    const cardWidth = Number(this.$?.card?.getBoundingClientRect?.().width);
+    if (Number.isFinite(cardWidth) && cardWidth > 0) return cardWidth;
+    const hostWidth = Number(this.getBoundingClientRect?.().width);
+    if (Number.isFinite(hostWidth) && hostWidth > 0) return hostWidth;
+    if (typeof window !== 'undefined' && Number.isFinite(Number(window.innerWidth))) {
+      return Number(window.innerWidth);
+    }
+    return 1024;
+  }
+
+  _setLegacyTileSizeAttr(size) {
+    if (size === 'compact' || size === 'large') this.setAttribute('tile-size', size);
+    else this.removeAttribute('tile-size');
+  }
+
+  _applyProfile(widthHint = null) {
+    const useProfiles = this._config.use_profiles !== false;
+    if (!useProfiles) {
+      this._profileSelection = null;
+      _setProfileVars(this, {}, { bridgePublicOverrides: false });
+      this.removeAttribute('profile-family');
+      this.removeAttribute('profile-size');
+      this._setLegacyTileSizeAttr(this._config.tile_size || 'standard');
+      return;
+    }
+
+    const width = this._getHostWidth(widthHint);
+    const selection = selectProfileSize({
+      preset: 'speakers',
+      layout: 'grid',
+      widthHint: width,
+      userSize: this._config.tile_size,
+    });
+    const profile = resolveSizeProfile(selection);
+    this._profileSelection = selection;
+    _setProfileVars(this, profile);
+    this.setAttribute('profile-family', selection.family);
+    this.setAttribute('profile-size', selection.size);
+    this._setLegacyTileSizeAttr(selection.size);
+  }
+
+  _setupResizeObserver() {
+    if (this._resizeObserver || typeof ResizeObserver === 'undefined') return;
+    this._resizeObserver = new ResizeObserver((entries) => {
+      const width = entries?.[0]?.contentRect?.width;
+      this._onHostResize(width);
+    });
+    this._resizeObserver.observe(this);
+  }
+
+  _teardownResizeObserver() {
+    if (!this._resizeObserver) return;
+    this._resizeObserver.disconnect();
+    this._resizeObserver = null;
+  }
+
+  _onHostResize(widthHint = null) {
+    if (!this._rendered) return;
+    const prevSize = this._profileSelection?.size || '';
+    this._applyProfile(widthHint);
+    const nextSize = this._profileSelection?.size || '';
+    if (prevSize !== nextSize) this._buildGrid();
+  }
+
+  _onWindowResize() {
+    this._onHostResize(this._getHostWidth());
+  }
+
   /* ── Lifecycle ──────────────────────────────────── */
 
   connectedCallback() {
-    // No-op: tile-level drag listeners are created in _buildGrid().
+    this._setupResizeObserver();
+    if (typeof ResizeObserver === 'undefined') {
+      this._usingWindowResizeFallback = true;
+      window.addEventListener('resize', this._onWindowResize);
+    } else {
+      this._usingWindowResizeFallback = false;
+    }
   }
 
   disconnectedCallback() {
@@ -644,6 +753,11 @@ class TunetSpeakerGridCard extends HTMLElement {
     this._tileDragControllers = [];
     clearTimeout(this._volDebounce);
     clearTimeout(this._cooldownTimer);
+    if (this._usingWindowResizeFallback) {
+      window.removeEventListener('resize', this._onWindowResize);
+      this._usingWindowResizeFallback = false;
+    }
+    this._teardownResizeObserver();
   }
 
   /* ── Helpers ────────────────────────────────────── */

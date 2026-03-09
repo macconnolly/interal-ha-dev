@@ -1,12 +1,46 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-03-08 (America/Denver)  
+Last updated: 2026-03-09 (America/Denver)  
 Intended reader: next Codex run in a new chat  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Source filter for this run:
 - ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
+
+## 0V) Session Delta (2026-03-09, T-011A.11)
+
+v3 G2 pilot wiring (lighting + speaker profile consumption):
+
+- Conflict carry-forward:
+  - docs still list `Dashboard/Tunet/Cards/v2/` as canonical implementation authority
+  - active tranche remains in `Dashboard/Tunet/Cards/v3/` by explicit user override (`T-011A.10`)
+- Completed:
+  - wired profile APIs into:
+    - `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js`
+    - `Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - both cards now:
+    - consume `selectProfileSize(...)`, `resolveSizeProfile(...)`, `_setProfileVars(...)`
+    - support `use_profiles: true|false` rollback flag (`true` default)
+    - apply profile on config set + initial render + host resize
+    - stamp host attributes `profile-family` and `profile-size` in profile mode
+    - keep legacy tile-size geometry path when `use_profiles: false`
+  - lighting card specifics:
+    - profile-driven lanes wired for card/header/tile/icon/text/progress geometry
+    - legacy compact/large CSS branches gated behind `:not([use-profiles])`
+    - host-resize path now rebuilds when profile size bucket changes
+  - speaker card specifics:
+    - profile-driven lanes wired for card/header/tile/icon/text/progress geometry
+    - added host `ResizeObserver` + window fallback for profile re-selection
+    - retained narrow-tile container-query adaptation behavior
+    - legacy compact/large CSS branches gated behind `:not([use-profiles])`
+- Validation:
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_lighting_card.js` passed
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js` passed
+  - `node --test Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js` passed (8/8)
+- Scope:
+  - JS + control-doc sync only
+  - no YAML/storage/deploy actions in this tranche
 
 ## 0U) Session Delta (2026-03-08, T-011A.10)
 

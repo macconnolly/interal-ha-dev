@@ -1,7 +1,42 @@
 # Tunet Suite Dashboard - Implementation Plan (V2 Next)
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-08
+Last updated: 2026-03-09
+
+## Session Delta (2026-03-09, T-011A.11)
+
+Tranche marker: `T-011A.11` (v3 G2 pilot wiring - lighting + speaker profile consumption)
+
+- `CONFLICT-CARRY-FORWARD`
+  - control docs still list `Dashboard/Tunet/Cards/v2/` as implementation authority
+  - active tranche remains in `Dashboard/Tunet/Cards/v3/` by explicit user override (`T-011A.10` interpretation lock)
+- `CODE-DONE`
+  - profile pipeline wiring added to:
+    - `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js`
+    - `Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - both cards now:
+    - import and use `selectProfileSize(...)`, `resolveSizeProfile(...)`, `_setProfileVars(...)`
+    - support rollback flag `use_profiles: true|false` (default `true`)
+    - apply profile on `setConfig`, initial render, and host resize
+    - set `profile-family` / `profile-size` host attributes in profile mode
+    - keep legacy tile-size behavior when `use_profiles: false`
+  - lighting card:
+    - scoped legacy `[tile-size]` compact/large overrides behind `:host(:not([use-profiles]))`
+    - profile tokens now drive core geometry lanes (card padding, header sizing, tile pad/gap/radius, icon/name/value/progress lanes, tile min height)
+    - host-resize path now re-renders on profile-size transitions
+  - speaker grid card:
+    - added profile apply helpers + `ResizeObserver`/window fallback host-resize handling
+    - scoped legacy `[tile-size]` geometry overrides behind `:host(:not([use-profiles]))`
+    - profile tokens now drive card/header/tile/icon/text/progress geometry lanes
+    - existing tile-level container query behavior retained for narrow tile layout adaptation
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_lighting_card.js` passed
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js` passed
+  - `node --test Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js` passed (`8/8`)
+- `SCOPE`
+  - code + docs-sync only
+  - no YAML/dashboard-storage mutations
+  - no deploy/cache-bust actions in this tranche
 
 ## Session Delta (2026-03-08, T-011A.10)
 

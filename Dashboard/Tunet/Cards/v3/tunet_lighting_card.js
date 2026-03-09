@@ -24,10 +24,11 @@
  *   show_manual_reset: boolean     Show reset-manual control when needed (default: true)
  *   layout:           'grid'|'scroll'   Layout mode (default: grid)
  *   columns:          2-8          Grid columns (default: 3)
- *   column_breakpoints: object|array  Responsive column rules by viewport width
+ *   column_breakpoints: object|array  Responsive column rules by card/container width
  *   rows:             'auto'|2-6   Max visible rows in grid (default: auto)
  *   scroll_rows:      1-3          Rows in scroll mode (default: 2)
  *   tile_size:        'compact'|'standard'|'large'  Tile density preset (default: standard)
+ *   use_profiles:     boolean      Enable family profile sizing (default: true)
  *   surface:          'card'|'section'  Surface architecture (default: card)
  *   expand_groups:    boolean      Expand group entities into member lights (default: true)
  * ──────────────────────────────────────────────────────────────
@@ -39,11 +40,12 @@ import {
   CARD_SURFACE, CARD_SURFACE_GLASS_STROKE,
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
+  selectProfileSize, resolveSizeProfile, _setProfileVars,
   createAxisLockedDrag,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260307p03';
+} from './tunet_base.js?v=20260309g2';
 
-const CARD_VERSION = '3.4.4';
+const CARD_VERSION = '3.5.0';
 
 function clampInt(value, min, max, fallback) {
   const n = Number(value);
@@ -123,6 +125,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     width: 100%;
     max-width: 100%;
     overflow: visible;
+    padding: var(--_tunet-card-pad, var(--card-pad, 20px));
   }
 
   /* ── Card state tint (Design Language §3.3) ─── */
@@ -174,7 +177,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: var(--_tunet-section-gap, 16px);
+  }
+  :host([use-profiles]) .hdr {
+    min-height: var(--_tunet-header-height, 0px);
   }
 
   /* Info Tile (§5.2) – tappable entity identifier */
@@ -183,7 +189,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     align-items: center;
     gap: 8px;
     padding: 6px 10px 6px 6px;
-    min-height: 42px;
+    min-height: var(--_tunet-ctrl-min-h, 42px);
     box-sizing: border-box;
     border-radius: 10px;
     border: 1px solid var(--ctrl-border);
@@ -233,7 +239,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   .hdr-title {
     font-weight: 700;
-    font-size: 13px;
+    font-size: var(--_tunet-header-font, 13px);
     color: var(--text-sub);
     letter-spacing: 0.1px;
     line-height: 1.15;
@@ -242,7 +248,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     text-overflow: ellipsis;
   }
   .hdr-sub {
-    font-size: 10.5px;
+    font-size: var(--_tunet-sub-font, 10.5px);
     font-weight: 600;
     color: var(--text-muted);
     letter-spacing: 0.1px;
@@ -287,8 +293,8 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Toggle Button (§5.6) – Adaptive lighting ────── */
   .toggle-btn {
-    width: 42px;
-    min-height: 42px;
+    width: var(--_tunet-ctrl-min-h, 42px);
+    min-height: var(--_tunet-ctrl-min-h, 42px);
     box-sizing: border-box;
     border-radius: 10px;
     display: grid;
@@ -359,7 +365,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: grid;
     grid-template-columns: repeat(var(--cols, 3), minmax(0, 180px));
     grid-auto-rows: var(--grid-row, 110px);
-    gap: 10px;
+    gap: var(--_tunet-tile-gap, 10px);
     width: 100%;
     min-width: 0;
     overflow-y: visible;
@@ -392,9 +398,9 @@ ${CARD_SURFACE_GLASS_STROKE}
      LIGHT TILE (Design Language §3.5 Tile Surface)
      ═══════════════════════════════════════════════════ */
   .l-tile {
-    --tile-icon-size: 2.35em;
+    --tile-icon-size: var(--_tunet-icon-box, 2.35em);
     background: var(--tile-bg);
-    border-radius: var(--r-tile);
+    border-radius: var(--_tunet-tile-radius, var(--r-tile));
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
@@ -408,10 +414,16 @@ ${CARD_SURFACE_GLASS_STROKE}
     overflow: hidden;
     min-height: 0;
     height: 100%;
-    gap: 0.14em;
-    padding: 0.62em 0.34em 1.04em;
+    gap: var(--_tunet-tile-gap, 0.14em);
+    padding:
+      var(--_tunet-tile-pad, 0.62em)
+      calc(var(--_tunet-tile-pad, 0.62em) * 0.55)
+      calc(var(--_tunet-tile-pad, 0.62em) * 1.68);
     -webkit-tap-highlight-color: transparent;
     transition: all 0.18s ease;
+  }
+  :host([use-profiles]) .l-tile {
+    min-height: var(--_tunet-tile-min-h, 0);
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -424,46 +436,46 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
 
   /* Compact tile variant */
-  :host([tile-size="compact"]) .l-tile {
+  :host(:not([use-profiles])[tile-size="compact"]) .l-tile {
     --tile-icon-size: 1.92em;
     gap: 0.06em;
     padding: 0.46em 0.26em 1.22em;
   }
-  :host([tile-size="compact"]) .tile-icon-wrap {
+  :host(:not([use-profiles])[tile-size="compact"]) .tile-icon-wrap {
     margin-top: 0;
     margin-bottom: 0.14em;
   }
-  :host([tile-size="compact"]) .zone-name {
+  :host(:not([use-profiles])[tile-size="compact"]) .zone-name {
     font-size: 12.2px;
     max-width: 96%;
     min-height: 1.12em;
     line-height: 1.06;
     margin-bottom: 0;
   }
-  :host([tile-size="compact"]) .zone-val {
+  :host(:not([use-profiles])[tile-size="compact"]) .zone-val {
     font-size: 11.6px;
     line-height: 1.04;
     margin-top: 0;
     margin-bottom: 5px;
   }
-  :host([tile-size="compact"][dense-compact]) .l-tile {
+  :host(:not([use-profiles])[tile-size="compact"][dense-compact]) .l-tile {
     --tile-icon-size: 1.72em;
     padding: 0.42em 0.22em 1.24em;
   }
-  :host([tile-size="compact"][dense-compact]) .zone-name {
+  :host(:not([use-profiles])[tile-size="compact"][dense-compact]) .zone-name {
     font-size: 11.6px;
   }
-  :host([tile-size="compact"][dense-compact]) .zone-val {
+  :host(:not([use-profiles])[tile-size="compact"][dense-compact]) .zone-val {
     font-size: 11px;
     margin-bottom: 6px;
   }
-  :host([tile-size="large"]) .l-tile {
+  :host(:not([use-profiles])[tile-size="large"]) .l-tile {
     padding: 12px 10px 18px;
   }
 
   /* Scroll layout tile additions */
   :host([layout="scroll"]) .l-tile { scroll-snap-align: start; }
-  :host([layout="scroll"][tile-size="compact"]) .l-tile {
+  :host(:not([use-profiles])[layout="scroll"][tile-size="compact"]) .l-tile {
     padding-bottom: 30px;
   }
 
@@ -559,19 +571,19 @@ ${CARD_SURFACE_GLASS_STROKE}
     transition: all .2s ease;
   }
   .tile-icon-wrap .icon {
-    width: 1.3em;
-    height: 1.3em;
-    font-size: 1.3em;
+    width: var(--_tunet-icon-glyph, 1.3em);
+    height: var(--_tunet-icon-glyph, 1.3em);
+    font-size: var(--_tunet-icon-glyph, 1.3em);
     line-height: 1;
   }
-  :host([tile-size="compact"]) .tile-icon-wrap .icon {
+  :host(:not([use-profiles])[tile-size="compact"]) .tile-icon-wrap .icon {
     width: 1.02em;
     height: 1.02em;
     font-size: 1.02em;
   }
 
   .zone-name {
-    font-size: 14px;
+    font-size: var(--_tunet-name-font, 14px);
     font-weight: 600;
     letter-spacing: 0.1px;
     color: var(--text);
@@ -585,7 +597,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
 
   .zone-val {
-    font-size: 13px;
+    font-size: var(--_tunet-value-font, 13px);
     font-weight: 700;
     letter-spacing: 0.1px;
     line-height: 1.15;
@@ -596,16 +608,16 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* ── Progress Track (bottom inset) ───────────────── */
   .progress-track {
     position: absolute;
-    bottom: 10px;
-    left: 14px;
-    right: 14px;
-    height: 4px;
+    bottom: calc(var(--_tunet-tile-pad, 14px) * 0.72);
+    left: var(--_tunet-tile-pad, 14px);
+    right: var(--_tunet-tile-pad, 14px);
+    height: var(--_tunet-progress-h, 4px);
     background: var(--track-bg);
     border-radius: var(--r-track);
     overflow: hidden;
     transition: height .2s ease;
   }
-  :host([tile-size="compact"]) .progress-track {
+  :host(:not([use-profiles])[tile-size="compact"]) .progress-track {
     bottom: 6px;
     left: 10px;
     right: 10px;
@@ -648,13 +660,13 @@ ${REDUCED_MOTION}
     }
     .light-grid { gap: 6px; }
     .l-tile { min-height: 82px; }
-    :host([tile-size="compact"]) .zone-name {
+    :host(:not([use-profiles])[tile-size="compact"]) .zone-name {
       font-size: 12.2px;
       line-height: 1.08;
       min-height: 1.15em;
       margin-bottom: 1px;
     }
-    :host([tile-size="compact"]) .zone-val {
+    :host(:not([use-profiles])[tile-size="compact"]) .zone-val {
       font-size: 11.8px;
       line-height: 1.08;
       margin-top: 2px;
@@ -749,6 +761,7 @@ class TunetLightingCard extends HTMLElement {
     this._usingWindowResizeFallback = false;
     this._widthBucket440 = null;
     this._widthBucket640 = null;
+    this._profileSelection = null;
 
     injectFonts();
     this._onWindowResize = this._onWindowResize.bind(this);
@@ -785,6 +798,7 @@ class TunetLightingCard extends HTMLElement {
         { name: 'scroll_rows', selector: { number: { min: 1, max: 3, step: 1, mode: 'box' } } },
         { name: 'rows',        selector: { text: {} } },
         { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
+        { name: 'use_profiles', selector: { boolean: {} } },
         { name: 'expand_groups', selector: { boolean: {} } },
         {
           type: 'expandable',
@@ -811,20 +825,22 @@ class TunetLightingCard extends HTMLElement {
         rows:            'Max Rows (auto or number)',
         scroll_rows:     'Scroll Rows',
         tile_size:       'Tile Size',
+        use_profiles:    'Use Profile Sizing',
         expand_groups:   'Expand Group Entities',
         custom_css:      'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
       computeHelper: (s) => ({
         zones: 'Optional rich zones: [{entity, name, icon}]',
         adaptive_entities: 'If omitted, card auto-matches adaptive_lighting switches to current zones.',
-        column_breakpoints: 'Array/object rules. Example: [{max_width: 600, columns: 4}, {max_width: 1024, columns: 6}, {columns: 8}]',
+        column_breakpoints: 'Array/object rules by card width. Example: [{max_width: 600, columns: 4}, {max_width: 1024, columns: 6}, {columns: 8}]',
+        use_profiles: 'When enabled, size geometry comes from profile families instead of legacy tile-size CSS variants.',
         custom_css: 'CSS rules injected into shadow DOM. Use .light-grid, .l-tile, etc.',
       }[s.name] || ''),
     };
   }
 
   static getStubConfig() {
-    return { entities: [], name: 'Lighting' };
+    return { entities: [], name: 'Lighting', use_profiles: true };
   }
 
   setConfig(config) {
@@ -871,6 +887,7 @@ class TunetLightingCard extends HTMLElement {
     const surface = config.surface === 'section' ? 'section' : 'card';
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
     const tileSize = tileSizeRaw === 'compact' ? 'compact' : (tileSizeRaw === 'large' ? 'large' : 'standard');
+    const useProfiles = config.use_profiles !== false;
     const expandGroups = config.expand_groups !== false;
     const showAdaptiveToggle = config.show_adaptive_toggle !== false;
     const showManualReset = config.show_manual_reset !== false;
@@ -902,6 +919,7 @@ class TunetLightingCard extends HTMLElement {
       scroll_rows:     scrollRows,
       surface,
       tile_size:       tileSize,
+      use_profiles:    useProfiles,
       expand_groups:   expandGroups,
       rows,
       custom_css:      config.custom_css || '',
@@ -920,8 +938,8 @@ class TunetLightingCard extends HTMLElement {
       this.removeAttribute('surface');
     }
 
-    if (tileSize === 'compact' || tileSize === 'large') this.setAttribute('tile-size', tileSize);
-    else this.removeAttribute('tile-size');
+    if (useProfiles) this.setAttribute('use-profiles', '');
+    else this.removeAttribute('use-profiles');
 
     if (rows) {
       this.setAttribute('data-max-rows', rows);
@@ -929,6 +947,8 @@ class TunetLightingCard extends HTMLElement {
     } else {
       this.removeAttribute('data-max-rows');
     }
+
+    this._applyProfile(this._getHostWidth());
 
     if (this._rendered && this._hass) {
       this._resolveZones();
@@ -949,6 +969,7 @@ class TunetLightingCard extends HTMLElement {
     if (!this._rendered) {
       this._render();
       this._resolveZones();
+      this._applyProfile(this._getHostWidth());
       this._activeColumns = this._resolveResponsiveColumns();
       this._buildGrid();
       this._setupListeners();
@@ -1025,6 +1046,37 @@ class TunetLightingCard extends HTMLElement {
       if (width >= minWidth && width <= maxWidth) return rule.columns;
     }
     return baseColumns;
+  }
+
+  _setLegacyTileSizeAttr(size) {
+    if (size === 'compact' || size === 'large') this.setAttribute('tile-size', size);
+    else this.removeAttribute('tile-size');
+  }
+
+  _applyProfile(widthHint = null) {
+    const useProfiles = this._config.use_profiles !== false;
+    if (!useProfiles) {
+      this._profileSelection = null;
+      _setProfileVars(this, {}, { bridgePublicOverrides: false });
+      this.removeAttribute('profile-family');
+      this.removeAttribute('profile-size');
+      this._setLegacyTileSizeAttr(this._config.tile_size || 'standard');
+      return;
+    }
+
+    const width = this._getHostWidth(widthHint);
+    const selection = selectProfileSize({
+      preset: 'lighting',
+      layout: this._config.layout || 'grid',
+      widthHint: width,
+      userSize: this._config.tile_size,
+    });
+    const profile = resolveSizeProfile(selection);
+    this._profileSelection = selection;
+    _setProfileVars(this, profile);
+    this.setAttribute('profile-family', selection.family);
+    this.setAttribute('profile-size', selection.size);
+    this._setLegacyTileSizeAttr(selection.size);
   }
 
   /* ═══════════════════════════════════════════════════
@@ -1136,12 +1188,15 @@ class TunetLightingCard extends HTMLElement {
   _onHostResize(widthHint = null) {
     if (!this._rendered) return;
     const width = this._getHostWidth(widthHint);
+    const prevProfileSize = this._profileSelection?.size || '';
+    this._applyProfile(width);
+    const profileChanged = (this._profileSelection?.size || '') !== prevProfileSize;
     const nextColumns = this._resolveResponsiveColumns(width);
     const nextBucket440 = this._isWidthAtMost(440, width);
     const nextBucket640 = this._isWidthAtMost(640, width);
     const columnsChanged = nextColumns !== this._activeColumns;
     const bucketChanged = nextBucket440 !== this._widthBucket440 || nextBucket640 !== this._widthBucket640;
-    if (!columnsChanged && !bucketChanged) return;
+    if (!columnsChanged && !bucketChanged && !profileChanged) return;
     this._activeColumns = nextColumns;
     this._widthBucket440 = nextBucket440;
     this._widthBucket640 = nextBucket640;
@@ -1203,21 +1258,23 @@ class TunetLightingCard extends HTMLElement {
 
     // Set CSS custom properties
     const activeColumns = this._activeColumns || this._config.columns || 3;
+    const activeTileSize = this._profileSelection?.size || this._config.tile_size || 'standard';
+    const useProfiles = this._config.use_profiles !== false;
     grid.style.setProperty('--cols', activeColumns);
     grid.style.setProperty('--scroll-rows', this._config.scroll_rows);
-    if (this._config.tile_size === 'compact' && activeColumns >= 5) {
+    if (!useProfiles && activeTileSize === 'compact' && activeColumns >= 5) {
       this.setAttribute('dense-compact', '');
     } else {
       this.removeAttribute('dense-compact');
     }
-    const isMobile = this._widthBucket440 == null
-      ? this._isWidthAtMost(440)
-      : this._widthBucket440;
-    const rowHeight = this._config.tile_size === 'compact'
-      ? (isMobile ? '94px' : '100px')
-      : (this._config.tile_size === 'large'
-        ? (isMobile ? '124px' : '132px')
-        : (isMobile ? '102px' : '110px'));
+    const isMobile = this._widthBucket440 == null ? this._isWidthAtMost(440) : this._widthBucket440;
+    const rowHeight = useProfiles
+      ? 'var(--_tunet-tile-min-h, 110px)'
+      : (activeTileSize === 'compact'
+        ? (isMobile ? '94px' : '100px')
+        : (activeTileSize === 'large'
+          ? (isMobile ? '124px' : '132px')
+          : (isMobile ? '102px' : '110px')));
     grid.style.setProperty('--grid-row', rowHeight);
 
     // Limit visible tiles when rows is set (avoids overflow:hidden clipping pill)

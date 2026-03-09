@@ -1,8 +1,43 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-08
+Last updated: 2026-03-09
 Scope: `/home/mac/HA/implementation_10`
+
+## Session Delta (2026-03-09, T-011A.11)
+
+Change marker: `T-011A.11`
+
+- `CONFLICT-CARRY-FORWARD`
+  - docs still lock implementation authority to `Dashboard/Tunet/Cards/v2/`
+  - active implementation tranche remains in `Dashboard/Tunet/Cards/v3/` by user override
+- `CODE-DONE (G2 PILOT WIRING)`
+  - wired profile consumption into:
+    - `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js`
+    - `Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - both cards now consume:
+    - `selectProfileSize({ preset, layout, widthHint, userSize? })`
+    - `resolveSizeProfile({ family, size })`
+    - `_setProfileVars(...)`
+  - added rollback control to both cards:
+    - `use_profiles` config boolean (defaults to `true`)
+    - `use_profiles: false` keeps legacy tile-size geometry path active
+  - lighting profile wiring:
+    - apply profile on config set, first render, and host resize
+    - profile geometry now drives card/header/tile/icon/text/progress lanes via `--_tunet-*` tokens
+    - legacy compact/large CSS overrides are gated to non-profile mode
+  - speaker profile wiring:
+    - added host resize observer path for profile re-selection
+    - profile geometry now drives card/header/tile/icon/text/progress lanes via `--_tunet-*` tokens
+    - retained tile-level container-query fallback behavior; legacy compact/large overrides are gated to non-profile mode
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_lighting_card.js` passed
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js` passed
+  - `node --test Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js` passed (`8/8`)
+- `SCOPE`
+  - code + docs-sync only
+  - no YAML/storage dashboard mutations
+  - no deploy/cache-bust actions
 
 ## Session Delta (2026-03-08, T-011A.10)
 

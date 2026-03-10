@@ -12,7 +12,7 @@ import {
   selectProfileSize, resolveSizeProfile, _setProfileVars,
   runCardAction,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260309g3';
+} from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.0.0';
 
@@ -128,8 +128,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     --type-sub: var(--_tunet-sub-font, 0.6875em);
     --type-value: var(--_tunet-value-font, 1.125em);
     --tile-row-h: var(--_tunet-tile-min-h, 5.875em);
-    --tile-shadow-rest: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
-    --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
+    --tile-shadow-rest: 0 0.25em 0.75em rgba(0,0,0,0.04), 0 0.0625em 0.125em rgba(0,0,0,0.08);
+    --tile-shadow-lift: 0 0.75em 2em rgba(0,0,0,0.12), 0 0.25em 0.75em rgba(0,0,0,0.08);
     --dd-bg: rgba(255,255,255,0.92);
     --dd-border: rgba(255,255,255,0.60);
     position: relative;
@@ -173,7 +173,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     min-height: var(--_tunet-header-height, 2.625em);
   }
   .hdr-title {
-    font-size: var(--_tunet-header-font, 1em);
+    font-size: var(--_tunet-header-title-font, var(--_tunet-header-font, 1em));
     font-weight: 700;
     color: var(--text);
     display: flex;
@@ -199,14 +199,14 @@ ${CARD_SURFACE_GLASS_STROKE}
     border-radius: var(--_tunet-tile-radius, var(--r-tile));
     box-shadow: var(--tile-shadow-rest);
     padding:
-      var(--_tunet-tile-pad, 0.875em)
+      var(--_tunet-status-pad-top, var(--_tunet-tile-pad, 0.875em))
       calc(var(--_tunet-tile-pad, 0.875em) * 0.57)
-      calc(var(--_tunet-tile-pad, 0.875em) * 0.57);
+      var(--_tunet-status-pad-bottom, calc(var(--_tunet-tile-pad, 0.875em) * 0.57));
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: calc(var(--_tunet-tile-gap, 0.375em) * 0.85);
+    gap: var(--_tunet-status-tile-gap, calc(var(--_tunet-tile-gap, 0.375em) * 0.85));
     cursor: pointer;
     transition: all .15s ease;
     position: relative;
@@ -225,52 +225,52 @@ ${CARD_SURFACE_GLASS_STROKE}
     z-index: 6100;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile {
-    padding: 9px 7px 7px;
-    gap: 3px;
+    padding: 0.5625em 0.4375em 0.4375em;
+    gap: 0.1875em;
   }
   :host(:not([use-profiles])[tile-size="large"]) .tile {
-    padding: 30px 12px 14px;
-    gap: 7px;
+    padding: 1.875em 0.75em 0.875em;
+    gap: 0.4375em;
   }
   .tile:hover { box-shadow: var(--tile-shadow-lift); }
   .tile:active { transform: scale(.97); }
   .tile:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
+    outline: 0.125em solid var(--blue);
+    outline-offset: 0.1875em;
   }
 
   /* ── Tile Icon Accents ───────────────────────── */
   .tile-icon {
-    width: var(--_tunet-icon-box, 2.375em);
-    height: var(--_tunet-icon-box, 2.375em);
+    width: var(--_tunet-display-icon-box, var(--_tunet-icon-box, 2.375em));
+    height: var(--_tunet-display-icon-box, var(--_tunet-icon-box, 2.375em));
     display: grid;
     place-items: center;
     margin-bottom: calc(var(--_tunet-tile-gap, 0.375em) * 0.3);
   }
   .tile-icon .tile-icon-glyph {
-    font-size: var(--_tunet-icon-glyph, 1.1875em);
-    width: var(--_tunet-icon-glyph, 1.1875em);
-    height: var(--_tunet-icon-glyph, 1.1875em);
+    font-size: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.1875em));
+    width: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.1875em));
+    height: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.1875em));
     transform: none;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-icon {
-    width: 21px;
-    height: 21px;
-    margin-bottom: 2px;
+    width: 1.3125em;
+    height: 1.3125em;
+    margin-bottom: 0.125em;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-icon .tile-icon-glyph {
-    font-size: 19px;
-    width: 19px;
-    height: 19px;
+    font-size: 1.1875em;
+    width: 1.1875em;
+    height: 1.1875em;
     transform: none;
   }
   :host(:not([use-profiles])[tile-size="large"]) .tile-icon {
-    width: 30px; height: 30px;
+    width: 1.875em; height: 1.875em;
   }
   :host(:not([use-profiles])[tile-size="large"]) .tile-icon .tile-icon-glyph {
-    font-size: 26px;
-    width: 26px;
-    height: 26px;
+    font-size: 1.625em;
+    width: 1.625em;
+    height: 1.625em;
   }
   .tile[data-accent="amber"] .tile-icon { color: var(--amber); }
   .tile[data-accent="amber"] .tile-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
@@ -282,9 +282,17 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Tile Values & Labels ────────────────────── */
   .tile-val {
-    font-size: var(--type-value, 1.125em); font-weight: 700; letter-spacing: -.0125em; line-height: 1.06;
+    font-size: var(--_tunet-display-name-font, var(--type-value, 1.125em)); font-weight: 700; letter-spacing: -.0125em; line-height: 1.06;
     color: var(--text); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  }
+  :host([use-profiles]) .tile-val {
+    line-height: 1.04;
+    min-height: 1.14em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-val { font-size: var(--type-value, 1.0625em); line-height: 1.08; }
   :host(:not([use-profiles])[tile-size="large"]) .tile-val { font-size: 1.25em; }
@@ -299,23 +307,34 @@ ${CARD_SURFACE_GLASS_STROKE}
     max-height: 2.3em;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-val.is-text {
-    font-size: 13.4px;
+    font-size: 0.8375em;
     max-height: 2.35em;
   }
   .tile-val.is-long {
-    font-size: 12px;
+    font-size: 0.75em;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-val.is-long {
-    font-size: 12.8px;
+    font-size: 0.8em;
   }
   .tile-label {
-    font-size: var(--type-label, 0.8125em); font-weight: 600; letter-spacing: .0125em; text-transform: uppercase;
+    font-size: var(--_tunet-display-value-font, var(--type-label, 0.8125em)); font-weight: 600; letter-spacing: .0125em; text-transform: uppercase;
     color: var(--text-muted); line-height: 1.12; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
+  :host([use-profiles]) .tile-label {
+    text-transform: none;
+    letter-spacing: 0.01em;
+    line-height: 1.04;
+    min-height: 1.14em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.02em;
+    flex: 0 0 auto;
+  }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-label {
-    font-size: var(--type-label, 13px);
-    letter-spacing: .1px;
+    font-size: var(--type-label, 0.8125em);
+    letter-spacing: 0.00625em;
     text-transform: none;
     white-space: nowrap;
     display: block;
@@ -324,24 +343,28 @@ ${CARD_SURFACE_GLASS_STROKE}
     min-height: 1.2em;
   }
   :host(:not([use-profiles])[tile-size="large"]) .tile-label {
-    font-size: 10px;
-    letter-spacing: .55px;
+    font-size: 0.625em;
+    letter-spacing: 0.034375em;
   }
-  .tile-deg { font-size: 0.6em; vertical-align: baseline; position: relative; top: -0.18em; margin-left: -1px; }
+  .tile-deg { font-size: 0.6em; vertical-align: baseline; position: relative; top: -0.18em; margin-left: -0.0625em; }
   .tile-secondary {
-    font-size: var(--type-sub, 0.6875em); font-weight: 500; color: var(--text-sub); line-height: 1.12;
+    font-size: var(--_tunet-display-meta-font, var(--type-sub, 0.6875em)); font-weight: 500; color: var(--text-sub); line-height: 1.12;
     text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    max-width: 100%; margin-top: -1px;
+    max-width: 100%; margin-top: -0.0625em;
+  }
+  :host([use-profiles]) .tile-secondary {
+    line-height: 1.08;
+    margin-top: 0;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-secondary {
-    font-size: var(--type-sub, 11.5px);
+    font-size: var(--type-sub, 0.71875em);
   }
   .tile-secondary:empty { display: none; }
 
   /* ── Status Dots ─────────────────────────────── */
   .status-dot {
-    width: 6px; height: 6px; border-radius: 999px;
-    position: absolute; top: 10px; right: 10px;
+    width: 0.375em; height: 0.375em; border-radius: 62.5em;
+    position: absolute; top: 0.625em; right: 0.625em;
     display: none;
   }
   .status-dot.green { background: var(--green); display: block; }
@@ -363,8 +386,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     right: calc(var(--_tunet-tile-pad, 0.875em) * 0.45);
     min-height: calc(var(--_tunet-ctrl-min-h, 2.625em) * 0.7);
     padding: 0 calc(var(--_tunet-ctrl-pad-x, 0.75em) * 0.66);
-    border-radius: 999px;
-    border: 1px solid var(--ctrl-border);
+    border-radius: 62.5em;
+    border: 0.0625em solid var(--ctrl-border);
     background: var(--ctrl-bg);
     box-shadow: var(--ctrl-sh);
     color: var(--text-sub);
@@ -383,7 +406,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     padding-top: calc(var(--_tunet-ctrl-min-h, 2.625em) + 0.5em);
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile.has-aux-visible {
-    padding-top: 30px;
+    padding-top: 1.875em;
   }
   .tile-aux:hover { box-shadow: var(--tile-shadow-rest); }
   .tile-aux:active { transform: scale(0.97); }
@@ -395,7 +418,7 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Timer Tile ──────────────────────────────── */
   .tile[data-type="timer"] .tile-val {
-    font-size: var(--_tunet-timer-font, 1.125em);
+    font-size: var(--_tunet-timer-display-font, var(--_tunet-timer-font, 1.125em));
     letter-spacing: var(--_tunet-timer-ls, 0.03125em);
   }
 
@@ -405,7 +428,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     align-items: center;
     justify-content: flex-start;
     gap: 0.125em;
-    font-size: var(--_tunet-value-font, 1.125em);
+    font-size: var(--_tunet-dropdown-value-font, var(--_tunet-value-font, 1.125em));
     font-weight: 600;
     color: var(--text);
     white-space: nowrap;
@@ -417,8 +440,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     padding: 0 0.125em;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-dd-val {
-    font-size: 14.8px;
-    gap: 3px;
+    font-size: 0.925em;
+    gap: 0.1875em;
   }
   .tile-dd-val .dd-text {
     overflow: hidden;
@@ -440,7 +463,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* Dropdown menu */
   .tile-dd-menu {
     position: absolute;
-    top: calc(100% + 4px);
+    top: calc(100% + 0.25em);
     left: 50%;
     transform: translateX(-50%);
     min-width: 8.75em;
@@ -451,20 +474,20 @@ ${CARD_SURFACE_GLASS_STROKE}
     padding: 0.3125em;
     border-radius: var(--_tunet-dd-radius, 0.5em);
     background: var(--dd-bg);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--dd-border);
+    backdrop-filter: blur(1.5em); -webkit-backdrop-filter: blur(1.5em);
+    border: 0.0625em solid var(--dd-border);
     box-shadow: var(--shadow-up);
     z-index: 6100;
     display: none;
     flex-direction: column;
-    gap: 1px;
+    gap: 0.0625em;
   }
   .tile-dd-menu.open {
     display: flex;
     animation: ddMenuIn .14s ease forwards;
   }
   @keyframes ddMenuIn {
-    from { opacity: 0; transform: translateX(-50%) translateY(-4px) scale(.97); }
+    from { opacity: 0; transform: translateX(-50%) translateY(-0.25em) scale(.97); }
     to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
   }
   .tile-dd-opt {
@@ -531,7 +554,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* Ringing state */
   .tile[data-type="alarm"].alarm-ringing {
     background: var(--blue-fill);
-    box-shadow: 0 0 0 1px var(--blue), var(--tile-shadow-rest);
+    box-shadow: 0 0 0 0.0625em var(--blue), var(--tile-shadow-rest);
   }
   .tile[data-type="alarm"].alarm-ringing .tile-icon {
     color: var(--blue);
@@ -566,7 +589,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     animation: alarmActionsIn 0.2s ease forwards;
   }
   @keyframes alarmActionsIn {
-    from { opacity: 0; transform: translateY(4px); }
+    from { opacity: 0; transform: translateY(0.25em); }
     to { opacity: 1; transform: translateY(0); }
   }
   .alarm-btn {
@@ -598,7 +621,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   .alarm-btn.snooze:hover { opacity: 0.85; }
   .alarm-btn.dismiss {
     background: var(--ctrl-bg);
-    border: 1px solid var(--ctrl-border);
+    border: 0.0625em solid var(--ctrl-border);
     color: var(--text-sub);
   }
   .alarm-btn.dismiss:hover { box-shadow: var(--tile-shadow-rest); }
@@ -609,16 +632,16 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
 
   /* ── Responsive ──────────────────────────────── */
-  @media (max-width: 440px) {
-    :host(:not([use-profiles])) .card { padding: var(--card-pad, 14px); }
+  @media (max-width: 27.5em) {
+    :host(:not([use-profiles])) .card { padding: var(--card-pad, 0.875em); }
     .tile { min-height: var(--tile-row-h); }
     :host(:not([use-profiles])[tile-size="compact"]) .tile {
-      padding: 9px 7px 7px;
-      gap: 3px;
+      padding: 0.5625em 0.4375em 0.4375em;
+      gap: 0.1875em;
     }
-    :host(:not([use-profiles])[tile-size="compact"]) .tile-val { font-size: 17px; }
-    :host(:not([use-profiles])[tile-size="compact"]) .tile-label { font-size: 11.2px; }
-    :host(:not([use-profiles])[tile-size="compact"]) .tile-secondary { font-size: 10.2px; }
+    :host(:not([use-profiles])[tile-size="compact"]) .tile-val { font-size: 1.0625em; }
+    :host(:not([use-profiles])[tile-size="compact"]) .tile-label { font-size: 0.7em; }
+    :host(:not([use-profiles])[tile-size="compact"]) .tile-secondary { font-size: 0.6375em; }
   }
 
 ${REDUCED_MOTION}
@@ -1099,7 +1122,7 @@ class TunetStatusCard extends HTMLElement {
         const looksDanger = String(auxLabel).toLowerCase().includes('reset');
         if (looksDanger) auxBtn.classList.add('danger');
         auxBtn.innerHTML = auxIcon
-          ? `<span class="icon" style="font-size:12px;width:12px;height:12px">${auxIcon}</span><span>${auxLabel}</span>`
+          ? `<span class="icon" style="font-size:0.75em;width:0.75em;height:0.75em">${auxIcon}</span><span>${auxLabel}</span>`
           : `<span>${auxLabel}</span>`;
         auxBtn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -1508,7 +1531,7 @@ class TunetStatusCard extends HTMLElement {
         if (menuH > spaceBelow && spaceAbove > spaceBelow) {
           // Flip above the tile
           menuEl.style.top = 'auto';
-          menuEl.style.bottom = 'calc(100% + 4px)';
+          menuEl.style.bottom = 'calc(100% + 0.25em)';
           // Cap height if even above space is tight
           if (menuH > spaceAbove) {
             menuEl.style.maxHeight = `${Math.max(120, spaceAbove - 8)}px`;

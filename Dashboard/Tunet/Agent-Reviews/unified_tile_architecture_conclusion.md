@@ -1,5 +1,5 @@
 # Tunet Profile Consumption Architecture
-**Version:** 3.1 — All-Em Density Expansion
+**Version:** 3.3 — Status Alignment Deferral Update
 **Status:** Implementation-ready
 **Implementation authority:** `Dashboard/Tunet/Cards/v2/`
 **Design-intent reference:** `design_language.md` and `Cards/` (read-only; `v2/` governs behavior)
@@ -35,7 +35,7 @@ Three distinct states. All excluded cards must be explicitly classified.
 |---|---|---|---|
 | `tunet_lighting_card.js` | In scope (G2) | In scope | None |
 | `tunet_speaker_grid_card.js` | In scope (G2) | In scope | See §10 container query resolution |
-| `tunet_status_card.js` | In scope (G3) | In scope | None |
+| `tunet_status_card.js` | Deferred (G3S) | Excluded from current tranche gates | Bugfix-only until dedicated status tranche starts |
 | `tunet_rooms_card.js` | In scope (G3) | In scope | None |
 | `tunet_light_tile.js` | In scope (G4) | In scope | None |
 | `tunet_nav_card.js` | Excluded from migration | Excluded | **Neutralize before G3:** `ensureGlobalOffsetsStyle()` must be scoped or stubbed so it cannot inject offsets that corrupt section sizing measurements during G3 regression testing. Does not need to be fixed — only neutralized |
@@ -76,7 +76,7 @@ All contested decisions locked here. Do not re-open without a written tranche-ow
 | D17 | Rooms preset maps to `tile-grid` or `rooms-row` based on `mergedConfig.layout` post-merge | Layout is resolved during merge; family lookup must happen after |
 | D18 | All token values are em strings, not raw px numbers | Single `font-size` on `:host` becomes a master density lever; proportions stay coherent at any base size; responsive scaling via `font-size: clamp(...)` becomes trivially possible |
 | D19 | Size-indexed `PROFILE_BASE`: `{ compact: {...}, standard: {...}, large: {...} }` | Each family spreads the correct size's base and only overrides what diverges — no ambiguity about which base applies |
-| D20 | Status subtype internals (timer, alarm, dropdown options) are profile-controlled, not card-local | Compact must feel coherent end-to-end; fixed subtype controls at standard size while tiles shrink creates visual inconsistency |
+| D20 | Status subtype internals should be progressively aligned with shared profile lanes where low-risk | Full subtype tokenization is deferred; current path is bugfix-only + lightweight alignment in deferred `G3S` |
 | D21 | End-to-end density surface: card chrome, control surfaces, radii, spacing, dropdown geometry, secondary typography all scale with profile | Profiles own the entire density experience, not just tile-core geometry |
 | D22 | `ddRadius` added to PROFILE_BASE (dropdown border-radius, 0.5em standard) | Dropdowns need tighter radius than tiles; fixed radius at varying density breaks visual coherence |
 
@@ -421,7 +421,7 @@ export const SIZE_PROFILES = {
   },
 
   // Status indicator tiles — interactive subtypes (dropdown, alarm, timer)
-  // All subtype internals now profile-controlled (D20)
+  // D20 target values live here; full subtype consumption is deferred to G3S.
   'indicator-tile': {
     compact: {
       ...PROFILE_BASE.compact,
@@ -536,7 +536,7 @@ export const SIZE_PROFILES = {
 
 ### Status Subtype Geometry (D20)
 
-Timer, alarm, and dropdown option geometry are now fully profile-controlled via `indicator-tile` family extensions. No card-local CSS overrides for these metrics — they scale with the profile.
+Status subtype geometry is a deferred alignment surface. Current policy is incremental: adopt shared profile lanes where low-risk, keep behavior stable, and avoid deep subtype rewrites in the active unification tranche.
 
 ### Slim Variant
 
@@ -1395,16 +1395,9 @@ Screenshot regression:
 
 **Pre-gate action required:** `tunet_nav_card.js` `ensureGlobalOffsetsStyle()` must be stubbed or scoped before regression testing runs. Section sizing measurements must be taken against a clean baseline unaffected by nav card offset injection.
 
-**Files changed:** `tunet_status_card.js`, `tunet_rooms_card.js`
+**Files changed:** `tunet_rooms_card.js`
 
 **Changes:**
-
-`tunet_status_card.js`:
-- Add profile consumption pattern (same as G2 cards)
-- Profile applies to base lane geometry from `indicator-tile` family: all PROFILE_BASE tokens + indicator-tile extensions
-- Subtype geometry (timer, alarm, dropdown options) is now profile-controlled (D20) — no card-local CSS overrides for these metrics
-- Convert existing hardcoded alarm em values to consume `--_tunet-alarm-*` vars
-- Convert existing timer font/spacing to consume `--_tunet-timer-*` vars
 
 `tunet_rooms_card.js`:
 - Grid layout mode: `selectProfileSize` returns family `tile-grid`
@@ -1414,14 +1407,6 @@ Screenshot regression:
 - `layout_variant: 'slim'` handled by CSS class addition in card render logic, not by profile resolver
 
 **Exit criteria:**
-
-Status subtypes (D20 — profile-controlled):
-- [ ] Timer font consumes `--_tunet-timer-font` — devtools shows `1.125em` at standard
-- [ ] Timer letter-spacing consumes `--_tunet-timer-ls` — devtools shows `0.03125em` at standard
-- [ ] Alarm pill font consumes `--_tunet-alarm-pill-font` — devtools shows `0.9375em` at standard
-- [ ] Alarm button height consumes `--_tunet-alarm-btn-h` — devtools shows `1.25em` at standard
-- [ ] Dropdown max-height consumes `--_tunet-dropdown-max-h` — devtools shows `15em` at standard
-- [ ] Timer countdown continues live countdown after migration
 
 Rooms row:
 - [ ] `--_tunet-orb-size` computed on card host is `3.16em` at standard (devtools)
@@ -1435,6 +1420,28 @@ Rooms row:
 Nav neutralization:
 - [ ] `ensureGlobalOffsetsStyle()` confirmed not injecting during G3 testing session
 - [ ] Section sizing measurements taken with nav injection neutralized — baseline is clean
+
+---
+
+### G3S: Status Alignment Tranche (Deferred, Post-Unification)
+
+**Files changed:** `tunet_status_card.js`
+
+**Scope lock:**
+- lightweight subtype alignment for timer/alarm/dropdown/value lanes using existing shared tokens where low-risk
+- continue `px` -> `em` normalization and remove obvious inline sizing formulas where safe
+- keep status interaction behavior unchanged while normalizing geometry consumption
+
+**Exit criteria:**
+- [ ] Timer/alarm/dropdown/value subtype lanes are aligned with shared token semantics where low-risk
+- [ ] Obvious hardcoded `px` and inline size formulas in status subtype sizing paths are reduced without behavior regressions
+- [ ] Unit checks pass for affected status code paths
+- [ ] Live breakpoint checks pass at `390x844`, `768x1024`, `1024x1366`, `1440x900` with real HA entities
+
+**Policy until G3S starts:**
+- status remains bugfix-only
+- status regression does not block non-status family rollout gates
+- full subtype tokenization is optional follow-up, not a gate blocker
 
 ---
 
@@ -1538,7 +1545,7 @@ Profile resolution does not change when the user switches color mode. There are 
 | `tunet_base.js` | G0 prereq → G1 code | Add profile registry, resolver, deepMerge, family map, width utilities, deprecation markers | All existing tokens, RESPONSIVE_BASE (with deprecated notes), all existing utility exports |
 | `tunet_lighting_card.js` | G1 (width fix), G2 (profile) | Width source fix, profile consumption, feature flag, editor UI toggle | All gesture handlers, hass entity logic, all render logic |
 | `tunet_speaker_grid_card.js` | G2 | Profile consumption, feature flag | Container query column logic, group toggle, all render logic |
-| `tunet_status_card.js` | G3 | Profile consumption for base lanes | Subtype geometry (local CSS), dropdown mechanics, alarm button logic, timer display |
+| `tunet_status_card.js` | G3S (deferred) | Status alignment only: low-risk token adoption + em normalization | Bugfix-only behavior in current tranche sequence |
 | `tunet_rooms_card.js` | G3 | Profile consumption (grid → tile-grid, row → rooms-row) | Row semantics, orb logic, slim CSS class, navigation/popup behavior |
 | `tunet_light_tile.js` | G4 | Align to tile-grid profile, tile-core CSS to consume `--_tunet-*` | Drag gesture, hass binding, tap/hold |
 | All pilot tranche cards | G6 | Remove legacy scaling + use_profiles flag | `_renderError()`, `_checkBaseCompat()`, all profile consumption code |
@@ -1554,6 +1561,7 @@ Path is approved to execute (G0 cleared) when all are confirmed:
 - [ ] Profile schema v1 keys and numeric values fixed — §7
 - [ ] Width source policy fixed to container-first, required file changes identified — §13
 - [ ] Pilot tranche file list locked — §2
+- [ ] Status deferral policy (`G3S`, bugfix-only until tranche start) is recorded in §2 and §15
 - [ ] Breakpoint check targets declared: `390×844`, `768×1024`, `1024×1366`, `1440×900`
 - [ ] Parity definition quantified (computed CSS value inspection via devtools) — §15 G2
 - [ ] Regression guard behaviors defined for all 4 interaction paths — §15 G2/G3

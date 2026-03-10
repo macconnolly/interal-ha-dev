@@ -55,6 +55,7 @@ These locks are normative:
 4. Profile keys are domain-keyed (what geometry contract applies), not component-keyed
 5. Interaction contracts stay outside profile resolution
 6. Dark and light theme handling is orthogonal to profile geometry
+7. `tunet_status_card.js` is deferred from the current unification tranche and remains bugfix-only until the dedicated status tranche is executed
 
 ## 4. Visual Language Baseline
 
@@ -305,14 +306,28 @@ Pass criteria:
 ### G3: Indicator and Rooms Rollout
 
 Cards:
-- `tunet_status_card.js`
 - `tunet_rooms_card.js`
 - `tunet_sensor_card.js` (environment/indicator-row path if in active scope)
 
 Pass criteria:
-1. family split behavior verified (`indicator-tile` vs `indicator-row`)
-2. rooms layout variant routing verified (grid vs row)
-3. stale-token cleanup behavior verified on layout switches
+1. rooms layout variant routing verified (grid vs row)
+2. stale-token cleanup behavior verified on layout switches
+3. `indicator-row` behavior verified for sensor/environment path if in active scope
+
+### G3S: Status Alignment Tranche (Deferred, Post-Unification)
+
+Card:
+- `tunet_status_card.js`
+
+Scope:
+1. lightweight subtype alignment for timer/alarm/dropdown/value lanes using existing shared tokens where low-risk
+2. continue unit normalization (`px` -> `em`) and remove obvious inline sizing formulas where safe
+3. validate subtype behavior at `390x844`, `768x1024`, `1024x1366`, `1440x900` with real HA entities
+
+Policy:
+1. Until `G3S` starts, status is bugfix-only
+2. Status visual parity work must not block non-status family rollout
+3. Full status subtype tokenization/deep refactor is not a current-gate requirement
 
 ### G4: Supporting Tile Alignment
 

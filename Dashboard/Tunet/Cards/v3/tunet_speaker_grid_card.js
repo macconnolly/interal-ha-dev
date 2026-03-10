@@ -31,7 +31,7 @@ import {
   createAxisLockedDrag,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260309g2';
+} from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.2.0';
 
@@ -117,21 +117,14 @@ const CARD_STYLES = `
 
   .hdr-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .hdr-title {
-    font-weight: 700; font-size: var(--_tunet-header-font, 13px); color: var(--text-sub);
+    font-weight: 700; font-size: var(--_tunet-header-title-font, var(--_tunet-header-font, 13px)); color: var(--text-sub);
     letter-spacing: 0.1px; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  :host([use-profiles]) .hdr-title {
-    /* Match lighting profile readability uplift for top-left title lane. */
-    font-size: max(calc(var(--_tunet-header-font, 13px) * 1.1), 0.95em);
   }
   .hdr-sub {
-    font-size: var(--_tunet-sub-font, 11.5px); font-weight: 600; color: var(--text-muted);
+    font-size: var(--_tunet-header-sub-font, var(--_tunet-sub-font, 11.5px)); font-weight: 600; color: var(--text-muted);
     letter-spacing: 0.1px; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  :host([use-profiles]) .hdr-sub {
-    font-size: max(calc(var(--_tunet-sub-font, 11.5px) * 1.1), 0.82em);
   }
   .hdr-spacer { flex: 1; }
 
@@ -255,39 +248,30 @@ const CARD_STYLES = `
     display: flex; flex-direction: column; gap: 2px;
   }
   .spk-name {
-    font-size: var(--_tunet-name-font, 13px); font-weight: 600; line-height: 1.15;
+    font-size: var(--_tunet-display-name-font, var(--_tunet-name-font, 13px)); font-weight: 600; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     transition: color .15s ease;
-  }
-  :host([use-profiles]) .spk-name {
-    font-size: max(calc(var(--_tunet-name-font, 13px) * 1.28), 1em);
   }
   :host(:not([use-profiles])[tile-size="compact"]) .spk-name { font-size: 13px; }
 
   .spk-meta {
-    font-size: var(--_tunet-sub-font, 11.5px); font-weight: 500; line-height: 1.25;
+    font-size: var(--_tunet-display-meta-font, var(--_tunet-sub-font, 11.5px)); font-weight: 500; line-height: 1.25;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     transition: color .15s ease;
   }
-  :host([use-profiles]) .spk-meta {
-    font-size: max(calc(var(--_tunet-sub-font, 11.5px) * 1.14), 0.82em);
-  }
   :host(:not([use-profiles])[tile-size="compact"]) .spk-meta { font-size: 11.25px; }
 
   /* ── Volume % (right) ────────────────────────── */
   .spk-vol {
-    font-size: var(--_tunet-value-font, 14px); font-weight: 700;
+    font-size: var(--_tunet-display-value-font, var(--_tunet-value-font, 14px)); font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.1px;
     flex-shrink: 0;
     min-width: 36px; text-align: right;
     transition: color .15s ease;
-  }
-  :host([use-profiles]) .spk-vol {
-    font-size: max(calc(var(--_tunet-value-font, 14px) * 1.05), 0.95em);
   }
   :host(:not([use-profiles])[tile-size="compact"]) .spk-vol { font-size: 13px; }
 
@@ -409,15 +393,12 @@ const CARD_STYLES = `
   }
   .action-btn {
     display: flex; align-items: center; gap: 6px;
-    padding: 9px 12px; border-radius: 11px;
+    padding: calc(var(--_tunet-ctrl-pad-x, 0.75em) * 0.78) calc(var(--_tunet-ctrl-pad-x, 0.75em) * 1.04);
+    border-radius: 11px;
     border: none; background: transparent; font-family: inherit;
-    font-size: 13px; font-weight: 600; color: var(--text-sub);
+    font-size: var(--_tunet-display-action-font, 13px); font-weight: 600; color: var(--text-sub);
     cursor: pointer; transition: background .1s;
     user-select: none;
-  }
-  :host([use-profiles]) .action-btn {
-    font-size: max(calc(var(--_tunet-sub-font, 13px) * 1.15), 0.88em);
-    padding: 10px 14px;
   }
   .action-btn:hover { background: var(--track-bg); color: var(--text); }
   .action-btn:active { transform: scale(.97); }

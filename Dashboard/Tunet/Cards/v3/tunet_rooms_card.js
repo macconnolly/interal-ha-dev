@@ -24,7 +24,7 @@ import {
   runCardAction,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260309g3';
+} from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.0.0';
 
@@ -253,7 +253,7 @@ const CARD_STYLES = `
 
   /* -- Room name -- */
   .room-tile-name {
-    font-size: var(--_tunet-name-font, 0.8125em);
+    font-size: var(--_tunet-display-name-font, var(--_tunet-name-font, 0.8125em));
     font-weight: 600;
     color: var(--text);
     text-align: center;
@@ -266,7 +266,7 @@ const CARD_STYLES = `
 
   /* -- Status line (lights count + temp) -- */
   .room-tile-status {
-    font-size: var(--type-sub, 0.6875em);
+    font-size: var(--_tunet-display-value-font, var(--type-sub, 0.6875em));
     font-weight: 600;
     color: var(--text-muted);
     text-align: center;
@@ -349,12 +349,12 @@ const CARD_STYLES = `
     text-align: left;
   }
   .room-grid.row-mode .room-tile-name {
-    font-size: var(--type-row-title, 1.03125em);
+    font-size: var(--_tunet-row-display-name-font, var(--type-row-title, 1.03125em));
     font-weight: 700;
     line-height: var(--row-line-height-title, 1.16);
   }
   .room-grid.row-mode .room-tile-status {
-    font-size: var(--type-row-status, 0.90625em);
+    font-size: var(--_tunet-row-display-status-font, var(--type-row-status, 0.90625em));
     font-weight: 700;
     color: var(--text-sub);
     line-height: var(--row-line-height-status, 1.14);
@@ -365,25 +365,25 @@ const CARD_STYLES = `
     overflow: hidden;
   }
   .room-grid.row-mode .room-tile-icon {
-    width: calc(var(--_tunet-orb-size, 3.16em) * 0.68);
-    height: calc(var(--_tunet-orb-size, 3.16em) * 0.68);
+    width: var(--_tunet-row-lead-icon-box, calc(var(--_tunet-orb-size, 3.16em) * 0.66));
+    height: var(--_tunet-row-lead-icon-box, calc(var(--_tunet-orb-size, 3.16em) * 0.66));
     margin: 0;
     border-radius: calc(var(--rooms-row-btn-radius, 0.75em) * 0.83);
     flex: 0 0 auto;
   }
   .room-grid.row-mode .room-tile-icon .icon {
-    font-size: calc(var(--_tunet-orb-icon, 1.62em) * 0.75);
-    width: calc(var(--_tunet-orb-icon, 1.62em) * 0.75);
-    height: calc(var(--_tunet-orb-icon, 1.62em) * 0.75);
+    font-size: var(--_tunet-row-lead-icon-glyph, calc(var(--_tunet-orb-icon, 1.62em) * 0.74));
+    width: var(--_tunet-row-lead-icon-glyph, calc(var(--_tunet-orb-icon, 1.62em) * 0.74));
+    height: var(--_tunet-row-lead-icon-glyph, calc(var(--_tunet-orb-icon, 1.62em) * 0.74));
   }
   .room-row-controls {
     display: inline-flex;
     align-items: center;
-    gap: calc(var(--_tunet-row-gap, 0.52em) * 0.85);
+    gap: calc(var(--_tunet-row-gap, 0.52em) * 1.18);
     flex-shrink: 0;
-    --row-btn-size: var(--rooms-row-btn-size, 3.16em);
+    --row-btn-size: var(--_tunet-row-control-size, var(--rooms-row-btn-size, 3.16em));
     --row-btn-radius: var(--rooms-row-btn-radius, 0.75em);
-    --row-btn-icon-size: var(--rooms-row-btn-icon-size, 1.62em);
+    --row-btn-icon-size: var(--_tunet-row-control-icon, var(--rooms-row-btn-icon-size, 1.62em));
   }
   .room-action-btn {
     width: var(--row-btn-size);
@@ -429,7 +429,7 @@ const CARD_STYLES = `
   .room-orbs {
     display: inline-flex;
     align-items: center;
-    gap: calc(var(--_tunet-row-gap, 0.52em) * 0.58);
+    gap: calc(var(--_tunet-row-gap, 0.52em) * 0.9);
   }
   .room-orb {
     width: var(--row-btn-size);
@@ -515,12 +515,12 @@ const CARD_STYLES = `
   }
   .room-grid.row-mode.slim-mode .room-row-controls {
     gap: 0.26em;
-    --row-btn-size: var(--rooms-row-btn-size-slim, 2.21em);
-    --row-btn-radius: 9px;
-    --row-btn-icon-size: var(--rooms-row-btn-icon-size-slim, 1.13em);
+    --row-btn-size: calc(var(--_tunet-row-control-size, var(--rooms-row-btn-size, 3.16em)) * 0.7);
+    --row-btn-radius: calc(var(--rooms-row-btn-radius, 0.75em) * 0.75);
+    --row-btn-icon-size: calc(var(--_tunet-row-control-icon, var(--rooms-row-btn-icon-size, 1.62em)) * 0.7);
   }
   .room-grid.row-mode.slim-mode .room-orbs {
-    gap: 0.2em;
+    gap: 0.32em;
   }
   .room-grid.row-mode.slim-mode .room-orb {
     width: var(--row-btn-size);
@@ -1066,9 +1066,11 @@ class TunetRoomsCard extends HTMLElement {
         }, 400);
       };
 
-      const onPointerUp = () => {
+      const onPointerUp = (ev) => {
         clearTimeout(pressTimer);
         if (isRowVariant) {
+          const target = ev && ev.target instanceof Element ? ev.target : null;
+          if (target && target.closest('.room-row-controls')) return;
           if (roomCfg.navigate_path) {
             navigatePath(roomCfg.navigate_path);
           } else if (roomCfg.tap_action) {

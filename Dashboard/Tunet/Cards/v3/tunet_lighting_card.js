@@ -43,7 +43,7 @@ import {
   selectProfileSize, resolveSizeProfile, _setProfileVars,
   createAxisLockedDrag,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260309g2';
+} from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.5.0';
 
@@ -239,7 +239,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   .hdr-title {
     font-weight: 700;
-    font-size: var(--_tunet-header-font, 13px);
+    font-size: var(--_tunet-header-title-font, var(--_tunet-header-font, 13px));
     color: var(--text-sub);
     letter-spacing: 0.1px;
     line-height: 1.15;
@@ -247,12 +247,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  :host([use-profiles]) .hdr-title {
-    /* Slight profile-mode bump for top-left title readability. */
-    font-size: max(calc(var(--_tunet-header-font, 13px) * 1.1), 0.95em);
-  }
   .hdr-sub {
-    font-size: var(--_tunet-sub-font, 10.5px);
+    font-size: var(--_tunet-header-sub-font, var(--_tunet-sub-font, 10.5px));
     font-weight: 600;
     color: var(--text-muted);
     letter-spacing: 0.1px;
@@ -260,10 +256,6 @@ ${CARD_SURFACE_GLASS_STROKE}
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  :host([use-profiles]) .hdr-sub {
-    /* Match subtitle readability with the profile title bump. */
-    font-size: max(calc(var(--_tunet-sub-font, 10.5px) * 1.1), 0.82em);
   }
   .hdr-sub .amber-ic    { color: var(--amber); }
   .hdr-sub .adaptive-ic { color: var(--text-muted); }
@@ -599,7 +591,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
 
   .zone-name {
-    font-size: var(--_tunet-name-font, 14px);
+    font-size: var(--_tunet-display-name-font, var(--_tunet-name-font, 14px));
     font-weight: 600;
     letter-spacing: 0.1px;
     color: var(--text);
@@ -610,25 +602,17 @@ ${CARD_SURFACE_GLASS_STROKE}
     max-width: 90%;
     line-height: 1.15;
     margin-bottom: 1px;
-  }
-  :host([use-profiles]) .zone-name {
-    /* Restore readable name lane in profile mode across compact/standard/large. */
-    font-size: max(calc(var(--_tunet-name-font, 14px) * 1.38), 1.02em);
     min-height: 1.1em;
     flex: 0 0 auto;
   }
 
   .zone-val {
-    font-size: var(--_tunet-value-font, 13px);
+    font-size: var(--_tunet-display-value-font, var(--_tunet-value-font, 13px));
     font-weight: 700;
     letter-spacing: 0.1px;
     line-height: 1.15;
     transition: color .2s;
     font-variant-numeric: tabular-nums;
-  }
-  :host([use-profiles]) .zone-val {
-    /* Slightly soften profile-mode value size in the lower lane. */
-    font-size: calc(var(--_tunet-value-font, 13px) * 0.92);
     flex: 0 0 auto;
   }
 

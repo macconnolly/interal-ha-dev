@@ -8,6 +8,156 @@ Source filter for this run:
 - ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
 
+## 0ZF) Session Delta (2026-03-09, T-011A.21)
+
+Status bugfix-only hygiene pass completed:
+
+- `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - converted remaining `px` constants to `em` equivalents
+  - includes CSS fallbacks, compact/large branches, subtype geometry constants, and inline style strings
+  - converted dropdown placement runtime string from `4px` to `0.25em`
+  - no interaction behavior changes
+  - no new profile-architecture scope added
+- Validation:
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js` passed
+  - `node --test Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js` passed (`8/8`)
+- Classification:
+  - treated as bugfix-only work under status deferral policy (`T-011A.20`)
+
+## 0ZE) Session Delta (2026-03-09, T-011A.20)
+
+Status deferral policy is now explicitly locked:
+
+- `tunet_status_card.js` is deferred from the current unification gate sequence.
+- Status remains bugfix-only until dedicated tranche `G3S`.
+- Dedicated `G3S` scope is locked to:
+  - lightweight subtype alignment (timer/alarm/dropdown/value) using existing shared tokens where low-risk
+  - continued `px` -> `em` normalization and obvious inline sizing-formula cleanup where safe
+  - unit + live breakpoint validation (`390x844`, `768x1024`, `1024x1366`, `1440x900`) with real HA entities
+- Reclassification synced in:
+  - `Dashboard/Tunet/Mockups/design_language.md`
+  - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md`
+  - `plan.md`
+  - `FIX_LEDGER.md`
+  - `handoff.md`
+
+## 0ZD) Session Delta (2026-03-09, T-011A.19)
+
+Profile token normalization pass completed (code + validation, no live deploy):
+
+- `Dashboard/Tunet/Cards/v3/tunet_base.js`
+  - centralized additional profile lanes and token map aliases for:
+    - header title/subtitle
+    - display name/value/meta/action/icon
+    - row display name/status + lead icon + control size/icon
+    - status tile gap/top-bottom pad + timer display + dropdown value
+- `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js`
+  - profile header and tile name/value now consume centralized display/header aliases
+  - local profile multiplier formulas removed
+- `Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - profile header/name/meta/value/action now consume centralized display/header aliases
+  - local profile multiplier formulas removed
+- `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - profile lanes now consume centralized status/display/timer/dropdown tokens
+  - local profile scaling formulas removed (kept minimal alignment-only profile rules)
+- `Dashboard/Tunet/Cards/v3/tunet_rooms_card.js`
+  - grid + row typography/icon/control lanes now consume centralized display/row tokens
+  - removed profile-size conditional row multiplier overrides
+- `Dashboard/Tunet/Cards/v3/tunet_sensor_card.js`
+  - profile icon/label/value lanes now consume centralized display tokens
+  - profile multiplier selectors removed
+- base import cache-key sync:
+  - updated v3 imports to `./tunet_base.js?v=20260309g7` in:
+    - `tunet_lighting_card.js`
+    - `tunet_speaker_grid_card.js`
+    - `tunet_status_card.js`
+    - `tunet_rooms_card.js`
+    - `tunet_sensor_card.js`
+    - `tunet_light_tile.js`
+- Validation:
+  - `node --check` passed for base + lighting + speaker + status + rooms + sensor + light_tile + resolver test file
+  - `node --test Dashboard/Tunet/Cards/v3/tests/profile_resolver.test.js` passed (`8/8`)
+- Live status:
+  - no HA upload/resource bump in this tranche yet (`CODE-DONE / HA-VERIFY`)
+
+## 0ZC) Session Delta (2026-03-09, T-011A.18)
+
+Rooms row follow-up deployed:
+
+- `Dashboard/Tunet/Cards/v3/tunet_rooms_card.js`
+  - row lead icon reduced
+  - compact row sub-buttons enlarged
+  - standard row text reduced slightly
+  - all-on/off and orb sub-buttons now share the same size variable (`--row-btn-size`)
+- Live resource update:
+  - rooms: `/local/tunet/v3/tunet_rooms_card.js?v=20260309_g348`
+- Validation:
+  - `node --check` passed
+
+## 0ZB) Session Delta (2026-03-09, T-011A.17)
+
+Status/sensor profile readability follow-up (live deployed):
+
+- `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - profile lane balance tuned:
+    - icon lane scale increased
+    - bottom label lane scale increased
+    - bottom tile padding increased to prevent label-edge collision
+    - middle/bottom lane line-height + centering normalized for more even vertical alignment
+- `Dashboard/Tunet/Cards/v3/tunet_sensor_card.js`
+  - applied light-tile parity tuning to profile mode:
+    - icon scale bump
+    - label lane size bump
+    - value lane line-height/size adjustment
+- Live deploy + resource bumps:
+  - status: `/local/tunet/v3/tunet_status_card.js?v=20260309_g347`
+  - sensor: `/local/tunet/v3/tunet_sensor_card.js?v=20260309_g347`
+- Validation:
+  - `node --check` passed for both changed files
+
+## 0ZA) Session Delta (2026-03-09, T-011A.16)
+
+v3 live tuning + environment profile adoption:
+
+- Status profile readability corrections deployed:
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - profile lane spacing tightened (middle value no longer drops too low)
+    - profile icon lane enlarged
+    - profile text lanes aligned to lighting parity formulas (middle + bottom readability)
+    - timer/dropdown profile text lane bumps
+- Rooms profile readability + controls corrections deployed:
+  - `Dashboard/Tunet/Cards/v3/tunet_rooms_card.js`
+    - profile tile and row text lanes aligned to lighting parity formulas
+    - row controls rebalanced:
+      - per-room power button reduced
+      - per-light orb controls increased
+      - spacing widened
+    - pointer-up guard added so interactions in `.room-row-controls` do not trigger tile-body row actions
+- Environment card moved into profile scope:
+  - `Dashboard/Tunet/Cards/v3/tunet_sensor_card.js`
+    - added `tile_size` + `use_profiles`
+    - profile selection/resolution wired to `indicator-row`
+    - host/container resize profile re-selection added
+    - row internals now consume profile tokens (icon/text/value/unit/sparkline/trend geometry)
+    - `getGridOptions()` updated to intrinsic rows (`rows: 'auto'`, bounded)
+- Lab dashboard expanded:
+  - `Dashboard/Tunet/tunet-g2-lab-v3.yaml`
+    - sensor permutations now include legacy/profile compact/standard/large comparisons
+- Live deploy completed:
+  - uploaded to HA:
+    - `/homeassistant/www/tunet/v3/tunet_status_card.js`
+    - `/homeassistant/www/tunet/v3/tunet_rooms_card.js`
+    - `/homeassistant/www/tunet/v3/tunet_sensor_card.js`
+    - `/homeassistant/dashboards/tunet-g2-lab-v3.yaml`
+  - resources now active:
+    - status: `/local/tunet/v3/tunet_status_card.js?v=20260309_g346`
+    - rooms: `/local/tunet/v3/tunet_rooms_card.js?v=20260309_g346`
+    - sensor: `/local/tunet/v3/tunet_sensor_card.js?v=20260309_g346`
+- Validation:
+  - `node --check` passed for status/rooms/sensor v3 files
+  - YAML parse check passed for `tunet-g2-lab-v3.yaml`
+  - resolver unit tests remain green (`8/8`)
+
 ## 0Z) Session Delta (2026-03-09, T-011A.15)
 
 v3 G3 + G4 + G5 rollout tranche completed (code + validation, no live deploy in this slice):
@@ -58,7 +208,7 @@ v3 G3 + G4 + G5 rollout tranche completed (code + validation, no live deploy in 
 
 Carry-forward:
 - Nav offset neutralization for strict G3 section-baseline verification remains operationally required in live test runs (`tunet_nav_card.js` was not changed in this tranche).
-- Environment/indicator-row profile adoption (`tunet_sensor_card.js`) is still outside this completed tranche.
+- Environment/indicator-row profile adoption note from `T-011A.15` is superseded by `T-011A.16` (now in scope and deployed).
 
 ## 0W) Session Delta (2026-03-09, T-011A.12)
 

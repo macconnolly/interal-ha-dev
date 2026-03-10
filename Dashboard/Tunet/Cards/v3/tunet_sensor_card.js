@@ -1,14 +1,6 @@
 /**
- * Tunet Sensor Card v1.1.1
- * ──────────────────────────────────────────────────────────────
- * Dedicated environment sensor detail panel:
- *   Section-container wrapper  ·  Row-based sensor readings
- *   Trend indicators (rising/falling/stable)  ·  Min/max range
- *   Threshold-based accent switching  ·  Dirty-diff updates
- *   HA entity integration  ·  Configurable sensor rows
- *
- * v1.1.1 – Shared typography token adoption
- * ──────────────────────────────────────────────────────────────
+ * Tunet Sensor Card v3.0.0
+ * Dedicated environment sensor detail panel with profile-sized indicator rows.
  */
 
 import {
@@ -17,10 +9,11 @@ import {
   SECTION_SURFACE,
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
+  selectProfileSize, resolveSizeProfile, _setProfileVars,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260307p08';
+} from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '1.1.1';
+const CARD_VERSION = '3.0.0';
 
 /* ═══════════════════════════════════════════════════════════════
    CSS — Card-specific overrides + unique styles
@@ -29,13 +22,20 @@ const CARD_VERSION = '1.1.1';
 const CARD_OVERRIDES = `
   /* Card-specific token additions */
   :host {
-    --r-icon: 16px;
     display: block;
+    font-size: 16px; /* em anchor */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    --r-icon: var(--_tunet-tile-radius, 0.875em);
+    --type-label: var(--_tunet-name-font, 0.8125em);
+    --type-sub: var(--_tunet-sub-font, 0.6875em);
+    --type-value: var(--_tunet-value-font, 1.25em);
+    --type-unit: var(--_tunet-unit-font, 0.6875em);
   }
 
   /* Section container overrides */
   .section-container {
-    gap: 16px;
+    gap: var(--_tunet-section-gap, 1em);
     width: 100%;
   }
 
@@ -65,30 +65,34 @@ const CARD_OVERRIDES = `
 
 const CARD_STYLES = `
   /* ── Icon size utilities ────────────────────────── */
-  .icon-20 { font-size: 20px; }
-  .icon-18 { font-size: 18px; }
-  .icon-16 { font-size: 16px; }
-  .icon-14 { font-size: 14px; }
+  .icon-20 { font-size: 1.25em; }
+  .icon-18 { font-size: 1.125em; }
+  .icon-16 { font-size: 1em; }
+  .icon-14 { font-size: 0.875em; }
 
   /* ── Section Header ────────────────────────────── */
   .section-hdr {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 0.625em;
     position: relative; z-index: 1;
   }
   .section-title {
-    font-size: 15px; font-weight: 700;
-    letter-spacing: -0.2px;
+    font-size: var(--_tunet-section-font, 0.9375em);
+    font-weight: 700;
+    letter-spacing: -0.01em;
     color: var(--text);
-    display: flex; align-items: center; gap: 8px;
+    display: flex; align-items: center; gap: 0.5em;
   }
   .section-title .icon {
-    font-size: 20px;
+    font-size: var(--_tunet-icon-glyph, 1.25em);
   }
   .section-spacer { flex: 1; }
   .section-action {
-    font-size: 12px; font-weight: 600;
+    font-size: var(--_tunet-sub-font, 0.6875em);
+    font-weight: 700;
     color: var(--text-sub); cursor: pointer;
-    padding: 6px 12px; border-radius: var(--r-pill);
+    padding: 0 calc(var(--_tunet-ctrl-pad-x, 0.75em) * 0.85);
+    min-height: calc(var(--_tunet-ctrl-min-h, 2.625em) * 0.78);
+    border-radius: var(--r-pill);
     background: var(--ctrl-bg); border: 1px solid var(--ctrl-border);
     transition: all 0.15s ease;
     display: flex; align-items: center; gap: 4px;
@@ -112,11 +116,12 @@ const CARD_STYLES = `
   .sensor-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 4px;
+    gap: var(--_tunet-row-gap, 0.75em);
+    padding: var(--_tunet-row-pad-y, 0.75em) var(--_tunet-row-pad-x, 0.25em);
+    min-height: var(--_tunet-row-min-h, 3.5em);
     cursor: pointer;
     transition: all 0.15s ease;
-    border-radius: var(--r-icon);
+    border-radius: calc(var(--r-icon) * 0.72);
     position: relative;
   }
   .sensor-row:hover {
@@ -137,21 +142,24 @@ const CARD_STYLES = `
   .sensor-row + .sensor-row::before {
     content: "";
     position: absolute;
-    top: 0; left: 48px; right: 4px;
+    top: 0;
+    left: calc(var(--_tunet-row-pad-x, 0.25em) + var(--_tunet-display-icon-box, var(--_tunet-icon-box, 2.25em)) + var(--_tunet-row-gap, 0.75em));
+    right: var(--_tunet-row-pad-x, 0.25em);
     height: 1px;
     background: var(--divider);
   }
 
   /* ── Icon Wrap ─────────────────────────────────── */
   .sensor-icon {
-    width: 36px; height: 36px;
-    border-radius: var(--r-icon);
+    width: var(--_tunet-display-icon-box, var(--_tunet-icon-box, 2.25em));
+    height: var(--_tunet-display-icon-box, var(--_tunet-icon-box, 2.25em));
+    border-radius: calc(var(--r-icon) * 0.7);
     display: grid; place-items: center;
     flex-shrink: 0;
     transition: all 0.2s ease;
   }
   .sensor-icon .icon {
-    font-size: 20px;
+    font-size: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.25em));
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
 
@@ -176,18 +184,18 @@ const CARD_STYLES = `
   /* ── Sensor Info (label + sublabel) ────────────── */
   .sensor-info {
     flex: 1; min-width: 0;
-    display: flex; flex-direction: column; gap: 2px;
+    display: flex; flex-direction: column; gap: 0.125em;
   }
   .sensor-label {
-    font-size: var(--type-label, 13px); font-weight: 600;
+    font-size: var(--_tunet-display-name-font, var(--type-label)); font-weight: 600;
     color: var(--text); line-height: 1.2;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .sensor-sub {
-    font-size: var(--type-sub, 11px); font-weight: 500;
+    font-size: var(--type-sub); font-weight: 500;
     color: var(--text-muted); line-height: 1.2;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    display: flex; align-items: center; gap: 4px;
+    display: flex; align-items: center; gap: 0.25em;
   }
   .sensor-sub .range-sep {
     opacity: 0.5;
@@ -195,31 +203,35 @@ const CARD_STYLES = `
 
   /* ── Value + Unit ──────────────────────────────── */
   .sensor-val-wrap {
-    display: flex; align-items: baseline; gap: 2px;
+    display: flex; align-items: baseline; gap: 0.125em;
     flex-shrink: 0;
   }
   .sensor-val {
-    font-size: calc(var(--type-value, 18px) + 2px); font-weight: 700;
-    letter-spacing: -0.3px; line-height: 1;
+    font-size: var(--_tunet-display-value-font, var(--type-value));
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1;
     color: var(--text);
     font-variant-numeric: tabular-nums;
     transition: color 0.2s;
   }
   .sensor-unit {
-    font-size: var(--type-sub, 11px); font-weight: 600;
+    font-size: var(--type-unit);
+    font-weight: 600;
     color: var(--text-sub);
-    letter-spacing: 0.2px;
+    letter-spacing: 0.02em;
   }
 
   /* ── Trend Arrow ───────────────────────────────── */
   .sensor-trend {
-    width: 20px; height: 20px;
+    width: var(--_tunet-trend-box, 1.25em);
+    height: var(--_tunet-trend-box, 1.25em);
     display: grid; place-items: center;
     flex-shrink: 0;
-    margin-left: 2px;
+    margin-left: 0.125em;
   }
   .sensor-trend .icon {
-    font-size: 16px;
+    font-size: var(--_tunet-trend-glyph, 1em);
     font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 20;
     transition: color 0.2s, transform 0.2s;
   }
@@ -229,7 +241,8 @@ const CARD_STYLES = `
 
   /* ── Sparkline (optional inline mini-chart) ───── */
   .sensor-spark {
-    width: 48px; height: 24px;
+    width: var(--_tunet-sparkline-w, 3em);
+    height: var(--_tunet-sparkline-h, 1.5em);
     flex-shrink: 0;
     margin-left: auto;
   }
@@ -239,7 +252,7 @@ const CARD_STYLES = `
   }
   .spark-line {
     fill: none;
-    stroke-width: 1.5;
+    stroke-width: var(--_tunet-spark-stroke, 0.09375em);
     stroke-linecap: round;
     stroke-linejoin: round;
   }
@@ -257,21 +270,23 @@ const CARD_STYLES = `
 
   /* ── Empty State ───────────────────────────────── */
   .sensor-empty {
-    padding: 24px;
+    padding: calc(var(--_tunet-section-pad, 1em) * 1.2);
     text-align: center;
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--type-label);
     font-weight: 500;
   }
 
   /* ── Responsive ────────────────────────────────── */
   @media (max-width: 440px) {
-    .section-container { padding: 16px; }
-    .sensor-row { gap: 10px; padding: 10px 2px; }
-    .sensor-label { font-size: var(--type-label, 13px); }
-    .sensor-sub, .sensor-unit { font-size: var(--type-sub, 11.5px); }
-    .sensor-val { font-size: var(--type-value, 18px); }
-    .sensor-spark { width: 40px; height: 20px; }
+    :host(:not([use-profiles])) .sensor-row {
+      gap: 0.625em;
+      padding: 0.625em 0.125em;
+    }
+    :host(:not([use-profiles])) .sensor-spark {
+      width: 2.5em;
+      height: 1.25em;
+    }
   }
 `;
 
@@ -372,6 +387,8 @@ class TrendComputer {
   }
 }
 
+const VALID_SIZES = new Set(['compact', 'standard', 'large']);
+
 /* ═══════════════════════════════════════════════════════════════
    Card Class
    ═══════════════════════════════════════════════════════════════ */
@@ -388,6 +405,11 @@ class TunetSensorCard extends HTMLElement {
     this._historyCache = {};
     this._throttleTimer = null;
     this._historyTimer = null;
+    this._resizeObserver = null;
+    this._usingWindowResizeFallback = false;
+    this._profileSelection = null;
+    this._onWindowResize = this._onWindowResize.bind(this);
+    this._onHostResize = this._onHostResize.bind(this);
 
     injectFonts();
   }
@@ -401,11 +423,22 @@ class TunetSensorCard extends HTMLElement {
       schema: [
         { name: 'title', selector: { text: {} } },
         { name: 'icon', selector: { icon: {} } },
+        { name: 'show_sparkline', selector: { boolean: {} } },
+        { name: 'show_trend', selector: { boolean: {} } },
+        { name: 'tile_size', selector: { select: { options: ['compact', 'standard', 'large'] } } },
+        { name: 'use_profiles', selector: { boolean: {} } },
       ],
       computeLabel: (schema) => ({
         title: 'Section Title',
         icon: 'Section Icon',
+        show_sparkline: 'Show Sparkline',
+        show_trend: 'Show Trend Indicator',
+        tile_size: 'Tile Size',
+        use_profiles: 'Use Profile Sizing',
       }[schema.name] || schema.name),
+      computeHelper: (schema) => ({
+        use_profiles: 'When enabled, geometry is sourced from the indicator-row profile family.',
+      }[schema.name] || ''),
     };
   }
 
@@ -416,6 +449,8 @@ class TunetSensorCard extends HTMLElement {
       icon_color: 'blue',
       show_sparkline: true,
       show_trend: true,
+      tile_size: 'standard',
+      use_profiles: true,
       sensors: [
         {
           entity: 'sensor.living_room_temperature',
@@ -469,18 +504,25 @@ class TunetSensorCard extends HTMLElement {
     if (!config.sensors || !Array.isArray(config.sensors) || config.sensors.length === 0) {
       throw new Error('Please define at least one sensor in the sensors array');
     }
+    const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
+    const tileSize = VALID_SIZES.has(tileSizeRaw) ? tileSizeRaw : 'standard';
+    const useProfiles = config.use_profiles !== false;
     this._config = {
       title: config.title || 'Environment',
       icon: config.icon || 'sensors',
       icon_color: config.icon_color || 'blue',
       show_sparkline: config.show_sparkline !== false,
       show_trend: config.show_trend !== false,
+      tile_size: tileSize,
+      use_profiles: useProfiles,
       history_hours: config.history_hours || 6,
       sensors: config.sensors,
     };
     if (this._rendered && this._hass) {
+      this._applyProfile(this._getHostWidth());
       this._buildRows();
       this._updateAll(true);
+      this._fetchAllHistory();
     }
   }
 
@@ -525,10 +567,20 @@ class TunetSensorCard extends HTMLElement {
     return {
       columns: 12,
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 2,
+      max_rows: 12,
     };
   }
 
   connectedCallback() {
+    this._setupResizeObserver();
+    if (typeof ResizeObserver === 'undefined') {
+      this._usingWindowResizeFallback = true;
+      window.addEventListener('resize', this._onWindowResize);
+    } else {
+      this._usingWindowResizeFallback = false;
+    }
     this._historyTimer = setInterval(() => {
       if (this._hass) this._fetchAllHistory();
     }, 5 * 60 * 1000);
@@ -537,6 +589,76 @@ class TunetSensorCard extends HTMLElement {
   disconnectedCallback() {
     if (this._throttleTimer) clearTimeout(this._throttleTimer);
     if (this._historyTimer) clearInterval(this._historyTimer);
+    if (this._usingWindowResizeFallback) {
+      window.removeEventListener('resize', this._onWindowResize);
+      this._usingWindowResizeFallback = false;
+    }
+    this._teardownResizeObserver();
+  }
+
+  _setupResizeObserver() {
+    if (this._resizeObserver || typeof ResizeObserver === 'undefined') return;
+    this._resizeObserver = new ResizeObserver((entries) => {
+      const width = entries?.[0]?.contentRect?.width;
+      this._onHostResize(width);
+    });
+    this._resizeObserver.observe(this);
+  }
+
+  _teardownResizeObserver() {
+    if (!this._resizeObserver) return;
+    this._resizeObserver.disconnect();
+    this._resizeObserver = null;
+  }
+
+  _onWindowResize() {
+    this._onHostResize(this.getBoundingClientRect?.().width);
+  }
+
+  _onHostResize(widthHint) {
+    if (!this._rendered) return;
+    this._applyProfile(widthHint);
+  }
+
+  _getHostWidth(widthHint = null) {
+    const parsed = Number(widthHint);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    const hostWidth = Number(this.getBoundingClientRect?.().width);
+    if (Number.isFinite(hostWidth) && hostWidth > 0) return hostWidth;
+    return 1024;
+  }
+
+  _setLegacyTileSizeAttr(size) {
+    if (size === 'compact' || size === 'large') this.setAttribute('tile-size', size);
+    else this.removeAttribute('tile-size');
+  }
+
+  _applyProfile(widthHint = null) {
+    const useProfiles = this._config.use_profiles !== false;
+    if (!useProfiles) {
+      this._profileSelection = null;
+      _setProfileVars(this, {}, { bridgePublicOverrides: false });
+      this.removeAttribute('profile-family');
+      this.removeAttribute('profile-size');
+      this.removeAttribute('use-profiles');
+      this._setLegacyTileSizeAttr(this._config.tile_size || 'standard');
+      return;
+    }
+
+    const width = this._getHostWidth(widthHint);
+    const selection = selectProfileSize({
+      preset: 'environment',
+      layout: 'row',
+      widthHint: width,
+      userSize: this._config.tile_size,
+    });
+    const profile = resolveSizeProfile(selection);
+    this._profileSelection = selection;
+    _setProfileVars(this, profile);
+    this.setAttribute('profile-family', selection.family);
+    this.setAttribute('profile-size', selection.size);
+    this.setAttribute('use-profiles', '');
+    this._setLegacyTileSizeAttr(selection.size);
   }
 
   /* ── Render ─────────────────────────────────── */
@@ -556,6 +678,7 @@ class TunetSensorCard extends HTMLElement {
       sectionIcon: this.shadowRoot.getElementById('sectionIcon'),
       sensorList: this.shadowRoot.getElementById('sensorList'),
     };
+    this._applyProfile(this._getHostWidth());
   }
 
   _buildRows() {
@@ -748,7 +871,9 @@ class TunetSensorCard extends HTMLElement {
     const values = cached.data.map(p => p.v);
 
     if (ref.sparkPath && values.length >= 2) {
-      const path = TrendComputer.sparklinePath(values);
+      const width = Number(ref.sparkEl?.clientWidth) || 48;
+      const height = Number(ref.sparkEl?.clientHeight) || 24;
+      const path = TrendComputer.sparklinePath(values, width, height);
       ref.sparkPath.setAttribute('d', path);
     }
 

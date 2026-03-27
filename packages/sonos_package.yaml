@@ -773,17 +773,43 @@ template:
       unique_id: sonos_alarm_playing
       icon: mdi:alarm-bell
       state: >
+        {# Detection strategy 1: URI match (built-in buzzer) - instant #}
+        {# Detection strategy 2: time cross-reference (music-service alarms) - fallback #}
+        {# A speaker qualifies if it is 'playing' AND either signal is true #}
         {% set speakers = [
           'media_player.bedroom',
-          'media_player.bath', 
+          'media_player.bath',
           'media_player.kitchen',
           'media_player.living_room',
           'media_player.dining_room'
         ] %}
         {% set ns = namespace(playing=none) %}
+        {% set now_secs = now().hour * 3600 + now().minute * 60 + now().second %}
         {% for speaker in speakers %}
-          {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
-            {% set ns.playing = speaker %}
+          {% if states(speaker) == 'playing' %}
+            {% set content_id = state_attr(speaker, 'media_content_id') | default('', true) %}
+            {% set buzzer_match = 'x-rincon-buzzer' in content_id %}
+            {% set time_ns = namespace(found=false) %}
+            {% if not buzzer_match %}
+              {# Cross-reference: enabled alarm switch for this speaker within the last 15 min #}
+              {% set speaker_key = speaker.split('.')[1] %}
+              {% for alarm in states.switch
+                  | selectattr('entity_id', 'search', 'sonos_alarm_')
+                  | selectattr('state', 'eq', 'on') %}
+                {% set t = alarm.attributes.get('time', '') %}
+                {% if t and speaker_key in alarm.entity_id %}
+                  {% set parts = t.split(':') %}
+                  {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
+                  {% set delta = now_secs - alarm_secs %}
+                  {% if delta >= 0 and delta < 900 %}
+                    {% set time_ns.found = true %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            {% if buzzer_match or time_ns.found %}
+              {% set ns.playing = speaker %}
+            {% endif %}
           {% endif %}
         {% endfor %}
         {{ ns.playing is not none }}
@@ -791,16 +817,40 @@ template:
         speaker: >
           {% set speakers = [
             'media_player.bedroom',
-            'media_player.bath', 
+            'media_player.bath',
             'media_player.kitchen',
             'media_player.living_room',
             'media_player.dining_room'
           ] %}
+          {% set ns = namespace(playing=none) %}
+          {% set now_secs = now().hour * 3600 + now().minute * 60 + now().second %}
           {% for speaker in speakers %}
-            {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
-              {{ speaker }}
+            {% if states(speaker) == 'playing' %}
+              {% set content_id = state_attr(speaker, 'media_content_id') | default('', true) %}
+              {% set buzzer_match = 'x-rincon-buzzer' in content_id %}
+              {% set time_ns = namespace(found=false) %}
+              {% if not buzzer_match %}
+                {% set speaker_key = speaker.split('.')[1] %}
+                {% for alarm in states.switch
+                    | selectattr('entity_id', 'search', 'sonos_alarm_')
+                    | selectattr('state', 'eq', 'on') %}
+                  {% set t = alarm.attributes.get('time', '') %}
+                  {% if t and speaker_key in alarm.entity_id %}
+                    {% set parts = t.split(':') %}
+                    {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
+                    {% set delta = now_secs - alarm_secs %}
+                    {% if delta >= 0 and delta < 900 %}
+                      {% set time_ns.found = true %}
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+              {% if buzzer_match or time_ns.found %}
+                {% set ns.playing = speaker %}
+              {% endif %}
             {% endif %}
           {% endfor %}
+          {{ ns.playing | default('', true) }}
 
     # ------------------------------------------------------------------
     # Sonos Current Playing Group Coordinator
@@ -2327,22 +2377,10 @@ script:
     mode: single
     sequence:
       - variables:
-          # Find which speaker is currently playing the alarm
-          playing_speaker: >
-            {% set speakers = [
-              'media_player.bedroom',
-              'media_player.bath',
-              'media_player.kitchen',
-              'media_player.living_room',
-              'media_player.dining_room'
-            ] %}
-            {% for speaker in speakers %}
-              {% if states(speaker) == 'playing' and 'x-rincon-buzzer' in (state_attr(speaker, 'media_content_id') | default('', true)) %}
-                {{ speaker }}
-              {% endif %}
-            {% endfor %}
+          # Read from sensor instead of re-implementing detection (sensor handles both buzzer and music-service alarms)
+          playing_speaker: "{{ state_attr('sensor.sonos_alarm_playing', 'speaker') | default('', true) | trim }}"
       - condition: template
-        value_template: "{{ playing_speaker is not none and playing_speaker != '' }}"
+        value_template: "{{ playing_speaker != '' and states('sensor.sonos_alarm_playing') == 'True' }}"
       - action: media_player.media_stop
         target:
           entity_id: "{{ playing_speaker }}"

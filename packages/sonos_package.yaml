@@ -772,16 +772,24 @@ template:
     - name: "Sonos Alarm Playing"
       unique_id: sonos_alarm_playing
       icon: mdi:alarm-bell
+      # Trigger-based: evaluates when any speaker state changes.
+      # State and all attributes fire in the same HA evaluation cycle (same entity snapshot),
+      # eliminating the state/attribute divergence that existed in the polling version.
+      trigger:
+        - platform: state
+          entity_id:
+            - media_player.bedroom
+            - media_player.bath
+            - media_player.kitchen
+            - media_player.living_room
+            - media_player.dining_room
       state: >
-        {# Detection strategy 1: URI match (built-in buzzer) - instant #}
-        {# Detection strategy 2: time cross-reference (music-service alarms) - fallback #}
-        {# A speaker qualifies if it is 'playing' AND either signal is true #}
+        {# Strategy 1: URI match (x-rincon-buzzer) — instant, catches built-in buzzer alarms    #}
+        {# Strategy 2: time cross-reference — catches music-service alarms (Spotify, TuneIn…)   #}
+        {# Midnight fix: (now_secs - alarm_secs) % 86400 wraps negative deltas correctly        #}
         {% set speakers = [
-          'media_player.bedroom',
-          'media_player.bath',
-          'media_player.kitchen',
-          'media_player.living_room',
-          'media_player.dining_room'
+          'media_player.bedroom', 'media_player.bath', 'media_player.kitchen',
+          'media_player.living_room', 'media_player.dining_room'
         ] %}
         {% set ns = namespace(playing=none) %}
         {% set now_secs = now().hour * 3600 + now().minute * 60 + now().second %}
@@ -791,7 +799,6 @@ template:
             {% set buzzer_match = 'x-rincon-buzzer' in content_id %}
             {% set time_ns = namespace(found=false) %}
             {% if not buzzer_match %}
-              {# Cross-reference: enabled alarm switch for this speaker within the last 15 min #}
               {% set speaker_key = speaker.split('.')[1] %}
               {% for alarm in states.switch
                   | selectattr('entity_id', 'search', 'sonos_alarm_')
@@ -800,8 +807,7 @@ template:
                 {% if t and speaker_key in alarm.entity_id %}
                   {% set parts = t.split(':') %}
                   {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
-                  {% set delta = now_secs - alarm_secs %}
-                  {% if delta >= 0 and delta < 900 %}
+                  {% if (now_secs - alarm_secs) % 86400 < 900 %}
                     {% set time_ns.found = true %}
                   {% endif %}
                 {% endif %}
@@ -815,12 +821,10 @@ template:
         {{ ns.playing is not none }}
       attributes:
         speaker: >
+          {# Identical detection block — runs in same trigger cycle so always agrees with state #}
           {% set speakers = [
-            'media_player.bedroom',
-            'media_player.bath',
-            'media_player.kitchen',
-            'media_player.living_room',
-            'media_player.dining_room'
+            'media_player.bedroom', 'media_player.bath', 'media_player.kitchen',
+            'media_player.living_room', 'media_player.dining_room'
           ] %}
           {% set ns = namespace(playing=none) %}
           {% set now_secs = now().hour * 3600 + now().minute * 60 + now().second %}
@@ -838,8 +842,7 @@ template:
                   {% if t and speaker_key in alarm.entity_id %}
                     {% set parts = t.split(':') %}
                     {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
-                    {% set delta = now_secs - alarm_secs %}
-                    {% if delta >= 0 and delta < 900 %}
+                    {% if (now_secs - alarm_secs) % 86400 < 900 %}
                       {% set time_ns.found = true %}
                     {% endif %}
                   {% endif %}
@@ -851,6 +854,36 @@ template:
             {% endif %}
           {% endfor %}
           {{ ns.playing | default('', true) }}
+        alarm_entity: >
+          {# Returns the alarm switch entity_id for the playing speaker.                         #}
+          {# Uses trigger.entity_id (the speaker that just changed) to avoid any lag.            #}
+          {# Picks the alarm switch with the smallest time delta within the 15-min window,       #}
+          {# so multiple alarms per room resolve to the correct one.                             #}
+          {% set spk = trigger.entity_id | default('') %}
+          {% if spk == '' or states(spk) != 'playing' %}
+            {{ '' }}
+          {% else %}
+            {% set speaker_key = spk.split('.')[1] %}
+            {% set now_secs = now().hour * 3600 + now().minute * 60 + now().second %}
+            {% set ns = namespace(found='', best_delta=900) %}
+            {% for alarm in states.switch
+                | selectattr('entity_id', 'search', 'sonos_alarm_')
+                | selectattr('state', 'eq', 'on') %}
+              {% if speaker_key in alarm.entity_id %}
+                {% set t = alarm.attributes.get('time', '') %}
+                {% if t %}
+                  {% set parts = t.split(':') %}
+                  {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
+                  {% set delta = (now_secs - alarm_secs) % 86400 %}
+                  {% if delta < ns.best_delta %}
+                    {% set ns.found = alarm.entity_id %}
+                    {% set ns.best_delta = delta %}
+                  {% endif %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.found }}
+          {% endif %}
 
     # ------------------------------------------------------------------
     # Sonos Current Playing Group Coordinator
@@ -2276,44 +2309,22 @@ script:
     sequence:
       - variables:
           snooze_mins: "{{ minutes | default(15) | int }}"
-          # Check if an alarm is currently playing
           alarm_is_playing: "{{ states('sensor.sonos_alarm_playing') == 'True' }}"
           playing_speaker: "{{ state_attr('sensor.sonos_alarm_playing', 'speaker') | default('') | trim }}"
-          # Map speaker to room keyword for matching alarm friendly_name
-          playing_room: >
-            {% if playing_speaker == 'media_player.bedroom' %}Bedroom
-            {% elif playing_speaker == 'media_player.bath' %}Bath
-            {% elif playing_speaker == 'media_player.kitchen' %}Kitchen
-            {% elif playing_speaker == 'media_player.living_room' %}Living
-            {% elif playing_speaker == 'media_player.dining_room' %}Dining
-            {% else %}{% endif %}
-          # Find the alarm switch for the playing speaker (matches room and is enabled)
-          playing_alarm: >
-            {% if alarm_is_playing and playing_room %}
-              {% set ns = namespace(found=none) %}
-              {% for entity in states.switch %}
-                {% if entity.entity_id.startswith('switch.sonos_alarm_') and entity.state == 'on' %}
-                  {% set fname = state_attr(entity.entity_id, 'friendly_name') | default('') %}
-                  {% if playing_room in fname %}
-                    {% set ns.found = entity.entity_id %}
-                  {% endif %}
-                {% endif %}
-              {% endfor %}
-              {{ ns.found }}
-            {% else %}
-              {{ none }}
-            {% endif %}
-          # Fall back to sensor.sonos_next_alarm if no alarm is actively playing
+          # Read alarm_entity directly from sensor — no friendly_name matching needed.
+          # Falls back to sensor.sonos_next_alarm when no alarm is actively playing
+          # (e.g. user snoozes before the alarm fires from the dashboard).
+          playing_alarm: "{{ state_attr('sensor.sonos_alarm_playing', 'alarm_entity') | default('') | trim }}"
           target_alarm: >
-            {% if playing_alarm not in [none, '', 'None'] %}
+            {% if playing_alarm != '' %}
               {{ playing_alarm }}
             {% else %}
-              {{ state_attr('sensor.sonos_next_alarm', 'next_alarm_entity') }}
+              {{ state_attr('sensor.sonos_next_alarm', 'next_alarm_entity') | default('') }}
             {% endif %}
 
       # Condition: must have a valid target alarm
       - condition: template
-        value_template: "{{ target_alarm not in [none, '', 'None'] }}"
+        value_template: "{{ target_alarm != '' }}"
 
       - variables:
           alarm_id: "{{ state_attr(target_alarm, 'alarm_id') }}"
@@ -2685,6 +2696,30 @@ automation:
           room: "{{ room_key }}"
 
   # -------------------------------------------------------------------------
+  # Clear alarm notification when alarm stops without user action
+  # Uses the same tag as the alarm notification so the OS replaces/clears it
+  # -------------------------------------------------------------------------
+  - id: sonos_alarm_notification_clear
+    alias: "Sonos - Clear Alarm Notification on Stop"
+    description: "Dismiss the alarm notification from the device when the alarm stops naturally"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: sensor.sonos_alarm_playing
+        from: "True"
+        to: "False"
+    condition:
+      - condition: state
+        entity_id: input_boolean.sonos_alarm_notifications
+        state: "on"
+    action:
+      - action: notify.notify
+        data:
+          message: "clear_notification"
+          data:
+            tag: "sonos_alarm_playing"
+
+  # -------------------------------------------------------------------------
   # Midnight safety reset for any snoozed alarms
   # Ensures alarms are restored even if the after-play trigger didn't fire
   # -------------------------------------------------------------------------
@@ -2815,6 +2850,7 @@ automation:
       - platform: state
         entity_id: sensor.sonos_alarm_playing
         to: "True"
+        for: "00:00:03"
     condition:
       - condition: state
         entity_id: input_boolean.sonos_alarm_notifications
@@ -2831,6 +2867,7 @@ automation:
           title: "⏰ Alarm - {{ room_name }}"
           message: "Your alarm is ringing"
           data:
+            tag: "sonos_alarm_playing"
             actions:
               - action: "SONOS_SNOOZE_5"
                 title: "5 min"
@@ -2883,9 +2920,13 @@ automation:
               - action: notify.notify
                 data:
                   message: "Alarm snoozed for {{ snooze_mins }} minutes"
+                  data:
+                    tag: "sonos_alarm_playing"
           - conditions: "{{ action == 'SONOS_DISMISS_ALARM' }}"
             sequence:
               - action: script.sonos_dismiss_alarm
               - action: notify.notify
                 data:
                   message: "Alarm dismissed"
+                  data:
+                    tag: "sonos_alarm_playing"

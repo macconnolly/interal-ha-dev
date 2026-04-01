@@ -3529,7 +3529,7 @@ automation:
           transition: 0
 
   # ---------------------------------------------------------------------------
-  # 4.10 Reset "disable next wakeup" flag when the morning alarm fires
+  # 4.9a Reset "disable next wakeup" flag when the morning alarm fires
   # ---------------------------------------------------------------------------
   # oal_disable_next_sonos_wakeup is a "skip NEXT wakeup" toggle. Without a
   # reset it stays ON indefinitely, blocking all future wake-up sequences.
@@ -3540,6 +3540,8 @@ automation:
     description: >
       Resets input_boolean.oal_disable_next_sonos_wakeup to OFF when the
       morning alarm fires. Implements the 'skip NEXT wakeup only' semantic.
+      Time condition limits reset to morning hours so afternoon/evening
+      reminder alarms don't inadvertently consume the skip flag.
     mode: single
     trigger:
       - platform: state
@@ -3549,17 +3551,19 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_disable_next_sonos_wakeup
         state: "on"
+      - condition: time
+        before: "12:00:00"
     action:
       - service: input_boolean.turn_off
         target:
           entity_id: input_boolean.oal_disable_next_sonos_wakeup
       - service: system_log.write
         data:
-          message: "OAL: oal_disable_next_sonos_wakeup auto-reset to OFF (alarm fired)"
+          message: "OAL: oal_disable_next_sonos_wakeup auto-reset to OFF (morning alarm fired)"
           level: info
 
   # ---------------------------------------------------------------------------
-  # 4.11 TV Mode Controller (replaces movie mode handler)
+  # 4.10 TV Mode Controller (replaces movie mode handler)
   # ---------------------------------------------------------------------------
   - id: oal_tv_mode_controller_v14
     alias: "OAL v14 - TV Mode Controller"

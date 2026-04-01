@@ -2921,7 +2921,9 @@ automation:
                 data:
                   message: "Alarm snoozed for {{ snooze_mins }} minutes"
                   data:
-                    tag: "sonos_alarm_playing"
+                    # Different tag so sonos_alarm_notification_clear (tag: sonos_alarm_playing)
+                    # doesn't race and wipe this confirmation before the user sees it
+                    tag: "sonos_alarm_confirmed"
           - conditions: "{{ action == 'SONOS_DISMISS_ALARM' }}"
             sequence:
               - action: script.sonos_dismiss_alarm
@@ -2929,4 +2931,4 @@ automation:
                 data:
                   message: "Alarm dismissed"
                   data:
-                    tag: "sonos_alarm_playing"
+                    tag: "sonos_alarm_confirmed"

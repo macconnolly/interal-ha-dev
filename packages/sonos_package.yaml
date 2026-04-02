@@ -775,6 +775,8 @@ template:
       # Trigger-based: evaluates when any speaker state changes.
       # State and all attributes fire in the same HA evaluation cycle (same entity snapshot),
       # eliminating the state/attribute divergence that existed in the polling version.
+      # NOTE: media_player.office is intentionally absent — no office media_player entity
+      # exists in this config. Add it here when the office speaker is configured.
       trigger:
         - platform: state
           entity_id:
@@ -787,12 +789,14 @@ template:
         {# Strategy 1: URI match (x-rincon-buzzer) — instant, catches built-in buzzer alarms    #}
         {# Strategy 2: time cross-reference — catches music-service alarms (Spotify, TuneIn…)   #}
         {# Midnight fix: (now_secs - alarm_secs) % 86400 wraps negative deltas correctly        #}
+        {# Recurrence: only match alarm switches whose recurrence pattern includes today         #}
         {% set speakers = [
           'media_player.bedroom', 'media_player.bath', 'media_player.kitchen',
           'media_player.living_room', 'media_player.dining_room'
         ] %}
         {% set ns = namespace(playing=none) %}
         {% set now_secs = now().hour * 3600 + now().minute * 60 + now().second %}
+        {% set weekday_sonos = now().isoweekday() % 7 %}
         {% for speaker in speakers %}
           {% if states(speaker) == 'playing' %}
             {% set content_id = state_attr(speaker, 'media_content_id') | default('', true) %}
@@ -803,12 +807,22 @@ template:
               {% for alarm in states.switch
                   | selectattr('entity_id', 'search', 'sonos_alarm_')
                   | selectattr('state', 'eq', 'on') %}
-                {% set t = alarm.attributes.get('time', '') %}
-                {% if t and speaker_key in alarm.entity_id %}
-                  {% set parts = t.split(':') %}
-                  {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
-                  {% if (now_secs - alarm_secs) % 86400 < 900 %}
-                    {% set time_ns.found = true %}
+                {% if speaker_key in alarm.entity_id %}
+                  {% set recurrence = (alarm.attributes.get('recurrence') | default('DAILY')) | upper %}
+                  {% set day_match = namespace(ok=false) %}
+                  {% if recurrence == 'DAILY' %}{% set day_match.ok = true %}{% endif %}
+                  {% if recurrence == 'WEEKDAYS' and 1 <= weekday_sonos <= 5 %}{% set day_match.ok = true %}{% endif %}
+                  {% if recurrence == 'WEEKENDS' and weekday_sonos in [0, 6] %}{% set day_match.ok = true %}{% endif %}
+                  {% if recurrence.startswith('ON_') and (weekday_sonos | string) in recurrence %}{% set day_match.ok = true %}{% endif %}
+                  {% if day_match.ok %}
+                    {% set t = alarm.attributes.get('time', '') %}
+                    {% if t %}
+                      {% set parts = t.split(':') %}
+                      {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
+                      {% if (now_secs - alarm_secs) % 86400 < 900 %}
+                        {% set time_ns.found = true %}
+                      {% endif %}
+                    {% endif %}
                   {% endif %}
                 {% endif %}
               {% endfor %}
@@ -828,6 +842,7 @@ template:
           ] %}
           {% set ns = namespace(playing=none) %}
           {% set now_secs = now().hour * 3600 + now().minute * 60 + now().second %}
+          {% set weekday_sonos = now().isoweekday() % 7 %}
           {% for speaker in speakers %}
             {% if states(speaker) == 'playing' %}
               {% set content_id = state_attr(speaker, 'media_content_id') | default('', true) %}
@@ -838,12 +853,22 @@ template:
                 {% for alarm in states.switch
                     | selectattr('entity_id', 'search', 'sonos_alarm_')
                     | selectattr('state', 'eq', 'on') %}
-                  {% set t = alarm.attributes.get('time', '') %}
-                  {% if t and speaker_key in alarm.entity_id %}
-                    {% set parts = t.split(':') %}
-                    {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
-                    {% if (now_secs - alarm_secs) % 86400 < 900 %}
-                      {% set time_ns.found = true %}
+                  {% if speaker_key in alarm.entity_id %}
+                    {% set recurrence = (alarm.attributes.get('recurrence') | default('DAILY')) | upper %}
+                    {% set day_match = namespace(ok=false) %}
+                    {% if recurrence == 'DAILY' %}{% set day_match.ok = true %}{% endif %}
+                    {% if recurrence == 'WEEKDAYS' and 1 <= weekday_sonos <= 5 %}{% set day_match.ok = true %}{% endif %}
+                    {% if recurrence == 'WEEKENDS' and weekday_sonos in [0, 6] %}{% set day_match.ok = true %}{% endif %}
+                    {% if recurrence.startswith('ON_') and (weekday_sonos | string) in recurrence %}{% set day_match.ok = true %}{% endif %}
+                    {% if day_match.ok %}
+                      {% set t = alarm.attributes.get('time', '') %}
+                      {% if t %}
+                        {% set parts = t.split(':') %}
+                        {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
+                        {% if (now_secs - alarm_secs) % 86400 < 900 %}
+                          {% set time_ns.found = true %}
+                        {% endif %}
+                      {% endif %}
                     {% endif %}
                   {% endif %}
                 {% endfor %}
@@ -856,28 +881,37 @@ template:
           {{ ns.playing | default('', true) }}
         alarm_entity: >
           {# Returns the alarm switch entity_id for the playing speaker.                         #}
-          {# Uses trigger.entity_id (the speaker that just changed) to avoid any lag.            #}
-          {# Picks the alarm switch with the smallest time delta within the 15-min window,       #}
-          {# so multiple alarms per room resolve to the correct one.                             #}
+          {# Uses trigger.entity_id to identify the speaker directly — no evaluation lag.        #}
+          {# Picks the alarm switch with the smallest time delta within the 15-min window        #}
+          {# that also matches today's recurrence pattern.                                       #}
           {% set spk = trigger.entity_id | default('') %}
           {% if spk == '' or states(spk) != 'playing' %}
             {{ '' }}
           {% else %}
             {% set speaker_key = spk.split('.')[1] %}
             {% set now_secs = now().hour * 3600 + now().minute * 60 + now().second %}
+            {% set weekday_sonos = now().isoweekday() % 7 %}
             {% set ns = namespace(found='', best_delta=900) %}
             {% for alarm in states.switch
                 | selectattr('entity_id', 'search', 'sonos_alarm_')
                 | selectattr('state', 'eq', 'on') %}
               {% if speaker_key in alarm.entity_id %}
-                {% set t = alarm.attributes.get('time', '') %}
-                {% if t %}
-                  {% set parts = t.split(':') %}
-                  {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
-                  {% set delta = (now_secs - alarm_secs) % 86400 %}
-                  {% if delta < ns.best_delta %}
-                    {% set ns.found = alarm.entity_id %}
-                    {% set ns.best_delta = delta %}
+                {% set recurrence = (alarm.attributes.get('recurrence') | default('DAILY')) | upper %}
+                {% set day_match = namespace(ok=false) %}
+                {% if recurrence == 'DAILY' %}{% set day_match.ok = true %}{% endif %}
+                {% if recurrence == 'WEEKDAYS' and 1 <= weekday_sonos <= 5 %}{% set day_match.ok = true %}{% endif %}
+                {% if recurrence == 'WEEKENDS' and weekday_sonos in [0, 6] %}{% set day_match.ok = true %}{% endif %}
+                {% if recurrence.startswith('ON_') and (weekday_sonos | string) in recurrence %}{% set day_match.ok = true %}{% endif %}
+                {% if day_match.ok %}
+                  {% set t = alarm.attributes.get('time', '') %}
+                  {% if t %}
+                    {% set parts = t.split(':') %}
+                    {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
+                    {% set delta = (now_secs - alarm_secs) % 86400 %}
+                    {% if delta < ns.best_delta %}
+                      {% set ns.found = alarm.entity_id %}
+                      {% set ns.best_delta = delta %}
+                    {% endif %}
                   {% endif %}
                 {% endif %}
               {% endif %}
@@ -2309,7 +2343,6 @@ script:
     sequence:
       - variables:
           snooze_mins: "{{ minutes | default(15) | int }}"
-          alarm_is_playing: "{{ states('sensor.sonos_alarm_playing') == 'True' }}"
           playing_speaker: "{{ state_attr('sensor.sonos_alarm_playing', 'speaker') | default('') | trim }}"
           # Read alarm_entity directly from sensor — no friendly_name matching needed.
           # Falls back to sensor.sonos_next_alarm when no alarm is actively playing
@@ -2375,7 +2408,7 @@ script:
 
       - action: system_log.write
         data:
-          message: "Sonos Snooze: Alarm {{ target_alarm }} snoozed from {{ current }} to {{ new_time }} ({{ snooze_mins }} min). Playing: {{ alarm_is_playing }}, Speaker: {{ playing_speaker }}"
+          message: "Sonos Snooze: Alarm {{ target_alarm }} snoozed from {{ current }} to {{ new_time }} ({{ snooze_mins }} min). Playing: {{ states('sensor.sonos_alarm_playing') == 'True' }}, Speaker: {{ playing_speaker }}"
           level: info
 
   # -----------------------------------------------------------------------

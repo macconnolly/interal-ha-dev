@@ -2420,9 +2420,6 @@ automation:
           value: "{{ column_rgb_green }}"
 
   # ---------------------------------------------------------------------------
-  # 4.3b Column Lights RGB Transition (Sun-Based)
-  # ---------------------------------------------------------------------------
-  # ---------------------------------------------------------------------------
   # 4.3a Column Lights Prepare RGB Mode (Govee Pink Fix)
   # ---------------------------------------------------------------------------
   - id: oal_column_lights_prepare_rgb_mode_v13
@@ -3418,7 +3415,7 @@ automation:
   # ---------------------------------------------------------------------------
 
   # ---------------------------------------------------------------------------
-  # 4.8 Dynamic sunrise from Sonos alarms
+  # 4.7 Dynamic sunrise from Sonos alarms
   # ---------------------------------------------------------------------------
   - id: oal_dynamic_sunrise_manager_v13
     alias: "OAL v13 - Dynamic Sunrise Manager"
@@ -3464,7 +3461,7 @@ automation:
                 sunrise_time: "{{ final_sunrise_time }}"
 
   # ---------------------------------------------------------------------------
-  # 4.9 Wake-up sequence (staged brightening)
+  # 4.8 Wake-up sequence (staged brightening)
   # ---------------------------------------------------------------------------
   - id: oal_wake_up_sequence_v13
     alias: "OAL v13 - Wake-up Sequence (Staged Brightening)"
@@ -3529,7 +3526,7 @@ automation:
           transition: 0
 
   # ---------------------------------------------------------------------------
-  # 4.9a Reset "disable next wakeup" flag when the morning alarm fires
+  # 4.8a Reset "disable next wakeup" flag when the morning alarm fires
   # ---------------------------------------------------------------------------
   # oal_disable_next_sonos_wakeup is a "skip NEXT wakeup" toggle. Without a
   # reset it stays ON indefinitely, blocking all future wake-up sequences.
@@ -3563,7 +3560,7 @@ automation:
           level: info
 
   # ---------------------------------------------------------------------------
-  # 4.10 TV Mode Controller (replaces movie mode handler)
+  # 4.9 TV Mode Controller (replaces movie mode handler)
   # ---------------------------------------------------------------------------
   - id: oal_tv_mode_controller_v14
     alias: "OAL v14 - TV Mode Controller"
@@ -3882,7 +3879,7 @@ automation:
                   - stop: "TV auto-follow ended, returned to Adaptive"
 
   # ---------------------------------------------------------------------------
-  # 4.10b TV Presence Loss Manager
+  # 4.9b TV Presence Loss Manager
   # ---------------------------------------------------------------------------
   - id: oal_v14_tv_presence_loss_manager
     alias: "OAL v14 - TV Presence Loss Manager"
@@ -3979,7 +3976,7 @@ automation:
                                 title: "Return Adaptive"
 
   # ---------------------------------------------------------------------------
-  # 4.11 Sleep-mode schedule (sets input_select → Config Manager → Core Engine)
+  # 4.10 Sleep-mode schedule (sets input_select → Config Manager → Core Engine)
   # ---------------------------------------------------------------------------
   - id: oal_manage_sleep_mode_v13
     alias: "OAL v13 - Manage Sleep Mode Schedule"
@@ -4007,7 +4004,7 @@ automation:
           option: "{{ 'Sleep' if trigger.id == 'start_sleep' else 'Adaptive' }}"
 
   # ---------------------------------------------------------------------------
-  # 4.12 System startup
+  # 4.11 System startup
   # ---------------------------------------------------------------------------
   - id: oal_system_startup_v13
     alias: "OAL v13 - System Startup Initialization"
@@ -4147,7 +4144,7 @@ automation:
                   sleep_mode_on: "{{ column_sleep_on }}"
 
   # ---------------------------------------------------------------------------
-  # 4.13 Watchdog (ensure engine runs at least every 30 minutes)
+  # 4.12 Watchdog (ensure engine runs at least every 30 minutes)
   # ---------------------------------------------------------------------------
   - id: oal_watchdog_service_v13
     alias: "OAL v13 - Watchdog Service"
@@ -4224,7 +4221,7 @@ automation:
 
 
   # ---------------------------------------------------------------------------
-  # 4.15 Global pause (toggle all AL switches)
+  # 4.13 Global pause (toggle all AL switches)
   # ---------------------------------------------------------------------------
   - id: oal_global_pause_manager_v13
     alias: "OAL v13 - Global Pause Manager"
@@ -4237,7 +4234,7 @@ automation:
           entity_id: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | list }}"
 
   # ---------------------------------------------------------------------------
-  # 4.16 Autoreset sync (input_number → AL switches)
+  # 4.14 Autoreset sync (input_number → AL switches)
   # ---------------------------------------------------------------------------
   - id: oal_autoreset_from_input_v13
     alias: "OAL v13 - Autoreset Sync (Input → AL)"
@@ -4265,7 +4262,7 @@ automation:
           entity_id: input_boolean.oal_autoreset_sync_lock
 
   # ---------------------------------------------------------------------------
-  # 4.17 Autoreset sync (AL switches → input_number)
+  # 4.15 Autoreset sync (AL switches → input_number)
   # ---------------------------------------------------------------------------
   - id: oal_autoreset_from_switch_v13
     alias: "OAL v13 - Autoreset Sync (AL → Input)"
@@ -4311,7 +4308,7 @@ automation:
           entity_id: input_boolean.oal_autoreset_sync_lock
 
   # ---------------------------------------------------------------------------
-  # 4.5 Notification Automations (Phase 3)
+  # 4.16 Notification Automations (Phase 3)
   # ---------------------------------------------------------------------------
   - id: oal_v13_post_sunset_override_reminder
     alias: "OAL v13 - Post-Sunset Manual Override Reminder"
@@ -4516,7 +4513,7 @@ automation:
           option: "Adaptive"
 
   # -------------------------------------------------------------------------
-  # 4.14 Global Mode Timeout Manager
+  # 4.17 Global Mode Timeout Manager
   # -------------------------------------------------------------------------
   - id: oal_v14_mode_timeout_manager
     alias: "OAL v14 - Mode Timeout Manager"
@@ -4716,7 +4713,7 @@ automation:
                       option: "idle"
 
   # -------------------------------------------------------------------------
-  # 4.15 TV Bridge Manager
+  # 4.18 TV Bridge Manager
   # -------------------------------------------------------------------------
   - id: oal_v14_tv_bridge_manager
     alias: "OAL v14 - TV Bridge Manager"
@@ -4778,7 +4775,7 @@ automation:
                 tag: "oal_bridge_expiring"
 
   # -------------------------------------------------------------------------
-  # 4.15b TV Bridge Cleanup on Mode Change
+  # 4.18b TV Bridge Cleanup on Mode Change
   # -------------------------------------------------------------------------
   - id: oal_v14_tv_bridge_cleanup_on_mode_change
     alias: "OAL v14 - TV Bridge Cleanup on Mode Change"
@@ -4808,7 +4805,7 @@ automation:
           entity_id: timer.oal_tv_bridge_timer
 
   # -------------------------------------------------------------------------
-  # 4.15c TV Notification Action Handler
+  # 4.18c TV Notification Action Handler
   # -------------------------------------------------------------------------
   - id: oal_v14_tv_notification_handler
     alias: "OAL v14 - TV Notification Handler"
@@ -5121,7 +5118,7 @@ automation:
                       entity_id: input_boolean.oal_tv_presence_prompt_pending
 
   # -------------------------------------------------------------------------
-  # 4.16 Unified Timer Notification Arbiter
+  # 4.19 Unified Timer Notification Arbiter
   # -------------------------------------------------------------------------
   - id: oal_v14_unified_timer_notification
     alias: "OAL v14 - Unified Timer Notification"
@@ -5209,7 +5206,7 @@ automation:
           datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
 
   # -------------------------------------------------------------------------
-  # 4.17 Unified Timer Notification Action Handler
+  # 4.19b Unified Timer Notification Action Handler
   # -------------------------------------------------------------------------
   - id: oal_v14_timer_notification_handler
     alias: "OAL v14 - Timer Notification Handler"
@@ -5376,7 +5373,7 @@ automation:
                     tag: "oal_timer_expiring"
 
   # -------------------------------------------------------------------------
-  # 4.18 Manual Control Provenance
+  # 4.20 Manual Control Provenance
   # -------------------------------------------------------------------------
   - id: oal_v14_manual_control_provenance
     alias: "OAL v14 - Manual Control Provenance"

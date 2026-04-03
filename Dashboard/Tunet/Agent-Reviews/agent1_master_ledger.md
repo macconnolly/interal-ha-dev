@@ -1,554 +1,465 @@
-# Agent 1: Master Ledger (Corrected)
+# Agent 1: Master Ledger — CD2-CD12
 
-**Date:** 2026-03-06
-**Branch:** `claude/dashboard-nav-research-QnOBs`
-**HEAD:** `98d961c`
-**Role:** Manager / Ledger Integrator (Agent 1 of 4)
-**Status:** FIRST PASS -- awaiting Agent 4 attack review
-
----
-
-## Preamble: Reconciliation Notes
-
-### Stale Finding Reconciliation
-
-| Finding | Claimed Status | Verified Status | Evidence |
-|---|---|---|---|
-| FL-025 (nav inactive items invisible) | DONE in ledger | DONE -- confirmed | Fix deployed, user confirmed 2026-03-06. `tunet_nav_card.js` uses `var(--text-muted)` + dark override. |
-| FL-026 (nav icon spacing) | DONE in ledger | DONE -- confirmed | Fix deployed, user confirmed 2026-03-06. `line-height: 22px; overflow: hidden` on `.btn .icon`, gap reduced to 2px. |
-| FL-010 (nav amber-strong token) | DONE in ledger | DONE -- confirmed | `tunet_nav_card.js` line 101: `color: var(--amber)`. No reference to `--amber-strong` remains. |
-| FL-009 (back_path on subviews) | CODE-DONE / HA-VERIFY in ledger | DONE -- confirmed in both surfaces | `tunet-suite-config.yaml`: lines 523, 576, 611, 646. `tunet-suite-storage-config.yaml`: lines 537, 590, 625, 660. |
-| `back_path` already present | Reconciled findings list | CONFIRMED present on both YAML and storage surfaces | See above |
-| Storage Living Room popup uses consolidated lighting card | Reconciled findings list | CONFIRMED | `tunet-suite-storage-config.yaml` lines 207-230: single `tunet-lighting-card` with 5 zones |
-| Nav active color token drift | Reconciled findings list | FIXED | Uses `var(--amber)` correctly |
-| `escapeHtml` in `TunetCardFoundation` | Memory claim | NOT PRESENT | `grep escapeHtml tunet_base.js` returns zero matches. Memory entry is stale/aspirational. |
-
-### Control Document Conflicts (CONTROL_DOC_CONFLICTS)
-
-| Conflict | Source A | Source B | Resolution |
-|---|---|---|---|
-| Tranche ordering | `plan.md`: T-005 Nav, T-006 Popup, T-007 UI/UX, T-008 Home Layout | `popup-fix.md`: CP-01, LAY-01, LAY-02, INT-01, POP-01, NAV-01, POP-02 | plan.md has precedence. popup-fix.md's ordering is superseded. This ledger uses a reconciled order. |
-| Popup architecture | `popup-fix.md`: `fire-dom-event` + hidden `popup-card` definitions | `tunet-suite-storage-config.yaml`: `call-service browser_mod.popup` with inline content | Storage config approach is proven and deployed. Plan's approach is unverified. This ledger recommends the proven mechanism for POP-01. |
-| Browser Mod field name | `popup-fix.md`: uses `initial_style: wide` | `tunet-suite-storage-config.yaml`: uses `size: wide` and `size: normal` | Browser Mod 2.8.x supports `initial_style`. The deployed config uses `size` which may be deprecated. Needs verification. |
-| Nav item count | `popup-fix.md`: 7 destinations | `plan.md`: no specific count, defers to tranche | 7 destinations unvalidated at 320px. This ledger recommends 3-4 items for NAV-01, with expansion gated on small-screen validation. |
+**Branch:** main @ 30fc3be  
+**Date:** 2026-04-03  
+**Role:** Manager / Ledger Integrator (Agent 1 of 4)  
+**Status:** FINAL — integrates Agent 2, 3, and 4 findings with corrections  
+**Supersedes:** agent1_master_ledger.md from 2026-03-06
 
 ---
 
-## Section 1: DONE Items (Closed, No Reopening Without Evidence)
+## 1. Ledger Overview
 
-### FL-000: Control-Plane Hardening
-- **Status:** DONE
-- **Category:** Governance
-- **Evidence:** All control docs exist, precedence documented, branch guards in place.
+This ledger classifies every open issue across the 13-card Tunet suite by tranche assignment (CD2-CD12), severity, and current/target state. Sources:
 
-### FL-001: Deployment Resource Path Drift
-- **Status:** DONE
-- **Category:** Documentation
-- **Evidence:** `DEPLOYMENT_RESOURCES.md` corrected to `v2_next`.
+- Agent 2: HA standards compliance (post-CD1)
+- Agent 3: codebase map with exact debt counts
+- Agent 4: feasibility critique and corrections
 
-### FL-002: Forced `rows: 2` in YAML Configs
-- **Status:** DONE
-- **Category:** Sections Compliance
-- **Evidence:** `rg -n "rows:\s*2" Dashboard/Tunet/*.yaml` returns zero matches.
+### Count Reconciliation
 
-### FL-003: Bedroom Entity Drift (`bedroom_accent_light`)
-- **Status:** DONE
-- **Category:** Entity Contract
-- **Evidence:** Suite config uses `light.master_bedroom_corner_accent_govee`.
+| Metric | Agent 2 | Agent 3 | Agent 4 Verdict | Adopted Count |
+|--------|---------|---------|-----------------|---------------|
+| transition:all instances | "10/13 cards" | 41 | A3 off by 1; actual 40 | **40 instances across 11 cards** |
+| Hover guard gaps | "11/13 cards missing" | "2 unguarded selectors in lighting" | Different units — A2 counted cards, A3 spot-checked one file | **11 cards missing guard** |
+| Hardcoded press scales | not counted | 56 total | Plausible but unverified | **56 (to be verified at CD2 start)** |
+| Click-only handlers | not counted | 56 handlers | Real count, but CD3 not CD2 | **56 handlers (CD3 scope)** |
+| Focus-visible gaps | media(14), sonos(10), climate(5), weather(5) | Same | Consistent | **34 elements across 4 critical cards** |
+| grid-auto-rows violations | 2 cards, P1 | "Medium" / "Good" | A2 correct; A3 missed/downplayed | **2 cards (CD4 scope, not CD2 blocker)** |
 
-### FL-004: Media Card Sensor Contract Drift
-- **Status:** DONE
-- **Category:** Entity Contract
-- **Evidence:** Suite YAML uses `sensor.sonos_active_group_coordinator`.
+### Agent 4 Corrections Applied
 
-### FL-006: Sensor Card Stub AQI Reference
-- **Status:** DONE
-- **Category:** Entity Hygiene
-- **Evidence:** Stub config no longer references `sensor.aqi`.
-
-### FL-010: Nav amber-strong Token Undefined
-- **Status:** DONE
-- **Category:** Token Compliance
-- **Evidence:** Nav card line 101 uses `var(--amber)`. No `--amber-strong` reference remains.
-
-### FL-022: Popup Direction Lock
-- **Status:** DONE / DIRECTION LOCKED
-- **Category:** Product Direction
-- **Evidence:** Browser Mod preferred, one popup per room, documented in plan.md and nav_popup_ux_direction.md.
-
-### FL-025: Nav Inactive Items Invisible
-- **Status:** DONE
-- **Category:** Accessibility / Rendering
-- **Evidence:** Fix deployed, user confirmed 2026-03-06.
-
-### FL-026: Nav Icon Spacing Excessive
-- **Status:** DONE
-- **Category:** Visual Polish
-- **Evidence:** Fix deployed, user confirmed 2026-03-06.
+1. **Control docs**: plan.md, FIX_LEDGER.md, handoff.md referenced by CLAUDE.md are at repo root level — Agent 4 searched wrong path
+2. **Lab validation**: All 13 cards render in lab; Playwright screenshots captured — CD0/CD1 complete
+3. **grid-auto-rows**: Classified as CD4 scope per plan; not a CD2 blocker
+4. **Hold-to-drag**: CD5-CD11 bespoke scope, not CD2 — CD2 is CSS interaction only
+5. **CD2/CD3 boundary**: CD2 = CSS (transitions, hover, press, focus, reduced-motion). CD3 = JS (role, tabindex, keyboard handlers, ARIA)
 
 ---
 
-## Section 2: VERIFIED BUT NOT FULLY DEPLOYED
+## 2. Issue Registry — CD2 (Shared Interaction Adoption)
 
-### FL-005: Sensor Card Missing `value_attribute` Support
-- **Status:** CODE-DONE / HA-VERIFY
-- **Severity:** HIGH
-- **Category:** Feature Gap
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_sensor_card.js`
-- **Current State:** Code implements `value_attribute` handling but runtime verification on live HA incomplete.
-- **Intended State:** "Outside" sensor row shows numeric temperature from `weather.home` attribute, not weather condition string.
-- **Exact Change:** Already implemented in JS. Needs deploy + cache-bust + visual confirmation.
-- **Dependencies:** None.
-- **Validation:** Open dashboard, confirm "Outside" row shows a numeric temperature value.
-- **Deploy Impact:** HA RESOURCE UPDATE (copy JS, bump `?v=`).
-- **Can Ship Independently:** Yes.
+**Scope**: CSS-only interaction patterns. No JS keyboard retrofits. No role/tabindex changes.
 
-### FL-007: Living Room Popup Uses Consolidated Lighting Surface
-- **Status:** CODE-DONE / HA-VERIFY (YAML surface); DONE (Storage surface)
-- **Severity:** HIGH
-- **Category:** POC Structure
-- **Files:** `Dashboard/Tunet/tunet-suite-config.yaml`, `Dashboard/Tunet/tunet-suite-storage-config.yaml`
-- **Current State:** Storage config confirmed at lines 207-230 with single `tunet-lighting-card`. YAML config needs verification.
-- **Intended State:** Both surfaces use one consolidated lighting card in the Living Room popup.
-- **Validation:** Open Living Room popup on both surfaces; confirm exactly one lighting card.
-- **Can Ship Independently:** Yes.
+### INT-001: transition:all Replacement
 
-### FL-008: Living Room Subview Consolidated
-- **Status:** CODE-DONE / HA-VERIFY
-- **Severity:** MEDIUM-HIGH
-- **Category:** POC Structure
-- **Files:** `Dashboard/Tunet/tunet-suite-config.yaml`
-- **Validation:** Open `/tunet-suite/living-room` and confirm one consolidated lighting card.
-- **Can Ship Independently:** Yes.
+| Field | Value |
+|-------|-------|
+| **Severity** | High |
+| **Current** | 40 `transition: all` declarations across 11 cards |
+| **Target** | Zero `transition: all`; all replaced with explicit property transitions |
+| **Tranche** | CD2 |
 
-### FL-009: Room Subviews Declare `back_path`
-- **Status:** DONE (upgrading from CODE-DONE / HA-VERIFY)
-- **Severity:** MEDIUM
-- **Category:** Navigation
-- **Files:** `Dashboard/Tunet/tunet-suite-config.yaml`, `Dashboard/Tunet/tunet-suite-storage-config.yaml`
-- **Evidence:** Confirmed present on both surfaces: YAML config (lines 523, 576, 611, 646) and storage config (lines 537, 590, 625, 660).
-- **Can Ship Independently:** Already shipped.
+Per-card breakdown:
+
+| ID | Card | Count | Lines | Priority |
+|----|------|-------|-------|----------|
+| INT-001a | tunet_climate_card.js | 5 | 113, 136, 192, 236, 319 | High |
+| INT-001b | tunet_lighting_card.js | 5 | 200, 224, 304, 428, 580 | High |
+| INT-001c | tunet_media_card.js | 8 | 56, 67, 108, 168, 241, 262, 281, 342 | High |
+| INT-001d | tunet_rooms_card.js | 5 | 139, 204, 235, 403, 448 | High |
+| INT-001e | tunet_sensor_card.js | 3 | 98, 124, 160 | High |
+| INT-001f | tunet_sonos_card.js | 3 | 131, 156, 312 | High |
+| INT-001g | tunet_speaker_grid_card.js | 3 | 108, 116, 235 | High |
+| INT-001h | tunet_status_card.js | 3 | 211, 535, 609 | **EXCLUDED** (lock) |
+| INT-001i | tunet_weather_card.js | 3 | 63, 114, 181 | Medium |
+| INT-001j | tunet_actions_card.js | 1 | 216 | Medium |
+| INT-001k | tunet_light_tile.js | 1 | 152 | Medium |
+
+**CD2 actionable**: 37 instances across 10 cards (status excluded).
 
 ---
 
-## Section 3: OPEN Defects
+### INT-002: Hover Guard (@media (hover: hover))
 
-### FL-011: Nav Card Global DOM Pollution
-- **Status:** OPEN
-- **Severity:** HIGH
-- **Category:** Architecture / Sections Compliance
-- **Requirement Alignment:** REQ-NAV-001, REQ-NAV-002
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_nav_card.js` (lines 143-156, 258-260, 265-280, 303-308)
-- **Current State:** Nav card injects `<style>` into `document.head` targeting `hui-view` and sets CSS variables on `document.documentElement`. Cleanup depends on fragile `window.__tunetNavCardCount` reference counting.
-- **Intended State:** Nav offsets scoped to Tunet dashboard only. Zero cross-dashboard side effects.
-- **Exact Change:** Two options: (1) Use HA 2026.3 footer card for mobile positioning, eliminating offsets entirely. (2) Add route-awareness so offsets apply only when `location.pathname` starts with the Tunet dashboard path.
-- **Dependencies:** SPIKE-01 (footer card investigation) should inform the approach.
-- **Validation:** Open a non-Tunet dashboard after loading Tunet; confirm no extra spacing.
-- **Deploy Impact:** HA RESOURCE UPDATE.
-- **Can Ship Independently:** Yes.
-- **Agent Sources:** Agent 2 SV-001, Agent 3 A7, Agent 4 A4.
+| Field | Value |
+|-------|-------|
+| **Severity** | High (touch device compatibility) |
+| **Current** | 11/13 cards missing `@media (hover: hover)` guard on `:hover` selectors |
+| **Target** | All `:hover` blocks wrapped in `@media (hover: hover) { }` |
+| **Tranche** | CD2 |
 
-### FL-012: Navigation via Direct History Manipulation
-- **Status:** OPEN
-- **Severity:** HIGH
-- **Category:** Architecture
-- **Requirement Alignment:** REQ-NAV-001, REQ-UX-001
-- **Files:** `tunet_nav_card.js` (L332-333), `tunet_rooms_card.js` (L465-467, L545-546), `tunet_status_card.js` (L871-872)
-- **Current State:** Three cards independently implement `history.pushState` + `location-changed` dispatch. Missing `ensureDialogsClosed()` and `replace` mode.
-- **Intended State:** Centralized via shared `executeAction` adapter in `tunet_base.js`. Includes dialog-closing behavior.
-- **Exact Change:** Add `executeAction()` to `tunet_base.js`. Migrate rooms, status, and nav cards to use it. Add `ensureDialogsClosed()` behavior.
-- **Dependencies:** None, but should be consistent across cards.
-- **Validation:** Browser back/forward works correctly. Open dialogs close before navigation. No custom history shims remain.
-- **Deploy Impact:** HA RESOURCE UPDATE.
-- **Can Ship Independently:** Yes.
-- **Agent Sources:** Agent 2 SV-002 (A4 nuance: the pattern itself matches HA internal, but missing dialog close + replace + duplication make it a real defect), Agent 3 A3/B1.
+| ID | Card | Status | Notes |
+|----|------|--------|-------|
+| INT-002a | tunet_actions_card.js | MISSING | Needs guard |
+| INT-002b | tunet_climate_card.js | MISSING | Needs guard |
+| INT-002c | tunet_media_card.js | MISSING | Needs guard |
+| INT-002d | tunet_nav_card.js | MISSING | Verify-only in CD2 |
+| INT-002e | tunet_rooms_card.js | MISSING | Needs guard |
+| INT-002f | tunet_scenes_card.js | MISSING | Needs guard |
+| INT-002g | tunet_sensor_card.js | MISSING | Needs guard |
+| INT-002h | tunet_sonos_card.js | MISSING | Needs guard |
+| INT-002i | tunet_speaker_grid_card.js | MISSING | Needs guard |
+| INT-002j | tunet_status_card.js | MISSING | **EXCLUDED** (lock) |
+| INT-002k | tunet_weather_card.js | MISSING | Needs guard |
+| — | tunet_light_tile.js | COMPLIANT | Has guard |
+| — | tunet_lighting_card.js | COMPLIANT | Has guard |
 
-### FL-013: Nav `subview_paths` Config Editor Schema Mismatch
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** Config Editor
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_nav_card.js` (L187-189)
-- **Current State:** `subview_paths` exposed as `object` selector; card consumes array of strings.
-- **Intended State:** Either implement a real repeatable string list editor or remove from visual schema (YAML-only).
-- **Exact Change:** Remove `subview_paths` from `getConfigForm()` schema. Document as YAML-only.
-- **Dependencies:** Broader config editor decision (FL-018).
-- **Validation:** UI editor no longer shows broken `subview_paths` field.
-- **Deploy Impact:** HA RESOURCE UPDATE.
-- **Can Ship Independently:** Yes.
-
-### FL-014: Media Card Speaker Cache Never Invalidated
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** Performance
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_media_card.js`, `tunet_sonos_card.js`
-- **Current State:** `_cachedSpeakers` never invalidated when entity topology changes.
-- **Intended State:** Cache invalidated on relevant media-player or Sonos group entity changes.
-- **Validation:** Add/remove a speaker from Sonos group; card reflects change without full browser refresh.
-- **Can Ship Independently:** Yes.
-
-### FL-015: Adaptive Lighting Full-Registry Scan
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** Performance
-- **Files:** `tunet_rooms_card.js` (L374-378, L603-613), `tunet_lighting_card.js` (L863, L1421-1424)
-- **Current State:** Both cards iterate `Object.keys(hass.states)` to find `switch.adaptive_lighting_*` entities on every state change.
-- **Intended State:** Cache AL switch entity IDs on first scan; recompute only when count changes.
-- **Exact Change:** Add `_alSwitchCache` property. Populate once per update cycle. Reuse in change detection and update loops.
-- **Validation:** Code no longer performs repeated full-registry scans.
-- **Can Ship Independently:** Yes.
-- **Agent Sources:** Agent 2 SV-003, Agent 3 A8.
-
-### FL-016: Navigation Research Doc Not Labeled Historical
-- **Status:** OPEN
-- **Severity:** LOW
-- **Category:** Documentation
-- **Files:** `Dashboard/Tunet/Docs/dashboard_navigation_research.md`
-- **Exact Change:** Add header marking as historical; point to plan.md and FIX_LEDGER.md.
-- **Can Ship Independently:** Yes.
-
-### FL-017: Entity Inventory Drift Across Dashboard YAMLs
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** Entity Hygiene
-- **Files:** `tunet-suite-config.yaml`, `tunet-overview-config.yaml`, `tunet-v2-test-config.yaml`
-- **Current State:** Three YAMLs with inconsistent entity references.
-- **Intended State:** Canonical inventory in suite config; legacy files labeled at top.
-- **Dependencies:** FL-003 (done).
-- **Can Ship Independently:** Yes.
-
-### FL-018: Config Editor Schema/Reality Gap
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** Config Editor
-- **Files:** All V2 cards with `getConfigForm()`
-- **Current State:** Complex array fields (rooms, zones, tiles, sensors) are either exposed as broken `object` selector or omitted.
-- **Intended State:** Explicit simple-editor vs YAML-first classification per card. Cards with complex nested arrays exclude those fields from `getConfigForm()` schema.
-- **Agent Sources:** Agent 2 SV-004, Agent 3 A6.
-- **Can Ship Independently:** Yes (one card at a time).
-
-### FL-019: Bug 4 Live Verification
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** Validation Task
-- **Exact Change:** Test "Add card" in HA UI for nav, weather, climate, and rooms cards. Record pass/fail matrix.
-- **Dependencies:** Cache bust.
-- **Can Ship Independently:** Yes.
-
-### FL-020: Storage Dashboard `sensor.aqi` References
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** Entity Hygiene
-- **Exact Change:** Search and remove `sensor.aqi` from all HA storage dashboards.
-- **Dependencies:** Live HA access.
-- **Can Ship Independently:** Yes.
+**CD2 actionable**: 9 cards need guard added (status excluded, nav verify-only).
 
 ---
 
-## Section 4: OPEN Product-Direction Decisions
+### INT-003: Hardcoded Press Scale Normalization
 
-### FL-021: Comparison Strategy (Switch-in-Place vs Separate Tags)
-- **Status:** OPEN / DECISION
-- **Can Ship Independently:** N/A -- decision, not code.
+| Field | Value |
+|-------|-------|
+| **Severity** | High (visual inconsistency) |
+| **Current** | 56 hardcoded scale values (e.g., .90, .94, .95, .96, .97, .98, 1.03, 1.05, 1.06, 1.08) |
+| **Target** | All press/active scales use `var(--press-scale)` (0.96) or `var(--press-scale-strong)` (0.94) |
+| **Tranche** | CD2 |
 
-### FL-023: `tile_size` Knobs vs Sections Auto-Height
-- **Status:** OPEN / DECISION
-- **Can Ship Independently:** N/A -- decision.
+| ID | Card | Count | Example Values | Priority |
+|----|------|-------|----------------|----------|
+| INT-003a | tunet_media_card.js | 10 | .90, .97, .98, 1.08 | Critical |
+| INT-003b | tunet_status_card.js | 9 | .95, .97, 1.08 | **EXCLUDED** (lock) |
+| INT-003c | tunet_climate_card.js | 8 | .94, .97, .98, 1.08 | Critical |
+| INT-003d | tunet_sonos_card.js | 6 | .90, .97, 1.06 | High |
+| INT-003e | tunet_rooms_card.js | 5 | 0.90, 0.94, 0.95, 0.96 | High |
+| INT-003f | tunet_speaker_grid_card.js | 4 | .97, .98, 1.03 | High |
+| INT-003g | tunet_lighting_card.js | 4 | .94, .98 | High |
+| INT-003h | tunet_base.js | 4 | 0.97, 1 (keyframes) | High |
+| INT-003i | tunet_sensor_card.js | 2 | 0.97, 0.99 | Medium |
+| INT-003j | tunet_weather_card.js | 1 | .98 | Medium |
+| INT-003k | tunet_scenes_card.js | 1 | 0.96 | Medium |
+| INT-003l | tunet_light_tile.js | 1 | 1.05 | Medium |
+| INT-003m | tunet_actions_card.js | 1 | .96 | Medium |
 
-### FL-024: `columns: "full"` Policy
-- **Status:** OPEN / DECISION
-- **Note:** Agent 3 confirmed only nav card uses `columns: "full"`. Agent 2 notes this is appropriate for chrome. Decision: keep for nav only. Other cards should use numeric values.
-- **Can Ship Independently:** N/A -- decision.
+**CD2 actionable**: 47 instances across 12 files (status excluded).
 
----
-
-## Section 5: NEW FINDINGS (from Agents 2, 3, 4 + Session)
-
-### FL-027: HA 2026.3 Footer Cards -- Potential Nav Architecture Replacement
-- **Status:** OPEN / INVESTIGATION
-- **Severity:** HIGH (opportunity)
-- **Category:** Architecture
-- **Requirement Alignment:** REQ-NAV-001
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
-- **Current State:** Nav card uses `position: fixed` + global CSS variable injection.
-- **Intended State:** Mobile nav uses HA 2026.3 native footer card positioning. Desktop retains `position: fixed` for side-rail.
-- **Exact Change:** Spike investigation: deploy `tunet-nav-card` as a Sections footer card. If viable, remove `ensureGlobalOffsetsStyle()`, `_applyOffsets()`, and `window.__tunetNavCardCount` hack.
-- **Dependencies:** Must be investigated before NAV-01 architectural commitment.
-- **Validation:** Nav card renders correctly as footer card on mobile. No global offset injection.
-- **Deploy Impact:** None for spike; HA RESOURCE UPDATE if adopted.
-- **Can Ship Independently:** Yes (spike is non-destructive).
-- **Agent Sources:** Agent 2 A10/G1, Agent 4 A4.
-
-### FL-028: Popup Architecture Inconsistency (Two Mechanisms in Plan)
-- **Status:** OPEN / DECISION REQUIRED
-- **Severity:** HIGH
-- **Category:** Architecture
-- **Requirement Alignment:** REQ-POP-001
-- **Current State:** popup-fix.md defines hidden `custom:popup-card` + `fire-dom-event`. Storage config uses `call-service browser_mod.popup` with inline content. These are incompatible.
-- **Resolution:** Use `call-service browser_mod.popup` (proven) for POP-01. Evaluate `popup-card`/`fire-dom-event` approach in a later tranche only if inline approach proves unmaintainable.
-- **Agent Sources:** Agent 2 E1/G2, Agent 4 A5/G2.
-
-### FL-029: 7-Item Nav Breaks at 320px (Touch Target Violation)
-- **Status:** OPEN / DESIGN BLOCKED
-- **Severity:** HIGH
-- **Category:** UX / Accessibility
-- **Requirement Alignment:** REQ-NAV-002, REQ-UX-001
-- **Current State:** 7 items at 320px yields 42px per item, below the 44px minimum touch target in the design language.
-- **Intended State:** Nav items meet 44px minimum touch target at all supported viewport widths.
-- **Resolution Options:** (1) Keep 3-4 items for initial NAV-01. (2) Implement overflow/"more" pattern. (3) Accept Rooms index + popup as room-routing paths and drop per-room nav items.
-- **Agent Sources:** Agent 4 A2, F3.
-
-### FL-030: Missing `hold_action` Support in Rooms Card
-- **Status:** OPEN
-- **Severity:** HIGH (blocks POP-01)
-- **Category:** Feature Gap
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
-- **Current State:** `setConfig` (line 340) does not read `hold_action`. Long-press handler (lines 450-456) is hardcoded to `_toggleRoomGroup()`.
-- **Intended State:** `hold_action` read from room config. Long-press handler checks `hold_action` first, falls back to toggle.
-- **Exact Change:**
-  1. Line 340: Add `hold_action: room.hold_action || null,`
-  2. Lines 450-456: Replace timer callback to check `hold_action` before toggle
-  3. Lines 459-474: Change tap default from navigate to toggle
-- **Dependencies:** None.
-- **Validation:** Hold triggers hold_action when configured; falls back to toggle when not configured.
-- **Deploy Impact:** HA RESOURCE UPDATE.
-- **Can Ship Independently:** Yes (pairs with POP-01 YAML changes).
-- **Agent Sources:** Agent 2 SV-005, Agent 3 D1, Agent 4 C4.
-
-### FL-031: Missing `fire-dom-event` in Action Handlers
-- **Status:** OPEN
-- **Severity:** MEDIUM (HIGH if popup-card approach adopted)
-- **Category:** Feature Gap
-- **Files:** `tunet_rooms_card.js` (L524-571), `tunet_status_card.js` (L857-892)
-- **Current State:** Neither card's `_handleTapAction` handles `fire-dom-event`.
-- **Intended State:** `fire-dom-event` case dispatches `ll-custom` CustomEvent with `composed: true`.
-- **Exact Change:** Add 6-line block after call-service case in both cards.
-- **Note:** NOT required for POP-01 if `call-service` mechanism is used instead. Becomes required only if `popup-card`/`fire-dom-event` approach is adopted later.
-- **Dependencies:** None.
-- **Validation:** `fire-dom-event` action dispatches correctly; Browser Mod receives event.
-- **Deploy Impact:** HA RESOURCE UPDATE.
-- **Can Ship Independently:** Yes.
-- **Agent Sources:** Agent 2 SV-006, Agent 3 D1/D2.
-
-### FL-032: Tap/Hold Interaction Inversion Required
-- **Status:** OPEN
-- **Severity:** HIGH (blocks POP-01)
-- **Category:** Interaction Model
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` (L442-503)
-- **Current State:** Tap = navigate/popup (via tap_action or navigate_path). Hold = toggle lights.
-- **Intended State:** Tap = toggle lights (default). Hold = popup (via hold_action).
-- **Exact Change:**
-  1. Lines 459-474: Change `onPointerUp` to default to `_toggleRoomGroup()` instead of navigate
-  2. Lines 450-456: Change pressTimer to check `hold_action` before toggle
-  3. Remove `navigate_path` fallback from tap handler
-- **Dependencies:** FL-030 (hold_action support must exist first).
-- **Validation:** Tap toggles room lights. Hold opens popup when hold_action configured.
-- **Risk:** Interaction model inversion requires user re-learning. Ship on storage surface first for evaluation.
-- **Deploy Impact:** HA RESOURCE UPDATE + YAML config changes.
-- **Can Ship Independently:** Yes (pairs with FL-030).
-- **Agent Sources:** Agent 2 SV-007, Agent 3 F4, Agent 4 A1.
-
-### FL-033: No Hold-Feedback During 400ms Window
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** UX Polish
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
-- **Current State:** User sees `scale(0.95)` on press, then nothing for 400ms, then `scale(0.9)` pulse at popup fire.
-- **Intended State:** Progressive visual feedback during hold (e.g., CSS transition that reaches visible threshold at 400ms).
-- **Exact Change:** Add CSS transition on pointerdown: `transition: transform 0.4s ease` targeting a slightly deeper scale. Reset on pointerup/cancel.
-- **Dependencies:** FL-032 (tap/hold inversion).
-- **Validation:** Visible progressive feedback during hold gesture.
-- **Can Ship Independently:** Yes (enhancement, not blocker).
-- **Agent Sources:** Agent 4 A1, B2.
-
-### FL-034: Keyboard Accessibility for hold_action
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** Accessibility
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js` (L487-492)
-- **Current State:** Enter/Space mapped only to tap handler. No keyboard path to hold_action.
-- **Intended State:** Shift+Enter or visible affordance triggers hold_action.
-- **Dependencies:** FL-030 (hold_action support).
-- **Validation:** Keyboard-only user can trigger popup.
-- **Can Ship Independently:** Yes.
-- **Agent Sources:** Agent 4 A1 (edge case 3).
-
-### FL-035: Nav Card Hardcoded to 3 Destinations
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** Feature Gap
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
-- **Current State:** `_render()` generates exactly 3 buttons. Desktop rail CSS uses `repeat(3, 72px)`.
-- **Intended State:** Dynamic nav items from config `items: [{label, icon, path}]` array.
-- **Dependencies:** FL-029 (7-item viability must be validated first).
-- **Validation:** Nav renders correct number of items from config. Active state works for all items.
-- **Can Ship Independently:** Yes (part of NAV-01).
-- **Agent Sources:** Agent 2 G6, Agent 3 D4, Agent 4 A2.
-
-### FL-036: Storage Config Uses `size` Instead of `initial_style` for Popups
-- **Status:** OPEN
-- **Severity:** LOW-MEDIUM
-- **Category:** API Hygiene
-- **Files:** `Dashboard/Tunet/tunet-suite-storage-config.yaml` (lines 179, 257, 406)
-- **Current State:** Uses `size: wide` and `size: normal` in Browser Mod popup config.
-- **Intended State:** Uses `initial_style: wide` (Browser Mod 2.8.x preferred parameter).
-- **Exact Change:** Replace `size:` with `initial_style:` in all 3 popup configurations.
-- **Dependencies:** Verify Browser Mod 2.8.2 accepts both.
-- **Validation:** Popups open at correct size after change.
-- **Can Ship Independently:** Yes.
-
-### FL-037: `navigate_path` Removal Creates Single Point of Failure
-- **Status:** OPEN / DESIGN DECISION
-- **Severity:** MEDIUM-HIGH
-- **Category:** UX / Resilience
-- **Files:** `tunet-suite-storage-config.yaml` (8 locations with `navigate_path`)
-- **Current State:** 8 room entries across 2 views have `navigate_path` configured.
-- **Plan Intention:** Remove `navigate_path`; nav bar becomes only direct path to room pages.
-- **Risk:** If nav card fails to render, room pages become unreachable.
-- **Resolution Options:** (1) Keep `navigate_path` as optional fallback, not as default tap behavior. (2) Add visible chevron/icon affordance on room tile for navigation. (3) Accept single point of failure and ensure nav reliability.
-- **Agent Sources:** Agent 4 B1, F5.
-
-### FL-038: Nav Card Duplicated 7 Times in Storage Config
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** Maintainability
-- **Files:** `tunet-suite-storage-config.yaml` (7 nav card config blocks)
-- **Current State:** Identical nav card config copy-pasted into every view.
-- **Intended State:** Either minimized config or native footer card placement (declared once).
-- **Note:** Footer card investigation (FL-027 / SPIKE-01) may eliminate this entirely.
-- **Agent Sources:** Agent 3 F7, Agent 4 G7.
-
-### FL-039: Rooms Card `innerHTML` with Unsanitized Room Names
-- **Status:** OPEN
-- **Severity:** LOW
-- **Category:** Security
-- **Files:** `tunet_rooms_card.js` (L436)
-- **Current State:** `roomCfg.name` interpolated directly into `innerHTML`.
-- **Intended State:** Use `textContent` or escape HTML entities.
-- **Note:** Risk is low since config comes from YAML, not runtime user input. `escapeHtml` is NOT currently in `tunet_base.js` despite memory claims.
-- **Can Ship Independently:** Yes.
-- **Agent Sources:** Agent 2 G4.
-
-### FL-040: Lighting Card `grid-auto-rows: 124px` Fixed Height
-- **Status:** OPEN
-- **Severity:** MEDIUM
-- **Category:** Sections Compliance
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js` (L332)
-- **Current State:** `grid-auto-rows: var(--grid-row, 124px)` creates fixed tile row height.
-- **Intended State:** Default to `auto`; use fixed height only when `rows` config is explicitly set.
-- **Can Ship Independently:** Yes.
-- **Agent Sources:** Agent 3 A2/F10, Agent 4 E.
-
-### FL-041: HA 2026.3 Light Attribute Deprecation
-- **Status:** OPEN / AUDIT REQUIRED
-- **Severity:** MEDIUM-HIGH
-- **Category:** Breaking Change Preparation
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
-- **Current State:** Grep for `color_temp|kelvin|min_mireds|max_mireds` returns zero matches in `tunet_lighting_card.js`. No immediate breakage.
-- **Intended State:** Confirmed clean. No references to deprecated attributes.
-- **Resolution:** AUDIT COMPLETE -- no remediation needed for lighting card. Other cards (light-tile, sensor) should be spot-checked.
-- **Agent Sources:** Agent 2 A9/G3, Agent 4 G6.
-- **Note:** Severity downgraded from HIGH to MEDIUM-HIGH. The lighting card does not reference these attributes. The broader Tunet suite appears clean. OAL package may need separate audit.
-
-### FL-042: Sensor Card `tunet-navigate` Dead Code
-- **Status:** OPEN
-- **Severity:** LOW
-- **Category:** Dead Code
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_sensor_card.js` (L639-648)
-- **Current State:** Dispatches `tunet-navigate` event, then immediately dispatches `hass-more-info`. No listener for `tunet-navigate` exists anywhere.
-- **Intended State:** Remove dead `tunet-navigate` dispatch.
-- **Can Ship Independently:** Yes.
-- **Agent Sources:** Agent 3 B2/F8.
-
-### FL-043: `columns: 'full'` String May Be Non-Standard API
-- **Status:** OPEN / VERIFICATION
-- **Severity:** LOW-MEDIUM
-- **Category:** API Compliance
-- **Files:** `Dashboard/Tunet/Cards/v2/tunet_nav_card.js` (L252)
-- **Current State:** `getGridOptions()` returns `columns: 'full'`. HA API may expect a number.
-- **Intended State:** Verify whether `'full'` is supported in HA 2026.3. If not, change to `columns: 12`.
-- **Note:** If footer card approach is adopted (FL-027), this becomes moot.
-- **Can Ship Independently:** Yes.
-- **Agent Sources:** Agent 3 F1, Agent 4 G3.
-
-### FL-044: `fireEvent` Utility Underused (9 Cards Manual Construction)
-- **Status:** OPEN
-- **Severity:** LOW
-- **Category:** Code Consistency
-- **Files:** All V2 cards; `tunet_base.js` (L726-732)
-- **Current State:** `fireEvent()` exists in base but only `tunet-light-tile` uses it. 9 other cards manually construct `CustomEvent('hass-more-info')`.
-- **Intended State:** All cards use `fireEvent` from base, or all use the shared `executeAction` adapter.
-- **Note:** Low priority. Will be partially resolved by `executeAction` adapter (FL-012).
-- **Agent Sources:** Agent 3 A9/B1/F3.
+**Note**: Values like 1.05 and 1.08 are "lift" scales (drag/expanded states), not press scales. These need a separate token decision (e.g., `--lift-scale: 1.05`). CD2 must define the token set, not blindly replace all scale values.
 
 ---
 
-## Section 6: NEW USER-REPORTED BUGS (from Session Testing)
+### INT-004: Focus-Visible Styling
 
-User stated "none fully bother me yet" -- all categorized as DEFERRED unless promoted.
+| Field | Value |
+|-------|-------|
+| **Severity** | High (accessibility) |
+| **Current** | 4 cards missing `:focus-visible` rules entirely; others have partial coverage |
+| **Target** | All interactive elements have `:focus-visible { outline: 2px solid var(--focus-ring-color); outline-offset: 2px; }` |
+| **Tranche** | CD2 (CSS rules only; adding tabindex is CD3) |
 
-### FL-045: Status Card Bug -- [To Be Cataloged]
-- **Status:** DEFERRED
-- **Severity:** LOW (user assessment)
-- **Note:** 11 bugs were mentioned during user testing across status, lighting, and rooms cards. User stated none are blocking. Exact symptoms need to be captured from the session transcript if they are to be promoted. This ledger reserves FL-045 through FL-055 for those items once documented.
+| ID | Card | Interactive Elements | Has :focus-visible | Gap | Status |
+|----|------|---------------------|-------------------|-----|--------|
+| INT-004a | tunet_media_card.js | 14 | 0 | **14** | CRITICAL |
+| INT-004b | tunet_sonos_card.js | 10 | 0 | **10** | CRITICAL |
+| INT-004c | tunet_climate_card.js | 6 | 1 | **5** | CRITICAL |
+| INT-004d | tunet_weather_card.js | 5 | 0 | **5** | CRITICAL |
+| INT-004e | tunet_status_card.js | 6 | 3 | 3 | **EXCLUDED** (lock) |
+| INT-004f | tunet_rooms_card.js | 4 | 3 | 1 | Low gap |
+| INT-004g | tunet_lighting_card.js | 4 | 11 | 0 | OK |
+| INT-004h | tunet_speaker_grid_card.js | 3 | 3 | 0 | OK |
+| INT-004i | tunet_nav_card.js | 1 | 3 | 0 | OK |
+| INT-004j | tunet_sensor_card.js | 1 | 3 | 0 | OK |
+| INT-004k | tunet_scenes_card.js | 1 | 3 | 0 | OK |
+| INT-004l | tunet_actions_card.js | 1 | 3 | 0 | OK |
+| INT-004m | tunet_light_tile.js | 0 | — | — | N/A |
+
+**CD2 actionable**: Add `:focus-visible` CSS rules to 5 cards (media, sonos, climate, weather, rooms). CD2 adds the CSS selectors; CD3 adds the JS `tabindex` attributes that make them reachable.
 
 ---
 
-## Section 7: Superseded Assumptions (Unchanged from FIX_LEDGER.md)
+### INT-005: -webkit-tap-highlight-color
 
-### SA-001: Bubble/Hash Popup Path
-- **Status:** SUPERSEDED
-- **Replaced By:** Browser Mod preferred, one popup per room.
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Current** | ALL 14 files missing `-webkit-tap-highlight-color: transparent` |
+| **Target** | Added to `:host` in every card or centralized in base CARD_SURFACE/TILE_SURFACE |
+| **Tranche** | CD2 |
 
-### SA-002: Home Layout Before Nav/Popup
-- **Status:** SUPERSEDED
-- **Replaced By:** Nav, Popup, UI/UX, Home Layout (locked order).
-
-### SA-003: Implemented = Done
-- **Status:** SUPERSEDED
-- **Replaced By:** Repo state, live state, and product state tracked separately.
+**CD2 actionable**: Add to tunet_base.js shared surface exports; verify all 12 non-excluded cards inherit.
 
 ---
 
-## Recommended Remediation Order (Corrected)
+### INT-006: Base Interaction Contract Exports
 
-### Tier 0: Investigation (No Code Committed)
-1. FL-027 (SPIKE-01: footer card investigation)
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Current** | Tokens exist (`--press-scale`, `--motion-ui`, etc.) but no shared transition property-set export |
+| **Target** | tunet_base.js exports canonical transition property sets, hover guard template, press-scale usage pattern |
+| **Tranche** | CD2 |
 
-### Tier 1: Popup POC (POP-01)
-2. FL-030 (add `hold_action` to rooms card setConfig)
-3. FL-032 (swap tap/hold interaction model)
-4. FL-031 (add `fire-dom-event` to action handlers -- optional for POC if using `call-service`)
-5. Storage YAML config changes (move popup from `tap_action` to `hold_action`)
+**CD2 actionable**: Extend TOKENS or create INTERACTION_PATTERNS export in tunet_base.js.
 
-### Tier 2: Popup Scale-Out (POP-02)
-6. Apply popup pattern to Kitchen, Dining, Bedroom rooms
+---
 
-### Tier 3: Nav Architecture (NAV-01)
-7. FL-011 (resolve global DOM pollution -- approach depends on SPIKE-01)
-8. FL-035 (configurable nav items -- scope depends on FL-029 resolution)
-9. FL-038 (nav duplication -- may be resolved by footer card)
+### INT-007: speaker_grid_card CSS Anomalies
 
-### Tier 4: Shared Infrastructure
-10. FL-012 (shared `executeAction` adapter)
-11. FL-044 (fireEvent consolidation)
+| Field | Value |
+|-------|-------|
+| **Severity** | Low |
+| **Current** | `--spring` CSS variable undefined in base TOKENS; focus ring uses `var(--blue)` instead of `var(--focus-ring-color)` |
+| **Target** | Remove `--spring` reference or define it; use `var(--focus-ring-color)` |
+| **Tranche** | CD2 |
+| **Source** | cards_reference.md §12 Known Limitations |
 
-### Tier 5: Polish and Cleanup
-12. FL-015 (AL scan performance)
-13. FL-033 (hold feedback)
-14. FL-034 (keyboard accessibility for hold)
-15. FL-036 (Browser Mod `size` vs `initial_style`)
-16. FL-039 (innerHTML sanitization)
-17. FL-040 (lighting card fixed row height)
-18. FL-042 (sensor card dead code)
-19. FL-043 (`columns: 'full'` verification)
+---
 
-### Deferred
-- FL-005 (sensor card `value_attribute` -- needs deploy + verify)
-- FL-013, FL-018, FL-019 (config editor work)
-- FL-014 (speaker cache)
-- FL-016, FL-017 (documentation cleanup)
-- FL-020 (storage dashboard AQI)
-- FL-021, FL-023, FL-024 (product direction decisions)
-- FL-037 (navigate_path removal decision)
-- FL-041 (light attribute deprecation -- audit shows no current impact)
-- FL-045-055 (user-reported bugs, pending documentation)
+## 3. Issue Registry — CD3 (Shared Semantics Adoption)
+
+**Scope**: JS changes — role, tabindex, keyboard handlers, ARIA attributes.
+
+### SEM-001: Click-Only Interactive Elements
+
+| Field | Value |
+|-------|-------|
+| **Severity** | High (keyboard accessibility) |
+| **Current** | 56 click-only handlers across 12 cards without keyboard activation |
+| **Target** | All click-interactive elements have `role="button"`, `tabindex="0"`, Enter/Space keydown handler |
+| **Tranche** | CD3 |
+
+| ID | Card | Click Handlers | Priority |
+|----|------|---------------|----------|
+| SEM-001a | tunet_media_card.js | 14 | High |
+| SEM-001b | tunet_sonos_card.js | 10 | High |
+| SEM-001c | tunet_climate_card.js | 6 | High |
+| SEM-001d | tunet_status_card.js | 6 | **EXCLUDED** (lock) |
+| SEM-001e | tunet_weather_card.js | 5 | Medium |
+| SEM-001f | tunet_rooms_card.js | 4 | Medium |
+| SEM-001g | tunet_lighting_card.js | 3 | Medium |
+| SEM-001h | tunet_speaker_grid_card.js | 3 | Medium |
+| SEM-001i | tunet_sensor_card.js | 1 | Low |
+| SEM-001j | tunet_nav_card.js | 1 | Low |
+| SEM-001k | tunet_scenes_card.js | 1 | Low |
+| SEM-001l | tunet_actions_card.js | 1 | Low |
+
+---
+
+### SEM-002: cursor:pointer Without Keyboard Semantics
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Current** | 44 instances of `cursor: pointer` on elements lacking role/tabindex |
+| **Target** | Every `cursor: pointer` element has matching role and keyboard activation |
+| **Tranche** | CD3 |
+
+---
+
+### SEM-003: Base Button-Activation Helper
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Current** | No shared helper for button semantics |
+| **Target** | `bindButtonActivation(el, handler, options)` in tunet_base.js |
+| **Tranche** | CD3 |
+| **Source** | Plan lines 542-550 |
+
+---
+
+### SEM-004: light_tile role Mismatch
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Current** | `role="button"` but arrow keys adjust brightness like a slider |
+| **Target** | Change to `role="slider"` with `aria-valuenow/min/max` |
+| **Tranche** | CD3 |
+| **Source** | cards_reference.md §3 Accessibility |
+
+---
+
+## 4. Issue Registry — CD4 (Shared Sizing & Sections Adoption)
+
+**Scope**: Profile contract migration, grid-auto-rows fixes, Sections compliance.
+
+### SIZ-001: grid-auto-rows Violations
+
+| Field | Value |
+|-------|-------|
+| **Severity** | P1 within CD4 (Sections blocker when cards are placed in Sections) |
+| **Current** | 2 cards force internal row heights |
+| **Target** | Remove or parameterize grid-auto-rows; validate in Sections layout |
+| **Tranche** | CD4 |
+
+| ID | Card | Current Code | Line |
+|----|------|-------------|------|
+| SIZ-001a | tunet_lighting_card.js | `grid-auto-rows: var(--grid-row, 110px)` | 367 |
+| SIZ-001b | tunet_status_card.js | `grid-auto-rows: var(--tile-row-h)` | 189 |
+
+**Note**: Agent 2 rated P1; Agent 3 rated Medium. Agent 4 says A2 is correct. Plan explicitly assigns to CD4 scope (plan line 629). Status card is additionally under G3S lock.
+
+**Status card special case**: grid-auto-rows is *intentional* for uniform tile rhythm (cards_reference.md §9). Resolution depends on whether G3S lock lifts.
+
+---
+
+### SIZ-002: Legacy Profile Contract Migration
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Current** | 7 cards + base use superseded profile resolver (selectProfileSize, resolveSizeProfile, _setProfileVars) |
+| **Target** | Explicit `tile_size` config + `:host([tile-size="..."])` CSS variants + ResizeObserver |
+| **Tranche** | CD4 |
+
+| ID | Card | Profile Functions Used |
+|----|------|----------------------|
+| SIZ-002a | tunet_light_tile.js | selectProfileSize, resolveSizeProfile, _setProfileVars |
+| SIZ-002b | tunet_lighting_card.js | selectProfileSize, resolveSizeProfile, _setProfileVars |
+| SIZ-002c | tunet_rooms_card.js | selectProfileSize, resolveSizeProfile, _setProfileVars |
+| SIZ-002d | tunet_sensor_card.js | selectProfileSize, resolveSizeProfile, _setProfileVars |
+| SIZ-002e | tunet_speaker_grid_card.js | selectProfileSize, resolveSizeProfile, _setProfileVars |
+| SIZ-002f | tunet_status_card.js | selectProfileSize, resolveSizeProfile, _setProfileVars |
+| SIZ-002g | tunet_base.js | Exports all profile functions |
+
+**Migration path**: Leave legacy code in place; incremental removal during active card tranches. Verify no cards are half-migrated.
+
+---
+
+### SIZ-003: Hardcoded Heights
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Current** | Multiple cards have px-based fixed heights |
+| **Target** | Intrinsic sizing or em-based relative sizing |
+| **Tranche** | CD4 |
+
+| Card | Hardcoded Heights | Severity |
+|------|------------------|----------|
+| tunet_media_card.js | 19 | Medium |
+| tunet_climate_card.js | 16 | Medium |
+| tunet_speaker_grid_card.js | 15 | Medium |
+| tunet_lighting_card.js | 12 | Medium |
+| tunet_sonos_card.js | 11 | Medium |
+| tunet_scenes_card.js | 7 | Low |
+| tunet_weather_card.js | 7 | Low |
+| tunet_nav_card.js | 5 | Low |
+
+---
+
+### SIZ-004: scenes_card Sections Contract
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Current** | `allow_wrap: false` (default) creates `overflow-x: auto` — risky in Sections |
+| **Target** | Explicit decision: wrap-only in Sections or document scroll as intentional |
+| **Tranche** | CD4 |
+| **Source** | cards_reference.md §2 Sections Safety |
+
+---
+
+## 5. Issue Registry — CD5-CD11 (Bespoke Passes)
+
+### CD5 — Utility Strip Bespoke
+
+| ID | Card | Issue | Source |
+|----|------|-------|--------|
+| BSP-005a | tunet_actions_card.js | getGridOptions not variant/compact-aware | Plan CD5 |
+| BSP-005b | tunet_actions_card.js | Custom actions require YAML — no Level 2 editor path | cards_reference §1 |
+| BSP-005c | tunet_actions_card.js | 7-operator condition system undocumented to users | cards_reference §1 |
+| BSP-005d | tunet_scenes_card.js | Header semantic vs decorative decision | Plan CD5 |
+| BSP-005e | tunet_scenes_card.js | getCardSize/getGridOptions not allow_wrap-aware | Plan CD5 |
+| BSP-005f | tunet_scenes_card.js | Unavailable scene disabled semantics | Plan CD5 |
+| BSP-005g | tunet_scenes_card.js | active_when_operator only 3 operators vs actions' 7 | cards_reference §2 |
+
+### CD6 — Lighting Bespoke
+
+| ID | Card | Issue | Source |
+|----|------|-------|--------|
+| BSP-006a | tunet_light_tile.js | Hold-to-drag migration (400ms + haptic) | cards_reference §3 |
+| BSP-006b | tunet_light_tile.js | KI-001 guard behavior preservation | Plan CD6 |
+| BSP-006c | tunet_lighting_card.js | Info tile keyboard completion | Plan CD6 |
+| BSP-006d | tunet_lighting_card.js | Fixed-row / clipping / scroll contract stabilization | Plan CD6 |
+| BSP-006e | tunet_lighting_card.js | Adaptive toggle/manual reset scoping | Plan CD6 |
+| BSP-006f | tunet_lighting_card.js | surface: tile CSS contract undefined | cards_reference §4 |
+
+### CD7 — Rooms Bespoke
+
+| ID | Card | Issue | Source |
+|----|------|-------|--------|
+| BSP-007a | tunet_rooms_card.js | Tile variant: align to navigation-tile contract (tap=navigate) | cards_reference §5 |
+| BSP-007b | tunet_rooms_card.js | stopPropagation fragility on row controls | cards_reference §5 |
+| BSP-007c | tunet_rooms_card.js | Nested lights[] YAML-only — no editor path | cards_reference §5 |
+| BSP-007d | tunet_rooms_card.js | Row/tile breakpoint validation at all locked sizes | Plan CD7 |
+
+### CD8 — Environment Bespoke
+
+| ID | Card | Issue | Source |
+|----|------|-------|--------|
+| BSP-008a | tunet_climate_card.js | Header tile keyboard completion | Plan CD8 |
+| BSP-008b | tunet_climate_card.js | Preserve gold standard visual baseline | Plan CD8 |
+| BSP-008c | tunet_sensor_card.js | Remaining row-level polish | Plan CD8 |
+| BSP-008d | tunet_sensor_card.js | icon_color and history_hours should be editor fields | cards_reference §8 |
+| BSP-008e | tunet_weather_card.js | Header info tile interactive decision | Plan CD8 |
+| BSP-008f | tunet_weather_card.js | Forecast tiles fake-interactive (cursor:pointer, no semantics) | cards_reference §7 |
+
+### CD9 — Media Bespoke
+
+| ID | Card | Issue | Source |
+|----|------|-------|--------|
+| BSP-009a | tunet_media_card.js | Header info tile keyboard completion | Plan CD9 |
+| BSP-009b | tunet_media_card.js | Album art interaction decision (more-info? navigate?) | Plan CD9 / cards_reference §10 |
+| BSP-009c | tunet_media_card.js | Volume track slider semantics decision | Plan CD9 |
+| BSP-009d | tunet_media_card.js | Volume view 5s auto-exit lifecycle | cards_reference §10 |
+| BSP-009e | tunet_sonos_card.js | Speaker tile semantic model decision (slider vs button) | Plan CD9 |
+| BSP-009f | tunet_sonos_card.js | --spring CSS variable undefined | cards_reference §11 |
+| BSP-009g | tunet_sonos_card.js | Volume overlay 5s auto-exit lifecycle | cards_reference §11 |
+| BSP-009h | tunet_speaker_grid_card.js | Header info tile keyboard completion | Plan CD9 |
+| BSP-009i | tunet_speaker_grid_card.js | Hover translateY(-1px) removal | cards_reference §12 |
+| BSP-009j | ALL media cards | Hold-to-drag 400ms + haptic (currently 500ms, no haptic) | Agent 4 §3, cards_reference §1-2 |
+| BSP-009k | ALL media cards | Speaker tile unification (tap=select, hold-drag=volume, icon=more-info, badge=group) | cards_reference §Speaker Tile Unification Target |
+
+### CD10 — Navigation Verify
+
+| ID | Card | Issue | Source |
+|----|------|-------|--------|
+| BSP-010a | tunet_nav_card.js | Active-route accuracy verification | Plan CD10 |
+| BSP-010b | tunet_nav_card.js | Browser back/forward behavior | Plan CD10 |
+| BSP-010c | tunet_nav_card.js | Safe-area and footer placement | Plan CD10 |
+| BSP-010d | tunet_nav_card.js | Global style leakage verification | Plan CD10 |
+| BSP-010e | tunet_nav_card.js | bare `{ object: {} }` editor for subview_paths/items | Agent 2 §2 |
+
+### CD11 — Status Decision Gate
+
+| ID | Card | Issue | Source |
+|----|------|-------|--------|
+| BSP-011a | tunet_status_card.js | G3S lock decision: preserve or lift | Plan CD11 |
+| BSP-011b | tunet_status_card.js | grid-auto-rows (intentional for uniform tile rhythm) | SIZ-001b |
+| BSP-011c | tunet_status_card.js | transition:all (3 instances, line 211, 535, 609) | INT-001h |
+| BSP-011d | tunet_status_card.js | Hover guard missing | INT-002j |
+| BSP-011e | tunet_status_card.js | Press scale normalization (9 hardcoded) | INT-003b |
+| BSP-011f | tunet_status_card.js | Focus-visible gaps (3 elements) | INT-004e |
+| BSP-011g | tunet_status_card.js | tiles[] yaml-only (5 polymorphic types) | cards_reference §9 |
+| BSP-011h | tunet_status_card.js | Mode-driven synthesis authoring model (when G3S lifts) | cards_reference §9 |
+
+---
+
+## 6. Issue Registry — CD12 (Surface Assembly)
+
+| ID | Surface | Gate | Source |
+|----|---------|------|--------|
+| SRF-012a | Living Room reference surface | All CD2-CD8 closed | Plan CD12 |
+| SRF-012b | Living Room popup | Living Room surface signed off | Plan CD12 |
+| SRF-012c | Overview | Living Room popup signed off | Plan CD12 |
+| SRF-012d | Media | Overview signed off | Plan CD12 |
+| SRF-012e | Remaining room pages | Media signed off | Plan CD12 |
+
+---
+
+## 7. Compliance Scorecard (Post-CD1)
+
+| Standard | Pass Rate | Owner |
+|----------|-----------|-------|
+| Custom Element Registration | 13/13 (100%) | Done |
+| Editor Compliance | 12/13 (92.3%) | Done (nav bare object acceptable) |
+| Sections Grid Options | 11/13 (84.6%) | CD4 (2 grid-auto-rows) |
+| Keyboard Accessibility | 8/13 (61.5%) | CD3 |
+| Touch Device Safety | 2/13 (15.4%) | CD2 |
+| CSS Anti-patterns | 3/13 (23.1%) | CD2 |
+
+---
+
+## 8. Known Gaps Not Yet Assigned
+
+| Gap | Description | Discovered By | Blocker? |
+|-----|-------------|---------------|----------|
+| Hold-to-drag 500ms vs 400ms | Code defaults to 500ms; contract says 400ms + haptic | Agent 4 | No — CD9 scope |
+| Profile supersession tracking | 7 cards on legacy contract; no migration evidence yet | Agent 4 | No — CD4 scope |
+| Nav editor bare object | subview_paths and items use `{ object: {} }` (YAML textbox) | Agent 2 | No — CD10 scope |
+| Build output validation | Neither A2 nor A3 ran build validation; dist/ exists and is dated correctly | Agent 4 | No — dist verified |
+| getGridOptions static | All 13 cards return static values; dynamic sizing is YAML-only | Agent 3/4 | No — by design |

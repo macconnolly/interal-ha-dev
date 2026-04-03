@@ -1,463 +1,381 @@
-# Agent 1: Corrected Execution Plan
+# Agent 1: Execution Plan — CD2-CD12
 
-**Date:** 2026-03-06
-**Branch:** `claude/dashboard-nav-research-QnOBs`
-**HEAD:** `98d961c`
-**Role:** Manager / Ledger Integrator (Agent 1 of 4)
-**Status:** FIRST PASS -- awaiting Agent 4 attack review
-
----
-
-## Design Rationale
-
-This execution plan incorporates Agent 4's critique of the 7-tranche popup-fix.md plan.
-
-**Key corrections applied:**
-
-1. **CP-01 declared DONE.** The governance infrastructure already exists (plan.md, FIX_LEDGER.md, TRANCHE_TEMPLATE.md, Change ID scheme, control doc precedence, branch guards). Adding more governance documentation before shipping code is bureaucratic drift.
-
-2. **LAY-01 eliminated.** Layout research merged into first implementation tranche. The working popup IS the layout prototype that validates Sections behavior.
-
-3. **LAY-02 eliminated.** Agent 3 proved there is no `max_columns` cap problem. All cards consistently use `max_columns: 12` (the grid maximum). The `columns: 'full'` anomaly and lighting card fixed row height are backlog items, not a tranche.
-
-4. **INT-01 split and shrunk.** The shared adapter and `hold_action` support are popup prerequisites -- merged into POP-01. Nav expansion is separate scope (NAV-01). Interaction contract documentation is already substantially done in popup-fix.md.
-
-5. **Footer card spike added before NAV-01.** HA 2026.3 native footer cards could eliminate FL-011 (global offset pollution) entirely. This one-hour investigation must happen before committing to the current nav architecture.
-
-6. **Popup mechanism simplified.** POP-01 uses the proven `call-service browser_mod.popup` mechanism (already deployed in storage config) instead of the unverified `popup-card` + `fire-dom-event` combination.
-
-7. **Nav scoped to 3-4 items initially.** 7-destination nav is unvalidated at 320px. Expansion gated on small-screen touch target validation.
+**Branch:** main @ 30fc3be  
+**Date:** 2026-04-03  
+**Role:** Manager / Ledger Integrator (Agent 1 of 4)  
+**Status:** FINAL — integrates Agent 2, 3, and 4 findings with corrections  
+**Supersedes:** agent1_execution_plan.md from 2026-03-06
 
 ---
 
-## Tranche Sequence
+## 1. CD2 — Shared Interaction Adoption (Detailed)
+
+### Scope Boundary (ENFORCED)
+
+CD2 is CSS-only interaction work:
+- Replace `transition: all` with explicit property transitions
+- Add `@media (hover: hover)` guards to `:hover` selectors
+- Normalize hardcoded press scales to shared tokens
+- Add `:focus-visible` CSS rules to interactive elements
+- Add `-webkit-tap-highlight-color: transparent` to all cards
+- Extend base interaction token exports
+
+CD2 does NOT include:
+- `role` or `tabindex` attribute changes (CD3)
+- `keydown` handler additions (CD3)
+- ARIA attribute changes (CD3)
+- grid-auto-rows fixes (CD4)
+- Profile contract migration (CD4)
+- Hold-to-drag parameter changes (CD6/CD9)
+
+### File List
+
+12 files modified + 2 verify-only:
+
+| File | Action | Change Count (est.) |
+|------|--------|-------------------|
+| tunet_base.js | MODIFY | 4-6 (token exports, tap-highlight, interaction patterns) |
+| tunet_actions_card.js | MODIFY | 3 (1 transition, 1 hover guard, 1 press scale) |
+| tunet_scenes_card.js | MODIFY | 2 (hover guard, verify existing transitions) |
+| tunet_light_tile.js | MODIFY | 2 (1 transition, verify existing hover guard) |
+| tunet_lighting_card.js | MODIFY | 10 (5 transitions, 4 press scales, verify hover guard) |
+| tunet_rooms_card.js | MODIFY | 11 (5 transitions, 5 press scales, hover guard) |
+| tunet_climate_card.js | MODIFY | 14 (5 transitions, 8 press scales, hover guard, focus-visible) |
+| tunet_sensor_card.js | MODIFY | 6 (3 transitions, 2 press scales, hover guard) |
+| tunet_weather_card.js | MODIFY | 5 (3 transitions, 1 press scale, hover guard, focus-visible) |
+| tunet_media_card.js | MODIFY | 20 (8 transitions, 10 press scales, hover guard, focus-visible) |
+| tunet_sonos_card.js | MODIFY | 10 (3 transitions, 6 press scales, hover guard, focus-visible) |
+| tunet_speaker_grid_card.js | MODIFY | 9 (3 transitions, 4 press scales, hover guard, --spring/focus-ring fix) |
+| tunet_nav_card.js | VERIFY-ONLY | 0 (reference implementation; verify compliance) |
+| tunet_status_card.js | EXCLUDED | 0 (G3S lock) |
+
+**Total estimated edits**: ~96 across 12 files.
+
+### Sub-Tranche Recommendation
+
+Agent 4 flagged 192+ changes as "manageable but risky." With corrections (status excluded, CD3 work removed), actual count is ~96. This is manageable as one tranche but benefits from ordered sub-phases for validation:
+
+| Sub-Phase | Work | Files | Est. Changes | Validation |
+|-----------|------|-------|-------------|------------|
+| CD2a | Base contract + tap-highlight | tunet_base.js | 4-6 | `node --check`; verify TOKENS export |
+| CD2b | transition:all replacement | All 10 non-excluded cards | 37 | `grep 'transition: all'` returns 0 in touched files |
+| CD2c | Hover guard rollout | 9 cards + verify 2 compliant | 9-18 | `grep ':hover' \| grep -v '@media'` returns 0 |
+| CD2d | Press scale normalization | All 12 non-excluded files | ~47 | `grep 'scale(0\.' \| grep -v 'var(--'` returns 0 |
+| CD2e | Focus-visible + cleanup | media, sonos, climate, weather, rooms + speaker_grid fixes | ~10 | Tab through all interactive elements in lab |
+
+**Recommendation**: Execute as one continuous tranche with sub-phase ordering. Do NOT split into separate tranches — the changes are mutually reinforcing and testing benefits from seeing them together.
+
+### Per-File Change Specifications
+
+#### tunet_base.js
 
 ```
-SPIKE-01 (footer card test, 1 hour, no code committed)
-    |
-    v
-POP-01 (Living Room popup POC, half day)
-    |
-    v
-POP-02 (popup scale-out to remaining rooms, 2-3 hours)
-    |
-    v
-NAV-01 (nav architecture based on SPIKE-01 results, 1 day)
+LOCATION: TOKENS (line 19)
+ACTION: Verify --press-scale, --press-scale-strong, --motion-ui, --focus-ring-* exist
+ADD: --lift-scale: 1.05 (for drag/expanded states)
+ADD: --lift-scale-strong: 1.08 (for thumb/active drag states)
+
+LOCATION: CARD_SURFACE / TILE_SURFACE / SECTION_SURFACE / CTRL_SURFACE
+ACTION: Add -webkit-tap-highlight-color: transparent to each
+
+LOCATION: After REDUCED_MOTION (line 1252)
+ACTION: Add TRANSITION_PROPERTIES export with canonical property sets:
+  - TRANSITION_TILE: 'background var(--motion-ui) var(--ease-standard), border-color var(--motion-ui) var(--ease-standard), box-shadow var(--motion-ui) var(--ease-standard), transform var(--motion-ui) var(--ease-standard)'
+  - TRANSITION_BUTTON: 'background var(--motion-fast) var(--ease-standard), transform var(--motion-fast) var(--ease-standard)'
+  - TRANSITION_SURFACE: 'background var(--motion-surface) var(--ease-standard), opacity var(--motion-surface) var(--ease-standard)'
 ```
 
-Total estimated effort: approximately 2 days of implementation work.
+#### tunet_actions_card.js
+
+```
+LINE 216: Replace transition: all .15s ease
+  → transition: background var(--motion-fast) var(--ease-standard), transform var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard)
+HOVER: Wrap any :hover selectors in @media (hover: hover) { }
+LINE (scale): Replace hardcoded .96 with var(--press-scale)
+```
+
+#### tunet_scenes_card.js
+
+```
+VERIFY: Lines 178-199 — already uses multi-property transition (good)
+HOVER: Wrap any :hover selectors in @media (hover: hover) { }
+LINE (scale): Replace hardcoded 0.96 with var(--press-scale)
+```
+
+#### tunet_light_tile.js
+
+```
+LINE 152: Replace transition: all
+  → transition: background var(--motion-ui) var(--ease-standard), transform var(--motion-ui) var(--ease-standard), box-shadow var(--motion-ui) var(--ease-standard)
+VERIFY: Lines 85-86 — existing hover guard (should be compliant)
+LINE (scale): Replace hardcoded 1.05 with var(--lift-scale)
+```
+
+#### tunet_lighting_card.js
+
+```
+LINES 200, 224, 304, 428, 580: Replace transition: all (5 instances)
+  → specific properties per context (tile: bg+border+shadow+transform; button: bg+transform)
+SCALES: Lines with .94 → var(--press-scale-strong); .98 → var(--press-scale) approximately
+VERIFY: Existing hover guard on main :hover blocks
+ADD GUARD: Where :hover blocks are unguarded within this file
+```
+
+#### tunet_rooms_card.js
+
+```
+LINES 139, 204, 235, 403, 448: Replace transition: all (5 instances)
+HOVER: Wrap all :hover selectors in @media (hover: hover) { }
+SCALES: Replace .90 → var(--press-scale-strong); .94 → var(--press-scale-strong); .95/.96 → var(--press-scale)
+```
+
+#### tunet_climate_card.js
+
+```
+LINES 113, 136, 192, 236, 319: Replace transition: all (5 instances)
+HOVER: Wrap all :hover selectors in @media (hover: hover) { }
+SCALES: Replace .94 → var(--press-scale-strong); .97/.98 → var(--press-scale); 1.08 → var(--lift-scale-strong)
+FOCUS: Add :focus-visible rules for interactive elements (5 gaps)
+NOTE: Preserve gold standard visual baseline — changes are additive CSS, not structural
+```
+
+#### tunet_sensor_card.js
+
+```
+LINES 98, 124, 160: Replace transition: all (3 instances)
+HOVER: Wrap :hover selectors in @media (hover: hover) { }
+SCALES: Replace 0.97 → var(--press-scale); 0.99 → var(--press-scale)
+NOTE: Respect data-interaction="none" guards — do not add hover/focus to non-interactive rows
+```
+
+#### tunet_weather_card.js
+
+```
+LINES 63, 114, 181: Replace transition: all (3 instances)
+HOVER: Wrap :hover selectors in @media (hover: hover) { }
+SCALES: Replace .98 → var(--press-scale)
+FOCUS: Add :focus-visible rules for interactive elements (5 gaps)
+```
+
+#### tunet_media_card.js
+
+```
+LINES 56, 67, 108, 168, 241, 262, 281, 342: Replace transition: all (8 instances)
+HOVER: Wrap all :hover selectors in @media (hover: hover) { }
+SCALES: Replace .90 → var(--press-scale-strong); .97/.98 → var(--press-scale); 1.08 → var(--lift-scale-strong)
+FOCUS: Add :focus-visible rules for ALL interactive elements (14 gaps)
+```
+
+#### tunet_sonos_card.js
+
+```
+LINES 131, 156, 312: Replace transition: all (3 instances)
+HOVER: Wrap all :hover selectors in @media (hover: hover) { }
+SCALES: Replace .90 → var(--press-scale-strong); .97 → var(--press-scale); 1.06 → var(--lift-scale)
+FOCUS: Add :focus-visible rules for ALL interactive elements (10 gaps)
+```
+
+#### tunet_speaker_grid_card.js
+
+```
+LINES 108, 116, 235: Replace transition: all (3 instances)
+HOVER: Wrap :hover selectors in @media (hover: hover) { }
+SCALES: Replace .97/.98 → var(--press-scale); 1.03 → var(--lift-scale)
+FIX: Replace var(--blue) → var(--focus-ring-color) in focus ring
+FIX: Remove or define --spring CSS variable reference
+```
+
+### CD2 Validation Steps
+
+1. **Static checks**:
+   - `node --check` on every modified JS file
+   - `grep 'transition: all' Cards/v3/*.js` returns 0 hits (excluding status)
+   - `grep -P ':hover' Cards/v3/*.js | grep -v '@media' | grep -v 'status'` returns 0 unguarded hits
+
+2. **Lab validation**:
+   - All 13 cards render without red card errors
+   - Tab through every card — focus ring visible on all interactive elements
+   - Touch simulation (Chrome DevTools) — no persistent hover states
+
+3. **Breakpoint screenshots**:
+   - 390x844, 768x1024, 1024x1366, 1440x900
+   - Compare before/after for visual regression (especially climate gold standard)
+
+4. **Build validation**:
+   - `npm run tunet:build` succeeds
+   - dist/ outputs updated
+
+### CD2 Acceptance Criteria (from plan)
+
+1. No touched file contains `transition: all`
+2. No touched hover selector remains unguarded unless documented
+3. All touched press states use shared base tokens
+4. Reduced-motion behavior exists in base contract and is honored
+5. `cross_card_interaction_vocabulary.md` reflects implemented contract
 
 ---
 
-## SPIKE-01: Footer Card Investigation
+## 2. CD3 — Shared Semantics Adoption (High-Level)
 
-### TRANCHE_ID
-SPIKE-01
+**Detailed planning occurs when CD2 closes.**
 
-### TITLE
-Test nav card as HA 2026.3 Sections footer card
+### Scope
 
-### STATUS
-PLANNED
+- Add `role="button"` + `tabindex="0"` to click-only interactive elements
+- Add `keydown` handlers for Enter/Space via shared `bindButtonActivation()` helper
+- Fix light_tile role (button → slider with ARIA)
+- Audit cursor:pointer elements for role assignments
 
-### SOURCE_ITEMS
-- `FIX_LEDGER.md: FL-011, FL-027`
-- Agent 2: A10, G1
-- Agent 4: A4
+### Priority Order
 
-### GOAL
-Determine whether `tunet-nav-card` can be deployed as a native Sections footer card, eliminating global offset injection.
+1. tunet_media_card.js (14 handlers, 0 focus-visible → highest debt)
+2. tunet_sonos_card.js (10 handlers)
+3. tunet_climate_card.js (6 handlers, gold standard — careful)
+4. tunet_weather_card.js (5 handlers)
+5. tunet_rooms_card.js (4 handlers)
+6. tunet_lighting_card.js (3 handlers — existing role/tabindex on some)
+7. tunet_speaker_grid_card.js (3 handlers — existing slider semantics)
+8. Remaining low-debt cards
 
-### WHY_NOW
-This is a one-hour investigation that could save 10+ hours of offset debugging in NAV-01. The answer fundamentally changes the nav architecture approach. HA 2026.3.0b1 is already running.
+### Base Work
 
-### USER_VISIBLE_OUTCOME
-No user-visible outcome. Internal architectural decision recorded.
+- Add `bindButtonActivation(el, handler, options)` to tunet_base.js
+- Optionally add `applyButtonSemantics(el, { label, tabindex })` if needed by 2+ files
 
-### FILES_ALLOWED
-- None committed. Test in HA UI only.
+### Acceptance (from plan)
 
-### FILES_FORBIDDEN_UNLESS_BLOCKED
-- All JS files
-- All YAML config files
-
-### CURRENT_STATE
-Nav card uses `position: fixed` + `ensureGlobalOffsetsStyle()` + `document.documentElement.style.setProperty()` for mobile bottom dock. This injects global side effects (FL-011).
-
-### INTENDED_STATE
-Decision recorded: either "footer card viable for mobile" or "footer card not viable, keep position: fixed."
-
-### EXACT_CHANGE_IN_ENGLISH
-- In HA UI (not in code), attempt to place `tunet-nav-card` as a Sections footer card
-- Observe: Does the card render at the bottom? Does it remain sticky during scroll? Does it affect other dashboards?
-- If footer card works for mobile dock: record this as the preferred approach for NAV-01 mobile mode
-- If footer card does not work (e.g., does not support fixed positioning, or does not render correctly): record why and proceed with route-scoped `position: fixed` approach
-
-### ARCHITECTURAL_INTENTION
-Determine whether HA's native extension point can replace the fragile global offset injection pattern.
-
-### ACCEPTANCE_CRITERIA
-- Decision recorded with evidence
-- If viable: list what can be deleted from nav card (estimate: `ensureGlobalOffsetsStyle()`, `_applyOffsets()`, `__tunetNavCardCount`)
-- If not viable: list what approach NAV-01 will take instead (route-scoped offsets)
-
-### VALIDATION
-- Static: N/A (no code changes)
-- Runtime: observe footer card behavior in HA UI
-- HA/live: test on HA 2026.3.0b1
-
-### DEPLOY_IMPACT
-NONE
-
-### ROLLBACK
-Remove footer card placement in HA UI (one click).
-
-### DEPENDENCIES
-- HA 2026.3.0b1 running (confirmed HA.05)
-
-### UNKNOWNS
-- Does footer card support custom cards with `position: fixed`?
-- Does footer card support the desktop side-rail pattern?
-- Does footer card appear on all views or only the view where it is defined?
-- Can a footer card have `columns: 'full'` or does it use a different sizing model?
-
-### STOP_CONDITIONS
-- If HA 2026.3 does not actually have footer card support (beta feature removed)
-- If footer card requires a fundamentally different card API than current `tunet-nav-card`
-
-### OUT_OF_SCOPE
-- Any code changes
-- Nav expansion to 7 items
-- Popup work
-- Config editor work
-
-### REVIEW_FOCUS
-- Was the test actually performed on the live HA instance?
-- Is the decision clearly documented with evidence?
-- Are the implications for NAV-01 spelled out?
+1. No touched file has click-only primary container without keyboard activation
+2. Native buttons remain native
+3. Existing slider semantics preserved (climate, lighting, speaker_grid)
+4. Lab verifies Enter/Space on every fixed element
 
 ---
 
-## POP-01: Living Room Popup POC
+## 3. CD4 — Shared Sizing & Sections Adoption (High-Level)
 
-### TRANCHE_ID
-POP-01
+**Detailed planning occurs when CD3 closes.**
 
-### TITLE
-Living Room hold-to-popup with tap-to-toggle (proven mechanism)
+### Scope
 
-### STATUS
-PLANNED
+- Fix grid-auto-rows in tunet_lighting_card.js (remove or Sections-aware)
+- Decide status_card grid-auto-rows (depends on G3S lock state)
+- Migrate legacy profile contract in 6 cards + base
+- Validate getGridOptions() intentionality per card
+- Document scenes_card Sections contract (scroll vs wrap)
+- Update sections_layout_matrix.md
 
-### SOURCE_ITEMS
-- `FIX_LEDGER.md: FL-030, FL-031, FL-032`
-- `popup-fix.md: Section 5 (POP-01)`
-- Agent 3: D1, D3
-- Agent 4: C4, G2
+### Files
 
-### GOAL
-Room tile tap toggles all room lights. Room tile hold (>=400ms) opens a Browser Mod popup showing the room's lighting controls.
+tunet_base.js, tunet_light_tile.js, tunet_lighting_card.js, tunet_rooms_card.js, tunet_sensor_card.js, tunet_speaker_grid_card.js, tunet_scenes_card.js
 
-### WHY_NOW
-This is the minimum viable deliverable that produces user-visible progress and validates the locked interaction model (tap=toggle, hold=popup). Uses the proven `call-service browser_mod.popup` mechanism already deployed in the storage config.
+Verify-only: tunet_climate_card.js, tunet_nav_card.js  
+Excluded: tunet_status_card.js (unless G3S lifts)
 
-### USER_VISIBLE_OUTCOME
-- Tapping a Living Room tile toggles all Living Room lights on/off
-- Holding a Living Room tile for 400ms opens a Browser Mod popup with lighting controls
-- Popup contains "All Off" button, "Open Room" navigation, and a compact `tunet-lighting-card`
+### Key Decisions Required at CD4 Start
 
-### FILES_ALLOWED
-- `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
-- `Dashboard/Tunet/tunet-suite-storage-config.yaml`
-
-### FILES_FORBIDDEN_UNLESS_BLOCKED
-- `tunet_base.js` (shared adapter is desirable but not required for POC)
-- `tunet_nav_card.js`
-- `tunet-suite-config.yaml` (YAML surface update deferred to after storage validation)
-- All other card JS files
-
-### CURRENT_STATE
-- `tunet_rooms_card.js`:
-  - `setConfig` (L329-352): does NOT read `hold_action`
-  - `onPointerDown` timer (L450-456): hardcoded to `_toggleRoomGroup()`
-  - `onPointerUp` (L459-474): tap defaults to navigate/tap_action
-  - `_handleTapAction` (L524-571): supports more-info, navigate, url, call-service. Does NOT support `fire-dom-event`.
-- `tunet-suite-storage-config.yaml`:
-  - Living Room (L170-246): has `navigate_path` (L173) and `tap_action: call-service browser_mod.popup` (L174-230)
-  - Popup uses `size: wide` (L179) -- should verify if `initial_style` is preferred
-
-### INTENDED_STATE
-- `tunet_rooms_card.js`:
-  - `setConfig` reads `hold_action` from room config
-  - `onPointerDown` timer checks `hold_action` before falling back to toggle
-  - `onPointerUp` defaults to `_toggleRoomGroup()` (not navigate)
-  - `_handleTapAction` gains `fire-dom-event` support (6 lines)
-- `tunet-suite-storage-config.yaml`:
-  - Living Room: popup config moved from `tap_action` to `hold_action`
-  - `navigate_path` kept as fallback (not removed yet, per FL-037 decision)
-  - Tap defaults to toggle (no `tap_action` specified means toggle is default)
-
-### EXACT_CHANGE_IN_ENGLISH
-
-**tunet_rooms_card.js:**
-1. In `setConfig` (after L340): Add `hold_action: room.hold_action || null,` to the room mapping
-2. In pressTimer callback (L450-456): Replace `this._toggleRoomGroup(roomCfg)` with a conditional: if `roomCfg.hold_action` exists, call `this._handleTapAction(roomCfg.hold_action, roomCfg)`, else call `this._toggleRoomGroup(roomCfg)`
-3. In `onPointerUp` (L459-474): Replace the tap handler body: if `roomCfg.tap_action`, call `this._handleTapAction(roomCfg.tap_action, roomCfg)`, else call `this._toggleRoomGroup(roomCfg)`. Remove `navigate_path` and `hass-more-info` fallback from tap path.
-4. After `call-service` case in `_handleTapAction` (after L561): Add `fire-dom-event` case that dispatches `new CustomEvent('ll-custom', { bubbles: true, composed: true, detail: tapAction })`
-
-**tunet-suite-storage-config.yaml (Living Room on overview, L170-246):**
-1. Move the entire `tap_action:` block (L174-230) to `hold_action:` (same content, different key)
-2. Do NOT remove `navigate_path` yet (keep as fallback until FL-037 decision is made)
-3. The absence of `tap_action` means tap defaults to toggle (new behavior from JS change)
-
-### ARCHITECTURAL_INTENTION
-Validate the room-popup interaction pattern (tap=toggle, hold=popup) using the proven `call-service browser_mod.popup` mechanism before scaling to other rooms. This is the foundation for POP-02.
-
-### ACCEPTANCE_CRITERIA
-- [ ] Tapping Living Room tile toggles all Living Room lights (on->off, off->on)
-- [ ] Holding Living Room tile for >=400ms opens a Browser Mod popup
-- [ ] Popup contains exactly one `tunet-lighting-card` with 5 Living Room zones
-- [ ] Popup has "All Off" button that turns off all Living Room lights
-- [ ] Popup has "Open Room" button that navigates to Living Room subview
-- [ ] Short tap on other rooms still works as before (tap_action or navigate)
-- [ ] No regression on Kitchen/Dining/Bedroom rooms (their behavior unchanged)
-- [ ] Keyboard Enter/Space on Living Room tile triggers toggle (tap behavior)
-
-### VALIDATION
-- **Static:** `hold_action: room.hold_action || null` present in setConfig mapping
-- **Static:** pressTimer callback contains `hold_action` conditional
-- **Static:** `fire-dom-event` case exists in `_handleTapAction`
-- **Runtime:** No JS errors in console on page load or interaction
-- **HA/live:** Tap Living Room tile -> lights toggle. Hold -> popup opens. Popup controls work.
-
-### DEPLOY_IMPACT
-HA RESOURCE UPDATE:
-- Copy updated `tunet_rooms_card.js` to `/config/www/tunet/v2_next/`
-- Bump `?v=` on rooms card resource in Lovelace Resources
-- Update storage config YAML (through HA UI or raw editor)
-- Hard refresh with cache disabled
-
-### ROLLBACK
-- Revert `tunet_rooms_card.js` to pre-change version
-- Revert storage config: move `hold_action` back to `tap_action`
-- Bump `?v=` and hard refresh
-
-### DEPENDENCIES
-- Browser Mod v2.8.x installed and working (confirmed: storage config already uses `browser_mod.popup`)
-- Living Room light entities exist and are controllable
-- Rooms card resource is loaded and cache-bustable
-
-### UNKNOWNS
-- Does the `call-service` action in `_handleTapAction` correctly pass `service_data` with the full popup content to `browser_mod.popup`? (It should -- this is how the current tap_action works.)
-- Will `size: wide` continue to work in Browser Mod 2.8.2 or does it need `initial_style: wide`?
-
-### STOP_CONDITIONS
-- If `call-service browser_mod.popup` stops working (test current tap behavior first before changing)
-- If the rooms card JS changes break other rooms' behavior
-- If Browser Mod popup does not render inside the storage dashboard
-
-### OUT_OF_SCOPE
-- Kitchen/Dining/Bedroom popups (POP-02)
-- Nav expansion (NAV-01)
-- Shared `executeAction` adapter (FL-012 -- nice to have but not required)
-- `navigate_path` removal (FL-037 -- decision deferred)
-- Hold visual feedback (FL-033 -- enhancement)
-- Keyboard hold_action accessibility (FL-034 -- enhancement)
-- Config editor changes
-- YAML surface config update (port after storage validation)
-
-### REVIEW_FOCUS
-- Scope discipline: only rooms card JS and storage config changed
-- Interaction swap correctness: tap=toggle, hold=popup
-- No regression on rooms without hold_action configured
-- Popup mechanism uses proven `call-service`, not unverified `fire-dom-event`
-- Deployment step included (cache bust)
+1. Profile replacement architecture: auto-size helper vs per-card ResizeObserver
+2. scenes_card: wrap-only in Sections or document scroll as intentional
+3. lighting_card: fixed row height removal vs Sections-aware conditional
+4. getGridOptions rows/columns mapping for multi-item cards
 
 ---
 
-## POP-02: Popup Scale-Out
+## 4. CD5-CD11 — Bespoke Passes (High-Level)
 
-### TRANCHE_ID
-POP-02
+Each bespoke pass activates only after all shared passes (CD2-CD4) are closed. Detailed planning happens at tranche activation.
 
-### TITLE
-Apply hold-to-popup pattern to Kitchen, Dining, Bedroom
+### CD5 — Utility Strip (actions + scenes)
 
-### STATUS
-PLANNED (blocked on POP-01 completion)
+- getGridOptions variant/compact awareness
+- Scene/action chip semantic decisions
+- Scenes wrap mode decision for Sections
+- Actions YAML-first policy preservation
 
-### SOURCE_ITEMS
-- `popup-fix.md: Section 7 (POP-02)`
-- `FIX_LEDGER.md: FL-030, FL-032` (prerequisite code already done in POP-01)
+### CD6 — Lighting (light_tile + lighting_card)
 
-### GOAL
-All four rooms have working hold-to-popup behavior with room-specific lighting controls.
+- Hold-to-drag migration: 500ms → 400ms + haptic feedback
+- Info tile keyboard completion
+- Fixed-row / clipping / scroll contract stabilization
+- KI-001 drag guard preservation
+- surface: tile CSS contract definition
 
-### WHY_NOW
-POP-01 validates the pattern. POP-02 applies it uniformly. This is mechanical work using a proven template.
+### CD7 — Rooms (rooms_card)
 
-### USER_VISIBLE_OUTCOME
-- Hold on any room tile (Living, Kitchen, Dining, Bedroom) opens a room-specific lighting popup
-- Each popup shows the correct lights for that room
-- Tap on any room tile toggles that room's lights
+- Tile variant → navigation-tile contract alignment (tap=navigate)
+- stopPropagation row control hardening
+- Row/tile breakpoint validation
+- light_entities → lights[] synthesis improvement
 
-### FILES_ALLOWED
-- `Dashboard/Tunet/tunet-suite-storage-config.yaml`
+### CD8 — Environment (climate + sensor + weather)
 
-### FILES_FORBIDDEN_UNLESS_BLOCKED
-- All JS files (no code changes needed -- POP-01 already added the capability)
-- `tunet-suite-config.yaml` (YAML surface deferred)
+- Climate header keyboard (preserve gold standard)
+- Sensor row-level polish
+- Weather header interactive decision
+- Weather forecast tile fake-interactive cleanup
 
-### CURRENT_STATE
-After POP-01:
-- Living Room has `hold_action` with popup
-- Kitchen (L248-310): has `tap_action: call-service browser_mod.popup`
-- Dining (L315): has `navigate_path` only
-- Bedroom (L326): has `navigate_path` only
+### CD9 — Media (media + sonos + speaker_grid)
 
-### INTENDED_STATE
-All four rooms have `hold_action` with `call-service browser_mod.popup` containing room-appropriate lighting card zones. Kitchen popup already exists as `tap_action` -- move to `hold_action`. Dining and Bedroom need new popup definitions.
+- Hold-to-drag 400ms + haptic across all speaker tiles
+- Speaker tile unification contract (tap=select, hold-drag=volume, icon=more-info, badge=group)
+- Album art interaction decision
+- Volume track slider semantics decision
+- Volume view/overlay 5s auto-exit lifecycle
+- --spring CSS variable resolution
 
-### EXACT_CHANGE_IN_ENGLISH
-1. **Kitchen (overview):** Move existing `tap_action` popup block to `hold_action`. Remove `tap_action` so tap defaults to toggle.
-2. **Dining (overview):** Add `hold_action` with `call-service browser_mod.popup` containing a `tunet-lighting-card` with dining zones (spots, columns).
-3. **Bedroom (overview):** Add `hold_action` with `call-service browser_mod.popup` containing a `tunet-lighting-card` with bedroom zones (main, accent, table lamps).
-4. **Rooms view:** Apply same pattern to room entries on the Rooms view if they exist.
+### CD10 — Navigation Verify (nav_card)
 
-### ACCEPTANCE_CRITERIA
-- [ ] Hold on Kitchen tile opens Kitchen popup with pendants/main/under-cab
-- [ ] Hold on Dining tile opens Dining popup with spots/columns
-- [ ] Hold on Bedroom tile opens Bedroom popup with main/accent/table lamps
-- [ ] Tap on all rooms toggles lights
-- [ ] Each popup has "All Off" and "Open Room" buttons
+- Active-route accuracy
+- Browser back/forward
+- Safe-area/footer placement
+- Global style leakage
+- Bare object editor items
 
-### VALIDATION
-- **Static:** Each room in storage config has `hold_action` with popup definition
-- **HA/live:** Hold each room tile; confirm popup opens with correct room lights
-- **HA/live:** Tap each room tile; confirm lights toggle
+### CD11 — Status Decision Gate
 
-### DEPLOY_IMPACT
-HA DASHBOARD UPDATE (storage config changes only, no JS changes)
-
-### ROLLBACK
-Revert storage config changes in HA raw editor.
-
-### DEPENDENCIES
-- POP-01 completed and validated
-- Room light entities exist for all rooms
-
-### OUT_OF_SCOPE
-- YAML surface update
-- Nav changes
-- Popup styling polish
-- Additional popup content (temperature, media)
+- G3S lock preserve or lift
+- If lifted: separate implementation plan before code
+- All deferred interaction/semantics/sizing work applies if unlocked
 
 ---
 
-## NAV-01: Nav Architecture Decision + Implementation
+## 5. CD12 — Surface Assembly (High-Level)
 
-### TRANCHE_ID
-NAV-01
+Sequential surface composition, each gated on prior surface sign-off:
 
-### TITLE
-Nav card architecture improvement based on footer card investigation
+1. Living Room reference surface
+2. Living Room popup
+3. Overview
+4. Media
+5. Remaining room pages
 
-### STATUS
-PLANNED (blocked on SPIKE-01 and POP-01)
-
-### SOURCE_ITEMS
-- `FIX_LEDGER.md: FL-011, FL-027, FL-029, FL-035, FL-038`
-- Agent 2: A10, G1
-- Agent 4: A2, A4
-
-### GOAL
-Resolve the nav card's global DOM pollution (FL-011) and establish a sustainable nav architecture for the Tunet dashboard.
-
-### WHY_NOW
-The popup POC (POP-01/POP-02) can ship without nav changes. NAV-01 addresses the most significant architectural defect in the codebase (global offset injection) and is informed by SPIKE-01 results.
-
-### USER_VISIBLE_OUTCOME
-- Nav card works without affecting other dashboards
-- Mobile bottom dock uses native or properly scoped positioning
-- Desktop side-rail behavior preserved
-- Active state highlighting works for all routes including subviews
-
-### FILES_ALLOWED
-- `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
-- `Dashboard/Tunet/tunet-suite-storage-config.yaml`
-- `Dashboard/Tunet/tunet-suite-config.yaml`
-
-### SCOPE DEPENDS ON SPIKE-01 RESULT
-
-**If SPIKE-01 succeeds (footer card viable for mobile):**
-- Remove `position: fixed` for mobile mode
-- Remove `ensureGlobalOffsetsStyle()` function
-- Remove `_applyOffsets()` method
-- Remove `window.__tunetNavCardCount` reference counting
-- Remove global CSS variable injection from `connectedCallback`/`disconnectedCallback`
-- Keep `position: fixed` for desktop side-rail mode only (if footer card does not support side-rail)
-- Resolve FL-038 (nav duplication) if footer card is declared once per dashboard
-
-**If SPIKE-01 fails (footer card not viable):**
-- Add route-awareness to offset application (only apply when path starts with Tunet dashboard path)
-- Scope the injected `<style>` to Tunet-specific selectors
-- Keep existing architecture but reduce blast radius
-- Do NOT expand to 7 items (keep 3-4 until scoping is solved)
-
-### NAV ITEM COUNT DECISION
-
-This tranche does NOT expand to 7 destinations by default. Expansion is gated on:
-1. SPIKE-01 result (footer card may change the layout model entirely)
-2. Validated touch target compliance at 320px for the expanded item count
-3. Explicit user decision on whether per-room nav items are needed when popups provide room access
-
-If expansion is approved, the card must support:
-- Configurable `items: [{label, icon, path}]` array
-- Dynamic CSS grid (`repeat(var(--nav-items, N), ...)`)
-- Mobile overflow handling (icons-only condensed mode or horizontal scroll)
-- `getConfigForm()` update (if feasible for arrays)
-
-### ACCEPTANCE_CRITERIA
-- [ ] Opening a non-Tunet dashboard after loading Tunet shows no extra spacing
-- [ ] Mobile bottom dock renders correctly on smallest supported viewport
-- [ ] Desktop side-rail renders correctly
-- [ ] Active state highlighting updates on navigation and browser back/forward
-- [ ] Subview pages show correct active state (e.g., Living Room subview highlights correct parent)
-
-### DEPLOY_IMPACT
-HA RESOURCE UPDATE (JS + cache bust)
-
-### ROLLBACK
-Revert `tunet_nav_card.js` to pre-change version. Bump `?v=` and hard refresh.
-
-### OUT_OF_SCOPE
-- Popup changes
-- Live-state affordances on nav (now-playing indicator, per-destination state hints) -- future tranche
-- Mini-player in nav
-- Config editor improvements
+Per-surface deliverables: live baseline, architecture baseline, target design, target card set, delta documentation.
 
 ---
 
-## Future Backlog (Not Scheduled)
+## 6. Evidence Required Per Tranche Close
 
-These items are tracked in the master ledger but not scheduled into the current 4-tranche plan.
+Every tranche close requires:
 
-| ID | Title | Priority | Notes |
-|---|---|---|---|
-| FL-012 | Shared `executeAction` adapter | Medium | Desirable infrastructure, not blocking |
-| FL-015 | AL scan performance | Medium | Optimization, not user-visible |
-| FL-033 | Hold feedback animation | Medium | UX polish for POP-01 interaction |
-| FL-034 | Keyboard hold_action | Medium | Accessibility |
-| FL-036 | Browser Mod `size` vs `initial_style` | Low | API hygiene |
-| FL-037 | `navigate_path` removal decision | Medium | Depends on nav reliability |
-| FL-039 | innerHTML sanitization | Low | Security hardening |
-| FL-040 | Lighting card fixed row height | Medium | Sections compliance |
-| FL-042 | Sensor card dead code | Low | Cleanup |
-| FL-043 | `columns: 'full'` verification | Low | May be moot with footer card |
-| FL-044 | `fireEvent` consolidation | Low | Code consistency |
-| FL-005 | Sensor `value_attribute` deploy | Medium | Needs HA verification |
-| FL-013/018 | Config editor work | Medium | YAML-first is acceptable |
-| FL-014 | Speaker cache invalidation | Medium | Performance |
-| FL-016/017 | Doc cleanup | Low | Non-blocking |
-| FL-020 | Storage AQI cleanup | Medium | Live HA task |
-| FL-041 | Light attribute deprecation audit | Low | Confirmed clean for lighting card |
+1. Exact changed file list
+2. Exact validation commands run
+3. Breakpoint screenshots at 390x844, 768x1024, 1024x1366, 1440x900
+4. Live HA checks performed
+5. Remaining open risks documented
+
+Minimum validation set:
+- `node --check <each changed JS file>`
+- YAML parse-check for changed YAML
+- `npm run tunet:build` if build outputs affected
+- Playwright screenshots at all 4 locked breakpoints
+
+---
+
+## 7. Stop Rules
+
+1. Shared passes do not solve bespoke behavior
+2. Bespoke passes do not reopen shared pattern design
+3. tunet_base.js may change only in CD1, CD2, CD3, and later when explicitly listed
+4. No card file enters a tranche unless named in that tranche
+5. No surface YAML outside rehab lab is active before CD11
+6. CD2/CD3 boundary is hard: CD2 = CSS, CD3 = JS keyboard/semantics
+7. Status card excluded from all shared passes unless G3S lock explicitly lifted

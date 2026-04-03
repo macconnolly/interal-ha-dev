@@ -4,11 +4,15 @@
 
 ---
 
-## CURRENT WORK: Tunet Dashboard — Surface-Driven Reset
+## CURRENT WORK: Tunet Dashboard — Card Rehabilitation Reset
 
-**Active plan**: `.claude/plans/ethereal-zooming-cherny.md` — surface-driven reset with governance-aligned tranches.
+**Active plan**: `.claude/plans/ethereal-zooming-cherny.md` — card-first rehabilitation program with exact card-family tranches, then later surface assembly.
 
-**End state**: A finished, functional home-wide dashboard — every room controllable, navigation between views, conditional features, responsive at 4 locked breakpoints.
+**Execution authority for Tunet scope**: `Dashboard/Tunet/AGENTS.md`
+
+**Current priority**: rehabilitate the Tunet v3 card suite first; resume full surface assembly only after the card families are stable.
+
+**End state**: A finished, functional home-wide dashboard remains the product goal, but it is downstream of the current card-rehabilitation sequence.
 
 ### Key Files
 
@@ -18,15 +22,23 @@
 | **Visual spec** | `Dashboard/Tunet/tunet-design-system.md` (v8.3) | Interaction choreography §6, animation timing §11 — still valid for visual reference |
 | **Gold standard** | `Dashboard/Tunet/Cards/v3/tunet_climate_card.js` | Measured visual baseline for all cards |
 | **Implementation authority** | `Dashboard/Tunet/Cards/v3/` | v3 is sole authority (promoted Mar 14, 2026) |
-| **Execution contract** | `Dashboard/Tunet/AGENTS.md` | Surface queue, scope locks, active constraints |
+| **Execution contract** | `Dashboard/Tunet/AGENTS.md` | Active governance contract for Tunet work |
 | **Active plan** | `.claude/plans/ethereal-zooming-cherny.md` | Tranche-based execution plan |
 
 ### Execution Model
 
-**Surface-driven, not card-by-card.** Cards are fixed in context of the surface they serve:
-- Surface order: Living Room page → Living Room popup → Overview → Media → remaining rooms
-- Card work happens only in service of active surfaces, not as front-loaded redesign
-- A card may be touched in multiple surface tranches — normal refinement, not plan drift
+**Card-first, then surface assembly.** Current execution order:
+- foundation
+- build/lab
+- card families
+- surfaces
+
+When surface work resumes, the retained surface assembly order is:
+- Living Room page
+- Living Room popup
+- Overview
+- Media
+- remaining rooms
 
 **Governance**: Existing scope locks respected by default. Changes require explicit rationale + doc sync + user approval. See plan file for lock table.
 
@@ -43,6 +55,8 @@ Control documents:
 
 ### Architectural Rules
 
+- For Tunet work, root guidance defers to `Dashboard/Tunet/AGENTS.md`
+- Do not create or use additional Tunet worktrees unless explicitly requested
 - Real Home Assistant Sections dashboard — no layout hacks
 - Do not force vertical sizing unless required; prefer intrinsic height
 - Persistent nav is dashboard chrome, not content

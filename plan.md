@@ -2,8 +2,57 @@
 
 Working branch: `main`
 Last updated: 2026-04-02
-Active plan: `.claude/plans/ethereal-zooming-cherny.md`
-Current tranche: **Tranche 1 — Surface 1: Living Room Page**
+Active plan: `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` (method-level authority)
+Active plan (high-level): `~/.claude/plans/ethereal-zooming-cherny.md` (program-level framing)
+Approved execution plan: `~/.claude/plans/flickering-herding-wolf.md` (approved with audit data)
+Current tranche: documentation alignment (pre-CD0)
+Next implementation tranche: **CD0 — Build Architecture And Rehab Lab**
+
+## Session Delta (2026-04-02, Consistency-Driver Reset)
+
+Tranche marker: pre-CD0 (documentation alignment)
+
+- `PROGRAM-RESET`
+  - Current user priority clarified: every Tunet card needs direct rehabilitation; whole-house surface assembly is downstream, not the active driver
+  - Surface-first execution order is superseded
+  - Card-family-bucket execution order (CR0-CR10) is ALSO superseded
+  - Active execution order is **consistency-driver pass order (CD0-CD12)**:
+    1. `CD0` — Build Architecture And Rehab Lab
+    2. `CD1` — Configuration Clarity And Editor Policy (tiered: editor-complete / editor-lite / yaml-first)
+    3. `CD2` — Shared Interaction Adoption (all 13 files, one pass)
+    4. `CD3` — Shared Semantics Adoption (6 files with gaps)
+    5. `CD4` — Shared Sizing And Sections Adoption (6+ files)
+    6. `CD5` — Utility Strip Bespoke Pass
+    7. `CD6` — Lighting Bespoke Pass
+    8. `CD7` — Rooms Bespoke Pass
+    9. `CD8` — Environment Bespoke Pass
+    10. `CD9` — Media Bespoke Pass
+    11. `CD10` — Navigation Verify Pass
+    12. `CD11` — Status Decision Gate
+    13. `CD12` — Surface Assembly
+  - Rule: shared passes (CD1-CD4) close one consistency dimension across an explicit file list. Bespoke passes (CD5-CD11) solve only the file-specific behavior remaining after shared passes close.
+- `CONFIGURATION SUPPORT POLICY`
+  - Three tiers replace the old "verify getConfigForm" approach:
+    - `editor-complete`: nav, scenes, light_tile, weather, sensor — editor round-trips; stub renders cleanly
+    - `editor-lite`: lighting, rooms, climate, media, sonos, speaker_grid — editor covers 80%; advanced keys YAML-only
+    - `yaml-first`: actions, status — runtime is richer than any visual editor should chase
+- `BEST-OF-OLD-PLAN RETAINED`
+  - Three-surface leadership model remains active (`tunet-suite-storage` UX, `tunet-suite-config.yaml` architecture)
+  - Climate remains the measured visual baseline
+  - Sections reasoning remains page → section → card when surface work resumes
+  - Browser Mod popup direction, locked breakpoints, and no-destructive-cleanup discipline are preserved
+  - Surface assembly order when it resumes: Living Room → popup → overview → media → remaining rooms
+- `ACTIVE NEXT TRANCHE`
+  - Current work = documentation alignment to consistency-driver order (pre-CD0)
+  - CD0 = Build Architecture And Rehab Lab (next implementation tranche)
+  - Living Room page is not the next implementation tranche; it resumes in CD12
+- `SURFACE-DOC STATUS`
+  - `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` is draft reference only until surface assembly resumes in CD12
+- `PLAN-DOC HIERARCHY`
+  - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` = method-level authority (line-anchored, per-card, per-pass)
+  - `~/.claude/plans/ethereal-zooming-cherny.md` = program-level framing (retained for high-level direction)
+  - `~/.claude/plans/flickering-herding-wolf.md` = approved execution plan with audit data
+  - `Dashboard/Tunet/Docs/plans/surface_driven_reset.md` = references card-rehab-first framing (partially superseded by consistency-driver)
 
 ## Session Delta (2026-04-02, Surface-Driven Reset)
 

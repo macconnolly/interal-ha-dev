@@ -1,146 +1,119 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
+/**
+ * Profile Resolver Tests — migrated to vitest ESM
+ *
+ * Tests the profile resolution system in tunet_base.js:
+ * - selectProfileSize() maps presets + layout + width to family/size
+ * - resolveSizeProfile() produces complete CSS token profiles
+ * - Profile shapes are family-specific (no key leakage)
+ * - Idempotent, non-mutating, fallback-safe
+ */
 
-function loadProfileExports() {
-  const basePath = path.join(__dirname, '..', 'tunet_base.js');
-  const source = fs.readFileSync(basePath, 'utf8');
-  const transformed = source.replace(/\bexport\s+/g, '');
+import { describe, it, expect, vi } from 'vitest';
+import {
+  FAMILY_KEYS,
+  SIZE_KEYS,
+  PROFILE_BASE,
+  SIZE_PROFILES,
+  PRESET_FAMILY_MAP,
+  autoSizeFromWidth,
+  bucketFromWidth,
+  selectProfileSize,
+  resolveSizeProfile,
+  _setProfileVars,
+  TOKEN_MAP,
+} from '../tunet_base.js';
 
-  const warnings = [];
-  const sandbox = {
-    module: { exports: {} },
-    console: {
-      warn: (msg) => warnings.push(String(msg)),
-      info: () => {},
-      log: () => {},
-      error: () => {},
-    },
-    getComputedStyle: () => ({ getPropertyValue: () => '' }),
-    window: {},
-    document: {},
-    customElements: {
-      get: () => undefined,
-      define: () => {},
-    },
-  };
-
-  const exportNames = [
-    'FAMILY_KEYS',
-    'SIZE_KEYS',
-    'PROFILE_BASE',
-    'SIZE_PROFILES',
-    'PRESET_FAMILY_MAP',
-    'autoSizeFromWidth',
-    'bucketFromWidth',
-    'selectProfileSize',
-    'resolveSizeProfile',
-    '_setProfileVars',
-    'TOKEN_MAP',
-  ];
-
-  const wrapped = `${transformed}
-module.exports = { ${exportNames.join(', ')} };
-`;
-
-  vm.runInNewContext(wrapped, sandbox, { filename: basePath });
-  return { api: sandbox.module.exports, warnings };
-}
-
-test('valid family/size pairs return complete profiles with no undefined values', () => {
-  const { api } = loadProfileExports();
-  for (const family of api.FAMILY_KEYS) {
-    for (const size of api.SIZE_KEYS) {
-      const profile = api.resolveSizeProfile({ family, size });
-      for (const [key, value] of Object.entries(profile)) {
-        assert.notEqual(value, undefined, `${family}/${size} -> ${key} should be defined`);
-      }
-      for (const baseKey of Object.keys(api.PROFILE_BASE[size])) {
-        assert.ok(baseKey in profile, `${family}/${size} should include base key ${baseKey}`);
+describe('profile resolver', () => {
+  it('valid family/size pairs return complete profiles with no undefined values', () => {
+    for (const family of FAMILY_KEYS) {
+      for (const size of SIZE_KEYS) {
+        const profile = resolveSizeProfile({ family, size });
+        for (const [key, value] of Object.entries(profile)) {
+          expect(value, `${family}/${size} -> ${key} should be defined`).not.toBeUndefined();
+        }
+        for (const baseKey of Object.keys(PROFILE_BASE[size])) {
+          expect(profile).toHaveProperty(baseKey);
+        }
       }
     }
-  }
-});
+  });
 
-test('unknown family falls back to tile-grid standard with warning', () => {
-  const { api, warnings } = loadProfileExports();
-  const fallback = api.resolveSizeProfile({ family: 'unknown-family', size: 'standard' });
-  assert.deepEqual(fallback, api.SIZE_PROFILES['tile-grid'].standard);
-  assert.ok(warnings.some((w) => w.includes('Unknown family')));
-});
+  it('unknown family falls back to tile-grid standard with warning', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fallback = resolveSizeProfile({ family: 'unknown-family', size: 'standard' });
+    expect(fallback).toEqual(SIZE_PROFILES['tile-grid'].standard);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown family'));
+    warnSpy.mockRestore();
+  });
 
-test('unknown size falls back to family standard with warning', () => {
-  const { api, warnings } = loadProfileExports();
-  const fallback = api.resolveSizeProfile({ family: 'speaker-tile', size: 'slim' });
-  assert.deepEqual(fallback, api.SIZE_PROFILES['speaker-tile'].standard);
-  assert.ok(warnings.some((w) => w.includes('Unknown size')));
-});
+  it('unknown size falls back to family standard with warning', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fallback = resolveSizeProfile({ family: 'speaker-tile', size: 'slim' });
+    expect(fallback).toEqual(SIZE_PROFILES['speaker-tile'].standard);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown size'));
+    warnSpy.mockRestore();
+  });
 
-test('output shape is family-specific and does not leak extension keys', () => {
-  const { api } = loadProfileExports();
+  it('output shape is family-specific and does not leak extension keys', () => {
+    const tileGrid = resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
+    expect(tileGrid).not.toHaveProperty('orbSize');
+    expect(tileGrid).not.toHaveProperty('alarmBtnH');
+    expect(tileGrid).not.toHaveProperty('sparklineH');
 
-  const tileGrid = api.resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
-  assert.ok(!('orbSize' in tileGrid));
-  assert.ok(!('alarmBtnH' in tileGrid));
-  assert.ok(!('sparklineH' in tileGrid));
+    const roomsRow = resolveSizeProfile({ family: 'rooms-row', size: 'standard' });
+    expect(roomsRow).toHaveProperty('orbSize');
+    expect(roomsRow).toHaveProperty('toggleSize');
+    expect(roomsRow).toHaveProperty('chevronSize');
+    expect(roomsRow).not.toHaveProperty('alarmBtnH');
+    expect(roomsRow).not.toHaveProperty('sparklineH');
 
-  const roomsRow = api.resolveSizeProfile({ family: 'rooms-row', size: 'standard' });
-  assert.ok('orbSize' in roomsRow);
-  assert.ok('toggleSize' in roomsRow);
-  assert.ok('chevronSize' in roomsRow);
-  assert.ok(!('alarmBtnH' in roomsRow));
-  assert.ok(!('sparklineH' in roomsRow));
+    const indicatorTile = resolveSizeProfile({ family: 'indicator-tile', size: 'standard' });
+    expect(indicatorTile).toHaveProperty('timerFont');
+    expect(indicatorTile).toHaveProperty('alarmBtnH');
+    expect(indicatorTile).not.toHaveProperty('sparklineH');
 
-  const indicatorTile = api.resolveSizeProfile({ family: 'indicator-tile', size: 'standard' });
-  assert.ok('timerFont' in indicatorTile);
-  assert.ok('alarmBtnH' in indicatorTile);
-  assert.ok(!('sparklineH' in indicatorTile));
+    const indicatorRow = resolveSizeProfile({ family: 'indicator-row', size: 'standard' });
+    expect(indicatorRow).toHaveProperty('sparklineH');
+    expect(indicatorRow).toHaveProperty('trendGlyph');
+    expect(indicatorRow).not.toHaveProperty('alarmBtnH');
+  });
 
-  const indicatorRow = api.resolveSizeProfile({ family: 'indicator-row', size: 'standard' });
-  assert.ok('sparklineH' in indicatorRow);
-  assert.ok('trendGlyph' in indicatorRow);
-  assert.ok(!('alarmBtnH' in indicatorRow));
-});
+  it('PROFILE_BASE inheritance keeps shared typography/icon keys aligned', () => {
+    const tile = resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
+    const speaker = resolveSizeProfile({ family: 'speaker-tile', size: 'standard' });
 
-test('PROFILE_BASE inheritance keeps shared typography/icon keys aligned', () => {
-  const { api } = loadProfileExports();
-  const tile = api.resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
-  const speaker = api.resolveSizeProfile({ family: 'speaker-tile', size: 'standard' });
+    const sharedKeys = ['iconBox', 'iconGlyph', 'nameFont', 'valueFont'];
+    for (const key of sharedKeys) {
+      expect(tile[key], `shared key mismatch: ${key}`).toBe(speaker[key]);
+    }
+  });
 
-  const sharedKeys = ['iconBox', 'iconGlyph', 'nameFont', 'valueFont'];
-  for (const key of sharedKeys) {
-    assert.equal(tile[key], speaker[key], `shared key mismatch: ${key}`);
-  }
-});
+  it('resolveSizeProfile is idempotent and returns non-mutating copies', () => {
+    const first = resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
+    const second = resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
+    expect(first).toEqual(second);
 
-test('resolveSizeProfile is idempotent and returns non-mutating copies', () => {
-  const { api } = loadProfileExports();
-  const first = api.resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
-  const second = api.resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
-  assert.deepEqual(first, second);
+    first.tilePad = '99em';
+    const third = resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
+    expect(third.tilePad).not.toBe('99em');
+  });
 
-  first.tilePad = '99em';
-  const third = api.resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
-  assert.notEqual(third.tilePad, '99em');
-});
+  it('legacy widthHint parameter on resolver is ignored and warns once', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const withHint = resolveSizeProfile({ family: 'tile-grid', size: 'standard', widthHint: 500 });
+    const withoutHint = resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
+    expect(withHint).toEqual(withoutHint);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('resolveSizeProfile(widthHint) is deprecated'));
+    warnSpy.mockRestore();
+  });
 
-test('legacy widthHint parameter on resolver is ignored and warns once', () => {
-  const { api, warnings } = loadProfileExports();
-  const withHint = api.resolveSizeProfile({ family: 'tile-grid', size: 'standard', widthHint: 500 });
-  const withoutHint = api.resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
-  assert.deepEqual(withHint, withoutHint);
-  assert.ok(warnings.some((w) => w.includes('resolveSizeProfile(widthHint) is deprecated')));
-});
+  it('selectProfileSize maps rooms row layout and respects explicit userSize', () => {
+    const rowResult = selectProfileSize({ preset: 'rooms', layout: 'row', widthHint: 400 });
+    expect(rowResult.family).toBe('rooms-row');
+    expect(rowResult.size).toBe('compact');
 
-test('selectProfileSize maps rooms row layout and respects explicit userSize', () => {
-  const { api } = loadProfileExports();
-  const rowResult = api.selectProfileSize({ preset: 'rooms', layout: 'row', widthHint: 400 });
-  assert.equal(rowResult.family, 'rooms-row');
-  assert.equal(rowResult.size, 'compact');
-
-  const gridResult = api.selectProfileSize({ preset: 'rooms', layout: 'grid', widthHint: 400, userSize: 'large' });
-  assert.equal(gridResult.family, 'tile-grid');
-  assert.equal(gridResult.size, 'large');
+    const gridResult = selectProfileSize({ preset: 'rooms', layout: 'grid', widthHint: 400, userSize: 'large' });
+    expect(gridResult.family).toBe('tile-grid');
+    expect(gridResult.size).toBe('large');
+  });
 });

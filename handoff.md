@@ -4,24 +4,69 @@ Last updated: 2026-04-02 (America/Denver)
 Intended reader: next Claude Code session  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
-Active plan: `Dashboard/Tunet/Docs/plans/surface_driven_reset.md` (also at `~/.claude/plans/ethereal-zooming-cherny.md`)
-Current tranche: **Tranche 1 — Surface 1: Living Room Page** (Tranche 0 completed Apr 2, 2026)
+Active plan (method-level): `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
+Active plan (high-level): `~/.claude/plans/ethereal-zooming-cherny.md`
+Approved execution plan: `~/.claude/plans/flickering-herding-wolf.md`
+Current work: documentation alignment (pre-CD0, Apr 2, 2026)
+Next implementation tranche: **CD0 — Build Architecture And Rehab Lab**
 
 Source filter for this run:
-- use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and active plan file as control sources
-- use `Dashboard/Tunet/Docs/sections_layout_matrix.md` as provisional (requires validation via Sections research in Tranche 1)
+- use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and active plan files as control sources
+- use `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` as the method-level authority (line-anchored, per-card, per-pass)
 - use `Dashboard/Tunet/Docs/cross_card_interaction_vocabulary.md` as the binding interaction contract
+- use `Dashboard/Tunet/Docs/sections_layout_matrix.md` as provisional (requires validation when surface assembly resumes in CD12)
 - agent review artifacts in `Dashboard/Tunet/Agent-Reviews/` are reference, not primary planning input
 
-## Tranche 1 Entry Checklist
+## Consistency-Driver Entry Checklist
 
-Before starting Tranche 1 implementation:
-1. Read the active plan file — Tranche 1 section (lines 191-233)
-2. Read `Dashboard/Tunet/Docs/cross_card_interaction_vocabulary.md` — the interaction contract
-3. Read `Dashboard/Tunet/AGENTS.md` — execution contract, especially §7 (Sections research requirement)
-4. Screenshot `tunet-suite-storage` via Playwright — capture current Living Room state as baseline
-5. Query HA for current Living Room page config on `tunet-suite-storage` — derive the card set from live config
-6. Do NOT add speculative cards or pre-fix cards outside this surface
+Before starting any implementation tranche:
+1. Read the method-level plan — `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
+2. Identify the current tranche and verify you are working on ONLY the files listed for that tranche
+3. Read `Dashboard/Tunet/Docs/cross_card_interaction_vocabulary.md` — the interaction contract (relevant from CD2 onward)
+4. Read `Dashboard/Tunet/AGENTS.md` — execution contract
+5. Use the card rehab lab as the primary validation surface during shared passes (CD1-CD4) and bespoke passes (CD5-CD11)
+6. Use `tunet-suite-storage` only for targeted live verification where real entities are needed
+7. Do NOT use `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` as an active execution driver before CD12
+8. Do NOT widen a tranche beyond the exact files listed in the plan
+9. Shared passes (CD1-CD4) do NOT solve bespoke behavior. Bespoke passes (CD5-CD11) do NOT reopen shared pattern design.
+10. Respect the configuration support policy: `editor-complete` / `editor-lite` / `yaml-first` tier per card (see plan §4)
+
+## Active Execution Order (CD0-CD12)
+
+| Phase | Tranche | Scope |
+|-------|---------|-------|
+| Infrastructure | CD0 | Build architecture + rehab lab — **next** |
+| | CD1 | Configuration clarity + editor policy |
+| Shared consistency | CD2 | Shared interaction adoption (all 13 files) |
+| | CD3 | Shared semantics adoption (6 files) |
+| | CD4 | Shared sizing + Sections adoption (6+ files) |
+| Bespoke | CD5 | Utility strip bespoke |
+| | CD6 | Lighting bespoke |
+| | CD7 | Rooms bespoke |
+| | CD8 | Environment bespoke |
+| | CD9 | Media bespoke |
+| | CD10 | Navigation verify |
+| | CD11 | Status gate |
+| Product | CD12 | Surface assembly |
+
+## 0ZI) Session Delta (2026-04-02, Consistency-Driver Reset)
+
+Program order changed twice in this session:
+
+1. **Surface-first order superseded** by card-rehabilitation-first order
+2. **Card-family-bucket order ALSO superseded** by consistency-driver pass order
+
+Key corrections:
+- **Old order** mixed shared pattern adoption with bespoke card behavior in the same tranche. That is the wrong execution unit.
+- **Consistency-driver order** separates them: close each shared dimension once across an explicit file list (CD1-CD4), then solve file-specific behavior remaining (CD5-CD11), then assemble surfaces (CD12).
+- **Configuration support policy** uses three tiers:
+  - `editor-complete`: nav, scenes, light_tile, weather, sensor
+  - `editor-lite`: lighting, rooms, climate, media, sonos, speaker_grid
+  - `yaml-first`: actions, status
+- **Best parts of the old plan are retained**: three-surface model, climate baseline, Browser Mod, locked breakpoints, no-destructive-cleanup, surface assembly order (Living Room → popup → overview → media → rooms)
+- **Surface docs are draft reference** during card rehab: `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` is not an active gate until CD12
+- **Next implementation tranche**: CD1 (Build Architecture And Rehab Lab)
+- **Living Room surface assembly**: deferred to CD12
 
 ## 0ZH) Session Delta (2026-04-02, Tranche 0 — Contract Reconciliation)
 

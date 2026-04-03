@@ -3,7 +3,42 @@
 Working branch: `main`
 Last updated: 2026-04-02
 Scope: `/home/mac/HA/implementation_10`
-Active plan: `.claude/plans/ethereal-zooming-cherny.md`
+Active plan (method-level): `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
+Active plan (high-level): `~/.claude/plans/ethereal-zooming-cherny.md`
+Approved execution plan: `~/.claude/plans/flickering-herding-wolf.md`
+
+## Session Delta (2026-04-02, Consistency-Driver Reset)
+
+Change marker: pre-CD0 (documentation alignment)
+
+- `PROGRAM-RESET`
+  - Surface-first execution order superseded
+  - Card-family-bucket order (CR0-CR10) ALSO superseded
+  - Active execution order is **consistency-driver pass order (CD0-CD12)**:
+    - CD0: Build architecture + rehab lab — **next implementation tranche**
+    - CD1: Configuration clarity + editor policy (tiered: editor-complete / editor-lite / yaml-first)
+    - CD2: Shared interaction adoption (all 13 files, one pass)
+    - CD3: Shared semantics adoption (6 files with gaps)
+    - CD4: Shared sizing + Sections adoption (6+ files)
+    - CD5-CD11: Bespoke card passes (utility strip, lighting, rooms, environment, media, nav verify, status gate)
+    - CD12: Surface assembly
+  - Rule: shared passes close one dimension across an explicit file list; bespoke passes solve only file-specific behavior remaining
+- `GOVERNANCE-KEEP`
+  - Three-surface leadership model remains active
+  - Climate baseline remains locked
+  - Browser Mod popup direction remains active
+  - Locked breakpoints remain unchanged
+  - No-destructive-cleanup discipline remains unchanged
+- `CONFIGURATION SUPPORT POLICY`
+  - `editor-complete`: nav, scenes, light_tile, weather, sensor
+  - `editor-lite`: lighting, rooms, climate, media, sonos, speaker_grid
+  - `yaml-first`: actions, status
+- `SURFACE-DOC STATUS`
+  - `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` is draft reference only until CD12 surface assembly
+- `NEXT TRANCHE`
+  - Current work = documentation alignment (pre-CD0)
+  - CD0 = Build architecture + rehab lab (next implementation tranche)
+  - Card rehab lab becomes the primary validation surface during shared and bespoke passes
 
 ## Session Delta (2026-04-02, Tranche 0 — Contract Reconciliation)
 

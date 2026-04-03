@@ -5,6 +5,15 @@ Applies to all files under `Dashboard/Tunet/**`.
 This file is the Codex execution contract for Tunet work.  
 When in doubt: prioritize correctness, consistency, and docs-sync over speed.
 
+Current active program order:
+- foundation
+- build/lab
+- card families
+- surfaces
+
+The old surface-first order is not the active implementation sequence right now.
+It becomes active again only when the plan reaches the final surface-assembly phase.
+
 ## 1) Mandatory Review Pack (Read First, In Order)
 
 Before implementing any Tunet change, read:
@@ -24,7 +33,7 @@ Important:
   - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (historical profile architecture — profile resolver contract is superseded as policy; see CLAUDE.md for current auto-size + CSS tile-size variant contract)
   - `Dashboard/Tunet/Agent-Reviews/start.md` (execution start guide)
 - For the active execution plan, read:
-  - `.claude/plans/ethereal-zooming-cherny.md` (surface-driven reset plan)
+  - `.claude/plans/ethereal-zooming-cherny.md` (card rehabilitation reset plan)
 
 ## 2) Design/Execution Precedence
 
@@ -56,7 +65,7 @@ Do not silently resolve contradictions. Record the conflict and chosen interpret
 - Prefer Home Assistant `2026.3` UI configuration capabilities wherever practical before YAML-only solutions.
 - Status card scope is locked to G3S bugfix-only (no new features or editor work).
 - Actions card remains YAML-driven until backend status/entity mapping work is completed.
-- Build system migration (esbuild bundling) is deferred until after Surface 1 (Living Room page + popup) validation.
+- Build system migration (esbuild bundling) is part of the early foundation sequence in the active plan; do not defer it behind Living Room surface assembly.
 
 ## 4) Workflow / Scope Discipline
 
@@ -64,6 +73,16 @@ Do not silently resolve contradictions. Record the conflict and chosen interpret
 - Keep each tranche tight and testable (usually 1-3 files when possible).
 - No opportunistic refactors outside tranche scope.
 - If a blocker requires widening scope, stop and document blocker + options.
+
+### 4A) Card Rehab Rule (Active Before Surface Assembly)
+
+During card rehabilitation tranches:
+
+- use the dedicated card rehab lab as the primary validation surface
+- use `tunet-suite-storage` only for targeted live verification of the touched card(s)
+- do not treat `Dashboard/Tunet/Docs/surfaces/*.md` as active implementation drivers
+- do not widen a tranche beyond the exact card files named in the active plan
+- do not resume room-page or whole-dashboard composition until the active plan explicitly enters surface assembly
 
 ## 5) Required Docs Sync After Any Meaningful Change
 
@@ -149,7 +168,10 @@ Workflow:
 
 ## 7C) Surface-By-Surface Standardization Program (Required)
 
-Do not attempt global dashboard polish in one pass.
+This sequence governs the later surface-assembly phase.
+It is not the active implementation order during card rehabilitation tranches.
+
+When the active plan re-enters surface work, do not attempt global dashboard polish in one pass.
 Use this sequence and complete each surface fully before moving to the next:
 
 1. Room page (single room)

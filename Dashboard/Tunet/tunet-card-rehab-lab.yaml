@@ -1,0 +1,330 @@
+# Tunet Card Rehab Lab
+#
+# One representative config per card (all 13) using real entities.
+# This dashboard is the primary validation surface during CD0-CD11.
+# It is NOT a product surface — it exists solely for card-level testing.
+#
+# Usage:
+#   1. Register this as a storage dashboard in HA: tunet-card-rehab-lab
+#   2. Or import via ha_config_set_dashboard MCP tool
+#   3. Validate all 13 cards render without red card errors
+#   4. Capture Playwright screenshots at locked breakpoints
+#
+# Entity source: tunet-suite-storage live config (10.0.0.21)
+
+views:
+  - type: sections
+    title: Card Rehab Lab
+    path: lab
+    icon: mdi:flask
+    max_columns: 4
+    dense_section_placement: false
+    sections:
+      # ── Section 1: Utility strips ──────────────────────────────
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-actions-card
+            compact: true
+            actions:
+              - name: All On
+                icon: lightbulb
+                accent: amber
+                service: light.turn_on
+                service_data:
+                  entity_id:
+                    - light.living_room_couch_lamp
+                    - light.living_room_floor_lamp
+                    - light.living_room_spot_lights
+              - name: All Off
+                icon: power_settings_new
+                accent: amber
+                service: light.turn_off
+                service_data:
+                  entity_id:
+                    - light.living_room_couch_lamp
+                    - light.living_room_floor_lamp
+                    - light.living_room_spot_lights
+              - name: Brighter
+                icon: add
+                accent: amber
+                service: script.turn_on
+                service_data:
+                  entity_id: script.oal_global_manual_brighter
+              - name: Dimmer
+                icon: remove
+                accent: blue
+                service: script.turn_on
+                service_data:
+                  entity_id: script.oal_global_manual_dimmer
+              - name: Reset
+                icon: restart_alt
+                accent: red
+                service: script.turn_on
+                service_data:
+                  entity_id: script.oal_reset_soft
+                show_when:
+                  entity: sensor.oal_system_status
+                  attribute: active_zonal_overrides
+                  operator: gt
+                  state: 0
+
+          - type: custom:tunet-actions-card
+            variant: mode_strip
+            compact: true
+            mode_entity: input_select.oal_active_configuration
+
+          - type: custom:tunet-scenes-card
+            name: Quick Scenes
+            show_header: false
+            compact: true
+            allow_wrap: true
+            scenes:
+              - entity: scene.all_on_2
+                name: All On
+                icon: lightbulb
+                accent: amber
+              - entity: scene.all_off
+                name: All Off
+                icon: power_settings_new
+                accent: amber
+              - entity: scene.living_room_dim
+                name: Dim
+                icon: bedtime
+                accent: purple
+              - entity: scene.entertain
+                name: Entertain
+                icon: celebration
+                accent: blue
+
+      # ── Section 2: Lighting family ─────────────────────────────
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-lighting-card
+            name: Lighting Lab
+            surface: tile
+            layout: grid
+            expand_groups: false
+            show_adaptive_toggle: true
+            tile_size: compact
+            columns: 3
+            column_breakpoints:
+              - max_width: 640
+                columns: 2
+              - columns: 3
+            zones:
+              - entity: light.living_room_couch_lamp
+                name: Couch
+                icon: table_lamp
+              - entity: light.living_room_floor_lamp
+                name: Floor
+                icon: floor_lamp
+              - entity: light.living_room_spot_lights
+                name: Spots
+                icon: highlight
+              - entity: light.living_room_credenza_light
+                name: Credenza
+                icon: light
+              - entity: light.office_desk_lamp
+                name: Desk
+                icon: desk
+              - entity: light.column_lights
+                name: Columns
+                icon: view_column
+            show_manual_reset: true
+            adaptive_entities:
+              - switch.adaptive_lighting_main_living
+              - switch.adaptive_lighting_accent_spots
+              - switch.adaptive_lighting_column_lights
+
+      # ── Section 3: Light tiles ─────────────────────────────────
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-light-tile
+            entity: light.living_room_couch_lamp
+            name: Couch
+            variant: vertical
+
+          - type: custom:tunet-light-tile
+            entity: light.living_room_floor_lamp
+            name: Floor
+            variant: horizontal
+
+      # ── Section 4: Rooms ───────────────────────────────────────
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-rooms-card
+            name: Rooms
+            rooms:
+              - name: Living Room
+                icon: weekend
+                temperature_entity: sensor.dining_room_temperature
+                navigate_path: /tunet-card-rehab-lab/lab
+                lights:
+                  - entity: light.living_room_couch_lamp
+                    icon: table_lamp
+                    name: Couch
+                  - entity: light.living_room_floor_lamp
+                    icon: floor_lamp
+                    name: Floor
+                  - entity: light.living_room_spot_lights
+                    icon: highlight
+                    name: Spots
+              - name: Kitchen
+                icon: kitchen
+                humidity_entity: sensor.0x54ef4410016279b4_humidity
+                navigate_path: /tunet-card-rehab-lab/lab
+                lights:
+                  - entity: light.kitchen_island_pendants
+                    icon: light
+                    name: Pendants
+                  - entity: light.kitchen_main_lights
+                    icon: kitchen
+                    name: Main
+              - name: Bedroom
+                icon: bed
+                temperature_entity: sensor.bedroom_temp_humidity_sensor_temperature
+                humidity_entity: sensor.bedroom_temp_humidity_sensor_humidity
+                navigate_path: /tunet-card-rehab-lab/lab
+                lights:
+                  - entity: light.bedroom_primary_lights
+                    icon: bed
+                    name: Main
+                  - entity: light.master_bedroom_corner_accent_govee
+                    icon: palette
+                    name: Accent
+            layout_variant: row
+
+      # ── Section 5: Climate + Weather ───────────────────────────
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-climate-card
+            entity: climate.dining_room
+            name: Climate
+
+          - type: custom:tunet-climate-card
+            entity: climate.dining_room
+            name: Climate Thin
+            variant: thin
+
+          - type: custom:tunet-weather-card
+            entity: weather.home
+            name: Environment
+            show_last_updated: false
+            forecast_view: auto
+            forecast_metric: auto
+            auto_precip_threshold: 20
+            forecast_days: 3
+            forecast_hours: 6
+            show_metric_toggle: true
+            show_view_toggle: true
+
+      # ── Section 6: Sensor ──────────────────────────────────────
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-sensor-card
+            name: Environment
+            sensors:
+              - entity: sensor.dining_room_temperature
+                name: Temperature
+                icon: thermostat
+                unit: "°F"
+              - entity: sensor.kitchen_humidity
+                name: Humidity
+                icon: water_drop
+                unit: "%"
+              - entity: sensor.bedroom_temp_humidity_sensor_temperature
+                name: Bedroom Temp
+                icon: bed
+                unit: "°F"
+
+      # ── Section 7: Status ──────────────────────────────────────
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-status-card
+            name: Home Status
+            columns: 4
+            tile_size: compact
+            show_header: false
+            tiles:
+              - type: value
+                entity: person.mac_connolly
+                icon: home
+                label: Home
+                accent: green
+                format: state
+              - type: value
+                entity: sensor.oal_system_status
+                icon: sunny
+                label: Adaptive
+                accent: green
+                attribute: zones_adaptive
+                format: integer
+              - type: value
+                entity: sensor.oal_global_brightness_offset
+                icon: bolt
+                label: Boost
+                accent: amber
+                attribute: total_offset
+                format: integer
+                unit: "%"
+              - type: dropdown
+                entity: input_select.oal_active_configuration
+                icon: tune
+                label: Mode
+                accent: muted
+
+      # ── Section 8: Media family ────────────────────────────────
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-media-card
+            entity: media_player.living_room
+            name: Now Playing
+            coordinator_sensor: sensor.sonos_smart_coordinator
+            active_group_sensor: sensor.sonos_active_group_coordinator
+
+          - type: custom:tunet-sonos-card
+            entity: media_player.living_room
+            name: Sonos Deep
+            coordinator_sensor: sensor.sonos_smart_coordinator
+
+          - type: custom:tunet-speaker-grid-card
+            entity: media_player.living_room
+            name: Speakers
+            coordinator_sensor: sensor.sonos_smart_coordinator
+            columns: 4
+            tile_size: standard
+            show_group_actions: true
+            speakers:
+              - entity: media_player.living_room
+                name: Living Room
+                icon: speaker
+              - entity: media_player.dining_room
+                name: Dining Room
+                icon: speaker
+              - entity: media_player.kitchen
+                name: Kitchen
+                icon: speaker
+              - entity: media_player.bedroom
+                name: Bedroom
+                icon: speaker
+
+      # ── Section 9: Navigation ──────────────────────────────────
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-nav-card
+            home_path: /tunet-card-rehab-lab/lab
+            rooms_path: /tunet-card-rehab-lab/lab
+            media_path: /tunet-card-rehab-lab/lab
+            subview_paths:
+              - /tunet-card-rehab-lab/lab
+            desktop_breakpoint: 1024
+            show_settings: false

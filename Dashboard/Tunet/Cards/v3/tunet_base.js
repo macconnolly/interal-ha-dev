@@ -1336,15 +1336,17 @@ export const RESPONSIVE_BASE = `
 // FONT INJECTION
 // ═══════════════════════════════════════════════════════════
 
-let _fontsInjected = false;
-
 /**
  * Inject Google Fonts links into document.head (idempotent).
  * Call once from any card's constructor.
+ *
+ * Uses window-scoped flag so that bundled copies (one per card)
+ * share a single injection guard instead of each bundle tracking
+ * its own module-scoped flag independently.
  */
 export function injectFonts() {
-  if (_fontsInjected) return;
-  _fontsInjected = true;
+  if (window.__tunetFontsInjected) return;
+  window.__tunetFontsInjected = true;
   const links = [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },

@@ -20,7 +20,7 @@ import {
   logCardVersion,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '0.2.3';
+const CARD_VERSION = '0.2.4';
 
 const DEFAULT_ICONS = {
   home: 'home',
@@ -180,6 +180,7 @@ const NAV_STYLES = `
 const GLOBAL_STYLE_ID = 'tunet-nav-card-offsets';
 
 function ensureGlobalOffsetsStyle() {
+  if (window.TUNET_NAV_OFFSETS_DISABLED) return;
   if (document.getElementById(GLOBAL_STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = GLOBAL_STYLE_ID;
@@ -403,6 +404,8 @@ class TunetNavCard extends HTMLElement {
     return {
       columns: 'full',
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 1,
     };
   }
 
@@ -428,6 +431,7 @@ class TunetNavCard extends HTMLElement {
     if (next === 0) {
       document.documentElement.style.removeProperty('--tunet-nav-offset-bottom');
       document.documentElement.style.removeProperty('--tunet-nav-offset-left');
+      document.getElementById(GLOBAL_STYLE_ID)?.remove();
     }
   }
 
@@ -466,6 +470,11 @@ class TunetNavCard extends HTMLElement {
   }
 
   _applyOffsets() {
+    if (window.TUNET_NAV_OFFSETS_DISABLED) {
+      document.documentElement.style.removeProperty('--tunet-nav-offset-left');
+      document.documentElement.style.removeProperty('--tunet-nav-offset-bottom');
+      return;
+    }
     const isDesktop = this.getAttribute('data-mode') === 'desktop';
     const left = Number(this._config.desktop_left_offset) || 108;
     const configuredBottom = Number(this._config.mobile_bottom_offset) || 108;

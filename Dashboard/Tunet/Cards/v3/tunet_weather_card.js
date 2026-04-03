@@ -461,6 +461,8 @@ class TunetWeatherCard extends HTMLElement {
     return {
       columns: 6,
       min_columns: 3,
+      rows: 'auto',
+      min_rows: 3,
     };
   }
 

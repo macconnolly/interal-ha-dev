@@ -2,29 +2,49 @@
 
 ## Before Modifying Any Card
 
-1. Read `../Mockups/design_language.md` (`v9.0`) for normative V2 rules
-2. Read `../design.md` for source/preference routing
-3. Work only in `../Cards/v3/` unless explicitly asked to touch legacy paths
+1. Check the active plan (`.claude/plans/ethereal-zooming-cherny.md`) — card work only happens in service of an active surface tranche
+2. Read `../Mockups/design_language.md` (v9.0) for architecture rules
+3. Read `../tunet-design-system.md` (v8.3 §6, §11) for visual interaction specs
+4. Work only in `../Cards/v3/` — sole implementation authority
 
-## V3 Build Contract
+## Implementation Authority
 
-- Implementation authority: `Dashboard/Tunet/Cards/v3/` (promoted Mar 14, 2026)
-- Shared style/profile primitives live in `tunet_base.js`
-- Keep card-local CSS behavior minimal and avoid duplicating shared systems
-- `static getConfigForm()` remains the expected editor path
+- `Dashboard/Tunet/Cards/v3/` is the sole source (promoted Mar 14, 2026)
+- `Dashboard/Tunet/Cards/v2/` is historical reference only — do not modify or deploy from v2
 
-## Interaction Contract Note
+## Sizing Contract (Supersedes Profile System)
 
-Do not reintroduce legacy room `tap-toggle` behavior as a global default.
-Use the active control-doc lock:
+The profile resolver contract is superseded as policy. New cards and migrated cards use:
+- `tile_size` config override wins when explicitly set
+- Otherwise auto-resolve from host/container width (compact < 300px, standard < 600px, large ≥ 600px)
+- Expose resolved size via `tile-size` attribute on host element
+- Use hand-tuned `:host([tile-size="compact|standard|large"])` CSS blocks
+- ResizeObserver re-evaluates on container resize
+
+Legacy profile code (selectProfileSize, resolveSizeProfile, _setProfileVars) remains for untouched cards until their surface tranche migrates them.
+
+## Shared Primitives
+
+- Shared style and utility code lives in `v3/tunet_base.js`
+- Keep card-local CSS minimal — use shared tokens, surfaces, and patterns
+- `static getConfigForm()` is the expected editor path for user-configurable cards
+- Do not add shared abstractions unless 2+ cards in the active tranche need the same primitive now
+
+## Interaction Contract
+
 - card-body tap = primary route action
 - explicit controls = toggles
+- hold = optional secondary only
+- Do not reintroduce legacy `tap-toggle` as global default
 
-## Token Baseline
+## Guardrails
 
-- Midnight navy dark family remains locked
-- Profiles are geometry-only and mode-agnostic
-- Core profile lane token consumer is `tile-core`
+- Do not rename card tag names — breaks dashboard configs
+- Do not remove existing config properties — additive only
+- Do not force vertical sizing; prefer intrinsic height in Sections
+- Validate at locked breakpoints: 390×844, 768×1024, 1024×1366, 1440×900
+- Documentation before code — document goal state before implementing changes
+
 
 <claude-mem-context>
 # Recent Activity

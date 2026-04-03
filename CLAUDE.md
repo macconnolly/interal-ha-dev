@@ -4,84 +4,55 @@
 
 ---
 
-## CURRENT WORK: Tunet Dashboard Card Suite
+## CURRENT WORK: Tunet Dashboard — Surface-Driven Reset
 
-**Read `01_START_HERE.md` in the repo root for full session context, entity inventory, and card-by-card state.**
+**Active plan**: `.claude/plans/ethereal-zooming-cherny.md` — surface-driven reset with governance-aligned tranches.
 
-All current dashboard work lives in `Dashboard/Tunet/`. Key files:
+**End state**: A finished, functional home-wide dashboard — every room controllable, navigation between views, conditional features, responsive at 4 locked breakpoints.
+
+### Key Files
 
 | What | File | Why it matters |
 |------|------|----------------|
-| **Design spec** | `Dashboard/Tunet/Mockups/design_language.md` (v8.3) | THE canonical rulebook. Every token, every rule. |
-| **Gold standard** | `Dashboard/Tunet/Cards/tunet_climate_card.js` (1513 lines) | Match this quality. |
-| **Mockups** | `Dashboard/Tunet/Mockups/tunet-new-cards-v3.html` | Visual target for status/action/lighting cards |
-| **Config** | `Dashboard/Tunet/tunet-overview-config.yaml` | Current dashboard card definitions |
-| **OUTDATED** | `Dashboard/Tunet/tunet-design-system.md` (v2.1) | SUPERSEDED by design_language.md v8.3 |
+| **Design spec** | `Dashboard/Tunet/Mockups/design_language.md` (v9.0) | Canonical architecture + profile contract (being superseded for sizing) |
+| **Visual spec** | `Dashboard/Tunet/tunet-design-system.md` (v8.3) | Interaction choreography §6, animation timing §11 — still valid for visual reference |
+| **Gold standard** | `Dashboard/Tunet/Cards/v3/tunet_climate_card.js` | Measured visual baseline for all cards |
+| **Implementation authority** | `Dashboard/Tunet/Cards/v3/` | v3 is sole authority (promoted Mar 14, 2026) |
+| **Execution contract** | `Dashboard/Tunet/AGENTS.md` | Surface queue, scope locks, active constraints |
+| **Active plan** | `.claude/plans/ethereal-zooming-cherny.md` | Tranche-based execution plan |
+
+### Execution Model
+
+**Surface-driven, not card-by-card.** Cards are fixed in context of the surface they serve:
+- Surface order: Living Room page → Living Room popup → Overview → Media → remaining rooms
+- Card work happens only in service of active surfaces, not as front-loaded redesign
+- A card may be touched in multiple surface tranches — normal refinement, not plan drift
+
+**Governance**: Existing scope locks respected by default. Changes require explicit rationale + doc sync + user approval. See plan file for lock table.
 
 ### Tunet Multi-Agent Driver
 
-When the task is broader than a single narrow code edit, and especially when it involves:
-
-- Sections-native dashboard compliance
-- storage vs YAML vs hybrid dashboard strategy
-- popup, nav, or responsive architecture
-- phased remediation planning
-- fix-ledger generation
-- multi-agent Tunet review
-- validating whether the current plan is defensible
-
-use the repo-local skill:
-
+For broad planning, tranche execution, or multi-agent review, use:
 - `.claude/skills/tunet-agent-driver/SKILL.md`
 
-Required control documents for that workflow:
-
+Control documents:
 - `Dashboard/Tunet/Docs/agent_driver_pack.md`
 - `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md`
-- `Dashboard/Tunet/Docs/tranche_manager_prompt.md`
-- `Dashboard/Tunet/Docs/tranche_implementation_prompt.md`
-- `Dashboard/Tunet/Docs/tranche_review_prompt.md`
-- `plan.md`
-- `FIX_LEDGER.md`
-- `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
-- `Dashboard/Tunet/CLAUDE.md`
+- `plan.md`, `FIX_LEDGER.md`, `handoff.md`
+- `Dashboard/Tunet/CLAUDE.md` (overrides this file for Tunet-specific rules)
 
-For Tunet-specific UI / UX / design rules, `Dashboard/Tunet/CLAUDE.md` overrides this root-level Tunet summary where they differ.
-If there is any ambiguity about Tunet design tokens, card interaction rules, or quality bar, prefer the Tunet-local file and record the mismatch under `CONTROL_DOC_CONFLICTS`.
+### Architectural Rules
 
-Execution expectations:
+- Real Home Assistant Sections dashboard — no layout hacks
+- Do not force vertical sizing unless required; prefer intrinsic height
+- Persistent nav is dashboard chrome, not content
+- Popups via Browser Mod (locked); stay minimal and high-utility
+- Sections sizing: reason page → section → card (not viewport/theme shortcuts)
+- Validation breakpoints: 390×844, 768×1024, 1024×1366, 1440×900
+- Documentation before code — each tranche starts with doc updates
 
-- prefer a 4-agent first wave:
-  - Manager / Ledger Integrator
-  - HA Standards + Integration Researcher
-  - Codebase Mapper + Key Function Reviewer
-  - Architecture / UX / Feasibility Critic
-- save full artifacts to `Dashboard/Tunet/Agent-Reviews/`
-- optimize for execution-grade outputs another coding agent can implement directly
-- prefer exact English remediation steps over large speculative code blocks
-- require exact file references, exact line numbers, validation, dependencies, deploy impact, and `NEW DISCOVERIES`
-- require explicit current-branch verification before treating broad Tunet planning output as authoritative
-- require `CONTROL_DOC_CONFLICTS` if `plan.md`, `FIX_LEDGER.md`, `agent_driver_pack.md`, deployment docs, and Tunet-local guidance disagree
-- require stale-finding reconciliation before repeating prior findings as open blockers
-- Agent 1 cannot finalize before Agent 4 has attacked the draft ledger and execution plan
-- once broad planning is complete, switch to the tranche workflow and execute one small working slice at a time
-
-Tunet-specific architectural rules to preserve:
-
-- this must be a real Home Assistant Sections dashboard
-- do not force vertical sizing unless absolutely required
-- `rows` should generally be omitted when intrinsic height is the correct Sections behavior
-- persistent nav is dashboard chrome, not proof that content cards are Sections-native
-- storage-first or hybrid editability is preferred when it materially improves maintainability
-- popups should stay minimal and high-utility
-- phases should produce small, working, testable increments
-
-### Refinement queue (one card at a time)
-1. Status card (`tunet_status_card.js`) — first priority
-2. Actions card, Lighting card, Rooms card
-
-### User preference
-User likes the dark blue glass variant `rgba(30,41,59,0.65)` in dark mode. The currently referenced Tunet design spec remains `design_language.md` v8.3. If user preference and the written spec diverge, preserve both in planning outputs and make the conflict explicit instead of silently choosing one.
+### User Preference
+Dark blue glass variant `rgba(30,41,59,0.65)` in dark mode. If preference and spec diverge, preserve both and make conflict explicit.
 
 ---
 

@@ -1,52 +1,74 @@
 # Tunet Dashboard Card Suite
 
-## Canonical Sources (Locked)
+## Active Program
 
-1. `Dashboard/Tunet/Mockups/design_language.md` (`v9.0`) is the canonical V2 design + profile contract
-2. `Dashboard/Tunet/design.md` is the documentation structure/index
-3. `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` is the implementation architecture contract for profile rollout
-4. `Dashboard/Tunet/Cards/v3/` is the implementation authority (promoted Mar 14, 2026)
-5. `Dashboard/Tunet/Cards/` is historical/reference only
+**Surface-driven reset** — see `.claude/plans/ethereal-zooming-cherny.md` for the full execution plan.
 
-If any older note references v8.x or `Cards/` as implementation authority, treat it as superseded.
+Cards are components; the dashboard is the product. Card work happens in service of surface delivery (Living Room → popup → overview → media → remaining rooms), not as front-loaded card-by-card redesign.
+
+## Canonical Sources
+
+| Priority | Source | Role |
+|----------|--------|------|
+| 1 | `Dashboard/Tunet/Cards/v3/` | **Sole implementation authority** (promoted Mar 14, 2026) |
+| 2 | `Dashboard/Tunet/Mockups/design_language.md` (v9.0) | Architecture + token contract |
+| 3 | `Dashboard/Tunet/tunet-design-system.md` (v8.3) | Visual interaction specs (§6 choreography, §11 timing) — still valid |
+| 4 | `Dashboard/Tunet/AGENTS.md` | Execution contract, surface queue, scope locks |
+| 5 | `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` | Profile architecture (being superseded for sizing) |
+| 6 | `Dashboard/Tunet/design.md` | Documentation index/router |
+
+`Cards/v2/` is historical only. Older references to v8.x or `Cards/` as authority are superseded.
+
+## Profile Contract Status
+
+The profile resolver contract (selectProfileSize, resolveSizeProfile, _setProfileVars, SIZE_PROFILES, TOKEN_MAP) is **superseded as policy** (Apr 2, 2026). Replacement sizing contract:
+- Explicit `tile_size` config override wins when set
+- Otherwise size auto-resolves from host/container width
+- Resolved size exposed via `tile-size` attribute on host element
+- Cards use hand-tuned `:host([tile-size="..."])` CSS variants
+- ResizeObserver re-evaluates on container resize
+
+Existing profile code stays for untouched cards. Code removal is incremental per-surface tranche.
 
 ## Quality Bar
 
-- Tunet V2 quality baseline remains: centralized tokens, consistent interaction semantics, and section-safe responsive behavior
+- Centralized tokens, consistent interaction semantics, section-safe responsive behavior
 - Shared primitives belong in `Dashboard/Tunet/Cards/v3/tunet_base.js`
 - Card-local overrides must be minimal and justified
+- Climate card is the measured visual baseline (actual CSS, not aspirational)
 
-## Interaction Contract (Supersession Lock)
+## Interaction Contract (Locked)
 
-Room interaction contract is now:
 - card-body tap: primary route action (`navigate` preferred; popup only where explicitly configured)
 - explicit controls/orbs/buttons: toggle actions
 - hold: optional secondary action only; never the only path to primary room intent
+- Popups: Browser Mod (locked per AGENTS.md:49)
 
-Any legacy `tap-toggle / hold-popup` references are historical and non-authoritative.
+Legacy `tap-toggle / hold-popup` references are historical and non-authoritative.
 
 ## Dark Mode Lock
 
-- Midnight baseline remains locked:
-  - canvas context `#0f172a`
-  - card family `#1e293b`
-  - dark amber `#fbbf24`
-- Profile registry is mode-agnostic (geometry only)
+- canvas context `#0f172a`, card family `#1e293b`, dark amber `#fbbf24`
+- Sizing is mode-agnostic (geometry only)
+
+## Scope Locks
+
+Existing locks respected by default. See plan file for full lock table. Key active locks:
+- Status card → G3S bugfix-only
+- Actions → YAML-driven until backend entity mapping work planned
+- Validation breakpoints: 390×844, 768×1024, 1024×1366, 1440×900
+- Surface order: Living Room → popup → overview → media → remaining rooms
+- Sections sizing: reason page → section → card (no viewport/theme shortcuts)
 
 ## Architecture / Planning Work
 
-For tranche planning and multi-agent execution use:
+For tranche planning and multi-agent execution:
+- `.claude/skills/tunet-agent-driver/SKILL.md`
 - `Dashboard/Tunet/Docs/agent_driver_pack.md`
-- `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md`
-- `Dashboard/Tunet/Docs/tranche_manager_prompt.md`
-- `Dashboard/Tunet/Docs/tranche_implementation_prompt.md`
-- `Dashboard/Tunet/Docs/tranche_review_prompt.md`
-- `Dashboard/Tunet/Agent-Reviews/start.md`
 
 Control docs to keep synced after meaningful changes:
-- `plan.md`
-- `FIX_LEDGER.md`
-- `handoff.md`
+- `plan.md`, `FIX_LEDGER.md`, `handoff.md`
+
 
 <claude-mem-context>
 # Recent Activity

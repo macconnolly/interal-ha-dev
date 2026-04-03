@@ -1,25 +1,35 @@
-# Tunet V3 Cards Local Guidance
+# Tunet V3 Cards — Local Guidance
 
 ## Authority
 
-- Code authority: this directory (`Dashboard/Tunet/Cards/v3/`) — promoted to production Mar 14, 2026
-- Design authority: `Dashboard/Tunet/Mockups/design_language.md` (`v9.0`)
-- Architecture authority for profile rollout: `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md`
+- Code authority: this directory — sole implementation authority since Mar 14, 2026
+- Design: `design_language.md` (v9.0) for architecture; `tunet-design-system.md` (v8.3 §6, §11) for visual specs
+- Visual baseline: `tunet_climate_card.js` — measured CSS values as reference
+
+## Profile Contract (Superseded Apr 2, 2026)
+
+Legacy profile code stays for untouched cards. Migrated cards use:
+- `tile_size` config override wins when set
+- Auto-resolve from container width otherwise
+- Expose via `tile-size` attribute; use `:host([tile-size="..."])` CSS blocks
+- Migration is incremental per-surface tranche
 
 ## Required Practices
 
-- Prefer shared base primitives in `tunet_base.js` first
-- Keep profile resolution split:
-  - `selectProfileSize(...)` decides family + size
-  - `resolveSizeProfile({ family, size })` does pure lookup
-- Maintain container-first width behavior for profile-driven surfaces
-- Keep interaction routing outside profile geometry
+- Shared base primitives in `tunet_base.js` first
+- Container-first width (not viewport)
+- Interaction routing outside sizing logic
+- `static getConfigForm()` for user-configurable cards
+- Document goal state BEFORE modifying any card
 
 ## Guardrails
 
-- Do not treat `Dashboard/Tunet/Cards/` as implementation authority
-- Do not reintroduce viewport-first sizing on profile-driven cards
-- Do not reintroduce legacy global tap-toggle contracts
+- Do not treat `Cards/` or `Cards/v2/` as authority
+- Do not reintroduce viewport-first sizing or legacy tap-toggle
+- Do not modify cards outside an active surface tranche
+- Do not rename tag names or remove config properties
+- Validate at: 390×844, 768×1024, 1024×1366, 1440×900
+
 
 <claude-mem-context>
 # Recent Activity

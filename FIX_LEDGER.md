@@ -37,7 +37,7 @@ Change marker: pre-CD0 (documentation alignment)
   - `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` is draft reference only until CD12 surface assembly
 - `NEXT TRANCHE`
   - CD0 = Build architecture + rehab lab (COMPLETED Apr 3, 2026)
-  - CD1 = Configuration clarity + editor policy (IN PROGRESS)
+  - CD1 = Configuration clarity + editor policy (COMPLETED Apr 3, 2026)
   - Card rehab lab becomes the primary validation surface during shared and bespoke passes
 
 ## Session Delta (2026-04-02, Tranche 0 — Contract Reconciliation)

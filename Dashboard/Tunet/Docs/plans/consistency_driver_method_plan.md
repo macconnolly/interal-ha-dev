@@ -583,6 +583,24 @@ Do not create a large helper family in this pass.
 Purpose:
 - close shared sizing drift and known Sections hotspots before unique card behavior is touched
 
+### Sections Grid Findings (Source-Validated Contract)
+
+These findings are binding for CD4+ sizing decisions:
+
+1. View layer:
+   - rendered section columns are width-derived and clamped to `1..max_columns`
+   - with sidebar open on non-narrow desktop, content columns are reduced by one (`max(1, columnCount - 1)`)
+2. Section layer:
+   - `column_span` is clamped to available content columns
+3. Card layer:
+   - section internal card grid is `12 * effective section column_span`
+   - numeric `columns` spans that internal grid (`12` is full width only when effective section span is `1`)
+   - `columns: 'full'` spans full section width regardless of section span
+4. Implication for `getGridOptions()`:
+   - cards have no section context at `getGridOptions()` call time, so this method supplies defaults only
+   - context-specific sizing belongs in dashboard YAML/UI `grid_options` overrides
+   - use `columns: 'full'` only for cards that must always span full section width
+
 ### Files
 
 - `Dashboard/Tunet/Cards/v3/tunet_base.js`
@@ -621,6 +639,8 @@ Excluded:
 3. Every touched file retains or improves `getGridOptions()` intentionally.
 4. Lighting no longer depends on fragile clipping mitigation alone to stay valid in Sections.
 5. Scenes explicitly documents whether horizontal strip mode is allowed in Sections or only wrap mode is allowed there.
+6. `getGridOptions()` decisions explicitly account for section-span-relative grids (`12 * effective column_span`) and sidebar column deduction behavior.
+7. For cards with internal multi-item layouts, HA rows/columns hints directly map to rendered internal rows/columns (or explicitly document `column_span:1` default assumptions plus YAML override path).
 
 ### Forbidden scope
 

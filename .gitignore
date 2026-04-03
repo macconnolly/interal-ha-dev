@@ -24,3 +24,12 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.bak
+
+# Node
+node_modules/
+
+# Tunet build output
+Dashboard/Tunet/Cards/v3/dist/
+
+# Playwright MCP artifacts
+.playwright-mcp/

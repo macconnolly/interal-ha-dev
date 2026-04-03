@@ -331,25 +331,25 @@ Cards apply `.interactive` explicitly to tappable elements and override only wha
 }
 ```
 
-**Implementation**: This primitive is introduced in `tunet_base.js` during the first surface tranche that needs it (Tranche 1 — Living Room page). It does NOT require code changes in Tranche 0.
+**Implementation**: This primitive is introduced in `tunet_base.js` during the shared foundation/card rehabilitation phase. It does NOT require code changes in the documentation-only reset tranche.
 
 ---
 
 ## 7. Suite-Wide Drift Patterns
 
-These patterns recur across multiple cards. Surface tranches should address them on touched cards.
+These patterns recur across multiple cards. Active card, family, and later surface tranches should address them on touched cards.
 
 ### 7.1 Unguarded hover (11 of 13 cards)
-All cards except lighting (l-tile) and light_tile apply `:hover` without `@media (hover: hover)`. This causes sticky hover artifacts on touch devices. Every surface tranche should guard hover on the cards it touches.
+All cards except lighting (l-tile) and light_tile apply `:hover` without `@media (hover: hover)`. This causes sticky hover artifacts on touch devices. Every active tranche should guard hover on the cards it touches.
 
 ### 7.2 Hardcoded press scale values (10 of 13 cards)
-Eight distinct scale values exist (.90 through .99) where the vocabulary defines only two tokens. Only nav and lighting (l-tile) use the token. Surface tranches should migrate touched cards to `--press-scale` / `--press-scale-strong`.
+Eight distinct scale values exist (.90 through .99) where the vocabulary defines only two tokens. Only nav and lighting (l-tile) use the token. Active tranches should migrate touched cards to `--press-scale` / `--press-scale-strong`.
 
 ### 7.3 Transition anti-pattern (10 of 13 cards)
-Most cards use `transition: all .Xs ease` instead of explicit multi-property transitions with named tokens. Scenes, nav, and light_tile have the correct pattern and serve as references. Surface tranches should migrate touched cards.
+Most cards use `transition: all .Xs ease` instead of explicit multi-property transitions with named tokens. Scenes, nav, and light_tile have the correct pattern and serve as references. Active tranches should migrate touched cards.
 
 ### 7.4 Missing `-webkit-tap-highlight-color` (10 of 13 cards)
-Leaves the default blue flash on mobile WebKit. The INTERACTIVE_SURFACE primitive handles this; surface tranches apply it to touched cards.
+Leaves the default blue flash on mobile WebKit. The INTERACTIVE_SURFACE primitive handles this; active tranches apply it to touched cards.
 
 ### 7.5 Undefined CSS variables
 - `--spring`: used by sonos and speaker_grid for tile transitions. Not in base TOKENS. Falls back to `initial`.
@@ -362,7 +362,7 @@ Three variants exist: offset 3px (climate baseline), offset 2px (actions/rooms/s
 
 ## 8. Coarse Per-Card Risk and Likely Work
 
-This is a **reference inventory**, not a binding remediation plan. Exact changes are decided inside each surface tranche based on what that surface actually needs. Cards may be touched in multiple tranches.
+This is a **reference inventory**, not a binding remediation plan. Exact changes are decided inside each active tranche. Cards may be touched in multiple card, family, and surface tranches.
 
 | Card | Interaction Model | Risk Level | Main Drift | Reference Notes |
 |------|------------------|------------|------------|-----------------|
@@ -382,13 +382,13 @@ This is a **reference inventory**, not a binding remediation plan. Exact changes
 
 ### How to use this table
 
-- **During surface tranche design**: look up which cards the surface touches, check their risk level and main drift
+- **During tranche design**: look up which cards are in scope, check their risk level and main drift
 - **During implementation**: address the listed drift items for touched cards only
-- **Do NOT** pre-fix cards outside the active surface tranche
-- **Do NOT** treat this table as the exact change list — the surface tranche's context may justify exceptions or different priorities
+- **Do NOT** pre-fix cards outside the active tranche
+- **Do NOT** treat this table as the exact change list — the active tranche's context may justify exceptions or different priorities
 
 For the detailed per-card CSS audit with exact line numbers and selectors, see `Dashboard/Tunet/Agent-Reviews/agent3_interaction_css_map.md`.
 
 ---
 
-*This vocabulary defines the target interaction language. Surface tranches operationalize it on touched cards. Exact changes are decided in context, not pre-committed.*
+*This vocabulary defines the target interaction language. Active tranches operationalize it on touched cards. Exact changes are decided in context, not pre-committed.*

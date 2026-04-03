@@ -44,8 +44,8 @@
 ### Execution Model
 
 **Consistency-driver pass order (CD0-CD12).** Current execution:
-- CD0: Build architecture + rehab lab (DONE)
-- CD1: Configuration clarity + editor policy (DONE)
+- CD0: Build architecture + rehab lab (DONE Apr 3)
+- CD1: Configuration clarity + editor policy (DONE Apr 3)
 - CD2-CD4: Shared consistency passes (interaction, semantics, sizing)
 - CD5-CD11: Bespoke card passes
 - CD12: Surface assembly

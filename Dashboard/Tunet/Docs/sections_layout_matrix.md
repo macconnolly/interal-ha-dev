@@ -25,17 +25,19 @@ Important:
 - `4/3/1` is a composition pattern for specific surfaces (for example Overview hero/support rows), not a universal rule for every view.
 - Each page/subview must use role-based placement decisions per section (hero, companion, support) instead of blindly inheriting one ratio.
 
-## Surface-By-Surface Queue (T-011A Active)
+## Surface-By-Surface Queue (Retained For Later Surface Assembly)
 
-This queue is the active execution order. Only one surface may be in-flight at a time.
+This queue is retained for the later surface-assembly phase.
+It is not the active implementation order during card rehabilitation tranches.
+Only one surface may be in-flight at a time once surface work resumes.
 
 | Order | Surface | Status | Goal |
 |---|---|---|---|
-| 1 | Living Room page | `ACTIVE` | lock the reusable room-page template |
-| 2 | Living Room popup | `PENDING` | lock popup companion pattern for the room template |
-| 3 | Overview page | `PENDING` | lock home scan order and hero/support balance |
-| 4 | Media page | `PENDING` | lock media-first composition and companions |
-| 5 | Bedroom, Kitchen, Dining pages | `PENDING` | apply room template + document room-specific deltas |
+| 1 | Living Room page | `PARKED` | lock the reusable room-page template once card rehab is sufficiently complete |
+| 2 | Living Room popup | `PARKED` | lock popup companion pattern for the room template |
+| 3 | Overview page | `PARKED` | lock home scan order and hero/support balance |
+| 4 | Media page | `PARKED` | lock media-first composition and companions |
+| 5 | Bedroom, Kitchen, Dining pages | `PARKED` | apply room template + document room-specific deltas |
 
 ### Surface Spec Template (Required Before Implementation)
 

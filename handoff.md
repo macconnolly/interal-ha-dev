@@ -1,15 +1,27 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
 Last updated: 2026-04-02 (America/Denver)  
-Intended reader: next Codex run in a new chat  
+Intended reader: next Claude Code session  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Active plan: `.claude/plans/ethereal-zooming-cherny.md` (surface-driven reset)
+Current tranche: **Tranche 1 — Surface 1: Living Room Page** (Tranche 0 completed Apr 2, 2026)
 
 Source filter for this run:
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and active plan file as control sources
-- use `Dashboard/Tunet/Docs/sections_layout_matrix.md` as provisional (requires validation via Sections research)
+- use `Dashboard/Tunet/Docs/sections_layout_matrix.md` as provisional (requires validation via Sections research in Tranche 1)
+- use `Dashboard/Tunet/Docs/cross_card_interaction_vocabulary.md` as the binding interaction contract
 - agent review artifacts in `Dashboard/Tunet/Agent-Reviews/` are reference, not primary planning input
+
+## Tranche 1 Entry Checklist
+
+Before starting Tranche 1 implementation:
+1. Read the active plan file — Tranche 1 section (lines 191-233)
+2. Read `Dashboard/Tunet/Docs/cross_card_interaction_vocabulary.md` — the interaction contract
+3. Read `Dashboard/Tunet/AGENTS.md` — execution contract, especially §7 (Sections research requirement)
+4. Screenshot `tunet-suite-storage` via Playwright — capture current Living Room state as baseline
+5. Query HA for current Living Room page config on `tunet-suite-storage` — derive the card set from live config
+6. Do NOT add speculative cards or pre-fix cards outside this surface
 
 ## 0ZH) Session Delta (2026-04-02, Tranche 0 — Contract Reconciliation)
 

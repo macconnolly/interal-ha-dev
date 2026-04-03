@@ -3,6 +3,7 @@
 Working branch: `main`
 Last updated: 2026-04-02
 Active plan: `.claude/plans/ethereal-zooming-cherny.md`
+Current tranche: **Tranche 1 — Surface 1: Living Room Page**
 
 ## Session Delta (2026-04-02, Surface-Driven Reset)
 

@@ -1,7 +1,7 @@
 /**
  * Tunet Actions Card (v2 – ES Module)
  * Quick action chips with state reflection and glassmorphism design
- * Version 2.2.0
+ * Version 2.4.4
  */
 
 import {
@@ -16,11 +16,12 @@ import {
   injectFonts,
   detectDarkMode,
   applyDarkClass,
+  runCardAction,
   registerCard,
   logCardVersion,
-} from './tunet_base.js';
+} from './tunet_base.js?v=20260308g2e';
 
-const CARD_VERSION = '2.3.0';
+const CARD_VERSION = '2.4.4';
 
 // ═══════════════════════════════════════════════════════════
 // Default action configs (card-specific)
@@ -133,6 +134,29 @@ function normalizeIcon(icon) {
   return ICON_ALIASES[raw] || raw || 'lightbulb';
 }
 
+function evaluateCondition(hass, condition) {
+  if (!hass || !condition || !condition.entity) return true;
+  const entity = hass.states[condition.entity];
+  if (!entity) return false;
+
+  const attr = condition.attribute;
+  const actualRaw = attr ? entity.attributes?.[attr] : entity.state;
+  const expectedRaw = condition.state;
+  const actual = String(actualRaw ?? '');
+  const expected = String(expectedRaw ?? '');
+  const op = String(condition.operator || 'equals');
+  const actualNum = Number(actualRaw);
+  const expectedNum = Number(expectedRaw);
+
+  if (op === 'not_equals') return actual !== expected;
+  if (op === 'contains') return actual.includes(expected);
+  if (op === 'gt') return Number.isFinite(actualNum) && Number.isFinite(expectedNum) && actualNum > expectedNum;
+  if (op === 'gte') return Number.isFinite(actualNum) && Number.isFinite(expectedNum) && actualNum >= expectedNum;
+  if (op === 'lt') return Number.isFinite(actualNum) && Number.isFinite(expectedNum) && actualNum < expectedNum;
+  if (op === 'lte') return Number.isFinite(actualNum) && Number.isFinite(expectedNum) && actualNum <= expectedNum;
+  return actual === expected;
+}
+
 // ═══════════════════════════════════════════════════════════
 // Card-specific CSS overrides
 // ═══════════════════════════════════════════════════════════
@@ -161,12 +185,13 @@ const CARD_STYLES = `
   /* Action chip row */
   .actions-row {
     display: flex;
-    gap: 0.375em;
+    gap: 0.42em;
   }
   .actions-row.mode-strip .action-chip {
-    padding: 0.5em 0.25em;
+    min-height: 2.52em;
+    padding: 0.56em 0.34em;
     border-radius: 0.875em;
-    font-size: 0.6875em;
+    font-size: var(--type-chip, 12.5px);
     font-weight: 700;
   }
 
@@ -176,13 +201,14 @@ const CARD_STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.3em;
-    padding: 0.5em 0.25em;
+    gap: 0.36em;
+    min-height: 2.52em;
+    padding: 0.56em 0.34em;
     border-radius: 0.875em;
     background: var(--tile-bg);
     box-shadow: var(--tile-shadow-rest);
     font-family: inherit;
-    font-size: 0.6875em;
+    font-size: var(--type-chip, 12.5px);
     font-weight: 600;
     color: var(--text-sub);
     letter-spacing: 0.01em;
@@ -199,7 +225,8 @@ const CARD_STYLES = `
     outline: 2px solid var(--blue);
     outline-offset: 2px;
   }
-  .action-chip .icon { font-size: 1.25em; width: 1.25em; height: 1.25em; color: var(--text-muted); }
+  .action-chip .icon { font-size: 1.3em; width: 1.3em; height: 1.3em; color: var(--text-muted); }
+  .action-chip.hidden { display: none !important; }
 
   /* Active state: default (amber) */
   .action-chip.active {
@@ -227,9 +254,9 @@ const CARD_STYLES = `
   .action-chip[data-accent="purple"].active .icon { color: var(--purple); }
 
   @media (max-width: 440px) {
-    :host { font-size: 15px; }
-    .card.compact { padding: 0.5em; }
-    .action-chip { gap: 0.2em; }
+    :host { font-size: 16px; }
+    .card.compact { padding: 0.56em; }
+    .action-chip { gap: 0.32em; }
   }
 `;
 
@@ -315,6 +342,8 @@ class TunetActionsCard extends HTMLElement {
         state_entity: a.state_entity || '',
         active_when: a.active_when || 'on',
         active_when_operator: a.active_when_operator || 'equals',
+        show_when: a.show_when || null,
+        tap_action: a.tap_action || null,
       })),
     };
     if (this._rendered) {
@@ -347,6 +376,16 @@ class TunetActionsCard extends HTMLElement {
     const actionCount = (this._config.actions || []).length;
     const rows = Math.max(1, Math.ceil(actionCount / 4));
     return 1 + rows;
+  }
+
+  // Sections view (12-column grid) sizing hints
+  getGridOptions() {
+    return {
+      columns: 12,
+      min_columns: 6,
+      rows: 'auto',
+      min_rows: 1,
+    };
   }
 
   _render() {
@@ -383,7 +422,7 @@ class TunetActionsCard extends HTMLElement {
       const iconName = normalizeIcon(action.icon || 'circle');
       chip.innerHTML = `<span class="icon">${iconName}</span> ${action.name}`;
 
-      chip.addEventListener('click', () => this._callService(action));
+      chip.addEventListener('click', () => this._runAction(action));
 
       this._row.appendChild(chip);
       this._chipEls.push({ el: chip, action });
@@ -396,6 +435,9 @@ class TunetActionsCard extends HTMLElement {
     if (!this._hass || !this._chipEls) return;
 
     for (const { el, action } of this._chipEls) {
+      const shouldShow = evaluateCondition(this._hass, action.show_when);
+      el.classList.toggle('hidden', !shouldShow);
+
       if (!action.state_entity) {
         el.classList.remove('active');
         continue;
@@ -430,6 +472,22 @@ class TunetActionsCard extends HTMLElement {
     const [domain, service] = action.service.split('.');
     const serviceData = { ...action.service_data };
     this._hass.callService(domain, service, serviceData);
+  }
+
+  _runAction(action) {
+    if (!this._hass || !action) return;
+
+    if (action.tap_action && typeof action.tap_action === 'object') {
+      const ran = runCardAction({
+        element: this,
+        hass: this._hass,
+        actionConfig: action.tap_action,
+        defaultEntityId: action.state_entity || '',
+      });
+      if (ran) return;
+    }
+
+    this._callService(action);
   }
 }
 

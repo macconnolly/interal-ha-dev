@@ -143,8 +143,71 @@ export const TOKENS = `
     --shadow-section: 0 8px 40px rgba(0,0,0,0.10);
     --section-shadow: var(--shadow-section);
 
+    /* Density controls (global defaults) */
+    --card-pad: 20px;
+    --section-pad: 20px;
+    --tile-pad: 14px;
+    --tile-gap: 6px;
+    --ctrl-min-h: 42px;
+    --ctrl-font-size: 12px;
+    --ctrl-pad-x: 12px;
+    --dd-option-font-size: 13px;
+    --dd-option-pad-y: 9px;
+    --dd-option-pad-x: 12px;
+    --rooms-row-btn-size: 3.16em;
+    --rooms-row-btn-radius: 12px;
+    --rooms-row-btn-icon-size: 1.62em;
+    --rooms-row-btn-size-slim: 2.76em;
+    --rooms-row-btn-icon-size-slim: 1.42em;
+    --rooms-all-toggle-min-h: 2.62em;
+    --rooms-all-toggle-min-w: 6.5em;
+    --rooms-all-toggle-font: 0.82em;
+    --rooms-all-toggle-icon: 1.2em;
+
+    /* Semantic type roles (desktop) */
+    --type-label: 12.5px;
+    --type-sub: 11px;
+    --type-value: 18px;
+    --type-chip: 12.5px;
+    --type-row-title: 16.5px;
+    --type-row-status: 14.5px;
+    --row-line-height-title: 1.16;
+    --row-line-height-status: 1.14;
+    --row-status-max-lines: 2;
+
+    /* Density controls (mobile baseline) */
+    --density-mobile-card-pad: 13px;
+    --density-mobile-section-pad: 13px;
+    --density-mobile-tile-pad: 10px;
+    --density-mobile-tile-gap: 4px;
+    --density-mobile-ctrl-min-h: 40px;
+    --density-mobile-ctrl-font: 12.5px;
+    --density-mobile-ctrl-pad-x: 11px;
+    --density-mobile-dd-font: 13px;
+    --density-mobile-dd-pad-y: 8px;
+    --density-mobile-dd-pad-x: 10px;
+    --density-mobile-rooms-row-btn-size: 2.82em;
+    --density-mobile-rooms-row-btn-icon-size: 1.44em;
+    --density-mobile-rooms-row-btn-size-slim: 2.52em;
+    --density-mobile-rooms-row-btn-icon-size-slim: 1.28em;
+    --density-mobile-rooms-all-toggle-min-h: 2.34em;
+    --density-mobile-rooms-all-toggle-min-w: 5.62em;
+    --density-mobile-rooms-all-toggle-font: 0.74em;
+    --density-mobile-rooms-all-toggle-icon: 1.06em;
+
+    /* Semantic type roles (mobile baseline) */
+    --type-label-mobile: 13px;
+    --type-sub-mobile: 11.5px;
+    --type-value-mobile: 18px;
+    --type-chip-mobile: 13px;
+    --type-row-title-mobile: 18px;
+    --type-row-status-mobile: 15.5px;
+
     color-scheme: light;
     display: block;
+    container-type: inline-size;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   :host(.dark) {
@@ -347,18 +410,19 @@ export const ICON_BASE = `
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    line-height: 1;
+    line-height: 1.1;
     text-transform: none;
     letter-spacing: normal;
     white-space: nowrap;
     direction: ltr;
     vertical-align: middle;
     flex-shrink: 0;
+    overflow: visible;
     -webkit-font-smoothing: antialiased;
     --ms-fill: 0;
-    --ms-wght: 100;
-    --ms-grad: 200;
-    --ms-opsz: 20;
+    --ms-wght: 400;
+    --ms-grad: 0;
+    --ms-opsz: 24;
     font-variation-settings: 'FILL' var(--ms-fill), 'wght' var(--ms-wght), 'GRAD' var(--ms-grad), 'opsz' var(--ms-opsz);
   }
   .icon.filled { --ms-fill: 1; }
@@ -380,7 +444,7 @@ export const CARD_SURFACE = `
     -webkit-backdrop-filter: blur(var(--blur-card));
     border: 1px solid var(--ctrl-border);
     box-shadow: var(--shadow), var(--inset);
-    padding: 20px;
+    padding: var(--card-pad, 20px);
     display: flex;
     flex-direction: column;
     transition:
@@ -435,7 +499,7 @@ export const SECTION_SURFACE = `
     -webkit-backdrop-filter: blur(var(--blur-section));
     border: 1px solid var(--ctrl-border);
     box-shadow: var(--section-shadow);
-    padding: 20px;
+    padding: var(--section-pad, 20px);
     display: flex;
     flex-direction: column;
     gap: var(--section-gap);
@@ -449,10 +513,10 @@ export const TILE_SURFACE = `
     background: var(--tile-bg);
     border: 1px solid var(--border-ghost);
     box-shadow: var(--shadow);
-    padding: 14px;
+    padding: var(--tile-pad, 14px);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--tile-gap, 6px);
     transition:
       background var(--motion-ui) var(--ease-standard),
       border-color var(--motion-ui) var(--ease-standard),
@@ -525,7 +589,7 @@ export const HEADER_PATTERN = `
 /** Shared control button surface (info tile, toggle buttons, selectors) */
 export const CTRL_SURFACE = `
   .ctrl-btn {
-    min-height: 42px;
+    min-height: var(--ctrl-min-h, 42px);
     border-radius: 10px;
     border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg);
@@ -534,7 +598,7 @@ export const CTRL_SURFACE = `
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 0 12px;
+    padding: 0 var(--ctrl-pad-x, 12px);
     cursor: pointer;
     transition:
       background var(--motion-fast) var(--ease-standard),
@@ -543,7 +607,7 @@ export const CTRL_SURFACE = `
       transform var(--motion-fast) var(--ease-emphasized),
       color var(--motion-fast) var(--ease-standard);
     font-family: inherit;
-    font-size: 12px;
+    font-size: var(--ctrl-font-size, 12px);
     font-weight: 600;
     color: var(--text-sub);
   }
@@ -595,9 +659,9 @@ export const DROPDOWN_MENU = `
   }
 
   .dd-option {
-    padding: 9px 12px;
+    padding: var(--dd-option-pad-y, 9px) var(--dd-option-pad-x, 12px);
     border-radius: 11px;
-    font-size: 13px;
+    font-size: var(--dd-option-font-size, 13px);
     font-weight: 600;
     color: var(--text);
     display: flex;
@@ -643,10 +707,76 @@ export const REDUCED_MOTION = `
   }
 `;
 
+// DEPRECATED for profile-driven families — use SIZE_PROFILES instead. Retained as fallback for non-migrated cards.
 export const RESPONSIVE_BASE = `
-  @media (max-width: 440px) {
-    .card { padding: 16px; }
-    .section-container { padding: 16px; border-radius: 28px; }
+  @container (max-width: 440px) {
+    :host {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      --card-pad: var(--density-mobile-card-pad, 14px);
+      --section-pad: var(--density-mobile-section-pad, 14px);
+      --tile-pad: var(--density-mobile-tile-pad, 10px);
+      --tile-gap: var(--density-mobile-tile-gap, 4px);
+      --ctrl-min-h: var(--density-mobile-ctrl-min-h, 38px);
+      --ctrl-font-size: var(--density-mobile-ctrl-font, 12px);
+      --ctrl-pad-x: var(--density-mobile-ctrl-pad-x, 10px);
+      --dd-option-font-size: var(--density-mobile-dd-font, 12px);
+      --dd-option-pad-y: var(--density-mobile-dd-pad-y, 8px);
+      --dd-option-pad-x: var(--density-mobile-dd-pad-x, 10px);
+      --rooms-row-btn-size: var(--density-mobile-rooms-row-btn-size, 3.4em);
+      --rooms-row-btn-icon-size: var(--density-mobile-rooms-row-btn-icon-size, 1.76em);
+      --rooms-row-btn-size-slim: var(--density-mobile-rooms-row-btn-size-slim, 2.96em);
+      --rooms-row-btn-icon-size-slim: var(--density-mobile-rooms-row-btn-icon-size-slim, 1.56em);
+      --rooms-all-toggle-min-h: var(--density-mobile-rooms-all-toggle-min-h, 2.62em);
+      --rooms-all-toggle-min-w: var(--density-mobile-rooms-all-toggle-min-w, 6.96em);
+      --rooms-all-toggle-font: var(--density-mobile-rooms-all-toggle-font, 0.84em);
+      --rooms-all-toggle-icon: var(--density-mobile-rooms-all-toggle-icon, 1.26em);
+      --type-label: var(--type-label-mobile, 13px);
+      --type-sub: var(--type-sub-mobile, 11.5px);
+      --type-value: var(--type-value-mobile, 18px);
+      --type-chip: var(--type-chip-mobile, 13px);
+      --type-row-title: var(--type-row-title-mobile, 18px);
+      --type-row-status: var(--type-row-status-mobile, 15.5px);
+    }
+    .card { padding: var(--card-pad); }
+    .section-container { padding: var(--section-pad); border-radius: 24px; }
+    .tile { padding: var(--tile-pad); gap: var(--tile-gap); }
+  }
+
+  @supports not (container-type: inline-size) {
+    @media (max-width: 440px) {
+      :host {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        --card-pad: var(--density-mobile-card-pad, 14px);
+        --section-pad: var(--density-mobile-section-pad, 14px);
+        --tile-pad: var(--density-mobile-tile-pad, 10px);
+        --tile-gap: var(--density-mobile-tile-gap, 4px);
+        --ctrl-min-h: var(--density-mobile-ctrl-min-h, 38px);
+        --ctrl-font-size: var(--density-mobile-ctrl-font, 12px);
+        --ctrl-pad-x: var(--density-mobile-ctrl-pad-x, 10px);
+        --dd-option-font-size: var(--density-mobile-dd-font, 12px);
+        --dd-option-pad-y: var(--density-mobile-dd-pad-y, 8px);
+        --dd-option-pad-x: var(--density-mobile-dd-pad-x, 10px);
+        --rooms-row-btn-size: var(--density-mobile-rooms-row-btn-size, 3.4em);
+        --rooms-row-btn-icon-size: var(--density-mobile-rooms-row-btn-icon-size, 1.76em);
+        --rooms-row-btn-size-slim: var(--density-mobile-rooms-row-btn-size-slim, 2.96em);
+        --rooms-row-btn-icon-size-slim: var(--density-mobile-rooms-row-btn-icon-size-slim, 1.56em);
+        --rooms-all-toggle-min-h: var(--density-mobile-rooms-all-toggle-min-h, 2.62em);
+        --rooms-all-toggle-min-w: var(--density-mobile-rooms-all-toggle-min-w, 6.96em);
+        --rooms-all-toggle-font: var(--density-mobile-rooms-all-toggle-font, 0.84em);
+        --rooms-all-toggle-icon: var(--density-mobile-rooms-all-toggle-icon, 1.26em);
+        --type-label: var(--type-label-mobile, 13px);
+        --type-sub: var(--type-sub-mobile, 11.5px);
+        --type-value: var(--type-value-mobile, 18px);
+        --type-chip: var(--type-chip-mobile, 13px);
+        --type-row-title: var(--type-row-title-mobile, 18px);
+        --type-row-status: var(--type-row-status-mobile, 15.5px);
+      }
+      .card { padding: var(--card-pad); }
+      .section-container { padding: var(--section-pad); border-radius: 24px; }
+      .tile { padding: var(--tile-pad); gap: var(--tile-gap); }
+    }
   }
 `;
 
@@ -667,7 +797,7 @@ export function injectFonts() {
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: '' },
     { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap' },
-    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200' },
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap' },
   ];
   for (const cfg of links) {
     if (document.querySelector(`link[href="${cfg.href}"]`)) continue;
@@ -687,7 +817,7 @@ export const FONT_LINKS = `
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 `;
 
 // ═══════════════════════════════════════════════════════════
@@ -729,6 +859,351 @@ export function fireEvent(element, type, detail = {}) {
     composed: true,
     detail,
   }));
+}
+
+/**
+ * Normalize a navigation path for Home Assistant routing.
+ * @param {string} value
+ * @returns {string}
+ */
+export function normalizePath(value) {
+  const raw = (value == null ? '' : String(value)).trim();
+  if (!raw) return '';
+  return raw.startsWith('/') || raw.startsWith('#') ? raw : `/${raw}`;
+}
+
+/**
+ * Navigate using HA's navigation event, with history fallback.
+ * @param {string} path
+ * @param {Object} options
+ * @param {boolean} options.replace
+ * @param {HTMLElement|null} options.sourceEl
+ */
+export function navigatePath(path, { replace = false, sourceEl = null } = {}) {
+  const normalized = normalizePath(path);
+  if (!normalized) return;
+
+  const targets = [];
+  if (sourceEl && typeof sourceEl.dispatchEvent === 'function') targets.push(sourceEl);
+  if (document && typeof document.dispatchEvent === 'function') targets.push(document);
+  if (window && typeof window.dispatchEvent === 'function') targets.push(window);
+
+  for (const target of targets) {
+    const navEvent = new CustomEvent('hass-navigate', {
+      bubbles: true,
+      composed: true,
+      cancelable: true,
+      detail: { path: normalized, replace },
+    });
+    const notCanceled = target.dispatchEvent(navEvent);
+    if (!notCanceled || navEvent.defaultPrevented) return;
+  }
+
+  if (replace) {
+    window.history.replaceState(null, '', normalized);
+  } else {
+    window.history.pushState(null, '', normalized);
+  }
+  window.dispatchEvent(new Event('location-changed'));
+}
+
+/**
+ * Execute a Lovelace-style action object.
+ * Supports: more-info, navigate, url, call-service, fire-dom-event, none.
+ * @param {Object} args
+ * @param {HTMLElement} args.element
+ * @param {Object} args.hass
+ * @param {Object} args.actionConfig
+ * @param {string} args.defaultEntityId
+ * @returns {boolean}
+ */
+export function runCardAction({
+  element,
+  hass,
+  actionConfig,
+  defaultEntityId = '',
+} = {}) {
+  if (!element || !hass || !actionConfig) return false;
+
+  const action = actionConfig.action || 'more-info';
+  if (action === 'none') return true;
+
+  if (action === 'more-info') {
+    const entityId = actionConfig.entity || defaultEntityId;
+    if (!entityId) return false;
+    fireEvent(element, 'hass-more-info', { entityId });
+    return true;
+  }
+
+  if (action === 'navigate') {
+    navigatePath(actionConfig.navigation_path || actionConfig.path || '', { sourceEl: element });
+    return true;
+  }
+
+  if (action === 'url') {
+    if (!actionConfig.url_path) return false;
+    const target = String(actionConfig.url_path).trim();
+    if (!target) return false;
+    if (actionConfig.new_tab) {
+      window.open(target, '_blank');
+      return true;
+    }
+    if (target.startsWith('/') || target.startsWith('#')) {
+      navigatePath(target, { sourceEl: element });
+      return true;
+    }
+    window.location.assign(target);
+    return true;
+  }
+
+  if (action === 'call-service') {
+    const service = String(actionConfig.service || '').trim();
+    const [domain, serviceName] = service.split('.');
+    if (!domain || !serviceName) return false;
+    hass.callService(domain, serviceName, actionConfig.service_data || {});
+    return true;
+  }
+
+  if (action === 'fire-dom-event') {
+    fireEvent(element, 'll-custom', actionConfig);
+    return true;
+  }
+
+  const fallbackEntityId = actionConfig.entity || defaultEntityId;
+  if (!fallbackEntityId) return false;
+  fireEvent(element, 'hass-more-info', { entityId: fallbackEntityId });
+  return true;
+}
+
+/**
+ * Shared axis-locked drag helper for touch/pointer interactions.
+ * Vertical/ambiguous gestures pass through for native page scroll.
+ * Horizontal gestures lock drag and can call preventDefault() safely.
+ *
+ * @param {Object} options
+ * @param {HTMLElement} options.element
+ * @param {Function} [options.shouldStart] - (event) => boolean
+ * @param {Function} [options.getContext] - (event) => any context object (return false to abort)
+ * @param {Function} [options.onDragStart] - (event, payload) => void
+ * @param {Function} [options.onDragMove] - (event, payload) => void
+ * @param {Function} [options.onDragEnd] - (event, payload) => void
+ * @param {Function} [options.onTap] - (event, payload) => void
+ * @param {Function} [options.onLongPress] - (event, payload) => void
+ * @param {number} [options.deadzone=8]
+ * @param {number} [options.axisBias=1.3]
+ * @param {number} [options.longPressMs=500]
+ * @param {boolean} [options.pointerCapture=false]
+ * @returns {{destroy: Function}}
+ */
+export function createAxisLockedDrag(options = {}) {
+  const {
+    element,
+    shouldStart,
+    getContext,
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    onTap,
+    onLongPress,
+    deadzone = 8,
+    axisBias = 1.3,
+    longPressMs = 500,
+    pointerCapture = false,
+  } = options;
+
+  if (!element) {
+    return { destroy() {} };
+  }
+
+  let state = null;
+
+  const clearLongPress = () => {
+    if (!state || !state.longPressTimer) return;
+    clearTimeout(state.longPressTimer);
+    state.longPressTimer = null;
+  };
+
+  const releaseCapture = () => {
+    if (!state || !pointerCapture) return;
+    const captureEl = state.captureEl;
+    if (!captureEl || typeof captureEl.releasePointerCapture !== 'function') return;
+    try {
+      if (captureEl.hasPointerCapture && captureEl.hasPointerCapture(state.pointerId)) {
+        captureEl.releasePointerCapture(state.pointerId);
+      }
+    } catch (_) {
+      // Ignore release failures on platforms without active pointer capture.
+    }
+  };
+
+  const removeDocumentListeners = () => {
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
+    document.removeEventListener('pointercancel', onPointerCancel);
+  };
+
+  const cleanup = () => {
+    clearLongPress();
+    releaseCapture();
+    removeDocumentListeners();
+    state = null;
+  };
+
+  const payloadFromEvent = (event) => {
+    if (!state) return null;
+    const dx = event.clientX - state.startX;
+    const dy = event.clientY - state.startY;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    return {
+      context: state.context,
+      pointerId: state.pointerId,
+      pointerType: state.pointerType,
+      startX: state.startX,
+      startY: state.startY,
+      dx,
+      dy,
+      absDx,
+      absDy,
+      phase: state.phase,
+    };
+  };
+
+  const endDrag = (event, { committed = false, cancelled = false } = {}) => {
+    if (!state) return;
+    const wasDrag = state.phase === 'drag';
+    const payload = payloadFromEvent(event);
+    cleanup();
+    if (wasDrag && typeof onDragEnd === 'function') {
+      onDragEnd(event, { ...payload, committed, cancelled });
+    }
+  };
+
+  function onPointerMove(event) {
+    if (!state || event.pointerId !== state.pointerId) return;
+    const payload = payloadFromEvent(event);
+    if (!payload) return;
+
+    if (state.phase === 'pending') {
+      const traveled = Math.hypot(payload.dx, payload.dy);
+      if (traveled < deadzone) return;
+
+      clearLongPress();
+
+      if (payload.absDy > payload.absDx * axisBias) {
+        cleanup();
+        return;
+      }
+
+      if (payload.absDx >= payload.absDy * axisBias) {
+        state.phase = 'drag';
+        if (typeof onDragStart === 'function') {
+          onDragStart(event, { ...payload, phase: 'drag' });
+        }
+      } else {
+        cleanup();
+        return;
+      }
+    }
+
+    if (!state || state.phase !== 'drag') return;
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    if (typeof onDragMove === 'function') {
+      onDragMove(event, { ...payload, phase: 'drag' });
+    }
+  }
+
+  function onPointerUp(event) {
+    if (!state || event.pointerId !== state.pointerId) return;
+
+    if (state.phase === 'drag') {
+      endDrag(event, { committed: true, cancelled: false });
+      return;
+    }
+
+    const payload = payloadFromEvent(event);
+    const longPressFired = !!state.longPressFired;
+    cleanup();
+    if (!longPressFired && typeof onTap === 'function') {
+      onTap(event, payload);
+    }
+  }
+
+  function onPointerCancel(event) {
+    if (!state || event.pointerId !== state.pointerId) return;
+    endDrag(event, { committed: false, cancelled: true });
+  }
+
+  const onPointerDown = (event) => {
+    if (state) return;
+    if (!event.isPrimary) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (typeof shouldStart === 'function' && !shouldStart(event)) return;
+
+    const context = typeof getContext === 'function' ? getContext(event) : {};
+    if (context === false) return;
+
+    const captureEl = context && context.captureEl instanceof HTMLElement
+      ? context.captureEl
+      : element;
+
+    state = {
+      pointerId: event.pointerId,
+      pointerType: event.pointerType || 'mouse',
+      startX: event.clientX,
+      startY: event.clientY,
+      phase: 'pending',
+      context,
+      captureEl,
+      longPressTimer: null,
+      longPressFired: false,
+    };
+
+    if (pointerCapture && captureEl && typeof captureEl.setPointerCapture === 'function') {
+      try {
+        captureEl.setPointerCapture(event.pointerId);
+      } catch (_) {
+        // Ignore capture failures in contexts that reject pointer capture.
+      }
+    }
+
+    if (typeof onLongPress === 'function' && longPressMs > 0) {
+      state.longPressTimer = setTimeout(() => {
+        if (!state || state.phase !== 'pending') return;
+        state.longPressFired = true;
+        const payload = {
+          context: state.context,
+          pointerId: state.pointerId,
+          pointerType: state.pointerType,
+          startX: state.startX,
+          startY: state.startY,
+          dx: 0,
+          dy: 0,
+          absDx: 0,
+          absDy: 0,
+          phase: state.phase,
+        };
+        onLongPress(event, payload);
+        cleanup();
+      }, longPressMs);
+    }
+
+    document.addEventListener('pointermove', onPointerMove, { passive: false });
+    document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerCancel);
+  };
+
+  element.addEventListener('pointerdown', onPointerDown);
+
+  return {
+    destroy() {
+      cleanup();
+      element.removeEventListener('pointerdown', onPointerDown);
+    },
+  };
 }
 
 /**
@@ -775,4 +1250,539 @@ export function logCardVersion(name, version, color = '#D4850A') {
  */
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROFILE CONSUMPTION SYSTEM (G1)
+// Architecture: unified_tile_architecture_conclusion.md v3.1
+// Gate: G1 — base primitives, no card behavior changes
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Schema version for profile system compatibility checks.
+ * Format: v{MAJOR}-{YYYYMMDD}
+ * Date-only updates are non-breaking; major bump required for
+ * key renames, removals, or signature changes.
+ */
+export const PROFILE_SCHEMA_VERSION = 'v1-20260308';
+
+/** All registered family keys. */
+export const FAMILY_KEYS = ['tile-grid', 'speaker-tile', 'rooms-row', 'indicator-tile', 'indicator-row'];
+
+/** All valid size keys. compact = dense mode. large = explicit only. */
+export const SIZE_KEYS = ['compact', 'standard', 'large'];
+
+// ───────────────────────────────────────────────────────────
+// PROFILE_BASE — shared geometry per size (D19)
+// All values are pre-formatted CSS em strings (D18).
+// Override only where a family genuinely diverges.
+// No color, opacity, or theme-conditional values.
+// ───────────────────────────────────────────────────────────
+
+const PROFILE_BASE = {
+  compact: {
+    cardPad: '0.875em',
+    sectionPad: '0.875em',
+    sectionGap: '0.75em',
+    headerHeight: '2.375em',
+    headerFont: '0.75em',
+    sectionFont: '0.8125em',
+    tilePad: '0.625em',
+    tileGap: '0.25em',
+    tileRadius: '0.75em',
+    ddRadius: '0.4375em',
+    iconBox: '2.125em',
+    iconGlyph: '1.0625em',
+    nameFont: '0.875em',
+    valueFont: '1.0625em',
+    subFont: '0.6875em',
+    unitFont: '0.6875em',
+    ctrlMinH: '2.375em',
+    ctrlPadX: '0.625em',
+    ctrlIconSize: '1.125em',
+    ddOptionFont: '0.75em',
+    ddOptionPadY: '0.5em',
+    ddOptionPadX: '0.625em',
+    dropdownMinH: '7.5em',
+    dropdownMaxH: '13.75em',
+    progressH: '0.375em'
+  },
+  standard: {
+    cardPad: '1.25em',
+    sectionPad: '1.25em',
+    sectionGap: '1em',
+    headerHeight: '2.625em',
+    headerFont: '0.8125em',
+    sectionFont: '0.875em',
+    tilePad: '0.875em',
+    tileGap: '0.375em',
+    tileRadius: '0.875em',
+    ddRadius: '0.5em',
+    iconBox: '2.375em',
+    iconGlyph: '1.1875em',
+    nameFont: '1em',
+    valueFont: '1.125em',
+    subFont: '0.6875em',
+    unitFont: '0.6875em',
+    ctrlMinH: '2.625em',
+    ctrlPadX: '0.75em',
+    ctrlIconSize: '1.25em',
+    ddOptionFont: '0.8125em',
+    ddOptionPadY: '0.5625em',
+    ddOptionPadX: '0.75em',
+    dropdownMinH: '7.5em',
+    dropdownMaxH: '15em',
+    progressH: '0.5em'
+  },
+  large: {
+    cardPad: '1.5em',
+    sectionPad: '1.5em',
+    sectionGap: '1.25em',
+    headerHeight: '2.75em',
+    headerFont: '0.875em',
+    sectionFont: '1em',
+    tilePad: '1em',
+    tileGap: '0.5em',
+    tileRadius: '1em',
+    ddRadius: '0.5625em',
+    iconBox: '2.75em',
+    iconGlyph: '1.375em',
+    nameFont: '1.125em',
+    valueFont: '1.25em',
+    subFont: '0.75em',
+    unitFont: '0.75em',
+    ctrlMinH: '2.75em',
+    ctrlPadX: '0.875em',
+    ctrlIconSize: '1.375em',
+    ddOptionFont: '0.875em',
+    ddOptionPadY: '0.625em',
+    ddOptionPadX: '0.875em',
+    dropdownMinH: '8em',
+    dropdownMaxH: '17.5em',
+    progressH: '0.625em'
+  }
+};
+
+// ───────────────────────────────────────────────────────────
+// SIZE_PROFILES — family entries (5 families × 3 sizes)
+// Each spreads PROFILE_BASE[size] and overrides only diverging values.
+// ───────────────────────────────────────────────────────────
+
+export const SIZE_PROFILES = {
+
+  // Interactive grid tiles — lighting, rooms (grid mode)
+  'tile-grid': {
+    compact:  { ...PROFILE_BASE.compact,  tileMinH: '5.125em' },
+    standard: { ...PROFILE_BASE.standard, tileMinH: '5.75em'  },
+    large:    { ...PROFILE_BASE.large,    tileMinH: '6.375em' }
+  },
+
+  // Speaker grid tiles — same tile-core, tighter geometry for audio density
+  'speaker-tile': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      tilePad: '0.5em',
+      tileGap: '0.25em',
+      tileMinH: '5.25em',
+      progressH: '0.375em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      tilePad: '0.625em',
+      tileGap: '0.3125em',
+      tileMinH: '5.875em',
+      subFont: '0.71875em',
+      progressH: '0.4375em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      tilePad: '0.75em',
+      tileGap: '0.4375em',
+      tileMinH: '6.5em',
+      progressH: '0.5625em'
+    }
+  },
+
+  // Rooms row layout — core tile lane + row-specific controls
+  'rooms-row': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      sectionFont: '0.96875em',
+      rowMinH: '6.8125em',
+      rowGap: '0.34em',
+      rowTitleFont: '0.9375em',
+      rowStatusFont: '0.8125em',
+      orbSize: '2.96em',
+      orbIcon: '1.56em',
+      toggleSize: '2.96em',
+      toggleIcon: '1.56em',
+      chevronSize: '1.28em',
+      rowBtnRadius: '0.5625em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      sectionFont: '1.0625em',
+      rowMinH: '7.3125em',
+      rowGap: '0.52em',
+      rowTitleFont: '1.03125em',
+      rowStatusFont: '0.90625em',
+      orbSize: '3.16em',
+      orbIcon: '1.62em',
+      toggleSize: '3.16em',
+      toggleIcon: '1.62em',
+      chevronSize: '1.56em',
+      rowBtnRadius: '0.75em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      sectionFont: '1.125em',
+      rowMinH: '7.875em',
+      rowGap: '0.625em',
+      rowTitleFont: '1.125em',
+      rowStatusFont: '0.96875em',
+      orbSize: '3.4em',
+      orbIcon: '1.76em',
+      toggleSize: '3.4em',
+      toggleIcon: '1.76em',
+      chevronSize: '1.7em',
+      rowBtnRadius: '0.8125em'
+    }
+  },
+
+  // Status indicator tiles — interactive subtypes (dropdown, alarm, timer)
+  // All subtype internals now profile-controlled (D20)
+  // progressH: '0em' — status tiles have no progress bar at profile level
+  'indicator-tile': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      headerFont: '0.875em',
+      sectionFont: '0.875em',
+      tileMinH: '5.5em',
+      progressH: '0em',
+      timerFont: '1.0625em',
+      timerLetterSpacing: '0.02em',
+      alarmPillFont: '0.875em',
+      alarmBtnH: '1.125em',
+      alarmBtnFont: '0.5em',
+      alarmIconSize: '0.625em',
+      dropdownMaxH: '13.75em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      headerFont: '1em',
+      sectionFont: '0.9375em',
+      tileMinH: '5.875em',
+      progressH: '0em',
+      timerFont: '1.125em',
+      timerLetterSpacing: '0.03125em',
+      alarmPillFont: '0.9375em',
+      alarmBtnH: '1.25em',
+      alarmBtnFont: '0.5625em',
+      alarmIconSize: '0.6875em',
+      dropdownMaxH: '15em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      headerFont: '1.125em',
+      sectionFont: '1em',
+      tileMinH: '7.125em',
+      progressH: '0em',
+      timerFont: '1.25em',
+      timerLetterSpacing: '0.04em',
+      alarmPillFont: '1em',
+      alarmBtnH: '1.375em',
+      alarmBtnFont: '0.625em',
+      alarmIconSize: '0.75em',
+      dropdownMaxH: '17.5em'
+    }
+  },
+
+  // Sensor / environment rows — horizontal list, sparkline, trend arrow
+  // progressH: '0em' — sensor rows have no progress bar at profile level
+  'indicator-row': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      sectionFont: '0.875em',
+      rowMinH: '3em',
+      rowGap: '0.625em',
+      rowPadY: '0.625em',
+      rowPadX: '0.125em',
+      iconBox: '2em',
+      iconGlyph: '1.125em',
+      nameFont: '0.75em',
+      subFont: '0.6875em',
+      valueFont: '1.125em',
+      unitFont: '0.6875em',
+      progressH: '0em',
+      sparklineW: '2.5em',
+      sparklineH: '1.25em',
+      trendBox: '1.125em',
+      trendGlyph: '0.875em',
+      sparkStroke: '0.09375em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      sectionFont: '0.9375em',
+      rowMinH: '3.5em',
+      rowGap: '0.75em',
+      rowPadY: '0.75em',
+      rowPadX: '0.25em',
+      iconBox: '2.25em',
+      iconGlyph: '1.25em',
+      nameFont: '0.8125em',
+      subFont: '0.6875em',
+      valueFont: '1.25em',
+      unitFont: '0.6875em',
+      progressH: '0em',
+      sparklineW: '3em',
+      sparklineH: '1.5em',
+      trendBox: '1.25em',
+      trendGlyph: '1em',
+      sparkStroke: '0.09375em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      sectionFont: '1em',
+      rowMinH: '4em',
+      rowGap: '0.875em',
+      rowPadY: '0.875em',
+      rowPadX: '0.3125em',
+      iconBox: '2.5em',
+      iconGlyph: '1.375em',
+      nameFont: '0.875em',
+      subFont: '0.75em',
+      valueFont: '1.375em',
+      unitFont: '0.75em',
+      progressH: '0em',
+      sparklineW: '3.5em',
+      sparklineH: '1.75em',
+      trendBox: '1.375em',
+      trendGlyph: '1.125em',
+      sparkStroke: '0.109375em'
+    }
+  }
+};
+
+// ───────────────────────────────────────────────────────────
+// PRESET_FAMILY_MAP — static preset → family lookup
+// ───────────────────────────────────────────────────────────
+
+export const PRESET_FAMILY_MAP = {
+  lighting:    'tile-grid',
+  rooms:       'tile-grid',        // grid layout mode — see rooms-row below
+  'rooms-row': 'rooms-row',        // row and slim layout modes
+  speakers:    'speaker-tile',
+  status:      'indicator-tile',
+  sensor:      'indicator-row',
+  environment: 'indicator-row',
+};
+
+// ───────────────────────────────────────────────────────────
+// TOKEN_MAP — registry key → CSS custom property name
+// Used by _setProfileVars() in card files (G2+).
+// Family-specific tokens are only present in their family's
+// profile objects, so the undefined check naturally handles
+// family filtering.
+// ───────────────────────────────────────────────────────────
+
+export const TOKEN_MAP = {
+  // Card chrome
+  cardPad:      '--_tunet-card-pad',
+  sectionPad:   '--_tunet-section-pad',
+  sectionGap:   '--_tunet-section-gap',
+  headerHeight: '--_tunet-header-height',
+  headerFont:   '--_tunet-header-font',
+  sectionFont:  '--_tunet-section-font',
+  // Tile core
+  tilePad:      '--_tunet-tile-pad',
+  tileGap:      '--_tunet-tile-gap',
+  tileRadius:   '--_tunet-tile-radius',
+  tileMinH:     '--_tunet-tile-min-h',
+  iconBox:      '--_tunet-icon-box',
+  iconGlyph:    '--_tunet-icon-glyph',
+  nameFont:     '--_tunet-name-font',
+  valueFont:    '--_tunet-value-font',
+  subFont:      '--_tunet-sub-font',
+  unitFont:     '--_tunet-unit-font',
+  progressH:    '--_tunet-progress-h',
+  // Control surfaces
+  ctrlMinH:     '--_tunet-ctrl-min-h',
+  ctrlPadX:     '--_tunet-ctrl-pad-x',
+  ctrlIconSize: '--_tunet-ctrl-icon-size',
+  // Dropdown (shared)
+  ddRadius:     '--_tunet-dd-radius',
+  ddOptionFont: '--_tunet-dd-option-font',
+  ddOptionPadY: '--_tunet-dd-option-pad-y',
+  ddOptionPadX: '--_tunet-dd-option-pad-x',
+  dropdownMinH: '--_tunet-dropdown-min-h',
+  dropdownMaxH: '--_tunet-dropdown-max-h',
+  // rooms-row extensions
+  rowMinH:       '--_tunet-row-min-h',
+  rowGap:        '--_tunet-row-gap',
+  rowTitleFont:  '--_tunet-row-title-font',
+  rowStatusFont: '--_tunet-row-status-font',
+  orbSize:       '--_tunet-orb-size',
+  orbIcon:       '--_tunet-orb-icon',
+  toggleSize:    '--_tunet-toggle-size',
+  toggleIcon:    '--_tunet-toggle-icon',
+  chevronSize:   '--_tunet-chevron-size',
+  rowBtnRadius:  '--_tunet-row-btn-radius',
+  // indicator-tile extensions
+  timerFont:          '--_tunet-timer-font',
+  timerLetterSpacing: '--_tunet-timer-ls',
+  alarmPillFont:      '--_tunet-alarm-pill-font',
+  alarmBtnH:          '--_tunet-alarm-btn-h',
+  alarmBtnFont:       '--_tunet-alarm-btn-font',
+  alarmIconSize:      '--_tunet-alarm-icon-size',
+  // indicator-row extensions
+  rowPadY:      '--_tunet-row-pad-y',
+  rowPadX:      '--_tunet-row-pad-x',
+  sparklineW:   '--_tunet-sparkline-w',
+  sparklineH:   '--_tunet-sparkline-h',
+  trendBox:     '--_tunet-trend-box',
+  trendGlyph:   '--_tunet-trend-glyph',
+  sparkStroke:  '--_tunet-spark-stroke',
+};
+
+// ───────────────────────────────────────────────────────────
+// Width → Size utilities
+// ───────────────────────────────────────────────────────────
+
+/**
+ * Auto-select size from container width.
+ * Used when tile_size is absent in merged config.
+ * 'large' is only reachable via explicit tile_size config — never auto-selected.
+ */
+export function autoSizeFromWidth(widthPx) {
+  if (!widthPx || widthPx <= 0) return 'standard';
+  if (widthPx < 600) return 'compact';
+  return 'standard';
+}
+
+/**
+ * Width bucket for memoization cache key.
+ * @param {number} widthPx
+ * @returns {'xs'|'sm'|'md'|'lg'}
+ */
+export function bucketFromWidth(widthPx) {
+  if (!widthPx || widthPx <= 0) return 'md';
+  if (widthPx < 400) return 'xs';
+  if (widthPx < 600) return 'sm';
+  if (widthPx < 800) return 'md';
+  return 'lg';
+}
+
+// ───────────────────────────────────────────────────────────
+// selectProfileSize — caller layer (§6)
+// ───────────────────────────────────────────────────────────
+
+/**
+ * Decides family + size from already-merged config + runtime widthHint.
+ * Width-to-size mapping lives here — not in the resolver.
+ *
+ * @param {Object} params
+ * @param {string} params.preset  - Card preset key (e.g. 'lighting', 'rooms', 'speakers')
+ * @param {string} params.layout  - Layout mode ('grid', 'row', 'slim')
+ * @param {number} params.widthHint - Container width in px from ResizeObserver
+ * @param {string} [params.userSize] - Explicit tile_size from config (overrides width)
+ * @returns {{ family: string, size: string }}
+ */
+export function selectProfileSize({ preset, layout, widthHint, userSize }) {
+  const mapKey = (layout === 'row' || layout === 'slim') ? 'rooms-row' : preset;
+  const family = PRESET_FAMILY_MAP[mapKey];
+
+  if (!family) {
+    console.warn(`[TunetProfile] Unknown preset "${preset}" (layout: "${layout}"). Falling back to tile-grid.`);
+    return { family: 'tile-grid', size: userSize ?? autoSizeFromWidth(widthHint) };
+  }
+
+  const size = userSize ?? autoSizeFromWidth(widthHint);
+  return { family, size };
+}
+
+// ───────────────────────────────────────────────────────────
+// resolveSizeProfile — pure registry lookup (§8)
+// ───────────────────────────────────────────────────────────
+
+/**
+ * Pure sizing lookup.
+ * Given family + size, returns flat geometry values.
+ * Never reads config. Never writes state. Never decides which size to use.
+ *
+ * @param {Object} params
+ * @param {string} params.family  - Key from FAMILY_KEYS
+ * @param {string} params.size    - 'compact' | 'standard' | 'large'
+ * @returns {Object} Flat token map — all values are pre-formatted CSS strings (e.g. '0.875em')
+ */
+export function resolveSizeProfile({ family, size }) {
+  const familyProfiles = SIZE_PROFILES[family];
+
+  if (!familyProfiles) {
+    console.warn(`[TunetProfile] Unknown family "${family}". Falling back to tile-grid standard.`);
+    return SIZE_PROFILES['tile-grid'].standard;
+  }
+
+  if (!familyProfiles[size]) {
+    console.warn(`[TunetProfile] Unknown size "${size}" for family "${family}". Falling back to standard.`);
+    return familyProfiles.standard;
+  }
+
+  return familyProfiles[size];
+}
+
+// ───────────────────────────────────────────────────────────
+// deepMerge — config merge utility (§14)
+// ───────────────────────────────────────────────────────────
+
+/**
+ * Check if value is a plain object (not array, not null).
+ * @param {*} v
+ * @returns {boolean}
+ */
+function isPlainObject(v) {
+  return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+/**
+ * Deep merge two objects following Tunet merge rules:
+ * - Plain objects: recurse (lower-priority keys survive unless overridden)
+ * - Primitives: override wins; undefined does NOT override (skip)
+ * - Arrays: replace entirely (no concatenation)
+ * - null: explicit clear (overrides any inherited value)
+ *
+ * @param {Object} base - Lower-priority object
+ * @param {Object} override - Higher-priority object
+ * @returns {Object} Merged result
+ */
+export function deepMerge(base, override) {
+  if (!override || typeof override !== 'object') return base ?? override;
+  const result = { ...base };
+  for (const key of Object.keys(override)) {
+    const val = override[key];
+    if (val === undefined) continue;                            // skip — don't clobber base
+    if (val === null) { result[key] = null; continue; }        // explicit clear
+    if (Array.isArray(val)) { result[key] = val; continue; }   // arrays replace entirely
+    if (isPlainObject(val) && isPlainObject(base?.[key])) {
+      result[key] = deepMerge(base[key], val);                 // recurse into plain objects
+    } else {
+      result[key] = val;                                        // override wins
+    }
+  }
+  return result;
+}
+
+// ───────────────────────────────────────────────────────────
+// Global registration — version handshake surface (§12)
+// ───────────────────────────────────────────────────────────
+
+if (typeof window !== 'undefined') {
+  window.TunetBase = {
+    PROFILE_SCHEMA_VERSION,
+    selectProfileSize,
+    resolveSizeProfile,
+    SIZE_PROFILES,
+    PRESET_FAMILY_MAP,
+    deepMerge,
+    TOKEN_MAP,
+  };
 }

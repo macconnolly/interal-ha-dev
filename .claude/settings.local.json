@@ -96,9 +96,16 @@
       "Bash(cat:*)",
       "Bash(echo === $f ===:*)",
       "WebFetch(domain:brunosabot.dev)",
-      "WebFetch(domain:newreleases.io)"
+      "WebFetch(domain:newreleases.io)",
+      "mcp__codex-bridge__consult_codex",
+      "mcp__codex-bridge__consult_codex_with_stdin",
+      "Bash(scp:*)",
+      "Bash(for file:*)",
+      "Bash(do echo:*)",
+      "Read(//home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v2/**)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "outputStyle": "Explanatory"
 }

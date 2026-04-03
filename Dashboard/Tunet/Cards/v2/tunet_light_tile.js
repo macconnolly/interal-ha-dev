@@ -1,7 +1,7 @@
 /**
  * Tunet Light Tile
  * Atomic lighting tile component for the Tunet card suite
- * Version 1.0.0
+ * Version 2.0.0
  *
  * A standalone custom element representing a single light entity.
  * Supports vertical (grid) and horizontal (row) variants.
@@ -12,6 +12,8 @@
  *   name:     display name override
  *   icon:     Material Symbols ligature override
  *   variant:  "vertical" (default) | "horizontal"
+ *   tile_size: 'compact' | 'standard' | 'large' (default: standard)
+ *   use_profiles: boolean (default: true)
  */
 
 import {
@@ -26,11 +28,16 @@ import {
   injectFonts,
   detectDarkMode,
   applyDarkClass,
+  createAxisLockedDrag,
   fireEvent,
   registerCard,
   logCardVersion,
   clamp,
-} from './tunet_base.js';
+  // G4: Profile consumption system
+  selectProfileSize, resolveSizeProfile,
+  TOKEN_MAP, PROFILE_SCHEMA_VERSION,
+  bucketFromWidth,
+} from './tunet_base.js?v=20260308g2e';
 
 
 // ═══════════════════════════════════════════════════════════
@@ -41,29 +48,32 @@ const TILE_CSS = `
   /* ── Host ── */
   :host {
     display: block;
+    font-size: 16px; /* em anchor — profile tokens assume 16px base */
     contain: layout style;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   /* ── Shared tile tokens ── */
   .lt {
-    --icon-size: 44px;
-    --icon-radius: 16px;
-    --bar-h: 4px;
-    --bar-h-active: 6px;
-    --bar-inset: 14px;
-    --bar-bottom: 10px;
+    --icon-size: var(--_tunet-icon-box, 2.75em);
+    --icon-radius: 1em;
+    --bar-h: var(--_tunet-progress-h, 0.25em);
+    --bar-h-active: 0.375em;
+    --bar-inset: 0.875em;
+    --bar-bottom: 0.625em;
     --pill-shadow: 0 10px 30px rgba(0,0,0,0.3);
     --pill-border: 1px solid rgba(255,255,255,0.1);
 
     position: relative;
-    border-radius: var(--r-tile, 16px);
+    border-radius: var(--_tunet-tile-radius, var(--r-tile, 1em));
     background: var(--tile-bg);
     border: 1px solid var(--border-ghost, transparent);
     box-shadow: var(--shadow);
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: none;
+    touch-action: pan-y;
     overflow: visible;
     transition:
       transform var(--motion-ui, 0.18s) var(--ease-emphasized, cubic-bezier(0.34, 1.56, 0.64, 1)),
@@ -78,32 +88,33 @@ const TILE_CSS = `
 
   /* ── Vertical variant (default) ── */
   .lt.vertical {
-    aspect-ratio: 1 / 0.95;
+    aspect-ratio: 1 / 0.9;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    padding: var(--_tunet-tile-pad, 0.5625em) 0 0.5em;
+    gap: 0.125em;
   }
 
   @media (max-width: 440px) {
-    .lt.vertical { aspect-ratio: 1 / 1.05; }
+    .lt.vertical { aspect-ratio: 1 / 0.98; }
   }
 
   /* ── Horizontal variant ── */
   .lt.horizontal {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px 14px 10px;
-    min-height: 62px;
+    gap: 0.5em;
+    padding: 0.5em 0.625em 0.75em 0.5em;
+    min-height: 3.5em;
   }
 
   @media (max-width: 440px) {
     .lt.horizontal {
-      min-height: 56px;
-      padding: 8px 10px 12px 8px;
-      gap: 8px;
+      min-height: 3.25em;
+      padding: 0.4375em 0.5625em 0.625em 0.4375em;
+      gap: 0.4375em;
     }
   }
 
@@ -112,12 +123,12 @@ const TILE_CSS = `
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 0.0625em;
   }
 
   .lt.horizontal .val {
     flex-shrink: 0;
-    min-width: 36px;
+    min-width: 2.25em;
     text-align: right;
   }
 
@@ -133,7 +144,7 @@ const TILE_CSS = `
   }
 
   .lt.vertical .icon-wrap {
-    margin-bottom: 6px;
+    margin-bottom: 0.375em;
   }
 
   .lt.horizontal .icon-wrap {
@@ -142,21 +153,21 @@ const TILE_CSS = `
 
   @media (max-width: 440px) {
     .lt.horizontal .icon-wrap {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
+      width: 2.25em;
+      height: 2.25em;
+      border-radius: 0.625em;
     }
   }
 
   .tile-icon {
-    font-size: 24px;
+    font-size: var(--_tunet-icon-glyph, 1.5em);
   }
 
   /* ── Name ── */
   .name {
-    font-size: 14px;
+    font-size: var(--_tunet-name-font, 0.9375em);
     font-weight: 600;
-    letter-spacing: 0.1px;
+    letter-spacing: 0.006em;
     line-height: 1.15;
     color: var(--text);
     white-space: nowrap;
@@ -168,27 +179,33 @@ const TILE_CSS = `
   .lt.vertical .name {
     margin-bottom: 1px;
     text-align: center;
+    min-height: 1.12em;
+    line-height: 1.12;
   }
 
   @media (max-width: 440px) {
-    .lt.horizontal .name { font-size: 13px; }
+    .lt.horizontal .name { font-size: 0.875em; }
   }
 
   /* ── Value ── */
   .val {
-    font-size: 13px;
+    font-size: var(--_tunet-value-font, 0.875em);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     transition: color var(--motion-ui, 0.18s);
   }
 
   .lt.horizontal .val {
-    font-size: 14px;
-    letter-spacing: 0.1px;
+    font-size: 0.9375em;
+    letter-spacing: 0.006em;
+  }
+  .lt.vertical .val {
+    line-height: 1.12;
+    margin-top: 1px;
   }
 
   @media (max-width: 440px) {
-    .lt.horizontal .val { font-size: 13px; }
+    .lt.horizontal .val { font-size: 0.875em; }
   }
 
   /* ── Progress bar ── */
@@ -204,11 +221,21 @@ const TILE_CSS = `
     transition: height var(--motion-ui, 0.18s) ease;
   }
 
+  /* Keep vertical variant content lane naturally centered with progress in flow */
+  .lt.vertical .progress-track {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: calc(100% - (var(--bar-inset) * 2));
+    margin-top: 0.4375em;
+  }
+
   .lt.horizontal .progress-track {
-    bottom: 6px;
-    left: 10px;
-    right: 10px;
-    height: 3px;
+    bottom: 0.375em;
+    left: 0.625em;
+    right: 0.625em;
+    height: 0.1875em;
   }
 
   .progress-fill {
@@ -221,10 +248,10 @@ const TILE_CSS = `
   /* ── Manual override dot ── */
   .manual-dot {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 8px;
-    height: 8px;
+    top: 0.625em;
+    right: 0.625em;
+    width: 0.5em;
+    height: 0.5em;
     background: var(--red, #FF3B30);
     border-radius: 50%;
     display: none;
@@ -233,8 +260,8 @@ const TILE_CSS = `
   }
 
   .lt.horizontal .manual-dot {
-    top: 8px;
-    right: 8px;
+    top: 0.5em;
+    right: 0.5em;
   }
 
   .lt[data-manual="true"] .manual-dot {
@@ -309,7 +336,7 @@ const TILE_CSS = `
   }
 
   .lt.horizontal.sliding .progress-track {
-    height: 5px;
+    height: 0.3125em;
   }
 
   .lt.sliding .progress-fill {
@@ -324,9 +351,9 @@ const TILE_CSS = `
     transform: translate(-50%, -50%);
     color: var(--amber);
     font-weight: 700;
-    font-size: 15px;
+    font-size: 0.9375em;
     background: var(--tile-bg, #fff);
-    padding: 6px 20px;
+    padding: 0.375em 1.25em;
     border-radius: 99px;
     box-shadow: var(--pill-shadow);
     z-index: 101;
@@ -338,14 +365,14 @@ const TILE_CSS = `
   /* Floating pill — horizontal */
   .lt.horizontal.sliding .val {
     position: absolute;
-    top: -4px;
+    top: -0.25em;
     left: 50%;
     transform: translate(-50%, -100%);
     color: var(--amber);
     font-weight: 700;
-    font-size: 14px;
+    font-size: 0.875em;
     background: var(--tile-bg, #fff);
-    padding: 5px 14px;
+    padding: 0.3125em 0.875em;
     border-radius: 99px;
     box-shadow: var(--pill-shadow);
     z-index: 101;
@@ -368,7 +395,7 @@ const TILE_CSS = `
 // ═══════════════════════════════════════════════════════════
 
 const TAG = 'tunet-light-tile';
-const VERSION = '1.0.0';
+const VERSION = '2.0.0'; // G4: profile consumption
 
 class TunetLightTile extends HTMLElement {
 
@@ -384,10 +411,25 @@ class TunetLightTile extends HTMLElement {
     if (!config.entity) {
       throw new Error(`${TAG}: 'entity' is required`);
     }
+
+    // G4: use_profiles defaults true; global override via window.TUNET_USE_PROFILES
+    const useProfiles = (config.use_profiles !== false) &&
+      (typeof window === 'undefined' || window.TUNET_USE_PROFILES !== false);
+
+    const tileSize = ['compact', 'standard', 'large'].includes(config.tile_size)
+      ? config.tile_size : 'standard';
+
     this._config = {
       variant: 'vertical',
       ...config,
+      use_profiles: useProfiles,
+      tile_size: tileSize,
     };
+
+    // G4: Version handshake + profile application
+    this._checkBaseCompat();
+    this._applyProfile();
+
     if (this._hass) this._render();
   }
 
@@ -420,27 +462,56 @@ class TunetLightTile extends HTMLElement {
     return this._config?.variant === 'horizontal' ? 1 : 2;
   }
 
+  // Sections view (12-column grid) sizing hints
+  getGridOptions() {
+    return {
+      columns: 3,
+      min_columns: 3,
+      rows: 'auto',
+      min_rows: 1,
+      fixed_rows: true,
+    };
+  }
+
   // ── Constructor ──────────────────────────────────
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
     this._hass = null;
     this._config = null;
-    this._isDragging = false;
-    this._startX = 0;
-    this._startBrt = 0;
-    this._dragThreshold = 6;
+    this._dragController = null;
     this._rendered = false;
     this._cooldownUntil = 0;
+    // G4: Profile consumption state
+    this._profileCache = new Map();
+    this._currentFamily = null;
+    this._lastWidth = 0;
   }
 
   connectedCallback() {
     injectFonts(this.shadowRoot);
     this._buildShell();
+    // G4: ResizeObserver for profile width tracking
+    if (!this._resizeObserver && typeof ResizeObserver !== 'undefined') {
+      this._resizeObserver = new ResizeObserver((entries) => {
+        const width = entries?.[0]?.contentRect?.width;
+        if (width && width > 0) {
+          this._lastWidth = width;
+          this._applyProfile();
+        }
+      });
+      this._resizeObserver.observe(this);
+    }
   }
 
   disconnectedCallback() {
     this._removePointerListeners();
+    // G4: cleanup
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+    this._profileCache.clear();
   }
 
   // ── Build static shell ───────────────────────────
@@ -607,98 +678,63 @@ class TunetLightTile extends HTMLElement {
 
   // ── Pointer interaction ──────────────────────────
   _setupPointerListeners() {
-    this._onPointerDown = this._handlePointerDown.bind(this);
-    this._onPointerMove = this._handlePointerMove.bind(this);
-    this._onPointerUp = this._handlePointerUp.bind(this);
-    this._onPointerCancel = this._handlePointerCancel.bind(this);
     this._onKeyDown = this._handleKeyDown.bind(this);
+    this._onContextMenu = (e) => e.preventDefault();
 
-    this._tile.addEventListener('pointerdown', this._onPointerDown);
-    this._tile.addEventListener('pointermove', this._onPointerMove);
-    this._tile.addEventListener('pointerup', this._onPointerUp);
-    this._tile.addEventListener('pointercancel', this._onPointerCancel);
     this._tile.addEventListener('keydown', this._onKeyDown);
+    this._tile.addEventListener('contextmenu', this._onContextMenu);
 
-    // Long press for more-info
-    this._longPressTimer = null;
-    this._tile.addEventListener('contextmenu', (e) => e.preventDefault());
+    this._dragController = createAxisLockedDrag({
+      element: this._tile,
+      deadzone: 8,
+      axisBias: 1.3,
+      longPressMs: 500,
+      pointerCapture: false,
+      getContext: () => ({
+        startBright: parseInt(this._tile.dataset.brightness, 10) || 0,
+        currentBright: parseInt(this._tile.dataset.brightness, 10) || 0,
+        width: Math.max(this._tile.offsetWidth, 1),
+      }),
+      onDragStart: () => {
+        this._tile.classList.add('sliding');
+      },
+      onDragMove: (event, payload) => {
+        const ctx = payload && payload.context;
+        if (!ctx) return;
+        const change = (payload.dx / ctx.width) * 100;
+        const newBrt = Math.round(clamp(ctx.startBright + change, 0, 100));
+        if (newBrt === ctx.currentBright) return;
+        if (event.cancelable) event.preventDefault();
+        this._updateTileUI(newBrt);
+        ctx.currentBright = newBrt;
+      },
+      onDragEnd: (_event, payload) => {
+        const ctx = payload && payload.context;
+        this._tile.classList.remove('sliding');
+        if (payload && payload.committed && ctx) {
+          this._callService(ctx.currentBright);
+        }
+      },
+      onTap: () => {
+        const current = parseInt(this._tile.dataset.brightness, 10) || 0;
+        const target = current > 0 ? 0 : 100;
+        this._updateTileUI(target);
+        this._callService(target);
+      },
+      onLongPress: () => {
+        this._openMoreInfo();
+      },
+    });
   }
 
   _removePointerListeners() {
     if (!this._tile) return;
-    this._tile.removeEventListener('pointerdown', this._onPointerDown);
-    this._tile.removeEventListener('pointermove', this._onPointerMove);
-    this._tile.removeEventListener('pointerup', this._onPointerUp);
-    this._tile.removeEventListener('pointercancel', this._onPointerCancel);
     this._tile.removeEventListener('keydown', this._onKeyDown);
-  }
-
-  _handlePointerDown(e) {
-    this._startX = e.clientX;
-    this._startBrt = parseInt(this._tile.dataset.brightness) || 0;
-    this._isDragging = false;
-    this._tile.setPointerCapture(e.pointerId);
-
-    // Long-press timer for more-info
-    this._longPressTimer = setTimeout(() => {
-      this._openMoreInfo();
-      this._longPressTimer = null;
-    }, 500);
-  }
-
-  _handlePointerMove(e) {
-    if (!e.buttons) return;
-    const dx = e.clientX - this._startX;
-
-    // Cancel long-press if moving
-    if (Math.abs(dx) > 3 && this._longPressTimer) {
-      clearTimeout(this._longPressTimer);
-      this._longPressTimer = null;
+    this._tile.removeEventListener('contextmenu', this._onContextMenu);
+    if (this._dragController) {
+      this._dragController.destroy();
+      this._dragController = null;
     }
-
-    if (!this._isDragging && Math.abs(dx) > this._dragThreshold) {
-      this._isDragging = true;
-      this._tile.classList.add('sliding');
-    }
-
-    if (this._isDragging) {
-      const width = this._tile.offsetWidth;
-      const change = (dx / width) * 100;
-      const newBrt = Math.round(clamp(this._startBrt + change, 0, 100));
-      this._updateTileUI(newBrt);
-    }
-  }
-
-  _handlePointerUp(e) {
-    // Clear long-press
-    if (this._longPressTimer) {
-      clearTimeout(this._longPressTimer);
-      this._longPressTimer = null;
-    }
-
-    if (!this._isDragging) {
-      // Tap-to-toggle
-      const current = parseInt(this._tile.dataset.brightness) || 0;
-      const target = current > 0 ? 0 : 100;
-      this._updateTileUI(target);
-      this._callService(target);
-    } else {
-      // Drag complete — send final brightness
-      const finalBrt = parseInt(this._tile.dataset.brightness) || 0;
-      this._callService(finalBrt);
-    }
-
-    this._tile.classList.remove('sliding');
-    this._isDragging = false;
-  }
-
-  _handlePointerCancel() {
-    if (this._longPressTimer) {
-      clearTimeout(this._longPressTimer);
-      this._longPressTimer = null;
-    }
-    this._tile.classList.remove('sliding');
-    this._isDragging = false;
   }
 
   _handleKeyDown(e) {
@@ -755,6 +791,110 @@ class TunetLightTile extends HTMLElement {
     }
   }
 
+  /* ═══════════════════════════════════════════════════
+     G4: PROFILE CONSUMPTION SYSTEM
+     Architecture: unified_tile_architecture_conclusion.md v3.1 §9-§11
+     Standalone tile — is its own host, sets vars on itself.
+     Uses tile-grid family (preset: 'lighting', layout: 'grid').
+     ═══════════════════════════════════════════════════ */
+
+  _checkBaseCompat() {
+    const baseVersion = typeof window !== 'undefined' && window.TunetBase?.PROFILE_SCHEMA_VERSION;
+    if (!baseVersion) {
+      this._renderError('Profile system unavailable — tunet_base.js not loaded or outdated');
+      return;
+    }
+    const expectedMajor = PROFILE_SCHEMA_VERSION.split('-')[0];
+    const actualMajor = baseVersion.split('-')[0];
+    if (expectedMajor !== actualMajor) {
+      this._renderError(`Profile version mismatch: card expects ${expectedMajor}, base has ${actualMajor}`);
+    }
+  }
+
+  _renderError(message) {
+    try {
+      if (!this.shadowRoot) return;
+      let errEl = this.shadowRoot.getElementById('tunet-profile-error');
+      if (!errEl) {
+        errEl = document.createElement('div');
+        errEl.id = 'tunet-profile-error';
+        errEl.style.cssText = 'padding:12px;margin:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:8px;color:#ef4444;font-size:12px;font-weight:600;';
+        this.shadowRoot.prepend(errEl);
+      }
+      errEl.textContent = message;
+    } catch (_) { /* never throw from error renderer */ }
+  }
+
+  _applyProfile() {
+    if (!this._config?.use_profiles) {
+      this._applyLegacyScaling();
+      return;
+    }
+
+    const { family, size } = selectProfileSize({
+      preset: 'lighting',
+      layout: 'grid',
+      widthHint: this._lastWidth,
+      userSize: this._config.tile_size,
+    });
+
+    if (family !== this._currentFamily) {
+      this._profileCache.clear();
+      this._currentFamily = family;
+    }
+
+    const bucket = bucketFromWidth(this._lastWidth);
+    const cacheKey = `${family}:${size}:${bucket}`;
+    if (this._profileCache.has(cacheKey)) return;
+
+    const profile = resolveSizeProfile({ family, size });
+    this._profileCache.set(cacheKey, true);
+    this._setProfileVars(profile);
+  }
+
+  _applyLegacyScaling() {
+    if (this.style.length > 0) {
+      const toRemove = [];
+      for (let i = 0; i < this.style.length; i++) {
+        const prop = this.style[i];
+        if (prop.startsWith('--_tunet-')) toRemove.push(prop);
+      }
+      for (const prop of toRemove) this.style.removeProperty(prop);
+    }
+  }
+
+  _setProfileVars(profile) {
+    // Step 1: Clear all --_tunet-*
+    const toRemove = [];
+    for (let i = 0; i < this.style.length; i++) {
+      const prop = this.style[i];
+      if (prop.startsWith('--_tunet-')) toRemove.push(prop);
+    }
+    for (const prop of toRemove) this.style.removeProperty(prop);
+
+    // Step 2: Set all tokens present in this profile
+    for (const [key, cssVar] of Object.entries(TOKEN_MAP)) {
+      if (profile[key] !== undefined) {
+        this.style.setProperty(cssVar, profile[key]);
+      }
+    }
+
+    // Step 3: Bridge --profile-* public hooks
+    const OVERRIDE_PAIRS = [
+      ['--profile-tile-pad',    '--_tunet-tile-pad'],
+      ['--profile-icon-box',    '--_tunet-icon-box'],
+      ['--profile-icon-glyph',  '--_tunet-icon-glyph'],
+      ['--profile-name-font',   '--_tunet-name-font'],
+      ['--profile-value-font',  '--_tunet-value-font'],
+      ['--profile-progress-h',  '--_tunet-progress-h'],
+    ];
+    const computed = getComputedStyle(this);
+    for (const [pub, priv] of OVERRIDE_PAIRS) {
+      const override = computed.getPropertyValue(pub).trim();
+      if (override) this.style.setProperty(priv, override);
+    }
+  }
+
   _openMoreInfo() {
     if (!this._config?.entity) return;
     fireEvent(this, 'hass-more-info', { entityId: this._config.entity });
@@ -770,12 +910,16 @@ class TunetLightTile extends HTMLElement {
         { name: 'name', selector: { text: {} } },
         { name: 'icon', selector: { text: {} } },
         { name: 'variant', selector: { select: { options: ['vertical', 'horizontal'] } } },
+        { name: 'tile_size', selector: { select: { options: ['compact', 'standard', 'large'] } } },
+        { name: 'use_profiles', selector: { boolean: {} } },
       ],
       computeLabel: (s) => ({
         entity: 'Light Entity',
         name: 'Display Name',
         icon: 'Icon (Material Symbols)',
         variant: 'Layout Variant',
+        tile_size: 'Tile Size',
+        use_profiles: 'Use Profile System (density-responsive sizing)',
       }[s.name] || s.name),
     };
   }

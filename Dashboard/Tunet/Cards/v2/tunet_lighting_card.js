@@ -1,12 +1,12 @@
 /**
- * Tunet Lighting Card  v3.3.0 (v2 migration)
+ * Tunet Lighting Card  v3.4.0 (v2 migration)
  * ──────────────────────────────────────────────────────────────
  * Complete rewrite aligned to Tunet Design Language v8.0 by Mac
  * Migrated to tunet_base.js shared module.
  *
  * Architecture:
  *   Shadow DOM custom element · Full token system (light + dark)
- *   Design-language header (info tile + toggle + selector)
+ *   Design-language header (info tile + toggles)
  *   Flexible layout: grid | scroll with full config
  *   Three entity patterns: rich YAML, group expansion, named zones
  *   Drag-to-dim · Floating pill · Manual-control dots
@@ -18,9 +18,13 @@
  *   name:             string       Card title (default: "Lighting")
  *   subtitle:         string       Optional static subtitle override
  *   primary_entity:   string       Entity for info-tile tap (hass-more-info)
- *   adaptive_entity:  string       Adaptive Lighting switch entity
+ *   adaptive_entity:  string       Legacy single adaptive entity (backward-compat)
+ *   adaptive_entities:[string[]]   Adaptive entities/switches for this card
+ *   show_adaptive_toggle: boolean  Show adaptive toggle control (default: true)
+ *   show_manual_reset: boolean     Show reset-manual control when needed (default: true)
  *   layout:           'grid'|'scroll'   Layout mode (default: grid)
- *   columns:          2-5          Grid columns (default: 3)
+ *   columns:          2-8          Grid columns (default: 3)
+ *   column_breakpoints: object|array  Responsive column rules by viewport width
  *   rows:             'auto'|2-6   Max visible rows in grid (default: auto)
  *   scroll_rows:      1-3          Rows in scroll mode (default: 2)
  *   tile_size:        'compact'|'standard'|'large'  Tile density preset (default: standard)
@@ -35,10 +39,59 @@ import {
   CARD_SURFACE, CARD_SURFACE_GLASS_STROKE,
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
+  createAxisLockedDrag,
   registerCard, logCardVersion,
-} from './tunet_base.js';
+  // G2: Profile consumption system
+  selectProfileSize, resolveSizeProfile,
+  TOKEN_MAP, PROFILE_SCHEMA_VERSION,
+  bucketFromWidth, autoSizeFromWidth,
+} from './tunet_base.js?v=20260308g2e';
 
-const CARD_VERSION = '3.3.0';
+const CARD_VERSION = '3.5.0'; // G2: profile consumption
+
+function clampInt(value, min, max, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+function normalizeColumnBreakpoints(raw) {
+  const parsed = [];
+  const pushRule = (rule) => {
+    if (!rule || typeof rule !== 'object') return;
+    const columns = clampInt(rule.columns, 2, 8, NaN);
+    if (!Number.isFinite(columns)) return;
+    const minWidth = Number.isFinite(Number(rule.min_width)) ? Math.max(0, Number(rule.min_width)) : null;
+    const maxWidth = Number.isFinite(Number(rule.max_width)) ? Math.max(0, Number(rule.max_width)) : null;
+    if (minWidth == null && maxWidth == null) return;
+    parsed.push({ columns, minWidth, maxWidth });
+  };
+
+  if (Array.isArray(raw)) {
+    raw.forEach((item) => pushRule(item));
+  } else if (raw && typeof raw === 'object') {
+    for (const [key, value] of Object.entries(raw)) {
+      if (key === 'default') continue;
+      const maxWidth = Number(key);
+      const columns = clampInt(value, 2, 8, NaN);
+      if (!Number.isFinite(maxWidth) || !Number.isFinite(columns)) continue;
+      parsed.push({ columns, minWidth: null, maxWidth });
+    }
+    if (Object.prototype.hasOwnProperty.call(raw, 'default')) {
+      const fallbackColumns = clampInt(raw.default, 2, 8, NaN);
+      if (Number.isFinite(fallbackColumns)) {
+        parsed.push({ columns: fallbackColumns, minWidth: null, maxWidth: null });
+      }
+    }
+  }
+
+  parsed.sort((a, b) => {
+    const aMax = a.maxWidth == null ? Number.POSITIVE_INFINITY : a.maxWidth;
+    const bMax = b.maxWidth == null ? Number.POSITIVE_INFINITY : b.maxWidth;
+    return aMax - bMax;
+  });
+  return parsed;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    CSS – Shared base + card-specific overrides
@@ -55,6 +108,7 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Lighting-specific token overrides ──────── */
   :host {
+    font-size: 16px; /* em anchor — profile tokens assume 16px base */
     /* Mockup parity geometry */
     --r-track: 999px;
     --r-tile: 22px;
@@ -119,7 +173,7 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ═══════════════════════════════════════════════════
      HEADER (Design Language §5)
-     Info tile + spacer + toggles + selector
+     Info tile + spacer + toggles
      ═══════════════════════════════════════════════════ */
   .hdr {
     display: flex;
@@ -134,7 +188,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     align-items: center;
     gap: 8px;
     padding: 6px 10px 6px 6px;
-    min-height: 42px;
+    min-height: var(--_tunet-ctrl-min-h, 42px);
     box-sizing: border-box;
     border-radius: 10px;
     border: 1px solid var(--ctrl-border);
@@ -184,7 +238,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   .hdr-title {
     font-weight: 700;
-    font-size: 13px;
+    font-size: var(--_tunet-header-font, 13px);
     color: var(--text-sub);
     letter-spacing: 0.1px;
     line-height: 1.15;
@@ -193,7 +247,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     text-overflow: ellipsis;
   }
   .hdr-sub {
-    font-size: 10.5px;
+    font-size: var(--_tunet-sub-font, 10.5px);
     font-weight: 600;
     color: var(--text-muted);
     letter-spacing: 0.1px;
@@ -238,8 +292,8 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Toggle Button (§5.6) – Adaptive lighting ────── */
   .toggle-btn {
-    width: 42px;
-    min-height: 42px;
+    width: var(--_tunet-ctrl-min-h, 42px);
+    min-height: var(--_tunet-ctrl-min-h, 42px);
     box-sizing: border-box;
     border-radius: 10px;
     display: grid;
@@ -267,6 +321,18 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   .toggle-btn.hidden { display: none; }
 
+  .toggle-btn.manual-reset {
+    color: var(--red);
+    border-color: rgba(239,68,68,0.30);
+    background: rgba(239,68,68,0.10);
+  }
+  .toggle-btn.manual-reset .icon {
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+  }
+  .toggle-btn.manual-reset.hidden {
+    display: none;
+  }
+
   /* Manual count badge on adaptive toggle */
   .manual-badge {
     position: absolute;
@@ -285,41 +351,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: none;
     letter-spacing: 0.3px;
   }
-  .toggle-btn.has-manual .manual-badge { display: inline-flex; }
+  .toggle-wrap.has-manual .manual-badge { display: inline-flex; }
   .toggle-wrap { position: relative; }
-
-  /* ── Selector Button (§5.7) – All Off ────────────── */
-  .selector-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-height: 42px;
-    box-sizing: border-box;
-    padding: 0 8px;
-    border-radius: 10px;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-sub);
-    letter-spacing: 0.2px;
-    cursor: pointer;
-    transition: all .15s ease;
-  }
-  .selector-btn:hover { box-shadow: var(--shadow); }
-  .selector-btn:active { transform: scale(.97); }
-  .selector-btn:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
-  }
-  .selector-btn.active {
-    border-color: var(--amber-border);
-    color: var(--amber);
-    background: var(--amber-fill);
-    font-weight: 700;
-  }
+  .toggle-wrap.hidden { display: none; }
 
   /* ═══════════════════════════════════════════════════
      TILE GRID (Design Language §3.5)
@@ -329,8 +363,8 @@ ${CARD_SURFACE_GLASS_STROKE}
   .light-grid {
     display: grid;
     grid-template-columns: repeat(var(--cols, 3), minmax(0, 180px));
-    grid-auto-rows: var(--grid-row, 124px);
-    gap: 10px;
+    grid-auto-rows: var(--grid-row, 110px);
+    gap: var(--_tunet-tile-gap, 10px);
     width: 100%;
     min-width: 0;
     overflow-y: visible;
@@ -348,12 +382,19 @@ ${CARD_SURFACE_GLASS_STROKE}
     grid-auto-columns: calc(32% - 10px);
     overflow-x: auto;
     overflow-y: visible;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: auto;
     scroll-snap-type: x mandatory;
-    scroll-padding-left: 4px;
     row-gap: 14px;
     padding-bottom: 8px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    /* Full-bleed scroll: extend to card edges, pad internally */
+    margin-left: calc(-1 * var(--_tunet-card-pad, 16px));
+    margin-right: calc(-1 * var(--_tunet-card-pad, 16px));
+    padding-left: var(--_tunet-card-pad, 16px);
+    padding-right: var(--_tunet-card-pad, 16px);
+    scroll-padding-left: var(--_tunet-card-pad, 16px);
   }
   :host([layout="scroll"]) .light-grid::-webkit-scrollbar { display: none; }
 
@@ -361,8 +402,9 @@ ${CARD_SURFACE_GLASS_STROKE}
      LIGHT TILE (Design Language §3.5 Tile Surface)
      ═══════════════════════════════════════════════════ */
   .l-tile {
+    --tile-icon-size: var(--_tunet-icon-box, 2.35em);
     background: var(--tile-bg);
-    border-radius: var(--r-tile);
+    border-radius: var(--_tunet-tile-radius, var(--r-tile));
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
@@ -371,43 +413,57 @@ ${CARD_SURFACE_GLASS_STROKE}
     position: relative;
     cursor: pointer;
     user-select: none;
-    touch-action: none;
+    touch-action: pan-y;
     border: 1px solid var(--border-ghost);
-    overflow: visible;
+    overflow: hidden;
     min-height: 0;
     height: 100%;
-    transition:
-      transform var(--motion-ui) var(--ease-emphasized),
-      box-shadow var(--motion-ui) var(--ease-standard),
-      border-color var(--motion-ui) var(--ease-standard),
-      background-color var(--motion-surface) var(--ease-standard);
+    gap: var(--_tunet-tile-gap, 0.14em);
+    padding: var(--_tunet-tile-pad, 0.62em) 0.34em 1.04em;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.18s ease;
   }
 
-  /* Compact tile variant */
+  @media (hover: hover) and (pointer: fine) {
+    .l-tile:hover {
+      box-shadow: var(--shadow-up);
+    }
+  }
+  .l-tile:active {
+    transform: scale(var(--press-scale-strong));
+  }
+
+  /* Compact tile variant — fallbacks only; profile system controls these via --_tunet-* */
   :host([tile-size="compact"]) .l-tile {
-    padding: 8px 6px 20px;
+    gap: 0.06em;
+    padding: var(--_tunet-tile-pad, 0.46em) 0.26em 1.22em;
   }
   :host([tile-size="compact"]) .tile-icon-wrap {
-    width: 38px;
-    height: 38px;
-    margin-bottom: 4px;
-    border-radius: 50%;
+    margin-top: 0;
+    margin-bottom: 0.14em;
   }
   :host([tile-size="compact"]) .zone-name {
-    font-size: 12px;
-    max-width: 95%;
+    max-width: 96%;
+    min-height: 1.12em;
+    line-height: 1.06;
+    margin-bottom: 0;
   }
   :host([tile-size="compact"]) .zone-val {
-    font-size: 11.5px;
+    line-height: 1.04;
+    margin-top: 0;
+    margin-bottom: 5px;
+  }
+  :host([tile-size="compact"][dense-compact]) .l-tile {
+    padding: var(--_tunet-tile-pad, 0.42em) 0.22em 1.24em;
   }
   :host([tile-size="large"]) .l-tile {
     padding: 12px 10px 18px;
   }
 
   /* Scroll layout tile additions */
-  :host([layout="scroll"]) .l-tile {
-    scroll-snap-align: start;
-    touch-action: pan-y;
+  :host([layout="scroll"]) .l-tile { scroll-snap-align: start; }
+  :host([layout="scroll"][tile-size="compact"]) .l-tile {
+    padding-bottom: 30px;
   }
 
   /* Focus visible on tiles */
@@ -421,7 +477,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   .l-tile.off .tile-icon-wrap {
     background: var(--gray-ghost);
     color: var(--text-muted);
-    border: 1px solid transparent;
+    border: 1px solid var(--ctrl-border);
   }
   .l-tile.off .zone-name { color: var(--text-sub); }
   .l-tile.off .zone-val { color: var(--text-sub); opacity: 0.5; }
@@ -435,7 +491,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   .l-tile.unavailable .tile-icon-wrap {
     background: var(--track-bg);
     color: var(--text-muted);
-    border: 1px solid transparent;
+    border: 1px solid var(--ctrl-border);
   }
   .l-tile.unavailable .zone-val {
     color: var(--text-muted);
@@ -463,6 +519,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     z-index: 100;
     border-color: var(--amber) !important;
     transition: none;
+    overflow: visible;
   }
 
   /* Floating pill – .zone-val repositions during slide */
@@ -489,17 +546,27 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Tile Content ────────────────────────────────── */
   .tile-icon-wrap {
-    width: 44px;
-    height: 44px;
+    width: var(--_tunet-icon-box, var(--tile-icon-size, 2.35em));
+    height: var(--_tunet-icon-box, var(--tile-icon-size, 2.35em));
+    min-width: var(--_tunet-icon-box, var(--tile-icon-size, 2.35em));
+    min-height: var(--_tunet-icon-box, var(--tile-icon-size, 2.35em));
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
     display: grid;
     place-items: center;
-    margin-bottom: 6px;
+    margin-top: 0.08em;
+    margin-bottom: 0.2em;
     transition: all .2s ease;
+  }
+  .tile-icon-wrap .icon {
+    width: var(--_tunet-icon-glyph, 1.3em);
+    height: var(--_tunet-icon-glyph, 1.3em);
+    font-size: var(--_tunet-icon-glyph, 1.3em);
+    line-height: 1;
   }
 
   .zone-name {
-    font-size: 14px;
+    font-size: var(--_tunet-name-font, 14px);
     font-weight: 600;
     letter-spacing: 0.1px;
     color: var(--text);
@@ -513,9 +580,10 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
 
   .zone-val {
-    font-size: 13px;
+    font-size: var(--_tunet-value-font, 13px);
     font-weight: 700;
     letter-spacing: 0.1px;
+    line-height: 1.15;
     transition: color .2s;
     font-variant-numeric: tabular-nums;
   }
@@ -526,11 +594,16 @@ ${CARD_SURFACE_GLASS_STROKE}
     bottom: 10px;
     left: 14px;
     right: 14px;
-    height: 4px;
+    height: var(--_tunet-progress-h, 4px);
     background: var(--track-bg);
     border-radius: var(--r-track);
     overflow: hidden;
     transition: height .2s ease;
+  }
+  :host([tile-size="compact"]) .progress-track {
+    bottom: 6px;
+    left: 10px;
+    right: 10px;
   }
   .progress-fill {
     height: 100%;
@@ -564,15 +637,22 @@ ${REDUCED_MOTION}
      ═══════════════════════════════════════════════════ */
   @media (max-width: 440px) {
     .card {
-      padding: 16px;
+      padding: var(--_tunet-card-pad, var(--card-pad, 14px));
       --r-track: 999px;
     }
-    .light-grid { gap: 8px; }
-    .l-tile { min-height: 88px; }
+    .l-tile { min-height: 82px; }
+    :host([tile-size="compact"]) .zone-name {
+      line-height: 1.08;
+      min-height: 1.15em;
+      margin-bottom: 1px;
+    }
+    :host([tile-size="compact"]) .zone-val {
+      line-height: 1.08;
+      margin-top: 2px;
+    }
 
     :host([layout="scroll"]) .light-grid {
       grid-auto-columns: calc(44% - 6px);
-      scroll-padding-left: 0;
     }
 
     :host([surface="section"]) .card {
@@ -612,21 +692,22 @@ const LIGHTING_TEMPLATE = `
         <!-- Pagination dots (scroll mode only) -->
         <div class="header-dots" id="headerDots"></div>
 
+        <!-- Manual reset (shows only when manual overrides exist) -->
+        <div class="toggle-wrap" id="manualResetWrap">
+          <button class="toggle-btn manual-reset hidden" id="manualResetBtn"
+                  aria-label="Clear manual adaptive overrides">
+            <span class="icon icon-18">restart_alt</span>
+          </button>
+          <span class="manual-badge" id="manualBadge">0</span>
+        </div>
+
         <!-- Adaptive Lighting Toggle (§5.6) -->
         <div class="toggle-wrap" id="adaptiveWrap">
           <button class="toggle-btn hidden" id="adaptiveBtn"
                   aria-label="Toggle adaptive lighting">
             <span class="icon icon-18">auto_awesome</span>
           </button>
-          <span class="manual-badge" id="manualBadge">0</span>
         </div>
-
-        <!-- All On/Off Toggle Button (§5.7) -->
-        <button class="selector-btn" id="allOffBtn"
-                aria-label="Toggle all lights">
-          <span class="icon icon-16" id="allBtnIcon">power_settings_new</span>
-          <span id="allBtnLabel">All Off</span>
-        </button>
 
       </div>
 
@@ -650,17 +731,21 @@ class TunetLightingCard extends HTMLElement {
     this._rendered = false;
     this._resolvedZones = [];  // [{entity, name, icon}, ...]
     this._tiles = {};
-    this._dragState = null;
     this._serviceCooldown = {};
     this._cooldownTimers = {};
-    this._adaptivePressTimer = null;
-    this._adaptiveLongPress = false;
+    this._activeColumns = 3;
+    this._tileDragController = null;
+    this._resizeObserver = null;
+    this._widthBucket440 = null;
+    this._widthBucket640 = null;
+
+    // G2: Profile consumption state
+    this._profileCache = new Map();
+    this._currentFamily = null;
+    this._lastWidth = 0;
 
     injectFonts();
-
-    this._onPointerMove = this._onPointerMove.bind(this);
-    this._onPointerUp   = this._onPointerUp.bind(this);
-    this._onPointerCancel = this._onPointerCancel.bind(this);
+    this._onHostResize = this._onHostResize.bind(this);
   }
 
   /* ═══════════════════════════════════════════════════
@@ -676,48 +761,59 @@ class TunetLightingCard extends HTMLElement {
           name: 'entities',
           selector: { entity: { multiple: true, filter: [{ domain: 'light' }] } },
         },
+        { name: 'zones', selector: { object: {} } },
         { name: 'name',            selector: { text: {} } },
         { name: 'primary_entity',  selector: { entity: { filter: [{ domain: 'light' }] } } },
         { name: 'adaptive_entity', selector: { entity: { filter: [{ domain: 'switch' }, { domain: 'automation' }, { domain: 'input_boolean' }] } } },
+        {
+          name: 'adaptive_entities',
+          selector: { entity: { multiple: true, filter: [{ domain: 'switch' }, { domain: 'automation' }, { domain: 'input_boolean' }] } },
+        },
+        { name: 'show_adaptive_toggle', selector: { boolean: {} } },
+        { name: 'show_manual_reset', selector: { boolean: {} } },
         { name: 'surface',         selector: { select: { options: ['card', 'section'] } } },
         { name: 'layout',          selector: { select: { options: ['grid', 'scroll'] } } },
-        {
-          name: '', type: 'grid', schema: [
-            { name: 'columns',     selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
-            { name: 'scroll_rows', selector: { number: { min: 1, max: 3, step: 1, mode: 'box' } } },
-          ],
-        },
-        {
-          name: '', type: 'grid', schema: [
-            { name: 'rows',        selector: { text: {} } },
-            { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
-            { name: 'expand_groups', selector: { boolean: {} } },
-          ],
-        },
+        { name: 'columns',     selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
+        { name: 'column_breakpoints', selector: { object: {} } },
+        { name: 'scroll_rows', selector: { number: { min: 1, max: 3, step: 1, mode: 'box' } } },
+        { name: 'rows',        selector: { text: {} } },
+        { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
+        { name: 'expand_groups', selector: { boolean: {} } },
         {
           type: 'expandable',
           title: 'Advanced',
           icon: 'mdi:code-braces',
           schema: [
+            { name: 'use_profiles', selector: { boolean: {} } },
             { name: 'custom_css', selector: { text: { multiline: true } } },
           ],
         },
       ],
       computeLabel: (s) => ({
         entities:        'Light Entities (groups auto-expand)',
+        zones:           'Zones (objects with entity/name/icon)',
         name:            'Card Title',
         primary_entity:  'Primary Entity (info tile tap)',
-        adaptive_entity: 'Adaptive Lighting Switch',
+        adaptive_entity: 'Adaptive Entity (legacy single)',
+        adaptive_entities:'Adaptive Entities (multi-zone)',
+        show_adaptive_toggle: 'Show Adaptive Toggle',
+        show_manual_reset: 'Show Manual Reset Icon',
         surface:         'Surface Style',
         layout:          'Layout Mode',
         columns:         'Grid Columns',
+        column_breakpoints: 'Responsive Column Breakpoints',
         rows:            'Max Rows (auto or number)',
         scroll_rows:     'Scroll Rows',
         tile_size:       'Tile Size',
         expand_groups:   'Expand Group Entities',
+        use_profiles:    'Use Profile System (density-responsive sizing)',
         custom_css:      'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
       computeHelper: (s) => ({
+        zones: 'Optional rich zones: [{entity, name, icon}]',
+        adaptive_entities: 'If omitted, card auto-matches adaptive_lighting switches to current zones.',
+        column_breakpoints: 'Array/object rules. Example: [{max_width: 600, columns: 4}, {max_width: 1024, columns: 6}, {columns: 8}]',
+        use_profiles: 'Enable profile-driven tile sizing. Disable to revert to legacy hardcoded sizes.',
         custom_css: 'CSS rules injected into shadow DOM. Use .light-grid, .l-tile, etc.',
       }[s.name] || ''),
     };
@@ -765,13 +861,19 @@ class TunetLightingCard extends HTMLElement {
       const n = Number(value);
       return Number.isFinite(n) ? n : fallback;
     };
-    const columns = Math.max(2, Math.min(5, Math.round(asFinite(config.columns, 3))));
-    const scrollRows = Math.max(1, Math.min(3, Math.round(asFinite(config.scroll_rows, 2))));
+    const columns = clampInt(config.columns, 2, 8, 3);
+    const scrollRows = clampInt(config.scroll_rows, 1, 3, 2);
     const layout = config.layout === 'scroll' ? 'scroll' : 'grid';
     const surface = config.surface === 'section' ? 'section' : 'card';
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
     const tileSize = tileSizeRaw === 'compact' ? 'compact' : (tileSizeRaw === 'large' ? 'large' : 'standard');
     const expandGroups = config.expand_groups !== false;
+    const showAdaptiveToggle = config.show_adaptive_toggle !== false;
+    const showManualReset = config.show_manual_reset !== false;
+    const adaptiveEntities = Array.from(new Set(
+      (Array.isArray(config.adaptive_entities) ? config.adaptive_entities : []).filter(Boolean)
+    ));
+    const columnBreakpoints = normalizeColumnBreakpoints(config.column_breakpoints);
     const rows = config.rows === 'auto' || config.rows == null
       ? null
       : (() => {
@@ -780,6 +882,10 @@ class TunetLightingCard extends HTMLElement {
           return Math.max(1, Math.min(6, Math.round(parsed)));
         })();
 
+    // G2: use_profiles defaults true; global override via window.TUNET_USE_PROFILES
+    const useProfiles = (config.use_profiles !== false) &&
+      (typeof window === 'undefined' || window.TUNET_USE_PROFILES !== false);
+
     this._config = {
       entities:        hasEntities ? normalizedEntities : [],
       zones:           hasZones ? normalizedZones : [],
@@ -787,13 +893,18 @@ class TunetLightingCard extends HTMLElement {
       subtitle:        config.subtitle || '',
       primary_entity:  config.primary_entity || '',
       adaptive_entity: config.adaptive_entity || '',
+      adaptive_entities: adaptiveEntities,
+      show_adaptive_toggle: showAdaptiveToggle,
+      show_manual_reset: showManualReset,
       columns,
+      column_breakpoints: columnBreakpoints,
       layout,
       scroll_rows:     scrollRows,
       surface,
       tile_size:       tileSize,
       expand_groups:   expandGroups,
       rows,
+      use_profiles:    useProfiles,
       custom_css:      config.custom_css || '',
     };
 
@@ -820,8 +931,13 @@ class TunetLightingCard extends HTMLElement {
       this.removeAttribute('data-max-rows');
     }
 
+    // G2: Version handshake + profile application
+    this._checkBaseCompat();
+    this._applyProfile();
+
     if (this._rendered && this._hass) {
       this._resolveZones();
+      this._activeColumns = this._resolveResponsiveColumns();
       this._buildGrid();
       this._updateAll();
     }
@@ -838,6 +954,7 @@ class TunetLightingCard extends HTMLElement {
     if (!this._rendered) {
       this._render();
       this._resolveZones();
+      this._activeColumns = this._resolveResponsiveColumns();
       this._buildGrid();
       this._setupListeners();
       this._rendered = true;
@@ -856,8 +973,11 @@ class TunetLightingCard extends HTMLElement {
     for (const zone of this._resolvedZones) {
       if (oldH.states[zone.entity] !== newH.states[zone.entity]) return true;
     }
-    const ae = this._config.adaptive_entity;
-    if (ae && oldH.states[ae] !== newH.states[ae]) return true;
+    for (const ae of (this._config.adaptive_entities || [])) {
+      if (oldH.states[ae] !== newH.states[ae]) return true;
+    }
+    const legacyAdaptive = this._config.adaptive_entity;
+    if (legacyAdaptive && oldH.states[legacyAdaptive] !== newH.states[legacyAdaptive]) return true;
     // Watch all AL switches for manual_control changes
     for (const key of Object.keys(newH.states)) {
       if (key.startsWith('switch.adaptive_lighting_') && oldH.states[key] !== newH.states[key]) return true;
@@ -869,9 +989,47 @@ class TunetLightingCard extends HTMLElement {
     if (this._config.layout === 'scroll') {
       return Math.max(2, 1 + (this._config.scroll_rows || 2) * 2);
     }
-    const computedRows = Math.ceil(this._resolvedZones.length / (this._config.columns || 3));
+    const cols = this._activeColumns || this._config.columns || 3;
+    const computedRows = Math.ceil(this._resolvedZones.length / cols);
     const visibleRows = this._config.rows || computedRows;
     return Math.max(2, 2 + visibleRows * 2);
+  }
+
+  // Sections view (12-column grid) sizing hints
+  getGridOptions() {
+    return {
+      columns: 12,
+      min_columns: 6,
+      rows: 'auto',
+      min_rows: 3,
+      fixed_rows: true,
+    };
+  }
+
+  _getHostWidth(widthHint = null) {
+    const parsed = Number(widthHint);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    const cardWidth = Number(this.$?.card?.getBoundingClientRect?.().width);
+    if (Number.isFinite(cardWidth) && cardWidth > 0) return cardWidth;
+    const hostWidth = Number(this.getBoundingClientRect?.().width);
+    if (Number.isFinite(hostWidth) && hostWidth > 0) return hostWidth;
+    return 1024; // D14: no window.innerWidth — container-first
+  }
+
+  _isWidthAtMost(maxWidth, widthHint = null) {
+    return this._getHostWidth(widthHint) <= maxWidth;
+  }
+
+  _resolveResponsiveColumns(widthHint = null) {
+    const baseColumns = this._config.columns || 3;
+    const width = this._getHostWidth(widthHint);
+    const rules = Array.isArray(this._config.column_breakpoints) ? this._config.column_breakpoints : [];
+    for (const rule of rules) {
+      const minWidth = rule.minWidth == null ? Number.NEGATIVE_INFINITY : rule.minWidth;
+      const maxWidth = rule.maxWidth == null ? Number.POSITIVE_INFINITY : rule.maxWidth;
+      if (width >= minWidth && width <= maxWidth) return rule.columns;
+    }
+    return baseColumns;
   }
 
   /* ═══════════════════════════════════════════════════
@@ -939,22 +1097,183 @@ class TunetLightingCard extends HTMLElement {
      ═══════════════════════════════════════════════════ */
 
   connectedCallback() {
-    document.addEventListener('pointermove', this._onPointerMove);
-    document.addEventListener('pointerup',   this._onPointerUp);
-    document.addEventListener('pointercancel', this._onPointerCancel);
+    this._setupResizeObserver();
   }
 
   disconnectedCallback() {
-    document.removeEventListener('pointermove', this._onPointerMove);
-    document.removeEventListener('pointerup',   this._onPointerUp);
-    document.removeEventListener('pointercancel', this._onPointerCancel);
-    clearTimeout(this._adaptivePressTimer);
-    this._adaptivePressTimer = null;
+    if (this._tileDragController) {
+      this._tileDragController.destroy();
+      this._tileDragController = null;
+    }
+    this._teardownResizeObserver();
+    this._profileCache.clear();
     for (const timer of Object.values(this._cooldownTimers)) {
       clearTimeout(timer);
     }
     this._cooldownTimers = {};
     this._serviceCooldown = {};
+  }
+
+  _setupResizeObserver() {
+    if (this._resizeObserver || typeof ResizeObserver === 'undefined') return;
+    this._resizeObserver = new ResizeObserver((entries) => {
+      const width = entries?.[0]?.contentRect?.width;
+      this._onHostResize(width);
+    });
+    this._resizeObserver.observe(this);
+  }
+
+  _teardownResizeObserver() {
+    if (!this._resizeObserver) return;
+    this._resizeObserver.disconnect();
+    this._resizeObserver = null;
+  }
+
+  _onHostResize(widthHint = null) {
+    if (!this._rendered) return;
+    const width = this._getHostWidth(widthHint);
+    this._lastWidth = width; // G2: track for profile system
+    const nextColumns = this._resolveResponsiveColumns(width);
+    const nextBucket440 = this._isWidthAtMost(440, width);
+    const nextBucket640 = this._isWidthAtMost(640, width);
+    const columnsChanged = nextColumns !== this._activeColumns;
+    const bucketChanged = nextBucket440 !== this._widthBucket440 || nextBucket640 !== this._widthBucket640;
+    // G2: always re-evaluate profile on resize (bucket-level memoization inside _applyProfile)
+    this._applyProfile();
+    if (!columnsChanged && !bucketChanged) return;
+    this._activeColumns = nextColumns;
+    this._widthBucket440 = nextBucket440;
+    this._widthBucket640 = nextBucket640;
+    this._buildGrid();
+    this._updateAll();
+  }
+
+  /* ═══════════════════════════════════════════════════
+     G2: PROFILE CONSUMPTION SYSTEM
+     Architecture: unified_tile_architecture_conclusion.md v3.1 §9-§11
+     ═══════════════════════════════════════════════════ */
+
+  /**
+   * Version handshake — called in setConfig.
+   * If tunet_base.js profile schema version is incompatible, render visible error.
+   */
+  _checkBaseCompat() {
+    const baseVersion = typeof window !== 'undefined' && window.TunetBase?.PROFILE_SCHEMA_VERSION;
+    if (!baseVersion) {
+      this._renderError('Profile system unavailable — tunet_base.js not loaded or outdated');
+      return;
+    }
+    const expectedMajor = PROFILE_SCHEMA_VERSION.split('-')[0];
+    const actualMajor = baseVersion.split('-')[0];
+    if (expectedMajor !== actualMajor) {
+      this._renderError(`Profile version mismatch: card expects ${expectedMajor}, base has ${actualMajor}`);
+    }
+  }
+
+  /**
+   * Render a visible error message inside the card shadow DOM.
+   * Must not throw — HA catches uncaught exceptions and silently freezes the card (D13).
+   */
+  _renderError(message) {
+    try {
+      if (!this.shadowRoot) return;
+      let errEl = this.shadowRoot.getElementById('tunet-profile-error');
+      if (!errEl) {
+        errEl = document.createElement('div');
+        errEl.id = 'tunet-profile-error';
+        errEl.style.cssText = 'padding:12px;margin:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:8px;color:#ef4444;font-size:12px;font-weight:600;';
+        this.shadowRoot.prepend(errEl);
+      }
+      errEl.textContent = message;
+    } catch (_) { /* never throw from error renderer */ }
+  }
+
+  /**
+   * Single convergence point for profile application (arch doc §11).
+   * Called from both setConfig and _onHostResize.
+   */
+  _applyProfile() {
+    if (!this._config.use_profiles) {
+      this._applyLegacyScaling();
+      return;
+    }
+
+    const { family, size } = selectProfileSize({
+      preset: 'lighting',
+      layout: this._config.layout || 'grid',
+      widthHint: this._lastWidth,
+      userSize: this._config.tile_size,
+    });
+
+    // Instance cache check (D10): invalidate on family change
+    if (family !== this._currentFamily) {
+      this._profileCache.clear();
+      this._currentFamily = family;
+    }
+
+    const bucket = bucketFromWidth(this._lastWidth);
+    const cacheKey = `${family}:${size}:${bucket}`;
+    if (this._profileCache.has(cacheKey)) return; // same profile already applied
+
+    const profile = resolveSizeProfile({ family, size });
+    this._profileCache.set(cacheKey, true);
+    this._setProfileVars(profile);
+  }
+
+  /**
+   * Legacy scaling path — wraps existing hardcoded sizing logic.
+   * Called when use_profiles: false. No behavior change from pre-G2.
+   */
+  _applyLegacyScaling() {
+    // Clear any profile vars that may have been set previously
+    if (this.style.length > 0) {
+      const toRemove = [];
+      for (let i = 0; i < this.style.length; i++) {
+        const prop = this.style[i];
+        if (prop.startsWith('--_tunet-')) toRemove.push(prop);
+      }
+      for (const prop of toRemove) this.style.removeProperty(prop);
+    }
+    // Legacy path: tile-size attribute selectors in CSS handle sizing (no action needed)
+  }
+
+  /**
+   * Set --_tunet-* CSS custom properties on the card host element.
+   * Per arch doc §9: three-step process.
+   */
+  _setProfileVars(profile) {
+    // Step 1: Clear all --_tunet-* from this.style (prevents stale tokens on family switch, D11)
+    const toRemove = [];
+    for (let i = 0; i < this.style.length; i++) {
+      const prop = this.style[i];
+      if (prop.startsWith('--_tunet-')) toRemove.push(prop);
+    }
+    for (const prop of toRemove) this.style.removeProperty(prop);
+
+    // Step 2: Set all tokens present in this profile — data-driven, no conditionals
+    for (const [key, cssVar] of Object.entries(TOKEN_MAP)) {
+      if (profile[key] !== undefined) {
+        this.style.setProperty(cssVar, profile[key]);
+      }
+    }
+
+    // Step 3: Bridge --profile-* public hooks via getComputedStyle (OVERRIDE_PAIRS)
+    const OVERRIDE_PAIRS = [
+      ['--profile-card-pad',     '--_tunet-card-pad'],
+      ['--profile-tile-pad',     '--_tunet-tile-pad'],
+      ['--profile-tile-gap',     '--_tunet-tile-gap'],
+      ['--profile-icon-box',     '--_tunet-icon-box'],
+      ['--profile-name-font',    '--_tunet-name-font'],
+      ['--profile-value-font',   '--_tunet-value-font'],
+      ['--profile-header-font',  '--_tunet-header-font'],
+      ['--profile-section-font', '--_tunet-section-font'],
+      ['--profile-progress-h',   '--_tunet-progress-h'],
+    ];
+    const computed = getComputedStyle(this);
+    for (const [pub, priv] of OVERRIDE_PAIRS) {
+      const override = computed.getPropertyValue(pub).trim();
+      if (override) this.style.setProperty(priv, override);
+    }
   }
 
   /* ═══════════════════════════════════════════════════
@@ -983,14 +1302,18 @@ class TunetLightingCard extends HTMLElement {
       hdrTitle:    this.shadowRoot.getElementById('hdrTitle'),
       hdrSub:      this.shadowRoot.getElementById('hdrSub'),
       headerDots:  this.shadowRoot.getElementById('headerDots'),
+      manualResetWrap:this.shadowRoot.getElementById('manualResetWrap'),
+      manualResetBtn:this.shadowRoot.getElementById('manualResetBtn'),
       adaptiveWrap:this.shadowRoot.getElementById('adaptiveWrap'),
       adaptiveBtn: this.shadowRoot.getElementById('adaptiveBtn'),
       manualBadge: this.shadowRoot.getElementById('manualBadge'),
-      allOffBtn:   this.shadowRoot.getElementById('allOffBtn'),
-      allBtnIcon:  this.shadowRoot.getElementById('allBtnIcon'),
-      allBtnLabel: this.shadowRoot.getElementById('allBtnLabel'),
       lightGrid:   this.shadowRoot.getElementById('lightGrid'),
     };
+
+    const width = this._getHostWidth();
+    this._activeColumns = this._resolveResponsiveColumns(width);
+    this._widthBucket440 = this._isWidthAtMost(440, width);
+    this._widthBucket640 = this._isWidthAtMost(640, width);
   }
 
   _buildGrid() {
@@ -1002,15 +1325,26 @@ class TunetLightingCard extends HTMLElement {
     if (this._customStyleEl) this._customStyleEl.textContent = this._config.custom_css || '';
 
     // Set CSS custom properties
-    grid.style.setProperty('--cols', this._config.columns);
+    const activeColumns = this._activeColumns || this._config.columns || 3;
+    grid.style.setProperty('--cols', activeColumns);
     grid.style.setProperty('--scroll-rows', this._config.scroll_rows);
+    if (this._config.tile_size === 'compact' && activeColumns >= 5) {
+      this.setAttribute('dense-compact', '');
+    } else {
+      this.removeAttribute('dense-compact');
+    }
+    const isMobile = this._widthBucket440 == null
+      ? this._isWidthAtMost(440)
+      : this._widthBucket440;
     const rowHeight = this._config.tile_size === 'compact'
-      ? '104px'
-      : (this._config.tile_size === 'large' ? '136px' : '116px');
+      ? (isMobile ? '94px' : '100px')
+      : (this._config.tile_size === 'large'
+        ? (isMobile ? '124px' : '132px')
+        : (isMobile ? '102px' : '110px'));
     grid.style.setProperty('--grid-row', rowHeight);
 
     // Limit visible tiles when rows is set (avoids overflow:hidden clipping pill)
-    const cols = parseInt(this._config.columns, 10) || 3;
+    const cols = activeColumns;
     const maxRows = parseInt(this._config.rows, 10);
     const maxTiles = (maxRows > 0 && this._config.layout !== 'scroll')
       ? maxRows * cols
@@ -1096,81 +1430,17 @@ class TunetLightingCard extends HTMLElement {
       }));
     });
 
-    // All On/Off toggle button
-    this.$.allOffBtn.addEventListener('click', () => this._toggleAllLights());
+    // Adaptive toggle (global for resolved adaptive entities).
+    this.$.adaptiveBtn.addEventListener('click', () => this._toggleAdaptive());
 
-    // Adaptive toggle + long-press reset-manual / more-info
-    this.$.adaptiveBtn.addEventListener('pointerdown', () => {
-      clearTimeout(this._adaptivePressTimer);
-      this._adaptiveLongPress = false;
-      this._adaptivePressTimer = setTimeout(() => {
-        clearTimeout(this._adaptivePressTimer);
-        this._adaptivePressTimer = null;
-        this._adaptiveLongPress = true;
-        const manualList = this._getManuallyControlled();
-        if (manualList.length > 0) {
-          // Reset all manual control across all AL switches
-          this._resetManualControl();
-        } else {
-          // No manual overrides — open more-info
-          const entityId = this._config.adaptive_entity;
-          if (!entityId) return;
-          this.dispatchEvent(new CustomEvent('hass-more-info', {
-            bubbles: true,
-            composed: true,
-            detail: { entityId },
-          }));
-        }
-      }, 500);
-    });
-    const clearAdaptivePress = () => {
-      clearTimeout(this._adaptivePressTimer);
-      this._adaptivePressTimer = null;
-    };
-    this.$.adaptiveBtn.addEventListener('pointerup', clearAdaptivePress);
-    this.$.adaptiveBtn.addEventListener('pointercancel', clearAdaptivePress);
-    this.$.adaptiveBtn.addEventListener('pointerleave', clearAdaptivePress);
-    this.$.adaptiveBtn.addEventListener('click', (e) => {
-      if (this._adaptiveLongPress) {
-        e.preventDefault();
-        e.stopPropagation();
-        this._adaptiveLongPress = false;
-        return;
-      }
-      this._toggleAdaptive();
+    // Explicit manual reset control (shows only when overrides exist).
+    this.$.manualResetBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this._resetManualControl();
     });
 
-    // Tile pointer down (delegated)
-    this.$.lightGrid.addEventListener('pointerdown', (e) => {
-      const tile = e.target.closest('.l-tile');
-      if (!tile) return;
-      if (!e.isPrimary) return;
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      try {
-        tile.setPointerCapture(e.pointerId);
-      } catch (_) {
-        // Some WebViews/Safari contexts can reject capture; fall back to document listeners.
-      }
-
-      const pointerType = e.pointerType || 'mouse';
-      const isTouch = pointerType === 'touch';
-
-      this._dragState = {
-        entity:      tile.dataset.entity,
-        startX:      e.clientX,
-        startY:      e.clientY,
-        startBright: parseInt(tile.dataset.brightness) || 0,
-        tileEl:      tile,
-        pointerType,
-        dragThreshold: isTouch ? 5 : 10,
-        axisBias: isTouch ? 2 : 5,
-        dragGain: isTouch ? 1.12 : 0.95,
-        axisLocked:  false,
-        ignoreTap:   false,
-        moved:       false,
-        pointerId:   e.pointerId,
-      };
-    });
+    this._initTileDrag();
 
     // Keyboard on tiles (Design Language §11.3)
     this.$.lightGrid.addEventListener('keydown', (e) => {
@@ -1207,119 +1477,100 @@ class TunetLightingCard extends HTMLElement {
   }
 
   /* ═══════════════════════════════════════════════════
-     POINTER HANDLERS – Horizontal drag-to-dim
-     Threshold + axis lock to avoid accidental toggles on touch/desktop
+     POINTER HANDLERS – axis-locked drag helper
      ═══════════════════════════════════════════════════ */
 
-  _onPointerMove(e) {
-    if (!this._dragState) return;
-    const ds = this._dragState;
-    if (ds.pointerId !== e.pointerId) return;
-
-    const dx = e.clientX - ds.startX;
-    const dy = e.clientY - ds.startY;
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-
-    if (!ds.axisLocked) {
-      if (absDx < ds.dragThreshold && absDy < ds.dragThreshold) return;
-
-      // Vertical intent: don't treat as tap/toggle fallback.
-      if (absDy > absDx + ds.axisBias) {
-        ds.ignoreTap = true;
-        this._dragState = null;
-        return;
-      }
-
-      ds.axisLocked = true;
+  _initTileDrag() {
+    if (!this.$?.lightGrid) return;
+    if (this._tileDragController) {
+      this._tileDragController.destroy();
+      this._tileDragController = null;
     }
 
-    if (!ds.moved && absDx < ds.dragThreshold) return;
+    this._tileDragController = createAxisLockedDrag({
+      element: this.$.lightGrid,
+      deadzone: 8,
+      axisBias: 1.3,
+      pointerCapture: false,
+      shouldStart: (event) => !!event.target.closest('.l-tile'),
+      getContext: (event) => {
+        const tileEl = event.target.closest('.l-tile');
+        if (!tileEl) return false;
+        const entity = tileEl.dataset.entity;
+        if (!entity) return false;
+        return {
+          tileEl,
+          entity,
+          pointerType: event.pointerType || 'mouse',
+          startBright: parseInt(tileEl.dataset.brightness, 10) || 0,
+          currentBright: parseInt(tileEl.dataset.brightness, 10) || 0,
+        };
+      },
+      onDragStart: (_event, payload) => {
+        const ctx = payload && payload.context;
+        if (!ctx || !ctx.tileEl) return;
+        ctx.tileEl.classList.add('sliding');
+        document.body.style.cursor = 'grabbing';
+        if (this._config.layout === 'scroll') {
+          this.$.lightGrid.style.scrollSnapType = 'none';
+        }
+      },
+      onDragMove: (event, payload) => {
+        const ctx = payload && payload.context;
+        if (!ctx || !ctx.tileEl) return;
+        const refs = this._tiles[ctx.entity];
+        if (!refs) return;
 
-    if (!ds.moved) {
-      ds.moved = true;
-      ds.tileEl.classList.add('sliding');
-      document.body.style.cursor = 'grabbing';
-      if (this._config.layout === 'scroll') this.$.lightGrid.style.scrollSnapType = 'none';
-    }
+        const width = Math.max(ctx.tileEl.offsetWidth, 1);
+        const dragRange = ctx.pointerType === 'touch'
+          ? Math.max(width * 0.82, 110)
+          : Math.max(width * 1.20, 185);
+        const dragGain = ctx.pointerType === 'touch' ? 1.12 : 0.95;
+        const change = (payload.dx / dragRange) * 100 * dragGain;
+        const newBrt = Math.round(Math.max(0, Math.min(100, ctx.startBright + change)));
+        if (newBrt === ctx.currentBright) return;
 
-    // Map horizontal movement to brightness change
-    if (e.cancelable) e.preventDefault();
-    const width = Math.max(ds.tileEl.offsetWidth, 1);
-    const dragRange = ds.pointerType === 'touch'
-      ? Math.max(width * 0.82, 110)
-      : Math.max(width * 1.20, 185);
-    const change = (dx / dragRange) * 100 * ds.dragGain;
-    const newBrt = Math.round(Math.max(0, Math.min(100, ds.startBright + change)));
-    if (newBrt === ds.currentBright) return;
+        if (event.cancelable) event.preventDefault();
 
-    // Optimistic UI update (no transition during drag)
-    const refs = this._tiles[ds.entity];
-    if (!refs) return;
+        refs.fill.style.transition = 'none';
+        refs.fill.style.width = `${newBrt}%`;
+        refs.val.textContent = newBrt > 0 ? `${newBrt}%` : 'Off';
 
-    refs.fill.style.transition = 'none';
-    refs.fill.style.width = newBrt + '%';
-    refs.val.textContent = newBrt > 0 ? newBrt + '%' : 'Off';
+        if (newBrt > 0) {
+          refs.el.classList.remove('off');
+          refs.el.classList.add('on');
+        } else {
+          refs.el.classList.remove('on');
+          refs.el.classList.add('off');
+        }
 
-    if (newBrt > 0) {
-      refs.el.classList.remove('off');
-      refs.el.classList.add('on');
-    } else {
-      refs.el.classList.remove('on');
-      refs.el.classList.add('off');
-    }
-
-    refs.el.dataset.brightness = newBrt;
-    refs.el.setAttribute('aria-valuenow', newBrt);
-    refs.el.setAttribute('aria-valuetext', newBrt > 0 ? newBrt + ' percent' : 'Off');
-    ds.currentBright = newBrt;
-  }
-
-  _onPointerUp(e) {
-    if (!this._dragState) return;
-    const ds = this._dragState;
-    if (ds.pointerId !== e.pointerId) return;
-    this._finishDrag(ds, {
-      commit: ds.moved && ds.currentBright !== undefined,
-      toggleTap: !ds.moved && !ds.ignoreTap,
+        refs.el.dataset.brightness = String(newBrt);
+        refs.el.setAttribute('aria-valuenow', String(newBrt));
+        refs.el.setAttribute('aria-valuetext', newBrt > 0 ? `${newBrt} percent` : 'Off');
+        ctx.currentBright = newBrt;
+      },
+      onDragEnd: (_event, payload) => {
+        const ctx = payload && payload.context;
+        if (!ctx) return;
+        const refs = this._tiles[ctx.entity];
+        if (refs) {
+          refs.el.classList.remove('sliding');
+          refs.fill.style.transition = '';
+        }
+        document.body.style.cursor = '';
+        if (this._config.layout === 'scroll') {
+          this.$.lightGrid.style.scrollSnapType = 'x mandatory';
+        }
+        if (payload.committed) {
+          this._setBrightness(ctx.entity, ctx.currentBright);
+        }
+      },
+      onTap: (_event, payload) => {
+        const ctx = payload && payload.context;
+        if (!ctx) return;
+        this._toggleLight(ctx.entity);
+      },
     });
-  }
-
-  _onPointerCancel(e) {
-    if (!this._dragState) return;
-    const ds = this._dragState;
-    if (ds.pointerId !== e.pointerId) return;
-    this._finishDrag(ds, { commit: false, toggleTap: false });
-  }
-
-  _finishDrag(ds, { commit, toggleTap }) {
-    const refs = this._tiles[ds.entity];
-
-    if (refs) {
-      refs.el.classList.remove('sliding');
-      refs.fill.style.transition = '';
-      try {
-        refs.el.releasePointerCapture(ds.pointerId);
-      } catch (_) {
-        // Ignore release failures on environments without active capture.
-      }
-    }
-
-    // Reset cursor
-    document.body.style.cursor = '';
-
-    // Restore scroll snapping in scroll mode
-    if (this._config.layout === 'scroll') this.$.lightGrid.style.scrollSnapType = 'x mandatory';
-
-    if (commit) {
-      // Drag completed – set brightness
-      this._setBrightness(ds.entity, ds.currentBright);
-    } else if (toggleTap) {
-      // Tap – toggle on/off
-      this._toggleLight(ds.entity);
-    }
-
-    this._dragState = null;
   }
 
   /* ═══════════════════════════════════════════════════
@@ -1355,8 +1606,9 @@ class TunetLightingCard extends HTMLElement {
       shelf_auto: 'shelves',
       countertops: 'kitchen',
       desk_lamp: 'desk',
-      table_lamp: 'lamp',
-      floor_lamp: 'lamp',
+      lamp: 'table_lamp',
+      table_lamp: 'table_lamp',
+      floor_lamp: 'floor_lamp',
     };
     const resolved = map[raw] || raw;
     if (!resolved || !/^[a-z0-9_]+$/.test(resolved)) return 'lightbulb';
@@ -1373,9 +1625,9 @@ class TunetLightingCard extends HTMLElement {
     if (e && e.attributes.icon) {
       const map = {
         'mdi:ceiling-light':       'light',
-        'mdi:lamp':                'lamp',
-        'mdi:floor-lamp':          'lamp',
-        'mdi:floor-lamp-outline':  'lamp',
+        'mdi:lamp':                'table_lamp',
+        'mdi:floor-lamp':          'floor_lamp',
+        'mdi:floor-lamp-outline':  'floor_lamp',
         'mdi:desk-lamp':           'desk',
         'mdi:lightbulb':           'lightbulb',
         'mdi:lightbulb-group':     'lightbulb',
@@ -1395,30 +1647,65 @@ class TunetLightingCard extends HTMLElement {
 
   /* ── Manual Control Detection ───────────────────── */
 
-  _getManuallyControlled() {
-    if (!this._hass) return [];
-    const manual = [];
-
-    // Check the single configured adaptive_entity (backward-compat)
-    const ae = this._config.adaptive_entity;
-    if (ae) {
-      const entity = this._getEntity(ae);
-      if (entity && entity.attributes && Array.isArray(entity.attributes.manual_control)) {
-        manual.push(...entity.attributes.manual_control);
+  _zoneEntitySet() {
+    const set = new Set();
+    for (const zone of this._resolvedZones) {
+      set.add(zone.entity);
+      const entity = this._getEntity(zone.entity);
+      const members = entity?.attributes?.entity_id;
+      if (Array.isArray(members)) {
+        for (const member of members) set.add(member);
       }
     }
+    return set;
+  }
 
-    // Scan ALL adaptive_lighting switches for manual_control
+  _resolveAdaptiveEntities() {
+    if (!this._hass) return [];
+    const explicit = Array.isArray(this._config.adaptive_entities)
+      ? this._config.adaptive_entities.filter(Boolean)
+      : [];
+    if (explicit.length) return Array.from(new Set(explicit));
+
+    const legacy = this._config.adaptive_entity ? [this._config.adaptive_entity] : [];
+
+    const zoneSet = this._zoneEntitySet();
+    const candidates = [];
     for (const key of Object.keys(this._hass.states)) {
       if (!key.startsWith('switch.adaptive_lighting_')) continue;
-      if (key === ae) continue; // already checked
       const sw = this._hass.states[key];
-      if (sw && sw.attributes && Array.isArray(sw.attributes.manual_control)) {
-        manual.push(...sw.attributes.manual_control);
+      const lights = sw?.attributes?.lights;
+      if (Array.isArray(lights) && lights.some((eid) => zoneSet.has(eid))) {
+        candidates.push(key);
       }
     }
 
-    return manual;
+    if (candidates.length) return Array.from(new Set(candidates));
+    if (legacy.length) return legacy;
+    const allAdaptive = Object.keys(this._hass.states).filter((k) => k.startsWith('switch.adaptive_lighting_'));
+    if (allAdaptive.length === 1) return allAdaptive;
+    return [];
+  }
+
+  _getManuallyControlled(adaptiveEntities = []) {
+    if (!this._hass) return [];
+    const deduped = new Set();
+    for (const entityId of adaptiveEntities) {
+      const entity = this._getEntity(entityId);
+      const manualControl = entity?.attributes?.manual_control;
+      if (!Array.isArray(manualControl)) continue;
+      for (const lightId of manualControl) deduped.add(lightId);
+    }
+    return [...deduped];
+  }
+
+  _isZoneManual(zone, manualSet) {
+    if (!zone?.entity || !manualSet || manualSet.size === 0) return false;
+    if (manualSet.has(zone.entity)) return true;
+    const entity = this._getEntity(zone.entity);
+    const members = entity?.attributes?.entity_id;
+    if (!Array.isArray(members)) return false;
+    return members.some((member) => manualSet.has(member));
   }
 
   /* ═══════════════════════════════════════════════════
@@ -1461,62 +1748,47 @@ class TunetLightingCard extends HTMLElement {
     request.catch(() => this._updateAll());
   }
 
-  _toggleAllLights() {
-    const entityIds = this._resolvedZones.map(zone => zone.entity).filter(Boolean);
-    if (!entityIds.length) return;
-
-    // If any light is on, turn all off; otherwise turn all on
-    const anyOn = entityIds.some(id => {
-      const e = this._getEntity(id);
-      return e && e.state === 'on';
-    });
-
-    if (anyOn) {
-      for (const entityId of entityIds) {
-        this._setCooldown(entityId);
-        const refs = this._tiles[entityId];
-        if (refs) this._updateTileUI(refs, 0);
-      }
-      this._callService('light', 'turn_off', { entity_id: entityIds })
-        .catch(() => this._updateAll());
-    } else {
-      for (const entityId of entityIds) {
-        this._setCooldown(entityId);
-      }
-      this._callService('light', 'turn_on', { entity_id: entityIds })
-        .catch(() => this._updateAll());
-    }
-  }
-
   _toggleAdaptive() {
-    const ae = this._config.adaptive_entity;
-    if (!ae) return;
-    const entity = this._getEntity(ae);
-    if (!entity) return;
-    const domain = ae.split('.')[0];
-    if (domain === 'switch' || domain === 'input_boolean') {
-      this._callService('homeassistant', 'toggle', { entity_id: ae });
-    } else if (domain === 'automation') {
-      this._callService('automation', 'toggle', { entity_id: ae });
+    const adaptiveEntities = this._resolveAdaptiveEntities();
+    if (!adaptiveEntities.length) return;
+    const anyOn = adaptiveEntities.some((entityId) => this._getEntity(entityId)?.state === 'on');
+    const targetService = anyOn ? 'turn_off' : 'turn_on';
+
+    for (const entityId of adaptiveEntities) {
+      const domain = entityId.split('.')[0];
+      if (domain === 'switch' || domain === 'input_boolean') {
+        this._callService('homeassistant', targetService, { entity_id: entityId });
+      } else if (domain === 'automation') {
+        this._callService('automation', targetService, { entity_id: entityId });
+      }
     }
   }
 
   _resetManualControl() {
     if (!this._hass) return;
-    // Find all AL switches with manual_control entries
-    const switches = [];
-    for (const key of Object.keys(this._hass.states)) {
-      if (!key.startsWith('switch.adaptive_lighting_')) continue;
-      const sw = this._hass.states[key];
-      if (sw && sw.attributes && Array.isArray(sw.attributes.manual_control) && sw.attributes.manual_control.length > 0) {
-        switches.push(key);
-      }
+    const adaptiveEntities = this._resolveAdaptiveEntities().filter((entityId) =>
+      entityId.startsWith('switch.adaptive_lighting_')
+    );
+    if (!adaptiveEntities.length) return;
+
+    const zoneSet = this._zoneEntitySet();
+    const manualScoped = new Set(
+      this._getManuallyControlled(adaptiveEntities).filter((entityId) => zoneSet.has(entityId))
+    );
+    if (!manualScoped.size) return;
+
+    for (const switchEntity of adaptiveEntities) {
+      const sw = this._getEntity(switchEntity);
+      const manualControl = sw?.attributes?.manual_control;
+      if (!Array.isArray(manualControl)) continue;
+      const relevantLights = manualControl.filter((l) => manualScoped.has(l));
+      if (!relevantLights.length) continue;
+      this._callService('adaptive_lighting', 'set_manual_control', {
+        entity_id: switchEntity,
+        manual_control: false,
+        lights: relevantLights,
+      });
     }
-    if (switches.length === 0) return;
-    this._callService('adaptive_lighting', 'set_manual_control', {
-      entity_id: switches,
-      manual_control: false,
-    });
   }
 
   /* ═══════════════════════════════════════════════════
@@ -1540,10 +1812,15 @@ class TunetLightingCard extends HTMLElement {
   _updateAll() {
     if (!this._hass || !this._rendered) return;
 
-    const manualList = this._getManuallyControlled();
+    const adaptiveEntities = this._resolveAdaptiveEntities();
+    const manualList = this._getManuallyControlled(adaptiveEntities);
+    const zoneSet = this._zoneEntitySet();
+    const manualScoped = manualList.filter((entityId) => zoneSet.has(entityId));
+    const manualSet = new Set(manualScoped);
     let onCount = 0;
     let totalCount = 0;
     let totalBrightness = 0;
+    let manualZoneCount = 0;
 
     for (const zone of this._resolvedZones) {
       const entity = this._getEntity(zone.entity);
@@ -1581,7 +1858,8 @@ class TunetLightingCard extends HTMLElement {
       refs.name.textContent = this._zoneName(zone);
 
       // Manual dot
-      const isManual = manualList.includes(zone.entity);
+      const isManual = this._isZoneManual(zone, manualSet);
+      if (isManual) manualZoneCount++;
       refs.el.dataset.manual = isManual ? 'true' : 'false';
 
     }
@@ -1590,9 +1868,6 @@ class TunetLightingCard extends HTMLElement {
     const anyOn = onCount > 0;
     this.$.card.dataset.anyOn = anyOn ? 'true' : 'false';
     this.$.card.dataset.allOff = (onCount === 0 && totalCount > 0) ? 'true' : 'false';
-    this.$.allOffBtn.classList.toggle('active', anyOn);
-    this.$.allBtnLabel.textContent = anyOn ? 'All Off' : 'All On';
-    this.$.allBtnIcon.textContent = anyOn ? 'power_settings_new' : 'lightbulb';
 
     // ── Header icon state (Principle #7: outlined off, filled on) ──
     if (anyOn) {
@@ -1611,46 +1886,51 @@ class TunetLightingCard extends HTMLElement {
       this.$.hdrSub.innerHTML = this._config.subtitle;
     } else {
       const avgBrt = onCount > 0 ? Math.round(totalBrightness / onCount) : 0;
-      const ae = this._config.adaptive_entity;
-      const aeEntity = ae ? this._getEntity(ae) : null;
-      const aeOn = aeEntity && aeEntity.state === 'on';
-      const manualCount = manualList.length;
+      const adaptiveAnyOn = adaptiveEntities.some((entityId) => this._getEntity(entityId)?.state === 'on');
+      const compactSubtitle = this._widthBucket640 == null
+        ? this._isWidthAtMost(640)
+        : this._widthBucket640;
+      const manualCount = manualScoped.length;
 
       let parts = [];
 
       if (onCount === 0) {
         parts.push('All off');
       } else if (onCount === totalCount) {
-        parts.push(`<span class="amber-ic">All on</span> \u00b7 ${avgBrt}%`);
+        parts.push(`<span class="amber-ic">All on</span>`);
+        parts.push(`${avgBrt}%`);
       } else {
-        parts.push(`<span class="amber-ic">${onCount} on</span> \u00b7 ${avgBrt}%`);
+        parts.push(`<span class="amber-ic">${onCount} on</span>`);
+        parts.push(`${avgBrt}%`);
       }
 
-      if (aeOn && manualCount > 0) {
-        parts.push(`<span class="adaptive-ic">Adaptive</span> \u00b7 <span class="red-ic">${manualCount} manual</span>`);
-      } else if (aeOn) {
+      if (manualCount > 0) {
+        parts.push(`<span class="red-ic">${manualCount} manual</span>`);
+      } else if (adaptiveAnyOn && !compactSubtitle) {
         parts.push('<span class="adaptive-ic">Adaptive</span>');
       }
 
       this.$.hdrSub.innerHTML = parts.join(' \u00b7 ');
     }
 
-    // ── Adaptive toggle ──
-    const ae = this._config.adaptive_entity;
-    if (ae) {
+    // ── Adaptive controls ──
+    const hasAdaptiveTargets = adaptiveEntities.length > 0;
+    const adaptiveAnyOn = adaptiveEntities.some((entityId) => this._getEntity(entityId)?.state === 'on');
+    if (this._config.show_adaptive_toggle && hasAdaptiveTargets) {
+      this.$.adaptiveWrap.classList.remove('hidden');
       this.$.adaptiveBtn.classList.remove('hidden');
-      const aeEntity = this._getEntity(ae);
-      const aeOn = aeEntity && aeEntity.state === 'on';
-      this.$.adaptiveBtn.classList.toggle('on', aeOn);
-      this.$.adaptiveBtn.setAttribute('aria-pressed', aeOn ? 'true' : 'false');
-
-      // Manual count badge
-      const manualCount = manualList.length;
-      this.$.adaptiveBtn.classList.toggle('has-manual', manualCount > 0);
-      this.$.manualBadge.textContent = manualCount;
+      this.$.adaptiveBtn.classList.toggle('on', adaptiveAnyOn);
+      this.$.adaptiveBtn.setAttribute('aria-pressed', adaptiveAnyOn ? 'true' : 'false');
     } else {
       this.$.adaptiveBtn.classList.add('hidden');
+      this.$.adaptiveWrap.classList.add('hidden');
     }
+
+    const showManualReset = this._config.show_manual_reset && hasAdaptiveTargets && manualZoneCount > 0;
+    this.$.manualResetWrap.classList.toggle('hidden', !showManualReset);
+    this.$.manualResetBtn.classList.toggle('hidden', !showManualReset);
+    this.$.manualResetWrap.classList.toggle('has-manual', showManualReset);
+    this.$.manualBadge.textContent = String(manualScoped.length);
   }
 }
 

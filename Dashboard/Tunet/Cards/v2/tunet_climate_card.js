@@ -15,9 +15,9 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
-} from './tunet_base.js';
+} from './tunet_base.js?v=20260308g2e';
 
-const CARD_VERSION = '1.1.0';
+const CARD_VERSION = '1.2.0';
 
 /* ===============================================================
    CSS – Base imports + card-specific styles
@@ -50,6 +50,44 @@ ${CARD_SURFACE_GLASS_STROKE}
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     box-shadow: var(--section-shadow), var(--inset);
+  }
+
+  /* Thin variant for denser dashboard layouts */
+  :host([variant="thin"]) .card {
+    padding: 14px 14px 10px;
+  }
+  :host([variant="thin"]) .hdr {
+    margin-bottom: 10px;
+  }
+  :host([variant="thin"]) .temps {
+    display: none;
+  }
+  :host([variant="thin"]) .slider-zone {
+    margin-top: 0;
+  }
+  :host([variant="thin"]) .slider {
+    height: 36px;
+  }
+  :host([variant="thin"]) .thumb {
+    width: 36px;
+    height: 36px;
+  }
+  :host([variant="thin"]) .thumb-disc {
+    width: 22px;
+    height: 22px;
+  }
+  :host([variant="thin"]) .thumb-dot {
+    width: 7px;
+    height: 7px;
+  }
+  :host([variant="thin"]) .scale {
+    padding-top: 2px;
+  }
+  :host([variant="thin"]) .scale-num {
+    font-size: 10px;
+  }
+  :host([variant="thin"]) .cur-marker {
+    bottom: -12px;
   }
 
   /* -- Header -- */
@@ -648,6 +686,10 @@ class TunetClimateCard extends HTMLElement {
           selector: { select: { options: ['card', 'section'] } },
         },
         {
+          name: 'variant',
+          selector: { select: { options: ['standard', 'thin'] } },
+        },
+        {
           name: '',
           type: 'grid',
           schema: [
@@ -668,6 +710,7 @@ class TunetClimateCard extends HTMLElement {
           humidity_entity: 'Humidity Sensor',
           name: 'Card Name',
           surface: 'Surface Style',
+          variant: 'Variant',
           display_min: 'Scale Min',
           display_max: 'Scale Max',
         };
@@ -694,12 +737,18 @@ class TunetClimateCard extends HTMLElement {
       display_min: config.display_min != null ? Number(config.display_min) : null,
       display_max: config.display_max != null ? Number(config.display_max) : null,
       surface: config.surface === 'section' ? 'section' : 'card',
+      variant: config.variant === 'thin' ? 'thin' : 'standard',
     };
 
     if (this._config.surface === 'section') {
       this.setAttribute('surface', 'section');
     } else {
       this.removeAttribute('surface');
+    }
+    if (this._config.variant === 'thin') {
+      this.setAttribute('variant', 'thin');
+    } else {
+      this.removeAttribute('variant');
     }
 
     if (this._rendered) this._updateAll();
@@ -732,7 +781,17 @@ class TunetClimateCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 4;
+    return this._config.variant === 'thin' ? 3 : 4;
+  }
+
+  // Sections view (12-column grid) sizing hints
+  getGridOptions() {
+    return {
+      columns: 6,
+      min_columns: 3,
+      rows: 'auto',
+      min_rows: 3,
+    };
   }
 
   /* -- Lifecycle -- */
@@ -1051,6 +1110,14 @@ class TunetClimateCard extends HTMLElement {
     const actionClass = { heating: 'heat-ic', cooling: 'cool-ic' };
 
     let parts = [];
+
+    if (this._config.variant === 'thin') {
+      const thinTemps = [];
+      if (s.cur != null) thinTemps.push(`${s.cur}° in`);
+      if (s.heat != null && s.mode !== 'cool' && s.mode !== 'off') thinTemps.push(`H ${s.heat}°`);
+      if (s.cool != null && s.mode !== 'heat' && s.mode !== 'off') thinTemps.push(`C ${s.cool}°`);
+      if (thinTemps.length) parts.push(thinTemps.join(' · '));
+    }
 
     // Humidity
     if (s.humidity != null) {

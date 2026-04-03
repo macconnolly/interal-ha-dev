@@ -1,3 +1,19 @@
+# Tunet Docs Guidance
+
+## Documentation Routing
+
+- Canonical design/profile contract: `Dashboard/Tunet/Mockups/design_language.md`
+- Documentation structure index: `Dashboard/Tunet/design.md`
+- Sections model contract: `Dashboard/Tunet/Docs/sections_layout_matrix.md`
+- Operational control docs: `plan.md`, `FIX_LEDGER.md`, `handoff.md`
+
+## Documentation Policy
+
+When architecture, interaction contract, or rollout gates change:
+1. update canonical doc(s)
+2. sync `plan.md`, `FIX_LEDGER.md`, and `handoff.md` in the same session
+3. mark any contradictory older language as historical/superseded
+
 <claude-mem-context>
 # Recent Activity
 

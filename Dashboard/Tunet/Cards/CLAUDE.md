@@ -1,28 +1,30 @@
-# Tunet Cards — Build Instructions
+# Tunet Cards Build Instructions
 
-## Before modifying any card
-1. Read `../Mockups/design_language.md` (v8.0) — the canonical spec
-2. Open `tunet_climate_card.js` side-by-side — the gold standard
-3. Read `../../../01_START_HERE.md` for entity inventory and card-by-card audit
+## Before Modifying Any Card
 
-## Card skeleton (every card follows this)
-```
-HTMLElement + attachShadow({mode:'open'})
-CSS tokens on :host (light) and :host(.dark) (dark) — copy from climate card
-Glass card: backdrop-filter blur(24px) + ::before XOR stroke + inset ring
-§5 info-tile header: 42px tappable, icon+title+subtitle, --ctrl-bg/border/sh idle
-Dark mode: hass.themes.darkMode → toggle .dark on :host
-Change detection: reference equality oldHass.states[entity] !== hass.states[entity]
-Editor: static getConfigForm() — NEVER imperative editor class
-```
+1. Read `../Mockups/design_language.md` (`v9.0`) for normative V2 rules
+2. Read `../design.md` for source/preference routing
+3. Work only in `../Cards/v3/` unless explicitly asked to touch legacy paths
 
-## Token source of truth
-All cards now use midnight navy dark palette (`rgba(30,41,59,...)` base, `#fbbf24` dark amber).
-`:host` and `:host(.dark)` blocks across all cards are synchronized to design_language.md v8.3.
+## V3 Build Contract
 
-## Card status
-All 7 canonical cards deployed with midnight navy tokens, tile physics, and icon validation.
-Overview config: `tunet-overview-config.yaml` includes all cards in correct order.
+- Implementation authority: `Dashboard/Tunet/Cards/v3/` (promoted Mar 14, 2026)
+- Shared style/profile primitives live in `tunet_base.js`
+- Keep card-local CSS behavior minimal and avoid duplicating shared systems
+- `static getConfigForm()` remains the expected editor path
+
+## Interaction Contract Note
+
+Do not reintroduce legacy room `tap-toggle` behavior as a global default.
+Use the active control-doc lock:
+- card-body tap = primary route action
+- explicit controls = toggles
+
+## Token Baseline
+
+- Midnight navy dark family remains locked
+- Profiles are geometry-only and mode-agnostic
+- Core profile lane token consumer is `tile-core`
 
 <claude-mem-context>
 # Recent Activity

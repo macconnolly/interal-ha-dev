@@ -1,0 +1,313 @@
+# Tunet Overview IA - Candidate Baseline
+
+Working branch: `codex/unified-microinteractions`
+Purpose: preserve the current best candidate for Overview information architecture as a later home-layout decision target, not as permission to keep reworking the overview before nav, popup, and integrated UI / UX decisions are settled.
+
+This document is intentionally limited to:
+
+- information architecture
+- overview spatial hierarchy
+- desktop / tablet / phone layout intent
+- storage-dashboard section planning
+
+This document does **not** redefine card internals.
+It does **not** approve any card-core refactor by itself.
+It does **not** claim the current storage dashboard already matches this layout.
+
+## Why This Exists
+
+The current storage Overview still behaves too much like:
+
+- one card per section
+- too much vertical stacking
+- unclear desktop hierarchy
+- missing the stronger V1-style top utility / chips band
+- insufficiently deliberate use of wide desktop space
+
+The goal of this document is to preserve a strong candidate layout so later home-layout work has a concrete starting point once the upstream nav, popup, and integrated UI / UX tranches are complete.
+
+This document is intentionally subordinate to the current product-decision order:
+
+1. nav
+2. popup
+3. integrated UI / UX
+4. home layout
+
+If later nav, popup, or shell decisions materially change what the hero should be, what the right companion surface should be, or how overview hierarchy should feel, this document must be revised rather than treated as untouchable.
+
+## Current Best Candidate Overview IA
+
+The Overview should likely have **four intentional bands**, in this order:
+
+1. **Top utility band**
+   - dual utility strips:
+     - actions strip (mode/system actions)
+     - scenes/chips strip (preset triggers)
+   - thin, dense, full-width
+   - visually first, but not dominant
+
+2. **Primary status band**
+   - Home Status as the main equal-width grid
+   - a supporting compact companion surface to the right on desktop
+   - today that companion is modeled as Environment, but that is not yet a permanently locked product decision
+
+3. **Hero interaction band**
+   - Lighting is the current leading candidate for the dominant whole-home hero surface
+   - this is still subject to later refinement if nav, popup, or integrated UI / UX work reveals a better premium overview hero concept
+
+4. **Destination band**
+   - Rooms as the drill-in entry surface
+   - Media as a compact companion surface
+
+This is the current best candidate desktop hierarchy:
+
+- utility first
+- status second
+- lighting third and visually dominant
+- destination / media fourth
+
+## Desktop Layout (Locked)
+
+```text
++----------------------------------------------------------------------------------+
+| [ ACTIONS STRIP: All On / All Off / Bedtime / Sleep ]                            |
+| [ SCENES/CHIPS STRIP: presets / contextual triggers ]                             |
++----------------------------------------------------------------------------------+
+
++----------------------------------------------------------+-----------------------+
+|                  HOME STATUS 4 x 2 GRID                  |     ENVIRONMENT       |
+| [ Adaptive ] [ Manual ] [ Boost ] [ Mode ]              |  [ Climate compact ]  |
+| [ Weather  ] [ Humid. ] [ Config ] [ Inside ]           |  [ Weather compact ]  |
+|                                                          |  [ key sensors ]      |
++----------------------------------------------------------+-----------------------+
+
++----------------------------------------------------------------------------------+
+|                           LIGHTING HERO / WHOLE HOME                             |
+|   [ Living ] [ Kitchen ] [ Bedroom ] [ Spots ] [ Ceiling ] [ Columns ]          |
++----------------------------------------------------------------------------------+
+
++----------------------------------------------------------+-----------------------+
+|                       ROOMS ENTRY                         |        MEDIA          |
+| [ Living ] [ Kitchen ] [ Dining ] [ Bedroom ]            |  [ now playing ]      |
+| room state + popup affordance                            |  [ compact controls ] |
++----------------------------------------------------------+-----------------------+
+```
+
+### Desktop intent
+
+- The top band must feel like a control strip, not a full content section.
+- Home Status must be one coherent equal-width surface.
+- The right-hand companion should support Home Status rather than compete with the hero.
+- Environment is the current candidate for that role, not an irreversible final answer.
+- Lighting deserves the widest and most visually dominant row.
+- Rooms and Media share the last row because both are drill-in surfaces, not overview-dominant content.
+
+## Tablet Layout (Candidate)
+
+```text
++--------------------------------------------------------------+
+|                 MODE / ACTION CHIPS STRIP                    |
++--------------------------------------------------------------+
+
++--------------------------------------------------------------+
+|                 HOME STATUS 4 x 2 EQUAL GRID                 |
+| [ Adaptive ] [ Manual ] [ Boost ] [ Mode ]                   |
+| [ Weather  ] [ Humid. ] [ Config ] [ Inside ]                |
++--------------------------------------------------------------+
+
++----------------------------------+---------------------------+
+|          LIGHTING HERO           |        ENVIRONMENT        |
+| [ Living ] [ Kitchen ] [ Bed ]   |  [ Climate ]             |
+| [ Spots  ] [ Ceiling ] [ Col ]   |  [ Weather ]             |
++----------------------------------+---------------------------+
+
++--------------------------------------------------------------+
+|                    ROOMS / SPACES                            |
+| [ Living Room ] [ Kitchen ] [ Dining ] [ Bedroom ]          |
++--------------------------------------------------------------+
+
++--------------------------------------------------------------+
+|                         MEDIA MINI                           |
++--------------------------------------------------------------+
+```
+
+### Tablet intent
+
+- Tablet still uses a top chips strip.
+- Status should remain one intentional grid.
+- Lighting and Environment may share a row on tablet.
+- Rooms gets its own row because it remains a major navigation surface.
+- Media may collapse below Rooms instead of competing with it horizontally.
+
+## Phone Layout (Candidate)
+
+```text
++--------------------------------------+
+|         MODE / ACTION CHIPS          |
++--------------------------------------+
+
++--------------------------------------+
+|          HOME STATUS 2 x 4           |
+| [ Adaptive ] [ Manual ]              |
+| [ Boost    ] [ Mode   ]              |
+| [ Weather  ] [ Humid. ]              |
+| [ Config   ] [ Inside ]              |
++--------------------------------------+
+
++--------------------------------------+
+|            LIGHTING HERO             |
++--------------------------------------+
+
++--------------------------------------+
+|             ENVIRONMENT              |
++--------------------------------------+
+
++--------------------------------------+
+|               ROOMS                  |
++--------------------------------------+
+
++--------------------------------------+
+|               MEDIA                  |
++--------------------------------------+
+```
+
+### Phone intent
+
+- Phone can stack vertically.
+- The status grid should reflow, but still remain one surface.
+- Lighting remains the hero.
+- Rooms stays above Media because room entry is usually the more common overview jump.
+
+## Candidate Storage Dashboard Translation Plan
+
+This is the current candidate section plan for `Dashboard/Tunet/tunet-suite-storage-config.yaml` Overview.
+
+### Section 1 - Utility Band
+
+- Content:
+  - `custom:tunet-actions-card`
+  - `custom:tunet-scenes-card`
+- Width:
+  - full overview row
+- Intent:
+  - dual thin control strips
+  - should not consume dominant visual height
+
+### Section 2 - Status Band Left
+
+- Content:
+  - `custom:tunet-status-card`
+- Width:
+  - dominant left area on desktop
+  - full width on tablet/phone
+- Intent:
+  - one coherent equal-width grid
+  - no fragmentation
+
+### Section 3 - Status Band Right / Environment Stack
+
+- Content:
+  - `custom:tunet-climate-card`
+  - `custom:tunet-weather-card`
+  - optional compact `custom:tunet-sensor-card` or compact environment summary if useful
+- Width:
+  - narrower companion area on desktop
+  - paired with Lighting on tablet
+  - stacked below Lighting on phone
+- Intent:
+  - support status and comfort context
+  - not a dominant overview region
+
+### Section 4 - Lighting Hero
+
+- Content:
+  - `custom:tunet-lighting-card`
+- Width:
+  - full-width hero on desktop
+  - dominant half or full row on tablet
+  - full width on phone
+- Intent:
+  - primary interaction surface
+  - should feel like the overview's main control area
+
+### Section 5 - Rooms Destination Surface
+
+- Content:
+  - `custom:tunet-rooms-card`
+- Width:
+  - wide on desktop, full width on tablet/phone
+- Intent:
+  - room entry point
+  - popup affordance on overview
+  - not overloaded with unrelated content
+
+### Section 6 - Media Companion Surface
+
+- Content:
+  - compact media surface
+  - likely `custom:tunet-media-card`
+- Width:
+  - companion width beside Rooms on desktop
+  - full-width row on tablet/phone
+- Intent:
+  - compact now-playing and quick media access
+  - should not dominate overview
+
+## What This Means For The Current Storage Overview
+
+The current storage Overview should be considered structurally wrong in these ways:
+
+1. Too many sections use `column_span: 4` with a single card.
+2. Climate, Weather, and Sensor surfaces are each given their own full-width row instead of being composed intentionally.
+3. Lighting is not clearly established as the hero row.
+4. Rooms and Media are not being used as a deliberate bottom-band pairing.
+5. The top utility strip exists, but the rest of the overview still reads as a stack, not as a designed layout.
+
+## Explicit Non-Goals For The Layout Pass
+
+When translating this locked IA into the storage dashboard, do **not**:
+
+- refactor card internals
+- redesign `tunet-status-card`
+- redesign `tunet-lighting-card`
+- redesign `tunet-nav-card`
+- solve all responsive card-core issues
+- solve config-editor viability
+
+## Status Of This Document
+
+This document is:
+
+- useful as a composition baseline
+- valid as a critique of the current storage overview
+- valid as a candidate home-layout starting point
+
+This document is **not**:
+
+- the final home-screen decision
+- permission to keep iterating layout before nav/popup/UI decisions are settled
+- proof that Lighting + Environment is permanently the correct upper-half pairing
+- solve the entire nav strategy
+
+The composition pass should stay at the dashboard-structure layer first.
+
+## Recommended Next Tranche After T-001
+
+`T-003` should be refined to:
+
+- recompose the storage Overview to match this locked IA
+- touch storage dashboard config first
+- avoid card-core changes unless there is a real blocker
+- treat desktop/tablet composition as the primary acceptance target
+
+## Acceptance Standard For The Future Layout Tranche
+
+The future overview-layout tranche should be accepted only if:
+
+- desktop no longer reads as a long single-column scroll
+- the top utility band is visibly distinct and thin
+- Home Status reads as one equal-width surface
+- Lighting reads as the overview hero
+- Environment is compositionally subordinate to Lighting
+- Rooms and Media read as destination surfaces, not random extra rows
+- phone still degrades gracefully to a clean vertical flow

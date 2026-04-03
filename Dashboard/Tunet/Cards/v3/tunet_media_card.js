@@ -520,15 +520,18 @@ class TunetMediaCard extends HTMLElement {
           ],
         },
       ],
-      computeLabel: (s) => ({
-        entity: 'Media Player',
-        name: 'Card Name',
-        show_progress: 'Show Progress Bar',
-        speakers: 'Speakers',
-        coordinator_sensor: 'Coordinator Sensor',
-        active_group_sensor: 'Active Group Sensor',
-        playing_status_sensor: 'Playing Status Sensor',
-      }[s.name] || s.name),
+      computeLabel: (s) => {
+        if (!s.name) return s.title || '';
+        return ({
+          entity: 'Media Player',
+          name: 'Card Name',
+          show_progress: 'Show Progress Bar',
+          speakers: 'Speakers',
+          coordinator_sensor: 'Coordinator Sensor',
+          active_group_sensor: 'Active Group Sensor',
+          playing_status_sensor: 'Playing Status Sensor',
+        }[s.name] || s.name);
+      },
       computeHelper: (s) => ({
         speakers: 'Optional explicit speaker list. If empty, speakers are auto-discovered from Sonos binary sensors.',
         coordinator_sensor: 'Default: sensor.sonos_smart_coordinator',

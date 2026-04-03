@@ -786,115 +786,8 @@ class TunetLightingCard extends HTMLElement {
 
   static get configurable() { return true; }
 
-  static getConfigForm() {
-    return {
-      schema: [
-        {
-          name: 'entities',
-          selector: { entity: { multiple: true, filter: [{ domain: 'light' }] } },
-        },
-        {
-          name: 'zones',
-          selector: {
-            object: {
-              multiple: true,
-              label_field: 'name',
-              description_field: 'entity',
-              fields: {
-                entity: {
-                  label: 'Entity',
-                  required: true,
-                  selector: { entity: { filter: [{ domain: 'light' }] } },
-                },
-                name: {
-                  label: 'Name',
-                  selector: { text: {} },
-                },
-                icon: {
-                  label: 'Icon',
-                  selector: { icon: {} },
-                },
-              },
-            },
-          },
-        },
-        { name: 'name',            selector: { text: {} } },
-        { name: 'primary_entity',  selector: { entity: {} } },
-        {
-          name: 'adaptive_entities',
-          selector: { entity: { multiple: true, filter: [{ domain: 'switch' }, { domain: 'automation' }, { domain: 'input_boolean' }] } },
-        },
-        { name: 'show_adaptive_toggle', selector: { boolean: {} } },
-        { name: 'show_manual_reset', selector: { boolean: {} } },
-        { name: 'surface',         selector: { select: { options: ['card', 'section', 'tile'] } } },
-        { name: 'layout',          selector: { select: { options: ['grid', 'scroll'] } } },
-        { name: 'columns',     selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
-        {
-          name: 'column_breakpoints',
-          selector: {
-            object: {
-              multiple: true,
-              label_field: 'columns',
-              fields: {
-                min_width: {
-                  label: 'Min Width (px)',
-                  selector: { number: { min: 0, max: 4000, step: 1, mode: 'box' } },
-                },
-                max_width: {
-                  label: 'Max Width (px)',
-                  selector: { number: { min: 0, max: 4000, step: 1, mode: 'box' } },
-                },
-                columns: {
-                  label: 'Columns',
-                  required: true,
-                  selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } },
-                },
-              },
-            },
-          },
-        },
-        { name: 'scroll_rows', selector: { number: { min: 1, max: 3, step: 1, mode: 'box' } } },
-        { name: 'rows',        selector: { text: {} } },
-        { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
-        { name: 'use_profiles', selector: { boolean: {} } },
-        { name: 'expand_groups', selector: { boolean: {} } },
-        {
-          type: 'expandable',
-          flatten: true,
-          title: 'Advanced',
-          icon: 'mdi:code-braces',
-          schema: [
-            { name: 'custom_css', selector: { text: { multiline: true } } },
-          ],
-        },
-      ],
-      computeLabel: (s) => ({
-        entities:        'Light Entities (groups auto-expand)',
-        zones:           'Zones (objects with entity/name/icon)',
-        name:            'Card Title',
-        primary_entity:  'Primary Entity (info tile tap)',
-        adaptive_entities:'Adaptive Entities (multi-zone)',
-        show_adaptive_toggle: 'Show Adaptive Toggle',
-        show_manual_reset: 'Show Manual Reset Icon',
-        surface:         'Surface Style',
-        layout:          'Layout Mode',
-        columns:         'Grid Columns',
-        column_breakpoints: 'Responsive Column Breakpoints',
-        rows:            'Max Rows (auto or number)',
-        scroll_rows:     'Scroll Rows',
-        tile_size:       'Tile Size',
-        use_profiles:    'Use Profile Sizing',
-        expand_groups:   'Expand Group Entities',
-        custom_css:      'Custom CSS (injected into shadow DOM)',
-      }[s.name] || s.name),
-      computeHelper: (s) => ({
-        zones: 'Optional rich zones list. Each item: entity (required), optional name, optional icon.',
-        adaptive_entities: 'If omitted, card auto-matches adaptive_lighting switches to current zones.',
-        column_breakpoints: 'Responsive rules list. Each item needs columns plus min_width or max_width.',
-        use_profiles: 'When enabled, size geometry comes from profile families instead of legacy tile-size CSS variants.',
-        custom_css: 'CSS rules injected into shadow DOM. Use .light-grid, .l-tile, etc.',
-      }[s.name] || ''),
-    };
+  static getConfigElement() {
+    return document.createElement('tunet-lighting-card-editor');
   }
 
   static getStubConfig() {
@@ -1933,6 +1826,125 @@ class TunetLightingCard extends HTMLElement {
 /* ═══════════════════════════════════════════════════════════════
    Registration
    ═══════════════════════════════════════════════════════════════ */
+
+// ═══════════════════════════════════════════════════════════════
+// CUSTOM EDITOR — full merge-on-save, no expandable crash risk
+// ═══════════════════════════════════════════════════════════════
+
+const LIGHTING_EDITOR_SCHEMA = [
+  { name: 'entities', selector: { entity: { multiple: true, filter: [{ domain: 'light' }] } } },
+  {
+    name: 'zones',
+    selector: {
+      object: {
+        multiple: true,
+        label_field: 'name',
+        description_field: 'entity',
+        fields: {
+          entity: { label: 'Entity', required: true, selector: { entity: { filter: [{ domain: 'light' }] } } },
+          name:   { label: 'Name', selector: { text: {} } },
+          icon:   { label: 'Icon', selector: { text: {} } },
+        },
+      },
+    },
+  },
+  { name: 'name',                 selector: { text: {} } },
+  { name: 'primary_entity',      selector: { entity: {} } },
+  { name: 'adaptive_entities',   selector: { entity: { multiple: true, filter: [{ domain: 'switch' }, { domain: 'automation' }, { domain: 'input_boolean' }] } } },
+  { name: 'show_adaptive_toggle', selector: { boolean: {} } },
+  { name: 'show_manual_reset',   selector: { boolean: {} } },
+  { name: 'surface',             selector: { select: { options: ['card', 'section', 'tile'] } } },
+  { name: 'layout',              selector: { select: { options: ['grid', 'scroll'] } } },
+  { name: 'columns',             selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
+  {
+    name: 'column_breakpoints',
+    selector: {
+      object: {
+        multiple: true,
+        label_field: 'columns',
+        fields: {
+          min_width: { label: 'Min Width (px)', selector: { number: { min: 0, max: 4000, step: 1, mode: 'box' } } },
+          max_width: { label: 'Max Width (px)', selector: { number: { min: 0, max: 4000, step: 1, mode: 'box' } } },
+          columns:   { label: 'Columns', required: true, selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
+        },
+      },
+    },
+  },
+  { name: 'scroll_rows',   selector: { number: { min: 1, max: 3, step: 1, mode: 'box' } } },
+  { name: 'rows',          selector: { text: {} } },
+  { name: 'tile_size',     selector: { select: { options: ['standard', 'compact', 'large'] } } },
+  { name: 'use_profiles',  selector: { boolean: {} } },
+  { name: 'expand_groups', selector: { boolean: {} } },
+  { name: 'custom_css',    selector: { text: { multiline: true } } },
+];
+
+const LIGHTING_EDITOR_LABELS = {
+  entities:             'Light Entities (groups auto-expand)',
+  zones:                'Zones (per-entity name/icon)',
+  name:                 'Card Title',
+  primary_entity:       'Primary Entity (info tile)',
+  adaptive_entities:    'Adaptive Entities',
+  show_adaptive_toggle: 'Show Adaptive Toggle',
+  show_manual_reset:    'Show Manual Reset',
+  surface:              'Surface Style',
+  layout:               'Layout Mode',
+  columns:              'Grid Columns',
+  column_breakpoints:   'Responsive Breakpoints',
+  scroll_rows:          'Scroll Rows',
+  rows:                 'Max Rows',
+  tile_size:            'Tile Size',
+  use_profiles:         'Use Profile Sizing',
+  expand_groups:        'Expand Group Entities',
+  custom_css:           'Custom CSS',
+};
+
+class TunetLightingCardEditor extends HTMLElement {
+  setConfig(config) {
+    this._config = { ...config };
+    this._render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (this._form) this._form.hass = hass;
+  }
+
+  _render() {
+    if (!this._config) return;
+
+    if (!this._form) {
+      this.innerHTML = '';
+      const form = document.createElement('ha-form');
+      form.schema = LIGHTING_EDITOR_SCHEMA;
+      form.computeLabel = (s) => LIGHTING_EDITOR_LABELS[s.name] || s.name || '';
+      form.computeHelper = (s) => ({
+        zones: 'Optional per-entity overrides (name, icon). If empty, entities list is used.',
+        adaptive_entities: 'If omitted, auto-discovers adaptive_lighting switches.',
+        column_breakpoints: 'Responsive rules: columns + min_width or max_width.',
+        custom_css: 'Injected into shadow DOM. Targets: .light-grid, .l-tile, etc.',
+      }[s.name] || '');
+      form.addEventListener('value-changed', (ev) => {
+        // MERGE — preserves unlisted keys from original config
+        const updated = { ...this._config, ...ev.detail.value };
+        this._config = updated;
+        this.dispatchEvent(new CustomEvent('config-changed', {
+          bubbles: true,
+          composed: true,
+          detail: { config: updated },
+        }));
+      });
+      this._form = form;
+      this.appendChild(form);
+    }
+
+    this._form.data = this._config;
+    if (this._hass) this._form.hass = this._hass;
+  }
+}
+
+if (!customElements.get('tunet-lighting-card-editor')) {
+  customElements.define('tunet-lighting-card-editor', TunetLightingCardEditor);
+}
 
 registerCard('tunet-lighting-card', TunetLightingCard, {
   name:             'Tunet Lighting Card',

@@ -1,0 +1,72 @@
+{
+  "buildTime": "2026-04-03T10:40:18.543Z",
+  "sourceRoot": "Dashboard/Tunet/Cards/v3",
+  "distRoot": "Dashboard/Tunet/Cards/v3/dist",
+  "entries": [
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_actions_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_actions_card.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_scenes_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_scenes_card.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_light_tile.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_light_tile.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_lighting_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_lighting_card.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_rooms_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_rooms_card.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_climate_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_climate_card.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_sensor_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_sensor_card.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_weather_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_weather_card.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_media_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_media_card.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_sonos_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_sonos_card.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_speaker_grid_card.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_nav_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_nav_card.js",
+      "exists": true
+    },
+    {
+      "source": "Dashboard/Tunet/Cards/v3/tunet_status_card.js",
+      "output": "Dashboard/Tunet/Cards/v3/dist/tunet_status_card.js",
+      "exists": true
+    }
+  ]
+}

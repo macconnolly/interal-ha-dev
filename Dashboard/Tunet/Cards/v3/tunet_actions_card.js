@@ -118,6 +118,10 @@ const DEFAULT_MODE_ACTIONS = [
   },
 ];
 
+const ACCENT_OPTIONS = ['amber', 'blue', 'purple', 'green', 'red', 'muted'];
+const ACTIVE_OPERATORS = ['equals', 'not_equals', 'contains'];
+const SHOW_WHEN_OPERATORS = ['equals', 'not_equals', 'contains', 'gt', 'gte', 'lt', 'lte'];
+
 const ICON_ALIASES = {
   day: 'wb_sunny',
   nightlight: 'bedtime',
@@ -299,14 +303,46 @@ class TunetActionsCard extends HTMLElement {
         { name: 'variant', selector: { select: { options: ['default', 'mode_strip'] } } },
         { name: 'mode_entity', selector: { entity: { filter: [{ domain: 'input_select' }] } } },
         { name: 'compact', selector: { boolean: {} } },
+        {
+          name: 'actions',
+          selector: {
+            object: {
+              multiple: true,
+              label_field: 'name',
+              description_field: 'service',
+              fields: {
+                name: { label: 'Name', required: true, selector: { text: {} } },
+                icon: { label: 'Icon', selector: { icon: {} } },
+                accent: { label: 'Accent', selector: { select: { options: ACCENT_OPTIONS } } },
+                service: { label: 'Service (domain.service)', required: true, selector: { text: {} } },
+                entity_id: { label: 'Service Target Entity', selector: { entity: {} } },
+                option: { label: 'Option (for select_option)', selector: { text: {} } },
+                state_entity: { label: 'State Entity', selector: { entity: {} } },
+                active_when: { label: 'Active When Value', selector: { text: {} } },
+                active_when_operator: { label: 'Active Operator', selector: { select: { options: ACTIVE_OPERATORS } } },
+                show_when_entity: { label: 'Show-When Entity', selector: { entity: {} } },
+                show_when_attribute: { label: 'Show-When Attribute', selector: { text: {} } },
+                show_when_operator: { label: 'Show-When Operator', selector: { select: { options: SHOW_WHEN_OPERATORS } } },
+                show_when_state: { label: 'Show-When Value', selector: { text: {} } },
+              },
+            },
+          },
+        },
       ],
       computeLabel: (schema) => {
         const labels = {
           variant: 'Variant',
           mode_entity: 'Mode Entity',
           compact: 'Compact Layout',
+          actions: 'Actions',
         };
         return labels[schema.name] || schema.name;
+      },
+      computeHelper: (schema) => {
+        const helpers = {
+          actions: 'Structured action editor. Existing YAML action objects still work. entity_id/option synthesize service_data when not explicitly provided in YAML.',
+        };
+        return helpers[schema.name] || '';
       },
     };
   }
@@ -329,22 +365,45 @@ class TunetActionsCard extends HTMLElement {
           })
         : DEFAULT_ACTIONS);
 
+    const normalizeAction = (a) => {
+      const serviceData = (a && typeof a.service_data === 'object' && a.service_data != null)
+        ? { ...a.service_data }
+        : {};
+      const targetEntity = a?.entity_id || a?.service_entity || '';
+      if (targetEntity && !serviceData.entity_id) serviceData.entity_id = targetEntity;
+      if (a?.option != null && a.option !== '' && serviceData.option == null) serviceData.option = a.option;
+
+      let showWhen = null;
+      if (a?.show_when && typeof a.show_when === 'object') {
+        showWhen = a.show_when;
+      } else if (a?.show_when_entity) {
+        showWhen = {
+          entity: a.show_when_entity,
+          attribute: a.show_when_attribute || undefined,
+          operator: a.show_when_operator || 'equals',
+          state: a.show_when_state ?? 'on',
+        };
+      }
+
+      return {
+        name: a?.name || '',
+        icon: a?.icon || 'circle',
+        accent: a?.accent || 'amber',
+        service: a?.service || '',
+        service_data: serviceData,
+        state_entity: a?.state_entity || '',
+        active_when: a?.active_when || 'on',
+        active_when_operator: a?.active_when_operator || 'equals',
+        show_when: showWhen,
+        tap_action: a?.tap_action || null,
+      };
+    };
+
     this._config = {
       variant,
       compact: config.compact !== false,
       mode_entity: modeEntity,
-      actions: sourceActions.map((a) => ({
-        name: a.name || '',
-        icon: a.icon || 'circle',
-        accent: a.accent || 'amber',
-        service: a.service || '',
-        service_data: a.service_data || {},
-        state_entity: a.state_entity || '',
-        active_when: a.active_when || 'on',
-        active_when_operator: a.active_when_operator || 'equals',
-        show_when: a.show_when || null,
-        tap_action: a.tap_action || null,
-      })),
+      actions: sourceActions.map((a) => normalizeAction(a)),
     };
     if (this._rendered) {
       const card = this.shadowRoot.querySelector('.card');

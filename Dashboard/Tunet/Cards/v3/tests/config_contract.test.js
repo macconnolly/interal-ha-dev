@@ -99,15 +99,19 @@ describe('config contract — stub → setConfig roundtrip', () => {
   }
 });
 
-describe('config contract — getConfigForm exists', () => {
+describe('config contract — has editor (getConfigForm or getConfigElement)', () => {
   for (const { tag } of CARDS) {
-    it(`${tag}: has static getConfigForm()`, () => {
+    it(`${tag}: has static getConfigForm() or getConfigElement()`, () => {
       const CardClass = customElements.get(tag);
-      expect(typeof CardClass.getConfigForm).toBe('function');
-      const form = CardClass.getConfigForm();
-      expect(form).toBeTruthy();
-      expect(form.schema).toBeDefined();
-      expect(Array.isArray(form.schema)).toBe(true);
+      const hasForm = typeof CardClass.getConfigForm === 'function';
+      const hasElement = typeof CardClass.getConfigElement === 'function';
+      expect(hasForm || hasElement, `${tag} should have getConfigForm or getConfigElement`).toBe(true);
+      if (hasForm) {
+        const form = CardClass.getConfigForm();
+        expect(form).toBeTruthy();
+        expect(form.schema).toBeDefined();
+        expect(Array.isArray(form.schema)).toBe(true);
+      }
     });
   }
 });

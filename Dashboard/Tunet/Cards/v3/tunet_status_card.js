@@ -770,15 +770,18 @@ class TunetStatusCard extends HTMLElement {
           ],
         },
       ],
-      computeLabel: (s) => ({
-        name: 'Card Title',
-        show_header: 'Show Header',
-        columns: 'Columns',
-        column_breakpoints: 'Responsive Column Breakpoints',
-        tile_size: 'Tile Size',
-        use_profiles: 'Use Profile Sizing',
-        custom_css: 'Custom CSS (injected into shadow DOM)',
-      }[s.name] || s.name),
+      computeLabel: (s) => {
+        if (!s.name) return s.title || '';
+        return ({
+          name: 'Card Title',
+          show_header: 'Show Header',
+          columns: 'Columns',
+          column_breakpoints: 'Responsive Column Breakpoints',
+          tile_size: 'Tile Size',
+          use_profiles: 'Use Profile Sizing',
+          custom_css: 'Custom CSS (injected into shadow DOM)',
+        }[s.name] || s.name);
+      },
       computeHelper: (s) => ({
         column_breakpoints: 'Example: [{max_width: 600, columns: 4}, {max_width: 1024, columns: 6}, {columns: 8}]',
         use_profiles: 'When enabled, geometry is sourced from the indicator-tile profile family.',

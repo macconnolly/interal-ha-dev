@@ -554,17 +554,20 @@ class TunetSpeakerGridCard extends HTMLElement {
           ],
         },
       ],
-      computeLabel: (s) => ({
-        entity:             'Media Player',
-        name:               'Card Name',
-        columns:            'Grid Columns',
-        tile_size:          'Tile Size',
-        show_group_actions: 'Show Group/Ungroup Buttons',
-        speakers:           'Speakers',
-        coordinator_sensor: 'Coordinator Sensor',
-        use_profiles:       'Use Profile Sizing',
-        custom_css:         'Custom CSS',
-      }[s.name] || s.name),
+      computeLabel: (s) => {
+        if (!s.name) return s.title || '';
+        return ({
+          entity:             'Media Player',
+          name:               'Card Name',
+          columns:            'Grid Columns',
+          tile_size:          'Tile Size',
+          show_group_actions: 'Show Group/Ungroup Buttons',
+          speakers:           'Speakers',
+          coordinator_sensor: 'Coordinator Sensor',
+          use_profiles:       'Use Profile Sizing',
+          custom_css:         'Custom CSS',
+        }[s.name] || s.name);
+      },
       computeHelper: (s) => ({
         speakers: 'Optional explicit speaker list. If empty, speakers are auto-discovered from Sonos binary sensors.',
         coordinator_sensor: 'Default: sensor.sonos_smart_coordinator',

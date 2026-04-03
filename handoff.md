@@ -4,16 +4,14 @@ Last updated: 2026-04-03 (America/Denver)
 Intended reader: next Claude Code session  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
-Active plan (method-level): `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
-Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single source of truth, CD0–CD12)
+Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Current tranche: **CD3 — Shared Semantics Adoption** (next)
 Previous tranches: CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
 ## Session Delta (2026-04-03, CD2 Closeout)
 
 - `AUTHORITY-LOCK`
-  - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` is the sole canonical execution plan.
-  - `~/.claude/plans/flickering-herding-wolf.md` is the single source of truth (CD0–CD12).
+  - `~/.claude/plans/flickering-herding-wolf.md` is the sole execution authority (CD0–CD12).
 - `CD2 CLOSURE`
   - All code gates green: 368/368 tests, 13-card build, deployed with ?v=20260403_cd2
   - Interaction test suites (212 tests) are the authoritative regression gate
@@ -28,7 +26,7 @@ Previous tranches: CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0
 
 Source filter for this run:
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and active plan files as control sources
-- use `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` as the method-level authority (line-anchored, per-card, per-pass)
+- use `~/.claude/plans/flickering-herding-wolf.md` as the sole execution authority (CD0–CD12)
 - use `Dashboard/Tunet/Docs/cards_reference.md` as per-card config contract + editor architecture (authoring model + synthesizer + runtime)
 - use `Dashboard/Tunet/Docs/legacy_key_precedence.md` for setConfig overlap/fallback rules
 - use `Dashboard/Tunet/Docs/cross_card_interaction_vocabulary.md` as the binding interaction contract
@@ -38,7 +36,7 @@ Source filter for this run:
 ## Consistency-Driver Entry Checklist
 
 Before starting any implementation tranche:
-1. Read the method-level plan — `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
+1. Read the execution plan — `~/.claude/plans/flickering-herding-wolf.md`
 2. Identify the current tranche and verify you are working on ONLY the files listed for that tranche
 3. Read `Dashboard/Tunet/Docs/cards_reference.md` — per-card config contract + editor architecture
 4. Read `Dashboard/Tunet/Docs/legacy_key_precedence.md` — setConfig overlap/fallback rules

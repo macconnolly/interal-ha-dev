@@ -3,7 +3,7 @@
 Working branch: `main`
 Last updated: 2026-04-03
 Scope: `/home/mac/HA/implementation_10`
-Active plan (method-level): `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
+Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single source of truth, CD0–CD12)
 
 ## Session Delta (2026-04-03, CD2 Closeout)
@@ -11,7 +11,7 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single sour
 Change marker: CD2 tranche closure
 
 - `AUTHORITY-LOCK`
-  - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` is the sole canonical execution plan.
+  - `~/.claude/plans/flickering-herding-wolf.md` is the sole execution authority.
   - `~/.claude/plans/flickering-herding-wolf.md` is the single source of truth (CD0–CD12).
 - `CURRENT STATE`
   - CD2 — Shared Interaction Adoption: **DONE** (Apr 3, 2026)

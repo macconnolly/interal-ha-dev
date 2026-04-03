@@ -177,9 +177,9 @@ These tokens are defined in `tunet_base.js` TOKENS and available to all cards:
 
 ### Accessibility debt (CD3 scope — button/role retrofits)
 
-- `tunet_media_card.js`: `muteBtn` is `<div>` with click handler, no `tabindex`/`role`
-- `tunet_sonos_card.js`: no `tabindex` or `role="button"` on any interactive element
-- `tunet_weather_card.js`: `cursor: pointer` on elements with no keyboard reachability
+- `tunet_media_card.js`: info-tile, album-art, vol-icon are `<div>` with click handlers, no `tabindex`/`role` — CD3 wires `bindButtonActivation`
+- `tunet_sonos_card.js`: transport/source/volume buttons are native `<button>` (already keyboard-complete); speaker-tile and album-art are `<div>` without semantics — sonos is excluded from CD3 (deferred to CD9)
+- `tunet_weather_card.js`: info-tile has `cursor: pointer` with no keyboard reachability — CD3 wires `bindButtonActivation`
 
 ---
 

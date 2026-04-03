@@ -6,8 +6,7 @@
 
 ## CURRENT WORK: Tunet Dashboard — Card Rehabilitation Reset
 
-**Active plan (method-level)**: `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` — line-anchored, per-card, per-pass authority.
-**Active execution plan**: `~/.claude/plans/flickering-herding-wolf.md` — single source of truth (consistency-driver rehab, CD0–CD12).
+**Active execution plan**: `~/.claude/plans/flickering-herding-wolf.md` — sole authority (consistency-driver rehab, CD0–CD12).
 
 **Execution authority for Tunet scope**: `Dashboard/Tunet/AGENTS.md`
 
@@ -35,7 +34,7 @@
 | **Gold standard** | `Dashboard/Tunet/Cards/v3/tunet_climate_card.js` | Measured visual baseline for all cards |
 | **Implementation authority** | `Dashboard/Tunet/Cards/v3/` | v3 is sole authority (promoted Mar 14, 2026) |
 | **Execution contract** | `Dashboard/Tunet/AGENTS.md` | Active governance contract for Tunet work |
-| **Active plan (method)** | `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` | Line-anchored per-card per-pass authority |
+| **Superseded plan** | `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` | Historical reference only — superseded by execution plan |
 | **Active execution plan** | `~/.claude/plans/flickering-herding-wolf.md` | Single source of truth (CD0–CD12) |
 | **Cards reference** | `Dashboard/Tunet/Docs/cards_reference.md` | Per-card config contract + editor architecture |
 | **Legacy key precedence** | `Dashboard/Tunet/Docs/legacy_key_precedence.md` | setConfig overlap/fallback rules |

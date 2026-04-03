@@ -1,6 +1,6 @@
 # Tunet V3 Consistency-Driver Rehab Plan
 
-Status: **ACTIVE** — sole canonical execution plan (adopted Apr 2, 2026)  
+Status: **SUPERSEDED** — see `~/.claude/plans/flickering-herding-wolf.md` (sole execution authority since Apr 3, 2026). This file is retained as historical reference only.  
 Created: 2026-04-02  
 Scope: `Dashboard/Tunet/Cards/v3/**`, Tunet build/deploy tooling, rehab lab, later surface assembly  
 Authoring intent: replace mixed "shared pattern adoption + card-specific fixes" tranches with a consistency-first program that is specific to file, method, and current line anchors

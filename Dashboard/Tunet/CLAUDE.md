@@ -2,7 +2,7 @@
 
 ## Active Program
 
-**Consistency-driver card rehabilitation** — see `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` for method-level authority.
+**Consistency-driver card rehabilitation** — see `~/.claude/plans/flickering-herding-wolf.md` (sole execution authority, CD0–CD12).
 
 Current tranche: **CD3 — Shared Semantics Adoption** (next)
 Previous tranches: CD2 (completed Apr 3), CD1 (completed Apr 3), CD0 (completed Apr 3)

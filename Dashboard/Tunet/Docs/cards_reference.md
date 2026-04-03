@@ -1226,8 +1226,8 @@ Static. Full section width. Should account for show_progress (adds height).
 
 - `speakers[]` editor support is implemented (advanced object+fields+multiple); keep schema tests as regression guard
 - Info tile is click-only div — needs button semantics (CD3)
-- Volume slider needs `role="slider"` + ARIA attributes (CD3)
-- Album art click behavior undecided (more-info? navigate to media page?)
+- Album art opens more-info for transport target entity (verified in code at L885)
+- Volume slider needs `role="slider"` + arrow key handlers (deferred to CD9 — media bespoke)
 
 ---
 
@@ -1307,8 +1307,8 @@ Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue 
 ### Known Limitations
 
 - `speakers[]` editor support is implemented (object+fields+multiple)
-- Hardcoded press scales (.90) — CD2 fix
-- `--spring` CSS variable undefined in base TOKENS — falls back to initial
+- ~~Hardcoded press scales (.90)~~ — resolved in CD2 (tokenized)
+- ~~`--spring` CSS variable undefined~~ — resolved in CD2 (replaced with `--ease-emphasized`)
 
 ---
 
@@ -1388,9 +1388,9 @@ Static. Should compute from `ceil(speakers.length / columns) + (show_group_actio
 ### Known Limitations
 
 - Profile system active — CD4 migration
-- Hover `translateY(-1px)` is non-standard — CD2 removes, shadow-lift only
-- `--spring` CSS variable undefined — CD2 resolves
-- Focus ring uses `var(--blue)` directly instead of `var(--focus-ring-color)` — CD2 fix
+- ~~Hover `translateY(-1px)`~~ — resolved in CD2 (removed, shadow-lift only)
+- ~~`--spring` CSS variable undefined~~ — resolved in CD2 (replaced with `--ease-emphasized`)
+- ~~Focus ring uses `var(--accent)` instead of `var(--focus-ring-color)`~~ — resolved in CD2
 
 ---
 

@@ -109,7 +109,7 @@ Evaluate UX on `tunet-suite-storage`. Validate architecture on repo YAML.
 ## Active Plan Reference
 
 The current execution plan uses the consistency-driver pass order (CD0-CD12):
-- Method-level authority: `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
+- Sole execution authority: `~/.claude/plans/flickering-herding-wolf.md` (CD0–CD12)
 - Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single source of truth, CD0–CD12)
 - Execution order: CD0 (build/lab, DONE) → CD1 (config clarity, IN PROGRESS) → CD2-CD4 (shared consistency passes) → CD5-CD11 (bespoke card passes) → CD12 (surface assembly)
 - Surface assembly order when it resumes: Living Room → popup → overview → media → remaining rooms

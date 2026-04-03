@@ -2,8 +2,7 @@
 
 Working branch: `main`
 Last updated: 2026-04-03
-Active plan: `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` (method-level authority)
-Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single source of truth, CD0–CD12)
+Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Current tranche: **CD3 — Shared Semantics Adoption** (next)
 Previous tranches: CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
@@ -12,8 +11,7 @@ Previous tranches: CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0
 Tranche marker: CD2 — Shared Interaction Adoption closed
 
 - `AUTHORITY-LOCK`
-  - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` is the sole canonical execution plan.
-  - `~/.claude/plans/flickering-herding-wolf.md` is the single source of truth (CD0–CD12).
+  - `~/.claude/plans/flickering-herding-wolf.md` is the sole execution authority (CD0–CD12).
 - `CD2 CLOSURE`
   - All code gates green: 368/368 tests, 13-card build, deployed with ?v=20260403_cd2
   - Interaction test suites (212 tests) are the authoritative regression gate
@@ -67,7 +65,7 @@ Tranche marker: pre-CD0 (documentation alignment)
 - `SURFACE-DOC STATUS`
   - `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` is draft reference only until surface assembly resumes in CD12
 - `PLAN-DOC HIERARCHY`
-  - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` = method-level authority (line-anchored, per-card, per-pass)
+  - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` = SUPERSEDED (historical reference only)
   - `~/.claude/plans/flickering-herding-wolf.md` = single source of truth (consistency-driver rehab, CD0–CD12)
   - `Dashboard/Tunet/Docs/plans/surface_driven_reset.md` = references card-rehab-first framing (partially superseded by consistency-driver)
 

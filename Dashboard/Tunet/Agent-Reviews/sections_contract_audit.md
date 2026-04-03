@@ -4,6 +4,16 @@ Date: 2026-03-07
 Scope: `Dashboard/Tunet/Cards/v2/*.js`  
 Intent: decision-support audit only (no implementation decision)
 
+## 2026-03-07 Alignment Note
+
+This audit is a point-in-time finding set.
+
+Use it with these constraints:
+- canonical contract is now `Dashboard/Tunet/Mockups/design_language.md` (`v9.0`)
+- container-width prerequisite work (`T-011A.4`) closed part of the viewport-width findings
+- interaction contract decisions are controlled by `plan.md` + `FIX_LEDGER.md` + `handoff.md`, not by this audit
+- file-line references may drift as cards evolve; re-verify before implementing a listed fix
+
 ## Scope + Contract Baseline
 
 Audit lens applied per card:

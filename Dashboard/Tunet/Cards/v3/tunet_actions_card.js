@@ -19,7 +19,7 @@ import {
   runCardAction,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260307p08';
+} from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '2.4.4';
 

@@ -1,8 +1,20 @@
 # Tunet Card Suite -- Design Language Compliance Audit
 
+## 2026-03-07 Supersession Note
+
+This audit is preserved as a historical snapshot from the v8.4 era.
+
+Current canonical baseline is:
+- `Dashboard/Tunet/Mockups/design_language.md` (`v9.0`)
+- `Dashboard/Tunet/Cards/v2/` as implementation authority
+
+Interpretation rule:
+- keep concrete code findings where still reproducible
+- treat older v8.4 wording and legacy path assumptions as historical context only
+
 **Auditor**: auditor agent
 **Date**: 2026-02-22
-**Spec Reference**: `design_language.md` v8.4
+**Spec Reference at Audit Time**: `design_language.md` v8.4 (historical baseline)
 **Gold Standard**: `tunet_climate_card.js` (1640 lines)
 **Cards Audited**: 10 JS files (11,187 total lines)
 

@@ -18,7 +18,7 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260307p08';
+} from './tunet_base.js?v=20260308g2e';
 
 const CARD_VERSION = '1.1.1';
 
@@ -525,6 +525,8 @@ class TunetSensorCard extends HTMLElement {
     return {
       columns: 12,
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 2,
     };
   }
 

@@ -41,9 +41,13 @@ import {
   injectFonts, detectDarkMode, applyDarkClass,
   createAxisLockedDrag,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260307p03';
+  // G2: Profile consumption system
+  selectProfileSize, resolveSizeProfile,
+  TOKEN_MAP, PROFILE_SCHEMA_VERSION,
+  bucketFromWidth, autoSizeFromWidth,
+} from './tunet_base.js?v=20260308g2e';
 
-const CARD_VERSION = '3.4.4';
+const CARD_VERSION = '3.5.0'; // G2: profile consumption
 
 function clampInt(value, min, max, fallback) {
   const n = Number(value);
@@ -104,6 +108,7 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Lighting-specific token overrides ──────── */
   :host {
+    font-size: 16px; /* em anchor — profile tokens assume 16px base */
     /* Mockup parity geometry */
     --r-track: 999px;
     --r-tile: 22px;
@@ -183,7 +188,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     align-items: center;
     gap: 8px;
     padding: 6px 10px 6px 6px;
-    min-height: 42px;
+    min-height: var(--_tunet-ctrl-min-h, 42px);
     box-sizing: border-box;
     border-radius: 10px;
     border: 1px solid var(--ctrl-border);
@@ -233,7 +238,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   .hdr-title {
     font-weight: 700;
-    font-size: 13px;
+    font-size: var(--_tunet-header-font, 13px);
     color: var(--text-sub);
     letter-spacing: 0.1px;
     line-height: 1.15;
@@ -242,7 +247,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     text-overflow: ellipsis;
   }
   .hdr-sub {
-    font-size: 10.5px;
+    font-size: var(--_tunet-sub-font, 10.5px);
     font-weight: 600;
     color: var(--text-muted);
     letter-spacing: 0.1px;
@@ -287,8 +292,8 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Toggle Button (§5.6) – Adaptive lighting ────── */
   .toggle-btn {
-    width: 42px;
-    min-height: 42px;
+    width: var(--_tunet-ctrl-min-h, 42px);
+    min-height: var(--_tunet-ctrl-min-h, 42px);
     box-sizing: border-box;
     border-radius: 10px;
     display: grid;
@@ -359,7 +364,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: grid;
     grid-template-columns: repeat(var(--cols, 3), minmax(0, 180px));
     grid-auto-rows: var(--grid-row, 110px);
-    gap: 10px;
+    gap: var(--_tunet-tile-gap, 10px);
     width: 100%;
     min-width: 0;
     overflow-y: visible;
@@ -380,11 +385,16 @@ ${CARD_SURFACE_GLASS_STROKE}
     overscroll-behavior-x: contain;
     overscroll-behavior-y: auto;
     scroll-snap-type: x mandatory;
-    scroll-padding-left: 4px;
     row-gap: 14px;
     padding-bottom: 8px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    /* Full-bleed scroll: extend to card edges, pad internally */
+    margin-left: calc(-1 * var(--_tunet-card-pad, 16px));
+    margin-right: calc(-1 * var(--_tunet-card-pad, 16px));
+    padding-left: var(--_tunet-card-pad, 16px);
+    padding-right: var(--_tunet-card-pad, 16px);
+    scroll-padding-left: var(--_tunet-card-pad, 16px);
   }
   :host([layout="scroll"]) .light-grid::-webkit-scrollbar { display: none; }
 
@@ -392,9 +402,9 @@ ${CARD_SURFACE_GLASS_STROKE}
      LIGHT TILE (Design Language §3.5 Tile Surface)
      ═══════════════════════════════════════════════════ */
   .l-tile {
-    --tile-icon-size: 2.35em;
+    --tile-icon-size: var(--_tunet-icon-box, 2.35em);
     background: var(--tile-bg);
-    border-radius: var(--r-tile);
+    border-radius: var(--_tunet-tile-radius, var(--r-tile));
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
@@ -408,8 +418,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     overflow: hidden;
     min-height: 0;
     height: 100%;
-    gap: 0.14em;
-    padding: 0.62em 0.34em 1.04em;
+    gap: var(--_tunet-tile-gap, 0.14em);
+    padding: var(--_tunet-tile-pad, 0.62em) 0.34em 1.04em;
     -webkit-tap-highlight-color: transparent;
     transition: all 0.18s ease;
   }
@@ -423,39 +433,28 @@ ${CARD_SURFACE_GLASS_STROKE}
     transform: scale(var(--press-scale-strong));
   }
 
-  /* Compact tile variant */
+  /* Compact tile variant — fallbacks only; profile system controls these via --_tunet-* */
   :host([tile-size="compact"]) .l-tile {
-    --tile-icon-size: 1.92em;
     gap: 0.06em;
-    padding: 0.46em 0.26em 1.22em;
+    padding: var(--_tunet-tile-pad, 0.46em) 0.26em 1.22em;
   }
   :host([tile-size="compact"]) .tile-icon-wrap {
     margin-top: 0;
     margin-bottom: 0.14em;
   }
   :host([tile-size="compact"]) .zone-name {
-    font-size: 12.2px;
     max-width: 96%;
     min-height: 1.12em;
     line-height: 1.06;
     margin-bottom: 0;
   }
   :host([tile-size="compact"]) .zone-val {
-    font-size: 11.6px;
     line-height: 1.04;
     margin-top: 0;
     margin-bottom: 5px;
   }
   :host([tile-size="compact"][dense-compact]) .l-tile {
-    --tile-icon-size: 1.72em;
-    padding: 0.42em 0.22em 1.24em;
-  }
-  :host([tile-size="compact"][dense-compact]) .zone-name {
-    font-size: 11.6px;
-  }
-  :host([tile-size="compact"][dense-compact]) .zone-val {
-    font-size: 11px;
-    margin-bottom: 6px;
+    padding: var(--_tunet-tile-pad, 0.42em) 0.22em 1.24em;
   }
   :host([tile-size="large"]) .l-tile {
     padding: 12px 10px 18px;
@@ -520,6 +519,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     z-index: 100;
     border-color: var(--amber) !important;
     transition: none;
+    overflow: visible;
   }
 
   /* Floating pill – .zone-val repositions during slide */
@@ -546,10 +546,10 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Tile Content ────────────────────────────────── */
   .tile-icon-wrap {
-    width: var(--tile-icon-size, 2.35em);
-    height: var(--tile-icon-size, 2.35em);
-    min-width: var(--tile-icon-size, 2.35em);
-    min-height: var(--tile-icon-size, 2.35em);
+    width: var(--_tunet-icon-box, var(--tile-icon-size, 2.35em));
+    height: var(--_tunet-icon-box, var(--tile-icon-size, 2.35em));
+    min-width: var(--_tunet-icon-box, var(--tile-icon-size, 2.35em));
+    min-height: var(--_tunet-icon-box, var(--tile-icon-size, 2.35em));
     aspect-ratio: 1 / 1;
     border-radius: 50%;
     display: grid;
@@ -559,19 +559,14 @@ ${CARD_SURFACE_GLASS_STROKE}
     transition: all .2s ease;
   }
   .tile-icon-wrap .icon {
-    width: 1.3em;
-    height: 1.3em;
-    font-size: 1.3em;
+    width: var(--_tunet-icon-glyph, 1.3em);
+    height: var(--_tunet-icon-glyph, 1.3em);
+    font-size: var(--_tunet-icon-glyph, 1.3em);
     line-height: 1;
-  }
-  :host([tile-size="compact"]) .tile-icon-wrap .icon {
-    width: 1.02em;
-    height: 1.02em;
-    font-size: 1.02em;
   }
 
   .zone-name {
-    font-size: 14px;
+    font-size: var(--_tunet-name-font, 14px);
     font-weight: 600;
     letter-spacing: 0.1px;
     color: var(--text);
@@ -585,7 +580,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
 
   .zone-val {
-    font-size: 13px;
+    font-size: var(--_tunet-value-font, 13px);
     font-weight: 700;
     letter-spacing: 0.1px;
     line-height: 1.15;
@@ -599,7 +594,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     bottom: 10px;
     left: 14px;
     right: 14px;
-    height: 4px;
+    height: var(--_tunet-progress-h, 4px);
     background: var(--track-bg);
     border-radius: var(--r-track);
     overflow: hidden;
@@ -609,7 +604,6 @@ ${CARD_SURFACE_GLASS_STROKE}
     bottom: 6px;
     left: 10px;
     right: 10px;
-    height: 3px;
   }
   .progress-fill {
     height: 100%;
@@ -643,26 +637,22 @@ ${REDUCED_MOTION}
      ═══════════════════════════════════════════════════ */
   @media (max-width: 440px) {
     .card {
-      padding: var(--card-pad, 14px);
+      padding: var(--_tunet-card-pad, var(--card-pad, 14px));
       --r-track: 999px;
     }
-    .light-grid { gap: 6px; }
     .l-tile { min-height: 82px; }
     :host([tile-size="compact"]) .zone-name {
-      font-size: 12.2px;
       line-height: 1.08;
       min-height: 1.15em;
       margin-bottom: 1px;
     }
     :host([tile-size="compact"]) .zone-val {
-      font-size: 11.8px;
       line-height: 1.08;
       margin-top: 2px;
     }
 
     :host([layout="scroll"]) .light-grid {
       grid-auto-columns: calc(44% - 6px);
-      scroll-padding-left: 0;
     }
 
     :host([surface="section"]) .card {
@@ -746,12 +736,15 @@ class TunetLightingCard extends HTMLElement {
     this._activeColumns = 3;
     this._tileDragController = null;
     this._resizeObserver = null;
-    this._usingWindowResizeFallback = false;
     this._widthBucket440 = null;
     this._widthBucket640 = null;
 
+    // G2: Profile consumption state
+    this._profileCache = new Map();
+    this._currentFamily = null;
+    this._lastWidth = 0;
+
     injectFonts();
-    this._onWindowResize = this._onWindowResize.bind(this);
     this._onHostResize = this._onHostResize.bind(this);
   }
 
@@ -791,6 +784,7 @@ class TunetLightingCard extends HTMLElement {
           title: 'Advanced',
           icon: 'mdi:code-braces',
           schema: [
+            { name: 'use_profiles', selector: { boolean: {} } },
             { name: 'custom_css', selector: { text: { multiline: true } } },
           ],
         },
@@ -812,12 +806,14 @@ class TunetLightingCard extends HTMLElement {
         scroll_rows:     'Scroll Rows',
         tile_size:       'Tile Size',
         expand_groups:   'Expand Group Entities',
+        use_profiles:    'Use Profile System (density-responsive sizing)',
         custom_css:      'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
       computeHelper: (s) => ({
         zones: 'Optional rich zones: [{entity, name, icon}]',
         adaptive_entities: 'If omitted, card auto-matches adaptive_lighting switches to current zones.',
         column_breakpoints: 'Array/object rules. Example: [{max_width: 600, columns: 4}, {max_width: 1024, columns: 6}, {columns: 8}]',
+        use_profiles: 'Enable profile-driven tile sizing. Disable to revert to legacy hardcoded sizes.',
         custom_css: 'CSS rules injected into shadow DOM. Use .light-grid, .l-tile, etc.',
       }[s.name] || ''),
     };
@@ -886,6 +882,10 @@ class TunetLightingCard extends HTMLElement {
           return Math.max(1, Math.min(6, Math.round(parsed)));
         })();
 
+    // G2: use_profiles defaults true; global override via window.TUNET_USE_PROFILES
+    const useProfiles = (config.use_profiles !== false) &&
+      (typeof window === 'undefined' || window.TUNET_USE_PROFILES !== false);
+
     this._config = {
       entities:        hasEntities ? normalizedEntities : [],
       zones:           hasZones ? normalizedZones : [],
@@ -904,6 +904,7 @@ class TunetLightingCard extends HTMLElement {
       tile_size:       tileSize,
       expand_groups:   expandGroups,
       rows,
+      use_profiles:    useProfiles,
       custom_css:      config.custom_css || '',
     };
 
@@ -929,6 +930,10 @@ class TunetLightingCard extends HTMLElement {
     } else {
       this.removeAttribute('data-max-rows');
     }
+
+    // G2: Version handshake + profile application
+    this._checkBaseCompat();
+    this._applyProfile();
 
     if (this._rendered && this._hass) {
       this._resolveZones();
@@ -995,6 +1000,9 @@ class TunetLightingCard extends HTMLElement {
     return {
       columns: 12,
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 3,
+      fixed_rows: true,
     };
   }
 
@@ -1005,10 +1013,7 @@ class TunetLightingCard extends HTMLElement {
     if (Number.isFinite(cardWidth) && cardWidth > 0) return cardWidth;
     const hostWidth = Number(this.getBoundingClientRect?.().width);
     if (Number.isFinite(hostWidth) && hostWidth > 0) return hostWidth;
-    if (typeof window !== 'undefined' && Number.isFinite(Number(window.innerWidth))) {
-      return Number(window.innerWidth);
-    }
-    return 1024;
+    return 1024; // D14: no window.innerWidth — container-first
   }
 
   _isWidthAtMost(maxWidth, widthHint = null) {
@@ -1093,12 +1098,6 @@ class TunetLightingCard extends HTMLElement {
 
   connectedCallback() {
     this._setupResizeObserver();
-    if (typeof ResizeObserver === 'undefined') {
-      this._usingWindowResizeFallback = true;
-      window.addEventListener('resize', this._onWindowResize);
-    } else {
-      this._usingWindowResizeFallback = false;
-    }
   }
 
   disconnectedCallback() {
@@ -1106,11 +1105,8 @@ class TunetLightingCard extends HTMLElement {
       this._tileDragController.destroy();
       this._tileDragController = null;
     }
-    if (this._usingWindowResizeFallback) {
-      window.removeEventListener('resize', this._onWindowResize);
-      this._usingWindowResizeFallback = false;
-    }
     this._teardownResizeObserver();
+    this._profileCache.clear();
     for (const timer of Object.values(this._cooldownTimers)) {
       clearTimeout(timer);
     }
@@ -1136,11 +1132,14 @@ class TunetLightingCard extends HTMLElement {
   _onHostResize(widthHint = null) {
     if (!this._rendered) return;
     const width = this._getHostWidth(widthHint);
+    this._lastWidth = width; // G2: track for profile system
     const nextColumns = this._resolveResponsiveColumns(width);
     const nextBucket440 = this._isWidthAtMost(440, width);
     const nextBucket640 = this._isWidthAtMost(640, width);
     const columnsChanged = nextColumns !== this._activeColumns;
     const bucketChanged = nextBucket440 !== this._widthBucket440 || nextBucket640 !== this._widthBucket640;
+    // G2: always re-evaluate profile on resize (bucket-level memoization inside _applyProfile)
+    this._applyProfile();
     if (!columnsChanged && !bucketChanged) return;
     this._activeColumns = nextColumns;
     this._widthBucket440 = nextBucket440;
@@ -1149,8 +1148,132 @@ class TunetLightingCard extends HTMLElement {
     this._updateAll();
   }
 
-  _onWindowResize() {
-    this._onHostResize(this._getHostWidth());
+  /* ═══════════════════════════════════════════════════
+     G2: PROFILE CONSUMPTION SYSTEM
+     Architecture: unified_tile_architecture_conclusion.md v3.1 §9-§11
+     ═══════════════════════════════════════════════════ */
+
+  /**
+   * Version handshake — called in setConfig.
+   * If tunet_base.js profile schema version is incompatible, render visible error.
+   */
+  _checkBaseCompat() {
+    const baseVersion = typeof window !== 'undefined' && window.TunetBase?.PROFILE_SCHEMA_VERSION;
+    if (!baseVersion) {
+      this._renderError('Profile system unavailable — tunet_base.js not loaded or outdated');
+      return;
+    }
+    const expectedMajor = PROFILE_SCHEMA_VERSION.split('-')[0];
+    const actualMajor = baseVersion.split('-')[0];
+    if (expectedMajor !== actualMajor) {
+      this._renderError(`Profile version mismatch: card expects ${expectedMajor}, base has ${actualMajor}`);
+    }
+  }
+
+  /**
+   * Render a visible error message inside the card shadow DOM.
+   * Must not throw — HA catches uncaught exceptions and silently freezes the card (D13).
+   */
+  _renderError(message) {
+    try {
+      if (!this.shadowRoot) return;
+      let errEl = this.shadowRoot.getElementById('tunet-profile-error');
+      if (!errEl) {
+        errEl = document.createElement('div');
+        errEl.id = 'tunet-profile-error';
+        errEl.style.cssText = 'padding:12px;margin:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:8px;color:#ef4444;font-size:12px;font-weight:600;';
+        this.shadowRoot.prepend(errEl);
+      }
+      errEl.textContent = message;
+    } catch (_) { /* never throw from error renderer */ }
+  }
+
+  /**
+   * Single convergence point for profile application (arch doc §11).
+   * Called from both setConfig and _onHostResize.
+   */
+  _applyProfile() {
+    if (!this._config.use_profiles) {
+      this._applyLegacyScaling();
+      return;
+    }
+
+    const { family, size } = selectProfileSize({
+      preset: 'lighting',
+      layout: this._config.layout || 'grid',
+      widthHint: this._lastWidth,
+      userSize: this._config.tile_size,
+    });
+
+    // Instance cache check (D10): invalidate on family change
+    if (family !== this._currentFamily) {
+      this._profileCache.clear();
+      this._currentFamily = family;
+    }
+
+    const bucket = bucketFromWidth(this._lastWidth);
+    const cacheKey = `${family}:${size}:${bucket}`;
+    if (this._profileCache.has(cacheKey)) return; // same profile already applied
+
+    const profile = resolveSizeProfile({ family, size });
+    this._profileCache.set(cacheKey, true);
+    this._setProfileVars(profile);
+  }
+
+  /**
+   * Legacy scaling path — wraps existing hardcoded sizing logic.
+   * Called when use_profiles: false. No behavior change from pre-G2.
+   */
+  _applyLegacyScaling() {
+    // Clear any profile vars that may have been set previously
+    if (this.style.length > 0) {
+      const toRemove = [];
+      for (let i = 0; i < this.style.length; i++) {
+        const prop = this.style[i];
+        if (prop.startsWith('--_tunet-')) toRemove.push(prop);
+      }
+      for (const prop of toRemove) this.style.removeProperty(prop);
+    }
+    // Legacy path: tile-size attribute selectors in CSS handle sizing (no action needed)
+  }
+
+  /**
+   * Set --_tunet-* CSS custom properties on the card host element.
+   * Per arch doc §9: three-step process.
+   */
+  _setProfileVars(profile) {
+    // Step 1: Clear all --_tunet-* from this.style (prevents stale tokens on family switch, D11)
+    const toRemove = [];
+    for (let i = 0; i < this.style.length; i++) {
+      const prop = this.style[i];
+      if (prop.startsWith('--_tunet-')) toRemove.push(prop);
+    }
+    for (const prop of toRemove) this.style.removeProperty(prop);
+
+    // Step 2: Set all tokens present in this profile — data-driven, no conditionals
+    for (const [key, cssVar] of Object.entries(TOKEN_MAP)) {
+      if (profile[key] !== undefined) {
+        this.style.setProperty(cssVar, profile[key]);
+      }
+    }
+
+    // Step 3: Bridge --profile-* public hooks via getComputedStyle (OVERRIDE_PAIRS)
+    const OVERRIDE_PAIRS = [
+      ['--profile-card-pad',     '--_tunet-card-pad'],
+      ['--profile-tile-pad',     '--_tunet-tile-pad'],
+      ['--profile-tile-gap',     '--_tunet-tile-gap'],
+      ['--profile-icon-box',     '--_tunet-icon-box'],
+      ['--profile-name-font',    '--_tunet-name-font'],
+      ['--profile-value-font',   '--_tunet-value-font'],
+      ['--profile-header-font',  '--_tunet-header-font'],
+      ['--profile-section-font', '--_tunet-section-font'],
+      ['--profile-progress-h',   '--_tunet-progress-h'],
+    ];
+    const computed = getComputedStyle(this);
+    for (const [pub, priv] of OVERRIDE_PAIRS) {
+      const override = computed.getPropertyValue(pub).trim();
+      if (override) this.style.setProperty(priv, override);
+    }
   }
 
   /* ═══════════════════════════════════════════════════
@@ -1649,14 +1772,23 @@ class TunetLightingCard extends HTMLElement {
     if (!adaptiveEntities.length) return;
 
     const zoneSet = this._zoneEntitySet();
-    const manualScoped = this._getManuallyControlled(adaptiveEntities).filter((entityId) => zoneSet.has(entityId));
-    if (!manualScoped.length) return;
+    const manualScoped = new Set(
+      this._getManuallyControlled(adaptiveEntities).filter((entityId) => zoneSet.has(entityId))
+    );
+    if (!manualScoped.size) return;
 
-    this._callService('adaptive_lighting', 'set_manual_control', {
-      entity_id: adaptiveEntities,
-      manual_control: false,
-      lights: manualScoped,
-    });
+    for (const switchEntity of adaptiveEntities) {
+      const sw = this._getEntity(switchEntity);
+      const manualControl = sw?.attributes?.manual_control;
+      if (!Array.isArray(manualControl)) continue;
+      const relevantLights = manualControl.filter((l) => manualScoped.has(l));
+      if (!relevantLights.length) continue;
+      this._callService('adaptive_lighting', 'set_manual_control', {
+        entity_id: switchEntity,
+        manual_control: false,
+        lights: relevantLights,
+      });
+    }
   }
 
   /* ═══════════════════════════════════════════════════

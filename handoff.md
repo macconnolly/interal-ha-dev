@@ -1,12 +1,31 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-03-09 (America/Denver)  
+Last updated: 2026-03-13 (America/Denver)  
 Intended reader: next Codex run in a new chat  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Source filter for this run:
 - ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
+
+## 0ZG) Session Delta (2026-03-13, T-011A.22)
+
+Queued planning item only (no immediate package patch in this session):
+
+- Issue captured:
+  - `oal_v13_column_lights_prepare_rgb_mode` can miss when both columns are off at sunset crossing.
+  - Later column-on events inside active sunset window may not arm RGB session automatically.
+  - This can leave AL control active and produce purple/pink-leaning tone at low brightness on column strips.
+- Planned remediation:
+  - add late-on trigger coverage so `light.living_column_strip_light_matter` / `light.dining_column_strip_light_matter` turning on inside the active window runs the existing prepare path
+  - keep existing guards:
+    - descending sun window (`-5 <= elevation < 3`)
+    - sleep mode off
+    - manual list empty
+    - OAL system not paused
+- Scope lock:
+  - docs/planning only in `T-011A.22`
+  - no edits to `packages/oal_lighting_control_package.yaml` yet
 
 ## 0ZF) Session Delta (2026-03-09, T-011A.21)
 

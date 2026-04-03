@@ -11,7 +11,7 @@ import {
   injectFonts, detectDarkMode, applyDarkClass,
   runCardAction,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260307p08';
+} from './tunet_base.js?v=20260308g2e';
 
 const CARD_VERSION = '2.6.6';
 
@@ -614,30 +614,18 @@ class TunetStatusCard extends HTMLElement {
     this._haCardPrevZIndex = null;
     this._elevatedNodes = [];
     this._onDocClick = this._onDocClick.bind(this);
-    this._onWindowResize = this._onWindowResize.bind(this);
     this._onHostResize = this._onHostResize.bind(this);
     this._resizeObserver = null;
-    this._usingWindowResizeFallback = false;
     injectFonts();
   }
 
   connectedCallback() {
     document.addEventListener('click', this._onDocClick);
     this._setupResizeObserver();
-    if (typeof ResizeObserver === 'undefined') {
-      this._usingWindowResizeFallback = true;
-      window.addEventListener('resize', this._onWindowResize);
-    } else {
-      this._usingWindowResizeFallback = false;
-    }
   }
 
   disconnectedCallback() {
     document.removeEventListener('click', this._onDocClick);
-    if (this._usingWindowResizeFallback) {
-      window.removeEventListener('resize', this._onWindowResize);
-      this._usingWindowResizeFallback = false;
-    }
     this._teardownResizeObserver();
     this._clearAllTimers();
     this._resetHostCardElevation();
@@ -649,7 +637,7 @@ class TunetStatusCard extends HTMLElement {
       ? Number(widthHint)
       : (this._cardEl?.getBoundingClientRect?.().width
         || this.getBoundingClientRect?.().width
-        || (typeof window !== 'undefined' ? window.innerWidth : 1024));
+        || 1024); // D14: no window.innerWidth — container-first
     const rules = Array.isArray(this._config.column_breakpoints) ? this._config.column_breakpoints : [];
     for (const rule of rules) {
       const minWidth = rule.minWidth == null ? Number.NEGATIVE_INFINITY : rule.minWidth;
@@ -686,10 +674,6 @@ class TunetStatusCard extends HTMLElement {
     if (!this._gridEl) return;
     const cols = this._activeColumns || this._config.columns || 4;
     this._gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-  }
-
-  _onWindowResize() {
-    this._onHostResize(this._cardEl?.getBoundingClientRect?.().width);
   }
 
   /* ═══════════════════════════════════════════════════
@@ -847,6 +831,8 @@ class TunetStatusCard extends HTMLElement {
     return {
       columns: 'full',
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 3,
     };
   }
 

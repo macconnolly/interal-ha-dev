@@ -19,7 +19,7 @@ import {
   runCardAction,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260307p08';
+} from './tunet_base.js?v=20260308g2e';
 
 const CARD_VERSION = '2.4.4';
 
@@ -383,6 +383,8 @@ class TunetActionsCard extends HTMLElement {
     return {
       columns: 12,
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 1,
     };
   }
 

@@ -1,8 +1,8 @@
-# Tunet V2 Cards Local Guidance
+# Tunet V3 Cards Local Guidance
 
 ## Authority
 
-- Code authority: this directory (`Dashboard/Tunet/Cards/v2/`)
+- Code authority: this directory (`Dashboard/Tunet/Cards/v3/`) — promoted to production Mar 14, 2026
 - Design authority: `Dashboard/Tunet/Mockups/design_language.md` (`v9.0`)
 - Architecture authority for profile rollout: `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md`
 

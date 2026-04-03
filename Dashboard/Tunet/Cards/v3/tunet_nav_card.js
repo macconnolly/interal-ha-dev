@@ -18,7 +18,7 @@ import {
   navigatePath,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260307p03';
+} from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '0.2.3';
 

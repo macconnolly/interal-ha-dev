@@ -1,74 +1,52 @@
 # Tunet Dashboard Card Suite
 
-## Canonical Design Spec
-**`Mockups/design_language.md` (v8.3)** is THE rulebook. Read it before building or modifying any card.
-`tunet-design-system.md` (v2.1) is OUTDATED and superseded. Do not use its values.
-For Tunet-specific design, interaction, and quality decisions, this file and `design_language.md` override any shorter root-level Tunet summary if they differ.
+## Canonical Sources (Locked)
+
+1. `Dashboard/Tunet/Mockups/design_language.md` (`v9.0`) is the canonical V2 design + profile contract
+2. `Dashboard/Tunet/design.md` is the documentation structure/index
+3. `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` is the implementation architecture contract for profile rollout
+4. `Dashboard/Tunet/Cards/v3/` is the implementation authority (promoted Mar 14, 2026)
+5. `Dashboard/Tunet/Cards/` is historical/reference only
+
+If any older note references v8.x or `Cards/` as implementation authority, treat it as superseded.
 
 ## Quality Bar
-**`Cards/tunet_climate_card.js`** (1513 lines) is the gold standard. Every card must match its token compliance, header pattern, surface treatment, interactions, and accessibility.
 
-## Dark Mode: Midnight Navy (LOCKED)
-- Canvas: `#0f172a`, Card surfaces: `#1e293b` → `rgba(30,41,59, 0.72)`
-- Dark amber: `#fbbf24` (NOT `#E8961E`)
-- Section-container dark: `rgba(30,41,59, 0.60)`
-- Tile dark: `rgba(30,41,59, 0.90)`
-- Dropdown dark: `rgba(30,41,59, 0.92)`
-- Light mode tokens are UNCHANGED
+- Tunet V2 quality baseline remains: centralized tokens, consistent interaction semantics, and section-safe responsive behavior
+- Shared primitives belong in `Dashboard/Tunet/Cards/v3/tunet_base.js`
+- Card-local overrides must be minimal and justified
 
-## Key Rules (from design_language.md v8.3)
-- All cards use §5 info-tile header (42px tappable entity identifier with icon + title + subtitle)
-- All header controls share `--ctrl-bg`/`--ctrl-border`/`--ctrl-sh` idle surface
-- Two-layer shadows everywhere (contact + ambient), never single-layer, never colored
-- Icons: Material Symbols Rounded, outlined off (FILL 0), filled on (FILL 1)
-- Touch targets: buttons >=42px, sliders >=44px
-- `static getConfigForm()` — NEVER register imperative editor class
+## Interaction Contract (Supersession Lock)
 
-## Dashboard Config
-`tunet-overview-config.yaml` — full overview: actions + status + lighting + environment + media + rooms
+Room interaction contract is now:
+- card-body tap: primary route action (`navigate` preferred; popup only where explicitly configured)
+- explicit controls/orbs/buttons: toggle actions
+- hold: optional secondary action only; never the only path to primary room intent
 
-## Broad Architecture / Planning Work
+Any legacy `tap-toggle / hold-popup` references are historical and non-authoritative.
 
-For broad Tunet work such as:
-- Sections-native compliance
-- storage vs YAML vs hybrid dashboard strategy
-- popup, navigation, or responsive architecture
-- phased remediation planning
-- fix-ledger generation
-- multi-agent review
+## Dark Mode Lock
 
-use the repo-local Claude skill:
+- Midnight baseline remains locked:
+  - canvas context `#0f172a`
+  - card family `#1e293b`
+  - dark amber `#fbbf24`
+- Profile registry is mode-agnostic (geometry only)
 
-- `.claude/skills/tunet-agent-driver/SKILL.md`
+## Architecture / Planning Work
 
-Control documents for that workflow:
+For tranche planning and multi-agent execution use:
 - `Dashboard/Tunet/Docs/agent_driver_pack.md`
 - `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md`
 - `Dashboard/Tunet/Docs/tranche_manager_prompt.md`
 - `Dashboard/Tunet/Docs/tranche_implementation_prompt.md`
 - `Dashboard/Tunet/Docs/tranche_review_prompt.md`
+- `Dashboard/Tunet/Agent-Reviews/start.md`
+
+Control docs to keep synced after meaningful changes:
 - `plan.md`
 - `FIX_LEDGER.md`
-- `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
-
-Execution bar:
-- prefer a 4-agent first wave
-- save full artifacts to `Dashboard/Tunet/Agent-Reviews/`
-- chat-only summaries do not count as completion
-- optimize for execution-grade outputs another coding agent can implement directly
-- prefer exact English remediation steps over large speculative code blocks
-- preserve the Tunet UI quality bar, Sections-native behavior, and small working testable tranches
-- Agent 1 cannot finalize before Agent 4 has attacked the draft ledger and execution plan
-- verify the current branch before producing authoritative planning output
-- if the control docs disagree, record that conflict explicitly
-- classify prior findings before reusing them:
-  - open issue
-  - already fixed in repo
-  - fixed in repo but not deployed
-  - fixed in YAML but not storage
-- do not reopen as blockers findings that are already reconciled on this branch, including:
-  - `back_path` already present on Tunet suite subviews
-  - the storage Living Room popup already using one consolidated `tunet-lighting-card`
+- `handoff.md`
 
 <claude-mem-context>
 # Recent Activity

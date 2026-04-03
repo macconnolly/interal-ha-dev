@@ -96,7 +96,12 @@
       "Bash(cat:*)",
       "Bash(echo === $f ===:*)",
       "mcp__codex-bridge__consult_codex",
-      "mcp__codex-bridge__consult_codex_with_stdin"
+      "mcp__codex-bridge__consult_codex_with_stdin",
+      "Bash(grep -c \"\"\"type\"\":\"\"result\"\"\" /tmp/claude-1000/-home-mac-HA-implementation-10/tasks/a4132fb8ee49c3b52.output)",
+      "Bash(scp:*)",
+      "Bash(for file:*)",
+      "Bash(do echo:*)",
+      "Read(//home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v2/**)"
     ],
     "deny": [],
     "ask": []

@@ -15,10 +15,14 @@ Before implementing any Tunet change, read:
 4. `FIX_LEDGER.md`
 5. `handoff.md`
 6. `Dashboard/Tunet/Docs/sections_layout_matrix.md`
+7. `Dashboard/Tunet/design.md`
 
 Important:
 - Treat `sections_layout_matrix.md` as provisional until sections research + live tuning loop is completed and documented.
 - Treat `Dashboard/Tunet/Docs/nav_popup_ux_direction.md` as historical reference only unless explicitly re-activated.
+- For profile/unification work, also read:
+  - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (canonical profile contract)
+  - `Dashboard/Tunet/Agent-Reviews/start.md` (execution start guide)
 
 ## 2) Design/Execution Precedence
 
@@ -28,9 +32,10 @@ Use this precedence when files disagree:
 2. `FIX_LEDGER.md`
 3. `handoff.md`
 4. `Dashboard/Tunet/Docs/sections_layout_matrix.md` (provisional)
-5. `Dashboard/Tunet/CLAUDE.md`
-6. `Dashboard/Tunet/Mockups/design_language.md`
-7. Other docs in `Dashboard/Tunet/Docs/` (reference/historical unless explicitly active)
+5. `Dashboard/Tunet/Mockups/design_language.md`
+6. `Dashboard/Tunet/design.md`
+7. `Dashboard/Tunet/CLAUDE.md`
+8. Other docs in `Dashboard/Tunet/Docs/` (reference/historical unless explicitly active)
 
 Do not silently resolve contradictions. Record the conflict and chosen interpretation in your update.
 
@@ -44,6 +49,7 @@ Do not silently resolve contradictions. Record the conflict and chosen interpret
 - Popup direction remains locked to Browser Mod.
 - Popup triggers on card interactions should be browser-scoped (`fire-dom-event`) unless an explicit exception is requested.
 - One-popup-per-room model remains active.
+- Interaction supersession lock: room-card global `tap-toggle / hold-popup` language is historical. Active contract is card-body primary route action with explicit controls owning toggles.
 - `layout-card` is allowed and encouraged for breakpoint-specific compositions (example: desktop rooms tiles vs mobile rooms row).
 - Prefer Home Assistant `2026.3` UI configuration capabilities wherever practical before YAML-only solutions.
 

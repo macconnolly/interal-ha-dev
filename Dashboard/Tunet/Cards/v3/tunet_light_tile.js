@@ -484,6 +484,7 @@ class TunetLightTile extends HTMLElement {
     this._config = null;
     this._dragController = null;
     this._rendered = false;
+    this._isDragging = false;
     this._cooldownUntil = 0;
     this._profileSelection = null;
     this._resizeObserver = null;
@@ -615,6 +616,7 @@ class TunetLightTile extends HTMLElement {
   // ── Render ───────────────────────────────────────
   _render() {
     if (!this._tile || !this._config || !this._hass) return;
+    if (this._isDragging) return;
 
     const config = this._config;
     const entity = this._hass.states[config.entity];
@@ -760,6 +762,7 @@ class TunetLightTile extends HTMLElement {
         width: Math.max(this._tile.offsetWidth, 1),
       }),
       onDragStart: () => {
+        this._isDragging = true;
         this._tile.classList.add('sliding');
       },
       onDragMove: (event, payload) => {
@@ -774,10 +777,12 @@ class TunetLightTile extends HTMLElement {
       },
       onDragEnd: (_event, payload) => {
         const ctx = payload && payload.context;
+        this._isDragging = false;
         this._tile.classList.remove('sliding');
         if (payload && payload.committed && ctx) {
           this._callService(ctx.currentBright);
         }
+        this._render();
       },
       onTap: () => {
         const current = parseInt(this._tile.dataset.brightness, 10) || 0;

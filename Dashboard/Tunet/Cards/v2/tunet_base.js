@@ -707,6 +707,7 @@ export const REDUCED_MOTION = `
   }
 `;
 
+// DEPRECATED for profile-driven families — use SIZE_PROFILES instead. Retained as fallback for non-migrated cards.
 export const RESPONSIVE_BASE = `
   @container (max-width: 440px) {
     :host {
@@ -1249,4 +1250,539 @@ export function logCardVersion(name, version, color = '#D4850A') {
  */
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROFILE CONSUMPTION SYSTEM (G1)
+// Architecture: unified_tile_architecture_conclusion.md v3.1
+// Gate: G1 — base primitives, no card behavior changes
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Schema version for profile system compatibility checks.
+ * Format: v{MAJOR}-{YYYYMMDD}
+ * Date-only updates are non-breaking; major bump required for
+ * key renames, removals, or signature changes.
+ */
+export const PROFILE_SCHEMA_VERSION = 'v1-20260308';
+
+/** All registered family keys. */
+export const FAMILY_KEYS = ['tile-grid', 'speaker-tile', 'rooms-row', 'indicator-tile', 'indicator-row'];
+
+/** All valid size keys. compact = dense mode. large = explicit only. */
+export const SIZE_KEYS = ['compact', 'standard', 'large'];
+
+// ───────────────────────────────────────────────────────────
+// PROFILE_BASE — shared geometry per size (D19)
+// All values are pre-formatted CSS em strings (D18).
+// Override only where a family genuinely diverges.
+// No color, opacity, or theme-conditional values.
+// ───────────────────────────────────────────────────────────
+
+const PROFILE_BASE = {
+  compact: {
+    cardPad: '0.875em',
+    sectionPad: '0.875em',
+    sectionGap: '0.75em',
+    headerHeight: '2.375em',
+    headerFont: '0.75em',
+    sectionFont: '0.8125em',
+    tilePad: '0.625em',
+    tileGap: '0.25em',
+    tileRadius: '0.75em',
+    ddRadius: '0.4375em',
+    iconBox: '2.125em',
+    iconGlyph: '1.0625em',
+    nameFont: '0.875em',
+    valueFont: '1.0625em',
+    subFont: '0.6875em',
+    unitFont: '0.6875em',
+    ctrlMinH: '2.375em',
+    ctrlPadX: '0.625em',
+    ctrlIconSize: '1.125em',
+    ddOptionFont: '0.75em',
+    ddOptionPadY: '0.5em',
+    ddOptionPadX: '0.625em',
+    dropdownMinH: '7.5em',
+    dropdownMaxH: '13.75em',
+    progressH: '0.375em'
+  },
+  standard: {
+    cardPad: '1.25em',
+    sectionPad: '1.25em',
+    sectionGap: '1em',
+    headerHeight: '2.625em',
+    headerFont: '0.8125em',
+    sectionFont: '0.875em',
+    tilePad: '0.875em',
+    tileGap: '0.375em',
+    tileRadius: '0.875em',
+    ddRadius: '0.5em',
+    iconBox: '2.375em',
+    iconGlyph: '1.1875em',
+    nameFont: '1em',
+    valueFont: '1.125em',
+    subFont: '0.6875em',
+    unitFont: '0.6875em',
+    ctrlMinH: '2.625em',
+    ctrlPadX: '0.75em',
+    ctrlIconSize: '1.25em',
+    ddOptionFont: '0.8125em',
+    ddOptionPadY: '0.5625em',
+    ddOptionPadX: '0.75em',
+    dropdownMinH: '7.5em',
+    dropdownMaxH: '15em',
+    progressH: '0.5em'
+  },
+  large: {
+    cardPad: '1.5em',
+    sectionPad: '1.5em',
+    sectionGap: '1.25em',
+    headerHeight: '2.75em',
+    headerFont: '0.875em',
+    sectionFont: '1em',
+    tilePad: '1em',
+    tileGap: '0.5em',
+    tileRadius: '1em',
+    ddRadius: '0.5625em',
+    iconBox: '2.75em',
+    iconGlyph: '1.375em',
+    nameFont: '1.125em',
+    valueFont: '1.25em',
+    subFont: '0.75em',
+    unitFont: '0.75em',
+    ctrlMinH: '2.75em',
+    ctrlPadX: '0.875em',
+    ctrlIconSize: '1.375em',
+    ddOptionFont: '0.875em',
+    ddOptionPadY: '0.625em',
+    ddOptionPadX: '0.875em',
+    dropdownMinH: '8em',
+    dropdownMaxH: '17.5em',
+    progressH: '0.625em'
+  }
+};
+
+// ───────────────────────────────────────────────────────────
+// SIZE_PROFILES — family entries (5 families × 3 sizes)
+// Each spreads PROFILE_BASE[size] and overrides only diverging values.
+// ───────────────────────────────────────────────────────────
+
+export const SIZE_PROFILES = {
+
+  // Interactive grid tiles — lighting, rooms (grid mode)
+  'tile-grid': {
+    compact:  { ...PROFILE_BASE.compact,  tileMinH: '5.125em' },
+    standard: { ...PROFILE_BASE.standard, tileMinH: '5.75em'  },
+    large:    { ...PROFILE_BASE.large,    tileMinH: '6.375em' }
+  },
+
+  // Speaker grid tiles — same tile-core, tighter geometry for audio density
+  'speaker-tile': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      tilePad: '0.5em',
+      tileGap: '0.25em',
+      tileMinH: '5.25em',
+      progressH: '0.375em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      tilePad: '0.625em',
+      tileGap: '0.3125em',
+      tileMinH: '5.875em',
+      subFont: '0.71875em',
+      progressH: '0.4375em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      tilePad: '0.75em',
+      tileGap: '0.4375em',
+      tileMinH: '6.5em',
+      progressH: '0.5625em'
+    }
+  },
+
+  // Rooms row layout — core tile lane + row-specific controls
+  'rooms-row': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      sectionFont: '0.96875em',
+      rowMinH: '6.8125em',
+      rowGap: '0.34em',
+      rowTitleFont: '0.9375em',
+      rowStatusFont: '0.8125em',
+      orbSize: '2.96em',
+      orbIcon: '1.56em',
+      toggleSize: '2.96em',
+      toggleIcon: '1.56em',
+      chevronSize: '1.28em',
+      rowBtnRadius: '0.5625em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      sectionFont: '1.0625em',
+      rowMinH: '7.3125em',
+      rowGap: '0.52em',
+      rowTitleFont: '1.03125em',
+      rowStatusFont: '0.90625em',
+      orbSize: '3.16em',
+      orbIcon: '1.62em',
+      toggleSize: '3.16em',
+      toggleIcon: '1.62em',
+      chevronSize: '1.56em',
+      rowBtnRadius: '0.75em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      sectionFont: '1.125em',
+      rowMinH: '7.875em',
+      rowGap: '0.625em',
+      rowTitleFont: '1.125em',
+      rowStatusFont: '0.96875em',
+      orbSize: '3.4em',
+      orbIcon: '1.76em',
+      toggleSize: '3.4em',
+      toggleIcon: '1.76em',
+      chevronSize: '1.7em',
+      rowBtnRadius: '0.8125em'
+    }
+  },
+
+  // Status indicator tiles — interactive subtypes (dropdown, alarm, timer)
+  // All subtype internals now profile-controlled (D20)
+  // progressH: '0em' — status tiles have no progress bar at profile level
+  'indicator-tile': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      headerFont: '0.875em',
+      sectionFont: '0.875em',
+      tileMinH: '5.5em',
+      progressH: '0em',
+      timerFont: '1.0625em',
+      timerLetterSpacing: '0.02em',
+      alarmPillFont: '0.875em',
+      alarmBtnH: '1.125em',
+      alarmBtnFont: '0.5em',
+      alarmIconSize: '0.625em',
+      dropdownMaxH: '13.75em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      headerFont: '1em',
+      sectionFont: '0.9375em',
+      tileMinH: '5.875em',
+      progressH: '0em',
+      timerFont: '1.125em',
+      timerLetterSpacing: '0.03125em',
+      alarmPillFont: '0.9375em',
+      alarmBtnH: '1.25em',
+      alarmBtnFont: '0.5625em',
+      alarmIconSize: '0.6875em',
+      dropdownMaxH: '15em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      headerFont: '1.125em',
+      sectionFont: '1em',
+      tileMinH: '7.125em',
+      progressH: '0em',
+      timerFont: '1.25em',
+      timerLetterSpacing: '0.04em',
+      alarmPillFont: '1em',
+      alarmBtnH: '1.375em',
+      alarmBtnFont: '0.625em',
+      alarmIconSize: '0.75em',
+      dropdownMaxH: '17.5em'
+    }
+  },
+
+  // Sensor / environment rows — horizontal list, sparkline, trend arrow
+  // progressH: '0em' — sensor rows have no progress bar at profile level
+  'indicator-row': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      sectionFont: '0.875em',
+      rowMinH: '3em',
+      rowGap: '0.625em',
+      rowPadY: '0.625em',
+      rowPadX: '0.125em',
+      iconBox: '2em',
+      iconGlyph: '1.125em',
+      nameFont: '0.75em',
+      subFont: '0.6875em',
+      valueFont: '1.125em',
+      unitFont: '0.6875em',
+      progressH: '0em',
+      sparklineW: '2.5em',
+      sparklineH: '1.25em',
+      trendBox: '1.125em',
+      trendGlyph: '0.875em',
+      sparkStroke: '0.09375em'
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      sectionFont: '0.9375em',
+      rowMinH: '3.5em',
+      rowGap: '0.75em',
+      rowPadY: '0.75em',
+      rowPadX: '0.25em',
+      iconBox: '2.25em',
+      iconGlyph: '1.25em',
+      nameFont: '0.8125em',
+      subFont: '0.6875em',
+      valueFont: '1.25em',
+      unitFont: '0.6875em',
+      progressH: '0em',
+      sparklineW: '3em',
+      sparklineH: '1.5em',
+      trendBox: '1.25em',
+      trendGlyph: '1em',
+      sparkStroke: '0.09375em'
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      sectionFont: '1em',
+      rowMinH: '4em',
+      rowGap: '0.875em',
+      rowPadY: '0.875em',
+      rowPadX: '0.3125em',
+      iconBox: '2.5em',
+      iconGlyph: '1.375em',
+      nameFont: '0.875em',
+      subFont: '0.75em',
+      valueFont: '1.375em',
+      unitFont: '0.75em',
+      progressH: '0em',
+      sparklineW: '3.5em',
+      sparklineH: '1.75em',
+      trendBox: '1.375em',
+      trendGlyph: '1.125em',
+      sparkStroke: '0.109375em'
+    }
+  }
+};
+
+// ───────────────────────────────────────────────────────────
+// PRESET_FAMILY_MAP — static preset → family lookup
+// ───────────────────────────────────────────────────────────
+
+export const PRESET_FAMILY_MAP = {
+  lighting:    'tile-grid',
+  rooms:       'tile-grid',        // grid layout mode — see rooms-row below
+  'rooms-row': 'rooms-row',        // row and slim layout modes
+  speakers:    'speaker-tile',
+  status:      'indicator-tile',
+  sensor:      'indicator-row',
+  environment: 'indicator-row',
+};
+
+// ───────────────────────────────────────────────────────────
+// TOKEN_MAP — registry key → CSS custom property name
+// Used by _setProfileVars() in card files (G2+).
+// Family-specific tokens are only present in their family's
+// profile objects, so the undefined check naturally handles
+// family filtering.
+// ───────────────────────────────────────────────────────────
+
+export const TOKEN_MAP = {
+  // Card chrome
+  cardPad:      '--_tunet-card-pad',
+  sectionPad:   '--_tunet-section-pad',
+  sectionGap:   '--_tunet-section-gap',
+  headerHeight: '--_tunet-header-height',
+  headerFont:   '--_tunet-header-font',
+  sectionFont:  '--_tunet-section-font',
+  // Tile core
+  tilePad:      '--_tunet-tile-pad',
+  tileGap:      '--_tunet-tile-gap',
+  tileRadius:   '--_tunet-tile-radius',
+  tileMinH:     '--_tunet-tile-min-h',
+  iconBox:      '--_tunet-icon-box',
+  iconGlyph:    '--_tunet-icon-glyph',
+  nameFont:     '--_tunet-name-font',
+  valueFont:    '--_tunet-value-font',
+  subFont:      '--_tunet-sub-font',
+  unitFont:     '--_tunet-unit-font',
+  progressH:    '--_tunet-progress-h',
+  // Control surfaces
+  ctrlMinH:     '--_tunet-ctrl-min-h',
+  ctrlPadX:     '--_tunet-ctrl-pad-x',
+  ctrlIconSize: '--_tunet-ctrl-icon-size',
+  // Dropdown (shared)
+  ddRadius:     '--_tunet-dd-radius',
+  ddOptionFont: '--_tunet-dd-option-font',
+  ddOptionPadY: '--_tunet-dd-option-pad-y',
+  ddOptionPadX: '--_tunet-dd-option-pad-x',
+  dropdownMinH: '--_tunet-dropdown-min-h',
+  dropdownMaxH: '--_tunet-dropdown-max-h',
+  // rooms-row extensions
+  rowMinH:       '--_tunet-row-min-h',
+  rowGap:        '--_tunet-row-gap',
+  rowTitleFont:  '--_tunet-row-title-font',
+  rowStatusFont: '--_tunet-row-status-font',
+  orbSize:       '--_tunet-orb-size',
+  orbIcon:       '--_tunet-orb-icon',
+  toggleSize:    '--_tunet-toggle-size',
+  toggleIcon:    '--_tunet-toggle-icon',
+  chevronSize:   '--_tunet-chevron-size',
+  rowBtnRadius:  '--_tunet-row-btn-radius',
+  // indicator-tile extensions
+  timerFont:          '--_tunet-timer-font',
+  timerLetterSpacing: '--_tunet-timer-ls',
+  alarmPillFont:      '--_tunet-alarm-pill-font',
+  alarmBtnH:          '--_tunet-alarm-btn-h',
+  alarmBtnFont:       '--_tunet-alarm-btn-font',
+  alarmIconSize:      '--_tunet-alarm-icon-size',
+  // indicator-row extensions
+  rowPadY:      '--_tunet-row-pad-y',
+  rowPadX:      '--_tunet-row-pad-x',
+  sparklineW:   '--_tunet-sparkline-w',
+  sparklineH:   '--_tunet-sparkline-h',
+  trendBox:     '--_tunet-trend-box',
+  trendGlyph:   '--_tunet-trend-glyph',
+  sparkStroke:  '--_tunet-spark-stroke',
+};
+
+// ───────────────────────────────────────────────────────────
+// Width → Size utilities
+// ───────────────────────────────────────────────────────────
+
+/**
+ * Auto-select size from container width.
+ * Used when tile_size is absent in merged config.
+ * 'large' is only reachable via explicit tile_size config — never auto-selected.
+ */
+export function autoSizeFromWidth(widthPx) {
+  if (!widthPx || widthPx <= 0) return 'standard';
+  if (widthPx < 600) return 'compact';
+  return 'standard';
+}
+
+/**
+ * Width bucket for memoization cache key.
+ * @param {number} widthPx
+ * @returns {'xs'|'sm'|'md'|'lg'}
+ */
+export function bucketFromWidth(widthPx) {
+  if (!widthPx || widthPx <= 0) return 'md';
+  if (widthPx < 400) return 'xs';
+  if (widthPx < 600) return 'sm';
+  if (widthPx < 800) return 'md';
+  return 'lg';
+}
+
+// ───────────────────────────────────────────────────────────
+// selectProfileSize — caller layer (§6)
+// ───────────────────────────────────────────────────────────
+
+/**
+ * Decides family + size from already-merged config + runtime widthHint.
+ * Width-to-size mapping lives here — not in the resolver.
+ *
+ * @param {Object} params
+ * @param {string} params.preset  - Card preset key (e.g. 'lighting', 'rooms', 'speakers')
+ * @param {string} params.layout  - Layout mode ('grid', 'row', 'slim')
+ * @param {number} params.widthHint - Container width in px from ResizeObserver
+ * @param {string} [params.userSize] - Explicit tile_size from config (overrides width)
+ * @returns {{ family: string, size: string }}
+ */
+export function selectProfileSize({ preset, layout, widthHint, userSize }) {
+  const mapKey = (layout === 'row' || layout === 'slim') ? 'rooms-row' : preset;
+  const family = PRESET_FAMILY_MAP[mapKey];
+
+  if (!family) {
+    console.warn(`[TunetProfile] Unknown preset "${preset}" (layout: "${layout}"). Falling back to tile-grid.`);
+    return { family: 'tile-grid', size: userSize ?? autoSizeFromWidth(widthHint) };
+  }
+
+  const size = userSize ?? autoSizeFromWidth(widthHint);
+  return { family, size };
+}
+
+// ───────────────────────────────────────────────────────────
+// resolveSizeProfile — pure registry lookup (§8)
+// ───────────────────────────────────────────────────────────
+
+/**
+ * Pure sizing lookup.
+ * Given family + size, returns flat geometry values.
+ * Never reads config. Never writes state. Never decides which size to use.
+ *
+ * @param {Object} params
+ * @param {string} params.family  - Key from FAMILY_KEYS
+ * @param {string} params.size    - 'compact' | 'standard' | 'large'
+ * @returns {Object} Flat token map — all values are pre-formatted CSS strings (e.g. '0.875em')
+ */
+export function resolveSizeProfile({ family, size }) {
+  const familyProfiles = SIZE_PROFILES[family];
+
+  if (!familyProfiles) {
+    console.warn(`[TunetProfile] Unknown family "${family}". Falling back to tile-grid standard.`);
+    return SIZE_PROFILES['tile-grid'].standard;
+  }
+
+  if (!familyProfiles[size]) {
+    console.warn(`[TunetProfile] Unknown size "${size}" for family "${family}". Falling back to standard.`);
+    return familyProfiles.standard;
+  }
+
+  return familyProfiles[size];
+}
+
+// ───────────────────────────────────────────────────────────
+// deepMerge — config merge utility (§14)
+// ───────────────────────────────────────────────────────────
+
+/**
+ * Check if value is a plain object (not array, not null).
+ * @param {*} v
+ * @returns {boolean}
+ */
+function isPlainObject(v) {
+  return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+/**
+ * Deep merge two objects following Tunet merge rules:
+ * - Plain objects: recurse (lower-priority keys survive unless overridden)
+ * - Primitives: override wins; undefined does NOT override (skip)
+ * - Arrays: replace entirely (no concatenation)
+ * - null: explicit clear (overrides any inherited value)
+ *
+ * @param {Object} base - Lower-priority object
+ * @param {Object} override - Higher-priority object
+ * @returns {Object} Merged result
+ */
+export function deepMerge(base, override) {
+  if (!override || typeof override !== 'object') return base ?? override;
+  const result = { ...base };
+  for (const key of Object.keys(override)) {
+    const val = override[key];
+    if (val === undefined) continue;                            // skip — don't clobber base
+    if (val === null) { result[key] = null; continue; }        // explicit clear
+    if (Array.isArray(val)) { result[key] = val; continue; }   // arrays replace entirely
+    if (isPlainObject(val) && isPlainObject(base?.[key])) {
+      result[key] = deepMerge(base[key], val);                 // recurse into plain objects
+    } else {
+      result[key] = val;                                        // override wins
+    }
+  }
+  return result;
+}
+
+// ───────────────────────────────────────────────────────────
+// Global registration — version handshake surface (§12)
+// ───────────────────────────────────────────────────────────
+
+if (typeof window !== 'undefined') {
+  window.TunetBase = {
+    PROFILE_SCHEMA_VERSION,
+    selectProfileSize,
+    resolveSizeProfile,
+    SIZE_PROFILES,
+    PRESET_FAMILY_MAP,
+    deepMerge,
+    TOKEN_MAP,
+  };
 }

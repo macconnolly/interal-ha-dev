@@ -14,7 +14,7 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260306g3';
+} from './tunet_base.js?v=20260308g2e';
 
 const CARD_VERSION = '3.2.2';
 
@@ -628,6 +628,8 @@ class TunetMediaCard extends HTMLElement {
     return {
       columns: 12,
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 2,
     };
   }
 

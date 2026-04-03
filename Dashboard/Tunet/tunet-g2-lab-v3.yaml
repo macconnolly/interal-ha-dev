@@ -1,0 +1,644 @@
+title: Tunet G2 Lab (v3)
+icon: mdi:test-tube
+
+views:
+  - type: sections
+    title: G2 Profiles Lab
+    path: g2-profiles-lab
+    icon: mdi:tune-variant
+    max_columns: 4
+    dense_section_placement: false
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: markdown
+            content: |
+              ## Tunet v3 Profile Lab
+              Compare legacy and profile behavior across cards and options.
+              - Left-biased cards: legacy (`use_profiles: false`)
+              - Right-biased cards: profile (`use_profiles: true`)
+              - Breakpoint test set: `390x844`, `768x1024`, `1024x1366`, `1440x900`
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-lighting-card
+            name: Lighting Legacy Compact Grid
+            primary_entity: sensor.oal_system_status
+            layout: grid
+            columns: 3
+            tile_size: compact
+            use_profiles: false
+            show_adaptive_toggle: false
+            expand_groups: false
+            zones:
+              - entity: light.living_room_lights
+                name: Living
+                icon: lightbulb
+              - entity: light.kitchen_island_lights
+                name: Kitchen
+                icon: kitchen
+              - entity: light.bedroom_primary_lights
+                name: Bedroom
+                icon: bed
+              - entity: light.accent_spots_lights
+                name: Spots
+                icon: highlight
+              - entity: light.recessed_ceiling_lights
+                name: Ceiling
+                icon: light
+              - entity: light.column_lights
+                name: Columns
+                icon: view_column
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-lighting-card
+            name: Lighting Profiles Compact Grid
+            primary_entity: sensor.oal_system_status
+            layout: grid
+            columns: 3
+            tile_size: compact
+            use_profiles: true
+            show_adaptive_toggle: false
+            expand_groups: false
+            zones:
+              - entity: light.living_room_lights
+                name: Living
+                icon: lightbulb
+              - entity: light.kitchen_island_lights
+                name: Kitchen
+                icon: kitchen
+              - entity: light.bedroom_primary_lights
+                name: Bedroom
+                icon: bed
+              - entity: light.accent_spots_lights
+                name: Spots
+                icon: highlight
+              - entity: light.recessed_ceiling_lights
+                name: Ceiling
+                icon: light
+              - entity: light.column_lights
+                name: Columns
+                icon: view_column
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-lighting-card
+            name: Lighting Profiles Standard Scroll
+            primary_entity: sensor.oal_system_status
+            layout: scroll
+            scroll_rows: 2
+            tile_size: standard
+            use_profiles: true
+            show_adaptive_toggle: false
+            expand_groups: false
+            zones:
+              - entity: light.living_room_lights
+                name: Living
+                icon: lightbulb
+              - entity: light.kitchen_island_lights
+                name: Kitchen
+                icon: kitchen
+              - entity: light.bedroom_primary_lights
+                name: Bedroom
+                icon: bed
+              - entity: light.accent_spots_lights
+                name: Spots
+                icon: highlight
+              - entity: light.recessed_ceiling_lights
+                name: Ceiling
+                icon: light
+              - entity: light.column_lights
+                name: Columns
+                icon: view_column
+
+          - type: custom:tunet-lighting-card
+            name: Lighting Legacy Large Grid
+            primary_entity: sensor.oal_system_status
+            layout: grid
+            columns: 2
+            tile_size: large
+            use_profiles: false
+            show_adaptive_toggle: false
+            expand_groups: false
+            zones:
+              - entity: light.living_room_lights
+                name: Living
+                icon: lightbulb
+              - entity: light.kitchen_island_lights
+                name: Kitchen
+                icon: kitchen
+              - entity: light.bedroom_primary_lights
+                name: Bedroom
+                icon: bed
+              - entity: light.accent_spots_lights
+                name: Spots
+                icon: highlight
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-speaker-grid-card
+            name: Speakers Legacy Compact
+            entity: media_player.living_room
+            coordinator_sensor: sensor.sonos_smart_coordinator
+            columns: 2
+            tile_size: compact
+            use_profiles: false
+            show_group_actions: true
+            speakers:
+              - entity: media_player.living_room
+                name: Living Room
+                icon: speaker
+              - entity: media_player.kitchen
+                name: Kitchen
+                icon: speaker
+              - entity: media_player.dining_room
+                name: Dining Room
+                icon: speaker
+              - entity: media_player.bedroom
+                name: Bedroom
+                icon: speaker
+
+          - type: custom:tunet-speaker-grid-card
+            name: Speakers Profiles Compact
+            entity: media_player.living_room
+            coordinator_sensor: sensor.sonos_smart_coordinator
+            columns: 2
+            tile_size: compact
+            use_profiles: true
+            show_group_actions: true
+            speakers:
+              - entity: media_player.living_room
+                name: Living Room
+                icon: speaker
+              - entity: media_player.kitchen
+                name: Kitchen
+                icon: speaker
+              - entity: media_player.dining_room
+                name: Dining Room
+                icon: speaker
+              - entity: media_player.bedroom
+                name: Bedroom
+                icon: speaker
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-speaker-grid-card
+            name: Speakers Profiles Large
+            entity: media_player.living_room
+            coordinator_sensor: sensor.sonos_smart_coordinator
+            columns: 2
+            tile_size: large
+            use_profiles: true
+            show_group_actions: false
+            speakers:
+              - entity: media_player.living_room
+                name: Living Room
+                icon: speaker
+              - entity: media_player.kitchen
+                name: Kitchen
+                icon: speaker
+              - entity: media_player.dining_room
+                name: Dining Room
+                icon: speaker
+              - entity: media_player.bedroom
+                name: Bedroom
+                icon: speaker
+
+          - type: custom:tunet-speaker-grid-card
+            name: Speakers Legacy Standard
+            entity: media_player.living_room
+            coordinator_sensor: sensor.sonos_smart_coordinator
+            columns: 3
+            tile_size: standard
+            use_profiles: false
+            show_group_actions: false
+            speakers:
+              - entity: media_player.living_room
+                name: Living Room
+                icon: speaker
+              - entity: media_player.kitchen
+                name: Kitchen
+                icon: speaker
+              - entity: media_player.dining_room
+                name: Dining Room
+                icon: speaker
+              - entity: media_player.bedroom
+                name: Bedroom
+                icon: speaker
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-status-card
+            name: Status Legacy Compact
+            show_header: true
+            columns: 3
+            tile_size: compact
+            use_profiles: false
+            tiles:
+              - type: indicator
+                entity: sensor.oal_system_status
+                icon: info
+                label: System
+                accent: blue
+              - type: timer
+                entity: timer.media_timer
+                icon: timer
+                label: Timer
+                accent: amber
+              - type: dropdown
+                entity: input_select.oal_lighting_mode
+                icon: tune
+                label: Mode
+                accent: muted
+              - type: alarm
+                entity: sensor.alarm_time_display
+                playing_entity: binary_sensor.alarm_active
+                icon: alarm
+                label: Alarm
+                accent: muted
+              - type: value
+                entity: sensor.dining_room_temperature
+                icon: thermostat
+                label: Temp
+                accent: amber
+                format: integer
+                unit: "°F"
+
+          - type: custom:tunet-status-card
+            name: Status Profiles Compact
+            show_header: true
+            columns: 3
+            tile_size: compact
+            use_profiles: true
+            tiles:
+              - type: indicator
+                entity: sensor.oal_system_status
+                icon: info
+                label: System
+                accent: blue
+              - type: timer
+                entity: timer.media_timer
+                icon: timer
+                label: Timer
+                accent: amber
+              - type: dropdown
+                entity: input_select.oal_lighting_mode
+                icon: tune
+                label: Mode
+                accent: muted
+              - type: alarm
+                entity: sensor.alarm_time_display
+                playing_entity: binary_sensor.alarm_active
+                icon: alarm
+                label: Alarm
+                accent: muted
+              - type: value
+                entity: sensor.dining_room_temperature
+                icon: thermostat
+                label: Temp
+                accent: amber
+                format: integer
+                unit: "°F"
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-status-card
+            name: Status Profiles Large
+            show_header: true
+            columns: 2
+            tile_size: large
+            use_profiles: true
+            tiles:
+              - type: indicator
+                entity: sensor.oal_system_status
+                icon: info
+                label: System
+                accent: blue
+              - type: timer
+                entity: timer.media_timer
+                icon: timer
+                label: Timer
+                accent: amber
+              - type: dropdown
+                entity: input_select.oal_lighting_mode
+                icon: tune
+                label: Mode
+                accent: muted
+              - type: alarm
+                entity: sensor.alarm_time_display
+                playing_entity: binary_sensor.alarm_active
+                icon: alarm
+                label: Alarm
+                accent: muted
+
+          - type: custom:tunet-status-card
+            name: Status Legacy Standard
+            show_header: true
+            columns: 4
+            tile_size: standard
+            use_profiles: false
+            tiles:
+              - type: indicator
+                entity: sensor.oal_system_status
+                icon: info
+                label: System
+                accent: blue
+              - type: value
+                entity: sensor.kitchen_humidity
+                icon: water_drop
+                label: Humidity
+                accent: blue
+                format: integer
+                unit: "%"
+              - type: value
+                entity: sensor.dining_room_temperature
+                icon: thermostat
+                label: Temp
+                accent: amber
+                format: integer
+                unit: "°F"
+              - type: value
+                entity: weather.home
+                icon: cloudy
+                label: Outdoor
+                accent: muted
+                format: integer
+                unit: "°F"
+                attribute: temperature
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-rooms-card
+            name: Rooms Legacy Tiles
+            layout_variant: tiles
+            tile_size: compact
+            use_profiles: false
+            rooms:
+              - name: Living Room
+                icon: weekend
+                navigate_path: /tunet-suite/living-room
+                lights:
+                  - entity: light.living_room_lights
+                    icon: lightbulb
+                  - entity: light.column_lights
+                    icon: view_column
+              - name: Kitchen
+                icon: kitchen
+                navigate_path: /tunet-suite/kitchen
+                lights:
+                  - entity: light.kitchen_island_lights
+                    icon: lightbulb
+              - name: Bedroom
+                icon: bed
+                navigate_path: /tunet-suite/bedroom
+                lights:
+                  - entity: light.bedroom_primary_lights
+                    icon: lightbulb
+
+          - type: custom:tunet-rooms-card
+            name: Rooms Profiles Tiles
+            layout_variant: tiles
+            tile_size: compact
+            use_profiles: true
+            rooms:
+              - name: Living Room
+                icon: weekend
+                navigate_path: /tunet-suite/living-room
+                lights:
+                  - entity: light.living_room_lights
+                    icon: lightbulb
+                  - entity: light.column_lights
+                    icon: view_column
+              - name: Kitchen
+                icon: kitchen
+                navigate_path: /tunet-suite/kitchen
+                lights:
+                  - entity: light.kitchen_island_lights
+                    icon: lightbulb
+              - name: Bedroom
+                icon: bed
+                navigate_path: /tunet-suite/bedroom
+                lights:
+                  - entity: light.bedroom_primary_lights
+                    icon: lightbulb
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-rooms-card
+            name: Rooms Profiles Row
+            layout_variant: row
+            tile_size: standard
+            use_profiles: true
+            rooms:
+              - name: Living Room
+                icon: weekend
+                navigate_path: /tunet-suite/living-room
+                lights:
+                  - entity: light.living_room_lights
+                    icon: lightbulb
+                  - entity: light.column_lights
+                    icon: view_column
+              - name: Kitchen
+                icon: kitchen
+                navigate_path: /tunet-suite/kitchen
+                lights:
+                  - entity: light.kitchen_island_lights
+                    icon: lightbulb
+              - name: Bedroom
+                icon: bed
+                navigate_path: /tunet-suite/bedroom
+                lights:
+                  - entity: light.bedroom_primary_lights
+                    icon: lightbulb
+
+          - type: custom:tunet-rooms-card
+            name: Rooms Profiles Slim
+            layout_variant: slim
+            tile_size: standard
+            use_profiles: true
+            rooms:
+              - name: Living Room
+                icon: weekend
+                navigate_path: /tunet-suite/living-room
+                lights:
+                  - entity: light.living_room_lights
+                    icon: lightbulb
+                  - entity: light.column_lights
+                    icon: view_column
+              - name: Kitchen
+                icon: kitchen
+                navigate_path: /tunet-suite/kitchen
+                lights:
+                  - entity: light.kitchen_island_lights
+                    icon: lightbulb
+              - name: Bedroom
+                icon: bed
+                navigate_path: /tunet-suite/bedroom
+                lights:
+                  - entity: light.bedroom_primary_lights
+                    icon: lightbulb
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: markdown
+            content: |
+              ### Standalone Tile + Sensor Baselines
+              `tunet-light-tile` now consumes profile geometry.
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-light-tile
+            entity: light.living_room_lights
+            name: Tile Legacy Vertical
+            variant: vertical
+            tile_size: compact
+            use_profiles: false
+          - type: custom:tunet-light-tile
+            entity: light.kitchen_island_lights
+            name: Tile Profiles Vertical
+            variant: vertical
+            tile_size: compact
+            use_profiles: true
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-light-tile
+            entity: light.bedroom_primary_lights
+            name: Tile Profiles Horizontal
+            variant: horizontal
+            tile_size: standard
+            use_profiles: true
+          - type: custom:tunet-light-tile
+            entity: light.accent_spots_lights
+            name: Tile Profiles Large
+            variant: vertical
+            tile_size: large
+            use_profiles: true
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-sensor-card
+            title: Environment Legacy Compact
+            icon: sensors
+            icon_color: blue
+            tile_size: compact
+            use_profiles: false
+            show_sparkline: true
+            show_trend: true
+            sensors:
+              - entity: sensor.dining_room_temperature
+                label: Indoor Temp
+                icon: thermostat
+                accent: amber
+                unit: "°F"
+                precision: 0
+              - entity: sensor.kitchen_humidity
+                label: Living Humidity
+                icon: water_drop
+                accent: blue
+                unit: "%"
+                precision: 0
+              - entity: sensor.bedroom_temp_humidity_sensor_temperature
+                label: Bedroom Temp
+                icon: bed
+                accent: amber
+                unit: "°F"
+                precision: 0
+              - entity: sensor.bedroom_temp_humidity_sensor_humidity
+                label: Bedroom Humidity
+                icon: water_drop
+                accent: blue
+                unit: "%"
+                precision: 0
+          - type: custom:tunet-sensor-card
+            title: Environment Profiles Compact
+            icon: sensors
+            icon_color: blue
+            tile_size: compact
+            use_profiles: true
+            show_sparkline: true
+            show_trend: true
+            sensors:
+              - entity: sensor.dining_room_temperature
+                label: Indoor Temp
+                icon: thermostat
+                accent: amber
+                unit: "°F"
+                precision: 0
+              - entity: sensor.kitchen_humidity
+                label: Living Humidity
+                icon: water_drop
+                accent: blue
+                unit: "%"
+                precision: 0
+              - entity: sensor.bedroom_temp_humidity_sensor_temperature
+                label: Bedroom Temp
+                icon: bed
+                accent: amber
+                unit: "°F"
+                precision: 0
+              - entity: sensor.bedroom_temp_humidity_sensor_humidity
+                label: Bedroom Humidity
+                icon: water_drop
+                accent: blue
+                unit: "%"
+                precision: 0
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-sensor-card
+            title: Environment Profiles Large
+            icon: monitor_heart
+            icon_color: green
+            tile_size: large
+            use_profiles: true
+            show_sparkline: false
+            show_trend: true
+            sensors:
+              - entity: weather.home
+                label: Outdoor Temp
+                icon: cloudy
+                accent: muted
+                unit: "°F"
+                precision: 0
+                value_attribute: temperature
+              - entity: sensor.oal_system_status
+                label: OAL Status
+                icon: info
+                accent: purple
+          - type: custom:tunet-sensor-card
+            title: Environment Legacy Standard
+            icon: monitor_heart
+            icon_color: green
+            tile_size: standard
+            use_profiles: false
+            show_sparkline: false
+            show_trend: true
+            sensors:
+              - entity: weather.home
+                label: Outdoor Temp
+                icon: cloudy
+                accent: muted
+                unit: "°F"
+                precision: 0
+                value_attribute: temperature
+              - entity: sensor.oal_system_status
+                label: OAL Status
+                icon: info
+                accent: purple

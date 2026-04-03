@@ -1226,15 +1226,24 @@ class TunetRoomsCard extends HTMLElement {
       .filter((entityId) => entityId.startsWith('switch.adaptive_lighting_'));
     if (!adaptiveEntities.length) return;
 
-    const manualScoped = Array.from(this._getManualLights(adaptiveEntities))
-      .filter((lightId) => roomLights.has(lightId));
-    if (!manualScoped.length) return;
+    const manualScoped = new Set(
+      Array.from(this._getManualLights(adaptiveEntities))
+        .filter((lightId) => roomLights.has(lightId))
+    );
+    if (!manualScoped.size) return;
 
-    this._hass.callService('adaptive_lighting', 'set_manual_control', {
-      entity_id: adaptiveEntities,
-      manual_control: false,
-      lights: manualScoped,
-    });
+    for (const switchEntity of adaptiveEntities) {
+      const sw = this._hass.states[switchEntity];
+      const manualControl = sw?.attributes?.manual_control;
+      if (!Array.isArray(manualControl)) continue;
+      const relevantLights = manualControl.filter((l) => manualScoped.has(l));
+      if (!relevantLights.length) continue;
+      this._hass.callService('adaptive_lighting', 'set_manual_control', {
+        entity_id: switchEntity,
+        manual_control: false,
+        lights: relevantLights,
+      });
+    }
   }
 
   _handleRoomAction(actionConfig, roomCfg) {

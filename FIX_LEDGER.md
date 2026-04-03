@@ -1,8 +1,23 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-09
+Last updated: 2026-03-13
 Scope: `/home/mac/HA/implementation_10`
+
+## Session Delta (2026-03-13, T-011A.22)
+
+Change marker: `T-011A.22`
+
+- `ISSUE-CAPTURED (COLUMN RGB LATE-ON GAP)`
+  - Observed live behavior: sunset prepare automation can abort when columns are off at the sunset trigger crossing.
+  - If columns are then turned on during the same active window, RGB session may not auto-arm.
+  - Resulting state can keep AL ownership at low brightness and produce purple/pink-leaning output on column strips.
+- `PLANNED-FIX (QUEUED, NOT EXECUTED)`
+  - Extend prepare coverage with late-on triggers so column-on events in active sunset window execute the same prepare path.
+  - Preserve existing window/guard predicates (descending sun window, sleep-mode off, manual empty, system not paused).
+- `SCOPE`
+  - docs + backlog capture only
+  - no package automation edits in this delta
 
 ## Session Delta (2026-03-09, T-011A.21)
 

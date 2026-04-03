@@ -1717,14 +1717,23 @@ class TunetLightingCard extends HTMLElement {
     if (!adaptiveEntities.length) return;
 
     const zoneSet = this._zoneEntitySet();
-    const manualScoped = this._getManuallyControlled(adaptiveEntities).filter((entityId) => zoneSet.has(entityId));
-    if (!manualScoped.length) return;
+    const manualScoped = new Set(
+      this._getManuallyControlled(adaptiveEntities).filter((entityId) => zoneSet.has(entityId))
+    );
+    if (!manualScoped.size) return;
 
-    this._callService('adaptive_lighting', 'set_manual_control', {
-      entity_id: adaptiveEntities,
-      manual_control: false,
-      lights: manualScoped,
-    });
+    for (const switchEntity of adaptiveEntities) {
+      const sw = this._getEntity(switchEntity);
+      const manualControl = sw?.attributes?.manual_control;
+      if (!Array.isArray(manualControl)) continue;
+      const relevantLights = manualControl.filter((l) => manualScoped.has(l));
+      if (!relevantLights.length) continue;
+      this._callService('adaptive_lighting', 'set_manual_control', {
+        entity_id: switchEntity,
+        manual_control: false,
+        lights: relevantLights,
+      });
+    }
   }
 
   /* ═══════════════════════════════════════════════════

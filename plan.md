@@ -1,7 +1,66 @@
 # Tunet Suite Dashboard - Implementation Plan (V2 Next)
 
 Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-09
+Last updated: 2026-03-14
+
+## Session Delta (2026-03-14, T-011A.23)
+
+Tranche marker: `T-011A.23` (v3 restoration, promotion & import version fix)
+
+- `V3-AUDIT`
+  - All 14 v3 JS files pass `node --check` syntax validation
+  - Profile resolver tests: 8/8 pass
+  - `_resetManualControl()` confirmed correct per-switch loop in both rooms + lighting cards (no port needed)
+  - Import version inconsistency DISCOVERED: 7 of 13 cards had stale `?v=` strings (20260306g3, 20260307p03, 20260307p08)
+  - ES module cache identity bug: different `?v=` creates separate module scopes in browser, breaking singleton sharing
+  - FIXED: All 13 cards now import `tunet_base.js?v=20260309g7`
+- `V3-DEPLOY`
+  - 14 files deployed via SCP to `/config/www/tunet/v3/` (v2 preserved for rollback)
+  - All 13 Lovelace resources switched from `/local/tunet/v2/` → `/local/tunet/v3/?v=20260314_v3a`
+  - Server validation: sensor card has `selectProfileSize`, base has `_setProfileVars` export
+- `MEMORY-CORRECTION`
+  - Erroneous `feedback_v2_is_live_target.md` rewritten — v3 is now documented as implementation authority
+  - MEMORY.md updated: deploy path, import version, resource version, source-of-truth references
+  - Dashboard/Tunet/CLAUDE.md, Cards/CLAUDE.md, Cards/v3/CLAUDE.md all updated to v3 authority
+  - tranche_queue.md: deployment note added, KI-003 marked RESOLVED
+- `KI-003-RESOLVED`
+  - Rooms card row toggle button oversized → fixed in v3 via `--row-btn-size` (T-011A.18)
+  - Now deployed to production with v3 restoration
+- `KI-001-FIX (CANDIDATE)`
+  - Root cause identified: `_render()` runs during active drag when HA pushes state updates
+  - `_render()` replaces `innerHTML`, resetting `dataset.brightness` and destroying drag visual state
+  - User sees tile snapping back to HA brightness during drag, making it appear broken
+  - Fix: added `this._isDragging` guard — `_render()` skips during active drag, runs once on `onDragEnd`
+  - Modified: `tunet_light_tile.js` (constructor, `_render`, `onDragStart`, `onDragEnd`)
+  - Deployed at `?v=20260314_v3b` — requires browser DevTools validation to confirm fix
+- `SCOPE-LOCK`
+  - v2 server cleanup deferred pending user validation of v3
+  - Step 8 (v2 cleanup) remains open
+
+## Session Delta (2026-03-13, T-011A.22)
+
+Tranche marker: `T-011A.22` (OAL column sunset late-on prepare coverage planning)
+
+- `ISSUE-DISCOVERED (LIVE TRACE)`
+  - During the active sunset protect window, `oal_v13_column_lights_prepare_rgb_mode` can abort when columns are off at threshold crossing.
+  - If columns are turned on later in the same window, session may remain unarmed:
+    - `input_boolean.oal_column_rgb_session_active = off`
+    - `manual_control` not engaged on `switch.adaptive_lighting_column_lights`
+  - This leaves AL ownership active at very low brightness and can reintroduce purple/pink-leaning output on the column strips.
+- `PLANNED-REMEDIATION (NOT IMPLEMENTED IN THIS DELTA)`
+  - Add late-on coverage so a column-on event during the active sunset window runs the same prepare sequence automatically.
+  - Candidate trigger surface:
+    - `light.living_column_strip_light_matter` -> `to: 'on'`
+    - `light.dining_column_strip_light_matter` -> `to: 'on'`
+    - optional grouped trigger via `light.column_lights` -> `to: 'on'`
+  - Gate with existing prepare conditions:
+    - descending sun only, `-5 <= elevation < 3`
+    - sleep mode off
+    - manual list empty
+    - system not paused
+- `SCOPE-LOCK`
+  - planning/docs update only in `T-011A.22`
+  - no changes applied to `packages/oal_lighting_control_package.yaml` in this delta
 
 ## Session Delta (2026-03-09, T-011A.21)
 

@@ -25,7 +25,7 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion, clamp,
-} from './tunet_base.js?v=20260306g3';
+} from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '1.0.0';
 

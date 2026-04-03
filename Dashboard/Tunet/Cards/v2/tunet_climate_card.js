@@ -15,7 +15,7 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
-} from './tunet_base.js?v=20260306g3';
+} from './tunet_base.js?v=20260308g2e';
 
 const CARD_VERSION = '1.2.0';
 
@@ -789,6 +789,8 @@ class TunetClimateCard extends HTMLElement {
     return {
       columns: 6,
       min_columns: 3,
+      rows: 'auto',
+      min_rows: 3,
     };
   }
 

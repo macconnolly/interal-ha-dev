@@ -2,7 +2,7 @@
  * Tunet Rooms Card (v2 – ES Module)
  * Compact room grid with SmartThings-inspired square tiles
  * Glassmorphism design language
- * Version 2.9.1
+ * Version 3.0.0
  */
 
 import {
@@ -21,9 +21,13 @@ import {
   runCardAction,
   registerCard,
   logCardVersion,
-} from './tunet_base.js?v=20260307p09';
+  // G3: Profile consumption system
+  selectProfileSize, resolveSizeProfile,
+  TOKEN_MAP, PROFILE_SCHEMA_VERSION,
+  bucketFromWidth,
+} from './tunet_base.js?v=20260308g2e';
 
-const CARD_VERSION = '2.9.2';
+const CARD_VERSION = '3.0.0'; // G3: profile consumption
 
 // ═══════════════════════════════════════════════════════════
 // Icon helpers (card-specific)
@@ -93,7 +97,7 @@ const CARD_STYLES = `
     padding: 0 0.25em;
   }
   .section-title {
-    font-size: 1.0625em; font-weight: 700; letter-spacing: -0.01em;
+    font-size: var(--_tunet-section-font, 1.0625em); font-weight: 700; letter-spacing: -0.01em;
     color: var(--text);
   }
   .section-hdr-spacer { flex: 1; }
@@ -152,13 +156,13 @@ const CARD_STYLES = `
   .room-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(7.2em, 1fr));
-    gap: 0.6em;
+    gap: var(--_tunet-tile-gap, 0.6em);
   }
 
   .room-grid.row-mode {
     display: flex;
     flex-direction: column;
-    gap: 0.52em;
+    gap: var(--_tunet-row-gap, 0.52em);
   }
 
   /* Slim mobile-first row variant */
@@ -168,8 +172,8 @@ const CARD_STYLES = `
 
   /* -- Room Tile (aligned to lighting tile language) -- */
   .room-tile {
-    min-height: 7.3em;
-    border-radius: var(--r-tile);
+    min-height: var(--_tunet-tile-min-h, 7.3em);
+    border-radius: var(--_tunet-tile-radius, var(--r-tile));
     background: var(--tile-bg);
     border: 1px solid var(--border-ghost);
     box-shadow: var(--shadow);
@@ -178,7 +182,7 @@ const CARD_STYLES = `
     align-items: center;
     justify-content: center;
     gap: 0.14em;
-    padding: 0.62em 0.34em 0.9em;
+    padding: var(--_tunet-tile-pad, 0.62em) 0.34em 0.9em;
     cursor: pointer;
     transition: all 0.18s ease;
     position: relative;
@@ -208,7 +212,7 @@ const CARD_STYLES = `
 
   /* -- Icon wrap -- */
   .room-tile-icon {
-    width: 2.35em; height: 2.35em;
+    width: var(--_tunet-icon-box, 2.35em); height: var(--_tunet-icon-box, 2.35em);
     display: grid; place-items: center;
     border-radius: 50%;
     transition: all 0.18s;
@@ -228,12 +232,12 @@ const CARD_STYLES = `
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
   .room-tile-icon .icon {
-    font-size: 1.3em; width: 1.3em; height: 1.3em;
+    font-size: var(--_tunet-icon-glyph, 1.3em); width: var(--_tunet-icon-glyph, 1.3em); height: var(--_tunet-icon-glyph, 1.3em);
   }
 
   /* -- Room name -- */
   .room-tile-name {
-    font-size: 0.8em;
+    font-size: var(--_tunet-name-font, 0.8em);
     font-weight: 600;
     color: var(--text);
     text-align: center;
@@ -329,12 +333,12 @@ const CARD_STYLES = `
     text-align: left;
   }
   .room-grid.row-mode .room-tile-name {
-    font-size: var(--type-row-title, 16.5px);
+    font-size: var(--_tunet-row-title-font, var(--type-row-title, 16.5px));
     font-weight: 700;
     line-height: var(--row-line-height-title, 1.16);
   }
   .room-grid.row-mode .room-tile-status {
-    font-size: var(--type-row-status, 14.5px);
+    font-size: var(--_tunet-row-status-font, var(--type-row-status, 14.5px));
     font-weight: 700;
     color: var(--text-sub);
     line-height: var(--row-line-height-status, 1.14);
@@ -361,9 +365,9 @@ const CARD_STYLES = `
     align-items: center;
     gap: 0.44em;
     flex-shrink: 0;
-    --row-btn-size: var(--rooms-row-btn-size, 3.4em);
-    --row-btn-radius: var(--rooms-row-btn-radius, 12px);
-    --row-btn-icon-size: var(--rooms-row-btn-icon-size, 1.76em);
+    --row-btn-size: var(--_tunet-orb-size, var(--rooms-row-btn-size, 3.4em));
+    --row-btn-radius: var(--_tunet-row-btn-radius, var(--rooms-row-btn-radius, 12px));
+    --row-btn-icon-size: var(--_tunet-orb-icon, var(--rooms-row-btn-icon-size, 1.76em));
   }
   .room-action-btn {
     width: var(--row-btn-size);
@@ -450,8 +454,8 @@ const CARD_STYLES = `
     box-shadow: 0 0 0 1px rgba(239,68,68,0.42), 0 0 0 3px rgba(239,68,68,0.14);
   }
   .room-chevron {
-    width: 1.56em;
-    height: 1.56em;
+    width: var(--_tunet-chevron-size, 1.56em);
+    height: var(--_tunet-chevron-size, 1.56em);
     border-radius: var(--r-pill);
     border: 1px solid transparent;
     color: var(--text-muted);
@@ -494,9 +498,9 @@ const CARD_STYLES = `
   }
   .room-grid.row-mode.slim-mode .room-row-controls {
     gap: 0.26em;
-    --row-btn-size: var(--rooms-row-btn-size-slim, 2.96em);
-    --row-btn-radius: 9px;
-    --row-btn-icon-size: var(--rooms-row-btn-icon-size-slim, 1.56em);
+    --row-btn-size: var(--_tunet-toggle-size, var(--rooms-row-btn-size-slim, 2.96em));
+    --row-btn-radius: var(--_tunet-row-btn-radius, 9px);
+    --row-btn-icon-size: var(--_tunet-toggle-icon, var(--rooms-row-btn-icon-size-slim, 1.56em));
   }
   .room-grid.row-mode.slim-mode .room-orbs {
     gap: 0.2em;
@@ -524,8 +528,8 @@ const CARD_STYLES = `
     height: var(--row-btn-icon-size);
   }
   .room-grid.row-mode.slim-mode .room-chevron {
-    width: 1.28em;
-    height: 1.28em;
+    width: var(--_tunet-chevron-size, 1.28em);
+    height: var(--_tunet-chevron-size, 1.28em);
   }
 
   /* -- Toggle indicator dot -- */
@@ -550,6 +554,7 @@ const CARD_STYLES = `
   }
   @media (max-width: 440px) {
     :host { font-size: 16px; }
+    /* Structural layout overrides — kept (not density-driven) */
     .section-controls { gap: 0.3em; }
     .section-btn {
       min-height: 1.9em;
@@ -559,18 +564,8 @@ const CARD_STYLES = `
     .section-btn.all-toggle { padding: 0 0.96em; gap: 0.34em; }
     .room-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.4em;
     }
-    .room-tile {
-      min-height: 6.8em;
-      padding: 0.54em 0.3em 0.82em;
-    }
-    .room-tile-name {
-      font-size: 0.82em;
-    }
-    .room-tile-status {
-      font-size: 0.72em;
-    }
+    /* Row mode structural layout overrides */
     .room-grid.row-mode .room-tile {
       padding: 0.9em 0.94em;
       gap: 0.82em;
@@ -578,31 +573,9 @@ const CARD_STYLES = `
     .room-grid.row-mode .room-row-main {
       gap: 0.74em;
     }
-    .room-grid.row-mode .room-tile-name {
-      font-size: var(--type-row-title, 18px);
-    }
-    .room-grid.row-mode .room-tile-status {
-      font-size: var(--type-row-status, 15.5px);
-    }
-    .room-grid.row-mode .room-row-controls {
-      --row-btn-size: var(--rooms-row-btn-size, 2.82em);
-      --row-btn-icon-size: var(--rooms-row-btn-icon-size, 1.44em);
-      --row-btn-radius: 12px;
-    }
     .room-grid.row-mode.slim-mode .room-tile {
       padding: 0.58em 0.68em;
       gap: 0.54em;
-    }
-    .room-grid.row-mode.slim-mode .room-tile-name {
-      font-size: 0.76em;
-    }
-    .room-grid.row-mode.slim-mode .room-tile-status {
-      font-size: 0.66em;
-    }
-    .room-grid.row-mode.slim-mode .room-row-controls {
-      --row-btn-size: var(--rooms-row-btn-size-slim, 2.52em);
-      --row-btn-icon-size: var(--rooms-row-btn-icon-size-slim, 1.28em);
-      --row-btn-radius: 9px;
     }
   }
 `;
@@ -662,6 +635,10 @@ class TunetRoomsCard extends HTMLElement {
     this._rendered = false;
     this._tileRefs = [];
     this._longPressTimer = null;
+    // G3: Profile consumption state
+    this._profileCache = new Map();
+    this._currentFamily = null;
+    this._lastWidth = 0;
     injectFonts();
   }
 
@@ -672,12 +649,14 @@ class TunetRoomsCard extends HTMLElement {
       schema: [
         { name: 'name', selector: { text: {} } },
         { name: 'layout_variant', selector: { select: { options: ['tiles', 'row', 'slim'] } } },
+        { name: 'use_profiles', selector: { boolean: {} } },
         { name: 'rooms', selector: { object: {} } },
       ],
       computeLabel: (schema) => {
         const labels = {
           name: 'Card Name',
           layout_variant: 'Layout Variant',
+          use_profiles: 'Use Profile System (density-responsive sizing)',
           rooms: 'Rooms Config',
         };
         return labels[schema.name] || schema.name;
@@ -711,11 +690,17 @@ class TunetRoomsCard extends HTMLElement {
     if (!config.rooms || !Array.isArray(config.rooms) || config.rooms.length === 0) {
       throw new Error('Please define at least one room');
     }
+
+    // G3: use_profiles defaults true; global override via window.TUNET_USE_PROFILES
+    const useProfiles = (config.use_profiles !== false) &&
+      (typeof window === 'undefined' || window.TUNET_USE_PROFILES !== false);
+
     this._config = {
       name: config.name || 'Rooms',
       layout_variant: (config.layout_variant === 'row' || config.layout_variant === 'slim')
         ? config.layout_variant
         : 'tiles',
+      use_profiles: useProfiles,
       rooms: config.rooms.map((room) => ({
         name: room.name || 'Room',
         icon: normalizeIcon(room.icon || 'home'),
@@ -731,6 +716,10 @@ class TunetRoomsCard extends HTMLElement {
         })),
       })),
     };
+    // G3: Version handshake + profile application
+    this._checkBaseCompat();
+    this._applyProfile();
+
     if (this._rendered) {
       this._buildTiles();
       this._updateAll();
@@ -779,12 +768,34 @@ class TunetRoomsCard extends HTMLElement {
     return {
       columns: 'full',
       min_columns: 6,
+      rows: 'auto',
+      min_rows: 3,
+      fixed_rows: true,
     };
   }
 
-  connectedCallback() {}
+  connectedCallback() {
+    // G3: ResizeObserver for profile width tracking
+    if (!this._resizeObserver && typeof ResizeObserver !== 'undefined') {
+      this._resizeObserver = new ResizeObserver((entries) => {
+        const width = entries?.[0]?.contentRect?.width;
+        if (width && width > 0) {
+          this._lastWidth = width;
+          this._applyProfile();
+        }
+      });
+      this._resizeObserver.observe(this);
+    }
+  }
+
   disconnectedCallback() {
     clearTimeout(this._longPressTimer);
+    // G3: cleanup
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+    this._profileCache.clear();
   }
 
   _render() {
@@ -1101,15 +1112,24 @@ class TunetRoomsCard extends HTMLElement {
       .filter((entityId) => entityId.startsWith('switch.adaptive_lighting_'));
     if (!adaptiveEntities.length) return;
 
-    const manualScoped = Array.from(this._getManualLights(adaptiveEntities))
-      .filter((lightId) => roomLights.has(lightId));
-    if (!manualScoped.length) return;
+    const manualScoped = new Set(
+      Array.from(this._getManualLights(adaptiveEntities))
+        .filter((lightId) => roomLights.has(lightId))
+    );
+    if (!manualScoped.size) return;
 
-    this._hass.callService('adaptive_lighting', 'set_manual_control', {
-      entity_id: adaptiveEntities,
-      manual_control: false,
-      lights: manualScoped,
-    });
+    for (const switchEntity of adaptiveEntities) {
+      const sw = this._hass.states[switchEntity];
+      const manualControl = sw?.attributes?.manual_control;
+      if (!Array.isArray(manualControl)) continue;
+      const relevantLights = manualControl.filter((l) => manualScoped.has(l));
+      if (!relevantLights.length) continue;
+      this._hass.callService('adaptive_lighting', 'set_manual_control', {
+        entity_id: switchEntity,
+        manual_control: false,
+        lights: relevantLights,
+      });
+    }
   }
 
   _handleRoomAction(actionConfig, roomCfg) {
@@ -1121,6 +1141,122 @@ class TunetRoomsCard extends HTMLElement {
       actionConfig,
       defaultEntityId,
     });
+  }
+
+  /* ═══════════════════════════════════════════════════
+     G3: PROFILE CONSUMPTION SYSTEM
+     Architecture: unified_tile_architecture_conclusion.md v3.1 §9-§11
+     First card with dual-family switching (tile-grid ↔ rooms-row).
+     ═══════════════════════════════════════════════════ */
+
+  _checkBaseCompat() {
+    const baseVersion = typeof window !== 'undefined' && window.TunetBase?.PROFILE_SCHEMA_VERSION;
+    if (!baseVersion) {
+      this._renderError('Profile system unavailable — tunet_base.js not loaded or outdated');
+      return;
+    }
+    const expectedMajor = PROFILE_SCHEMA_VERSION.split('-')[0];
+    const actualMajor = baseVersion.split('-')[0];
+    if (expectedMajor !== actualMajor) {
+      this._renderError(`Profile version mismatch: card expects ${expectedMajor}, base has ${actualMajor}`);
+    }
+  }
+
+  _renderError(message) {
+    try {
+      if (!this.shadowRoot) return;
+      let errEl = this.shadowRoot.getElementById('tunet-profile-error');
+      if (!errEl) {
+        errEl = document.createElement('div');
+        errEl.id = 'tunet-profile-error';
+        errEl.style.cssText = 'padding:12px;margin:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:8px;color:#ef4444;font-size:12px;font-weight:600;';
+        this.shadowRoot.prepend(errEl);
+      }
+      errEl.textContent = message;
+    } catch (_) { /* never throw from error renderer */ }
+  }
+
+  /**
+   * Single convergence point for profile application.
+   * Dual-family: tiles → tile-grid, row/slim → rooms-row.
+   * Slim forces compact size regardless of container width.
+   */
+  _applyProfile() {
+    if (!this._config.use_profiles) {
+      this._applyLegacyScaling();
+      return;
+    }
+
+    const layout = this._config.layout_variant || 'tiles';
+    // Slim always gets compact profile — tightest geometry by design
+    const userSize = layout === 'slim' ? 'compact' : undefined;
+
+    const { family, size } = selectProfileSize({
+      preset: 'rooms',
+      layout,
+      widthHint: this._lastWidth,
+      userSize,
+    });
+
+    // Instance cache check (D10): invalidate on family change
+    if (family !== this._currentFamily) {
+      this._profileCache.clear();
+      this._currentFamily = family;
+    }
+
+    const bucket = bucketFromWidth(this._lastWidth);
+    const cacheKey = `${family}:${size}:${bucket}`;
+    if (this._profileCache.has(cacheKey)) return;
+
+    const profile = resolveSizeProfile({ family, size });
+    this._profileCache.set(cacheKey, true);
+    this._setProfileVars(profile);
+  }
+
+  _applyLegacyScaling() {
+    // Clear any profile vars that may have been set previously
+    if (this.style.length > 0) {
+      const toRemove = [];
+      for (let i = 0; i < this.style.length; i++) {
+        const prop = this.style[i];
+        if (prop.startsWith('--_tunet-')) toRemove.push(prop);
+      }
+      for (const prop of toRemove) this.style.removeProperty(prop);
+    }
+  }
+
+  _setProfileVars(profile) {
+    // Step 1: Clear all --_tunet-* (prevents stale tokens on family switch, D11)
+    const toRemove = [];
+    for (let i = 0; i < this.style.length; i++) {
+      const prop = this.style[i];
+      if (prop.startsWith('--_tunet-')) toRemove.push(prop);
+    }
+    for (const prop of toRemove) this.style.removeProperty(prop);
+
+    // Step 2: Set all tokens present in this profile
+    for (const [key, cssVar] of Object.entries(TOKEN_MAP)) {
+      if (profile[key] !== undefined) {
+        this.style.setProperty(cssVar, profile[key]);
+      }
+    }
+
+    // Step 3: Bridge --profile-* public hooks via getComputedStyle
+    const OVERRIDE_PAIRS = [
+      ['--profile-card-pad',     '--_tunet-card-pad'],
+      ['--profile-tile-pad',     '--_tunet-tile-pad'],
+      ['--profile-tile-gap',     '--_tunet-tile-gap'],
+      ['--profile-icon-box',     '--_tunet-icon-box'],
+      ['--profile-name-font',    '--_tunet-name-font'],
+      ['--profile-section-font', '--_tunet-section-font'],
+      ['--profile-orb-size',     '--_tunet-orb-size'],
+      ['--profile-chevron-size', '--_tunet-chevron-size'],
+    ];
+    const computed = getComputedStyle(this);
+    for (const [pub, priv] of OVERRIDE_PAIRS) {
+      const override = computed.getPropertyValue(pub).trim();
+      if (override) this.style.setProperty(priv, override);
+    }
   }
 
   _updateAll() {

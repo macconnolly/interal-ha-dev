@@ -701,18 +701,55 @@ class TunetRoomsCard extends HTMLElement {
         { name: 'layout_variant', selector: { select: { options: ['tiles', 'row', 'slim'] } } },
         { name: 'tile_size', selector: { select: { options: ['compact', 'standard', 'large'] } } },
         { name: 'use_profiles', selector: { boolean: {} } },
-        { name: 'rooms', selector: { object: {} } },
+        {
+          name: 'rooms',
+          selector: {
+            object: {
+              multiple: true,
+              label_field: 'name',
+              description_field: 'icon',
+              fields: {
+                name: {
+                  label: 'Room Name',
+                  required: true,
+                  selector: { text: {} },
+                },
+                icon: {
+                  label: 'Icon',
+                  selector: { icon: {} },
+                },
+                navigate_path: {
+                  label: 'Navigate Path',
+                  selector: { text: {} },
+                },
+                temperature_entity: {
+                  label: 'Temperature Sensor',
+                  selector: { entity: { filter: [{ domain: 'sensor' }] } },
+                },
+                humidity_entity: {
+                  label: 'Humidity Sensor',
+                  selector: { entity: { filter: [{ domain: 'sensor' }] } },
+                },
+                light_entities: {
+                  label: 'Lights',
+                  selector: { entity: { multiple: true, filter: [{ domain: 'light' }] } },
+                },
+              },
+            },
+          },
+        },
       ],
-      computeLabel: (schema) => {
-        const labels = {
-          name: 'Card Name',
-          layout_variant: 'Layout Variant',
-          tile_size: 'Tile Size',
-          use_profiles: 'Use Profile Sizing',
-          rooms: 'Rooms Config',
-        };
-        return labels[schema.name] || schema.name;
-      },
+      computeLabel: (s) => ({
+        name: 'Card Name',
+        layout_variant: 'Layout Variant',
+        tile_size: 'Tile Size',
+        use_profiles: 'Use Profile Sizing',
+        rooms: 'Rooms',
+      }[s.name] || s.name),
+      computeHelper: (s) => ({
+        rooms: 'Add rooms with lights. Per-light icon/name overrides and hold_action/tap_action are available via YAML.',
+        navigate_path: 'Dashboard URL path (e.g., /tunet-suite-storage/kitchen)',
+      }[s.name] || ''),
     };
   }
 
@@ -726,15 +763,7 @@ class TunetRoomsCard extends HTMLElement {
         {
           name: 'Living Room',
           icon: 'weekend',
-          hold_action: {
-            action: 'fire-dom-event',
-            browser_mod: {
-              service: 'browser_mod.popup',
-            },
-          },
-          lights: [
-            { entity: 'light.living_room', icon: 'lightbulb', name: 'Main' },
-          ],
+          light_entities: ['light.living_room'],
         },
       ],
     };
@@ -758,20 +787,39 @@ class TunetRoomsCard extends HTMLElement {
         : 'tiles',
       tile_size: tileSize,
       use_profiles: useProfiles,
-      rooms: config.rooms.map((room) => ({
-        name: room.name || 'Room',
-        icon: normalizeIcon(room.icon || 'home'),
-        temperature_entity: room.temperature_entity || '',
-        humidity_entity: room.humidity_entity || '',
-        navigate_path: room.navigate_path || '',
-        tap_action: room.tap_action || null,
-        hold_action: room.hold_action || null,
-        lights: (room.lights || []).map((light) => ({
-          entity: light.entity || '',
-          icon: normalizeIcon(light.icon || 'lightbulb'),
-          name: light.name || '',
-        })),
-      })),
+      rooms: config.rooms.map((room) => {
+        // Synthesize lights from light_entities authoring model if explicit lights[] absent
+        const hasExplicitLights = Array.isArray(room.lights) && room.lights.length > 0;
+        const hasLightEntities = Array.isArray(room.light_entities) && room.light_entities.length > 0;
+        let lights;
+        if (hasExplicitLights) {
+          // Explicit lights[] wins (YAML power-user path with per-light name/icon)
+          lights = room.lights.map((light) => ({
+            entity: light.entity || '',
+            icon: normalizeIcon(light.icon || 'lightbulb'),
+            name: light.name || '',
+          }));
+        } else if (hasLightEntities) {
+          // Synthesize from flat entity list (editor authoring model)
+          lights = room.light_entities.filter(Boolean).map((entityId) => ({
+            entity: entityId,
+            icon: normalizeIcon('lightbulb'),
+            name: '',
+          }));
+        } else {
+          lights = [];
+        }
+        return {
+          name: room.name || 'Room',
+          icon: normalizeIcon(room.icon || 'home'),
+          temperature_entity: room.temperature_entity || '',
+          humidity_entity: room.humidity_entity || '',
+          navigate_path: room.navigate_path || '',
+          tap_action: room.tap_action || null,
+          hold_action: room.hold_action || null,
+          lights,
+        };
+      }),
     };
     if (useProfiles) this.setAttribute('use-profiles', '');
     else this.removeAttribute('use-profiles');

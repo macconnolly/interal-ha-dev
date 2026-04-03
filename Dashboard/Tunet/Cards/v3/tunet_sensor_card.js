@@ -424,22 +424,47 @@ class TunetSensorCard extends HTMLElement {
       schema: [
         { name: 'title', selector: { text: {} } },
         { name: 'icon', selector: { icon: {} } },
+        { name: 'icon_color', selector: { select: { options: ['amber', 'blue', 'green', 'purple', 'red', 'muted'] } } },
         { name: 'show_sparkline', selector: { boolean: {} } },
         { name: 'show_trend', selector: { boolean: {} } },
+        { name: 'history_hours', selector: { number: { min: 1, max: 48, step: 1, mode: 'box' } } },
         { name: 'tile_size', selector: { select: { options: ['compact', 'standard', 'large'] } } },
         { name: 'use_profiles', selector: { boolean: {} } },
+        {
+          name: 'sensors',
+          selector: {
+            object: {
+              multiple: true,
+              label_field: 'label',
+              description_field: 'entity',
+              fields: {
+                entity: { label: 'Entity', required: true, selector: { entity: {} } },
+                label: { label: 'Label', selector: { text: {} } },
+                icon: { label: 'Icon (Material Symbol)', selector: { text: {} } },
+                accent: { label: 'Accent', selector: { select: { options: ['amber', 'blue', 'green', 'purple', 'red', 'muted'] } } },
+                unit: { label: 'Unit', selector: { text: {} } },
+                precision: { label: 'Decimal Places', selector: { number: { min: 0, max: 4, step: 1, mode: 'box' } } },
+              },
+            },
+          },
+        },
       ],
-      computeLabel: (schema) => ({
+      computeLabel: (s) => ({
         title: 'Section Title',
         icon: 'Section Icon',
+        icon_color: 'Icon Color',
         show_sparkline: 'Show Sparkline',
         show_trend: 'Show Trend Indicator',
+        history_hours: 'History Hours',
         tile_size: 'Tile Size',
         use_profiles: 'Use Profile Sizing',
-      }[schema.name] || schema.name),
-      computeHelper: (schema) => ({
-        use_profiles: 'When enabled, geometry is sourced from the indicator-row profile family.',
-      }[schema.name] || ''),
+        sensors: 'Sensors',
+      }[s.name] || s.name),
+      computeHelper: (s) => ({
+        sensors: 'Add sensor entities. For per-sensor thresholds, value_attribute, or state_styles, use YAML.',
+        history_hours: 'Hours of history for sparkline (default: 6)',
+        icon: 'Section header icon (MDI format)',
+      }[s.name] || ''),
     };
   }
 
@@ -451,52 +476,9 @@ class TunetSensorCard extends HTMLElement {
       show_sparkline: true,
       show_trend: true,
       tile_size: 'standard',
-      use_profiles: true,
       sensors: [
-        {
-          entity: 'sensor.living_room_temperature',
-          label: 'Living Room',
-          icon: 'thermostat',
-          accent: 'amber',
-          unit: '\u00b0F',
-          precision: 0,
-          thresholds: [
-            { value: 80, condition: 'gte', style: 'error' },
-            { value: 75, condition: 'gte', style: 'warning' },
-          ],
-          show_range: true,
-        },
-        {
-          entity: 'sensor.living_room_humidity',
-          label: 'Humidity',
-          icon: 'water_drop',
-          accent: 'blue',
-          unit: '%',
-          precision: 0,
-          thresholds: [
-            { value: 60, condition: 'gte', style: 'warning' },
-            { value: 20, condition: 'lte', style: 'warning' },
-          ],
-          show_range: true,
-        },
-        {
-          entity: 'weather.home',
-          label: 'Outdoor Conditions',
-          icon: 'cloud',
-          accent: 'green',
-          precision: 0,
-          state_styles: [
-            { state: 'sunny', style: 'success' },
-            { state: 'partlycloudy', style: 'success' },
-            { state: 'cloudy', style: 'warning' },
-            { state: 'rainy', style: 'warning' },
-            { state: 'pouring', style: 'error' },
-            { state: 'snowy', style: 'warning' },
-            { state: 'lightning', style: 'error' },
-            { state: 'lightning-rainy', style: 'error' },
-          ],
-          show_range: true,
-        },
+        { entity: 'sensor.living_room_temperature', label: 'Temperature', icon: 'thermostat', accent: 'amber', unit: '\u00b0F', precision: 0 },
+        { entity: 'sensor.living_room_humidity', label: 'Humidity', icon: 'water_drop', accent: 'blue', unit: '%', precision: 0 },
       ],
     };
   }
@@ -504,7 +486,7 @@ class TunetSensorCard extends HTMLElement {
   setConfig(config) {
     if (!config.sensors || !Array.isArray(config.sensors) || config.sensors.length === 0) {
       this._config = { _needsConfig: true };
-      renderConfigPlaceholder(this.shadowRoot, 'Add sensors to the sensors array in YAML', 'Sensor');
+      renderConfigPlaceholder(this.shadowRoot, 'Add sensor entities to get started', 'Sensor');
       return;
     }
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();

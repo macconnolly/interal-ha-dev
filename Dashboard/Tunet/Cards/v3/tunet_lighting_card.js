@@ -29,7 +29,7 @@
  *   scroll_rows:      1-3          Rows in scroll mode (default: 2)
  *   tile_size:        'compact'|'standard'|'large'  Tile density preset (default: standard)
  *   use_profiles:     boolean      Enable family profile sizing (default: true)
- *   surface:          'card'|'section'  Surface architecture (default: card)
+ *   surface:          'card'|'section'|'tile'  Surface architecture (default: card)
  *   expand_groups:    boolean      Expand group entities into member lights (default: true)
  * ──────────────────────────────────────────────────────────────
  */
@@ -793,20 +793,66 @@ class TunetLightingCard extends HTMLElement {
           name: 'entities',
           selector: { entity: { multiple: true, filter: [{ domain: 'light' }] } },
         },
-        { name: 'zones', selector: { object: {} } },
+        {
+          name: 'zones',
+          selector: {
+            object: {
+              multiple: true,
+              label_field: 'name',
+              description_field: 'entity',
+              fields: {
+                entity: {
+                  label: 'Entity',
+                  required: true,
+                  selector: { entity: { filter: [{ domain: 'light' }] } },
+                },
+                name: {
+                  label: 'Name',
+                  selector: { text: {} },
+                },
+                icon: {
+                  label: 'Icon',
+                  selector: { icon: {} },
+                },
+              },
+            },
+          },
+        },
         { name: 'name',            selector: { text: {} } },
-        { name: 'primary_entity',  selector: { entity: { filter: [{ domain: 'light' }] } } },
-        { name: 'adaptive_entity', selector: { entity: { filter: [{ domain: 'switch' }, { domain: 'automation' }, { domain: 'input_boolean' }] } } },
+        { name: 'primary_entity',  selector: { entity: {} } },
         {
           name: 'adaptive_entities',
           selector: { entity: { multiple: true, filter: [{ domain: 'switch' }, { domain: 'automation' }, { domain: 'input_boolean' }] } },
         },
         { name: 'show_adaptive_toggle', selector: { boolean: {} } },
         { name: 'show_manual_reset', selector: { boolean: {} } },
-        { name: 'surface',         selector: { select: { options: ['card', 'section'] } } },
+        { name: 'surface',         selector: { select: { options: ['card', 'section', 'tile'] } } },
         { name: 'layout',          selector: { select: { options: ['grid', 'scroll'] } } },
         { name: 'columns',     selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
-        { name: 'column_breakpoints', selector: { object: {} } },
+        {
+          name: 'column_breakpoints',
+          selector: {
+            object: {
+              multiple: true,
+              label_field: 'columns',
+              fields: {
+                min_width: {
+                  label: 'Min Width (px)',
+                  selector: { number: { min: 0, max: 4000, step: 1, mode: 'box' } },
+                },
+                max_width: {
+                  label: 'Max Width (px)',
+                  selector: { number: { min: 0, max: 4000, step: 1, mode: 'box' } },
+                },
+                columns: {
+                  label: 'Columns',
+                  required: true,
+                  selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } },
+                },
+              },
+            },
+          },
+        },
         { name: 'scroll_rows', selector: { number: { min: 1, max: 3, step: 1, mode: 'box' } } },
         { name: 'rows',        selector: { text: {} } },
         { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
@@ -814,6 +860,7 @@ class TunetLightingCard extends HTMLElement {
         { name: 'expand_groups', selector: { boolean: {} } },
         {
           type: 'expandable',
+          flatten: true,
           title: 'Advanced',
           icon: 'mdi:code-braces',
           schema: [
@@ -826,7 +873,6 @@ class TunetLightingCard extends HTMLElement {
         zones:           'Zones (objects with entity/name/icon)',
         name:            'Card Title',
         primary_entity:  'Primary Entity (info tile tap)',
-        adaptive_entity: 'Adaptive Entity (legacy single)',
         adaptive_entities:'Adaptive Entities (multi-zone)',
         show_adaptive_toggle: 'Show Adaptive Toggle',
         show_manual_reset: 'Show Manual Reset Icon',
@@ -842,9 +888,9 @@ class TunetLightingCard extends HTMLElement {
         custom_css:      'Custom CSS (injected into shadow DOM)',
       }[s.name] || s.name),
       computeHelper: (s) => ({
-        zones: 'Optional rich zones: [{entity, name, icon}]',
+        zones: 'Optional rich zones list. Each item: entity (required), optional name, optional icon.',
         adaptive_entities: 'If omitted, card auto-matches adaptive_lighting switches to current zones.',
-        column_breakpoints: 'Array/object rules by card width. Example: [{max_width: 600, columns: 4}, {max_width: 1024, columns: 6}, {columns: 8}]',
+        column_breakpoints: 'Responsive rules list. Each item needs columns plus min_width or max_width.',
         use_profiles: 'When enabled, size geometry comes from profile families instead of legacy tile-size CSS variants.',
         custom_css: 'CSS rules injected into shadow DOM. Use .light-grid, .l-tile, etc.',
       }[s.name] || ''),
@@ -898,7 +944,9 @@ class TunetLightingCard extends HTMLElement {
     const columns = clampInt(config.columns, 2, 8, 3);
     const scrollRows = clampInt(config.scroll_rows, 1, 3, 2);
     const layout = config.layout === 'scroll' ? 'scroll' : 'grid';
-    const surface = config.surface === 'section' ? 'section' : 'card';
+    const surface = (config.surface === 'section' || config.surface === 'tile')
+      ? config.surface
+      : 'card';
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
     const tileSize = tileSizeRaw === 'compact' ? 'compact' : (tileSizeRaw === 'large' ? 'large' : 'standard');
     const useProfiles = config.use_profiles !== false;
@@ -946,8 +994,8 @@ class TunetLightingCard extends HTMLElement {
       this.removeAttribute('layout');
     }
 
-    if (surface === 'section') {
-      this.setAttribute('surface', 'section');
+    if (surface === 'section' || surface === 'tile') {
+      this.setAttribute('surface', surface);
     } else {
       this.removeAttribute('surface');
     }

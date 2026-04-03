@@ -491,49 +491,49 @@ class TunetMediaCard extends HTMLElement {
   static getConfigForm() {
     return {
       schema: [
+        { name: 'entity', required: true, selector: { entity: { filter: [{ domain: 'media_player' }] } } },
+        { name: 'name', selector: { text: {} } },
+        { name: 'show_progress', selector: { boolean: {} } },
         {
-          name: 'entity',
-          required: true,
-          selector: { entity: { filter: [{ domain: 'media_player' }] } },
+          name: 'speakers',
+          selector: {
+            object: {
+              multiple: true,
+              label_field: 'name',
+              description_field: 'entity',
+              fields: {
+                entity: { label: 'Speaker', required: true, selector: { entity: { filter: [{ domain: 'media_player' }] } } },
+                name: { label: 'Name', selector: { text: {} } },
+                icon: { label: 'Icon', selector: { text: {} } },
+              },
+            },
+          },
         },
         {
-          name: 'name',
-          selector: { text: {} },
-        },
-        {
-          name: '',
-          type: 'grid',
+          type: 'expandable',
+          title: 'Advanced',
+          icon: 'mdi:tune',
           schema: [
-            {
-              name: 'coordinator_sensor',
-              selector: { entity: { filter: [{ domain: 'sensor' }] } },
-            },
-            {
-              name: 'active_group_sensor',
-              selector: { entity: { filter: [{ domain: 'sensor' }] } },
-            },
-            {
-              name: 'playing_status_sensor',
-              selector: { entity: { filter: [{ domain: 'sensor' }] } },
-            },
+            { name: 'coordinator_sensor', selector: { entity: { filter: [{ domain: 'sensor' }] } } },
+            { name: 'active_group_sensor', selector: { entity: { filter: [{ domain: 'sensor' }] } } },
+            { name: 'playing_status_sensor', selector: { entity: { filter: [{ domain: 'sensor' }] } } },
           ],
         },
-        {
-          name: 'show_progress',
-          selector: { boolean: {} },
-        },
       ],
-      computeLabel: (schema) => {
-        const labels = {
-          entity: 'Media Player Entity',
-          name: 'Card Name',
-          coordinator_sensor: 'Coordinator Sensor',
-          active_group_sensor: 'Active Group Sensor',
-          playing_status_sensor: 'Playing Status Sensor',
-          show_progress: 'Show Progress Bar',
-        };
-        return labels[schema.name] || schema.name;
-      },
+      computeLabel: (s) => ({
+        entity: 'Media Player',
+        name: 'Card Name',
+        show_progress: 'Show Progress Bar',
+        speakers: 'Speakers',
+        coordinator_sensor: 'Coordinator Sensor',
+        active_group_sensor: 'Active Group Sensor',
+        playing_status_sensor: 'Playing Status Sensor',
+      }[s.name] || s.name),
+      computeHelper: (s) => ({
+        speakers: 'Optional explicit speaker list. If empty, speakers are auto-discovered from Sonos binary sensors.',
+        coordinator_sensor: 'Default: sensor.sonos_smart_coordinator',
+        active_group_sensor: 'Default: sensor.sonos_active_group_coordinator',
+      }[s.name] || ''),
     };
   }
 
@@ -541,9 +541,7 @@ class TunetMediaCard extends HTMLElement {
     return {
       entity: '',
       name: 'Sonos',
-      coordinator_sensor: 'sensor.sonos_smart_coordinator',
-      active_group_sensor: 'sensor.sonos_active_group_coordinator',
-      playing_status_sensor: 'sensor.sonos_playing_status',
+      show_progress: true,
       speakers: [],
     };
   }

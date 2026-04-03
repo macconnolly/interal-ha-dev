@@ -519,45 +519,55 @@ class TunetSpeakerGridCard extends HTMLElement {
   static getConfigForm() {
     return {
       schema: [
-        {
-          name: 'entity',
-          required: true,
-          selector: { entity: { filter: [{ domain: 'media_player' }] } },
-        },
+        { name: 'entity', required: true, selector: { entity: { filter: [{ domain: 'media_player' }] } } },
         { name: 'name', selector: { text: {} } },
-        {
-          name: 'coordinator_sensor',
-          selector: { entity: { filter: [{ domain: 'sensor' }] } },
-        },
         {
           name: '', type: 'grid', schema: [
             { name: 'columns',     selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
             { name: 'tile_size',   selector: { select: { options: ['standard', 'compact', 'large'] } } },
-            { name: 'use_profiles', selector: { boolean: {} } },
           ],
         },
         { name: 'show_group_actions', selector: { boolean: {} } },
         {
+          name: 'speakers',
+          selector: {
+            object: {
+              multiple: true,
+              label_field: 'name',
+              description_field: 'entity',
+              fields: {
+                entity: { label: 'Speaker', required: true, selector: { entity: { filter: [{ domain: 'media_player' }] } } },
+                name: { label: 'Name', selector: { text: {} } },
+                icon: { label: 'Icon', selector: { text: {} } },
+              },
+            },
+          },
+        },
+        {
           type: 'expandable',
           title: 'Advanced',
-          icon: 'mdi:code-braces',
+          icon: 'mdi:tune',
           schema: [
+            { name: 'coordinator_sensor', selector: { entity: { filter: [{ domain: 'sensor' }] } } },
+            { name: 'use_profiles', selector: { boolean: {} } },
             { name: 'custom_css', selector: { text: { multiline: true } } },
           ],
         },
       ],
       computeLabel: (s) => ({
-        entity:             'Media Player Entity',
+        entity:             'Media Player',
         name:               'Card Name',
-        coordinator_sensor: 'Coordinator Sensor',
         columns:            'Grid Columns',
         tile_size:          'Tile Size',
-        use_profiles:       'Use Profile Sizing',
         show_group_actions: 'Show Group/Ungroup Buttons',
-        custom_css:         'Custom CSS (injected into shadow DOM)',
+        speakers:           'Speakers',
+        coordinator_sensor: 'Coordinator Sensor',
+        use_profiles:       'Use Profile Sizing',
+        custom_css:         'Custom CSS',
       }[s.name] || s.name),
       computeHelper: (s) => ({
-        use_profiles: 'When enabled, geometry comes from the speaker profile family instead of legacy tile-size CSS variants.',
+        speakers: 'Optional explicit speaker list. If empty, speakers are auto-discovered from Sonos binary sensors.',
+        coordinator_sensor: 'Default: sensor.sonos_smart_coordinator',
         custom_css: 'CSS rules injected into shadow DOM. Use .spk-grid, .spk-tile, etc.',
       }[s.name] || ''),
     };
@@ -567,10 +577,8 @@ class TunetSpeakerGridCard extends HTMLElement {
     return {
       entity: '',
       name: 'Speakers',
-      coordinator_sensor: 'sensor.sonos_smart_coordinator',
       columns: 4,
       tile_size: 'standard',
-      use_profiles: true,
       show_group_actions: true,
       speakers: [],
     };

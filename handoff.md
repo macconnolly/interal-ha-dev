@@ -4,7 +4,7 @@ Last updated: 2026-04-02 (America/Denver)
 Intended reader: next Claude Code session  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
-Active plan: `.claude/plans/ethereal-zooming-cherny.md` (surface-driven reset)
+Active plan: `Dashboard/Tunet/Docs/plans/surface_driven_reset.md` (also at `~/.claude/plans/ethereal-zooming-cherny.md`)
 Current tranche: **Tranche 1 — Surface 1: Living Room Page** (Tranche 0 completed Apr 2, 2026)
 
 Source filter for this run:

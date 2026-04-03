@@ -12,6 +12,7 @@
     "@playwright/test": "^1.59.1"
   },
   "devDependencies": {
+    "@playwright/mcp": "^0.0.70",
     "esbuild": "^0.25.0",
     "jsdom": "^29.0.1",
     "vitest": "^3.1.0"

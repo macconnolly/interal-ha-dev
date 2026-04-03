@@ -24,6 +24,7 @@ import {
   runCardAction,
   registerCard,
   logCardVersion,
+  renderConfigPlaceholder,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.0.0';
@@ -741,7 +742,9 @@ class TunetRoomsCard extends HTMLElement {
 
   setConfig(config) {
     if (!config.rooms || !Array.isArray(config.rooms) || config.rooms.length === 0) {
-      throw new Error('Please define at least one room');
+      this._config = { _needsConfig: true };
+      renderConfigPlaceholder(this.shadowRoot, 'Add rooms to get started', 'Rooms');
+      return;
     }
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
     const tileSize = tileSizeRaw === 'compact'

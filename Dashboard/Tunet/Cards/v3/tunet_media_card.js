@@ -14,6 +14,7 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
+  renderConfigPlaceholder,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.2.2';
@@ -549,7 +550,9 @@ class TunetMediaCard extends HTMLElement {
 
   setConfig(config) {
     if (!config.entity) {
-      throw new Error('Please define a media_player entity');
+      this._config = { _needsConfig: true };
+      renderConfigPlaceholder(this.shadowRoot, 'Select a media player entity', 'Media');
+      return;
     }
     this._config = {
       entity: config.entity,

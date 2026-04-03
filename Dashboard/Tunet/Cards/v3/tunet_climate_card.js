@@ -15,6 +15,7 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
+  renderConfigPlaceholder,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '1.2.0';
@@ -728,7 +729,9 @@ class TunetClimateCard extends HTMLElement {
 
   setConfig(config) {
     if (!config.entity) {
-      throw new Error('Please define an entity (climate.*)');
+      this._config = { _needsConfig: true };
+      renderConfigPlaceholder(this.shadowRoot, 'Select a climate entity', 'Climate');
+      return;
     }
     this._config = {
       entity: config.entity,

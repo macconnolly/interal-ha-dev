@@ -6,9 +6,14 @@
 
 ## CURRENT WORK: Tunet Dashboard — Card Rehabilitation Reset
 
-**Active plan**: `.claude/plans/ethereal-zooming-cherny.md` — card-first rehabilitation program with exact card-family tranches, then later surface assembly.
+**Active plan (method-level)**: `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` — line-anchored, per-card, per-pass authority.
+**Active plan (high-level)**: `.claude/plans/ethereal-zooming-cherny.md` — program-level framing.
+**Approved execution plan**: `~/.claude/plans/flickering-herding-wolf.md` — approved with audit data.
 
 **Execution authority for Tunet scope**: `Dashboard/Tunet/AGENTS.md`
+
+**Current tranche**: CD1 — Configuration Clarity And Editor Policy (in progress)
+**Previous tranche**: CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
 
 **Current priority**: rehabilitate the Tunet v3 card suite first; resume full surface assembly only after the card families are stable.
 
@@ -23,15 +28,19 @@
 | **Gold standard** | `Dashboard/Tunet/Cards/v3/tunet_climate_card.js` | Measured visual baseline for all cards |
 | **Implementation authority** | `Dashboard/Tunet/Cards/v3/` | v3 is sole authority (promoted Mar 14, 2026) |
 | **Execution contract** | `Dashboard/Tunet/AGENTS.md` | Active governance contract for Tunet work |
-| **Active plan** | `.claude/plans/ethereal-zooming-cherny.md` | Tranche-based execution plan |
+| **Active plan (method)** | `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` | Line-anchored per-card per-pass authority |
+| **Active plan (high-level)** | `.claude/plans/ethereal-zooming-cherny.md` | Program-level framing |
+| **Cards reference** | `Dashboard/Tunet/Docs/cards_reference.md` | Per-card config contract + editor architecture |
+| **Legacy key precedence** | `Dashboard/Tunet/Docs/legacy_key_precedence.md` | setConfig overlap/fallback rules |
 
 ### Execution Model
 
-**Card-first, then surface assembly.** Current execution order:
-- foundation
-- build/lab
-- card families
-- surfaces
+**Consistency-driver pass order (CD0-CD12).** Current execution:
+- CD0: Build architecture + rehab lab (DONE)
+- CD1: Configuration clarity + editor policy (IN PROGRESS)
+- CD2-CD4: Shared consistency passes (interaction, semantics, sizing)
+- CD5-CD11: Bespoke card passes
+- CD12: Surface assembly
 
 When surface work resumes, the retained surface assembly order is:
 - Living Room page

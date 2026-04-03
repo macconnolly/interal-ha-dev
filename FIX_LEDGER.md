@@ -1,7 +1,7 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `main`
-Last updated: 2026-04-02
+Last updated: 2026-04-03
 Scope: `/home/mac/HA/implementation_10`
 Active plan (method-level): `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
 Active plan (high-level): `~/.claude/plans/ethereal-zooming-cherny.md`
@@ -36,8 +36,8 @@ Change marker: pre-CD0 (documentation alignment)
 - `SURFACE-DOC STATUS`
   - `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` is draft reference only until CD12 surface assembly
 - `NEXT TRANCHE`
-  - Current work = documentation alignment (pre-CD0)
-  - CD0 = Build architecture + rehab lab (next implementation tranche)
+  - CD0 = Build architecture + rehab lab (COMPLETED Apr 3, 2026)
+  - CD1 = Configuration clarity + editor policy (IN PROGRESS)
   - Card rehab lab becomes the primary validation surface during shared and bespoke passes
 
 ## Session Delta (2026-04-02, Tranche 0 — Contract Reconciliation)

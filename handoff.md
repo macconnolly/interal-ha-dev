@@ -7,12 +7,14 @@ Primary instruction: treat this file as session continuity + execution map, then
 Active plan (method-level): `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
 Active plan (high-level): `~/.claude/plans/ethereal-zooming-cherny.md`
 Approved execution plan: `~/.claude/plans/flickering-herding-wolf.md`
-Current work: documentation alignment (pre-CD0, Apr 2, 2026)
-Next implementation tranche: **CD0 — Build Architecture And Rehab Lab**
+Current tranche: **CD1 — Configuration Clarity And Editor Policy** (in progress, Apr 3, 2026)
+Previous tranche: CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
 
 Source filter for this run:
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and active plan files as control sources
 - use `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` as the method-level authority (line-anchored, per-card, per-pass)
+- use `Dashboard/Tunet/Docs/cards_reference.md` as per-card config contract + editor architecture (authoring model + synthesizer + runtime)
+- use `Dashboard/Tunet/Docs/legacy_key_precedence.md` for setConfig overlap/fallback rules
 - use `Dashboard/Tunet/Docs/cross_card_interaction_vocabulary.md` as the binding interaction contract
 - use `Dashboard/Tunet/Docs/sections_layout_matrix.md` as provisional (requires validation when surface assembly resumes in CD12)
 - agent review artifacts in `Dashboard/Tunet/Agent-Reviews/` are reference, not primary planning input
@@ -22,21 +24,23 @@ Source filter for this run:
 Before starting any implementation tranche:
 1. Read the method-level plan — `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
 2. Identify the current tranche and verify you are working on ONLY the files listed for that tranche
-3. Read `Dashboard/Tunet/Docs/cross_card_interaction_vocabulary.md` — the interaction contract (relevant from CD2 onward)
-4. Read `Dashboard/Tunet/AGENTS.md` — execution contract
-5. Use the card rehab lab as the primary validation surface during shared passes (CD1-CD4) and bespoke passes (CD5-CD11)
-6. Use `tunet-suite-storage` only for targeted live verification where real entities are needed
-7. Do NOT use `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` as an active execution driver before CD12
-8. Do NOT widen a tranche beyond the exact files listed in the plan
-9. Shared passes (CD1-CD4) do NOT solve bespoke behavior. Bespoke passes (CD5-CD11) do NOT reopen shared pattern design.
-10. Respect the configuration support policy: `editor-complete` / `editor-lite` / `yaml-first` tier per card (see plan §4)
+3. Read `Dashboard/Tunet/Docs/cards_reference.md` — per-card config contract + editor architecture
+4. Read `Dashboard/Tunet/Docs/legacy_key_precedence.md` — setConfig overlap/fallback rules
+5. Read `Dashboard/Tunet/Docs/cross_card_interaction_vocabulary.md` — the interaction contract (relevant from CD2 onward)
+6. Read `Dashboard/Tunet/AGENTS.md` — execution contract
+7. Use the card rehab lab (`http://10.0.0.21:8123/tunet-overview/card-rehab-lab`) as the primary validation surface during shared passes (CD1-CD4) and bespoke passes (CD5-CD11)
+8. Use `tunet-suite-storage` only for targeted live verification where real entities are needed
+9. Do NOT use `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` as an active execution driver before CD12
+10. Do NOT widen a tranche beyond the exact files listed in the plan
+11. Shared passes (CD1-CD4) do NOT solve bespoke behavior. Bespoke passes (CD5-CD11) do NOT reopen shared pattern design.
+12. Respect the configuration support policy: `editor-complete` / `editor-lite` / `yaml-first` tier per card (see plan §4)
 
 ## Active Execution Order (CD0-CD12)
 
 | Phase | Tranche | Scope |
 |-------|---------|-------|
-| Infrastructure | CD0 | Build architecture + rehab lab — **next** |
-| | CD1 | Configuration clarity + editor policy |
+| Infrastructure | CD0 | Build architecture + rehab lab — **done** |
+| | CD1 | Configuration clarity + editor policy — **in progress** |
 | Shared consistency | CD2 | Shared interaction adoption (all 13 files) |
 | | CD3 | Shared semantics adoption (6 files) |
 | | CD4 | Shared sizing + Sections adoption (6+ files) |
@@ -65,7 +69,7 @@ Key corrections:
   - `yaml-first`: actions, status
 - **Best parts of the old plan are retained**: three-surface model, climate baseline, Browser Mod, locked breakpoints, no-destructive-cleanup, surface assembly order (Living Room → popup → overview → media → rooms)
 - **Surface docs are draft reference** during card rehab: `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` is not an active gate until CD12
-- **Next implementation tranche**: CD1 (Build Architecture And Rehab Lab)
+- **Next implementation tranche**: CD1 (Configuration Clarity And Editor Policy)
 - **Living Room surface assembly**: deferred to CD12
 
 ## 0ZH) Session Delta (2026-04-02, Tranche 0 — Contract Reconciliation)

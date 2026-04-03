@@ -11,6 +11,7 @@ import {
   injectFonts, detectDarkMode, applyDarkClass,
   selectProfileSize, resolveSizeProfile, _setProfileVars,
   registerCard, logCardVersion,
+  renderConfigPlaceholder,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.0.0';
@@ -502,7 +503,9 @@ class TunetSensorCard extends HTMLElement {
 
   setConfig(config) {
     if (!config.sensors || !Array.isArray(config.sensors) || config.sensors.length === 0) {
-      throw new Error('Please define at least one sensor in the sensors array');
+      this._config = { _needsConfig: true };
+      renderConfigPlaceholder(this.shadowRoot, 'Add sensors to the sensors array in YAML', 'Sensor');
+      return;
     }
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
     const tileSize = VALID_SIZES.has(tileSizeRaw) ? tileSizeRaw : 'standard';

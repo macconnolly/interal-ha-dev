@@ -61,16 +61,13 @@ const CARDS = [
 // Known CD1 findings: these stubs produce configs that setConfig() rejects.
 // Each entry documents WHY the stub fails. CD1 must fix these and remove
 // the entry from this list — at which point the test enforces non-regression.
-// Known CD1 findings: these stubs produce configs that setConfig() rejects.
-// Each entry documents WHY the stub fails. CD1 must fix these and remove
-// the entry from this list — at which point the test enforces non-regression.
+// Known stub failures: these stubs produce configs that setConfig() still rejects.
+// Cards removed from this list have been fixed to handle missing config gracefully.
+// Remaining entries are intentionally deferred — complex cards where editor parity
+// is not the current priority.
 const KNOWN_STUB_FAILURES = {
-  'tunet-media-card': 'getStubConfig returns entity:"" but setConfig requires non-empty entity',
-  'tunet-sonos-card': 'getStubConfig returns entity:"" but setConfig requires non-empty entity',
-  'tunet-climate-card': 'getStubConfig returns entity:"" but setConfig requires non-empty entity',
-  'tunet-speaker-grid-card': 'getStubConfig returns entity:"" but setConfig requires non-empty entity',
-  'tunet-weather-card': 'getStubConfig returns entity:"" but setConfig requires non-empty entity',
-  'tunet-lighting-card': 'getStubConfig returns entities:[] but setConfig requires non-empty zones or entities',
+  // Status: polymorphic tile types (5 subtypes) — editor parity deferred
+  // Sensor: requires sensors array with entity IDs — stub has real IDs but may not match target HA instance
 };
 
 describe('config contract — stub → setConfig roundtrip', () => {

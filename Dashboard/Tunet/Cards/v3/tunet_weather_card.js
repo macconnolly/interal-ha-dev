@@ -18,6 +18,7 @@ import {
   applyDarkClass,
   registerCard,
   logCardVersion,
+  renderConfigPlaceholder,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '1.6.1';
@@ -407,7 +408,11 @@ class TunetWeatherCard extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config.entity) throw new Error('Please define a weather entity');
+    if (!config.entity) {
+      this._config = { _needsConfig: true };
+      renderConfigPlaceholder(this.shadowRoot, 'Select a weather entity to display forecasts', 'Weather');
+      return;
+    }
     this._config = {
       entity: config.entity,
       name: config.name || 'Weather',

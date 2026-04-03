@@ -25,6 +25,8 @@ Before implementing any Tunet change, read:
 5. `handoff.md`
 6. `Dashboard/Tunet/Docs/sections_layout_matrix.md`
 7. `Dashboard/Tunet/design.md`
+8. `Dashboard/Tunet/Docs/cards_reference.md` (per-card config contract + editor architecture)
+9. `Dashboard/Tunet/Docs/legacy_key_precedence.md` (setConfig overlap/fallback rules)
 
 Important:
 - Treat `sections_layout_matrix.md` as provisional until sections research + live tuning loop is completed and documented.
@@ -33,7 +35,10 @@ Important:
   - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (historical profile architecture — profile resolver contract is superseded as policy; see CLAUDE.md for current auto-size + CSS tile-size variant contract)
   - `Dashboard/Tunet/Agent-Reviews/start.md` (execution start guide)
 - For the active execution plan, read:
-  - `.claude/plans/ethereal-zooming-cherny.md` (card rehabilitation reset plan)
+  - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` (method-level authority, line-anchored, per-card, per-pass)
+  - `.claude/plans/ethereal-zooming-cherny.md` (program-level framing)
+- For build and deploy:
+  - `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` (build pipeline, deploy scripts, lab URL)
 
 ## 2) Design/Execution Precedence
 
@@ -42,11 +47,13 @@ Use this precedence when files disagree:
 1. `plan.md`
 2. `FIX_LEDGER.md`
 3. `handoff.md`
-4. `Dashboard/Tunet/Docs/sections_layout_matrix.md` (provisional)
-5. `Dashboard/Tunet/Mockups/design_language.md`
-6. `Dashboard/Tunet/design.md`
-7. `Dashboard/Tunet/CLAUDE.md`
-8. Other docs in `Dashboard/Tunet/Docs/` (reference/historical unless explicitly active)
+4. `Dashboard/Tunet/Docs/cards_reference.md` (per-card config contract + editor architecture)
+5. `Dashboard/Tunet/Docs/legacy_key_precedence.md` (setConfig overlap/fallback rules)
+6. `Dashboard/Tunet/Docs/sections_layout_matrix.md` (provisional)
+7. `Dashboard/Tunet/Mockups/design_language.md`
+8. `Dashboard/Tunet/design.md`
+9. `Dashboard/Tunet/CLAUDE.md`
+10. Other docs in `Dashboard/Tunet/Docs/` (reference/historical unless explicitly active)
 
 Do not silently resolve contradictions. Record the conflict and chosen interpretation in your update.
 
@@ -78,7 +85,8 @@ Do not silently resolve contradictions. Record the conflict and chosen interpret
 
 During card rehabilitation tranches:
 
-- use the dedicated card rehab lab as the primary validation surface
+- use the dedicated card rehab lab (`http://10.0.0.21:8123/tunet-overview/card-rehab-lab`) as the primary validation surface
+- architecture reference YAML: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
 - use `tunet-suite-storage` only for targeted live verification of the touched card(s)
 - do not treat `Dashboard/Tunet/Docs/surfaces/*.md` as active implementation drivers
 - do not widen a tranche beyond the exact card files named in the active plan

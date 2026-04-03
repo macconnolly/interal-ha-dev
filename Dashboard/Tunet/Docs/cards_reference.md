@@ -1,0 +1,1206 @@
+# Tunet V3 Cards Reference
+
+Every Tunet custom card: config contract, interaction behavior, editor architecture.  
+Updated as cards are rehabilitated through the consistency-driver program (CD0-CD12).
+
+---
+
+## Editor Architecture Contract
+
+The editor does NOT mirror the full runtime config 1:1. Each card uses a three-layer model:
+
+### 1. Authoring Model (editor surface)
+Small, opinionated, asks for high-level intent. The user should never need to understand internal config structures. Examples: `layout = grid | scroll`, `mode = alarm | summary`, `entities = [pick lights]`.
+
+### 2. Synthesizer (setConfig normalization)
+Converts editor choices into the full runtime config shape. Infers:
+- Default arrays from entity selections
+- Per-item flags from high-level mode choices
+- Fallback entities from discovery
+- Breakpoint maps from tile_size + layout
+- Derived labels/icons from entity attributes
+- Conditional controls from mode selection
+- Hidden legacy compatibility keys
+
+### 3. Runtime Model (what the card consumes)
+Can stay richer and uglier than what the editor exposes. Legacy keys, derived arrays, internal state flags — all live here. The card's `_config` after `setConfig()` is the runtime model.
+
+### Editor Mechanism Levels
+
+| Level | Mechanism | Use When |
+|-------|-----------|----------|
+| 1 | `getConfigForm()` + simple selectors | All top-level flags (booleans, selects, entity pickers) |
+| 2 | `object` + `fields` + `multiple: true` | Simple arrays where ALL item fields are representable (zones, speakers, scenes) |
+| 3 | `choose` selector | Polymorphic/union types where one field switches sub-shapes (status tile types) |
+| 4 | `getConfigElement()` custom editor | When built-in form + synthesis can't do the job; full merge-on-save control |
+| 5 | Hybrid | getConfigForm for simple stuff, custom sub-elements for complex parts |
+
+### Per-Card Documentation Rule
+
+Each card entry below documents BOTH layers:
+- **Authoring model**: what the editor exposes (the user's view)
+- **Runtime model**: what the card ultimately consumes (the code's view)
+- **Synthesis**: what setConfig infers from authoring choices
+
+---
+
+## 1. tunet-actions-card
+
+**Version**: v2.4.4  
+**Tier**: yaml-first  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_actions_card.js`
+
+### Purpose
+
+Quick-action chip strip. Two modes:
+- **default**: Custom action array — each chip calls an HA service, shows active state, can be conditionally hidden
+- **mode_strip**: Zero-YAML OAL mode switcher — auto-generates chips from `DEFAULT_MODE_ACTIONS` with `__MODE_ENTITY__` template substitution for the configured `mode_entity`
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `variant` | string | `'default'` | `'default'`, `'mode_strip'` | Y | editor |
+| `mode_entity` | string | `'input_select.oal_active_configuration'` | any `input_select` entity | Y | editor |
+| `compact` | boolean | `true` | true/false | Y | editor |
+| `actions` | array | `DEFAULT_ACTIONS` or `DEFAULT_MODE_ACTIONS` | action objects (see below) | N | yaml-only |
+
+#### Per-action properties (yaml-only)
+
+| Key | Type | Default | Notes |
+|-----|------|---------|-------|
+| `name` | string | `''` | Chip label text |
+| `icon` | string | `'circle'` | Material Symbol name |
+| `accent` | string | `'amber'` | amber, blue, green, purple, red, muted |
+| `service` | string | `''` | HA service (e.g., `light.turn_on`, `script.turn_on`, `input_select.select_option`) |
+| `service_data` | object | `{}` | Service payload — arbitrary, domain-specific |
+| `state_entity` | string | `''` | Entity to monitor for active state |
+| `active_when` | string | `'on'` | State value that triggers active visual |
+| `active_when_operator` | string | `'equals'` | `equals`, `contains`, `not_equals`, `gt`, `gte`, `lt`, `lte` |
+| `show_when` | object\|null | `null` | Conditional visibility: `{entity, attribute, operator, state}` |
+| `tap_action` | object\|null | `null` | HA action override (navigate, more-info, etc.) |
+
+### Editor
+
+3 fields: variant (select), mode_entity (entity picker, input_select filter), compact (boolean).
+
+The `actions[]` array is intentionally not in the editor — `service_data` payloads are arbitrary per domain. The `mode_strip` variant provides a zero-YAML path for the most common use case (OAL mode switching).
+
+### Stub Config
+
+```yaml
+variant: mode_strip
+compact: true
+```
+
+Stub works without entity — mode_strip auto-populates actions with template substitution.
+
+### Grid Options
+
+```javascript
+{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 1 }
+```
+
+Static. Should be config-aware: chip count affects row height when wrapping occurs.
+
+### Interaction
+
+- **Category**: Dedicated controls
+- **Chip tap**: calls configured service
+- **Active state**: chip highlights when `state_entity` matches `active_when` via `active_when_operator`
+- **Conditional visibility**: `show_when` hides chips entirely when condition is false (e.g., Reset chip hides when `active_zonal_overrides == 0`)
+- **No drag, no hold**
+
+### Unique Behavior
+
+- `evaluateCondition()` (L137-158): 7 operators for both `show_when` and `active_when` — `equals`, `not_equals`, `contains`, `gt`, `gte`, `lt`, `lte`. Undocumented to users.
+- `mode_strip` template substitution: `__MODE_ENTITY__` in `state_entity` and `service_data.entity_id` gets replaced with the configured `mode_entity` value.
+- Mixed service dispatch: a single strip can call `light.turn_on`, `script.turn_on`, and `input_select.select_option`.
+
+### Sections Safety
+
+SAFE — overflow visible, auto height, no forced rows, no grid-auto-rows.
+
+### Editor Architecture
+
+**Authoring model** (what the editor exposes):
+- `variant`: default vs mode_strip (select)
+- `mode_entity`: which input_select controls OAL modes (entity picker)
+- `compact`: chip density (boolean)
+
+**Synthesizer** (what setConfig infers):
+- If `variant = mode_strip` and no explicit `actions[]`: auto-generates `DEFAULT_MODE_ACTIONS` with `__MODE_ENTITY__` → `mode_entity` substitution
+- If `variant = default` and no explicit `actions[]`: auto-generates `DEFAULT_ACTIONS`
+- Per-action normalization: fills defaults for icon ('circle'), accent ('amber'), active_when ('on'), operator ('equals')
+
+**Runtime model** (what the card consumes):
+- Fully normalized `actions[]` array with all 10 per-action fields resolved
+
+**Editor level**: Level 1 (getConfigForm with simple selectors). The mode_strip variant IS the authoring-model-driven design — user picks a variant, card synthesizes the action array.
+
+**Future consideration**: Level 2 (object+fields+multiple) for actions[] with a nested raw object selector for service_data. Would let power users build custom action strips without YAML. Not CD1 scope.
+
+### Known Limitations
+
+- Custom actions require dashboard YAML — the full `actions[]` with `service_data` is not editor-representable without Level 2+ work
+- The 7-operator condition system (`evaluateCondition`) is powerful but undocumented to users
+- mode_strip is effectively an inference-driven authoring model — pick variant + entity, get a complete action strip
+
+---
+
+## 2. tunet-scenes-card
+
+**Version**: v0.1.2  
+**Tier**: editor-complete  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_scenes_card.js`
+
+### Purpose
+
+Scene/script/automation activation strip. Domain-aware — automatically calls `scene.turn_on`, `script.turn_on`, or `automation.trigger` based on the entity's domain. Users don't configure the service.
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `show_header` | boolean | `false` | true/false | Y | editor |
+| `name` | string | `'Scenes'` | any | Y | editor |
+| `compact` | boolean | `true` | true/false | Y | editor |
+| `allow_wrap` | boolean | `false` | true/false | Y | editor |
+| `scenes` | array | `DEFAULT_SCENES` | scene objects (see below) | Y | editor |
+
+#### Per-scene properties (all in editor via object+fields+multiple)
+
+| Key | Type | Default | Notes |
+|-----|------|---------|-------|
+| `entity` | string | `''` | **Required**. Scene, script, or automation entity ID |
+| `name` | string | `''` | Chip label (falls back to entity friendly name) |
+| `icon` | string | `''` | Material Symbol name |
+| `accent` | string | `'amber'` | amber, blue, green, purple, red |
+| `state_entity` | string | `''` | External entity for active state detection |
+| `active_when` | string | `'on'` | State value that triggers active visual |
+| `active_when_operator` | string | `'equals'` | equals, contains, not_equals |
+
+### Editor
+
+5 top-level fields + scenes array with per-item editor (object+fields+multiple, fixed in CD1.7). All 7 per-scene fields are in the schema — no unlisted fields at risk of stripping. Editor-complete.
+
+### Stub Config
+
+```yaml
+show_header: false
+name: Scenes
+compact: true
+allow_wrap: false
+scenes:
+  - entity: ''
+    name: All On
+    icon: lightbulb
+    accent: amber
+  # ... (DEFAULT_SCENES)
+```
+
+### Grid Options
+
+```javascript
+{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 1 }
+```
+
+Static. Should be config-aware: `min_rows` based on `ceil(scenes.length / chipsPerRow)` when `allow_wrap: true`.
+
+### Interaction
+
+- **Category**: Dedicated controls
+- **Chip tap**: domain-aware dispatch — scene.turn_on, script.turn_on, or automation.trigger
+- **1300ms recent-entity tracking** (L543-544): tapped chip stays visually "active" for 1300ms even without `state_entity`. Provides instant visual feedback. Not configurable — built-in UX.
+- **Decoupled active state**: `state_entity` can be any entity, independent of the scene entity
+- **Unavailable**: chip gets `disabled` attribute + `.is-unavailable` class
+- **No drag, no hold**
+
+### Sections Safety
+
+**ISSUE**: `allow_wrap: false` (default) creates `overflow-x: auto` scroll container at L142 — horizontal scroll trap in Sections. Must be addressed in CD4. `allow_wrap: true` is Sections-safe (flex-wrap).
+
+### Editor Architecture
+
+**Authoring model**: show_header, name, compact, allow_wrap + scenes[] array with per-item fields.
+
+**Synthesizer**: minimal — scenes are passed through with normalization (normalizeIcon, normalizeAccent, normalizeOperator). Domain-aware dispatch is automatic (scene → scene.turn_on, script → script.turn_on, automation → automation.trigger).
+
+**Runtime model**: normalized scenes array. No additional synthesis needed — the authoring model IS close to the runtime model for this card.
+
+**Editor level**: Level 2 (object+fields+multiple for scenes[]) — DONE (CD1.7). All 7 per-scene fields are in the schema. Reference pattern for other array editors.
+
+### Known Limitations
+
+- Default scroll mode (allow_wrap: false) is Sections-unsafe
+- `active_when_operator` only supports 3 operators (equals, contains, not_equals) vs actions card's 7
+
+---
+
+## 3. tunet-light-tile
+
+**Version**: v1.1.0  
+**Tier**: editor-complete  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_light_tile.js`
+
+### Purpose
+
+Standalone single-light control tile with drag-to-dim. The atomic unit of the lighting system. Two visual variants: vertical (tall, icon above name) and horizontal (wide, icon beside name). Used in room subviews for per-light control.
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `entity` | string | **required** | any `light.*` entity | Y | editor |
+| `name` | string | entity friendly name | any | Y | editor |
+| `icon` | string | `''` | Material Symbol name | Y | editor |
+| `variant` | string | `'vertical'` | `'vertical'`, `'horizontal'` | Y | editor |
+| `tile_size` | string | `'standard'` | `'compact'`, `'standard'`, `'large'` | Y | editor |
+| `use_profiles` | boolean | `true` | true/false | Y | editor |
+| `show_manual` | boolean | `true` | true/false | N | yaml-only (hidden) |
+
+### Editor
+
+6 fields, all simple selectors. Editor-complete. `show_manual` is a hidden YAML-only key for OAL adaptive lighting integration — controls whether a "manual override" indicator appears when `entity.attributes.manual_override === true`. Not normalized in setConfig (read via spread).
+
+### Stub Config
+
+```yaml
+entity: light.living_room
+variant: vertical
+tile_size: standard
+use_profiles: true
+```
+
+Note: stub provides a real entity ID, not empty. Card renders unavailable if entity doesn't exist — correct HA behavior.
+
+### Grid Options
+
+```javascript
+{ columns: 3, min_columns: 3, rows: 'auto', min_rows: 1, max_rows: 4 }
+```
+
+Static. Should be variant-aware: vertical needs fewer columns (3-4) but more rows; horizontal needs more columns (6-8) but fewer rows. Tile_size also affects needed space.
+
+### Interaction
+
+- **Category**: Dual-purpose (tap + drag on same element)
+- **Tap**: toggle light on/off
+- **Horizontal drag**: adjust brightness via `createAxisLockedDrag()` — deadzone 8, axisBias 1.3
+- **Long press** (500ms): opens more-info dialog
+- **Drag visual**: `.sliding` class scales tile to 1.05x
+- **Keyboard** (L809-838): Enter/Space toggle, Arrow ±5% (Shift ±10%)
+- **Future**: tap+drag dual-purpose should migrate to hold-to-drag (CD2)
+
+### Profile System
+
+Uses `selectProfileSize` + `resolveSizeProfile` + `_setProfileVars`. Controls tile geometry (padding, icon size, font size, progress bar height) based on `tile_size` and container width via ResizeObserver. Superseded as policy — CD4 migrates to shared helper.
+
+### Accessibility
+
+Has `role="button"`, `tabindex="0"`, `aria-label` with brightness state. **Gap**: arrow keys adjust brightness like a slider but role is "button" — should be `role="slider"` with `aria-valuenow/min/max`. CD3 fix.
+
+### Editor Architecture
+
+**Type**: Level 1 — `getConfigForm()` with simple selectors. No arrays, no custom editor.
+
+**Authoring model** (6 fields):
+- `entity` (required, light domain) — which light
+- `variant` (select: vertical/horizontal) — card shape
+- `tile_size` (select: compact/standard/large) — density
+- `name` (text) — override friendly_name; inferred if blank
+- `icon` (icon) — override entity icon; inferred if blank
+- `use_profiles` (boolean) — toggle profile geometry
+
+**Synthesizer**: minimal — `tile_size` normalized to lowercase enum, `use_profiles` defaults true. Name/icon left to render-time resolution from entity attributes.
+
+**Runtime model**: flat config + spread of all remaining keys. `show_manual` is a hidden runtime flag (OAL integration) preserved via spread, never in editor.
+
+**Status**: Already correct. No CD1 editor changes needed.
+
+### Sections Safety
+
+SAFE — overflow visible, min-height via em variables (profile-controlled), no grid-auto-rows.
+
+---
+
+## 4. tunet-lighting-card
+
+**Version**: v3.5.0  
+**Tier**: editor-lite  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js`
+
+### Purpose
+
+Multi-zone lighting control surface. The most-used card in the dashboard — appears on overview, room subviews, and popups. ~1900 lines, most complex card in the suite. Shows a grid or scrollable strip of light tiles with brightness bars, optional header with adaptive lighting controls.
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `zones` | array | `[]` | `[{entity, name, icon}]` objects | Y (needs fix) | editor |
+| `entities` | array | `[]` | string entity IDs | Y | editor |
+| `name` | string | `'Lighting'` | any | Y | editor |
+| `primary_entity` | string | `''` | sensor entity for header status | Y | editor |
+| `adaptive_entity` | string | `''` | switch entity for adaptive toggle | Y | editor |
+| `adaptive_entities` | array | `[]` | switch entity IDs | Y | editor |
+| `show_adaptive_toggle` | boolean | `true` | true/false | Y | editor |
+| `show_manual_reset` | boolean | `true` | true/false | Y | editor |
+| `surface` | string | `'card'` | `'card'`, `'section'`, `'tile'` | Y | editor |
+| `layout` | string | `'grid'` | `'grid'`, `'scroll'` | Y | editor |
+| `columns` | number | `3` | 2-8 | Y | editor |
+| `column_breakpoints` | array | `[]` | `[{max_width, columns}]` | Y (needs fix) | editor |
+| `scroll_rows` | number | `2` | 1-3 | Y | editor |
+| `rows` | string\|null | `null` | `'auto'` or 1-6 | Y | editor |
+| `tile_size` | string | `'standard'` | `'compact'`, `'standard'`, `'large'` | Y | editor |
+| `use_profiles` | boolean | `true` | true/false | Y | editor |
+| `expand_groups` | boolean | `true` | true/false | Y | editor |
+| `custom_css` | string | `''` | CSS text | Y (advanced) | editor |
+| `subtitle` | string | `''` | any | N | yaml-only |
+| `light_group` | string | — | single entity ID | N | legacy |
+| `light_overrides` | object | — | `{entity: {name, icon}}` | N | legacy |
+
+### Dual Entity Paths (complementary, not competing)
+
+- **`entities[]`**: simple string array of entity IDs. Supports light GROUPS with `expand_groups: true`. Primary "what lights to show" input.
+- **`zones[]`**: rich objects `{entity, name, icon}`. Per-entity display overrides. Individual lights.
+- Both can coexist — entities for group picking, zones for display customization.
+
+### Legacy Key Precedence
+
+`zones[]` > `entities[]` > `light_overrides` (legacy) > `light_group` (legacy). Legacy keys are fallback-only — never used when zones or entities are present. See `legacy_key_precedence.md` for full rules.
+
+### Editor
+
+17 fields + expandable advanced section. Two fields need CD1.8 fix:
+- `zones`: bare `{ object: {} }` → needs `object`+`fields`+`multiple` with entity/name/icon
+- `column_breakpoints`: bare `{ object: {} }` → needs `object`+`fields`+`multiple` with max_width/columns
+
+### 6 Rendering Paths
+
+3 surfaces × 2 layouts:
+- card + grid, card + scroll
+- section + grid, section + scroll
+- tile + grid, tile + scroll
+
+### Stub Config
+
+```yaml
+entities: []
+name: Lighting
+use_profiles: true
+```
+
+Empty entities renders config placeholder (fixed in CD1.2).
+
+### Grid Options
+
+```javascript
+{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 }
+```
+
+Static. Should compute `min_rows` from `ceil(zones.length / columns) + headerHeight`. Layout mode matters: scroll needs `scroll_rows + 1`.
+
+### Interaction
+
+- **Category**: Dual-purpose (tap + drag on l-tile elements)
+- **l-tile tap**: toggle individual light
+- **l-tile horizontal drag**: adjust brightness via `createAxisLockedDrag()` on light-grid (L1428)
+- **Header info-tile tap**: currently click-only (L1367) — needs Enter/Space keyboard handler (CD3)
+- **Adaptive toggle**: tap toggles adaptive lighting switch
+- **Manual reset**: tap calls `script.oal_reset_soft`
+- **Keyboard** (L1391): Arrow ±5% (Shift ±10%), Enter/Space toggle on focused tile
+- **Future**: dual-purpose tile interaction → hold-to-drag (CD2)
+
+### Profile System
+
+Uses `selectProfileSize` + `resolveSizeProfile` + `_setProfileVars`. ResizeObserver at L1184. Superseded — CD4 migration.
+
+### Sections Safety — Worst in Suite
+
+1. `grid-auto-rows: var(--grid-row, 110px)` at L367 — forced tile row height
+2. `.l-tile { overflow: hidden }` at L540 — clips content, mitigated by JS tile count limiting (L1291-1295)
+3. `.scroll-tile-stack { overflow: hidden }` at L418 — scroll mode clipping
+
+All three are CD4 concerns.
+
+### Editor Architecture
+
+**Type**: Level 1+2 hybrid — `getConfigForm()` with simple selectors for primary fields + `object`+`fields`+`multiple` for zones[] in advanced section.
+
+**Authoring model** (6 primary decisions):
+| Field | Selector | What it synthesizes |
+|-------|----------|---------------------|
+| `entities` | entity (multiple, light) | → zones[], adaptive_entities[] (auto-discovered) |
+| `layout` | select: grid / scroll | → columns, column_breakpoints, scroll_rows |
+| `tile_size` | select: compact / standard / large | → columns, column_breakpoints |
+| `surface` | select: card / section / tile | → CSS rendering mode |
+| `show_adaptive_toggle` | boolean | direct |
+| `show_manual_reset` | boolean | direct |
+
+**Advanced overrides** (expandable):
+| Field | Selector | Purpose |
+|-------|----------|---------|
+| `name` | text | Override auto-generated name |
+| `zones` | object+fields+multiple | Override per-entity names/icons |
+| `columns` | number 2-8 | Override synthesized column count |
+| `expand_groups` | boolean | Override default true |
+| `primary_entity` | entity | OAL status sensor override |
+| `custom_css` | text multiline | CSS injection |
+
+**Synthesizer** (setConfig):
+- `zones[]` ← auto-generate from entities if zones not explicit
+- `columns` ← derive from tile_size: compact→3, standard→3, large→2
+- `column_breakpoints` ← derive from tile_size: compact/standard→[{max_width:640,columns:2},{columns:3}], large→[{max_width:640,columns:1},{columns:2}]
+- `scroll_rows` ← 2 when layout=scroll
+- `adaptive_entities[]` ← discover by scanning `switch.adaptive_lighting_*` whose `lights` attribute overlaps selected entities
+- `primary_entity` ← default `sensor.oal_system_status`
+- All defaults use **explicit > synthesized** precedence — existing YAML keeps working
+
+**Hidden from editor** (runtime-only):
+column_breakpoints (synthesized), scroll_rows (synthesized), rows, adaptive_entity (deprecated singular), light_group (legacy), light_overrides (legacy), subtitle, use_profiles (default true)
+
+### Known Limitations
+
+- Current editor exposes 17 fields instead of the 6-field authoring model — CD1.8 should simplify
+- 6 rendering paths (3 surfaces × 2 layouts) need validation at all breakpoints
+- Sections safety issues are the most significant in the suite (grid-auto-rows, overflow:hidden, clipping)
+- Legacy key precedence documented in `legacy_key_precedence.md`
+
+---
+
+## 5. tunet-rooms-card
+
+**Version**: v3.0.0  
+**Tier**: editor-lite  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_rooms_card.js`
+
+### Purpose
+
+Room navigation and control hub. Three distinct layout variants (tiles, row, slim) with fundamentally different interaction models. Row mode shows individual light orbs per room. Tile mode uses tap/hold gesture split. Integrates with adaptive lighting for manual control detection.
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `name` | string | `'Rooms'` | any | Y | editor |
+| `layout_variant` | string | `'tiles'` | `'tiles'`, `'row'`, `'slim'` | Y | editor |
+| `tile_size` | string | `'standard'` | `'compact'`, `'standard'`, `'large'` | Y | editor |
+| `use_profiles` | boolean | `true` | true/false | Y | editor |
+| `rooms` | array | **required** | room objects | Y (needs fix) | editor |
+
+#### Per-room properties
+
+| Key | Type | Default | Notes |
+|-----|------|---------|-------|
+| `name` | string | `'Room'` | Room display name |
+| `icon` | string | `'home'` | Material Symbol |
+| `temperature_entity` | string | `''` | Sensor for temp display |
+| `humidity_entity` | string | `''` | Sensor for humidity display |
+| `navigate_path` | string | `''` | Dashboard path for tap navigation |
+| `tap_action` | object\|null | `null` | Override default tap behavior |
+| `hold_action` | object\|null | `null` | Long-press action (tile mode: popup) |
+| `lights` | array | `[]` | `[{entity, icon, name}]` per light |
+
+### Three Layout Variants — User Experience
+
+| Aspect | Tiles | Row | Slim |
+|--------|-------|-----|------|
+| Layout | Vertical cards in grid | Horizontal rows | Row at 70% scale |
+| Primary tap | Toggle room lights | Navigate to room | Navigate to room |
+| Light orbs | None | Yes, one per light | Yes, scaled 70% |
+| Power button | None | Yes, toggles all room lights | Yes |
+| Hold (400ms) | Fire hold_action (popup) | N/A | N/A |
+| Min height | 5.75em | 7.3125em | 5.12em |
+| Progress bar | Yes (avg brightness) | Hidden | Hidden |
+
+### Route/Control Contract (FRAGILE)
+
+**Row mode**: body tap navigates, orb tap toggles individual light, power button toggles all. `stopPropagation()` on orbs and power button prevents navigation when controls are tapped. Priority: `navigate_path` > `tap_action` > `hold_action`.
+
+**Tile mode**: quick tap (<400ms) toggles lights or fires `tap_action`. Long press (≥400ms) fires `hold_action` with haptic scale feedback (0.9x for 120ms). Priority: `tap_action` > toggle > temp more-info.
+
+### Room Toggle Logic
+
+"Any-on-then-off": if ANY light is on → turn all off. If ALL off → turn all on. Mixed state → off.
+
+### Adaptive Lighting Integration
+
+- `_resolveAdaptiveEntitiesForRooms()` (L1198): auto-discovers `switch.adaptive_lighting_*` entities whose `lights` attribute overlaps with room lights
+- `_getManualLights()` (L1214): reads `manual_control` attribute array from AL switches
+- Visual: red shadow glow on manually-controlled orbs, "X manual" in status text
+- Reset button calls `adaptive_lighting.set_manual_control` with `manual_control: false`
+
+### Grid Options
+
+```javascript
+{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 }
+```
+
+Static. `getCardSize()` is config-aware: row/slim returns `roomCount + 1`, tiles returns `ceil(roomCount/4) + 1`. getGridOptions should match.
+
+### Editor Architecture
+
+**Type**: Level 2 — `getConfigForm()` with `object`+`fields`+`multiple` for rooms[].
+
+**Authoring model** (3 primary + per-room):
+| Field | Selector | Purpose |
+|-------|----------|---------|
+| `layout_variant` | select: tiles / row | Interaction model (slim = row + compact tile_size) |
+| `tile_size` | select: compact / standard / large | Density |
+| `rooms` | object+fields+multiple | Room list (see per-room fields below) |
+
+**Per-room fields** (in object selector):
+| Field | Selector | Synthesized if blank |
+|-------|----------|---------------------|
+| `name` | text (required) | — must be provided |
+| `icon` | icon | defaults to 'home' |
+| `navigate_path` | text (URL input) | could synthesize from name convention |
+| `temperature_entity` | entity (sensor) | leave empty |
+| `humidity_entity` | entity (sensor) | leave empty |
+
+**Hidden per-room** (YAML-only, runtime model):
+- `hold_action`: popup config — could synthesize default Browser Mod popup keyed to room name
+- `tap_action`: override default navigation — rarely needed
+- `lights[]`: nested array of {entity, icon, name} — can't use object+fields+multiple (no nested arrays). Core card content but YAML-only for now.
+
+**Synthesizer**:
+- `navigate_path`: if blank, could default to `/tunet-suite-storage/${slugify(name)}`
+- `hold_action`: if blank, could default to Browser Mod popup `{popup_card_id: '${slugify(name)}-popup'}`
+- `icon`: if blank, default 'home'
+- `use_profiles`: default true
+
+**Future**: `getConfigElement()` custom editor with nested lights[] sub-list per room. OR: flat `entities` multi-selector with area-based room inference.
+
+### Known Limitations
+
+- Nested `lights[]` is the core content but can't be in the object selector — YAML-only for CD1
+- Route/control contract relies on `stopPropagation()` — fragile
+- Slim is CSS-only scale of row — not a separate code path
+
+---
+
+## 6. tunet-climate-card
+
+**Version**: v1.2.0  
+**Tier**: editor-lite  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_climate_card.js`
+
+### Purpose
+
+Climate control with dual-thumb heat/cool slider. The **gold standard** — measured visual baseline for all cards. Glass surface, smart color state machine, container-native responsiveness via ResizeObserver (no profile system).
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `entity` | string | **required** | any `climate.*` entity | Y | editor |
+| `name` | string | `'Climate'` | any | Y | editor |
+| `variant` | string | `'standard'` | `'standard'`, `'thin'` | Y | editor |
+| `surface` | string | `'card'` | `'card'`, `'section'` | Y | editor |
+| `humidity_entity` | string | `''` | sensor with device_class: humidity | Y | editor |
+| `display_min` | number\|null | auto-calculated | 0-120 | Y | editor |
+| `display_max` | number\|null | auto-calculated | 0-120 | Y | editor |
+
+### Dual-Thumb Slider
+
+- **Thumb selection**: determined at drag start by event target ('heat' or 'cool')
+- **Dead zone**: 4px movement before committing to drag (prevents accidental moves from taps)
+- **Constraint**: heat cannot exceed cool - 2°F, cool cannot go below heat + 2°F (minimum 2° deadband)
+- **Service calls**: debounced 300ms. `climate.set_temperature` with `target_temp_low`/`target_temp_high` (heat_cool) or `temperature` (single setpoint)
+- **Drag visual**: transition disabled during drag, thumb scales to 1.08x, lifted shadow
+- **Mode-driven visibility**: heat-only mode hides cool thumb + fill via CSS (no JS branching)
+
+### Variant 'thin' vs 'standard'
+
+CSS-only difference — same DOM, same render path. Thin hides the `.temps` display and moves temperatures into the subtitle text: `"72° in · H 68° · C 78°"`. Slider height reduces from 44px to 36px.
+
+### display_min / display_max
+
+**Cosmetic only** — define the visible slider range, not setpoint limits. User can still drag beyond display range up to entity's actual min/max. Lets dashboard creators zoom into the normal temperature range. Auto-calculated: `max(minTemp, heat - 10)` to `min(maxTemp, cool + 10)`.
+
+### Gold Standard Qualities
+
+1. **Glass surface**: backdrop-filter blur + gradient stroke pseudo-element simulating light reflection
+2. **State cascade**: single `data-action` attribute drives border, header, mode button, and fan button colors (heating=amber, cooling=blue)
+3. **Smart UI pruning**: fan button hidden if entity has no fan_modes; eco option hidden if no eco preset; unsupported HVAC modes hidden
+4. **Mode normalization**: 'auto' mapped to 'heat_cool' internally, mapped back for service calls
+5. **Container-native**: ResizeObserver on slider element (not viewport), recalculates all positions on resize
+6. **Full ARIA**: thumbs have `role="slider"`, `aria-valuenow/min/max/valuetext`, `tabindex="0"`
+7. **Three-tier motion**: fast (0.12s), ui (0.18s), surface (0.28s) with Apple Material curves
+8. **Mid-mark suppression**: middle scale mark fades when current temp is within 3° (prevents visual clutter)
+
+### Grid Options
+
+```javascript
+{ columns: 6, min_columns: 3, rows: 'auto', min_rows: 3 }
+```
+
+Static. Wants half-section width (6 of 12). Appropriate for companion placement.
+
+### Editor Architecture
+
+**Type**: Level 1 — `getConfigForm()` with simple selectors. No arrays.
+
+**Authoring model** (3 primary + 4 advanced):
+Primary: `entity` (climate, required), `variant` (standard/thin), `name`
+Advanced: `surface`, `humidity_entity`, `display_min`, `display_max`
+
+**Synthesizer**: minimal. `display_min`/`display_max` auto-calculated from entity's min/max temp ± 10° if not explicitly set. Variant drives CSS class, not separate render path.
+
+**Runtime model**: flat config. No synthesis gap — authoring model ≈ runtime model.
+
+**Status**: Already correct. No CD1 editor changes needed. Gold standard.
+
+### Known Limitations
+
+- Header tile is click-only (fires more-info) — needs keyboard activation (CD3)
+- No profile system — ResizeObserver provides container-native responsiveness instead
+- `display_min`/`display_max` are cosmetic; users might expect them to limit setpoints
+
+---
+
+## 7. tunet-weather-card
+
+**Version**: v1.6.1  
+**Tier**: editor-complete  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_weather_card.js`
+
+### Purpose
+
+Weather forecast card with auto-mode switching between daily/hourly and temperature/precipitation. WebSocket subscription for live forecast data with triple-fallback chain.
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `entity` | string | **required** | any `weather.*` entity | Y | editor |
+| `name` | string | `'Weather'` | any | Y | editor |
+| `forecast_days` | number | `5` | 1-7 | Y | editor |
+| `forecast_hours` | number | `8` | 4-24 | Y | editor |
+| `forecast_view` | string | `'auto'` | `'auto'`, `'daily'`, `'hourly'` | Y | editor |
+| `forecast_metric` | string | `'auto'` | `'auto'`, `'temperature'`, `'precipitation'` | Y | editor |
+| `show_view_toggle` | boolean | `true` | true/false | Y | editor |
+| `show_metric_toggle` | boolean | `true` | true/false | Y | editor |
+| `auto_precip_threshold` | number | `45` | 0-100 | Y | editor |
+| `show_last_updated` | boolean | `true` | true/false | Y | editor |
+
+### Auto-Mode Switching
+
+When `forecast_view: 'auto'` and/or `forecast_metric: 'auto'`:
+- Card detects precipitation likelihood from current condition + hourly forecast data
+- If precip likely (condition is rainy/snowy/hail OR maxPrecip ≥ threshold): switches to hourly view + precipitation metric
+- **Pin state**: user clicking Daily/Hourly or Temp/Precip toggle sets `_viewPinned`/`_metricPinned = true`, locking against auto-override. Pins are runtime-only — reset on page reload.
+
+### WebSocket Subscription Chain
+
+1. **Primary**: `weather/subscribe_forecast` WebSocket message — live push updates
+2. **Fallback 1**: `weather.get_forecasts` service call (one-shot)
+3. **Fallback 2**: `entity.attributes.forecast` (legacy integrations, daily only)
+Failures silently caught; falls through to next method.
+
+### Grid Options
+
+```javascript
+{ columns: 6, min_columns: 3, rows: 'auto', min_rows: 3 }
+```
+
+Static. Same as climate — wants half-section width. Should be config-aware: daily with 7 items needs more width than 3 items.
+
+### Editor Architecture
+
+**Type**: Level 1 — `getConfigForm()` with simple selectors. No arrays.
+
+**Authoring model**: All 10 fields are the authoring model. No synthesis needed — weather config is flat, well-scoped, and already complete. `forecast_view: 'auto'` and `forecast_metric: 'auto'` ARE the inference — the card auto-switches at runtime based on precipitation data.
+
+**Synthesizer**: runtime-only (not setConfig). `_applyAutoModes()` switches view/metric based on live weather data. User can pin via toggle buttons (runtime state, not config).
+
+**Runtime model**: flat config + runtime pin state (`_viewPinned`, `_metricPinned`).
+
+**Status**: Already correct. Editor-complete. No CD1 changes needed. Reference for "all fields editable" pattern.
+
+### Known Limitations
+
+- Info tile header is click-only — needs keyboard activation (CD3)
+- Forecast tiles with `cursor: pointer` but no button semantics — fake-interactive (CD3)
+- All 10 config fields already in editor — genuinely editor-complete
+- No arrays in config — no editor upgrade needed
+
+---
+
+## 8. tunet-sensor-card
+
+**Version**: v3.0.0  
+**Tier**: editor-complete (top-level); sensors[] needs upgrade  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_sensor_card.js`
+
+### Purpose
+
+Environment sensor display with SVG sparkline charts, trend arrows, threshold-driven color coding, and support for non-sensor entities via `value_attribute`.
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `title` | string | `'Environment'` | any | Y | editor |
+| `icon` | string | `'sensors'` | Material Symbol | Y | editor |
+| `icon_color` | string | `'blue'` | accent name | N | yaml-only |
+| `tile_size` | string | `'standard'` | `'compact'`, `'standard'`, `'large'` | Y | editor |
+| `use_profiles` | boolean | `true` | true/false | Y | editor |
+| `show_sparkline` | boolean | `true` | true/false | Y | editor |
+| `show_trend` | boolean | `true` | true/false | Y | editor |
+| `history_hours` | number | `6` | any positive | N | yaml-only |
+| `sensors` | array | **required** | sensor objects | N (needs fix) | yaml-only |
+
+#### Per-sensor properties
+
+| Key | Type | Default | Notes |
+|-----|------|---------|-------|
+| `entity` | string | **required** | Any entity ID |
+| `label` | string | `''` | Display name |
+| `icon` | string | `''` | Material Symbol |
+| `accent` | string | `''` | Color accent |
+| `unit` | string | `''` | Display unit |
+| `precision` | number | `0` | Decimal places |
+| `value_attribute` | string | `''` | Read attribute instead of state (e.g., weather.home → temperature) |
+| `thresholds` | array | `[]` | `[{value, condition, style}]` — color rules |
+| `show_range` | boolean | `false` | Show min/max range |
+
+### Sparkline Rendering
+
+SVG path generation from historical data:
+- Fetches via HA REST API: `history/period/{start}?filter_entity_id=...`
+- Runs on connect + every 5 minutes, cached with 2-minute freshness
+- Renders as `<svg viewBox="0 0 48 24"><path class="spark-line" />` 
+- Respects `value_attribute` for attribute-based history
+
+### Threshold System
+
+Evaluates per sensor on every state update:
+- Numeric conditions: `gte`, `gt`, `lte`, `lt`, `eq`, `neq`
+- Returns style name: `warning` (amber), `error` (red), `success` (green)
+- Applied to icon background, value text color, and sparkline stroke
+
+### Trend Indicator
+
+Computes slope from last 3 history points:
+- Rising (delta > 0.5): upward arrow, red
+- Falling (delta < -0.5): downward arrow, blue
+- Stable: horizontal arrow, muted
+Updates every history fetch (~5 min), not real-time.
+
+### Grid Options
+
+```javascript
+{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 }
+```
+
+Static. Should compute `min_rows` from `sensors.length + 1` (header).
+
+### Editor Architecture
+
+**Type**: Level 2 — `getConfigForm()` with `object`+`fields`+`multiple` for sensors[].
+
+**Authoring model** (6 top-level + sensors array):
+Primary: `title`, `show_sparkline`, `show_trend`, `tile_size`
+sensors[] per-item: `entity` (required), `label`, `icon`, `accent`, `unit`, `precision`
+
+**Synthesizer**:
+- `icon_color`: default 'blue' — add to editor or leave YAML-only
+- `history_hours`: default 6 — add to editor as number field
+- `value_attribute`: per-sensor YAML-only — lets non-sensor entities work (weather.home → temperature attribute)
+- `thresholds[]`: per-sensor nested array — can't go in object selector. YAML-only.
+- `show_range`: per-sensor boolean — could go in object selector fields
+
+**Runtime model**: normalized sensors array with all per-sensor fields + history caching + sparkline SVG paths.
+
+**Key design**: The object+fields+multiple for sensors covers the 80% case (pick entities, set labels). Thresholds are the 20% power-user path that stays YAML.
+
+### Known Limitations
+
+- `thresholds[]` is a nested array within sensor items — YAML-only (no nested arrays in object selector)
+- `icon_color` and `history_hours` are yaml-only — should be added to editor as simple fields
+- `data-interaction="none"` guard correctly disables hover/active on non-interactive rows
+
+---
+
+## 9. tunet-status-card
+
+**Version**: v3.0.0  
+**Tier**: yaml-first  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+
+### Purpose
+
+Polymorphic tile grid with 5 tile subtypes: value, indicator, timer, alarm, dropdown. The most complex card for configuration due to per-type field differences. Supports conditional visibility, auxiliary actions, secondary displays, and status dots.
+
+### Config Properties (top-level)
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `name` | string | `'Home Status'` | any | Y | editor |
+| `show_header` | boolean | `true` | true/false | Y | editor |
+| `columns` | number | `4` | 2-8 | Y | editor |
+| `column_breakpoints` | array | `[]` | responsive rules | N | yaml-only |
+| `tile_size` | string | `'standard'` | `'compact'`, `'standard'`, `'large'` | Y | editor |
+| `use_profiles` | boolean | `true` | true/false | Y | editor |
+| `custom_css` | string | `''` | CSS text | Y (advanced) | editor |
+| `tiles` | array | `[]` | tile objects | N | yaml-only |
+
+### Five Tile Types
+
+**Value** (default): Icon + large value + optional secondary + optional unit + label. Supports `attribute` for reading entity attributes, `format` for display (state/integer/time), `dot_rules` for status dots, `secondary` for sub-value display.
+
+**Indicator**: Icon + value + label + status dot. Simpler than value — no secondary, no unit.
+
+**Timer**: Icon + live HH:MM:SS countdown + label. Updates every 1 second via `setInterval`. Reads `entity.attributes.remaining`, calculates elapsed since `last_updated`.
+
+**Alarm**: Three visual states — off (muted), set (blue pill with time), ringing (blue background + shaking icon animation + snooze/dismiss buttons). `playing_entity` controls ringing state, `snooze_action` and `dismiss_action` fire configured actions.
+
+**Dropdown**: Icon + current value + chevron + label. Opens custom glassmorphic overlay menu with smart positioning (flips above if no room below, caps height to viewport). Options read from entity's `options` attribute (input_select).
+
+### Conditional Visibility (show_when)
+
+Per-tile condition: `{entity, state, operator, attribute}`. Operators: equals, not_equals, contains, not_contains, gt, lt. Evaluated on every HA state change. Hidden tiles use `visibility: hidden` (preserve grid space).
+
+### Auxiliary Actions (aux_action)
+
+Small pill button in tile top-right. Visible only when `aux_show_when` condition matches. Has "danger" styling when label contains "reset". Fires custom action on tap.
+
+### Tile Grid
+
+`grid-auto-rows: var(--tile-row-h)` — intentionally forced uniform row height. Standard: 5.875em, compact: 5.5em, large: 7.125em. Responsive columns via ResizeObserver.
+
+### Grid Options
+
+```javascript
+{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 }
+```
+
+Static. Should compute from `ceil(tiles.length / columns) + (show_header ? 1 : 0)`.
+
+### Legacy Keys
+
+`status_dot` (string) → auto-converted to `dot_rules: [{match: '*', dot: status_dot}]`. One-way conversion.
+
+### Editor Architecture
+
+**Type**: Level 1 currently. Future: Level 3 (choose selector) or Level 4 (custom editor).
+
+**Current authoring model** (top-level flags only):
+`name`, `show_header`, `columns`, `tile_size`, `use_profiles`, `custom_css`
+
+**Future authoring model** (mode-driven synthesis, when G3S lifts):
+| Field | Selector | What it synthesizes |
+|-------|----------|---------------------|
+| `mode` | select: summary / alarm / environment / custom | → tiles[] array |
+| `status_entity` | entity | → adaptive/manual/boost/mode tiles (when mode=summary) |
+| `weather_entity` | entity | → weather/outdoor temp/humidity tiles (when mode=summary) |
+| `temperature_entity` | entity | → indoor temp tile (when mode=summary) |
+| `alarm_entity` | entity | → alarm tile with ringing/snooze/dismiss (when mode=alarm) |
+| `entities` | multi-entity (sensor) | → value tile per sensor (when mode=environment) |
+
+**Future synthesizer** (setConfig, when G3S lifts):
+- `mode = 'summary'` + `status_entity` → generates 8-tile OAL dashboard (adaptive, manual, boost, mode dropdown, weather, outdoor, humidity, indoor)
+- `mode = 'alarm'` + `alarm_entity` → generates alarm tile with synthesized snooze/dismiss actions
+- `mode = 'environment'` + `entities` → generates value tile per sensor with auto-detected unit/icon
+- `mode = 'custom'` → tiles[] from YAML, no synthesis
+- Precedence: explicit `tiles[]` > mode-synthesized tiles
+
+**Implementation path**: Level 3 (choose selector for mode-dependent fields) in getConfigForm, synthesis in setConfig. OR Level 4 (getConfigElement custom editor) if choose doesn't handle the conditional field sets cleanly.
+
+**G3S scope**: documented now, implemented when lock lifts.
+
+### Known Limitations
+
+- `tiles[]` is yaml-only until G3S lock lifts — polymorphic (5 types with different fields per type)
+- `column_breakpoints` is yaml-only
+- Alarm tile requires `playing_entity` + script entities for snooze/dismiss — complex setup
+- G3S scope lock: bugfix-only until explicitly reopened
+
+---
+
+## 10. tunet-media-card
+
+**Version**: v3.2.2  
+**Tier**: editor-lite  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_media_card.js`
+
+### Purpose
+
+Sonos media player with album art, transport controls, volume slider, speaker dropdown with group management. Uses coordinator sensor for group-aware playback control.
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `entity` | string | **required** | any `media_player.*` entity | Y | editor |
+| `name` | string | `'Sonos'` | any | Y | editor |
+| `coordinator_sensor` | string | `'sensor.sonos_smart_coordinator'` | any sensor | Y | editor |
+| `active_group_sensor` | string | `'sensor.sonos_active_group_coordinator'` | any sensor | Y | editor |
+| `playing_status_sensor` | string | `'sensor.sonos_playing_status'` | any sensor | Y | editor |
+| `show_progress` | boolean | `true` | true/false | Y | editor |
+| `speakers` | array | `[]` | speaker objects | N (needs fix) | yaml-only |
+
+### Coordinator Resolution Chain
+
+1. Try `coordinator_sensor` state → entity ID of current group leader
+2. Fall back to `_activeEntity` (user's last selected speaker in dropdown)
+3. Fall back to `config.entity`
+
+**Why it matters**: transport commands go to the coordinator (group leader), not necessarily the displayed speaker. Volume goes to the active speaker specifically.
+
+### Speaker Dropdown
+
+- Tap speaker name → selects as active (changes display, doesn't affect grouping)
+- Tap check icon → calls `sonos_toggle_group_membership` (optimistic UI: check toggles immediately)
+- Group All / Ungroup All buttons at bottom (call `sonos_group_all_to_playing` / `sonos_ungroup_all` scripts)
+
+### Volume Drag
+
+Pointer capture via `setPointerCapture()`. Debounce 200ms before service call. Cooldown 1500ms after call completes. `_volDragging` flag blocks `_updateAll()` during drag to prevent visual jitter.
+
+### Progress Bar
+
+When `show_progress: true`: reads `media_position` + `media_duration` from coordinator. `setInterval` updates fill every 1 second during playback. Shows current/total time labels.
+
+### "Nothing Playing" State
+
+Track name: "Nothing playing", artist: "Select a source to play", card gets `data-state="idle"` with `opacity: 0.65`.
+
+### Grid Options
+
+```javascript
+{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2 }
+```
+
+Static. Full section width. Should account for show_progress (adds height).
+
+### Editor Architecture
+
+**Type**: Level 1 primary + Level 2 for speakers[] in advanced.
+
+**Authoring model** (3 primary):
+| Field | Selector | Purpose |
+|-------|----------|---------|
+| `entity` | entity (media_player) | Main speaker — the only required input |
+| `name` | text | Card title (default: 'Sonos') |
+| `show_progress` | boolean | Show/hide progress bar |
+
+**Advanced** (expandable):
+| Field | Selector | Purpose |
+|-------|----------|---------|
+| `speakers` | object+fields+multiple | Explicit speaker list: entity, name, icon |
+| `coordinator_sensor` | entity (sensor) | Override default Sonos coordinator sensor |
+| `active_group_sensor` | entity (sensor) | Override default group sensor |
+
+**Synthesizer** (already exists in setConfig):
+- `coordinator_sensor` ← defaults to `'sensor.sonos_smart_coordinator'`
+- `active_group_sensor` ← defaults to `'sensor.sonos_active_group_coordinator'`
+- `playing_status_sensor` ← defaults to `'sensor.sonos_playing_status'`
+- `speakers[]` ← auto-discovered via `binary_sensor.sonos_*_in_active_group` regex when empty
+
+**Key insight**: 3 of the current 6 editor fields are Sonos sensor defaults that are ALWAYS THE SAME. Remove from primary editor; keep in advanced. User just picks entity + name + progress toggle.
+
+### Known Limitations
+
+- `speakers[]` not in editor — CD1.11 adds it to advanced section
+- Info tile is click-only div — needs button semantics (CD3)
+- Volume slider needs `role="slider"` + ARIA attributes (CD3)
+- Album art click behavior undecided (more-info? navigate to media page?)
+
+---
+
+## 11. tunet-sonos-card
+
+**Version**: v1.0.0  
+**Tier**: editor-lite  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`
+
+### Purpose
+
+Alternative Sonos player with inline speaker tiles (always visible, not hidden in dropdown). Compact header with transport controls. Source selection dropdown. Volume overlay appears below tiles.
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `entity` | string | **required** | any `media_player.*` entity | Y | editor |
+| `name` | string | `'Sonos'` | any | Y | editor |
+| `coordinator_sensor` | string | `'sensor.sonos_smart_coordinator'` | any sensor | Y | editor |
+| `active_group_sensor` | string | `'sensor.sonos_active_group_coordinator'` | any sensor | Y | editor |
+| `playing_status_sensor` | string | `'sensor.sonos_playing_status'` | any sensor | Y | editor |
+| `speakers` | array | `[]` | speaker objects | N (needs fix) | yaml-only |
+
+### Differences from Media Card
+
+- No separate volume "view" — volume overlay appears inline below speaker tiles
+- Speaker tiles always visible in horizontal scroll strip (not hidden in dropdown)
+- Compact header (no large album art area)
+- Source selection dropdown with per-source volume drag within dropdown
+- No Group All/Ungroup All buttons — grouping done per-tile
+
+### Speaker Tiles
+
+Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue border, highlighted), not grouped (muted). Interactions: tap toggles group membership, drag adjusts volume, hold (500ms) opens more-info.
+
+### Grid Options
+
+```javascript
+{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2 }
+```
+
+### Editor Architecture
+
+**Type**: Level 1 primary + Level 2 for speakers[] in advanced. Same pattern as media card.
+
+**Authoring model** (2 primary):
+| Field | Selector | Purpose |
+|-------|----------|---------|
+| `entity` | entity (media_player) | Main speaker |
+| `name` | text | Card title (default: 'Sonos') |
+
+**Advanced**: `speakers` (object+fields+multiple), `coordinator_sensor`, `active_group_sensor`
+
+**Synthesizer**: identical to media card — defaults Sonos sensors, auto-discovers speakers.
+
+### Known Limitations
+
+- `speakers[]` not in editor — CD1.12 fix
+- Hardcoded press scales (.90) — CD2 fix
+- `--spring` CSS variable undefined in base TOKENS — falls back to initial
+
+---
+
+## 12. tunet-speaker-grid-card
+
+**Version**: v3.2.0  
+**Tier**: editor-lite  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+
+### Purpose
+
+Dedicated speaker management grid. Each speaker tile shows volume level, playing status, and group membership with per-tile volume drag. Group All / Ungroup All action buttons.
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `entity` | string | **required** | any `media_player.*` entity | Y | editor |
+| `name` | string | `'Speakers'` | any | Y | editor |
+| `coordinator_sensor` | string | `'sensor.sonos_smart_coordinator'` | any sensor | Y | editor |
+| `columns` | number | `4` | 2-8 | Y | editor |
+| `tile_size` | string | `'standard'` | `'compact'`, `'standard'`, `'large'` | Y | editor |
+| `use_profiles` | boolean | `true` | true/false | Y | editor |
+| `show_group_actions` | boolean | `true` | true/false | Y | editor |
+| `custom_css` | string | `''` | CSS text | Y (advanced) | editor |
+| `speakers` | array | `[]` | speaker objects | N (needs verify) | yaml-only |
+
+### Speaker Auto-Discovery
+
+When `config.speakers` is empty, `_getEffectiveSpeakers()` (L784) scans for `binary_sensor.sonos_*_in_active_group` entities, extracts room names via regex, and finds matching `media_player.*` entities. This is the dual-mode: explicit config OR auto-discover.
+
+### Per-Tile Volume Control
+
+Not display-only — each tile is a draggable volume slider. `createAxisLockedDrag()` per tile with debounce 200ms, cooldown 1500ms. Floating pill shows percentage during drag. `role="slider"` + `aria-valuenow` on tiles.
+
+### Grid Options
+
+```javascript
+{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 }
+```
+
+Static. Should compute from `ceil(speakers.length / columns) + (show_group_actions ? 1 : 0) + 1` (header).
+
+### Editor Architecture
+
+**Type**: Level 1 primary + Level 2 for speakers[] in advanced.
+
+**Authoring model** (5 primary):
+| Field | Selector | Purpose |
+|-------|----------|---------|
+| `entity` | entity (media_player) | Main speaker |
+| `name` | text | Card title |
+| `columns` | number 2-8 | Grid density |
+| `tile_size` | select: compact / standard / large | Tile density |
+| `show_group_actions` | boolean | Group All / Ungroup All buttons |
+
+**Advanced**: `speakers` (object+fields+multiple: entity, name, icon), `coordinator_sensor`, `use_profiles`, `custom_css`
+
+**Synthesizer**: same Sonos sensor defaults + speaker auto-discovery. `speakers[]` empty → _getEffectiveSpeakers() discovers from binary_sensor.sonos_*_in_active_group regex.
+
+### Known Limitations
+
+- Profile system active — CD4 migration
+- Hover `translateY(-1px)` is non-standard — CD2 removes, shadow-lift only
+- `--spring` CSS variable undefined — CD2 resolves
+- Focus ring uses `var(--blue)` directly instead of `var(--focus-ring-color)` — CD2 fix
+
+---
+
+## 13. tunet-nav-card
+
+**Version**: v0.2.4  
+**Tier**: editor-complete  
+**File**: `Dashboard/Tunet/Cards/v3/tunet_nav_card.js`
+
+### Purpose
+
+Persistent navigation chrome. Two modes: mobile bottom dock and desktop left rail. Active route detection via path prefix matching. Footer placement support (HA 2026.3). Reference implementation for tokens and accessibility.
+
+### Config Properties
+
+| Key | Type | Default | Accepted | Editor | Classification |
+|-----|------|---------|----------|:------:|----------------|
+| `home_path` | string | `'/tunet-suite/overview'` | dashboard path | Y | editor |
+| `rooms_path` | string | `'/tunet-suite/rooms'` | dashboard path | Y | editor |
+| `media_path` | string | `'/tunet-suite/media'` | dashboard path | Y | editor |
+| `subview_paths` | array | `[]` | string paths | Y | editor |
+| `include_rooms_index` | boolean | `true` | true/false | Y | editor |
+| `items` | array | `[]` | nav item objects | Y | editor |
+| `desktop_breakpoint` | number | `900` | 600-1400 | Y | editor |
+| `desktop_left_offset` | number | `108` | 72-220 | Y | editor |
+| `mobile_bottom_offset` | number | `108` | 84-220 | Y | editor |
+
+### Active Route Detection
+
+`_updateActive()` (L501): compares `window.location.pathname` against each nav item's path using `startsWith()` prefix matching. Custom `match_paths` array per item for additional pattern matching. Subview paths trigger "Rooms" active state.
+
+### Mobile vs Desktop
+
+`desktop_breakpoint` (default 900px) via `matchMedia()`. Below: bottom dock (64px, horizontal). Above: left rail (84px, vertical). Card stays visible in both — layout changes, not visibility.
+
+### Safe Area Handling
+
+Mobile dock padding includes `env(safe-area-inset-bottom)` for iOS home bar. `mobile_bottom_offset` config overrides the measured clearance.
+
+### Global CSS Injection
+
+Injects `<style id="tunet-nav-card-offsets">` into `document.head` with margins/padding on HA view elements. Sets `--tunet-nav-offset-left` and `--tunet-nav-offset-bottom` CSS variables. Cleanup on disconnect. Disable via `window.TUNET_NAV_OFFSETS_DISABLED` flag.
+
+### Grid Options
+
+```javascript
+{ columns: 'full', min_columns: 6, rows: 'auto', min_rows: 1 }
+```
+
+Uses `columns: 'full'` — spans entire section width. This is chrome, not content.
+
+### Editor Architecture
+
+**Type**: Level 1 — `getConfigForm()` with simple selectors. Reference implementation.
+
+**Authoring model** (9 fields — ALL exposed, ALL simple):
+Primary: `home_path` (text), `rooms_path` (text), `media_path` (text), `subview_paths` (object), `include_rooms_index` (boolean)
+Layout: `desktop_breakpoint` (number 600-1400), `desktop_left_offset` (number 72-220), `mobile_bottom_offset` (number 84-220)
+Advanced: `items` (object — custom nav items)
+
+**Synthesizer**: minimal — path normalization via `normalizePath()`, breakpoint clamping. No inference. All paths are explicit user decisions.
+
+**Runtime model**: flat config. Authoring model ≈ runtime model. This is what "editor-complete" looks like.
+
+**Status**: Already correct. Reference for how every card's editor SHOULD feel.
+
+### Reference Implementation Status
+
+All fields editable. Native `<button>` elements with `aria-label`. `<nav>` landmark. Uses shared tokens (`--press-scale`, `--motion-ui`, `--ease-standard`, `--focus-ring-*`). Multi-property transitions. No `transition: all`. This is what CD2 is making every card look like.

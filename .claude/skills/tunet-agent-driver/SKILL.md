@@ -108,10 +108,11 @@ Evaluate UX on `tunet-suite-storage`. Validate architecture on repo YAML.
 
 ## Active Plan Reference
 
-The current execution plan is at `.claude/plans/ethereal-zooming-cherny.md`. It defines:
-- Surface-driven tranche execution (Living Room → popup → overview → media → remaining rooms)
-- Profile resolver contract superseded as policy (code removal incremental per-surface)
-- Build migration sequenced after Surface 1
+The current execution plan uses the consistency-driver pass order (CD0-CD12):
+- Method-level authority: `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
+- Program-level framing: `.claude/plans/ethereal-zooming-cherny.md`
+- Execution order: CD0 (build/lab, DONE) → CD1 (config clarity, IN PROGRESS) → CD2-CD4 (shared consistency passes) → CD5-CD11 (bespoke card passes) → CD12 (surface assembly)
+- Surface assembly order when it resumes: Living Room → popup → overview → media → remaining rooms
 - Scope locks respected by default (see plan for full lock table)
 
 ## Stale Findings Protocol

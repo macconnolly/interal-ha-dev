@@ -36,6 +36,7 @@ import {
   registerCard,
   logCardVersion,
   clamp,
+  renderConfigPlaceholder,
 } from './tunet_base.js?v=20260309g7';
 
 
@@ -419,7 +420,9 @@ class TunetLightTile extends HTMLElement {
 
   setConfig(config) {
     if (!config.entity) {
-      throw new Error(`${TAG}: 'entity' is required`);
+      this._config = { _needsConfig: true };
+      renderConfigPlaceholder(this.shadowRoot, 'Select a light entity', 'Light');
+      return;
     }
     const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
     const tileSize = tileSizeRaw === 'compact'

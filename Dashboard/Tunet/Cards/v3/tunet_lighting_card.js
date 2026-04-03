@@ -43,6 +43,7 @@ import {
   selectProfileSize, resolveSizeProfile, _setProfileVars,
   createAxisLockedDrag,
   registerCard, logCardVersion,
+  renderConfigPlaceholder,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.5.0';
@@ -885,7 +886,9 @@ class TunetLightingCard extends HTMLElement {
     const hasEntities = normalizedEntities.length > 0;
 
     if (!hasZones && !hasEntities) {
-      throw new Error('Define at least one entity via "entities"/"zones" or legacy "light_group"/"light_overrides"');
+      this._config = { _needsConfig: true };
+      renderConfigPlaceholder(this.shadowRoot, 'Add light entities via zones or entities config', 'Lighting');
+      return;
     }
 
     const asFinite = (value, fallback) => {

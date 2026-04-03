@@ -31,6 +31,7 @@ import {
   createAxisLockedDrag,
   registerCard,
   logCardVersion,
+  renderConfigPlaceholder,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.2.0';
@@ -577,7 +578,9 @@ class TunetSpeakerGridCard extends HTMLElement {
 
   setConfig(config) {
     if (!config.entity) {
-      throw new Error('Please define a media_player entity');
+      this._config = { _needsConfig: true };
+      renderConfigPlaceholder(this.shadowRoot, 'Select a media player entity', 'Speakers');
+      return;
     }
 
     const asFinite = (v, fb) => { const n = Number(v); return Number.isFinite(n) ? n : fb; };

@@ -343,17 +343,22 @@ class TunetScenesCard extends HTMLElement {
         { name: 'allow_wrap', selector: { boolean: {} } },
         {
           name: 'scenes',
-          type: 'expandable',
-          title: 'Scenes',
-          schema: [
-            { name: 'entity', required: true, selector: { entity: { domain: ['scene', 'script', 'automation'] } } },
-            { name: 'name', selector: { text: {} } },
-            { name: 'icon', selector: { icon: {} } },
-            { name: 'accent', selector: { select: { options: ACCENTS } } },
-            { name: 'state_entity', selector: { entity: {} } },
-            { name: 'active_when', selector: { text: {} } },
-            { name: 'active_when_operator', selector: { select: { options: OPERATORS } } },
-          ],
+          selector: {
+            object: {
+              multiple: true,
+              label_field: 'name',
+              description_field: 'entity',
+              fields: {
+                entity: { label: 'Entity', required: true, selector: { entity: { domain: ['scene', 'script', 'automation'] } } },
+                name: { label: 'Name', selector: { text: {} } },
+                icon: { label: 'Icon', selector: { icon: {} } },
+                accent: { label: 'Accent', selector: { select: { options: ACCENTS } } },
+                state_entity: { label: 'Active State Entity', selector: { entity: {} } },
+                active_when: { label: 'Active When Value', selector: { text: {} } },
+                active_when_operator: { label: 'Active Operator', selector: { select: { options: OPERATORS } } },
+              },
+            },
+          },
         },
       ],
       computeLabel: (schema) => {

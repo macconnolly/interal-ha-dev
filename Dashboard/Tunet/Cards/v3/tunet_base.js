@@ -1761,6 +1761,46 @@ export function createAxisLockedDrag(options = {}) {
 }
 
 /**
+ * Render a "needs configuration" placeholder into a card's shadow root.
+ * Call from setConfig() when required config is missing, instead of throwing.
+ *
+ * @param {ShadowRoot} shadowRoot - The card's shadow root
+ * @param {string} message - What the user needs to configure (e.g. "Select a weather entity")
+ * @param {string} [cardName] - Optional card display name for the header
+ */
+export function renderConfigPlaceholder(shadowRoot, message, cardName) {
+  if (!shadowRoot) return;
+  shadowRoot.innerHTML = `
+    <style>
+      :host { display: block; }
+      .config-prompt {
+        padding: 1.5em;
+        text-align: center;
+        font-family: var(--ha-card-header-font-family, 'DM Sans', sans-serif);
+        color: var(--primary-text-color, #1e293b);
+        background: var(--ha-card-background, rgba(255,255,255,0.68));
+        border-radius: var(--ha-card-border-radius, 1em);
+        border: 1px dashed var(--divider-color, rgba(0,0,0,0.12));
+      }
+      .config-prompt .name {
+        font-weight: 600;
+        font-size: 0.875em;
+        margin-bottom: 0.5em;
+        opacity: 0.7;
+      }
+      .config-prompt .message {
+        font-size: 0.8125em;
+        opacity: 0.55;
+      }
+    </style>
+    <div class="config-prompt">
+      ${cardName ? `<div class="name">${cardName}</div>` : ''}
+      <div class="message">${message}</div>
+    </div>
+  `;
+}
+
+/**
  * Idempotent card registration with HA.
  * @param {string} tagName - Custom element tag (e.g. 'tunet-climate-card')
  * @param {Function} cardClass - The HTMLElement subclass

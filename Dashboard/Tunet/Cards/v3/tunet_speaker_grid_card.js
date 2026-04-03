@@ -32,6 +32,7 @@ import {
   registerCard,
   logCardVersion,
   renderConfigPlaceholder,
+  bindButtonActivation,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.2.0';
@@ -863,6 +864,7 @@ class TunetSpeakerGridCard extends HTMLElement {
   _setupListeners() {
     const $ = this.$;
 
+    bindButtonActivation($.infoTile, { label: 'Show speaker details' });
     $.infoTile.addEventListener('click', (e) => {
       e.stopPropagation();
       this.dispatchEvent(new CustomEvent('hass-more-info', {

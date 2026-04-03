@@ -1461,6 +1461,28 @@ export function fireEvent(element, type, detail = {}) {
 }
 
 /**
+ * Make a non-button element keyboard-activatable.
+ * Sets role="button" and tabindex="0" if not already present,
+ * then wires Enter/Space to synthesize a click event on the element.
+ *
+ * Does NOT wire a click handler — the card's existing click wiring stays
+ * untouched. This helper only bridges keyboard → click so the existing
+ * handler fires on Enter/Space the same way it fires on tap.
+ */
+export function bindButtonActivation(el, options = {}) {
+  if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+  if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+  if (options.label) el.setAttribute('aria-label', options.label);
+
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      el.click();
+    }
+  });
+}
+
+/**
  * Normalize a navigation path for Home Assistant routing.
  * @param {string} value
  * @returns {string}

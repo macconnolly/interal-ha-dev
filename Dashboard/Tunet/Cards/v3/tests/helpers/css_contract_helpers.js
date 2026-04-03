@@ -39,7 +39,7 @@ export const CARD_REGISTRY = [
     tag: 'tunet-actions-card',
     excluded: false,
     interactive: [
-      { selector: '.action-chip', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
+      { selector: '.action-chip', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
     ],
   },
   {
@@ -47,7 +47,7 @@ export const CARD_REGISTRY = [
     tag: 'tunet-scenes-card',
     excluded: false,
     interactive: [
-      { selector: '.scene-chip', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
+      { selector: '.scene-chip', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
     ],
   },
   {
@@ -55,7 +55,7 @@ export const CARD_REGISTRY = [
     tag: 'tunet-light-tile',
     excluded: false,
     interactive: [
-      { selector: '.lt', category: 'control', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
+      { selector: '.lt', category: 'control', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'custom' },
     ],
   },
   {
@@ -63,11 +63,11 @@ export const CARD_REGISTRY = [
     tag: 'tunet-lighting-card',
     excluded: false,
     interactive: [
-      { selector: '.info-tile', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
-      { selector: '.toggle-btn', category: 'action', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
-      { selector: '.mode-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
-      { selector: '.fan-btn', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
-      { selector: '.l-tile', category: 'control', press: 'strong', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
+      { selector: '.info-tile', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'helper' },
+      { selector: '.toggle-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.mode-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.fan-btn', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.l-tile', category: 'control', press: 'strong', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'slider', keyboard_source: 'custom' },
     ],
   },
   {
@@ -75,10 +75,10 @@ export const CARD_REGISTRY = [
     tag: 'tunet-rooms-card',
     excluded: false,
     interactive: [
-      { selector: '.section-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
-      { selector: '.room-tile', category: 'nav', press: 'strong', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
-      { selector: '.room-action-btn', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
-      { selector: '.room-orb', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
+      { selector: '.section-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.room-tile', category: 'nav', press: 'strong', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'custom' },
+      { selector: '.room-action-btn', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.room-orb', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
     ],
   },
   {
@@ -86,10 +86,10 @@ export const CARD_REGISTRY = [
     tag: 'tunet-climate-card',
     excluded: false,
     interactive: [
-      { selector: '.hdr-tile', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
-      { selector: '.fan-btn', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
-      { selector: '.mode-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
-      { selector: '.mode-opt', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
+      { selector: '.hdr-tile', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'helper' },
+      { selector: '.fan-btn', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.mode-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.mode-opt', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
     ],
   },
   {
@@ -97,8 +97,7 @@ export const CARD_REGISTRY = [
     tag: 'tunet-sensor-card',
     excluded: false,
     interactive: [
-      // .section-action removed — dead CSS (class never applied to any element)
-      { selector: '.sensor-row', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
+      { selector: '.sensor-row', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'custom' },
     ],
   },
   {
@@ -106,7 +105,7 @@ export const CARD_REGISTRY = [
     tag: 'tunet-weather-card',
     excluded: false,
     interactive: [
-      { selector: '.info-tile', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
+      { selector: '.info-tile', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'helper' },
     ],
   },
   {
@@ -114,12 +113,13 @@ export const CARD_REGISTRY = [
     tag: 'tunet-media-card',
     excluded: false,
     interactive: [
-      { selector: '.info-tile', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
-      { selector: '.speaker-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
-      { selector: '.grp-check', category: 'action', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
-      { selector: '.t-btn', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
-      { selector: '.vol-icon', category: 'action', press: 'strong', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
-      { selector: '.vol-close', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
+      { selector: '.info-tile', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'helper' },
+      { selector: '.speaker-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.grp-check', category: 'action', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'helper' },
+      { selector: '.t-btn', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.vol-icon', category: 'action', press: 'strong', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'helper' },
+      { selector: '.vol-close', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.album-art', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'helper' },
     ],
   },
   {
@@ -127,10 +127,10 @@ export const CARD_REGISTRY = [
     tag: 'tunet-sonos-card',
     excluded: false,
     interactive: [
-      { selector: '.t-btn', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
-      { selector: '.source-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
-      { selector: '.speaker-tile', category: 'control', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
-      { selector: '.vol-icon', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
+      { selector: '.t-btn', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.source-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
+      { selector: '.speaker-tile', category: 'control', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'none' },
+      { selector: '.vol-icon', category: 'action', press: 'strong', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
     ],
   },
   {
@@ -138,21 +138,21 @@ export const CARD_REGISTRY = [
     tag: 'tunet-speaker-grid-card',
     excluded: false,
     interactive: [
-      { selector: '.info-tile', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
-      { selector: '.spk-tile', category: 'control', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div' },
-      { selector: '.action-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button' },
+      { selector: '.info-tile', category: 'info', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'button', keyboard_source: 'helper' },
+      { selector: '.spk-tile', category: 'control', press: 'standard', focus_source: 'local', tap_source: 'local', element_tag: 'div', expected_role: 'slider', keyboard_source: 'custom' },
+      { selector: '.action-btn', category: 'action', press: 'standard', focus_source: 'base_reset', tap_source: 'base_reset', element_tag: 'button', expected_role: null, keyboard_source: 'native' },
     ],
   },
   {
     file: 'tunet_status_card.js',
     tag: 'tunet-status-card',
-    excluded: true, // status lock — verify-only in CD2
+    excluded: true,
     interactive: [],
   },
   {
     file: 'tunet_nav_card.js',
     tag: 'tunet-nav-card',
-    excluded: true, // verify-only in CD2 (already reference-quality)
+    excluded: true,
     interactive: [],
   },
 ];
@@ -176,6 +176,23 @@ export const LOCAL_TAP_SELECTORS = CD2_CARDS.flatMap(c =>
 // Selectors backed by native buttons (for DOM verification)
 export const BASE_RESET_SELECTORS = CD2_CARDS.flatMap(c =>
   c.interactive.filter(el => el.focus_source === 'base_reset').map(el => ({ ...el, file: c.file, tag: c.tag }))
+);
+
+// ─── CD3 Derived Lists ────────────────────────────────────────────────
+
+// Elements that need role="button" post-CD3 (excludes sliders and native buttons)
+export const CD3_ROLE_REQUIRED = CD2_CARDS.flatMap(c =>
+  c.interactive.filter(el => el.expected_role === 'button').map(el => ({ ...el, file: c.file, tag: c.tag }))
+);
+
+// Elements using the shared bindButtonActivation helper
+export const CD3_HELPER_WIRED = CD2_CARDS.flatMap(c =>
+  c.interactive.filter(el => el.keyboard_source === 'helper').map(el => ({ ...el, file: c.file, tag: c.tag }))
+);
+
+// Elements that should preserve role="slider" (must NOT be converted to button)
+export const CD3_SLIDER_PRESERVE = CD2_CARDS.flatMap(c =>
+  c.interactive.filter(el => el.expected_role === 'slider').map(el => ({ ...el, file: c.file, tag: c.tag }))
 );
 
 // ─── Source-Level Helpers ──────────────────────────────────────────────

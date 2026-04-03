@@ -14,7 +14,7 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
-  renderConfigPlaceholder,
+  renderConfigPlaceholder, bindButtonActivation,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.2.2';
@@ -238,6 +238,10 @@ const CARD_STYLES = `
   .album-art img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
   .album-art .icon { color: var(--text-muted); }
   .card[data-state="playing"] .album-art { box-shadow: var(--shadow); }
+  .album-art:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
 
   /* Track info */
   .track-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
@@ -874,6 +878,7 @@ class TunetMediaCard extends HTMLElement {
     const $ = this.$;
 
     // Info tile -> more-info for active transport target
+    bindButtonActivation($.infoTile, { label: 'Show media details' });
     $.infoTile.addEventListener('click', (e) => {
       e.stopPropagation();
       this.dispatchEvent(new CustomEvent('hass-more-info', {
@@ -883,6 +888,7 @@ class TunetMediaCard extends HTMLElement {
     });
 
     // Album art -> more-info for active transport target
+    bindButtonActivation($.albumArt, { label: 'Show speaker details' });
     $.albumArt.addEventListener('click', (e) => {
       e.stopPropagation();
       this.dispatchEvent(new CustomEvent('hass-more-info', {
@@ -919,6 +925,7 @@ class TunetMediaCard extends HTMLElement {
     });
 
     // Mute toggle -> volume target (coordinator/group when available)
+    bindButtonActivation($.muteBtn, { label: 'Toggle mute' });
     $.muteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const volumeTarget = this._volumeTarget;

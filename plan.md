@@ -3,8 +3,8 @@
 Working branch: `main`
 Last updated: 2026-04-03
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
-Current tranche: **CD3 — Shared Semantics Adoption** (next)
-Previous tranches: CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+Current tranche: **CD4 — Shared Sizing And Sections Adoption** (next)
+Previous tranches: CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
 ## Session Delta (2026-04-03, CD2 Closeout)
 

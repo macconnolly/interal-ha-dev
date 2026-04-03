@@ -19,6 +19,7 @@ import {
   registerCard,
   logCardVersion,
   renderConfigPlaceholder,
+  bindButtonActivation,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '1.6.1';
@@ -550,6 +551,7 @@ class TunetWeatherCard extends HTMLElement {
       metricPrecipBtn: this.shadowRoot.getElementById('metricPrecipBtn'),
     };
 
+    bindButtonActivation(this.$.infoTile, { label: 'Show weather details' });
     this.$.infoTile.addEventListener('click', () => {
       if (!this._hass || !this._config.entity) return;
       this.dispatchEvent(new CustomEvent('hass-more-info', {

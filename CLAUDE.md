@@ -10,8 +10,8 @@
 
 **Execution authority for Tunet scope**: `Dashboard/Tunet/AGENTS.md`
 
-**Current tranche**: CD3 — Shared Semantics Adoption (next)
-**Previous tranches**: CD2 — Shared Interaction Adoption (completed Apr 3, 2026), CD1 — Configuration Clarity And Editor Policy (completed Apr 3, 2026), CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
+**Current tranche**: CD4 — Shared Sizing And Sections Adoption (next)
+**Previous tranches**: CD3 — Shared Semantics Adoption (completed Apr 3, 2026), CD2 — Shared Interaction Adoption (completed Apr 3, 2026), CD1 — Configuration Clarity And Editor Policy (completed Apr 3, 2026), CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
 
 ### Build & Deploy
 

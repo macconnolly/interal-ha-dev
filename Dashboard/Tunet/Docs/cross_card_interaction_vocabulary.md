@@ -175,11 +175,14 @@ These tokens are defined in `tunet_base.js` TOKENS and available to all cards:
 | Correct — card-local with tokens | light_tile (.lt), lighting (.info-tile, .toggle-btn, .l-tile), rooms (.room-tile), climate (.hdr-tile), sensor (.sensor-row), weather (.info-tile), media (.info-tile, .grp-check, .vol-icon), sonos (.speaker-tile), speaker_grid (.info-tile, .spk-tile), nav |
 | Excluded (scope lock) | status |
 
-### Accessibility debt (CD3 scope — button/role retrofits)
+### Accessibility debt (post-CD3)
 
-- `tunet_media_card.js`: info-tile, album-art, vol-icon are `<div>` with click handlers, no `tabindex`/`role` — CD3 wires `bindButtonActivation`
-- `tunet_sonos_card.js`: transport/source/volume buttons are native `<button>` (already keyboard-complete); speaker-tile and album-art are `<div>` without semantics — sonos is excluded from CD3 (deferred to CD9)
-- `tunet_weather_card.js`: info-tile has `cursor: pointer` with no keyboard reachability — CD3 wires `bindButtonActivation`
+- `tunet_media_card.js`: info-tile, album-art, vol-icon — **RESOLVED** (CD3: `bindButtonActivation` wired, role="button" + tabindex="0" + Enter/Space). vol-track slider deferred to CD9.
+- `tunet_sonos_card.js`: transport/source/volume buttons are native `<button>` (keyboard-complete). Speaker-tile and album-art deferred to CD9.
+- `tunet_weather_card.js`: info-tile — **RESOLVED** (CD3: `bindButtonActivation` wired)
+- `tunet_climate_card.js`: hdr-tile — **RESOLVED** (CD3: `bindButtonActivation` wired)
+- `tunet_speaker_grid_card.js`: info-tile — **RESOLVED** (CD3: `bindButtonActivation` wired). spk-tile preserves role="slider".
+- `tunet_lighting_card.js`: info-tile — **RESOLVED** (CD3: `bindButtonActivation` wired, already had role+tabindex from template)
 
 ---
 

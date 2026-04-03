@@ -43,7 +43,7 @@ import {
   selectProfileSize, resolveSizeProfile, _setProfileVars,
   createAxisLockedDrag,
   registerCard, logCardVersion,
-  renderConfigPlaceholder,
+  renderConfigPlaceholder, bindButtonActivation,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.5.0';
@@ -1331,6 +1331,7 @@ class TunetLightingCard extends HTMLElement {
 
   _setupListeners() {
     // Info tile – fires hass-more-info (Design Language §11.2)
+    bindButtonActivation(this.$.infoTile, { label: 'Show lighting details' });
     this.$.infoTile.addEventListener('click', () => {
       const entityId = this._config.primary_entity ||
                        (this._config.entities.length > 0 ? this._config.entities[0] : '') ||

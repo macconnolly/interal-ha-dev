@@ -15,7 +15,7 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
-  renderConfigPlaceholder,
+  renderConfigPlaceholder, bindButtonActivation,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '1.2.0';
@@ -889,6 +889,7 @@ class TunetClimateCard extends HTMLElement {
     const $ = this.$;
 
     // Header tile - open more_info
+    bindButtonActivation($.hdrTile, { label: 'Show climate details' });
     $.hdrTile.addEventListener('click', (e) => {
       e.stopPropagation();
       const ev = new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: this._config.entity } });

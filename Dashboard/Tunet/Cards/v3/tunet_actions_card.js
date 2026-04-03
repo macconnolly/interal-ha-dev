@@ -482,6 +482,7 @@ class TunetActionsCard extends HTMLElement {
 
     for (const action of this._config.actions) {
       const chip = document.createElement('button');
+      chip.type = 'button';
       chip.className = 'action-chip';
       chip.dataset.accent = action.accent;
 

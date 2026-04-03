@@ -2766,6 +2766,8 @@ automation:
           message: "clear_notification"
           data:
             tag: "sonos_alarm_playing"
+            # notification_id required for Android companion app; tag alone suffices on iOS
+            notification_id: "sonos_alarm_playing"
 
   # -------------------------------------------------------------------------
   # Midnight safety reset for any snoozed alarms

@@ -7,8 +7,8 @@ Primary instruction: treat this file as session continuity + execution map, then
 Active plan (method-level): `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
 Active plan (high-level): `~/.claude/plans/ethereal-zooming-cherny.md`
 Approved execution plan: `~/.claude/plans/flickering-herding-wolf.md`
-Current tranche: **CD1 — Configuration Clarity And Editor Policy** (in progress, Apr 3, 2026)
-Previous tranche: CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
+Current tranche: **CD2 — Shared Interaction Adoption** (next)
+Previous tranches: CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
 Source filter for this run:
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and active plan files as control sources
@@ -40,8 +40,8 @@ Before starting any implementation tranche:
 | Phase | Tranche | Scope |
 |-------|---------|-------|
 | Infrastructure | CD0 | Build architecture + rehab lab — **done** |
-| | CD1 | Configuration clarity + editor policy — **in progress** |
-| Shared consistency | CD2 | Shared interaction adoption (all 13 files) |
+| | CD1 | Configuration clarity + editor policy — **done** |
+| Shared consistency | CD2 | Shared interaction adoption (all 13 files) — **next** |
 | | CD3 | Shared semantics adoption (6 files) |
 | | CD4 | Shared sizing + Sections adoption (6+ files) |
 | Bespoke | CD5 | Utility strip bespoke |

@@ -5,7 +5,8 @@ Last updated: 2026-04-03
 Active plan: `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` (method-level authority)
 Active plan (high-level): `~/.claude/plans/ethereal-zooming-cherny.md` (program-level framing)
 Approved execution plan: `~/.claude/plans/flickering-herding-wolf.md` (approved with audit data)
-Current tranche: **CD1 — Configuration Clarity And Editor Policy** (in progress)
+Current tranche: **CD2 — Shared Interaction Adoption** (next)
+Previous tranche: CD1 — Configuration Clarity And Editor Policy (completed Apr 3, 2026)
 Previous tranche: CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
 
 ## Session Delta (2026-04-02, Consistency-Driver Reset)

@@ -12,8 +12,16 @@
 
 **Execution authority for Tunet scope**: `Dashboard/Tunet/AGENTS.md`
 
-**Current tranche**: CD1 — Configuration Clarity And Editor Policy (in progress)
-**Previous tranche**: CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
+**Current tranche**: CD2 — Shared Interaction Adoption (next)
+**Previous tranches**: CD1 — Configuration Clarity And Editor Policy (completed Apr 3, 2026), CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
+
+### Build & Deploy
+
+- `npm run tunet:build` — esbuild 13 cards to `Dashboard/Tunet/Cards/v3/dist/`
+- `npm run tunet:deploy:lab` — build + SCP to HA server
+- `npm test` — vitest (62 tests: profile resolver, sizing, bundle safety, config contract)
+- After deploy, ALWAYS clear browser cache before testing editor changes
+- Lab dashboard: `http://10.0.0.21:8123/tunet-card-rehab-lab/lab`
 
 **Current priority**: rehabilitate the Tunet v3 card suite first; resume full surface assembly only after the card families are stable.
 
@@ -37,7 +45,7 @@
 
 **Consistency-driver pass order (CD0-CD12).** Current execution:
 - CD0: Build architecture + rehab lab (DONE)
-- CD1: Configuration clarity + editor policy (IN PROGRESS)
+- CD1: Configuration clarity + editor policy (DONE)
 - CD2-CD4: Shared consistency passes (interaction, semantics, sizing)
 - CD5-CD11: Bespoke card passes
 - CD12: Surface assembly

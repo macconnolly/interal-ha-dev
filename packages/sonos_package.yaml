@@ -813,7 +813,7 @@ template:
                   {% if recurrence == 'DAILY' %}{% set day_match.ok = true %}{% endif %}
                   {% if recurrence == 'WEEKDAYS' and 1 <= weekday_sonos <= 5 %}{% set day_match.ok = true %}{% endif %}
                   {% if recurrence == 'WEEKENDS' and weekday_sonos in [0, 6] %}{% set day_match.ok = true %}{% endif %}
-                  {% if recurrence.startswith('ON_') and (weekday_sonos | string) in recurrence %}{% set day_match.ok = true %}{% endif %}
+                  {% if recurrence.startswith('ON_') and (weekday_sonos | string) in recurrence.split('_', 1)[1] %}{% set day_match.ok = true %}{% endif %}
                   {% if day_match.ok %}
                     {% set t = alarm.attributes.get('time', '') %}
                     {% if t %}
@@ -859,7 +859,7 @@ template:
                     {% if recurrence == 'DAILY' %}{% set day_match.ok = true %}{% endif %}
                     {% if recurrence == 'WEEKDAYS' and 1 <= weekday_sonos <= 5 %}{% set day_match.ok = true %}{% endif %}
                     {% if recurrence == 'WEEKENDS' and weekday_sonos in [0, 6] %}{% set day_match.ok = true %}{% endif %}
-                    {% if recurrence.startswith('ON_') and (weekday_sonos | string) in recurrence %}{% set day_match.ok = true %}{% endif %}
+                    {% if recurrence.startswith('ON_') and (weekday_sonos | string) in recurrence.split('_', 1)[1] %}{% set day_match.ok = true %}{% endif %}
                     {% if day_match.ok %}
                       {% set t = alarm.attributes.get('time', '') %}
                       {% if t %}
@@ -881,43 +881,54 @@ template:
           {{ ns.playing | default('', true) }}
         alarm_entity: >
           {# Returns the alarm switch entity_id for the playing speaker.                         #}
-          {# Uses trigger.entity_id to identify the speaker directly — no evaluation lag.        #}
-          {# Picks the alarm switch with the smallest time delta within the 15-min window        #}
-          {# that also matches today's recurrence pattern.                                       #}
-          {% set spk = trigger.entity_id | default('') %}
-          {% if spk == '' or states(spk) != 'playing' %}
-            {{ '' }}
-          {% else %}
-            {% set speaker_key = spk.split('.')[1] %}
-            {% set now_secs = now().hour * 3600 + now().minute * 60 + now().second %}
-            {% set weekday_sonos = now().isoweekday() % 7 %}
-            {% set ns = namespace(found='', best_delta=900) %}
-            {% for alarm in states.switch
-                | selectattr('entity_id', 'search', 'sonos_alarm_')
-                | selectattr('state', 'eq', 'on') %}
-              {% if speaker_key in alarm.entity_id %}
-                {% set recurrence = (alarm.attributes.get('recurrence') | default('DAILY')) | upper %}
-                {% set day_match = namespace(ok=false) %}
-                {% if recurrence == 'DAILY' %}{% set day_match.ok = true %}{% endif %}
-                {% if recurrence == 'WEEKDAYS' and 1 <= weekday_sonos <= 5 %}{% set day_match.ok = true %}{% endif %}
-                {% if recurrence == 'WEEKENDS' and weekday_sonos in [0, 6] %}{% set day_match.ok = true %}{% endif %}
-                {% if recurrence.startswith('ON_') and (weekday_sonos | string) in recurrence %}{% set day_match.ok = true %}{% endif %}
-                {% if day_match.ok %}
-                  {% set t = alarm.attributes.get('time', '') %}
-                  {% if t %}
-                    {% set parts = t.split(':') %}
-                    {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
-                    {% set delta = (now_secs - alarm_secs) % 86400 %}
-                    {% if delta < ns.best_delta %}
-                      {% set ns.found = alarm.entity_id %}
-                      {% set ns.best_delta = delta %}
+          {# NOTE: trigger is NOT available in attribute templates — must iterate speakers.      #}
+          {# Full detection loop (same as state: and speaker:) so evaluation always agrees.     #}
+          {# For buzzer alarms: picks first on-switch matching the speaker key.                 #}
+          {# For time-based alarms: picks the switch with the smallest delta in the 15-min      #}
+          {# window that also matches today's recurrence pattern.                               #}
+          {% set speakers = [
+            'media_player.bedroom', 'media_player.bath', 'media_player.kitchen',
+            'media_player.living_room', 'media_player.dining_room'
+          ] %}
+          {% set now_secs = now().hour * 3600 + now().minute * 60 + now().second %}
+          {% set weekday_sonos = now().isoweekday() % 7 %}
+          {% set ns = namespace(found='', best_delta=900) %}
+          {% for speaker in speakers %}
+            {% if states(speaker) == 'playing' %}
+              {% set content_id = state_attr(speaker, 'media_content_id') | default('', true) %}
+              {% set buzzer_match = 'x-rincon-buzzer' in content_id %}
+              {% set speaker_key = speaker.split('.')[1] %}
+              {% for alarm in states.switch
+                  | selectattr('entity_id', 'search', 'sonos_alarm_')
+                  | selectattr('state', 'eq', 'on') %}
+                {% if speaker_key in alarm.entity_id %}
+                  {% set recurrence = (alarm.attributes.get('recurrence') | default('DAILY')) | upper %}
+                  {% set day_match = namespace(ok=false) %}
+                  {% if recurrence == 'DAILY' %}{% set day_match.ok = true %}{% endif %}
+                  {% if recurrence == 'WEEKDAYS' and 1 <= weekday_sonos <= 5 %}{% set day_match.ok = true %}{% endif %}
+                  {% if recurrence == 'WEEKENDS' and weekday_sonos in [0, 6] %}{% set day_match.ok = true %}{% endif %}
+                  {% if recurrence.startswith('ON_') and (weekday_sonos | string) in recurrence.split('_', 1)[1] %}{% set day_match.ok = true %}{% endif %}
+                  {% if day_match.ok %}
+                    {% if buzzer_match %}
+                      {% if ns.found == '' %}{% set ns.found = alarm.entity_id %}{% endif %}
+                    {% else %}
+                      {% set t = alarm.attributes.get('time', '') %}
+                      {% if t %}
+                        {% set parts = t.split(':') %}
+                        {% set alarm_secs = parts[0] | int * 3600 + parts[1] | int * 60 + parts[2] | int %}
+                        {% set delta = (now_secs - alarm_secs) % 86400 %}
+                        {% if delta < ns.best_delta %}
+                          {% set ns.found = alarm.entity_id %}
+                          {% set ns.best_delta = delta %}
+                        {% endif %}
+                      {% endif %}
                     {% endif %}
                   {% endif %}
                 {% endif %}
-              {% endif %}
-            {% endfor %}
-            {{ ns.found }}
-          {% endif %}
+              {% endfor %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.found }}
 
     # ------------------------------------------------------------------
     # Sonos Current Playing Group Coordinator
@@ -2367,7 +2378,7 @@ script:
           new_mins: "{{ total_mins if total_mins < 1440 else total_mins - 1440 }}"
           new_time: "{{ '%02d:%02d:00' | format(new_mins // 60, new_mins % 60) }}"
           speaker: >
-            {% set name = state_attr(target_alarm, 'friendly_name') %}
+            {% set name = state_attr(target_alarm, 'friendly_name') | default('') %}
             {% if 'Bedroom' in name %}media_player.bedroom
             {% elif 'Bath' in name %}media_player.bath
             {% elif 'Kitchen' in name %}media_player.kitchen
@@ -2375,7 +2386,7 @@ script:
             {% else %}media_player.dining_room{% endif %}
           # Room key for snoozed alarm helper (matches input_text suffix)
           room_key: >
-            {% set name = state_attr(target_alarm, 'friendly_name') %}
+            {% set name = state_attr(target_alarm, 'friendly_name') | default('') %}
             {% if 'Bedroom' in name %}bedroom
             {% elif 'Bath' in name %}bath
             {% elif 'Kitchen' in name %}kitchen
@@ -2746,7 +2757,11 @@ automation:
         entity_id: input_boolean.sonos_alarm_notifications
         state: "on"
     action:
-      - action: notify.notify
+      - variables:
+          dev_id: "{{ states('input_text.notify_target_device_id') | trim }}"
+      - condition: template
+        value_template: "{{ dev_id != '' and dev_id != 'unavailable' }}"
+      - action: "notify.mobile_app_{{ dev_id }}"
         data:
           message: "clear_notification"
           data:
@@ -2895,7 +2910,7 @@ automation:
           room_name: "{{ state_attr(alarm_speaker, 'friendly_name') | default('Sonos', true) }}"
       - condition: template
         value_template: "{{ dev_id != '' and dev_id != none and dev_id != 'unavailable' }}"
-      - action: notify.notify
+      - action: "notify.mobile_app_{{ dev_id }}"
         data:
           title: "⏰ Alarm - {{ room_name }}"
           message: "Your alarm is ringing"
@@ -2938,6 +2953,7 @@ automation:
     action:
       - variables:
           action: "{{ trigger.event.data.action }}"
+          dev_id: "{{ states('input_text.notify_target_device_id') | trim }}"
           snooze_mins: >
             {% if action == 'SONOS_SNOOZE_5' %}5
             {% elif action == 'SONOS_SNOOZE_10' %}10
@@ -2950,18 +2966,22 @@ automation:
                 data:
                   minutes: "{{ snooze_mins }}"
                   stop_playback: true
-              - action: notify.notify
-                data:
-                  message: "Alarm snoozed for {{ snooze_mins }} minutes"
-                  data:
-                    # Different tag so sonos_alarm_notification_clear (tag: sonos_alarm_playing)
-                    # doesn't race and wipe this confirmation before the user sees it
-                    tag: "sonos_alarm_confirmed"
+              - if: "{{ dev_id != '' and dev_id != 'unavailable' }}"
+                then:
+                  - action: "notify.mobile_app_{{ dev_id }}"
+                    data:
+                      message: "Alarm snoozed for {{ snooze_mins }} minutes"
+                      data:
+                        # Different tag so sonos_alarm_notification_clear (tag: sonos_alarm_playing)
+                        # doesn't race and wipe this confirmation before the user sees it
+                        tag: "sonos_alarm_confirmed"
           - conditions: "{{ action == 'SONOS_DISMISS_ALARM' }}"
             sequence:
               - action: script.sonos_dismiss_alarm
-              - action: notify.notify
-                data:
-                  message: "Alarm dismissed"
-                  data:
-                    tag: "sonos_alarm_confirmed"
+              - if: "{{ dev_id != '' and dev_id != 'unavailable' }}"
+                then:
+                  - action: "notify.mobile_app_{{ dev_id }}"
+                    data:
+                      message: "Alarm dismissed"
+                      data:
+                        tag: "sonos_alarm_confirmed"

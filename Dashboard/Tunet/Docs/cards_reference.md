@@ -1224,7 +1224,7 @@ Static. Full section width. Should account for show_progress (adds height).
 
 ### Known Limitations
 
-- `speakers[]` not in editor — CD1.11 adds it to advanced section
+- `speakers[]` editor support is implemented (advanced object+fields+multiple); keep schema tests as regression guard
 - Info tile is click-only div — needs button semantics (CD3)
 - Volume slider needs `role="slider"` + ARIA attributes (CD3)
 - Album art click behavior undecided (more-info? navigate to media page?)
@@ -1306,7 +1306,7 @@ Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue 
 
 ### Known Limitations
 
-- `speakers[]` not in editor — CD1.12 fix
+- `speakers[]` editor support is implemented (object+fields+multiple)
 - Hardcoded press scales (.90) — CD2 fix
 - `--spring` CSS variable undefined in base TOKENS — falls back to initial
 

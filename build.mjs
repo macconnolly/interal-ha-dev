@@ -22,7 +22,9 @@ import path from 'node:path';
 const SOURCE_ROOT = 'Dashboard/Tunet/Cards/v3';
 const DIST_ROOT = path.join(SOURCE_ROOT, 'dist');
 const HA_DEPLOY_TARGET = '/config/www/tunet/v3/';
-const HA_HOST = '10.0.0.21';
+const HA_HOST_DEFAULT = '10.0.0.21';
+const HA_USER_DEFAULT = 'root';
+const HA_PASSWORD_DEFAULT = 'password';
 
 const ENTRY_POINTS = [
   'tunet_actions_card.js',
@@ -56,6 +58,37 @@ const stripQueryPlugin = {
   },
 };
 
+function readDotEnv(filePath = '.env') {
+  const vars = {};
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx <= 0) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      let value = trimmed.slice(eqIdx + 1).trim();
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith('\'') && value.endsWith('\''))) {
+        value = value.slice(1, -1);
+      }
+      vars[key] = value;
+    }
+  } catch {
+    // .env is optional for non-deploy operations
+  }
+  return vars;
+}
+
+function buildVersionToken(buildTimeIso) {
+  if (process.env.TUNET_RESOURCE_VERSION) return process.env.TUNET_RESOURCE_VERSION;
+  const normalized = buildTimeIso
+    .replace(/[-:]/g, '')
+    .replace(/\.\d+Z$/, 'Z')
+    .replace('T', '_');
+  return `build_${normalized}`;
+}
+
 // ─── Build ──────────────────────────────────────────────────────────────
 
 async function buildAllCards({ watch = false } = {}) {
@@ -85,8 +118,10 @@ async function buildAllCards({ watch = false } = {}) {
 // ─── Manifest ───────────────────────────────────────────────────────────
 
 function writeManifest(result) {
+  const buildTime = new Date().toISOString();
   const manifest = {
-    buildTime: new Date().toISOString(),
+    buildTime,
+    versionToken: buildVersionToken(buildTime),
     sourceRoot: SOURCE_ROOT,
     distRoot: DIST_ROOT,
     entries: ENTRY_POINTS.map((name) => ({
@@ -130,15 +165,12 @@ function validateBundleOutputs() {
 // ─── Deploy ─────────────────────────────────────────────────────────────
 
 function deployToHA() {
-  // Read credentials from .env
-  let password = 'password';
-  try {
-    const envFile = fs.readFileSync('.env', 'utf8');
-    const match = envFile.match(/HA_SSH_PASSWORD=(.+)/);
-    if (match) password = match[1].trim();
-  } catch { /* use default */ }
+  const env = readDotEnv('.env');
+  const host = env.HA_SSH_HOST || HA_HOST_DEFAULT;
+  const user = env.HA_SSH_USER || HA_USER_DEFAULT;
+  const password = env.HA_SSH_PASSWORD || HA_PASSWORD_DEFAULT;
 
-  console.log(`\n  Deploying to ${HA_HOST}:${HA_DEPLOY_TARGET}...`);
+  console.log(`\n  Deploying to ${user}@${host}:${HA_DEPLOY_TARGET}...`);
 
   for (const name of ENTRY_POINTS) {
     const src = path.join(DIST_ROOT, name);
@@ -149,7 +181,7 @@ function deployToHA() {
 
     try {
       execSync(
-        `sshpass -p '${password}' scp -o StrictHostKeyChecking=no "${src}" root@${HA_HOST}:${HA_DEPLOY_TARGET}${name}`,
+        `sshpass -p '${password}' scp -o StrictHostKeyChecking=no "${src}" ${user}@${host}:${HA_DEPLOY_TARGET}${name}`,
         { stdio: 'pipe' }
       );
       console.log(`  ✓ deployed ${name}`);

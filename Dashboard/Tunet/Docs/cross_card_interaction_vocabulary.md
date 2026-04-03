@@ -1,8 +1,8 @@
 # Cross-Card Interaction State Vocabulary
 
 **Version**: 1.0  
-**Date**: 2026-04-02  
-**Status**: Draft — awaiting user review before binding  
+**Date**: 2026-04-03  
+**Status**: Active — binding interaction contract for CD2+ on touched cards (approved Apr 3, 2026)  
 **Authority**: This document defines the target interaction states for all Tunet cards. It is the binding contract for hover, active, focus, disabled, and transition behavior. Compliance is enforced **tranche-by-tranche on touched cards** — untouched cards are not expected to comply until their surface tranche.
 
 **Sources**: Synthesized from:
@@ -88,12 +88,12 @@ These tokens are defined in `tunet_base.js` TOKENS and available to all cards:
 - Do NOT use `translateY` on hover (speaker_grid's -1px is non-standard — remove)
 - Do NOT change background color on hover for controls/tiles (shadow only). Exception: list rows and dropdown options use `background: var(--track-bg)`
 
-### Current compliance
+### Current compliance (post-CD2)
 
 | Status | Cards |
 |--------|-------|
-| Correct (has @media guard) | lighting (l-tile), light_tile |
-| Needs guard added | climate, actions, status, rooms, media, scenes, weather, sensor, sonos, speaker_grid |
+| Correct (has @media guard) | actions, scenes, light_tile, lighting, rooms, climate, sensor, weather, media, sonos, speaker_grid |
+| Excluded (scope lock) | status |
 | No hover (intentional) | nav |
 
 ---
@@ -127,14 +127,12 @@ These tokens are defined in `tunet_base.js` TOKENS and available to all cards:
 - Header tiles (`.98`) migrate to `var(--press-scale)` (`.97`)
 - Drag thumbs scale UP (`1.05`), not down — this is the only scale-up interaction
 
-### Current compliance
+### Current compliance (post-CD2)
 
 | Status | Cards |
 |--------|-------|
-| Uses tokens | nav, lighting (l-tile) |
-| Uses correct VALUES but hardcoded | climate (.97/.98), rooms (.95/.96), scenes (.96), sensor (.97/.99) |
-| Uses wrong values | media (.90), sonos (.90) |
-| No :active defined | light_tile (uses JS .sliding class), sonos (speaker-tile) |
+| Uses tokens | actions, scenes, light_tile, lighting, rooms, climate, sensor, weather, media, sonos, speaker_grid, nav |
+| Excluded (scope lock) | status |
 
 ---
 
@@ -159,22 +157,25 @@ These tokens are defined in `tunet_base.js` TOKENS and available to all cards:
 ### Rules
 
 - **EVERY** interactive element must have `:focus-visible` styling — no exceptions
-- Elements with `cursor: pointer` but no `tabindex` or `role` need remediation first
+- **Native `<button>` elements** are already covered by the base RESET in `tunet_base.js` (L288-294: `button:focus-visible, [role="button"]:focus-visible, [tabindex]:focus-visible, .focus-ring:focus-visible`). These do NOT need card-local `:focus-visible` rules unless the card intentionally overrides the base style.
+- **Custom interactive containers** (`<div>`, `<span>` with `cursor: pointer`) that are not native buttons MUST have card-local `:focus-visible` rules with token references.
+- Elements with `cursor: pointer` but no `tabindex` or `role` need remediation (CD3 scope — not this tranche)
 - Use token references, not hardcoded values
 - Offset is `var(--focus-ring-offset)` = `0.1875em` (not 2px — some cards diverge here)
-- Do NOT use `--accent` for focus color — use `var(--focus-ring-color)` = `var(--blue)`
+- Do NOT use card-local accent tokens (e.g., `--accent`) for focus color — use `var(--focus-ring-color)` = `var(--blue)`. Card-local accent tokens are allowed for non-focus visuals (borders, backgrounds, icons).
 - Nav card's `border-radius: 16px` on focus ring is acceptable (shaped focus for pill buttons)
 
 ### Current compliance
 
+### Current compliance (post-CD2)
+
 | Status | Cards |
 |--------|-------|
-| Correct (tokens) | nav, light_tile |
-| Has focus-visible (hardcoded values) | climate (thumb only), actions (offset 2px), status (em units), lighting, rooms (tile only), scenes (offset 2px), sensor (row only) |
-| **ZERO focus-visible** | **media, weather, sonos** — critical accessibility gap |
-| Uses wrong token (--accent) | speaker_grid — --accent is undefined in base |
+| Correct — base RESET covers native buttons | actions, scenes, lighting (mode-btn, fan-btn), rooms (section-btn, room-action-btn, room-orb), climate (fan-btn, mode-btn, mode-opt), media (speaker-btn, t-btn, vol-close), sonos (t-btn, source-btn, vol-icon), speaker_grid (action-btn) |
+| Correct — card-local with tokens | light_tile (.lt), lighting (.info-tile, .toggle-btn, .l-tile), rooms (.room-tile), climate (.hdr-tile), sensor (.sensor-row), weather (.info-tile), media (.info-tile, .grp-check, .vol-icon), sonos (.speaker-tile), speaker_grid (.info-tile, .spk-tile), nav |
+| Excluded (scope lock) | status |
 
-### Accessibility debt (fix in respective surface tranches)
+### Accessibility debt (CD3 scope — button/role retrofits)
 
 - `tunet_media_card.js`: `muteBtn` is `<div>` with click handler, no `tabindex`/`role`
 - `tunet_sonos_card.js`: no `tabindex` or `role="button"` on any interactive element
@@ -266,14 +267,15 @@ transition:
 
 Already implemented in `tunet_base.js` REDUCED_MOTION export. Tunet is ahead of HA native and all examined HACS cards here.
 
-### Current compliance
+**Contract:** The base `REDUCED_MOTION` export provides the global reduced-motion behavior. All touched cards must compose `REDUCED_MOTION` into their style output. No card-local interaction rule may undermine the base reduced-motion contract (e.g., by re-declaring transition-duration without respecting the media query).
+
+### Current compliance (post-CD2)
 
 | Status | Cards |
 |--------|-------|
-| Correct (named multi-property tokens) | scenes, nav, light_tile |
-| Uses `all .Xs ease` (needs migration) | climate, actions, status, lighting, rooms, media, weather, sensor |
-| Uses --spring (undefined) | sonos, speaker_grid — falls back to initial |
-| Missing transition entirely | actions (.action-chip shadow change is instant) |
+| Correct (named multi-property tokens) | actions, scenes, light_tile, lighting, rooms, climate, sensor, weather, media, sonos, speaker_grid, nav |
+| --spring resolved (replaced with --ease-emphasized) | sonos, speaker_grid |
+| Excluded (scope lock) | status |
 
 ---
 
@@ -339,24 +341,24 @@ Cards apply `.interactive` explicitly to tappable elements and override only wha
 
 These patterns recur across multiple cards. Active card, family, and later surface tranches should address them on touched cards.
 
-### 7.1 Unguarded hover (11 of 13 cards)
-All cards except lighting (l-tile) and light_tile apply `:hover` without `@media (hover: hover)`. This causes sticky hover artifacts on touch devices. Every active tranche should guard hover on the cards it touches.
+### 7.1 Unguarded hover — RESOLVED (CD2)
+All CD2 cards now guard `:hover` with `@media (hover: hover)`. Status remains unguarded (scope lock).
 
-### 7.2 Hardcoded press scale values (10 of 13 cards)
-Eight distinct scale values exist (.90 through .99) where the vocabulary defines only two tokens. Only nav and lighting (l-tile) use the token. Active tranches should migrate touched cards to `--press-scale` / `--press-scale-strong`.
+### 7.2 Hardcoded press scale values — RESOLVED (CD2)
+All CD2 cards now use `--press-scale` / `--press-scale-strong` / `--drag-scale` tokens. Status remains hardcoded (scope lock).
 
-### 7.3 Transition anti-pattern (10 of 13 cards)
-Most cards use `transition: all .Xs ease` instead of explicit multi-property transitions with named tokens. Scenes, nav, and light_tile have the correct pattern and serve as references. Active tranches should migrate touched cards.
+### 7.3 Transition anti-pattern — RESOLVED (CD2)
+All CD2 cards now use explicit multi-property transitions with named tokens. Zero `transition: all` in any CD2 card. Status remains as-is (scope lock).
 
-### 7.4 Missing `-webkit-tap-highlight-color` (10 of 13 cards)
-Leaves the default blue flash on mobile WebKit. The INTERACTIVE_SURFACE primitive handles this; active tranches apply it to touched cards.
+### 7.4 Missing `-webkit-tap-highlight-color` — RESOLVED (CD2)
+Base RESET now provides tap-highlight reset for `button`, `[role="button"]`, `[tabindex]`. Custom interactive containers on CD2 cards have card-local reset. Status remains as-is (scope lock).
 
-### 7.5 Undefined CSS variables
-- `--spring`: used by sonos and speaker_grid for tile transitions. Not in base TOKENS. Falls back to `initial`.
-- `--accent`: used by speaker_grid for focus ring color. Not in base TOKENS. Focus ring likely invisible.
+### 7.5 CSS variable drift — RESOLVED (CD2)
+- `--spring`: removed from sonos and speaker_grid. Replaced with `var(--ease-emphasized)` (identical value).
+- `--accent`: locally defined in speaker_grid as a valid card-local Steel Blue palette. Focus-visible now uses `var(--focus-ring-color)` instead of `var(--accent)`. Color unification across speaker cards deferred to CD9.
 
-### 7.6 Focus-visible inconsistency
-Three variants exist: offset 3px (climate baseline), offset 2px (actions/rooms/scenes), and token-driven (nav/light_tile). Three cards have partial gaps in non-button interactive containers: media, weather, sonos. Many cards already use native `<button>` elements which inherit the global RESET focus rule — these are NOT accessibility gaps.
+### 7.6 Focus-visible inconsistency — RESOLVED (CD2)
+All CD2 cards now have focus-visible coverage: native `<button>` elements via base RESET (token-based), custom interactive containers via card-local rules (token-based). Status remains as-is (scope lock). Keyboard-reachability for custom div interactives is CD3 scope.
 
 ---
 

@@ -5,7 +5,7 @@
 ```
 Source:    Dashboard/Tunet/Cards/v3/*.js    (13 cards + tunet_base.js)
 Build:     Dashboard/Tunet/Cards/v3/dist/   (13 bundled outputs + source maps + manifest)
-Deploy:    root@10.0.0.21:/config/www/tunet/v3/
+Deploy:    ${HA_SSH_USER:-root}@${HA_SSH_HOST:-10.0.0.21}:/config/www/tunet/v3/
 Lab:       http://10.0.0.21:8123/tunet-overview/card-rehab-lab
 ```
 
@@ -30,7 +30,7 @@ npm run tunet:build
 Output:
 - 13 `.js` files in `Dashboard/Tunet/Cards/v3/dist/`
 - 13 `.js.map` source maps
-- `manifest.json` with build timestamp and file inventory
+- `manifest.json` with build timestamp, resource `versionToken`, and file inventory
 
 Validation runs automatically:
 - `node --check` on every output file
@@ -63,11 +63,11 @@ This deploys the unbundled source files + `tunet_base.js`, restoring the pre-bui
 
 ### Credentials
 
-SSH credentials are read from `.env`:
+Deploy host/user/password are read from `.env`:
 ```
-HA_SSH_HOST=10.0.0.21
-HA_SSH_USER=root
 HA_SSH_PASSWORD=password
+HA_SSH_HOST=10.0.0.21   # optional (default: 10.0.0.21)
+HA_SSH_USER=root        # optional (default: root)
 ```
 
 Requires `sshpass` installed (`apt install sshpass`).
@@ -118,11 +118,24 @@ npm test
 
 Runs vitest with jsdom environment. Test files: `Dashboard/Tunet/Cards/v3/tests/*.test.js`
 
-Current test suites:
+Current test suites (368 total):
 - `profile_resolver.test.js` — profile resolution contract (8 tests)
-- `sizing_contract.test.js` — boundary behavior for bucketFromWidth/autoSizeFromWidth (17 tests)
+- `sizing_contract.test.js` — boundary behavior for bucketFromWidth/autoSizeFromWidth (10 tests)
 - `bundle_safety.test.js` — font injection and registerCard guards (5 tests)
 - `config_contract.test.js` — getStubConfig → setConfig roundtrip for all 13 cards (39 tests)
+- `editor_array_schema.test.js` — config editor schema stability checks (94 tests)
+- `interaction_source_contract.test.js` — CD2 interaction vocabulary contract: hover guards, press tokens, focus-visible, transitions, tap-highlight, reduced-motion (146 tests)
+- `interaction_dom_contract.test.js` — CD2 runtime DOM verification: base exports, style injection with mock hass, rendered CSS compliance (66 tests)
+
+## Tranche Closure Validation (Strict)
+
+For CD* tranche closure, run and record:
+
+- `node --check <each changed JS file>`
+- YAML parse-check for changed YAML
+- `npm run tunet:build` if build outputs are affected
+- `npm test`
+- Playwright screenshots at all 4 locked breakpoints in both dark and light mode
 
 ## Rollback
 

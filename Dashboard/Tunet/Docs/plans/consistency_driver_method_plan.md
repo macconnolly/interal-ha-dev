@@ -1,6 +1,6 @@
 # Tunet V3 Consistency-Driver Rehab Plan
 
-Status: **ACTIVE** — adopted as method-level authority (Apr 2, 2026)  
+Status: **ACTIVE** — sole canonical execution plan (adopted Apr 2, 2026)  
 Created: 2026-04-02  
 Scope: `Dashboard/Tunet/Cards/v3/**`, Tunet build/deploy tooling, rehab lab, later surface assembly  
 Authoring intent: replace mixed "shared pattern adoption + card-specific fixes" tranches with a consistency-first program that is specific to file, method, and current line anchors
@@ -1065,7 +1065,7 @@ Every tranche close requires:
 
 1. exact changed file list
 2. exact validation commands run
-3. exact breakpoint screenshots captured
+3. exact breakpoint screenshots captured at all 4 locked breakpoints in both dark and light mode
 4. exact live HA checks performed
 5. exact remaining open risks
 
@@ -1073,8 +1073,9 @@ Minimum validation command set:
 
 - `node --check <each changed JS file>`
 - YAML parse-check for changed YAML
-- build command if build outputs are affected
-- Playwright screenshots at all 4 locked breakpoints
+- `npm run tunet:build` if build outputs are affected
+- `npm test`
+- Playwright screenshots at all 4 locked breakpoints in both dark and light mode
 
 ---
 
@@ -1088,14 +1089,14 @@ Minimum validation command set:
    - `CD3`
    - later tranches only when explicitly listed
 4. No card file enters a tranche unless it is named in that tranche.
-5. No surface YAML outside the rehab lab is active before `CD11`.
+5. No surface YAML outside the rehab lab is active before `CD12`.
 
 ---
 
-## 9. Immediate Recommendation
+## 9. Current Status
 
-If this plan is adopted, the next tranche is:
+CD0 and CD1 are **COMPLETE** (Apr 3, 2026). The next tranche is:
 
-`CD0 — Build Architecture And Rehab Lab`
+`CD2 — Shared Interaction Adoption`
 
-Do not start utility-strip or tile rehab before the build contract and rehab lab exist.
+Resolve any control-doc contradictions before starting CD2 implementation.

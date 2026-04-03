@@ -186,17 +186,19 @@ const CARD_STYLES = `
     gap: 5px;
   }
 
-  .scene-chip:hover {
-    box-shadow: var(--tile-shadow-lift);
+  @media (hover: hover) {
+    .scene-chip:hover {
+      box-shadow: var(--tile-shadow-lift);
+    }
   }
 
   .scene-chip:active {
-    transform: scale(0.96);
+    transform: scale(var(--press-scale));
   }
 
   .scene-chip:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 2px;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
   }
 
   .scene-chip .icon-wrap {

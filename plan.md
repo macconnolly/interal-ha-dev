@@ -3,11 +3,25 @@
 Working branch: `main`
 Last updated: 2026-04-03
 Active plan: `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` (method-level authority)
-Active plan (high-level): `~/.claude/plans/ethereal-zooming-cherny.md` (program-level framing)
-Approved execution plan: `~/.claude/plans/flickering-herding-wolf.md` (approved with audit data)
-Current tranche: **CD2 — Shared Interaction Adoption** (next)
-Previous tranches: CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
-Previous tranche: CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
+Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single source of truth, CD0–CD12)
+Current tranche: **CD3 — Shared Semantics Adoption** (next)
+Previous tranches: CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-04-03, Method-Plan Canonicalization)
+
+Tranche marker: control-doc sync (pre-CD2 implementation)
+
+- `AUTHORITY-LOCK`
+  - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` is the sole canonical execution plan.
+  - `~/.claude/plans/flickering-herding-wolf.md` is historical reference only.
+- `CURRENT-TRANCHE`
+  - CD2 remains the active next tranche.
+- `EVIDENCE-POLICY (STRICT)`
+  - Tranche closure requires:
+    - syntax + YAML parse checks for changed files
+    - `npm run tunet:build` when build outputs are affected
+    - `npm test`
+    - Playwright screenshots at locked breakpoints in both dark and light mode
 
 ## Session Delta (2026-04-02, Consistency-Driver Reset)
 
@@ -43,7 +57,7 @@ Tranche marker: pre-CD0 (documentation alignment)
   - Sections reasoning remains page → section → card when surface work resumes
   - Browser Mod popup direction, locked breakpoints, and no-destructive-cleanup discipline are preserved
   - Surface assembly order when it resumes: Living Room → popup → overview → media → remaining rooms
-- `ACTIVE NEXT TRANCHE`
+- `ACTIVE NEXT TRANCHE (historical snapshot at reset time)`
   - Current work = documentation alignment to consistency-driver order (pre-CD0)
   - CD0 = Build Architecture And Rehab Lab (next implementation tranche)
   - Living Room page is not the next implementation tranche; it resumes in CD12
@@ -51,8 +65,7 @@ Tranche marker: pre-CD0 (documentation alignment)
   - `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` is draft reference only until surface assembly resumes in CD12
 - `PLAN-DOC HIERARCHY`
   - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` = method-level authority (line-anchored, per-card, per-pass)
-  - `~/.claude/plans/ethereal-zooming-cherny.md` = program-level framing (retained for high-level direction)
-  - `~/.claude/plans/flickering-herding-wolf.md` = approved execution plan with audit data
+  - `~/.claude/plans/flickering-herding-wolf.md` = single source of truth (consistency-driver rehab, CD0–CD12)
   - `Dashboard/Tunet/Docs/plans/surface_driven_reset.md` = references card-rehab-first framing (partially superseded by consistency-driver)
 
 ## Session Delta (2026-04-02, Surface-Driven Reset)

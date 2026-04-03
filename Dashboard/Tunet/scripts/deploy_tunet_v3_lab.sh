@@ -8,7 +8,7 @@
 #
 # Prerequisites:
 #   - sshpass installed (apt install sshpass)
-#   - .env file with HA_SSH_PASSWORD
+#   - .env file with HA_SSH_PASSWORD (HA_SSH_HOST / HA_SSH_USER optional)
 #   - For built outputs: run `npm run tunet:build` first
 
 set -euo pipefail
@@ -16,15 +16,40 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 DIST_DIR="$REPO_ROOT/Dashboard/Tunet/Cards/v3/dist"
 SOURCE_DIR="$REPO_ROOT/Dashboard/Tunet/Cards/v3"
-HA_HOST="10.0.0.21"
+HA_HOST_DEFAULT="10.0.0.21"
+HA_USER_DEFAULT="root"
 HA_TARGET="/config/www/tunet/v3/"
 ENV_FILE="$REPO_ROOT/.env"
 
-# Read password from .env
-if [[ -f "$ENV_FILE" ]]; then
-  HA_PASSWORD=$(grep '^HA_SSH_PASSWORD=' "$ENV_FILE" | cut -d= -f2)
-else
+get_env_value() {
+  local key="$1"
+  local default_value="${2:-}"
+  local value
+
+  value="$(grep -E "^${key}=" "$ENV_FILE" 2>/dev/null | tail -n 1 | cut -d= -f2- || true)"
+  value="${value%\"}"
+  value="${value#\"}"
+  value="${value%\'}"
+  value="${value#\'}"
+
+  if [[ -n "$value" ]]; then
+    printf '%s' "$value"
+  else
+    printf '%s' "$default_value"
+  fi
+}
+
+if [[ ! -f "$ENV_FILE" ]]; then
   echo "ERROR: .env file not found at $ENV_FILE"
+  exit 1
+fi
+
+HA_HOST="$(get_env_value HA_SSH_HOST "$HA_HOST_DEFAULT")"
+HA_USER="$(get_env_value HA_SSH_USER "$HA_USER_DEFAULT")"
+HA_PASSWORD="$(get_env_value HA_SSH_PASSWORD)"
+
+if [[ -z "$HA_PASSWORD" ]]; then
+  echo "ERROR: HA_SSH_PASSWORD is missing in $ENV_FILE"
   exit 1
 fi
 
@@ -61,7 +86,7 @@ if [[ "${1:-}" == "--source" ]]; then
   CARDS+=(tunet_base.js)
 fi
 
-echo "  Target: root@$HA_HOST:$HA_TARGET"
+echo "  Target: $HA_USER@$HA_HOST:$HA_TARGET"
 echo ""
 
 FAILED=0
@@ -72,7 +97,7 @@ for card in "${CARDS[@]}"; do
     continue
   fi
 
-  if sshpass -p "$HA_PASSWORD" scp -o StrictHostKeyChecking=no "$SRC" "root@$HA_HOST:$HA_TARGET$card" 2>/dev/null; then
+  if sshpass -p "$HA_PASSWORD" scp -o StrictHostKeyChecking=no "$SRC" "$HA_USER@$HA_HOST:$HA_TARGET$card" 2>/dev/null; then
     echo "  ✓ $card"
   else
     echo "  ✗ FAILED: $card"
@@ -82,7 +107,7 @@ done
 
 echo ""
 if [[ $FAILED -eq 0 ]]; then
-  echo "  Deploy complete: ${#CARDS[@]} files → $HA_HOST:$HA_TARGET"
+  echo "  Deploy complete: ${#CARDS[@]} files → $HA_USER@$HA_HOST:$HA_TARGET"
 else
   echo "  Deploy finished with $FAILED failures."
   exit 1

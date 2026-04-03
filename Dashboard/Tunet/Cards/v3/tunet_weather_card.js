@@ -60,11 +60,24 @@ const CARD_STYLES = `
     padding: 6px 10px 6px 6px; min-height: var(--ctrl-min-h, 42px);
     border-radius: 10px; border: 1px solid var(--blue-border);
     background: var(--blue-fill); box-shadow: var(--ctrl-sh);
-    cursor: pointer; transition: all .15s ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
     max-width: 100%;
   }
-  .info-tile:hover { box-shadow: var(--shadow); }
-  .info-tile:active { transform: scale(.98); }
+  @media (hover: hover) {
+    .info-tile:hover { box-shadow: var(--shadow); }
+  }
+  .info-tile:active { transform: scale(var(--press-scale)); }
+  .info-tile:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
   .entity-icon {
     width: 24px; height: 24px; border-radius: 6px;
     display: grid; place-items: center; flex-shrink: 0;
@@ -111,7 +124,9 @@ const CARD_STYLES = `
     font-weight: 700;
     letter-spacing: 0.25px;
     cursor: pointer;
-    transition: all .15s ease;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
     white-space: nowrap;
   }
   .seg-btn.active {
@@ -178,7 +193,9 @@ const CARD_STYLES = `
     display: flex; flex-direction: column; align-items: center; gap: 3px;
     padding: 6px 4px 5px; border-radius: 11px;
     background: var(--ctrl-bg); border: 1px solid var(--ctrl-border);
-    transition: all .15s;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard);
   }
   .forecast-tile:first-child { background: var(--blue-fill); border-color: var(--blue-border); }
   .forecast-day {

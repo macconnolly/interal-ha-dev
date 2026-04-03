@@ -36,7 +36,7 @@ Important:
   - `Dashboard/Tunet/Agent-Reviews/start.md` (execution start guide)
 - For the active execution plan, read:
   - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` (method-level authority, line-anchored, per-card, per-pass)
-  - `.claude/plans/ethereal-zooming-cherny.md` (program-level framing)
+  - `~/.claude/plans/flickering-herding-wolf.md` (single source of truth, CD0–CD12)
 - For build and deploy:
   - `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` (build pipeline, deploy scripts, lab URL)
 

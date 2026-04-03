@@ -74,6 +74,7 @@ const TILE_CSS = `
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
     touch-action: pan-y;
     overflow: visible;
     transition:
@@ -149,7 +150,10 @@ const TILE_CSS = `
     display: grid;
     place-items: center;
     border: 1px solid transparent;
-    transition: all var(--motion-ui, 0.18s) ease;
+    transition:
+      color var(--motion-ui, 0.18s) ease,
+      background var(--motion-ui, 0.18s) ease,
+      border-color var(--motion-ui, 0.18s) ease;
   }
 
   .lt.vertical .icon-wrap {
@@ -336,7 +340,7 @@ const TILE_CSS = `
      STATE: SLIDING (drag active)
      ════════════════════════════════════════════════════ */
   .lt.sliding {
-    transform: scale(1.05);
+    transform: scale(var(--drag-scale));
     box-shadow: var(--shadow-up);
     z-index: 100;
     border-color: var(--amber);

@@ -197,14 +197,22 @@ ${CARD_SURFACE_GLASS_STROKE}
     background: var(--ctrl-bg);
     box-shadow: var(--ctrl-sh);
     cursor: pointer;
-    transition: all .15s ease;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
     min-width: 0;
   }
-  .info-tile:hover { box-shadow: var(--shadow); }
-  .info-tile:active { transform: scale(.98); }
+  @media (hover: hover) {
+    .info-tile:hover { box-shadow: var(--shadow); }
+  }
+  .info-tile:active { transform: scale(var(--press-scale)); }
   .info-tile:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
   }
 
   /* Info tile active state (any light on) */
@@ -221,7 +229,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: grid;
     place-items: center;
     flex-shrink: 0;
-    transition: all .2s ease;
+    transition: color var(--motion-ui) ease;
     color: var(--text-muted);
   }
   .card[data-any-on="true"] .entity-icon {
@@ -301,17 +309,25 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: grid;
     place-items: center;
     cursor: pointer;
-    transition: all .15s ease;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
     border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg);
     box-shadow: var(--ctrl-sh);
     color: var(--text-muted);
   }
-  .toggle-btn:hover { box-shadow: var(--shadow); }
-  .toggle-btn:active { transform: scale(.94); }
+  @media (hover: hover) {
+    .toggle-btn:hover { box-shadow: var(--shadow); }
+  }
+  .toggle-btn:active { transform: scale(var(--press-scale)); }
   .toggle-btn:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
   }
   .toggle-btn.on {
     background: var(--amber-fill);
@@ -425,7 +441,12 @@ ${CARD_SURFACE_GLASS_STROKE}
       calc(var(--_tunet-tile-pad, 0.62em) * 0.55)
       calc(var(--_tunet-tile-pad, 0.62em) * 1.68);
     -webkit-tap-highlight-color: transparent;
-    transition: all 0.18s ease;
+    transition:
+      transform var(--motion-ui) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      opacity var(--motion-surface) var(--ease-standard);
   }
   :host([use-profiles]) .l-tile {
     min-height: max(var(--_tunet-tile-min-h, 0px), 6.25em);
@@ -577,7 +598,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     place-items: center;
     margin-top: 0.08em;
     margin-bottom: 0.2em;
-    transition: all .2s ease;
+    transition:
+      color var(--motion-ui) ease,
+      background var(--motion-ui) ease,
+      border-color var(--motion-ui) ease;
   }
   .tile-icon-wrap .icon {
     width: var(--_tunet-icon-glyph, 1.3em);

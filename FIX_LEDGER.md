@@ -4,8 +4,30 @@ Working branch: `main`
 Last updated: 2026-04-03
 Scope: `/home/mac/HA/implementation_10`
 Active plan (method-level): `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
-Active plan (high-level): `~/.claude/plans/ethereal-zooming-cherny.md`
-Approved execution plan: `~/.claude/plans/flickering-herding-wolf.md`
+Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single source of truth, CD0–CD12)
+
+## Session Delta (2026-04-03, CD2 Closeout)
+
+Change marker: CD2 tranche closure
+
+- `AUTHORITY-LOCK`
+  - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` is the sole canonical execution plan.
+  - `~/.claude/plans/flickering-herding-wolf.md` is the single source of truth (CD0–CD12).
+- `CURRENT STATE`
+  - CD2 — Shared Interaction Adoption: **DONE** (Apr 3, 2026)
+  - CD3 — Shared Semantics Adoption: next tranche
+- `CD2 CLOSURE EVIDENCE`
+  - interaction_source_contract.test.js: 146/146 pass
+  - interaction_dom_contract.test.js: 66/66 pass (mock hass, zero skips)
+  - Full npm test: 368/368 pass (7 suites)
+  - npm run tunet:build: 13 cards built
+  - Deploy: 13 cards SCP'd, Lovelace resources bumped to ?v=20260403_cd2
+  - Server verification: zero transition:all, hover guards present, press tokens present across all cards
+  - Lab rendering: all 13 cards visible at 1440×900, zero red-card errors
+  - Climate non-regression: visual match to baseline at desktop width
+  - Outstanding: 4-breakpoint × 2-mode screenshot matrix (user manual verification pending)
+- `TRANCHE CLOSURE EVIDENCE (STRICT)`
+  - Require `node --check` on changed JS, YAML parse-check on changed YAML, `npm run tunet:build` when outputs are affected, `npm test`, and screenshots at locked breakpoints in both dark and light mode.
 
 ## Session Delta (2026-04-02, Consistency-Driver Reset)
 

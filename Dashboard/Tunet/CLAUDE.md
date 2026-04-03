@@ -4,8 +4,8 @@
 
 **Consistency-driver card rehabilitation** — see `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` for method-level authority.
 
-Current tranche: **CD2 — Shared Interaction Adoption** (next)
-Previous tranches: CD1 (completed Apr 3), CD0 (completed Apr 3)
+Current tranche: **CD3 — Shared Semantics Adoption** (next)
+Previous tranches: CD2 (completed Apr 3), CD1 (completed Apr 3), CD0 (completed Apr 3)
 
 Cards still serve the dashboard product, but the current execution order is consistency-driver passes:
 CD0 build → CD1 config → CD2 interaction → CD3 semantics → CD4 sizing → CD5-CD11 bespoke → CD12 surfaces.

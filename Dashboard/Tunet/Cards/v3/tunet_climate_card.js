@@ -110,11 +110,23 @@ ${CARD_SURFACE_GLASS_STROKE}
     background: var(--ctrl-bg);
     box-shadow: var(--ctrl-sh);
     cursor: pointer;
-    transition: all .15s ease;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
     min-width: 0;
   }
-  .hdr-tile:hover { box-shadow: var(--shadow); }
-  .hdr-tile:active { transform: scale(.98); }
+  @media (hover: hover) {
+    .hdr-tile:hover { box-shadow: var(--shadow); }
+  }
+  .hdr-tile:active { transform: scale(var(--press-scale)); }
+  .hdr-tile:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
   /* Info tile accent states - driven by hvac_action */
   .hdr-tile[data-action="heating"] {
     background: var(--amber-fill);
@@ -133,7 +145,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     flex-shrink: 0;
     border: 1px solid transparent;
     background: transparent;
-    transition: all .2s ease;
+    transition: color var(--motion-ui) ease;
     color: var(--text-muted);
   }
   .hdr-icon[data-a="heating"] {
@@ -189,10 +201,17 @@ ${CARD_SURFACE_GLASS_STROKE}
     box-shadow: var(--ctrl-sh);
     color: var(--text-muted);
     cursor: pointer;
-    transition: all .15s ease;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
   }
-  .fan-btn:hover { box-shadow: var(--shadow); }
-  .fan-btn:active { transform: scale(.94); }
+  @media (hover: hover) {
+    .fan-btn:hover { box-shadow: var(--shadow); }
+  }
+  .fan-btn:active { transform: scale(var(--press-scale-strong)); }
   .fan-btn.on {
     background: var(--green-fill);
     color: var(--green);
@@ -233,11 +252,18 @@ ${CARD_SURFACE_GLASS_STROKE}
     font-weight: 600;
     color: var(--text-sub);
     cursor: pointer;
-    transition: all .15s ease;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
     letter-spacing: .2px;
   }
-  .mode-btn:hover { box-shadow: var(--shadow); }
-  .mode-btn:active { transform: scale(.97); }
+  @media (hover: hover) {
+    .mode-btn:hover { box-shadow: var(--shadow); }
+  }
+  .mode-btn:active { transform: scale(var(--press-scale)); }
   .mode-btn .mode-icon { font-size: 16px; width: 16px; height: 16px; }
   .mode-btn .chevron { transition: transform .2s ease; font-size: 14px; width: 14px; height: 14px; }
   .mode-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
@@ -300,8 +326,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     gap: 8px;
     transition: background .1s;
   }
-  .mode-opt:hover { background: var(--track-bg); }
-  .mode-opt:active { transform: scale(.97); }
+  @media (hover: hover) {
+    .mode-opt:hover { background: var(--track-bg); }
+  }
+  .mode-opt:active { transform: scale(var(--press-scale)); }
   .mode-opt.active { font-weight: 700; }
   .mode-opt.active[data-m="heat_cool"],
   .mode-opt.active[data-m="heat"] { background: var(--amber-fill); color: var(--amber); }
@@ -316,7 +344,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     border: 1.5px solid var(--text-muted);
     display: grid;
     place-items: center;
-    transition: all .15s;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard);
   }
   .mode-opt.eco-opt.active .eco-check {
     background: var(--green);
@@ -420,9 +450,13 @@ ${CARD_SURFACE_GLASS_STROKE}
     transition: transform .15s;
     display: flex; align-items: center; justify-content: center;
   }
-  .thumb:active { cursor: grabbing; transform: translate(-50%,-50%) scale(1.08); }
-  .thumb.dragging { cursor: grabbing; transform: translate(-50%,-50%) scale(1.08); }
-  .thumb:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+  .thumb { --drag-scale: 1.08; }
+  .thumb:active { cursor: grabbing; transform: translate(-50%,-50%) scale(var(--drag-scale)); }
+  .thumb.dragging { cursor: grabbing; transform: translate(-50%,-50%) scale(var(--drag-scale)); }
+  .thumb:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
 
   .thumb-stroke {
     position: absolute; width: 2px;
@@ -441,7 +475,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     z-index: 2; position: relative;
     transition: box-shadow .15s;
   }
-  .thumb:hover .thumb-disc { box-shadow: var(--thumb-sh-a); }
+  @media (hover: hover) {
+    .thumb:hover .thumb-disc { box-shadow: var(--thumb-sh-a); }
+  }
   .thumb:active .thumb-disc,
   .thumb.dragging .thumb-disc { box-shadow: var(--thumb-sh-a); }
 

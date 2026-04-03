@@ -55,7 +55,7 @@ const CARD_OVERRIDES = `
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
     --divider: rgba(28,28,30,0.07);
     --r-pill: 999px;
-    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* --spring removed: identical to --ease-emphasized */
 
     display: block;
   }
@@ -105,15 +105,28 @@ const CARD_STYLES = `
     min-height: var(--_tunet-ctrl-min-h, var(--ctrl-min-h, 42px));
     border-radius: 10px; border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg); box-shadow: var(--ctrl-sh);
-    cursor: pointer; transition: all .15s ease; min-width: 0;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
+    min-width: 0;
   }
-  .info-tile:hover { box-shadow: var(--shadow); }
-  .info-tile:active { transform: scale(.98); }
+  @media (hover: hover) {
+    .info-tile:hover { box-shadow: var(--shadow); }
+  }
+  .info-tile:active { transform: scale(var(--press-scale)); }
+  .info-tile:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
 
   .entity-icon {
     width: 24px; height: 24px; border-radius: 6px;
     display: grid; place-items: center; flex-shrink: 0;
-    transition: all .2s ease; color: var(--text-muted);
+    transition: color var(--motion-ui) ease; color: var(--text-muted);
   }
 
   .hdr-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -160,11 +173,12 @@ const CARD_STYLES = `
     min-width: 0;
     overflow: visible;
     container-type: inline-size;
+    -webkit-tap-highlight-color: transparent;
     transition:
-      transform .2s var(--spring),
-      box-shadow .2s ease,
-      border-color .2s ease,
-      background-color .3s ease;
+      transform var(--motion-ui) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      background-color var(--motion-surface) var(--ease-standard);
   }
 
   /* Size presets via host attribute */
@@ -216,14 +230,15 @@ const CARD_STYLES = `
     }
   }
 
-  .spk-tile:hover {
-    box-shadow: var(--tile-shadow-lift);
-    transform: translateY(-1px);
+  @media (hover: hover) {
+    .spk-tile:hover {
+      box-shadow: var(--tile-shadow-lift);
+    }
   }
-  .spk-tile:active { transform: scale(.98); }
+  .spk-tile:active { transform: scale(var(--press-scale)); }
   .spk-tile:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
   }
 
   /* ── Icon circle (left) ──────────────────────── */
@@ -232,7 +247,10 @@ const CARD_STYLES = `
     border-radius: 12px;
     display: grid; place-items: center;
     flex-shrink: 0;
-    transition: all .2s ease;
+    transition:
+      color var(--motion-ui) ease,
+      background var(--motion-ui) ease,
+      border-color var(--motion-ui) ease;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-icon-wrap { width: 36px; height: 36px; border-radius: 10px; }
   :host(:not([use-profiles])[tile-size="large"]) .tile-icon-wrap { width: 44px; height: 44px; }
@@ -401,8 +419,10 @@ const CARD_STYLES = `
     cursor: pointer; transition: background .1s;
     user-select: none;
   }
-  .action-btn:hover { background: var(--track-bg); color: var(--text); }
-  .action-btn:active { transform: scale(.97); }
+  @media (hover: hover) {
+    .action-btn:hover { background: var(--track-bg); color: var(--text); }
+  }
+  .action-btn:active { transform: scale(var(--press-scale)); }
   .action-btn .icon { color: var(--accent); }
 
   /* ── Responsive ────────────────────────────────── */

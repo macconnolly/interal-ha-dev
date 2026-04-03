@@ -1,14 +1,28 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-04-02 (America/Denver)  
+Last updated: 2026-04-03 (America/Denver)  
 Intended reader: next Claude Code session  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Active plan (method-level): `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md`
-Active plan (high-level): `~/.claude/plans/ethereal-zooming-cherny.md`
-Approved execution plan: `~/.claude/plans/flickering-herding-wolf.md`
-Current tranche: **CD2 — Shared Interaction Adoption** (next)
-Previous tranches: CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single source of truth, CD0–CD12)
+Current tranche: **CD3 — Shared Semantics Adoption** (next)
+Previous tranches: CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## 0ZJ) Session Delta (2026-04-03, Method-Plan Canonicalization)
+
+- `AUTHORITY-LOCK`
+  - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` is the sole canonical execution plan.
+  - `~/.claude/plans/flickering-herding-wolf.md` is historical reference only.
+- `CURRENT TRANCHE`
+  - CD2 remains the active next tranche.
+- `VALIDATION POLICY (STRICT)`
+  - tranche closure requires:
+    - `node --check` on changed JS
+    - YAML parse-check on changed YAML
+    - `npm run tunet:build` when build outputs are affected
+    - `npm test`
+    - screenshots at all locked breakpoints in both dark and light mode
 
 Source filter for this run:
 - use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and active plan files as control sources
@@ -69,7 +83,7 @@ Key corrections:
   - `yaml-first`: actions, status
 - **Best parts of the old plan are retained**: three-surface model, climate baseline, Browser Mod, locked breakpoints, no-destructive-cleanup, surface assembly order (Living Room → popup → overview → media → rooms)
 - **Surface docs are draft reference** during card rehab: `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` is not an active gate until CD12
-- **Next implementation tranche**: CD1 (Configuration Clarity And Editor Policy)
+- **Next implementation tranche (historical at that time)**: CD1 (Configuration Clarity And Editor Policy)
 - **Living Room surface assembly**: deferred to CD12
 
 ## 0ZH) Session Delta (2026-04-02, Tranche 0 — Contract Reconciliation)

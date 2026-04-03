@@ -7,13 +7,12 @@
 ## CURRENT WORK: Tunet Dashboard — Card Rehabilitation Reset
 
 **Active plan (method-level)**: `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` — line-anchored, per-card, per-pass authority.
-**Active plan (high-level)**: `.claude/plans/ethereal-zooming-cherny.md` — program-level framing.
-**Approved execution plan**: `~/.claude/plans/flickering-herding-wolf.md` — approved with audit data.
+**Active execution plan**: `~/.claude/plans/flickering-herding-wolf.md` — single source of truth (consistency-driver rehab, CD0–CD12).
 
 **Execution authority for Tunet scope**: `Dashboard/Tunet/AGENTS.md`
 
-**Current tranche**: CD2 — Shared Interaction Adoption (next)
-**Previous tranches**: CD1 — Configuration Clarity And Editor Policy (completed Apr 3, 2026), CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
+**Current tranche**: CD3 — Shared Semantics Adoption (next)
+**Previous tranches**: CD2 — Shared Interaction Adoption (completed Apr 3, 2026), CD1 — Configuration Clarity And Editor Policy (completed Apr 3, 2026), CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
 
 ### Build & Deploy
 
@@ -37,7 +36,7 @@
 | **Implementation authority** | `Dashboard/Tunet/Cards/v3/` | v3 is sole authority (promoted Mar 14, 2026) |
 | **Execution contract** | `Dashboard/Tunet/AGENTS.md` | Active governance contract for Tunet work |
 | **Active plan (method)** | `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` | Line-anchored per-card per-pass authority |
-| **Active plan (high-level)** | `.claude/plans/ethereal-zooming-cherny.md` | Program-level framing |
+| **Active execution plan** | `~/.claude/plans/flickering-herding-wolf.md` | Single source of truth (CD0–CD12) |
 | **Cards reference** | `Dashboard/Tunet/Docs/cards_reference.md` | Per-card config contract + editor architecture |
 | **Legacy key precedence** | `Dashboard/Tunet/Docs/legacy_key_precedence.md` | setConfig overlap/fallback rules |
 

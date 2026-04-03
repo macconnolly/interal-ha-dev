@@ -51,7 +51,6 @@ const CARD_OVERRIDES = `
     --tile-shadow: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 12px 32px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08);
 
-    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     display: block;
   }
 
@@ -128,11 +127,17 @@ const PLAYER_HEADER_STYLES = `
   .t-btn {
     width: 36px; height: 36px; border-radius: 10px;
     display: grid; place-items: center;
-    cursor: pointer; transition: all .15s ease;
+    cursor: pointer;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      background var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
     border: none; background: transparent; color: var(--text-sub);
   }
-  .t-btn:hover { background: var(--track-bg); }
-  .t-btn:active { transform: scale(.90); }
+  @media (hover: hover) {
+    .t-btn:hover { background: var(--track-bg); }
+  }
+  .t-btn:active { transform: scale(var(--press-scale-strong)); }
   .t-btn .icon { font-size: 20px; }
   .t-btn[disabled] { opacity: 0.35; pointer-events: none; }
 `;
@@ -153,11 +158,19 @@ const SOURCE_DROPDOWN_STYLES = `
     box-shadow: var(--ctrl-sh);
     font-family: inherit; font-size: 12px; font-weight: 600;
     color: var(--text-sub); letter-spacing: .2px;
-    cursor: pointer; transition: all .15s ease;
+    cursor: pointer;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
     white-space: nowrap;
   }
-  .source-btn:hover { box-shadow: var(--shadow); }
-  .source-btn:active { transform: scale(.97); }
+  @media (hover: hover) {
+    .source-btn:hover { box-shadow: var(--shadow); }
+  }
+  .source-btn:active { transform: scale(var(--press-scale)); }
   .source-btn .icon { font-size: 16px; }
   .source-btn .chevron { font-size: 14px; transition: transform .2s ease; }
   .source-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
@@ -196,7 +209,9 @@ const SOURCE_DROPDOWN_STYLES = `
     border: none; background: none; width: 100%;
     text-align: left; font-family: inherit;
   }
-  .source-opt:hover { background: var(--track-bg); }
+  @media (hover: hover) {
+    .source-opt:hover { background: var(--track-bg); }
+  }
   .source-opt .icon { font-size: 18px; color: var(--text-sub); }
   .source-opt.active { font-weight: 700; }
   .source-opt.active .icon {
@@ -250,13 +265,20 @@ const SPEAKER_TILE_STYLES = `
     cursor: pointer;
     user-select: none;
     touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
     transition:
-      transform .3s var(--spring),
-      box-shadow .3s ease,
-      border-color .2s ease,
-      background-color .3s ease;
+      transform var(--motion-surface) var(--ease-emphasized),
+      box-shadow var(--motion-surface) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      background-color var(--motion-surface) var(--ease-standard);
   }
-  .speaker-tile:hover { box-shadow: var(--tile-shadow-lift); }
+  @media (hover: hover) {
+    .speaker-tile:hover { box-shadow: var(--tile-shadow-lift); }
+  }
+  .speaker-tile:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
 
   /* Grouped (active) state */
   .speaker-tile.grouped { border-color: var(--sonos-blue-border); }
@@ -309,7 +331,10 @@ const SPEAKER_TILE_STYLES = `
     width: 34px; height: 34px;
     border-radius: 9px;
     display: grid; place-items: center;
-    transition: all .2s ease;
+    transition:
+      color var(--motion-ui) ease,
+      background var(--motion-ui) ease,
+      border-color var(--motion-ui) ease;
     background: var(--gray-ghost);
     color: var(--text-sub);
   }
@@ -384,7 +409,7 @@ const VOLUME_OVERLAY_STYLES = `
     display: inline-flex; align-items: center; justify-content: center;
     border: none; background: none; padding: 4px;
   }
-  .vol-overlay .vol-icon:active { transform: scale(.9); }
+  .vol-overlay .vol-icon:active { transform: scale(var(--press-scale-strong)); }
 
   .vol-slider-track {
     flex: 1; height: 6px; background: var(--track-bg);

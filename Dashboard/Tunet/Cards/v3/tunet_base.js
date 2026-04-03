@@ -94,6 +94,11 @@ export const TOKENS = `
     --focus-ring-width: 2px;
     --focus-ring-offset: 3px;
 
+    /* Disabled */
+    --disabled-opacity: 0.55;
+    --disabled-surface-opacity: 0.35;
+    --disabled-control-opacity: 0.38;
+
     /* Controls */
     --ctrl-bg: rgba(255,255,255, 0.52);
     --ctrl-border: rgba(0,0,0, 0.05);
@@ -291,6 +296,12 @@ export const TOKENS = `
   .focus-ring:focus-visible {
     outline: var(--focus-ring-width) solid var(--focus-ring-color);
     outline-offset: var(--focus-ring-offset);
+  }
+
+  button,
+  [role="button"],
+  [tabindex] {
+    -webkit-tap-highlight-color: transparent;
   }
 
   @media (prefers-contrast: more) {
@@ -1109,6 +1120,40 @@ export const TILE_SURFACE = `
   .tile.off .tile-icon {
     background: var(--gray-ghost);
     color: var(--text-muted);
+  }
+`;
+
+/** Opt-in interactive surface — apply .interactive class to tappable elements.
+ *  Provides: cursor, tap-highlight reset, multi-property transition,
+ *  hover guard, press scale, focus-visible with tokens.
+ *  Cards override only what differs (e.g. stronger press, shadow-up hover). */
+export const INTERACTIVE_SURFACE = `
+  .interactive {
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform var(--motion-fast, 0.12s) var(--ease-emphasized, cubic-bezier(0.34, 1.56, 0.64, 1)),
+      box-shadow var(--motion-ui, 0.18s) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+      background var(--motion-ui, 0.18s) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+      border-color var(--motion-ui, 0.18s) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+      color var(--motion-ui, 0.18s) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1));
+  }
+
+  @media (hover: hover) {
+    .interactive:hover {
+      box-shadow: var(--shadow);
+    }
+  }
+
+  .interactive:active {
+    transform: scale(var(--press-scale, 0.97));
+  }
+
+  .interactive:focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--focus-ring-color, var(--blue));
+    outline-offset: var(--focus-ring-offset, 3px);
   }
 `;
 

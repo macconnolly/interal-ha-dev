@@ -87,22 +87,6 @@ const CARD_STYLES = `
     font-size: var(--_tunet-icon-glyph, 1.25em);
   }
   .section-spacer { flex: 1; }
-  .section-action {
-    font-size: var(--_tunet-sub-font, 0.6875em);
-    font-weight: 700;
-    color: var(--text-sub); cursor: pointer;
-    padding: 0 calc(var(--_tunet-ctrl-pad-x, 0.75em) * 0.85);
-    min-height: calc(var(--_tunet-ctrl-min-h, 2.625em) * 0.78);
-    border-radius: var(--r-pill);
-    background: var(--ctrl-bg); border: 1px solid var(--ctrl-border);
-    transition: all 0.15s ease;
-    display: flex; align-items: center; gap: 4px;
-  }
-  .section-action:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  }
-  .section-action:active { transform: scale(0.97); }
-
   /* ═══════════════════════════════════════════════
      SENSOR ROWS
      ═══════════════════════════════════════════════ */
@@ -121,22 +105,29 @@ const CARD_STYLES = `
     padding: var(--_tunet-row-pad-y, 0.75em) var(--_tunet-row-pad-x, 0.25em);
     min-height: var(--_tunet-row-min-h, 3.5em);
     cursor: pointer;
-    transition: all 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      background var(--motion-ui) var(--ease-standard);
     border-radius: calc(var(--r-icon) * 0.72);
     position: relative;
   }
-  .sensor-row:hover {
-    background: var(--gray-ghost);
+  @media (hover: hover) {
+    .sensor-row:hover {
+      background: var(--gray-ghost);
+    }
   }
   .sensor-row:active {
-    transform: scale(0.99);
+    transform: scale(var(--press-scale));
   }
   .sensor-row:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 3px;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
   }
   .sensor-row[data-interaction="none"] { cursor: default; }
-  .sensor-row[data-interaction="none"]:hover { background: transparent; }
+  @media (hover: hover) {
+    .sensor-row[data-interaction="none"]:hover { background: transparent; }
+  }
   .sensor-row[data-interaction="none"]:active { transform: none; }
 
   /* Divider between rows */
@@ -157,7 +148,7 @@ const CARD_STYLES = `
     border-radius: calc(var(--r-icon) * 0.7);
     display: grid; place-items: center;
     flex-shrink: 0;
-    transition: all 0.2s ease;
+    transition: color var(--motion-ui) ease;
   }
   .sensor-icon .icon {
     font-size: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.25em));

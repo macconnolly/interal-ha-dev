@@ -217,17 +217,24 @@ const CARD_STYLES = `
     color: var(--text-sub);
     letter-spacing: 0.01em;
     cursor: pointer;
-    transition: all .15s ease;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
     user-select: none;
     white-space: nowrap;
     border: 1px solid transparent;
     -webkit-tap-highlight-color: transparent;
   }
-  .action-chip:hover { box-shadow: var(--tile-shadow-lift); }
-  .action-chip:active { transform: scale(.96); }
+  @media (hover: hover) {
+    .action-chip:hover { box-shadow: var(--tile-shadow-lift); }
+  }
+  .action-chip:active { transform: scale(var(--press-scale)); }
   .action-chip:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 2px;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
   }
   .action-chip .icon { font-size: 1.3em; width: 1.3em; height: 1.3em; color: var(--text-muted); }
   .action-chip.hidden { display: none !important; }

@@ -53,10 +53,23 @@ const CARD_STYLES = `
     padding: 6px 10px 6px 6px; min-height: 42px;
     border-radius: 10px; border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg); box-shadow: var(--ctrl-sh);
-    cursor: pointer; transition: all .15s ease; min-width: 0;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
+    min-width: 0;
   }
-  .info-tile:hover { box-shadow: var(--shadow); }
-  .info-tile:active { transform: scale(.98); }
+  @media (hover: hover) {
+    .info-tile:hover { box-shadow: var(--shadow); }
+  }
+  .info-tile:active { transform: scale(var(--press-scale)); }
+  .info-tile:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
   .card[data-state="playing"] .info-tile {
     background: var(--green-fill); border-color: var(--green-border);
   }
@@ -64,7 +77,7 @@ const CARD_STYLES = `
   .entity-icon {
     width: 24px; height: 24px; border-radius: 6px;
     display: grid; place-items: center; flex-shrink: 0;
-    transition: all .2s ease; color: var(--text-muted);
+    transition: color var(--motion-ui) ease; color: var(--text-muted);
   }
   .card[data-state="playing"] .entity-icon { color: var(--green); }
   .card[data-state="playing"] .entity-icon .icon {
@@ -105,10 +118,18 @@ const CARD_STYLES = `
     background: var(--ctrl-bg); box-shadow: var(--ctrl-sh);
     font-family: inherit; font-size: 12.5px; font-weight: 600;
     color: var(--text-sub); letter-spacing: .2px;
-    cursor: pointer; transition: all .15s ease;
+    cursor: pointer;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
   }
-  .speaker-btn:hover { box-shadow: var(--shadow); }
-  .speaker-btn:active { transform: scale(.97); }
+  @media (hover: hover) {
+    .speaker-btn:hover { box-shadow: var(--shadow); }
+  }
+  .speaker-btn:active { transform: scale(var(--press-scale)); }
   .speaker-btn .chevron { transition: transform .2s ease; }
   .speaker-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
 
@@ -139,8 +160,10 @@ const CARD_STYLES = `
     user-select: none; border: none; background: transparent;
     font-family: inherit;
   }
-  .dd-option:hover { background: var(--track-bg); }
-  .dd-option:active { transform: scale(.97); }
+  @media (hover: hover) {
+    .dd-option:hover { background: var(--track-bg); }
+  }
+  .dd-option:active { transform: scale(var(--press-scale)); }
   .dd-option.selected { font-weight: 700; color: var(--green); background: var(--green-fill); }
   .dd-option.selected .spk-icon {
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -165,9 +188,19 @@ const CARD_STYLES = `
   .grp-check {
     width: 18px; height: 18px; border-radius: 999px; flex-shrink: 0;
     border: 1.5px solid var(--text-muted); display: grid; place-items: center;
-    transition: all .15s ease; cursor: pointer; position: relative; z-index: 2;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    position: relative; z-index: 2;
   }
-  .grp-check:hover { border-color: var(--green); }
+  @media (hover: hover) {
+    .grp-check:hover { border-color: var(--green); }
+  }
+  .grp-check:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
   .grp-check.in-group { background: var(--green); border-color: var(--green); }
   .grp-check .icon {
     color: #fff; opacity: 0; transition: opacity .1s;
@@ -177,7 +210,9 @@ const CARD_STYLES = `
 
   /* Action options */
   .dd-option.action { color: var(--text-sub); }
-  .dd-option.action:hover { color: var(--text); }
+  @media (hover: hover) {
+    .dd-option.action:hover { color: var(--text); }
+  }
   .dd-option.action .icon { color: var(--green); }
 
   .dd-divider { height: 1px; background: var(--divider); margin: 2px 6px; }
@@ -238,17 +273,26 @@ const CARD_STYLES = `
   .t-btn {
     width: 38px; height: 38px; border-radius: 10px;
     display: grid; place-items: center; cursor: pointer;
-    transition: all .15s ease; border: none; background: transparent;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      background var(--motion-ui) var(--ease-standard),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
+    border: none; background: transparent;
     color: var(--text-sub);
   }
-  .t-btn:hover { background: var(--track-bg); }
-  .t-btn:active { transform: scale(.90); }
+  @media (hover: hover) {
+    .t-btn:hover { background: var(--track-bg); }
+  }
+  .t-btn:active { transform: scale(var(--press-scale-strong)); }
   .t-btn.play {
     width: 42px; height: 42px;
     background: var(--ctrl-bg); border: 1px solid var(--ctrl-border);
     box-shadow: var(--ctrl-sh); color: var(--text);
   }
-  .t-btn.play:hover { box-shadow: var(--shadow); }
+  @media (hover: hover) {
+    .t-btn.play:hover { box-shadow: var(--shadow); }
+  }
   .card[data-state="playing"] .t-btn.play {
     background: var(--green-fill); border-color: var(--green-border); color: var(--green);
   }
@@ -259,11 +303,17 @@ const CARD_STYLES = `
   .vol-btn {
     width: 38px; height: 38px; border-radius: 10px;
     display: grid; place-items: center; cursor: pointer;
-    transition: all .15s ease; border: none; background: transparent;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      background var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
+    border: none; background: transparent;
     color: var(--text-muted);
   }
-  .vol-btn:hover { background: var(--track-bg); }
-  .vol-btn:active { transform: scale(.90); }
+  @media (hover: hover) {
+    .vol-btn:hover { background: var(--track-bg); }
+  }
+  .vol-btn:active { transform: scale(var(--press-scale-strong)); }
 
   /* -- Volume Row -- */
   .vol-row {
@@ -278,10 +328,20 @@ const CARD_STYLES = `
   .vol-icon {
     width: 38px; height: 38px; border-radius: 10px;
     display: grid; place-items: center; flex-shrink: 0;
-    cursor: pointer; color: var(--green); transition: all .15s ease;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    color: var(--green);
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      background var(--motion-ui) var(--ease-standard);
   }
-  .vol-icon:hover { background: var(--track-bg); }
-  .vol-icon:active { transform: scale(.90); }
+  @media (hover: hover) {
+    .vol-icon:hover { background: var(--track-bg); }
+  }
+  .vol-icon:active { transform: scale(var(--press-scale-strong)); }
+  .vol-icon:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
   .vol-icon .icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
 
   .vol-slider-wrap { flex: 1; display: flex; align-items: center; position: relative; }
@@ -339,11 +399,16 @@ const CARD_STYLES = `
   .vol-close {
     width: 38px; height: 38px; border-radius: 10px;
     display: grid; place-items: center; flex-shrink: 0;
-    cursor: pointer; color: var(--text-muted); transition: all .15s ease;
+    cursor: pointer; color: var(--text-muted);
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      background var(--motion-ui) var(--ease-standard);
     border: none; background: transparent;
   }
-  .vol-close:hover { background: var(--track-bg); }
-  .vol-close:active { transform: scale(.90); }
+  @media (hover: hover) {
+    .vol-close:hover { background: var(--track-bg); }
+  }
+  .vol-close:active { transform: scale(var(--press-scale-strong)); }
 
   /* -- Responsive -- */
   @media (max-width: 440px) {

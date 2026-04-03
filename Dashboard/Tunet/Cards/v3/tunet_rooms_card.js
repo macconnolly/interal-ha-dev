@@ -136,10 +136,17 @@ const CARD_STYLES = `
     align-items: center;
     gap: 0.22em;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
   }
-  .section-btn:hover { box-shadow: var(--shadow); }
-  .section-btn:active { transform: scale(0.96); }
+  @media (hover: hover) {
+    .section-btn:hover { box-shadow: var(--shadow); }
+  }
+  .section-btn:active { transform: scale(var(--press-scale)); }
   .section-btn .icon { font-size: 1.05em; width: 1.05em; height: 1.05em; }
   .section-btn.all-toggle {
     color: var(--text-sub);
@@ -201,20 +208,27 @@ const CARD_STYLES = `
       calc(var(--_tunet-tile-pad, 0.875em) * 0.39)
       calc(var(--_tunet-tile-pad, 0.875em) * 1.03);
     cursor: pointer;
-    transition: all 0.18s ease;
+    transition:
+      transform var(--motion-ui) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      opacity var(--motion-surface) var(--ease-standard);
     position: relative;
     overflow: hidden;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .room-tile:hover {
-    box-shadow: var(--shadow-up);
+  @media (hover: hover) {
+    .room-tile:hover {
+      box-shadow: var(--shadow-up);
+    }
   }
-  .room-tile:active { transform: scale(0.95); }
+  .room-tile:active { transform: scale(var(--press-scale-strong)); }
   .room-tile:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 2px;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
   }
 
   /* Active (lights on) state */
@@ -232,7 +246,10 @@ const CARD_STYLES = `
     width: var(--_tunet-icon-box, 2.375em); height: var(--_tunet-icon-box, 2.375em);
     display: grid; place-items: center;
     border-radius: 50%;
-    transition: all 0.18s;
+    transition:
+      color var(--motion-ui) ease,
+      background var(--motion-ui) ease,
+      border-color var(--motion-ui) ease;
     margin-top: 0.08em;
     margin-bottom: 0.2em;
   }
@@ -400,7 +417,12 @@ const CARD_STYLES = `
     justify-content: center;
     flex: 0 0 var(--row-btn-size);
     cursor: pointer;
-    transition: all 0.16s ease;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
     padding: 0;
     font-size: 1em;
     font-weight: 700;
@@ -421,11 +443,13 @@ const CARD_STYLES = `
   .room-action-btn.off {
     color: var(--text-muted);
   }
-  .room-action-btn:hover {
-    box-shadow: var(--shadow);
+  @media (hover: hover) {
+    .room-action-btn:hover {
+      box-shadow: var(--shadow);
+    }
   }
   .room-action-btn:active {
-    transform: scale(0.95);
+    transform: scale(var(--press-scale-strong));
   }
   .room-orbs {
     display: inline-flex;
@@ -445,7 +469,12 @@ const CARD_STYLES = `
     place-items: center;
     flex: 0 0 var(--row-btn-size);
     cursor: pointer;
-    transition: all 0.16s ease;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      box-shadow var(--motion-ui) var(--ease-standard),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
     box-sizing: border-box;
   }
   .room-orb .icon {
@@ -453,11 +482,13 @@ const CARD_STYLES = `
     width: var(--row-btn-icon-size);
     height: var(--row-btn-icon-size);
   }
-  .room-orb:hover {
-    box-shadow: var(--shadow);
+  @media (hover: hover) {
+    .room-orb:hover {
+      box-shadow: var(--shadow);
+    }
   }
   .room-orb:active {
-    transform: scale(0.94);
+    transform: scale(var(--press-scale-strong));
   }
   .room-orb.on {
     color: var(--amber);

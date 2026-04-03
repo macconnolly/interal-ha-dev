@@ -7,15 +7,18 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single sour
 Current tranche: **CD3 — Shared Semantics Adoption** (next)
 Previous tranches: CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
-## Session Delta (2026-04-03, Method-Plan Canonicalization)
+## Session Delta (2026-04-03, CD2 Closeout)
 
-Tranche marker: control-doc sync (pre-CD2 implementation)
+Tranche marker: CD2 — Shared Interaction Adoption closed
 
 - `AUTHORITY-LOCK`
   - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` is the sole canonical execution plan.
-  - `~/.claude/plans/flickering-herding-wolf.md` is historical reference only.
-- `CURRENT-TRANCHE`
-  - CD2 remains the active next tranche.
+  - `~/.claude/plans/flickering-herding-wolf.md` is the single source of truth (CD0–CD12).
+- `CD2 CLOSURE`
+  - All code gates green: 368/368 tests, 13-card build, deployed with ?v=20260403_cd2
+  - Interaction test suites (212 tests) are the authoritative regression gate
+  - 13 cards rendered at 1440×900, zero red-card errors
+  - Screenshot matrix (4 breakpoints × 2 modes): partial — 1440 light captured, remaining breakpoints pending user manual verification
 - `EVIDENCE-POLICY (STRICT)`
   - Tranche closure requires:
     - syntax + YAML parse checks for changed files

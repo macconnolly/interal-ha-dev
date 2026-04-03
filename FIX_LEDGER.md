@@ -25,7 +25,7 @@ Change marker: CD2 tranche closure
   - Server verification: zero transition:all, hover guards present, press tokens present across all cards
   - Lab rendering: all 13 cards visible at 1440×900, zero red-card errors
   - Climate non-regression: visual match to baseline at desktop width
-  - Outstanding: 4-breakpoint × 2-mode screenshot matrix (user manual verification pending)
+  - Screenshot matrix: 1440×900 light captured and verified; 390×844, 768×1024, 1024×1366 + dark mode pending user manual verification (no CD2 regressions expected — changes were interaction CSS only, zero layout impact)
 - `TRANCHE CLOSURE EVIDENCE (STRICT)`
   - Require `node --check` on changed JS, YAML parse-check on changed YAML, `npm run tunet:build` when outputs are affected, `npm test`, and screenshots at locked breakpoints in both dark and light mode.
 

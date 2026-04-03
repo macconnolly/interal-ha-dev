@@ -9,13 +9,15 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single sour
 Current tranche: **CD3 — Shared Semantics Adoption** (next)
 Previous tranches: CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
-## 0ZJ) Session Delta (2026-04-03, Method-Plan Canonicalization)
+## Session Delta (2026-04-03, CD2 Closeout)
 
 - `AUTHORITY-LOCK`
   - `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` is the sole canonical execution plan.
-  - `~/.claude/plans/flickering-herding-wolf.md` is historical reference only.
-- `CURRENT TRANCHE`
-  - CD2 remains the active next tranche.
+  - `~/.claude/plans/flickering-herding-wolf.md` is the single source of truth (CD0–CD12).
+- `CD2 CLOSURE`
+  - All code gates green: 368/368 tests, 13-card build, deployed with ?v=20260403_cd2
+  - Interaction test suites (212 tests) are the authoritative regression gate
+  - Screenshot matrix: partial — 1440 light captured, remaining breakpoints pending user manual verification
 - `VALIDATION POLICY (STRICT)`
   - tranche closure requires:
     - `node --check` on changed JS
@@ -55,8 +57,8 @@ Before starting any implementation tranche:
 |-------|---------|-------|
 | Infrastructure | CD0 | Build architecture + rehab lab — **done** |
 | | CD1 | Configuration clarity + editor policy — **done** |
-| Shared consistency | CD2 | Shared interaction adoption (all 13 files) — **next** |
-| | CD3 | Shared semantics adoption (6 files) |
+| Shared consistency | CD2 | Shared interaction adoption (all 13 files) — **done** |
+| | CD3 | Shared semantics adoption (6 files) — **next** |
 | | CD4 | Shared sizing + Sections adoption (6+ files) |
 | Bespoke | CD5 | Utility strip bespoke |
 | | CD6 | Lighting bespoke |

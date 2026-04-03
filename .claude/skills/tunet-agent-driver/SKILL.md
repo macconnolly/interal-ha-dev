@@ -66,14 +66,14 @@ Switch to the tranche workflow and execute one small, validated slice at a time.
 
 This skill is authoritative only on the intended Tunet working branch:
 
-- `claude/dashboard-nav-research-QnOBs`
+- `main`
 
 Before doing substantive work, record:
 
 1. current branch
 2. current HEAD commit
 
-If the current branch is not `claude/dashboard-nav-research-QnOBs`:
+If the current branch is not `main`:
 
 - stop
 - report the actual branch
@@ -92,6 +92,27 @@ When the control documents disagree, use this precedence order:
 5. `Dashboard/Tunet/CLAUDE.md`
 
 Do not silently resolve conflicts. Record them in a `CONTROL_DOC_CONFLICTS` section.
+
+## Surface Model (per plan.md:1041-1108)
+
+Three surfaces with distinct roles:
+
+| Surface | Role | Leads When |
+|---------|------|------------|
+| `tunet-suite-config.yaml` (repo YAML) | Architecture source, branch truth | Architecture, entity normalization, resource pathing |
+| `tunet-suite-storage` (HA storage dashboard) | **Primary UX evaluation surface** | Product feel, usability, visual hierarchy, nav/popup/layout |
+| `tunet-overview` + legacy dashboards | Historical reference, comparison aid | Finding older behavior, isolated card testing |
+
+Each tranche must declare which surface leads. If surfaces drift, say so explicitly.
+Evaluate UX on `tunet-suite-storage`. Validate architecture on repo YAML.
+
+## Active Plan Reference
+
+The current execution plan is at `.claude/plans/ethereal-zooming-cherny.md`. It defines:
+- Surface-driven tranche execution (Living Room → popup → overview → media → remaining rooms)
+- Profile resolver contract superseded as policy (code removal incremental per-surface)
+- Build migration sequenced after Surface 1
+- Scope locks respected by default (see plan for full lock table)
 
 ## Stale Findings Protocol
 
@@ -149,26 +170,26 @@ UI / UX quality bar to keep in view:
 Do not accept or reject these blindly. Every substantial run using this skill must explicitly confirm, refine, or reject them with evidence:
 
 - Most Tunet cards are only partially Sections-native.
-- `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js` is the biggest current offender because it still models layout around explicit `rows`, fixed `grid-auto-rows`, and tile clipping.
-- `Dashboard/Tunet/Cards/v2/tunet_nav_card.js` is fixed-position chrome using global offsets and must be treated as chrome, not as a normal Sections content card.
+- `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js` is the biggest current offender because it still models layout around explicit `rows`, fixed `grid-auto-rows`, and tile clipping.
+- `Dashboard/Tunet/Cards/v3/tunet_nav_card.js` is fixed-position chrome using global offsets and must be treated as chrome, not as a normal Sections content card.
 - `Dashboard/Tunet/tunet-suite-storage-config.yaml` overuses `column_span`; that may be acceptable for composition but does not prove lower-level card correctness.
 
 The cards that require the hardest scrutiny are:
 
-- `Dashboard/Tunet/Cards/v2/tunet_lighting_card.js`
-- `Dashboard/Tunet/Cards/v2/tunet_nav_card.js`
-- `Dashboard/Tunet/Cards/v2/tunet_status_card.js`
-- `Dashboard/Tunet/Cards/v2/tunet_rooms_card.js`
-- `Dashboard/Tunet/Cards/v2/tunet_speaker_grid_card.js`
+- `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js`
+- `Dashboard/Tunet/Cards/v3/tunet_nav_card.js`
+- `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+- `Dashboard/Tunet/Cards/v3/tunet_rooms_card.js`
+- `Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
 
 The cards that currently appear closer to acceptable Sections behavior are:
 
-- `Dashboard/Tunet/Cards/v2/tunet_actions_card.js`
-- `Dashboard/Tunet/Cards/v2/tunet_climate_card.js`
-- `Dashboard/Tunet/Cards/v2/tunet_weather_card.js`
-- `Dashboard/Tunet/Cards/v2/tunet_sensor_card.js`
-- `Dashboard/Tunet/Cards/v2/tunet_media_card.js`
-- `Dashboard/Tunet/Cards/v2/tunet_light_tile.js`
+- `Dashboard/Tunet/Cards/v3/tunet_actions_card.js`
+- `Dashboard/Tunet/Cards/v3/tunet_climate_card.js`
+- `Dashboard/Tunet/Cards/v3/tunet_weather_card.js`
+- `Dashboard/Tunet/Cards/v3/tunet_sensor_card.js`
+- `Dashboard/Tunet/Cards/v3/tunet_media_card.js`
+- `Dashboard/Tunet/Cards/v3/tunet_light_tile.js`
 
 ## Required 4-Agent First Wave
 

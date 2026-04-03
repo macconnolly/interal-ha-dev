@@ -1,8 +1,46 @@
 # Tunet Suite Fix Ledger
 
-Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-13
+Working branch: `main`
+Last updated: 2026-04-02
 Scope: `/home/mac/HA/implementation_10`
+Active plan: `.claude/plans/ethereal-zooming-cherny.md`
+
+## Session Delta (2026-04-02, Tranche 0 — Contract Reconciliation)
+
+Change marker: `Tranche 0`
+
+- `GOVERNANCE-RESET`
+  - Profile resolver contract superseded as policy (see `Dashboard/Tunet/Agent-Reviews/profile_contract_supersession.md`)
+  - Surface-driven execution model adopted; card work in service of surfaces
+  - Build migration sequenced after Surface 1
+  - All CLAUDE.md, AGENTS.md updated to reflect current decisions
+- `OPEN ISSUES — CURRENT STATE`
+  - KI-001 (drag brightness broken): fix candidate deployed at `?v=20260314_v3b`, awaiting user validation
+  - KI-002 (no visual config editors): reframed as surface-driven; verify getConfigForm() per surface tranche
+  - KI-003 (rooms row toggle oversized): power button same size as orbs is CORRECT/INTENTIONAL — not a bug
+  - Status profiles broken: root cause is missing `:host { font-size: 16px }` em anchor — G3S scope, bugfix-only
+  - Light tile compact spacing: drag bar too thick, % too close to bar, icons too close to top — surface tranche work
+  - Rooms text truncation: "bri" abbreviation + narrow container — surface tranche work
+  - Weather forecast config: forecast_days/hours work but visual display doesn't expand — surface tranche work
+- `V3 REGRESSION FIXES (COMMITTED, NOT DEPLOYED)`
+  - getGridOptions() rows:'auto' + min_rows restored on 7 non-profile v3 cards
+  - Nav card G3.0 neutralization backported (version → 0.2.4)
+- `DESIGN DOC RECONCILIATION (IN PROGRESS)`
+  - 4-agent review running: HA research, CSS map, feasibility critique
+  - Dark amber resolved: #fbbf24 is correct (code + memory lock); v8.3 #E8961E is stale
+  - Glass opacity: code uses 0.68/0.72, v8.3 says 0.55/0.65 — v8.3 stale
+  - Cross-card interaction state vocabulary: 10 divergences identified across 13 cards
+  - 3 cards (media, weather, sonos) have zero :focus-visible — accessibility debt
+- `SCOPE LOCKS — CURRENT STATE`
+  - Status → G3S: RESPECTED (bugfix-only)
+  - G6.1 soak: 24/30 days elapsed; gate opens Apr 9
+  - Profile contract: SUPERSEDED AS POLICY
+  - Breakpoints: LOCKED (390×844, 768×1024, 1024×1366, 1440×900)
+- `EM PREFERENCE`
+  - User confirmed: prefer em over px for all sizing (shadows, spacing, typography)
+  - Status card em-based shadows are the correct pattern; other cards should migrate TO em
+  - Climate card hardcoded px values are legacy debt for surface tranche migration
+  - 16px em anchor (:host { font-size: 16px }) is CRITICAL and must be documented in spec
 
 ## Session Delta (2026-03-13, T-011A.22)
 

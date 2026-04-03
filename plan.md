@@ -1,7 +1,49 @@
-# Tunet Suite Dashboard - Implementation Plan (V2 Next)
+# Tunet Suite Dashboard - Implementation Plan
 
-Working branch: `claude/dashboard-nav-research-QnOBs`
-Last updated: 2026-03-14
+Working branch: `main`
+Last updated: 2026-04-02
+Active plan: `.claude/plans/ethereal-zooming-cherny.md`
+
+## Session Delta (2026-04-02, Surface-Driven Reset)
+
+Tranche marker: `Tranche 0` (Contract Reconciliation — documentation only, zero code changes)
+
+- `GOVERNANCE-RESET`
+  - Surface-driven execution model adopted: card work in service of surfaces, not front-loaded card-by-card
+  - Surface order locked: Living Room page → Living Room popup → Overview → Media → remaining rooms
+  - Profile resolver contract superseded as policy (see `Dashboard/Tunet/Agent-Reviews/profile_contract_supersession.md`)
+  - Code removal incremental per-surface tranche; legacy profile code stays for untouched cards
+  - Build migration (esbuild) sequenced AFTER Surface 1
+  - All CLAUDE.md files updated (root, Tunet, Cards, Cards/v3)
+  - AGENTS.md updated: v3 authority, breakpoints, status/actions/build locks
+  - tunet-agent-driver skill updated: branch guard → main, card paths → v3, surface model added
+- `SURFACE-MODEL`
+  - Three surfaces with distinct roles (per plan.md:1041-1108):
+    - `tunet-suite-config.yaml` = architecture source, repo truth
+    - `tunet-suite-storage` = primary UX evaluation surface
+    - `tunet-overview` + legacy = historical reference only
+  - Surface leadership rules: each tranche declares which surface leads; drift must be explicit
+- `SCOPE-LOCKS-EVALUATED`
+  - Status → G3S: RESPECTED (bugfix-only)
+  - G6.1 soak: NEAR EXPIRY (24/30 days, gate opens Apr 9)
+  - Profile contract: SUPERSEDED AS POLICY
+  - Surface order: RESPECTED
+  - Popup → Browser Mod: RESPECTED
+  - Breakpoints: LOCKED (390×844, 768×1024, 1024×1366, 1440×900)
+- `V3-REGRESSION-FIXES`
+  - getGridOptions() rows:'auto' + min_rows restored on 7 non-profile v3 cards
+  - Nav card G3.0 neutralization backported (TUNET_NAV_OFFSETS_DISABLED, version → 0.2.4)
+  - Fixes committed but NOT deployed to server yet
+- `PLAYWRIGHT-CONNECTED`
+  - Playwright MCP connected to HA at 10.0.0.21:8123
+  - Visual feedback loop operational: can screenshot dashboards for validation
+  - First screenshots taken: tunet-overview (v2 rendering) and tunet-g2-lab-v3 (profile A/B comparison)
+- `DESIGN-DOC-RECONCILIATION (IN PROGRESS)`
+  - design_language.md v9.0 = architecture; tunet-design-system.md v8.3 = visual specs
+  - v8.3 has interaction choreography (§6), animation timing (§11) that v9.0 lacks — must be merged
+  - Cross-card interaction state vocabulary (hover, active, focus, disabled) identified as critical gap
+  - Dark amber conflict: v9.0 #fbbf24 vs v8.3 #E8961E — needs resolution against actual code
+  - 4-agent review launched for design doc reconciliation + interaction vocabulary
 
 ## Session Delta (2026-03-14, T-011A.23)
 

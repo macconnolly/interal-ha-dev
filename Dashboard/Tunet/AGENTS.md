@@ -21,8 +21,10 @@ Important:
 - Treat `sections_layout_matrix.md` as provisional until sections research + live tuning loop is completed and documented.
 - Treat `Dashboard/Tunet/Docs/nav_popup_ux_direction.md` as historical reference only unless explicitly re-activated.
 - For profile/unification work, also read:
-  - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (canonical profile contract)
+  - `Dashboard/Tunet/Agent-Reviews/unified_tile_architecture_conclusion.md` (historical profile architecture — profile resolver contract is superseded as policy; see CLAUDE.md for current auto-size + CSS tile-size variant contract)
   - `Dashboard/Tunet/Agent-Reviews/start.md` (execution start guide)
+- For the active execution plan, read:
+  - `.claude/plans/ethereal-zooming-cherny.md` (surface-driven reset plan)
 
 ## 2) Design/Execution Precedence
 
@@ -52,6 +54,9 @@ Do not silently resolve contradictions. Record the conflict and chosen interpret
 - Interaction supersession lock: room-card global `tap-toggle / hold-popup` language is historical. Active contract is card-body primary route action with explicit controls owning toggles.
 - `layout-card` is allowed and encouraged for breakpoint-specific compositions (example: desktop rooms tiles vs mobile rooms row).
 - Prefer Home Assistant `2026.3` UI configuration capabilities wherever practical before YAML-only solutions.
+- Status card scope is locked to G3S bugfix-only (no new features or editor work).
+- Actions card remains YAML-driven until backend status/entity mapping work is completed.
+- Build system migration (esbuild bundling) is deferred until after Surface 1 (Living Room page + popup) validation.
 
 ## 4) Workflow / Scope Discipline
 
@@ -80,6 +85,7 @@ Before claiming completion:
   - `python3` + `yaml.safe_load`
 - Validate behavior against explicit acceptance checks from `plan.md`/`handoff.md`.
 - For UI issues, include exact repro path and observed result.
+- Validate at locked breakpoints: 390×844 (mobile), 768×1024 (tablet), 1024×1366 (laptop), 1440×900 (desktop).
 
 ## 7) Sections Layout Research Requirement
 
@@ -112,11 +118,12 @@ Cards inside that section declare how many of those `36` columns they consume.
 Tunet v2 styling must remain centralized.
 
 Primary style system:
-- `Dashboard/Tunet/Cards/v2/tunet_base.js`
+- `Dashboard/Tunet/Cards/v3/tunet_base.js` (v3 is sole implementation authority since Mar 14, 2026)
 
 Rules:
-- Shared visual language (tokens, surfaces, density, shadows, radii, typography baselines, control sizing) must be defined in `tunet_base.js`.
+- Shared visual language (tokens, surfaces, density, shadows, radii, typography baselines, control sizing) must be defined in `tunet_base.js` (v3 only).
 - Card files should consume shared tokens/surfaces first, then add minimal card-specific overrides.
+- Do not use `Cards/v2/` as a style source — v2 is historical reference only.
 - Do not introduce isolated per-card style systems that duplicate or fork base semantics unless explicitly approved and documented as an exception.
 - If a visual issue appears across multiple card families, investigate/fix base-layer primitives first before patching individual cards.
 - Any intentional card-local exception must be documented in `handoff.md` with rationale and impacted breakpoints.

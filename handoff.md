@@ -1,12 +1,47 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-03-13 (America/Denver)  
+Last updated: 2026-04-02 (America/Denver)  
 Intended reader: next Codex run in a new chat  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
+Active plan: `.claude/plans/ethereal-zooming-cherny.md` (surface-driven reset)
+
 Source filter for this run:
-- ignore battle-card/master-ledger artifacts in `Dashboard/Tunet/Agent-Reviews/` as primary planning input
-- use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and `Dashboard/Tunet/Docs/sections_layout_matrix.md` as control sources
+- use `plan.md`, `FIX_LEDGER.md`, this `handoff.md`, and active plan file as control sources
+- use `Dashboard/Tunet/Docs/sections_layout_matrix.md` as provisional (requires validation via Sections research)
+- agent review artifacts in `Dashboard/Tunet/Agent-Reviews/` are reference, not primary planning input
+
+## 0ZH) Session Delta (2026-04-02, Tranche 0 — Contract Reconciliation)
+
+Surface-driven reset initiated. Major governance changes:
+
+- **Profile resolver contract superseded as policy**
+  - Replacement: lightweight auto-size + hand-tuned CSS tile-size variants (em-based)
+  - Legacy profile code stays for untouched cards; removal incremental per-surface
+  - See: `Dashboard/Tunet/Agent-Reviews/profile_contract_supersession.md`
+- **Surface-driven execution adopted**
+  - Order: Living Room page → popup → overview → media → remaining rooms
+  - Card work in service of surfaces, not front-loaded card-by-card redesign
+  - Build migration (esbuild) sequenced AFTER Surface 1
+- **Three-surface model ratified** (per plan.md:1041-1108)
+  - `tunet-suite-storage` = primary UX evaluation
+  - `tunet-suite-config.yaml` = architecture truth (repo)
+  - `tunet-overview` = historical/comparison only
+- **Em units preferred over px** for all sizing (user preference, Decision 6)
+  - 16px em anchor (`:host { font-size: 16px }`) mandatory for all cards
+  - Status card em-based shadows are the correct forward pattern
+- **Playwright MCP connected** to HA at 10.0.0.21:8123 — visual feedback loop operational
+- **4-agent design review completed** (Agent 2 HA research pending):
+  - Agent 3: Climate card measured visual reference + 10 cross-card divergences (agent3_interaction_css_map.md)
+  - Agent 4: Design doc merge critique — 7 findings, 3 critical (agent4_design_reconciliation_critique.md)
+  - Dark amber: #fbbf24 confirmed correct; v8.3 #E8961E stale
+  - Glass: code 0.68/0.72; v8.3 0.55/0.65 stale
+  - Merge strategy: import §6/§11/§5/§10/§14 from v8.3; skip stale token tables
+- **Control docs updated**: CLAUDE.md (all 4 levels), AGENTS.md, plan.md, FIX_LEDGER.md, this handoff
+- **v3 regression fixes committed** (not deployed): getGridOptions rows:'auto' on 7 cards, nav G3.0 backport
+
+Current Tranche 0 status: 0A (source-of-truth) ✓, 0B (scope locks) ✓, 0C (design docs) IN PROGRESS
+Next: Write cross-card interaction state vocabulary, merge validated v8.3 sections into design_language.md, user review
 
 ## 0ZG) Session Delta (2026-03-13, T-011A.22)
 

@@ -1,574 +1,232 @@
-# Tunet Visual Defect Ledger
+Built from screenshot evidence on the live HA surfaces at `390x844`, `768x1024`, `1024x1366`, and `1440x900`, with phone-focused card captures from the rehab lab plus full-page captures from G5 and Overview. Primary evidence: [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png), [audit-390-status-open.png](/home/mac/HA/implementation_10/audit-390-status-open.png), [audit-390-status-sonos-open.png](/home/mac/HA/implementation_10/audit-390-status-sonos-open.png), [audit-768-open-states.png](/home/mac/HA/implementation_10/audit-768-open-states.png), [g5-390-full.png](/home/mac/HA/implementation_10/g5-390-full.png), [g5-768-full.png](/home/mac/HA/implementation_10/g5-768-full.png), [g5-1024-full.png](/home/mac/HA/implementation_10/g5-1024-full.png), [g5-1440-full.png](/home/mac/HA/implementation_10/g5-1440-full.png), [overview-390-full.png](/home/mac/HA/implementation_10/overview-390-full.png).
 
-**Created:** 2026-04-04
-**Source:** Post-CD4 visual audit across all 4 breakpoints (390×844, 768×1024, 1024×1366, 1440×900) in both dark and light mode.
-**Screenshot evidence:** audit-390-mobile-full.png, audit-390-status-open.png, audit-390-status-sonos-open.png, audit-768-open-states.png, g5-390-full.png, g5-768-full.png, g5-1024-full.png, g5-1440-full.png, overview-390-full.png, cd3-light-390x844.png, cd3-dark-390x844.png, cd3-light-768x1024.png, cd3-dark-768x1024.png, cd3-light-1024x1366.png, cd3-dark-1024x1366.png, cd3-light-1440x900.png, cd3-dark-1440x900.png
+**Global**
+- `Runtime defect`: mobile/tablet composition is not stable enough to judge cards in isolation. Cards are repeatedly stranded in undersized left-biased islands with large dead whitespace, especially in [g5-768-full.png](/home/mac/HA/implementation_10/g5-768-full.png) and [audit-768-open-states.png](/home/mac/HA/implementation_10/audit-768-open-states.png).
+- `Runtime defect`: mobile nav is not reliably behaving as a bottom dock. In the per-card mobile evidence pack it renders as a left rail overlay over content, corrupting the card screenshots themselves, for example [mobile-viewport-card-12-tunet-lighting-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-12-tunet-lighting-card.png) and [mobile-viewport-card-09-tunet-rooms-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-09-tunet-rooms-card.png).
+- `Doc mismatch`: [cards_reference.md#L1410](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1410) describes nav as a stable mobile dock / desktop rail split, but current runtime behavior is visibly unstable.
+- `Improvement`: establish a stricter “phone companion” composition contract. Several cards look acceptable alone but bad when forced into current section compositions.
 
-**Verdict:** The shared passes (CD0–CD4) fixed infrastructure (transitions, hover, press, focus, keyboard, sizing contracts) but the visual output at phone and tablet is not home-dashboard-grade. Mobile is extremely bad across most cards.
+**1. `tunet-actions-card`**
+- `Runtime defect`: no catastrophic visual failure, but the strip still reads as a narrow utility row dropped into oversized sections, especially on tablet/desktop where dead space dwarfs the control itself in [g5-768-full.png](/home/mac/HA/implementation_10/g5-768-full.png).
+- `Doc mismatch`: [cards_reference.md#L173](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L173) says `actions` is editor `N`, but the current editor exposes an `actions` object selector at [tunet_actions_card.js#L307](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L307).
+- `Improvement`: either make the strip genuinely wrap/stack-aware or stop claiming multi-row sizing. The row never wraps at [tunet_actions_card.js#L190](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L190) while `getCardSize()` still claims row-based height at [tunet_actions_card.js#L440](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L440).
+
+**2. `tunet-scenes-card`**
+- `Runtime defect`: no severe visual failure surfaced in the current mobile rehab fixture; this is one of the less visibly broken cards right now.
+- `Doc mismatch`: [cards_reference.md#L294](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L294) says `allow_wrap: true` is the Sections-safe default, but runtime still defaults it to false at [tunet_scenes_card.js#L400](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_scenes_card.js#L400).
+- `Improvement`: lock and document one strip contract. Right now the docs overstate CD4 closure.
+
+**3. `tunet-light-tile`**
+- `Runtime defect`: the standalone tiles look visually orphaned in rehab mobile because they sit between larger card families without enough local context in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png).
+- `Doc mismatch`: none severe in the visual contract itself; the card still largely behaves as documented in [cards_reference.md#L349](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L349).
+- `Improvement`: horizontal variant truncates too aggressively and needs stronger name/layout balancing on phone.
+
+**4. `tunet-lighting-card`**
+- `Runtime defect`: still one of the worst visual offenders. At tablet width the compact secondary row feels clipped/stranded rather than container-native, visible in [audit-768-open-states.png](/home/mac/HA/implementation_10/audit-768-open-states.png). On phone the card itself looks decent in isolation, but the overall section behavior is not adaptive enough.
+- `Runtime defect`: scroll-mode behavior remains suspect because the card still uses fixed grid and fixed scroll column math rather than true container-fit. Relevant source: [tunet_lighting_card.js#L383](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L383), [tunet_lighting_card.js#L396](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L396), [tunet_lighting_card.js#L1259](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L1259).
+- `Doc mismatch`: [cards_reference.md#L506](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L506) correctly calls it the worst Sections-safety card, but the current docs still under-describe how broken it feels in real tablet/mobile compositions.
+- `Improvement`: compact/grid needs true container-native drop behavior instead of breakpoint-driven fixed columns.
+
+**5. `tunet-rooms-card`**
+- `Runtime defect`: mobile row mode is overcompressed. Labels/status lines collapse into abbreviations and clipped fragments in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png).
+- `Runtime defect`: per-card screenshot [mobile-viewport-card-09-tunet-rooms-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-09-tunet-rooms-card.png) is partly contaminated by nav overlay, but it still shows how little horizontal room the row model has.
+- `Doc mismatch`: [cards_reference.md#L657](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L657) calls row-density/truncation a known risk. That should now be treated as an active defect, not just a validation note.
+- `Improvement`: row mode needs stronger phone typography, status compression rules, and control spacing.
+
+**6. `tunet-climate-card`**
+- `Runtime defect`: the single card is still relatively strong, but the standard + thin pairing at phone width is crowded and visually collides in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png).
+- `Doc mismatch`: [cards_reference.md#L752](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L752) calling climate the “gold standard” is too broad unless it means “baseline styling reference,” not “always-composed well on phone.”
+- `Improvement`: define a phone-specific companion-placement rule so two climate variants are not presented side-by-side in a cramped context.
+
+**7. `tunet-weather-card`**
+- `Runtime defect`: least broken of the environment cards, but it spends too much vertical space on controls before the actual weather content on phone in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png).
+- `Runtime defect`: forecast density is still cramped at phone width in [mobile-viewport-card-08-tunet-weather-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-08-tunet-weather-card.png).
+- `Doc mismatch`: [cards_reference.md#L860](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L860) correctly warns about density, but the card currently looks less “dense but acceptable” and more “over-instrumented for phone.”
+- `Improvement`: reduce toggle chrome on phone and increase first-glance weather readability.
+
+**8. `tunet-sensor-card`**
+- `Runtime defect`: live labels are not acceptable. Rows show raw entity IDs such as `sensor.dining_room_temperature` because render falls back to `sensorCfg.label || sensorCfg.entity` at [tunet_sensor_card.js#L710](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sensor_card.js#L710). This is obvious in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png) and [mobile-viewport-card-05-tunet-sensor-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-05-tunet-sensor-card.png).
+- `Doc mismatch`: [cards_reference.md#L923](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L923) documents `label`, but the rehab YAML uses `name`. The docs do not call out that `name` will not display.
+- `Improvement`: normalize `name -> label` in config, or tighten the docs and fixtures immediately.
+
+**9. `tunet-status-card`**
+- `Runtime defect`: the dropdown tile title/content model is visibly wrong on phone. The card repeats or awkwardly pairs title/value/label in ways that feel mechanical rather than intentional, visible in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png).
+- `Runtime defect`: the dropdown overlay collides with lower content and the bottom nav in [audit-390-status-open.png](/home/mac/HA/implementation_10/audit-390-status-open.png).
+- `Runtime defect`: the dropdown control’s accessible/button name is polluted by the full option list because the menu lives inside the activated tile at [tunet_status_card.js#L1081](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_status_card.js#L1081) and opens in-place at [tunet_status_card.js#L1519](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_status_card.js#L1519).
+- `Doc mismatch`: [cards_reference.md#L1034](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1034) overstates the quality of the dropdown overlay positioning.
+- `Improvement`: the whole card needs content-hierarchy simplification on phone, not just bugfixes.
+
+**10. `tunet-media-card`**
+- `Runtime defect`: active speaker naming is too aggressively reduced. The card shows `Living` instead of the full speaker name because `_firstWordName()` is used at [tunet_media_card.js#L733](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L733) and injected into the UI at [tunet_media_card.js#L1077](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L1077).
+- `Runtime defect`: the media group-membership check remains pointer-only in source at [tunet_media_card.js#L1087](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L1087), so CD3 semantics are still not actually complete here.
+- `Doc mismatch`: [cards_reference.md#L1209](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1209) under-describes both the naming simplification and the remaining semantics gap.
+- `Improvement`: preserve identity-rich speaker naming on phone, even if compacted.
+
+**11. `tunet-sonos-card`**
+- `Runtime defect`: strongest live width/overflow offender. The source button and source dropdown are still width-unsafe at [tunet_sonos_card.js#L152](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L152) and [tunet_sonos_card.js#L178](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L178). This is visible in [audit-390-status-sonos-open.png](/home/mac/HA/implementation_10/audit-390-status-sonos-open.png) and [audit-768-open-states.png](/home/mac/HA/implementation_10/audit-768-open-states.png).
+- `Runtime defect`: source options still use a bare text node for the main name at [tunet_sonos_card.js#L1049](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L1049), so long names widen the menu.
+- `Runtime defect`: the always-visible speaker strip is over-wide and continues to spill beyond phone/tablet viewports.
+- `Doc mismatch`: [cards_reference.md#L1267](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1267) treats this as a width-pressure caveat; current runtime shows it as a real failure.
+- `Improvement`: width-safe long-name handling is mandatory, not polish.
+
+**12. `tunet-speaker-grid-card`**
+- `Runtime defect`: still failing on phone/tablet. Even with the container query in [tunet_speaker_grid_card.js#L184](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js#L184), the rightmost tiles still spill or require an unrealistic amount of width in rehab mobile/tablet.
+- `Runtime defect`: per-card screenshot [mobile-viewport-card-03-tunet-speaker-grid-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-03-tunet-speaker-grid-card.png) is nav-contaminated, but the full-page captures already showed the card is not phone-safe.
+- `Doc mismatch`: [cards_reference.md#L1357](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1357) frames this as a validation concern; current state is worse than that.
+- `Improvement`: either enforce a real phone-safe stacked mode or treat this as not phone-eligible by default.
+
+**13. `tunet-nav-card`**
+- `Runtime defect`: the mobile nav is not stable enough to serve as reference chrome. In the mobile per-card screenshots it appears as a left rail overlay, not a bottom dock.
+- `Runtime defect`: the global offset approach still mutates page layout via injected margins/padding at [tunet_nav_card.js#L177](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_nav_card.js#L177) and [tunet_nav_card.js#L478](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_nav_card.js#L478).
+- `Doc mismatch`: [cards_reference.md#L1442](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1442) calling it the accessibility/token reference implementation is too generous while mobile mode is unstable.
+- `Improvement`: nav needs its own stabilization pass before it can be used as the baseline for judging other mobile cards.
 
 ---
 
-## Global Issues
-
-### G-1: Mobile/tablet composition structurally weak
-Cards strand themselves in undersized left-biased islands with large dead space, especially in G5 and rehab tablet. Visible in g5-768-full.png and audit-768-open-states.png.
-**Severity:** High
-
-### G-2: Open overlays compete with fixed bottom nav
-Status and Sonos menus stack into the footer region on phone. Visible in audit-390-status-open.png and audit-390-status-sonos-open.png.
-**Severity:** High
-
-### G-3: Page-level horizontal overflow
-Measured scrollWidth > clientWidth at 390, 768, and 1024 while Sonos/source states were open.
-**Severity:** High
-
-### G-4: Nav global offset system is a layout mutation
-Injects margin-left and margin-bottom into HA view containers at `tunet_nav_card.js:177`, applies at `tunet_nav_card.js:478`. Not just chrome — it mutates layout.
-**Severity:** High (foundational risk)
-
----
-
-## Per-Card Issues
-
-### tunet-actions-card
-
-**V-ACT-1: "Sleep Mode" chip truncated at 390px**
-- Second actions strip (compact=false) clips last chip label to "Sleep M..."
-- Severity: Medium
-
-**V-ACT-2: Row never wraps despite getCardSize claiming multi-row**
-- `.actions-row` at L190 doesn't wrap; `getCardSize()` at L440 claims multi-row height
-- Mismatch between declared height and actual single-row rendering
-- Severity: Medium
-
-**V-ACT-3: Narrow strip dropped into oversized sections**
-- Card behaves like a narrow strip in oversized section containers
-- No catastrophic failure but not compositionally strong
-- Severity: Low
-
-### tunet-scenes-card
-
-**V-SCN-1: allow_wrap docs/runtime contradiction**
-- cards_reference.md L294 says allow_wrap:true is the resolved default
-- Runtime at `tunet_scenes_card.js:400` still defaults false in setConfig normalization
-- getStubConfig was changed to true (CD4) but setConfig fallback is still false
-- **This is a direct docs/runtime contradiction**
-- Severity: **High**
-
-**V-SCN-2: Compact strip chips undersized at 390px**
-- Touch targets appear < 44px
-- Severity: Medium
-
-### tunet-light-tile
-
-**V-LTL-1: Standalone tiles look orphaned in rehab layouts**
-- Severity: Low (lab layout, not card issue)
-
-**V-LTL-2: Horizontal tile truncates too aggressively on phone**
-- Entity name cut off, not polished at 390px
-- Severity: Medium
-
-**V-LTL-3: Progress bar thickness differs between vertical and horizontal variants**
-- Visual inconsistency in progress bar weight
-- Severity: Medium
-
-### tunet-lighting-card
-
-**V-LIT-1: Grid mode is fixed-column, not container-native**
-- `grid-template-columns: repeat(var(--cols, 3), minmax(0, 180px))` at L383
-- Doesn't adapt to container width — columns stay fixed
-- Severity: **High**
-
-**V-LIT-2: Scroll mode hard-codes column width behavior**
-- At L396, scroll mode uses fixed column sizing
-- Severity: High
-
-**V-LIT-3: Visible tile limit based on maxRows * cols**
-- At L1259 — tile count capped by static calculation, not container awareness
-- Tablet/mobile lighting compositions feel clipped, stranded, and non-adaptive
-- Severity: High
-
-**V-LIT-4: Scroll tile view — tiles on left are cut off even when scrolled all the way over**
-- User-reported: leftmost tiles clip at the scroll container edge
-- Severity: **High**
-
-### tunet-rooms-card
-
-**V-ROM-1: Row mode power button significantly larger than light orb buttons**
-- Power button appears ~2x the size of individual orbs
-- Severity: **High** (user-reported)
-
-**V-ROM-2: Row mode orbs compressed/overlapping at 390px**
-- With 3+ lights, orbs + power button + name compete for space
-- Severity: High
-
-**V-ROM-3: Row mode visually overcompressed on phone**
-- Labels/status lines collapse into abbreviations and clipped fragments
-- Overflow hiding and line clamps at L365 and L381 are producing active defects
-- Severity: High
-
-**V-ROM-4: Row mode room icon column disproportionately wide**
-- Severity: Medium
-
-**V-ROM-5: Row/slim chevron disconnected from tap target**
-- Severity: Low
-
-### tunet-climate-card
-
-**V-CLM-1: Dual-thumb temperature values crowd at 390px**
-- "72 63 73" cramped, nearly touching
-- Severity: Medium
-
-**V-CLM-2: Standard 2-col dropdown off-center at tablet**
-- Mode dropdown doesn't right-align cleanly in 2-col section at 768px
-- Severity: Medium (user-reported)
-
-**V-CLM-3: "Gold standard" claim overstated for phone pairing**
-- Standard + thin together are crowded and visually collide on mobile
-- Partly surface issue but still matters
-- Severity: Medium
-
-### tunet-weather-card
-
-**V-WTH-1: Burns too much vertical space for toggles before weather content on phone**
-- Toggle row (Daily/Hourly/Temp/Precip) takes disproportionate vertical space at 390px
-- Severity: Medium
-
-**V-WTH-2: 5-column forecast grid cramped at narrow widths**
-- Docs already admit density risk; screenshots confirm it
-- Severity: Medium
-
-### tunet-sensor-card
-
-**V-SNS-1: Raw entity IDs showing instead of friendly names**
-- Render falls back to `sensorCfg.label || sensorCfg.entity` at L710
-- Lab YAML uses `name` key but card expects `label`
-- Produces "sensor.dining_room_temperature" in rehab mobile/tablet — not dashboard-grade
-- **Either docs must call out that `label` is the key, or card must normalize `name` → `label`**
-- Severity: **High**
-
-**V-SNS-2: Sparkline graphs not rendering in lab**
-- May need real entity history — lab-only issue
-- Severity: Medium
-
-**V-SNS-3: Sensor row chevron/action indicator inconsistent**
-- Some rows have indicators, others don't
-- Severity: Medium
-
-### tunet-status-card
-
-**V-STS-1: Dropdown tile accessible name polluted by full option list**
-- Menu rendered inside activated tile at L1081, opened at L1519
-- Full option list becomes part of the button's accessible name
-- Severity: High
-
-**V-STS-2: Menu overlaps next card/nav region on phone**
-- Visible in audit-390-status-open.png
-- Severity: High
-
-**V-STS-3: Tile content visually redundant**
-- "Home / Home", "Boost / 5% / Boost", "Adaptive / Mode"
-- Severity: Medium
-
-**V-STS-4: Excessive vertical gaps in tile grid at 768px**
-- Known height: drift (scope-locked to CD11)
-- Severity: Medium
-
-### tunet-media-card
-
-**V-MED-1: Speaker names aggressively shortened via _firstWordName()**
-- At L733 — reduces "Living Room TV Sonos Soundbar" to "Living"
-- Used in dropdown/header at L1077
-- Full names appear in lower cards, creating inconsistency
-- Severity: **High**
-
-**V-MED-2: Group-membership check is pointer-only**
-- At L1087 — CD3 semantics incomplete here
-- Severity: High
-
-**V-MED-3: Speaker tile names truncated even at 1440px**
-- "Living Roo...", "Dining Roo..." at desktop width
-- Severity: Medium
-
-**V-MED-4: Transport buttons small at 390px**
-- May be < 44px tap targets on mobile
-- Severity: Medium
-
-### tunet-sonos-card
-
-**V-SON-1: Track title doesn't fit at mobile width**
-- User-reported: title area near zero after album-art + transport + source-btn
-- Severity: **High** (user-reported)
-
-**V-SON-2: Source button/menu width-unsafe**
-- At L152 and L178 — no max-width constraint
-- Severity: High
-
-**V-SON-3: Menu options inject speaker name as bare text node**
-- At L1049 — long names widen the menu beyond viewport
-- Severity: High
-
-**V-SON-4: Always-visible speaker strip over-wide**
-- Spills beyond viewport in rehab mobile/tablet
-- Severity: High
-
-**V-SON-5: No scroll indicator on horizontal speaker strip**
-- Users may not discover scrollable content
-- Severity: Medium
-
-### tunet-speaker-grid-card
-
-**V-SPK-1: Mobile/tablet is a clear failure**
-- Even with tile container query, rightmost tiles overflow visible area
-- Severity: **High**
-
-**V-SPK-2: Fixed by explicit column count and getCardSize assumptions**
-- At L619 and L653 — not responsive to container
-- Severity: High
-
-**V-SPK-3: Speaker tile names truncated at all breakpoints**
-- Severity: Medium
-
-### tunet-nav-card
-
-**V-NAV-1: Global offset mutation is not clean reference implementation**
-- margin-left/margin-bottom injection into HA view containers
-- Severity: High (foundational)
-
-**V-NAV-2: Mobile dock competes with content flow**
-- Visible in multiple screenshots
-- Severity: Medium
-
-**V-NAV-3: Rehab lab nav reuses same icon for Card Rehab Lab and Rooms**
-- Weakens wayfinding
-- Severity: Low (lab config)
-
----
-
-## Cross-Card Issues
-
-**V-XC-1: Slider/track thickness inconsistent across cards**
-- Climate: 44px, Lighting: 6px, Sonos: 6px, Speaker grid: varies
-- Severity: Medium (user-reported)
-
-**V-XC-2: Info-tile/header-tile height inconsistent across cards**
-- Should be uniform `min-height: var(--ctrl-min-h, 42px)` but varies
-- Severity: Medium
-
-**V-XC-3: Section header typography inconsistent between cards**
-- Different font size/weight across card section headers
-- Severity: Low
-
-**V-XC-4: Cards visually over-explain themselves**
-- Redundant labels and repeated state information
-- Severity: Low
-
-**V-XC-5: No "phone companion" policy**
-- Half-width contracts acceptable at tablet/desktop are treated as universal
-- Several cards fail compositionally at phone width
-- Severity: High (systemic)
-
-**V-XC-6: Test surfaces have placeholder/dead space**
-- "New section" artifacts and dead space make good cards look worse
-- Severity: Low (lab config)
-
----
-
-## Docs That Are Wrong Or Overclaiming
-
-**V-DOC-1:** cards_reference.md L294 — scenes says allow_wrap:true is resolved default; setConfig still defaults false at L400
-**V-DOC-2:** cards_reference.md L752 — climate "gold standard" is too broad given phone pairing behavior
-**V-DOC-3:** cards_reference.md L931 — sensor docs don't warn that `label` is the display key, not `name`
-**V-DOC-4:** cards_reference.md L1060 — status dropdown overstates smart positioning; doesn't mention label pollution or footer collision
-**V-DOC-5:** cards_reference.md L1209 — media understates semantics gap and aggressive speaker name shortening
-**V-DOC-6:** cards_reference.md L1357 — speaker-grid "must be validated" should say current mobile/tablet is not acceptable
-
----
-
-## Summary
-
-| Severity | Count |
-|----------|:-----:|
-| **High** | 22 |
-| **Medium** | 18 |
-| **Low** | 8 |
-| **Total** | **48** |
-
-Plus 6 docs issues.
-
----
-
-## Mobile-Specific Issues (390px exhaustive analysis)
-
-Evidence: cd3-light-390x844.png, cd3-dark-390x844.png, cd3-review-390x844.png, cd2-lab-390x844-dark.png, cd2-lab-390x844-dark-scroll1.png, cd2-lab-390x844-dark-scroll2.png, cd2-lab-390x844-scroll3.png
-
-### Actions at 390px
-
-**V-MOB-ACT-1: Second strip (5 chips, compact=false) horizontal overflow**
-- "Sleep M..." clipped — confirmed across both light and dark
-- First strip (3 chips, compact=true) fits fine
-
-**V-MOB-ACT-2: Both strips take full width but have different visual densities**
-- 3-chip compact strip has generous spacing; 5-chip strip is cramped
-- No visual indication that the 5-chip strip has more content off-screen
-
-### Lighting at 390px
-
-**V-MOB-LIT-1: Grid Compact (3-col) tile names aggressively truncated**
-- "Dining R...", "Living Ro...", "Column ..." — barely readable at 390px
-- 3 columns is too many for 390px; should drop to 2 columns
-- Severity: **High**
-
-**V-MOB-LIT-2: Grid Compact tile progress bars are hairline-thin**
-- The amber progress bars beneath each tile are very thin (~2-3px) relative to tile size
-- Hard to see the brightness level at glance
-- Severity: Medium
-
-**V-MOB-LIT-3: Section surface + expand groups card shows 3-col at 390px**
-- Same 3-col issue as compact grid — all names truncated
-- "Floor Lamp Living R...", "Credenza Light", "Living Room Corner ..." all clipped
-- Severity: High
-
-**V-MOB-LIT-4: Scroll layout visible-tile limit shows only 2 tiles at 390px**
-- Only Couch and Floor visible in scroll viewport
-- No scroll indicator or pagination dots visible
-- Users won't discover the remaining 4 tiles
-- Severity: High
-
-**V-MOB-LIT-5: "Couch (Vertical)" standalone section — left-biased, right side empty**
-- Standalone light tile occupies ~50% of width, right side is dead space
-- Severity: Medium (lab layout)
-
-### Light Tile at 390px
-
-**V-MOB-LTL-1: Vertical compact tile is too tall relative to width**
-- The single standalone vertical tile has excessive height-to-width ratio
-- "Vert Compact / Off" with large empty area above the progress bar
-- Severity: Medium
-
-**V-MOB-LTL-2: Horizontal standard tile "Horiz Standard / Off" — icon too small**
-- The horizontal variant shows a small icon with "Off" text; icon appears undersized relative to the row height
-- Severity: Low
-
-### Rooms at 390px
-
-**V-MOB-ROM-1: Tile mode — 2-col tiles crammed, names truncated**
-- "Living Room" fits, "Kitchen" fits, "Bedroom" fits — but status text ("1/2 · 100% bri") is very small
-- Temperature/humidity sub-text is barely readable
-- Severity: Medium
-
-**V-MOB-ROM-2: Row mode — ALL room names compete with controls**
-- The row shows: icon | name+status | orbs | power button | chevron
-- At 390px everything is jammed together
-- "Living Room" row with 3 orbs: orbs appear as tiny dots
-- Severity: High (confirmed user report)
-
-**V-MOB-ROM-3: Slim mode — "All Off" button competes with section header**
-- The "Slim" header with "All Off" button — button is right-aligned but close to header text
-- Severity: Low
-
-**V-MOB-ROM-4: Slim tiles — "SOFA" custom icon takes full tile width**
-- The "Living Room" slim tile shows "SOFA" text as a large custom icon, disproportionate
-- Severity: Low (lab data)
-
-### Climate at 390px
-
-**V-MOB-CLM-1: Standard climate — slider + temps readable but cramped**
-- The 72/63/73 temperature display works but is tight
-- Slider thumb handles overlap visually when heat/cool setpoints are close
-- Severity: Medium
-
-**V-MOB-CLM-2: Two climate instances stacked — excessive vertical consumption**
-- Standard + Thin climate cards together take ~25% of the mobile viewport
-- For a rehab lab this is expected, but in production one climate card should suffice
-- Severity: Low (lab composition)
-
-### Weather at 390px
-
-**V-MOB-WTH-1: Info tile header shows entity name truncated**
-- "Auto modes + toggles" is readable but long
-- Severity: Low
-
-**V-MOB-WTH-2: Toggle row (Daily/Hourly/Temp/Precip) takes significant vertical space**
-- 4 segment buttons before any weather data
-- On mobile this pushes actual content below the fold
-- Severity: Medium
-
-**V-MOB-WTH-3: Forecast tiles cramped — day labels ("SAT", "SUN") readable but temps crowd**
-- 5 forecast columns at 390px — each column is ~60px wide
-- Temperature high/low text is very small
-- Severity: Medium
-
-### Sensor at 390px
-
-**V-MOB-SNS-1: Entity IDs showing as labels — confirmed at mobile**
-- "sensor.di..." visible as truncated entity ID
-- Not dashboard-grade at any breakpoint
-- Severity: **High** (confirmed)
-
-**V-MOB-SNS-2: Sparkline area is blank/missing**
-- Just entity name + current value, no graph
-- Severity: Medium
-
-**V-MOB-SNS-3: Row right-side chevron/value alignment inconsistent**
-- Some rows show value right-aligned, others show chevron
-- Severity: Low
-
-### Status at 390px
-
-**V-MOB-STS-1: Status Lab tiles — 4-col grid at 390px**
-- "Home", "Adaptive", "Manual", "Mode" in first row — each tile is tiny
-- Second row: "System", "Boost", "Sunset", "Inside" — even more cramped with data values
-- 4 columns is too many for 390px
-- Severity: **High**
-
-**V-MOB-STS-2: "Boost" tile shows "2%" in a tiny font**
-- Value is barely readable at mobile width
-- Severity: Medium
-
-**V-MOB-STS-3: "Sunset" tile shows "7:26 PM" — reasonable but cramped**
-- Severity: Low
-
-### Media/Sonos/Speaker Grid at 390px
-
-**V-MOB-MED-1: Media card barely visible in full-page screenshot**
-- The media card at the bottom of the mobile page is a thin strip
-- Album art, track name, transport all compressed into minimal height
-- Severity: High
-
-**V-MOB-SON-1: Sonos card below fold — not captured in current screenshots**
-- Need dedicated scroll to sonos section
-- User reports: track title doesn't fit, source button overflow
-- Severity: **High** (user-reported, unverified in screenshots)
-
-**V-MOB-SPK-1: Speaker grid below fold — not captured in current screenshots**
-- User reports: rightmost tiles overflow, mobile is "clear failure"
-- Severity: **High** (user-reported, unverified in screenshots)
-
-### Nav at 390px
-
-**V-MOB-NAV-1: Fixed bottom nav bar covers last card content**
-- Bottom nav icons (home, squares, music, books) overlay the last visible card
-- No bottom padding/margin on the page content to account for nav height
-- Severity: **High**
-
-**V-MOB-NAV-2: Nav icons are generic — "Card Rehab Lab" and "Rooms" share same icon**
-- Two identical icons in the nav bar — no visual differentiation
-- Severity: Medium (lab config, not card bug)
-
----
-
-## Updated Summary
-
-| Severity | Count |
-|----------|:-----:|
-| **High** | 32 |
-| **Medium** | 26 |
-| **Low** | 12 |
-| **Total** | **70** |
-
-Plus 6 docs issues.
-
----
-
-## G5 Sections Test Surface + Per-Card Viewport Analysis
-
-Evidence: g5-390-full.png, g5-390-lower.png, g5-390-bottom.png, g5-768-full.png, g5-1024-full.png, g5-1440-full.png, overview-390-full.png, audit-390-status-open.png, audit-390-status-sonos-open.png, audit-768-open-states.png, mobile-viewport-card-01 through card-15.
-
-### V-NAV-CRITICAL: Nav renders as left-side rail at mobile, covering card content
-
-**Every per-card mobile viewport screenshot is contaminated.** The nav card renders as a vertical sidebar rail (Home / Media / Card Rehab Lab / Rooms) overlaying the left ~80px of all card content. This is visible in ALL mobile-viewport-card-*.png screenshots.
-
-- The nav's global offset injection at `tunet_nav_card.js:177` and `tunet_nav_card.js:478` applies `margin-left` to the HA view container, but at phone width the rail overlaps instead of pushing content right
-- This makes EVERY card appear to have its left edge clipped
-- This is the single most damaging visual defect — it contaminates all mobile testing
-- **Severity: CRITICAL**
-
-### G5 Surface — 390px Full Page Issues
-
-**V-G5-1: Left-biased card islands with dead space**
-- At 390px, cards cluster on the left side with large right-margin dead space
-- Visible in g5-390-full.png — status, rooms, climate, sensor all have right-side gaps
-- Severity: High
-
-**V-G5-2: "New section" artifacts scattered through the page**
-- Two "New section" labels visible in g5-390-bottom.png below lighting and speaker cards
-- These are empty HA section containers — lab configuration debris
-- Makes the surface look unfinished even when cards are correct
-- Severity: Medium (lab config)
-
-**V-G5-3: Overview at 390px shows HA sidebar nav overlaying cards**
-- overview-390-full.png shows the HA sidebar (Overview, Adaptive Living, Bubble, Card Rehab Lab, etc.) consuming the left ~200px of the viewport
-- All card content is pushed right and compressed
-- Severity: High (different from tunet nav — this is HA's own sidebar)
-
-### Open State Issues
-
-**V-OPEN-1: Status dropdown menu overlaps sensor card and nav footer**
-- audit-390-status-open.png: status tile dropdown extends below the card, overlapping the sensor section and the bottom nav bar
-- The dropdown content is partially hidden behind the nav footer
-- Severity: High
-
-**V-OPEN-2: Sonos/media open state causes horizontal overflow**
-- audit-390-status-sonos-open.png: with both status dropdown and sonos source menu open, the page has horizontal scroll
-- scrollWidth > clientWidth confirmed at 390, 768, 1024
-- Severity: High
-
-**V-OPEN-3: At 768px, open dropdowns create cascading layout shift**
-- audit-768-open-states.png: open overlays push content flow, not float above it
-- The sensor and status sections visually shift when menus are open
-- Severity: Medium
-
-### Per-Card Viewport Findings (Nav Rail Contamination)
-
-All mobile-viewport-card-*.png screenshots show the same defect: tunet-nav-card renders as a left sidebar rail at 390px width, covering ~80px of every card's left edge.
-
-**V-PCVP-1: Media card — left portion hidden behind nav rail**
-- "Nothing ..." track name clipped by rail
-- Transport buttons shifted right
-- Speaker tiles partially obscured ("_iving Room", "_redenza Sp...")
-- Severity: Critical (nav contamination)
-
-**V-PCVP-2: Status card — leftmost tiles partially hidden**
-- "nvironmenta" visible (first letters clipped by rail)
-- "Adaptive" and "Boost" tiles readable but left edge cut
-- Severity: Critical (nav contamination)
-
-**V-PCVP-3: Lighting card — leftmost tiles hidden behind rail**
-- First column tiles ("_ouch", "_ots", "_esk") have names clipped
-- Only right two columns fully visible
-- Severity: Critical (nav contamination)
-
-**V-PCVP-4: Rooms card (Row) — room icons hidden behind rail**
-- Row mode icons are behind the nav rail
-- Only orbs and power buttons visible
-- Room names barely readable
-- Severity: Critical (nav contamination)
-
----
-
-## Final Summary
-
-| Severity | Count |
-|----------|:-----:|
-| **Critical** | 5 |
-| **High** | 36 |
-| **Medium** | 28 |
-| **Low** | 12 |
-| **Total** | **81** |
-
-Plus 6 docs issues.
-
-**The #1 blocker is V-NAV-CRITICAL:** The nav card's global offset mutation renders as a left rail at mobile width, covering the left edge of every card. Until this is fixed, no mobile visual validation can be trusted.
-
-**Critical mobile finding:** 390px is structurally broken for most cards. The shared passes fixed interaction infrastructure but did not address density, truncation, column count adaptation, or compositional weakness at phone width. This is the primary remaining work for the bespoke passes.
-
-**Cards that need mobile work most urgently (High severity at 390px):**
-1. **tunet-nav-card** — CRITICAL: left rail at mobile covers all content
-2. tunet-lighting-card — 3-col doesn't adapt, scroll mode clips, tile limit is static
-3. tunet-rooms-card — row mode overcompressed, orbs tiny, power button oversized
-4. tunet-sensor-card — entity IDs as labels
-5. tunet-status-card — 4-col at 390px is unreadable, dropdown overlaps nav
-6. tunet-sonos-card — width overflow, title doesn't fit
-7. tunet-speaker-grid-card — tiles overflow visible area
-8. tunet-media-card — compressed to thin strip, naming too aggressive
+## Fresh Screenshot Audit (2026-04-04, coherent build ?v=20260404_cd4)
+
+Evidence: audit-my-390-top.png through audit-my-390-s12.png, audit-my-768-top.png through audit-my-768-s10.png, audit-my-1440-top.png through audit-my-1440-s10.png, audit-nav-390-top.png, audit-nav-768-top.png, audit-nav-1440-top.png.
+
+### 390px Card-by-Card (fresh coherent build)
+
+**1. Actions Card (audit-my-390-top.png)**
+- First strip (3 chips: All On, All Off, Bedtime): fits well, clean
+- Second strip (mode_strip: Adaptive, TV Mode, Sleep, More Info): "More Info" clips to "More In..." — chip overflow confirmed
+- Third strip (5 chips: All On, All Off, Bedtime, Sleep Mode): "Sleep Mode" truncated to "Sleep Mo..." at edge
+- `P1`: mode_strip variant has too many chips for 390px; no wrap, no scroll indicator
+
+**2. Scenes Card (audit-my-390-top.png)**
+- First (with header, wrapped): "All On", "All Off", "Dim", "Entertain" — wraps to 2 rows. Clean, readable.
+- Second (no header, strip): "All On", "All Off", "Dim", "Entertain" — single row, fits. Clean.
+- Third (Relaxed Wrap): wraps to 2 rows. Clean.
+- Scenes is actually one of the better-behaving cards at 390px. allow_wrap:true (CD4 fix) is working.
+
+**3. Lighting Card (audit-my-390-s1.png, s2.png)**
+- Grid Compact (2-col at 390px): tiles readable — "Couch 100%", "Floor 100%", "Spots 54%", "Credenza 100%", "Desk 100%", "Columns 84%". **2-col is appropriate for 390px.** Progress bars visible.
+- Scroll Standard: "Living 80%", "Bedroom 67%", "Ceiling..." visible, but **"itchen" visible on second row left edge — left tile partially clipped by scroll container**. Scroll tiles cut off on left side when scrolled.
+- `P0`: Scroll mode left-edge clipping confirmed — tiles on left are cut off even when scrolled all the way
+- Section Surface + Expand Groups (3-col): "Couch La...", "Floor Lam...", "Credenza ..." — **names severely truncated at 3-col on 390px**
+- `P0`: 3-col is too many columns for 390px; should be 2-col
+- Tile Surface Grid Large (2-col): fits well
+
+**4. Light Tile (audit-my-390-s3.png, s4.png)**
+- Vert Compact: clean, readable "100%"
+- Horiz Standard: clean, "100%" right-aligned
+- Vert Large: clean, "54%" with wide progress bar
+- Horiz Compact (no profiles): clean, "100%"
+- Light tile in isolation is fine at 390px
+
+**5. Rooms Card (audit-my-390-s4.png, s5.png)**
+- Row mode: **"L" visible for Living Room — name truncated to single letter**. Status "C" and "·" visible but unreadable. Orbs (3) are tiny circles. Power button is **massive** relative to orbs (~3x size).
+- `P0`: Room row mode is critically broken at 390px — single-letter names, invisible status, disproportionate power button
+- Kitchen row: "Kitch..." with 3 orbs + power. Better than Living Room but still cramped.
+- Bedroom row: "Bedr..." with "On · 47% · ..." truncated
+- Tiles mode: "Living Room On · 100% bri", "Kitchen On · 100% bri", "Bedroom On · 67% bri" — **Tiles mode actually works well at 390px** in 2-col.
+- Slim mode: "Living Room · 34% · 70°F" with orbs + power + chevron. Better than Row but still tight.
+- `P1`: Row mode should not be the default at 390px or needs a phone-specific density reduction
+
+**6. Climate Card (audit-my-390-s6.png)**
+- Standard + humidity: "Indoor 70°" with "64° / 69°" heat/cool — slider visible, dual thumbs visible. Reasonable at 390px.
+- Thin: "70° in · H 64° · C 69° · C..." — compressed single line. Works but cramped.
+- Display range: "Indoor 70°" with "64° / 69°" — same as standard. Clean.
+- Climate is genuinely OK at 390px in isolation. The "gold standard" holds for single-card usage.
+
+**7. Weather Card (audit-my-390-s7.png, s8.png)**
+- Auto modes + toggles: info-tile header, Daily/Hourly toggle row, Temp/Precip toggle row. 4 buttons eat vertical space before content.
+- Temperature "43°", conditions, Wind/Humidity/UV/Pressure detail rows: readable
+- Forecast tiles: NOW 49°/35°, SUN 56°/24°, MON 61°/26°, TUE 59°/29°, WED 61°/33° — readable in 5-col
+- Fixed daily/temp, no toggles variant: cleaner — skips the toggle rows
+- Hourly precipitation variant: hourly tiles "NOW, 2PM, 3PM, 4PM, 5PM" with "0.0mm" — readable
+- `P2`: Toggle-heavy variants waste vertical space on phone; the "fixed daily" variant is better for phone
+
+**8. Sensor Card (audit-my-390-s9.png)**
+- Sparklines + thresholds: "Indoor Temp 70°F" with sparkline graph + trend arrow. **Sparklines ARE rendering now** (they weren't in earlier screenshots — the coherent build fixed this).
+- "Humidity 34%", "Outdoor 43°F", "Bedroom Humidity 47%" — all with sparklines
+- Standard, no profiles: "Outdoor Temp 43°F", "Indoor Temp 70°F", "Humidity 34%" with sparklines
+- Large, minimal: "Dining 70°F", "Kitchen 34%" — clean
+- `P2`: Sensor labels now show friendly names (not entity IDs!) — the coherent build resolved V-SNS-1. The stale base.js was likely the cause.
+- **RESOLVED**: V-SNS-1 (raw entity IDs) was caused by stale tunet_base.js on server
+
+**9. Status Card (audit-my-390-s10.png, s11.png)**
+- Summary Matrix (4-col): "Home HOME", "Envir... ADAPTIVE", "Envir... MANUAL" (with Reset badge), "A... MODE" (dropdown) — **names severely truncated, 4-col is too dense**
+- Second row: "Envir... SYSTEM", "E... BOOST", "7:27 SUNSET", "70°F INSIDE" — values readable but names cut
+- `P0`: 4-col at 390px is unreadable for tiles with multi-word names
+- Standard 2-col: "Environmental Boost / System", "Adaptive ˅ / Mode" — **much better**, readable
+- "70°F / Temp", "34% / Humidity" — clean
+- Timer + Alarm: "Environmental Boost / System", "Adaptive / Mode", "05:20 · Bath / Next Alarm", "2 / Enabled" — readable
+- `P1`: The 4-col Summary Matrix variant should reduce to 2-col at phone width
+
+**10. Media Card (audit-my-390-s11.png)**
+- Full (progress + autodiscovery): album art + "I Need You / Lynyrd Skynyrd" + "2:12 / 6:55" progress + transport. "Living ˅" speaker dropdown. **Track title and artist visible!**
+- Explicit speakers, no progress: same layout, clean
+- Media card actually renders well at 390px in the current build. The earlier "thin strip" appearance was stale build.
+- `P2`: "Living ˅" speaker name shortened by _firstWordName() — should show more of the name
+
+**11. Sonos Card (audit-my-390-s11.png, s12.png)**
+- Header shows album art + transport + "Living Room TV Sonos ..." — **source button text clips off right edge**
+- Speaker tiles in horizontal scroll: "oom TV Son... 21%", "iving Room Credenza Sp... 32%", "Kitchen Sonos 46%", "Bat..." — **tiles clip on left edge, names truncated**
+- `P0`: Source button overflows card width — text goes past right edge
+- `P0`: Speaker tile names heavily truncated; horizontal scroll clips left tiles
+- Second sonos instance: same issues
+
+**12. Speaker Grid (audit-my-390-s12.png)**
+- Compact 2-col: "Living Room 21%", "Dining Room 32%", "Kitchen 46%", "Bedroom Paused 64%" — **actually readable in 2-col!**
+- Group All / Ungroup All buttons visible
+- Standard 4-col: "Living Room" — only start of first tile visible; 4-col is way too many for 390px
+- `P0`: 4-col speaker grid at 390px is unusable
+- `P2`: 2-col compact speaker grid is genuinely fine at 390px
+
+**13. Nav Card (audit-nav-390-top.png)**
+- Bottom dock with 5 icons: home, compare (orange active), living, bedroom, and a 5th icon
+- Clean bottom bar at 390px — **no left rail issue in this screenshot**
+- The nav-lab page has "Nav Variant - Custom Items" text and empty content area
+- `P2`: The earlier "left rail" issue may have been HA's own sidebar, not tunet-nav-card
+
+### 768px Key Observations (audit-my-768-top.png)
+
+- Actions strips: full width, no truncation — clean at 768
+- Scenes: wraps correctly at 768
+- Lighting grid compact: still only shows header row at 768
+- Cards render in single-column at 768 (HA Sections default behavior with sidebar open)
+
+### 1440px Key Observations (audit-my-1440-top.png)
+
+- HA sidebar visible on left
+- Cards in wider layout with more breathing room
+- Actions, scenes, lighting all render cleanly
+- This is the least problematic breakpoint
+
+### Nav-Lab at 1440px (audit-nav-1440-top.png)
+
+- **Tunet nav card renders as LEFT SIDEBAR RAIL** overlapping HA's own sidebar
+- Icons: Lab, Compare (active), Living, Bedroom — labels visible below icons
+- HA sidebar and tunet nav rail are **competing for the same left-side space**
+- `P0`: At 1440px with HA sidebar open, the tunet nav card creates a double-sidebar problem
+- The nav card's global offset at L177/L478 pushes content right, but the tunet sidebar itself overlaps HA's sidebar labels
+
+### Key Corrections to Previous Audit
+
+1. **V-SNS-1 RESOLVED**: Sensor cards now show friendly names with sparklines. The raw entity ID display was caused by the stale tunet_base.js on the server, not a card bug.
+2. **V-NAV left-rail**: The "left rail" behavior appears to be specifically on the nav-lab page where the nav card renders as a sidebar. On the main lab page at 390px, the nav renders correctly as a bottom dock. The issue is **nav card sidebar mode conflicts with HA's own sidebar**, not a universal mobile failure.
+3. **V-MED-1**: Media card actually renders well at 390px in the coherent build. The earlier "thin strip" was stale code.
+4. **V-SPK-2**: Speaker grid 2-col compact is genuinely usable at 390px. The 4-col standard variant is the one that fails.
+5. **Scenes allow_wrap**: The "Relaxed Wrap" variant shows wrapping working correctly. The CD4 default change is effective.
+
+### Remaining True P0 Issues (confirmed on coherent build)
+
+1. **Lighting scroll left-edge clipping** — tiles cut off on left when scrolled
+2. **Lighting 3-col at 390px** — should drop to 2-col on phone
+3. **Rooms row mode at 390px** — single-letter names, disproportionate power button
+4. **Status 4-col Summary Matrix at 390px** — unreadable truncation
+5. **Sonos source button overflow** — text exceeds card width
+6. **Sonos speaker tile horizontal scroll clipping** — names truncated, left tiles clip
+7. **Speaker grid 4-col standard at 390px** — unusable
+8. **Nav sidebar mode conflicts with HA sidebar at desktop** — double-sidebar
+
+### Revised Severity Count (coherent build)
+
+| Severity | Count | Notes |
+|----------|:-----:|-------|
+| P0 (visual break) | 8 | Confirmed on coherent build |
+| P1 (doc/runtime contradiction) | 6 | From original audit |
+| P2 (improvement opportunity) | 10+ | Density, naming, composition |

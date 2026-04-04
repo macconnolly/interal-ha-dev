@@ -296,4 +296,187 @@ Injects margin-left and margin-bottom into HA view containers at `tunet_nav_card
 
 Plus 6 docs issues.
 
-**Next steps:** Exhaustive per-card mobile screenshot analysis needed — many of the above are visible in existing screenshots but some cards (sonos, speaker-grid, media) are below the fold at 390px and need dedicated mobile captures.
+---
+
+## Mobile-Specific Issues (390px exhaustive analysis)
+
+Evidence: cd3-light-390x844.png, cd3-dark-390x844.png, cd3-review-390x844.png, cd2-lab-390x844-dark.png, cd2-lab-390x844-dark-scroll1.png, cd2-lab-390x844-dark-scroll2.png, cd2-lab-390x844-scroll3.png
+
+### Actions at 390px
+
+**V-MOB-ACT-1: Second strip (5 chips, compact=false) horizontal overflow**
+- "Sleep M..." clipped — confirmed across both light and dark
+- First strip (3 chips, compact=true) fits fine
+
+**V-MOB-ACT-2: Both strips take full width but have different visual densities**
+- 3-chip compact strip has generous spacing; 5-chip strip is cramped
+- No visual indication that the 5-chip strip has more content off-screen
+
+### Lighting at 390px
+
+**V-MOB-LIT-1: Grid Compact (3-col) tile names aggressively truncated**
+- "Dining R...", "Living Ro...", "Column ..." — barely readable at 390px
+- 3 columns is too many for 390px; should drop to 2 columns
+- Severity: **High**
+
+**V-MOB-LIT-2: Grid Compact tile progress bars are hairline-thin**
+- The amber progress bars beneath each tile are very thin (~2-3px) relative to tile size
+- Hard to see the brightness level at glance
+- Severity: Medium
+
+**V-MOB-LIT-3: Section surface + expand groups card shows 3-col at 390px**
+- Same 3-col issue as compact grid — all names truncated
+- "Floor Lamp Living R...", "Credenza Light", "Living Room Corner ..." all clipped
+- Severity: High
+
+**V-MOB-LIT-4: Scroll layout visible-tile limit shows only 2 tiles at 390px**
+- Only Couch and Floor visible in scroll viewport
+- No scroll indicator or pagination dots visible
+- Users won't discover the remaining 4 tiles
+- Severity: High
+
+**V-MOB-LIT-5: "Couch (Vertical)" standalone section — left-biased, right side empty**
+- Standalone light tile occupies ~50% of width, right side is dead space
+- Severity: Medium (lab layout)
+
+### Light Tile at 390px
+
+**V-MOB-LTL-1: Vertical compact tile is too tall relative to width**
+- The single standalone vertical tile has excessive height-to-width ratio
+- "Vert Compact / Off" with large empty area above the progress bar
+- Severity: Medium
+
+**V-MOB-LTL-2: Horizontal standard tile "Horiz Standard / Off" — icon too small**
+- The horizontal variant shows a small icon with "Off" text; icon appears undersized relative to the row height
+- Severity: Low
+
+### Rooms at 390px
+
+**V-MOB-ROM-1: Tile mode — 2-col tiles crammed, names truncated**
+- "Living Room" fits, "Kitchen" fits, "Bedroom" fits — but status text ("1/2 · 100% bri") is very small
+- Temperature/humidity sub-text is barely readable
+- Severity: Medium
+
+**V-MOB-ROM-2: Row mode — ALL room names compete with controls**
+- The row shows: icon | name+status | orbs | power button | chevron
+- At 390px everything is jammed together
+- "Living Room" row with 3 orbs: orbs appear as tiny dots
+- Severity: High (confirmed user report)
+
+**V-MOB-ROM-3: Slim mode — "All Off" button competes with section header**
+- The "Slim" header with "All Off" button — button is right-aligned but close to header text
+- Severity: Low
+
+**V-MOB-ROM-4: Slim tiles — "SOFA" custom icon takes full tile width**
+- The "Living Room" slim tile shows "SOFA" text as a large custom icon, disproportionate
+- Severity: Low (lab data)
+
+### Climate at 390px
+
+**V-MOB-CLM-1: Standard climate — slider + temps readable but cramped**
+- The 72/63/73 temperature display works but is tight
+- Slider thumb handles overlap visually when heat/cool setpoints are close
+- Severity: Medium
+
+**V-MOB-CLM-2: Two climate instances stacked — excessive vertical consumption**
+- Standard + Thin climate cards together take ~25% of the mobile viewport
+- For a rehab lab this is expected, but in production one climate card should suffice
+- Severity: Low (lab composition)
+
+### Weather at 390px
+
+**V-MOB-WTH-1: Info tile header shows entity name truncated**
+- "Auto modes + toggles" is readable but long
+- Severity: Low
+
+**V-MOB-WTH-2: Toggle row (Daily/Hourly/Temp/Precip) takes significant vertical space**
+- 4 segment buttons before any weather data
+- On mobile this pushes actual content below the fold
+- Severity: Medium
+
+**V-MOB-WTH-3: Forecast tiles cramped — day labels ("SAT", "SUN") readable but temps crowd**
+- 5 forecast columns at 390px — each column is ~60px wide
+- Temperature high/low text is very small
+- Severity: Medium
+
+### Sensor at 390px
+
+**V-MOB-SNS-1: Entity IDs showing as labels — confirmed at mobile**
+- "sensor.di..." visible as truncated entity ID
+- Not dashboard-grade at any breakpoint
+- Severity: **High** (confirmed)
+
+**V-MOB-SNS-2: Sparkline area is blank/missing**
+- Just entity name + current value, no graph
+- Severity: Medium
+
+**V-MOB-SNS-3: Row right-side chevron/value alignment inconsistent**
+- Some rows show value right-aligned, others show chevron
+- Severity: Low
+
+### Status at 390px
+
+**V-MOB-STS-1: Status Lab tiles — 4-col grid at 390px**
+- "Home", "Adaptive", "Manual", "Mode" in first row — each tile is tiny
+- Second row: "System", "Boost", "Sunset", "Inside" — even more cramped with data values
+- 4 columns is too many for 390px
+- Severity: **High**
+
+**V-MOB-STS-2: "Boost" tile shows "2%" in a tiny font**
+- Value is barely readable at mobile width
+- Severity: Medium
+
+**V-MOB-STS-3: "Sunset" tile shows "7:26 PM" — reasonable but cramped**
+- Severity: Low
+
+### Media/Sonos/Speaker Grid at 390px
+
+**V-MOB-MED-1: Media card barely visible in full-page screenshot**
+- The media card at the bottom of the mobile page is a thin strip
+- Album art, track name, transport all compressed into minimal height
+- Severity: High
+
+**V-MOB-SON-1: Sonos card below fold — not captured in current screenshots**
+- Need dedicated scroll to sonos section
+- User reports: track title doesn't fit, source button overflow
+- Severity: **High** (user-reported, unverified in screenshots)
+
+**V-MOB-SPK-1: Speaker grid below fold — not captured in current screenshots**
+- User reports: rightmost tiles overflow, mobile is "clear failure"
+- Severity: **High** (user-reported, unverified in screenshots)
+
+### Nav at 390px
+
+**V-MOB-NAV-1: Fixed bottom nav bar covers last card content**
+- Bottom nav icons (home, squares, music, books) overlay the last visible card
+- No bottom padding/margin on the page content to account for nav height
+- Severity: **High**
+
+**V-MOB-NAV-2: Nav icons are generic — "Card Rehab Lab" and "Rooms" share same icon**
+- Two identical icons in the nav bar — no visual differentiation
+- Severity: Medium (lab config, not card bug)
+
+---
+
+## Updated Summary
+
+| Severity | Count |
+|----------|:-----:|
+| **High** | 32 |
+| **Medium** | 26 |
+| **Low** | 12 |
+| **Total** | **70** |
+
+Plus 6 docs issues.
+
+**Critical mobile finding:** 390px is structurally broken for most cards. The shared passes fixed interaction infrastructure but did not address density, truncation, column count adaptation, or compositional weakness at phone width. This is the primary remaining work for the bespoke passes.
+
+**Cards that need mobile work most urgently (High severity at 390px):**
+1. tunet-lighting-card — 3-col doesn't adapt, scroll mode clips, tile limit is static
+2. tunet-rooms-card — row mode overcompressed, orbs tiny, power button oversized
+3. tunet-sensor-card — entity IDs as labels
+4. tunet-status-card — 4-col at 390px is unreadable
+5. tunet-sonos-card — width overflow, title doesn't fit
+6. tunet-speaker-grid-card — tiles overflow visible area
+7. tunet-media-card — compressed to thin strip, naming too aggressive
+8. tunet-nav-card — covers content, global offset mutation

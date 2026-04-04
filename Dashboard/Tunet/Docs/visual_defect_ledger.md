@@ -223,10 +223,85 @@ Evidence: audit-my-390-top.png through audit-my-390-s12.png, audit-my-768-top.pn
 7. **Speaker grid 4-col standard at 390px** — unusable
 8. **Nav sidebar mode conflicts with HA sidebar at desktop** — double-sidebar
 
-### Revised Severity Count (coherent build)
+---
+
+## Desktop Sizing / Spacing Issues (1440px)
+
+Evidence: audit-my-1440-s1.png through audit-my-1440-s8.png
+
+**V-DESK-1: Lighting grid tiles capped at 180px with centered justify — dead space on wide sections**
+- `grid-template-columns: repeat(var(--cols, 3), minmax(0, 180px))` at L383 with `justify-content: center` at L389
+- At 1440px in a wide section, 3 tiles × 180px = 540px in a ~600px+ section, leaving 60px+ of dead margin
+- Tiles don't fill the available width — they float centered with visible gaps
+- `P0`: Tiles should use `minmax(0, 1fr)` to fill available space, or remove the 180px cap
+- Files: tunet_lighting_card.js L383, L389
+
+**V-DESK-2: Section Surface + Expand Groups (3-col) — tiles are dense but proportional at 1440**
+- 3-col at desktop is appropriate; tiles fill width. This is fine here — the issue is only at 390px.
+
+**V-DESK-3: Light Tile standalone — Vert Compact takes ~40% of section width with dead space right**
+- At 1440px the standalone vertical tile occupies less than half the section width with empty right side
+- `P2`: getGridOptions returns `columns: 3` which means it takes 3/12 of the section — appropriate for a standalone tile
+
+**V-DESK-4: Rooms Row mode — rows have excessive vertical spacing at 1440px**
+- Each row has significant vertical padding/margin creating tall gaps between rows
+- At desktop the rows feel vertically sparse
+- `P2`: Row min-height (7.3125em) is generous for desktop; could tighten
+
+**V-DESK-5: Climate cards — two variants side by side work well at 1440px**
+- Standard + Thin side by side is readable. No issue here.
+
+**V-DESK-6: Status Summary Matrix — 4-col works at 1440px**
+- At desktop, 4-col tiles are readable with full names. This is fine.
+- The issue is phone-only (see P0 #4)
+
+**V-DESK-7: Media card — speaker tiles truncate names even at 1440px**
+- "Living Roo...", "Dining Roo...", "Kitchen So..." in the bottom speaker strip
+- At 1440px there's room to show full names
+- `P1`: _firstWordName() at L733 shortens the dropdown, but tile labels also truncate via CSS overflow:hidden + ellipsis on fixed-width tiles
+
+**V-DESK-8: Speaker Grid — tiles have uneven spacing in 2-col vs 4-col**
+- 2-col compact: tiles fill width proportionally (uses `minmax(0, 1fr)`) — correct
+- 4-col standard: tiles also fill width — correct
+- But the tile internal padding creates different visual density between variants
+- `P2`: Consistent visual density across variants
+
+**V-DESK-9: Sonos card — speaker tiles in horizontal scroll don't fill section width**
+- Always shows a horizontal strip with scroll, even when there's room for all tiles
+- At 1440px with 4-5 speakers, they could display in a grid instead of scroll strip
+- `P2`: Consider grid mode at desktop widths
+
+---
+
+## User-Reported Interactive Bugs (2026-04-04)
+
+**V-INTERACT-1: Click-and-hold to drag brightness appears universally broken**
+- User reports drag-to-dim not working on light tiles / lighting card
+- Uses `createAxisLockedDrag` from tunet_base.js L1619
+- `bindButtonActivation` (CD3) added `el.click()` on Enter/Space — could the click synthesis interfere with pointer events?
+- Need to verify: does the `click` event from `bindButtonActivation`'s keydown handler fire during pointerdown/pointermove sequences?
+- `P0`: CRITICAL if drag brightness is broken — core interaction
+
+**V-INTERACT-2: Weather cards not displaying day/hour forecast details**
+- User reports weather forecast tiles not showing temperature/condition details
+- May be a data fetch issue (weather/get_forecasts WS call) or a rendering regression
+- Need to verify: is the forecast data arriving? Is the render path intact?
+- `P0`: Weather forecast is a core feature
+
+**V-INTERACT-3: Font sizing wildly inconsistent across cards**
+- User reports overall font size inconsistency across the card suite
+- Cards use different font-size approaches: some use em/rem relative to `:host { font-size: 16px }`, some use px, some use profile-driven `--_tunet-*` CSS vars
+- Profile cards (lighting, rooms, sensor, speaker-grid) scale fonts via profile tokens
+- Non-profile cards (climate, weather, media, sonos, actions, scenes) use hardcoded px
+- The em-anchor at `:host { font-size: 16px }` is set inconsistently — not all cards set it
+- `P1`: Font sizing needs a consistent strategy — either all em-based with anchor, or all hardcoded px at same sizes
+
+---
+
+### Current Severity Count
 
 | Severity | Count | Notes |
 |----------|:-----:|-------|
-| P0 (visual break) | 8 | Confirmed on coherent build |
-| P1 (doc/runtime contradiction) | 6 | From original audit |
-| P2 (improvement opportunity) | 10+ | Density, naming, composition |
+| P0 (visual break + interactive) | 10 | 8 visual + 2 interactive (drag, weather forecast) |
+| P1 (doc/runtime + consistency) | 8 | 6 docs + media naming + font sizing |
+| P2 (improvement opportunity) | 12+ | Density, naming, composition, desktop spacing |

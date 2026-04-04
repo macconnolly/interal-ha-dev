@@ -17,6 +17,34 @@ Change marker: pre-CD5 docs-and-backlog rationalization
   - `legacy_key_precedence.md` actions-editor notes aligned with current contract
   - `sections_layout_matrix.md` wording corrected: CD4 card-level accepted, CD12 surface breakpoint validation still required
 
+## Session Delta (2026-04-04, CD5 — Utility Strip Bespoke Pass)
+
+Change marker: CD5 complete
+
+- `ACTIONS CARD`
+  - phone overflow fix: mode_strip and relaxed (compact:false) strips wrap and fill each row on mobile; compact default strips scroll horizontally
+  - layout helper consolidates getCardSize/getGridOptions — variant-aware min_columns (6 or 9) and min_rows (1 or 2)
+  - aria-pressed on chips with state_entity; removed when no persistent state
+  - no new config keys — wrap driven by variant + compact
+- `SCENES CARD`
+  - header confirmed semantic: title has role="heading" aria-level="3", icon has aria-hidden="true"
+  - getGridOptions now tracks allow_wrap + show_header for intentional sizing
+  - disabled chip dispatch guard: _activate early-returns when chip.disabled
+- `TESTS`
+  - new suite: utility_strip_bespoke.test.js (32 tests)
+  - tightened sizing_sections_contract.test.js (6 new assertions)
+  - total: 527 tests, 10 suites, all passing
+- `DOCS`
+  - cards_reference.md: actions/scenes grid options, interaction, known limitations updated
+  - sections_layout_matrix.md: actions/scenes rows updated to variant-aware values
+  - visual_defect_ledger.md: actions overflow and scenes doc contradictions closed
+  - stale URLs normalized in CLAUDE.md and Dashboard/Tunet/CLAUDE.md
+  - tunet_build_and_deploy.md: test count updated to 527
+- `DEPLOY`
+  - build: 13 cards to dist/
+  - deploy: SCP to root@10.0.0.21
+  - resource version: ?v=20260404_cd5c
+
 ## Session Delta (2026-04-04, Post-CD4 Rehab Lab Expansion + Visual Audit)
 
 Change marker: post-CD4 harness/doc expansion before CD5

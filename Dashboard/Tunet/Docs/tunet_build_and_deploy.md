@@ -6,7 +6,7 @@
 Source:    Dashboard/Tunet/Cards/v3/*.js    (13 cards + tunet_base.js)
 Build:     Dashboard/Tunet/Cards/v3/dist/   (13 bundled outputs + source maps + manifest)
 Deploy:    ${HA_SSH_USER:-root}@${HA_SSH_HOST:-10.0.0.21}:/config/www/tunet/v3/
-Lab:       http://10.0.0.21:8123/tunet-overview/card-rehab-lab
+Lab:       http://10.0.0.21:8123/tunet-card-rehab-yaml/lab
 ```
 
 Each card is bundled with esbuild. `tunet_base.js` is inlined into each card bundle — there is no separate shared chunk. This eliminates the two-layer cache busting problem (no more `?v=` strings on import paths).
@@ -82,13 +82,13 @@ Watches `Dashboard/Tunet/Cards/v3/` for file changes. On save, incrementally reb
 
 ## Lab Dashboard
 
-The card rehab lab is a Sections view on `tunet-overview`:
+The card rehab lab is the YAML dashboard `tunet-card-rehab-yaml`:
 
 ```
-http://10.0.0.21:8123/tunet-overview/card-rehab-lab
+http://10.0.0.21:8123/tunet-card-rehab-yaml/lab
 ```
 
-It contains one representative config for every Tunet card (all 13). It is the primary validation surface during card rehabilitation (CD0-CD11).
+It contains one representative config for every Tunet card (all 13) plus focused review views (`states`, `surfaces`, `phone-stress`, `nav-lab`). It is the primary validation surface during card rehabilitation (CD0-CD11).
 
 Architecture reference YAML: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
 
@@ -96,8 +96,8 @@ Architecture reference YAML: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
 
 | Card | Variants shown |
 |------|---------------|
-| actions | default (5 chips) + mode_strip |
-| scenes | compact, allow_wrap, 4 scenes |
+| actions | compact services strip, relaxed long-label strip, built-in mode_strip, tap_action strip |
+| scenes | wrap + header, strip, relaxed wrap, mixed domains |
 | lighting | tile surface, grid layout, 6 zones, adaptive toggle |
 | light_tile | vertical + horizontal |
 | rooms | row layout, 3 rooms |
@@ -118,7 +118,7 @@ npm test
 
 Runs vitest with jsdom environment. Test files: `Dashboard/Tunet/Cards/v3/tests/*.test.js`
 
-Current test suites (489 total):
+Current test suites (527 total):
 - `profile_resolver.test.js` — profile resolution contract (8 tests)
 - `sizing_contract.test.js` — boundary behavior for bucketFromWidth/autoSizeFromWidth (10 tests)
 - `bundle_safety.test.js` — font injection and registerCard guards (5 tests)
@@ -127,6 +127,8 @@ Current test suites (489 total):
 - `interaction_source_contract.test.js` — CD2 interaction vocabulary contract: hover guards, press tokens, focus-visible, transitions, tap-highlight, reduced-motion (146 tests)
 - `interaction_dom_contract.test.js` — CD2 runtime DOM verification: base exports, style injection with mock hass, rendered CSS compliance (66 tests)
 - `interaction_keyboard_contract.test.js` — CD3 keyboard semantics: bindButtonActivation, role/tabindex verification, Enter/Space activation, slider preservation (63 tests)
+- `sizing_sections_contract.test.js` — CD4 Sections contract + CD5 actions/scenes sizing tightening (64 tests)
+- `utility_strip_bespoke.test.js` — CD5 bespoke: wrap/scroll CSS, layout helper, aria-pressed, semantic header, unavailable guard (32 tests)
 - `sizing_sections_contract.test.js` — CD4 Sections contract: rows:'auto' enforcement, columns:'full' nav-only, scenes allow_wrap, profile override precedence (58 tests)
 
 ## Tranche Closure Validation (Strict)

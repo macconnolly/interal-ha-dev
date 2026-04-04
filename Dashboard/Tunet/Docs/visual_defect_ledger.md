@@ -63,15 +63,16 @@ When the normalized section and the appendix differ, the normalized section wins
 - Cross-cutting doc debt remains: icon-field editor consistency, actions editor wording, scenes `allow_wrap` default wording, sensor naming-contract clarity, status dropdown-confidence wording, and nav layout-reference overclaim.
 
 **1. `tunet-actions-card`**
-- `Open runtime defect [CD5]`: `mode_strip` chip overflow at phone width remains real and should stay open.
-- `Doc contradiction`: `cards_reference.md` must stop claiming `actions[]` is absent from the editor; `getConfigForm()` already exposes a structured object editor at [tunet_actions_card.js#L307](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L307).
+- `Closed [CD5]`: mode_strip and relaxed chip overflow resolved — wraps and fills each row under phone-width pressure; compact default strips scroll horizontally.
+- `Closed [CD5]`: doc contradiction resolved — cards_reference.md updated to reflect editor + yaml-compatible actions[].
+- `Closed [CD5]`: row/height contract normalized via layout helper driving getCardSize/getGridOptions with variant-aware min_columns/min_rows.
 - `Composition constraint`: “narrow utility row dropped into oversized sections” is a surface-composition note, not a card defect.
-- `Implementation backlog [CD5]`: if touched, normalize the row/height contract around [tunet_actions_card.js#L190](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L190) and [tunet_actions_card.js#L440](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L440).
 
 **2. `tunet-scenes-card`**
-- `Closed / stale`: the earlier runtime-defect framing is no longer justified; scenes is currently one of the healthier cards in the coherent build.
-- `Doc contradiction`: the reference and old summary disagreed about `allow_wrap`; the live contract is wrap-first unless explicitly disabled in config.
-- `Implementation backlog [CD5]`: keep the strip-vs-wrap contract explicit, but do not treat scenes as an active visual failure.
+- `Closed [CD5]`: header confirmed semantic (role=”heading” aria-level=”3”); icon marked decorative (aria-hidden).
+- `Closed [CD5]`: getGridOptions now tracks allow_wrap + show_header for intentional sizing; docs updated.
+- `Closed [CD5]`: unavailable chip dispatch guard added (early return in _activate when disabled).
+- `Closed [CD5]`: doc contradiction resolved — wrap-first contract explicit in reference.
 
 **3. `tunet-light-tile`**
 - `Composition constraint`: the “orphaned” phone look is usually a composition issue, not a card-contract failure.

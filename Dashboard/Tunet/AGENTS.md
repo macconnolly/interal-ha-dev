@@ -84,7 +84,7 @@ Do not silently resolve contradictions. Record the conflict and chosen interpret
 
 During card rehabilitation tranches:
 
-- use the dedicated card rehab lab (`http://10.0.0.21:8123/tunet-overview/card-rehab-lab`) as the primary validation surface
+- use the dedicated YAML card rehab dashboard (`http://10.0.0.21:8123/tunet-card-rehab-yaml/lab`) as the primary validation surface
 - architecture reference YAML: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
 - use `tunet-suite-storage` only for targeted live verification of the touched card(s)
 - do not treat `Dashboard/Tunet/Docs/surfaces/*.md` as active implementation drivers

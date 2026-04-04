@@ -186,10 +186,19 @@ const CARD_OVERRIDES = `
 // ═══════════════════════════════════════════════════════════
 
 const CARD_STYLES = `
-  /* Action chip row */
+  /* Action chip row — default is horizontal scroll */
   .actions-row {
     display: flex;
     gap: 0.42em;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .actions-row::-webkit-scrollbar { display: none; }
+  /* Wrap mode: chips wrap and fill rows */
+  .actions-row.wrap {
+    overflow-x: visible;
+    flex-wrap: wrap;
   }
   .actions-row.mode-strip .action-chip {
     min-height: 2.52em;
@@ -437,21 +446,34 @@ class TunetActionsCard extends HTMLElement {
     if (changed || !oldHass) this._update();
   }
 
+  // Layout helper: single source for sizing across getCardSize/getGridOptions/CSS
+  _layoutHint() {
+    const variant = this._config?.variant || 'default';
+    const compact = this._config?.compact !== false;
+    const wraps = variant === 'mode_strip' || !compact;
+    if (!wraps) {
+      // compact default strip: thin single-row utility row
+      return { cardSize: 1, minRows: 1, minColumns: 6 };
+    }
+    if (variant === 'mode_strip') {
+      return compact
+        ? { cardSize: 2, minRows: 2, minColumns: 9 }
+        : { cardSize: 3, minRows: 2, minColumns: 9, maxRows: 4 };
+    }
+    // relaxed default (compact: false): wraps under pressure
+    return { cardSize: 2, minRows: 2, minColumns: 9 };
+  }
+
   getCardSize() {
-    if (this._config.compact) return 2;
-    const actionCount = (this._config.actions || []).length;
-    const rows = Math.max(1, Math.ceil(actionCount / 4));
-    return 1 + rows;
+    return this._layoutHint().cardSize;
   }
 
   // Sections view (12-column grid) sizing hints
   getGridOptions() {
-    return {
-      columns: 12,
-      min_columns: 6,
-      rows: 'auto',
-      min_rows: 1,
-    };
+    const h = this._layoutHint();
+    const opts = { columns: 12, min_columns: h.minColumns, rows: 'auto', min_rows: h.minRows };
+    if (h.maxRows) opts.max_rows = h.maxRows;
+    return opts;
   }
 
   _render() {
@@ -477,7 +499,9 @@ class TunetActionsCard extends HTMLElement {
   _buildChips() {
     if (!this._row) return;
     this._row.innerHTML = '';
+    const wraps = this._config.variant === 'mode_strip' || !this._config.compact;
     this._row.classList.toggle('mode-strip', this._config.variant === 'mode_strip');
+    this._row.classList.toggle('wrap', wraps);
     this._chipEls = [];
 
     for (const action of this._config.actions) {
@@ -507,6 +531,7 @@ class TunetActionsCard extends HTMLElement {
 
       if (!action.state_entity) {
         el.classList.remove('active');
+        el.removeAttribute('aria-pressed');
         continue;
       }
 
@@ -527,6 +552,7 @@ class TunetActionsCard extends HTMLElement {
         isActive = stateValue === expected;
       }
       el.classList.toggle('active', isActive);
+      el.setAttribute('aria-pressed', String(isActive));
 
       const iconEl = el.querySelector('.icon');
       if (iconEl) iconEl.classList.toggle('filled', isActive);

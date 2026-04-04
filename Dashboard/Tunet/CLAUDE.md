@@ -7,8 +7,8 @@ If this file and `Dashboard/Tunet/AGENTS.md` ever disagree, follow `Dashboard/Tu
 
 **Consistency-driver card rehabilitation** — `~/.claude/plans/flickering-herding-wolf.md` is the sole execution authority (`CD0–CD12`).
 
-Current tranche: **CD5 — Utility Strip Bespoke Pass** (next)  
-Previous tranches: `CD4` (Apr 4), `CD3` (Apr 3), `CD2` (Apr 3), `CD1` (Apr 3), `CD0` (Apr 3)
+Current tranche: **CD6 — Lighting Bespoke Pass** (next)  
+Previous tranches: `CD5` (Apr 4), `CD4` (Apr 4), `CD3` (Apr 3), `CD2` (Apr 3), `CD1` (Apr 3), `CD0` (Apr 3)
 
 Execution order remains:
 - `CD0` build/lab
@@ -118,7 +118,7 @@ Current card-level divergences from that target must be documented in `cards_ref
 - `npm run tunet:deploy:lab`
 - `npm test`
 - Lab dashboard:
-  - `http://10.0.0.21:8123/tunet-card-rehab-lab/lab`
+  - `http://10.0.0.21:8123/tunet-card-rehab-yaml/lab`
 
 ## Profile Contract Status
 

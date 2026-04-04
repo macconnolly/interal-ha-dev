@@ -432,12 +432,14 @@ class TunetScenesCard extends HTMLElement {
   }
 
   getGridOptions() {
-    return {
-      columns: 12,
-      min_columns: 6,
-      rows: 'auto',
-      min_rows: 1,
-    };
+    const wrap = this._config?.allow_wrap !== false;
+    const hasHeader = !!this._config?.show_header;
+    if (!wrap) {
+      return { columns: 12, min_columns: 9, rows: 'auto', min_rows: hasHeader ? 2 : 1 };
+    }
+    const sceneCount = this._config?.scenes?.length || 0;
+    const chipRows = Math.max(1, Math.ceil(sceneCount / 4));
+    return { columns: 12, min_columns: 6, rows: 'auto', min_rows: (hasHeader ? 1 : 0) + chipRows };
   }
 
   _render() {
@@ -451,8 +453,8 @@ class TunetScenesCard extends HTMLElement {
       <div class="wrap">
         <div class="card" id="card">
           <div class="hdr" id="hdr">
-            <div class="hdr-icon"><span class="icon filled">auto_awesome</span></div>
-            <div class="hdr-title" id="title">Scenes</div>
+            <div class="hdr-icon" aria-hidden="true"><span class="icon filled">auto_awesome</span></div>
+            <div class="hdr-title" id="title" role="heading" aria-level="3">Scenes</div>
           </div>
           <div class="scene-row" id="row"></div>
           <div class="empty hidden" id="empty">No scenes configured.</div>
@@ -525,6 +527,7 @@ class TunetScenesCard extends HTMLElement {
 
   async _activate(scene, chip) {
     if (!this._hass || !scene?.entity) return;
+    if (chip?.disabled) return;
 
     const domain = String(scene.entity).split('.')[0];
     let serviceDomain = 'homeassistant';

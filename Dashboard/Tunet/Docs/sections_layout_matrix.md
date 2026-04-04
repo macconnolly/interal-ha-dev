@@ -33,14 +33,14 @@ All 13 cards use `rows: 'auto'`. No card forces fixed row height in the Sections
 
 | Card | columns | min_columns | rows | min_rows | max_rows | Profile System | Notes |
 |------|:---:|:---:|:---:|:---:|:---:|:---:|---|
-| actions | 12 | 6 | auto | 1 | — | No | |
+| actions | 12 | 6/9 | auto | 1/2 | 4 | No | CD5: compact default=6/1; mode_strip or relaxed=9/2 |
 | climate | 6 | 3 | auto | 3 | — | No | Gold standard, verify-only |
 | light_tile | 3 | 3 | auto | 1 | 4 | Yes (lighting/grid) | Cosmetic profile (spacing/fonts) |
 | lighting | 12 | 6 | auto | 2 | 12 | Yes (lighting/grid\|scroll) | grid-auto-rows profile-controlled; overflow-y visible for drag pill |
 | media | 12 | 6 | auto | 2 | — | No | overflow:hidden on .media-body is for view switching, not card clipping |
 | nav | **full** | 6 | auto | 1 | — | No | Only full-width card |
 | rooms | 12 | 6 | auto | 2 | 12 | Yes (rooms/row\|tiles) | 3 layout variants under same sizing contract |
-| scenes | 12 | 6 | auto | 1 | — | No | allow_wrap:true is Sections default (CD4); strip mode is opt-in |
+| scenes | 12 | 6/9 | auto | 1-3 | — | No | CD5: wrap=6/ceil(scenes/4)+header; strip=9/1-2 |
 | sensor | 12 | 6 | auto | 2 | 12 | Yes (environment/row) | Row heights scale with profile |
 | sonos | 12 | 6 | auto | 2 | — | No | |
 | speaker_grid | 12 | 6 | auto | 2 | 12 | Yes (speakers/grid) | Slider tiles with drag; density scales with profile |

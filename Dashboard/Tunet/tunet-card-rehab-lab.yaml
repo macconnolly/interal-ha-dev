@@ -1843,6 +1843,144 @@ views:
             content: |
               ## Phone Stress
               Single-column stack for 390x844 review.
+          - type: custom:tunet-actions-card
+            name: Phone Actions Compact
+            compact: true
+            actions:
+              - name: All On
+                icon: lightbulb
+                accent: amber
+                service: light.turn_on
+                service_data:
+                  entity_id:
+                    - light.living_room_couch_lamp
+                    - light.living_room_floor_lamp
+                    - light.living_room_spot_lights
+                state_entity: light.living_room_lights
+                active_when: "on"
+              - name: All Off
+                icon: power_settings_new
+                accent: amber
+                service: light.turn_off
+                service_data:
+                  entity_id:
+                    - light.living_room_couch_lamp
+                    - light.living_room_floor_lamp
+                    - light.living_room_spot_lights
+                state_entity: light.living_room_lights
+                active_when: "off"
+              - name: Bedtime
+                icon: bedtime
+                accent: purple
+                service: input_select.select_option
+                service_data:
+                  entity_id: input_select.oal_active_configuration
+                  option: Dim Ambient
+                state_entity: input_select.oal_active_configuration
+                active_when: Dim Ambient
+              - name: Reset
+                icon: restart_alt
+                accent: red
+                service: script.turn_on
+                service_data:
+                  entity_id: script.oal_reset_soft
+                show_when:
+                  entity: sensor.oal_system_status
+                  attribute: active_zonal_overrides
+                  operator: gt
+                  state: 0
+          - type: custom:tunet-actions-card
+            name: Phone Actions Relaxed
+            compact: false
+            actions:
+              - name: Adaptive
+                icon: sunny
+                accent: green
+                service: input_select.select_option
+                service_data:
+                  entity_id: input_select.oal_active_configuration
+                  option: Adaptive
+                state_entity: input_select.oal_active_configuration
+                active_when: Adaptive
+              - name: TV Mode
+                icon: tv
+                accent: blue
+                service: input_select.select_option
+                service_data:
+                  entity_id: input_select.oal_active_configuration
+                  option: TV Mode
+                state_entity: input_select.oal_active_configuration
+                active_when: TV Mode
+              - name: Sleep
+                icon: hotel
+                accent: purple
+                service: input_select.select_option
+                service_data:
+                  entity_id: input_select.oal_active_configuration
+                  option: Sleep
+                state_entity: input_select.oal_active_configuration
+                active_when: Sleep
+              - name: More Info
+                icon: info
+                accent: muted
+                tap_action:
+                  action: more-info
+                  entity: sensor.oal_system_status
+          - type: custom:tunet-actions-card
+            name: Phone Mode Strip
+            variant: mode_strip
+            compact: true
+            mode_entity: input_select.oal_active_configuration
+          - type: custom:tunet-scenes-card
+            name: Phone Scenes Wrap
+            show_header: true
+            compact: true
+            allow_wrap: true
+            scenes:
+              - entity: scene.all_on_2
+                name: All On
+                icon: lightbulb
+                accent: amber
+                state_entity: light.living_room_lights
+                active_when: "on"
+              - entity: scene.all_off
+                name: All Off
+                icon: power_settings_new
+                accent: amber
+              - entity: scene.living_room_dim
+                name: Dim
+                icon: bedtime
+                accent: purple
+              - entity: scene.entertain
+                name: Entertain
+                icon: celebration
+                accent: blue
+              - entity: script.oal_reset_soft
+                name: Script
+                icon: restart_alt
+                accent: red
+          - type: custom:tunet-scenes-card
+            name: Phone Scenes Strip
+            show_header: false
+            compact: true
+            allow_wrap: false
+            scenes:
+              - entity: scene.all_on_2
+                name: All On
+                icon: lightbulb
+                accent: amber
+              - entity: scene.all_off
+                name: All Off
+                icon: power_settings_new
+                accent: amber
+              - entity: scene.living_room_dim
+                name: Dim
+                icon: bedtime
+                accent: purple
+              - entity: scene.entertain
+                name: Entertain
+                icon: celebration
+                accent: blue
           - type: custom:tunet-status-card
             name: Status
             show_header: true

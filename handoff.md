@@ -5,8 +5,8 @@ Intended reader: next Claude Code session
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
-Current tranche: **CD5 — Utility Strip Bespoke Pass** (next)
-Previous tranches: CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+Current tranche: **CD6 — Lighting Bespoke Pass** (next)
+Previous tranches: CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
 ## Session Delta (2026-04-04, Control-Doc Normalization)
 
@@ -81,7 +81,7 @@ Before starting any implementation tranche:
 4. Read `Dashboard/Tunet/Docs/legacy_key_precedence.md` — setConfig overlap/fallback rules
 5. Read `Dashboard/Tunet/Docs/cross_card_interaction_vocabulary.md` — the interaction contract (relevant from CD2 onward)
 6. Read `Dashboard/Tunet/AGENTS.md` — execution contract
-7. Use the card rehab lab (`http://10.0.0.21:8123/tunet-overview/card-rehab-lab`) as the primary validation surface during shared passes (CD1-CD4) and bespoke passes (CD5-CD11)
+7. Use the YAML card rehab dashboard (`http://10.0.0.21:8123/tunet-card-rehab-yaml/lab`) as the primary validation surface during shared passes (CD1-CD4) and bespoke passes (CD5-CD11)
 8. Use `tunet-suite-storage` only for targeted live verification where real entities are needed
 9. Do NOT use `Dashboard/Tunet/Docs/surfaces/living_room_surface_intent.md` as an active execution driver before CD12
 10. Do NOT widen a tranche beyond the exact files listed in the plan

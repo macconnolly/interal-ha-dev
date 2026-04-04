@@ -243,16 +243,19 @@ Stub works without entity — mode_strip auto-populates actions with template su
 ### Grid Options
 
 ```javascript
+// compact default strip
 { columns: 12, min_columns: 6, rows: 'auto', min_rows: 1 }
+// mode_strip or relaxed (compact:false)
+{ columns: 12, min_columns: 9, rows: 'auto', min_rows: 2 }
 ```
 
-Default for standard (`column_span: 1`) sections. In wider sections, numeric `12` is fractional of section width; dashboard-level `grid_options` overrides (or `columns: 'full'`) are used when this strip must span the full section.
+Variant-aware sizing (CD5): compact default strips stay thin (min_rows:1, min_columns:6). Mode strips and relaxed strips (compact:false) request more space (min_rows:2, min_columns:9) because they wrap under phone-width pressure and fill each row on mobile. Compact default strips scroll horizontally.
 
 ### Interaction
 
 - **Category**: Dedicated controls
 - **Chip tap**: calls configured service
-- **Active state**: chip highlights when `state_entity` matches `active_when` via `active_when_operator`
+- **Active state**: chip highlights when `state_entity` matches `active_when` via `active_when_operator`; chips with `state_entity` get `aria-pressed="true|false"`; chips without persistent state remain ordinary buttons
 - **Conditional visibility**: `show_when` hides chips entirely when condition is false (e.g., Reset chip hides when `active_zonal_overrides == 0`)
 - **No drag, no hold**
 
@@ -292,7 +295,7 @@ Section-span caveat: default numeric `columns` is a default, not a universal ful
 - Arbitrary raw `service_data`, raw `show_when`, and `tap_action` remain power-user YAML paths even though the common `actions[]` structure is now editable
 - The 7-operator condition system (`evaluateCondition`) is powerful but still under-documented to users
 - mode_strip is effectively an inference-driven authoring model — pick variant + entity, get a complete action strip
-- Phone `mode_strip` chip overflow remains the primary open visual/runtime pressure point for CD5
+- Phone chip overflow resolved in CD5: mode_strip and relaxed strips wrap and fill each row on mobile; compact default strips scroll horizontally
 
 ---
 
@@ -350,10 +353,15 @@ scenes:
 ### Grid Options
 
 ```javascript
-{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 1 }
+// wrap + no header
+{ columns: 12, min_columns: 6, rows: 'auto', min_rows: ceil(scenes/4) }
+// wrap + header
+{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 1 + ceil(scenes/4) }
+// strip (allow_wrap:false)
+{ columns: 12, min_columns: 9, rows: 'auto', min_rows: 1 or 2 }
 ```
 
-Default for standard (`column_span: 1`) sections. In wider sections, numeric `12` is fractional unless overridden at dashboard level.
+Allow_wrap/show_header-aware sizing (CD5): wrap mode uses min_columns:6 with row count from scene count; strip mode requests min_columns:9 for horizontal scroll room.
 
 ### Interaction
 
@@ -361,7 +369,7 @@ Default for standard (`column_span: 1`) sections. In wider sections, numeric `12
 - **Chip tap**: domain-aware dispatch — scene.turn_on, script.turn_on, or automation.trigger
 - **1300ms recent-entity tracking** (L543-544): tapped chip stays visually "active" for 1300ms even without `state_entity`. Provides instant visual feedback. Not configurable — built-in UX.
 - **Decoupled active state**: `state_entity` can be any entity, independent of the scene entity
-- **Unavailable**: chip gets `disabled` attribute + `.is-unavailable` class
+- **Unavailable**: chip gets `disabled` attribute + `.is-unavailable` class; disabled chips never dispatch even if triggered programmatically (early-return guard in _activate)
 - **No drag, no hold**
 
 ### Sections Safety

@@ -131,7 +131,7 @@ describe('Scenes: allow_wrap Sections contract', () => {
     expect(stub.allow_wrap, 'Scenes stub config should default to allow_wrap: true for Sections safety').toBe(true);
   });
 
-  it('allow_wrap: true produces min_rows > 1 for multi-scene configs', () => {
+  it('allow_wrap: true + header + 5 scenes: min_rows=3, min_columns=6', () => {
     const el = document.createElement('tunet-scenes-card');
     el.setConfig({
       scenes: [
@@ -146,10 +146,11 @@ describe('Scenes: allow_wrap Sections contract', () => {
     });
     const grid = el.getGridOptions();
     expect(grid.rows).toBe('auto');
-    // With 5 scenes + wrap + header, should need more than 1 row
+    expect(grid.min_rows).toBe(3);
+    expect(grid.min_columns).toBe(6);
   });
 
-  it('allow_wrap: false (strip mode) is retained as opt-in exception', () => {
+  it('allow_wrap: false (strip mode): min_columns=9', () => {
     const el = document.createElement('tunet-scenes-card');
     el.setConfig({
       scenes: [
@@ -160,7 +161,37 @@ describe('Scenes: allow_wrap Sections contract', () => {
     });
     const grid = el.getGridOptions();
     expect(grid.rows).toBe('auto');
-    // Strip mode still uses rows:'auto' — the strip is horizontal overflow, not fixed rows
+    expect(grid.min_columns).toBe(9);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Actions: Sections sizing contract (CD5)
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('Actions: Sections sizing contract (CD5)', () => {
+  it('compact default: min_rows=1, min_columns=6', () => {
+    const el = document.createElement('tunet-actions-card');
+    el.setConfig({ variant: 'default', compact: true, actions: [{ name: 'A', service: 'light.turn_on', entity_id: 'light.a' }] });
+    const grid = el.getGridOptions();
+    expect(grid.min_rows).toBe(1);
+    expect(grid.min_columns).toBe(6);
+  });
+
+  it('compact mode_strip: min_rows=2, min_columns=9', () => {
+    const el = document.createElement('tunet-actions-card');
+    el.setConfig({ variant: 'mode_strip', compact: true });
+    const grid = el.getGridOptions();
+    expect(grid.min_rows).toBe(2);
+    expect(grid.min_columns).toBe(9);
+  });
+
+  it('relaxed default: min_rows=2, min_columns=9', () => {
+    const el = document.createElement('tunet-actions-card');
+    el.setConfig({ variant: 'default', compact: false, actions: [{ name: 'A', service: 'light.turn_on', entity_id: 'light.a' }] });
+    const grid = el.getGridOptions();
+    expect(grid.min_rows).toBe(2);
+    expect(grid.min_columns).toBe(9);
   });
 });
 

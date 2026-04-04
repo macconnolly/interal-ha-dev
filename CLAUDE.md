@@ -25,8 +25,9 @@ For Tunet tasks, it is a continuity layer. The scoped execution authority remain
 ## Current Tunet Work
 
 - **Active execution plan**: `~/.claude/plans/flickering-herding-wolf.md` — sole authority for Tunet execution (`CD0–CD12`)
-- **Current tranche**: `CD5 — Utility Strip Bespoke Pass` (next)
+- **Current tranche**: `CD6 — Lighting Bespoke Pass` (next)
 - **Previous tranches**:
+  - `CD5` — Utility Strip Bespoke Pass (completed Apr 4, 2026)
   - `CD4` — Shared Sizing And Sections Adoption (completed Apr 4, 2026)
   - `CD3` — Shared Semantics Adoption (completed Apr 3, 2026)
   - `CD2` — Shared Interaction Adoption (completed Apr 3, 2026)
@@ -52,7 +53,7 @@ Current priority:
 - `npm run tunet:deploy:lab` — build + SCP to HA server
 - `npm test` — vitest suite
 - Lab dashboard:
-  - `http://10.0.0.21:8123/tunet-card-rehab-lab/lab`
+  - `http://10.0.0.21:8123/tunet-card-rehab-yaml/lab`
 
 If this root file and the Tunet-scoped file differ on Tunet behavior, follow the scoped file and the scoped `AGENTS.md`.
 

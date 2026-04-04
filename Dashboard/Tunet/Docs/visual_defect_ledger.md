@@ -469,14 +469,106 @@ Evidence: cd3-light-390x844.png, cd3-dark-390x844.png, cd3-review-390x844.png, c
 
 Plus 6 docs issues.
 
+---
+
+## G5 Sections Test Surface + Per-Card Viewport Analysis
+
+Evidence: g5-390-full.png, g5-390-lower.png, g5-390-bottom.png, g5-768-full.png, g5-1024-full.png, g5-1440-full.png, overview-390-full.png, audit-390-status-open.png, audit-390-status-sonos-open.png, audit-768-open-states.png, mobile-viewport-card-01 through card-15.
+
+### V-NAV-CRITICAL: Nav renders as left-side rail at mobile, covering card content
+
+**Every per-card mobile viewport screenshot is contaminated.** The nav card renders as a vertical sidebar rail (Home / Media / Card Rehab Lab / Rooms) overlaying the left ~80px of all card content. This is visible in ALL mobile-viewport-card-*.png screenshots.
+
+- The nav's global offset injection at `tunet_nav_card.js:177` and `tunet_nav_card.js:478` applies `margin-left` to the HA view container, but at phone width the rail overlaps instead of pushing content right
+- This makes EVERY card appear to have its left edge clipped
+- This is the single most damaging visual defect — it contaminates all mobile testing
+- **Severity: CRITICAL**
+
+### G5 Surface — 390px Full Page Issues
+
+**V-G5-1: Left-biased card islands with dead space**
+- At 390px, cards cluster on the left side with large right-margin dead space
+- Visible in g5-390-full.png — status, rooms, climate, sensor all have right-side gaps
+- Severity: High
+
+**V-G5-2: "New section" artifacts scattered through the page**
+- Two "New section" labels visible in g5-390-bottom.png below lighting and speaker cards
+- These are empty HA section containers — lab configuration debris
+- Makes the surface look unfinished even when cards are correct
+- Severity: Medium (lab config)
+
+**V-G5-3: Overview at 390px shows HA sidebar nav overlaying cards**
+- overview-390-full.png shows the HA sidebar (Overview, Adaptive Living, Bubble, Card Rehab Lab, etc.) consuming the left ~200px of the viewport
+- All card content is pushed right and compressed
+- Severity: High (different from tunet nav — this is HA's own sidebar)
+
+### Open State Issues
+
+**V-OPEN-1: Status dropdown menu overlaps sensor card and nav footer**
+- audit-390-status-open.png: status tile dropdown extends below the card, overlapping the sensor section and the bottom nav bar
+- The dropdown content is partially hidden behind the nav footer
+- Severity: High
+
+**V-OPEN-2: Sonos/media open state causes horizontal overflow**
+- audit-390-status-sonos-open.png: with both status dropdown and sonos source menu open, the page has horizontal scroll
+- scrollWidth > clientWidth confirmed at 390, 768, 1024
+- Severity: High
+
+**V-OPEN-3: At 768px, open dropdowns create cascading layout shift**
+- audit-768-open-states.png: open overlays push content flow, not float above it
+- The sensor and status sections visually shift when menus are open
+- Severity: Medium
+
+### Per-Card Viewport Findings (Nav Rail Contamination)
+
+All mobile-viewport-card-*.png screenshots show the same defect: tunet-nav-card renders as a left sidebar rail at 390px width, covering ~80px of every card's left edge.
+
+**V-PCVP-1: Media card — left portion hidden behind nav rail**
+- "Nothing ..." track name clipped by rail
+- Transport buttons shifted right
+- Speaker tiles partially obscured ("_iving Room", "_redenza Sp...")
+- Severity: Critical (nav contamination)
+
+**V-PCVP-2: Status card — leftmost tiles partially hidden**
+- "nvironmenta" visible (first letters clipped by rail)
+- "Adaptive" and "Boost" tiles readable but left edge cut
+- Severity: Critical (nav contamination)
+
+**V-PCVP-3: Lighting card — leftmost tiles hidden behind rail**
+- First column tiles ("_ouch", "_ots", "_esk") have names clipped
+- Only right two columns fully visible
+- Severity: Critical (nav contamination)
+
+**V-PCVP-4: Rooms card (Row) — room icons hidden behind rail**
+- Row mode icons are behind the nav rail
+- Only orbs and power buttons visible
+- Room names barely readable
+- Severity: Critical (nav contamination)
+
+---
+
+## Final Summary
+
+| Severity | Count |
+|----------|:-----:|
+| **Critical** | 5 |
+| **High** | 36 |
+| **Medium** | 28 |
+| **Low** | 12 |
+| **Total** | **81** |
+
+Plus 6 docs issues.
+
+**The #1 blocker is V-NAV-CRITICAL:** The nav card's global offset mutation renders as a left rail at mobile width, covering the left edge of every card. Until this is fixed, no mobile visual validation can be trusted.
+
 **Critical mobile finding:** 390px is structurally broken for most cards. The shared passes fixed interaction infrastructure but did not address density, truncation, column count adaptation, or compositional weakness at phone width. This is the primary remaining work for the bespoke passes.
 
 **Cards that need mobile work most urgently (High severity at 390px):**
-1. tunet-lighting-card — 3-col doesn't adapt, scroll mode clips, tile limit is static
-2. tunet-rooms-card — row mode overcompressed, orbs tiny, power button oversized
-3. tunet-sensor-card — entity IDs as labels
-4. tunet-status-card — 4-col at 390px is unreadable
-5. tunet-sonos-card — width overflow, title doesn't fit
-6. tunet-speaker-grid-card — tiles overflow visible area
-7. tunet-media-card — compressed to thin strip, naming too aggressive
-8. tunet-nav-card — covers content, global offset mutation
+1. **tunet-nav-card** — CRITICAL: left rail at mobile covers all content
+2. tunet-lighting-card — 3-col doesn't adapt, scroll mode clips, tile limit is static
+3. tunet-rooms-card — row mode overcompressed, orbs tiny, power button oversized
+4. tunet-sensor-card — entity IDs as labels
+5. tunet-status-card — 4-col at 390px is unreadable, dropdown overlaps nav
+6. tunet-sonos-card — width overflow, title doesn't fit
+7. tunet-speaker-grid-card — tiles overflow visible area
+8. tunet-media-card — compressed to thin strip, naming too aggressive

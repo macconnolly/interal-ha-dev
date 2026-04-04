@@ -8,6 +8,25 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole author
 Current tranche: **CD6 — Lighting Bespoke Pass** (next)
 Previous tranches: CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-04-04, CD5 — Utility Strip Bespoke Pass)
+
+- `CURRENT STATE`
+  - CD5 completed; tranche marker advanced to CD6
+  - 527 tests passing (was 489), 10 suites, 13 cards build
+  - deploy token: ?v=20260404_cd5d
+- `ACTIONS CARD`
+  - phone overflow fix: mode_strip and relaxed (compact:false) strips wrap with full-width chips; compact default strips scroll
+  - layout helper consolidates getCardSize/getGridOptions — variant-aware min_columns and min_rows
+  - aria-pressed on chips with state_entity; no new config keys
+- `SCENES CARD`
+  - header semantic: role="heading" aria-level="3", icon aria-hidden
+  - getGridOptions tracks allow_wrap + show_header for intentional sizing
+  - disabled chip dispatch guard in _activate
+- `DOCS`
+  - cards_reference.md, sections_layout_matrix.md, visual_defect_ledger.md updated
+  - stale URLs normalized across CLAUDE.md, Tunet/CLAUDE.md, tunet_build_and_deploy.md
+  - test count updated to 527
+
 ## Session Delta (2026-04-04, Control-Doc Normalization)
 
 - `CURRENT STATE`
@@ -98,8 +117,8 @@ Before starting any implementation tranche:
 | | CD3 | Shared semantics adoption (9 files) — **done** |
 | | CD3.1 | Dropdown clipping fix (1 file) — **done** |
 | | CD4 | Shared sizing + Sections adoption (7 files) — **done** |
-| Bespoke | CD5 | Utility strip bespoke — **next** |
-| | CD6 | Lighting bespoke |
+| Bespoke | CD5 | Utility strip bespoke — **done** |
+| | CD6 | Lighting bespoke — **next** |
 | | CD7 | Rooms bespoke |
 | | CD8 | Environment bespoke |
 | | CD9 | Media bespoke |

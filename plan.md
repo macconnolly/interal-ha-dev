@@ -6,6 +6,24 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole author
 Current tranche: **CD6 — Lighting Bespoke Pass** (next)
 Previous tranches: CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-04-04, CD5 — Utility Strip Bespoke Pass)
+
+Tranche marker: CD5 complete, advancing to CD6
+
+- `CURRENT STATE`
+  - CD5 completed; tranche marker → CD6 — Lighting Bespoke Pass
+  - 527 tests (was 489), 13 cards build, deploy ?v=20260404_cd5d
+- `ACTIONS`
+  - phone overflow: wrap for mode_strip + relaxed; scroll for compact default
+  - layout helper: unified getCardSize/getGridOptions with variant-aware min_columns/min_rows
+  - aria-pressed on stateful chips
+- `SCENES`
+  - semantic header + icon aria-hidden
+  - getGridOptions tracks allow_wrap + show_header
+  - disabled chip dispatch guard
+- `TESTS`
+  - utility_strip_bespoke.test.js (32 tests), sizing_sections_contract.test.js tightened (+6)
+
 ## Session Delta (2026-04-04, Control-Doc Normalization)
 
 Tranche marker: pre-CD5 documentation/backlog rationalization

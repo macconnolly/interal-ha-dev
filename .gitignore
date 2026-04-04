@@ -33,3 +33,7 @@ Dashboard/Tunet/Cards/v3/dist/
 
 # Playwright MCP artifacts
 .playwright-mcp/
+
+# Claude worktrees (managed by Claude Code, not repo content)
+.claude/worktrees/
+

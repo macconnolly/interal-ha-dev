@@ -298,6 +298,44 @@ Evidence: audit-my-1440-s1.png through audit-my-1440-s8.png
 
 ---
 
+## Status Card Deep Dive (focused screenshots audit-status-390/768/1440.png)
+
+**Summary Matrix at 390px (audit-status-390.png):**
+- 4-col grid: "Home HOME", "Envir... ADAPTIVE", "Envir... MANUAL" (with Reset badge), "A... ˅ MODE"
+- Second row: "Envir... SYSTEM", "[lightning icon] ... BOOST", "7:27 SUNSET", "69°F INSIDE"
+- `P0`: First row — "Envir..." repeated 2x, "A..." is unreadable (Adaptive dropdown truncated to single letter + "...")
+- `P0`: Tile labels are ALL CAPS beneath icons ("HOME", "ADAPTIVE", "MANUAL", "MODE") — this is redundant with the icon-above value pattern and wastes vertical space
+- `P0`: The "Reset" badge on Environmental Manual tile overlaps/crowds the icon
+- `P1`: The tile title/subtitle model shows "Environmental" truncated to "Envir..." three times — these should be shortened to "Env Boost", "Env Manual", "Env System" or similar
+- `P1`: 4-col forces 3 characters per tile name at 390px — this is fundamentally too dense
+
+**Standard 2-col at 390px:**
+- "Environmental Boost / System", "Adaptive ˅ / Mode" — readable, clean
+- "69°F / Temp", "34% / Humidity" — clean
+- `OK`: 2-col is the right density for phone status
+
+**Timer + Alarm Branches at 390px:**
+- "Environmental Boost / System", "Mode TTL / --:--", "Adaptive ˅ / Mode" — 3-col, readable
+- "05:20 · Bath / Next Alarm", "2 / Enabled" — readable
+- `OK`: 3-col works here because tile names are shorter
+
+**Summary Matrix at 768px (audit-status-768.png):**
+- 4-col: "Home", "Environmental", "Environmental" (Reset badge), "Adaptive ˅" — **full names visible!**
+- Second row: "Environmental", "[lightning] [value]", "7:27PM SUNSET", "69F" — readable
+- `OK`: 4-col works at 768px — labels fit
+
+**Summary Matrix at 1440px (audit-status-1440.png):**
+- 4-col: all labels fully visible. Clean.
+- `OK`: Desktop is fine
+
+**Key Status Card Issues:**
+1. The Summary Matrix 4-col variant is only broken at 390px — it works at 768+ 
+2. The tile labeling model itself is redundant: icon + ALL CAPS label + sub-value is 3 layers of information that could be 2
+3. The "Environmental" prefix repeats across 3 of 8 tiles — needs shorter labels for phone
+4. The dropdown tile ("Adaptive ˅ / MODE") is the most broken — the dropdown arrow eats horizontal space and the label truncates first
+
+---
+
 ### Current Severity Count
 
 | Severity | Count | Notes |

@@ -37,6 +37,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     padding: 20px 20px 14px;
     gap: 0;
     width: 100%;
+    overflow: visible;
   }
   .card[data-mode="off"] { opacity: .55; }
   .card[data-action="heating"] { border-color: rgba(212,133,10,0.16); }

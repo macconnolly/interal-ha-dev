@@ -56,8 +56,9 @@ Before starting any implementation tranche:
 | Infrastructure | CD0 | Build architecture + rehab lab — **done** |
 | | CD1 | Configuration clarity + editor policy — **done** |
 | Shared consistency | CD2 | Shared interaction adoption (all 13 files) — **done** |
-| | CD3 | Shared semantics adoption (6 files) — **next** |
-| | CD4 | Shared sizing + Sections adoption (6+ files) |
+| | CD3 | Shared semantics adoption (9 files) — **done** |
+| | CD3.1 | Dropdown clipping fix (3 files) — **in progress** |
+| | CD4 | Shared sizing + Sections adoption (6+ files) — **next** |
 | Bespoke | CD5 | Utility strip bespoke |
 | | CD6 | Lighting bespoke |
 | | CD7 | Rooms bespoke |

@@ -4,18 +4,33 @@ Working branch: `main`
 Last updated: 2026-04-03
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
-Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single source of truth, CD0–CD12)
+
+## Session Delta (2026-04-03, CD3 Closeout + CD3.1 In Progress)
+
+Change marker: CD3 tranche closure, CD3.1 dropdown clipping fix started
+
+- `AUTHORITY-LOCK`
+  - `~/.claude/plans/flickering-herding-wolf.md` is the sole execution authority (CD0–CD12).
+- `CURRENT STATE`
+  - CD3 — Shared Semantics Adoption: **DONE** (Apr 3, 2026)
+  - CD3.1 — Dropdown Clipping Fix: **IN PROGRESS** (Phase 1 deployed, Phase 2 verification pending)
+  - CD4 — Shared Sizing And Sections Adoption: next tranche (after CD3.1 closes)
+- `CD3 CLOSURE EVIDENCE`
+  - interaction_keyboard_contract.test.js: 63/63 pass (role, tabindex, Enter/Space, slider preservation)
+  - Full npm test: 431/431 pass (8 suites)
+  - npm run tunet:build: 13 cards built
+  - Deploy: 13 cards SCP'd, Lovelace resources bumped to ?v=20260403_cd3
+  - Live DOM verification: all helper-wired elements confirmed role="button" + tabindex="0"
+  - spk-tile slider preserved (role="slider")
+  - bindButtonActivation helper exported from tunet_base.js
+- `CD3.1 STATUS`
+  - Phase 1 (climate overflow:visible): deployed, resource bumped to ?v=20260403_cd31
+  - Phase 2 (live verification all 3 dropdown cards): pending
+  - Phase 3 (viewport-anchored fix): only if Phase 2 reveals clipping from Sections container
 
 ## Session Delta (2026-04-03, CD2 Closeout)
 
 Change marker: CD2 tranche closure
-
-- `AUTHORITY-LOCK`
-  - `~/.claude/plans/flickering-herding-wolf.md` is the sole execution authority.
-  - `~/.claude/plans/flickering-herding-wolf.md` is the single source of truth (CD0–CD12).
-- `CURRENT STATE`
-  - CD2 — Shared Interaction Adoption: **DONE** (Apr 3, 2026)
-  - CD3 — Shared Semantics Adoption: next tranche
 - `CD2 CLOSURE EVIDENCE`
   - interaction_source_contract.test.js: 146/146 pass
   - interaction_dom_contract.test.js: 66/66 pass (mock hass, zero skips)

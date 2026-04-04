@@ -56,6 +56,37 @@ Current priority:
 
 If this root file and the Tunet-scoped file differ on Tunet behavior, follow the scoped file and the scoped `AGENTS.md`.
 
+### Tunet Multi-Agent Driver
+
+For broad planning, tranche execution, or multi-agent review, use:
+- `.claude/skills/tunet-agent-driver/SKILL.md`
+
+Control documents:
+- `Dashboard/Tunet/Docs/agent_driver_pack.md`
+- `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md`
+- `plan.md`, `FIX_LEDGER.md`, `handoff.md`
+- `Dashboard/Tunet/CLAUDE.md` (overrides this file for Tunet-specific rules)
+
+### HA Instance Organizer
+
+For discovery-first audit and safe cleanup of HA organizational metadata, use:
+- `.claude/skills/ha-instance-organizer/SKILL.md`
+- `docs/ha_instance_organizer_runbook.md` (full operational runbook)
+
+Invoke with `/ha-instance-organizer`. Covers areas, floors, zones, labels, categories, aliases, groups, visibility, helpers, room aggregates, device-entity inheritance, and dead or orphaned entities.
+
+### Architectural Rules
+
+- For Tunet work, root guidance defers to `Dashboard/Tunet/AGENTS.md`
+- Do not create or use additional Tunet worktrees unless explicitly requested
+- Real Home Assistant Sections dashboard — no layout hacks
+- Do not force vertical sizing unless required; prefer intrinsic height
+- Persistent nav is dashboard chrome, not content
+- Popups via Browser Mod (locked); stay minimal and high-utility
+- Sections sizing: reason page → section → card (not viewport/theme shortcuts)
+- Validation breakpoints: 390×844, 768×1024, 1024×1366, 1440×900
+- Documentation before code — each tranche starts with doc updates
+
 ### User Preference
 Dark blue glass variant `rgba(30,41,59,0.65)` in dark mode. If preference and spec diverge, preserve both and make conflict explicit.
 

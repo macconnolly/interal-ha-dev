@@ -118,7 +118,7 @@ npm test
 
 Runs vitest with jsdom environment. Test files: `Dashboard/Tunet/Cards/v3/tests/*.test.js`
 
-Current test suites (431 total):
+Current test suites (489 total):
 - `profile_resolver.test.js` — profile resolution contract (8 tests)
 - `sizing_contract.test.js` — boundary behavior for bucketFromWidth/autoSizeFromWidth (10 tests)
 - `bundle_safety.test.js` — font injection and registerCard guards (5 tests)
@@ -127,6 +127,7 @@ Current test suites (431 total):
 - `interaction_source_contract.test.js` — CD2 interaction vocabulary contract: hover guards, press tokens, focus-visible, transitions, tap-highlight, reduced-motion (146 tests)
 - `interaction_dom_contract.test.js` — CD2 runtime DOM verification: base exports, style injection with mock hass, rendered CSS compliance (66 tests)
 - `interaction_keyboard_contract.test.js` — CD3 keyboard semantics: bindButtonActivation, role/tabindex verification, Enter/Space activation, slider preservation (63 tests)
+- `sizing_sections_contract.test.js` — CD4 Sections contract: rows:'auto' enforcement, columns:'full' nav-only, scenes allow_wrap, profile override precedence (58 tests)
 
 ## Tranche Closure Validation (Strict)
 

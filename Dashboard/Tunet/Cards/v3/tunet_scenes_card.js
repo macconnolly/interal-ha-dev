@@ -387,7 +387,7 @@ class TunetScenesCard extends HTMLElement {
       show_header: false,
       name: 'Scenes',
       compact: true,
-      allow_wrap: false,
+      allow_wrap: true,
       scenes: DEFAULT_SCENES,
     };
   }

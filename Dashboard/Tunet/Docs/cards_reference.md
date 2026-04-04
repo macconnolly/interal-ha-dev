@@ -327,8 +327,7 @@ Default for standard (`column_span: 1`) sections. In wider sections, numeric `12
 
 ### Sections Safety
 
-Primary issue: `allow_wrap: false` (default) creates `overflow-x: auto` strip behavior, which is risky in Sections and should be constrained/explicit in CD4.
-`allow_wrap: true` is the safer default for Sections because height grows naturally (`rows: 'auto'`) without horizontal trap behavior.
+**Resolved in CD4**: `allow_wrap: true` is now the Sections-safe default (stub config changed). Strip mode (`allow_wrap: false`) is retained as an opt-in YAML exception for users who explicitly want horizontal scroll. Height grows naturally with `rows: 'auto'` in wrap mode.
 
 ### Editor Architecture
 

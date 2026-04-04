@@ -6,7 +6,7 @@ Purpose: reset Sections layout work to the three real HA control layers:
 2. section width/span
 3. card width/span
 
-Status: provisional baseline. This doc is now grounded in HA docs + frontend source and must be completed with live tuning evidence.
+Status: **accepted** — completed with per-card getGridOptions data (CD4, Apr 4, 2026). Live breakpoint pass still recommended before surface assembly (CD12).
 
 ## Applied Baseline (Storage Surface, 2026-03-06)
 
@@ -24,6 +24,33 @@ Remaining required step:
 Important:
 - `4/3/1` is a composition pattern for specific surfaces (for example Overview hero/support rows), not a universal rule for every view.
 - Each page/subview must use role-based placement decisions per section (hero, companion, support) instead of blindly inheriting one ratio.
+
+## Per-Card getGridOptions() Contract (CD4 Verified)
+
+All 13 cards use `rows: 'auto'`. No card forces fixed row height in the Sections grid contract.
+
+| Card | columns | min_columns | rows | min_rows | max_rows | Profile System | Notes |
+|------|:---:|:---:|:---:|:---:|:---:|:---:|---|
+| actions | 12 | 6 | auto | 1 | — | No | |
+| climate | 6 | 3 | auto | 3 | — | No | Gold standard, verify-only |
+| light_tile | 3 | 3 | auto | 1 | 4 | Yes (lighting/grid) | Cosmetic profile (spacing/fonts) |
+| lighting | 12 | 6 | auto | 2 | 12 | Yes (lighting/grid\|scroll) | grid-auto-rows profile-controlled; overflow-y visible for drag pill |
+| media | 12 | 6 | auto | 2 | — | No | overflow:hidden on .media-body is for view switching, not card clipping |
+| nav | **full** | 6 | auto | 1 | — | No | Only full-width card |
+| rooms | 12 | 6 | auto | 2 | 12 | Yes (rooms/row\|tiles) | 3 layout variants under same sizing contract |
+| scenes | 12 | 6 | auto | 1 | — | No | allow_wrap:true is Sections default (CD4); strip mode is opt-in |
+| sensor | 12 | 6 | auto | 2 | 12 | Yes (environment/row) | Row heights scale with profile |
+| sonos | 12 | 6 | auto | 2 | — | No | |
+| speaker_grid | 12 | 6 | auto | 2 | 12 | Yes (speakers/grid) | Slider tiles with drag; density scales with profile |
+| status | 12 | 6 | auto | 2 | 12 | Yes (status/grid\|row) | Scope-locked; known height: drift at L216 deferred to CD11 |
+| weather | 6 | 3 | auto | 3 | — | No | |
+
+### Key Sections Decisions (CD4)
+
+1. **Scenes allow_wrap**: `true` is the Sections-safe default. Strip mode (`allow_wrap: false`) retained as opt-in YAML exception.
+2. **Lighting overflow**: `overflow-y: visible` on `.light-grid` is intentional — JS limits tile count instead of CSS clipping to prevent floating brightness pill from being cut off during drag.
+3. **Profile system**: Cosmetic sizing only (spacing, fonts, density). Does not affect card structural height. All profile cards use `rows: 'auto'`.
+4. **Nav columns:'full'**: The only card that spans full section width. All others use numeric columns.
 
 ## Surface-By-Surface Queue (Retained For Later Surface Assembly)
 

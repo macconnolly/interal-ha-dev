@@ -5,8 +5,8 @@ Intended reader: next Claude Code session
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
-Current tranche: **CD4 — Shared Sizing And Sections Adoption** (next)
-Previous tranches: CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+Current tranche: **CD5 — Utility Strip Bespoke Pass** (next)
+Previous tranches: CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
 ## Session Delta (2026-04-03, CD2 Closeout)
 
@@ -58,8 +58,8 @@ Before starting any implementation tranche:
 | Shared consistency | CD2 | Shared interaction adoption (all 13 files) — **done** |
 | | CD3 | Shared semantics adoption (9 files) — **done** |
 | | CD3.1 | Dropdown clipping fix (1 file) — **done** |
-| | CD4 | Shared sizing + Sections adoption (6+ files) — **next** |
-| Bespoke | CD5 | Utility strip bespoke |
+| | CD4 | Shared sizing + Sections adoption (7 files) — **done** |
+| Bespoke | CD5 | Utility strip bespoke — **next** |
 | | CD6 | Lighting bespoke |
 | | CD7 | Rooms bespoke |
 | | CD8 | Environment bespoke |

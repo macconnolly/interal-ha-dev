@@ -4,8 +4,8 @@
 
 **Consistency-driver card rehabilitation** — see `~/.claude/plans/flickering-herding-wolf.md` (sole execution authority, CD0–CD12).
 
-Current tranche: **CD4 — Shared Sizing And Sections Adoption** (next)
-Previous tranches: CD3 (completed Apr 3), CD2 (completed Apr 3), CD1 (completed Apr 3), CD0 (completed Apr 3)
+Current tranche: **CD5 — Utility Strip Bespoke Pass** (next)
+Previous tranches: CD4 (completed Apr 4), CD3 (completed Apr 3), CD2 (completed Apr 3), CD1 (completed Apr 3), CD0 (completed Apr 3)
 
 Cards still serve the dashboard product, but the current execution order is consistency-driver passes:
 CD0 build → CD1 config → CD2 interaction → CD3 semantics → CD4 sizing → CD5-CD11 bespoke → CD12 surfaces.

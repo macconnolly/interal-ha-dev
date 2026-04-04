@@ -13,7 +13,7 @@ Change marker: CD3 tranche closure, CD3.1 dropdown clipping fix started
   - `~/.claude/plans/flickering-herding-wolf.md` is the sole execution authority (CD0–CD12).
 - `CURRENT STATE`
   - CD3 — Shared Semantics Adoption: **DONE** (Apr 3, 2026)
-  - CD3.1 — Dropdown Clipping Fix: **IN PROGRESS** (Phase 1 deployed, Phase 2 verification pending)
+  - CD3.1 — Dropdown Clipping Fix: **DONE** (Apr 4, 2026)
   - CD4 — Shared Sizing And Sections Adoption: next tranche (after CD3.1 closes)
 - `CD3 CLOSURE EVIDENCE`
   - interaction_keyboard_contract.test.js: 63/63 pass (role, tabindex, Enter/Space, slider preservation)
@@ -23,10 +23,10 @@ Change marker: CD3 tranche closure, CD3.1 dropdown clipping fix started
   - Live DOM verification: all helper-wired elements confirmed role="button" + tabindex="0"
   - spk-tile slider preserved (role="slider")
   - bindButtonActivation helper exported from tunet_base.js
-- `CD3.1 STATUS`
-  - Phase 1 (climate overflow:visible): deployed, resource bumped to ?v=20260403_cd31
-  - Phase 2 (live verification all 3 dropdown cards): pending
-  - Phase 3 (viewport-anchored fix): only if Phase 2 reveals clipping from Sections container
+- `CD3.1 CLOSURE`
+  - Phase 1 (climate overflow:visible): deployed, verified
+  - Phase 2 (live verification): all 3 dropdown cards pass — climate, media, sonos fully visible
+  - Phase 3 (viewport-anchored fix): NOT NEEDED — no Sections container clipping detected
 
 ## Session Delta (2026-04-03, CD2 Closeout)
 

@@ -152,6 +152,37 @@ For cards with internal multi-item layouts, HA grid hints must correspond to act
 
 ---
 
+## Whole-Home Usage Contract
+
+This section is the composition contract for later whole-home dashboard work. It defines what each card is for before any surface assembly resumes.
+
+| Card | Surface role | Whole-home default use | Phone-safe default | Not phone-default | Owning implementation tranche |
+|------|--------------|------------------------|--------------------|-------------------|-------------------------------|
+| `tunet-actions-card` | utility strip | small dispatch strip for global or contextual utility actions | short chip sets only | dense chip sets in narrow spans | CD5 |
+| `tunet-scenes-card` | utility strip | scene/script/automation strip with wrap-first behavior | wrapped strip (`allow_wrap: true`) | forced horizontal strip in narrow spans unless explicitly chosen | CD5 |
+| `tunet-light-tile` | detail | atomic single-light control tile inside room-detail compositions | compact/standard detail tile within a detail stack | standalone overview surface | CD6 |
+| `tunet-lighting-card` | detail | canonical room-detail light-control surface | 2-column phone-safe lighting/detail layouts | 3-column phone defaults at `390px` | CD6 |
+| `tunet-rooms-card` | overview | room overview/navigation hub | `tiles` or `slim`, depending on density | `row` as the default phone overview layout; detailed room-light evaluation | CD7 |
+| `tunet-climate-card` | information | climate companion/reference surface | single-card climate presentation | cramped paired-phone compositions treated as a climate-card default | CD8 |
+| `tunet-weather-card` | information | weather companion/info surface | fixed daily/hourly variants | toggle-heavy auto-control variants as the default phone composition | CD8 |
+| `tunet-sensor-card` | information | environment/status rows and glanceable metrics | concise labeled rows with controlled sensor counts | unlabeled or alias-ambiguous fixture contracts | CD8 |
+| `tunet-status-card` | information | status/summary matrix where explicitly needed | 2-column phone-safe density unless labels are substantially shortened | 4-column phone summary matrix at `390px` | CD11 / G3S lock |
+| `tunet-media-card` | media control | primary transport/media state surface | current compact phone layout with full speaker identity preserved | compact naming that erases room identity | CD9 |
+| `tunet-sonos-card` | media control | alternate inline-speaker Sonos control surface | only after width-safe source/speaker handling is validated | current narrow-width source/dropdown and speaker-strip defaults | CD9 |
+| `tunet-speaker-grid-card` | media control | dedicated speaker-management grid | compact 2-column speaker grid | 4-column standard/default on phone | CD9 |
+| `tunet-nav-card` | chrome | persistent navigation chrome | bottom dock | desktop rail as a layout reference while offset/sidebar strategy is unstable | CD10 |
+
+Locked decisions:
+- `tunet-rooms-card` is the room overview/navigation surface, not the canonical detailed room-light surface.
+- `tunet-lighting-card` is the canonical detailed room-light surface.
+- `tunet-light-tile` is an atomic detail tile, not an overview card.
+- `tunet-nav-card` is chrome, not ordinary content composition.
+- `tunet-status-card` remains G3S/CD11 locked for structural changes.
+
+Classification note: composition misuse is not a card defect — use the table above before classifying a visual problem as card failure. Historical tranche language in per-card sections below is context only; check `visual_defect_ledger.md` for current open-issue status.
+
+---
+
 ## 1. tunet-actions-card
 
 **Version**: v2.4.4  
@@ -171,9 +202,9 @@ Quick-action chip strip. Two modes:
 | `variant` | string | `'default'` | `'default'`, `'mode_strip'` | Y | editor |
 | `mode_entity` | string | `'input_select.oal_active_configuration'` | any `input_select` entity | Y | editor |
 | `compact` | boolean | `true` | true/false | Y | editor |
-| `actions` | array | `DEFAULT_ACTIONS` or `DEFAULT_MODE_ACTIONS` | action objects (see below) | N | yaml-only |
+| `actions` | array | `DEFAULT_ACTIONS` or `DEFAULT_MODE_ACTIONS` | action objects (see below) | Y | editor + yaml-compatible |
 
-#### Per-action properties (yaml-only)
+#### Per-action properties (structured editor + yaml-compatible runtime)
 
 | Key | Type | Default | Notes |
 |-----|------|---------|-------|
@@ -181,18 +212,24 @@ Quick-action chip strip. Two modes:
 | `icon` | string | `'circle'` | Material Symbol name |
 | `accent` | string | `'amber'` | amber, blue, green, purple, red, muted |
 | `service` | string | `''` | HA service (e.g., `light.turn_on`, `script.turn_on`, `input_select.select_option`) |
-| `service_data` | object | `{}` | Service payload — arbitrary, domain-specific |
+| `entity_id` | string | `''` | Editor-backed service target helper; synthesized into `service_data.entity_id` when raw `service_data` does not already provide one |
+| `option` | string | `''` | Editor-backed helper for `input_select.select_option`; synthesized into `service_data.option` when needed |
 | `state_entity` | string | `''` | Entity to monitor for active state |
 | `active_when` | string | `'on'` | State value that triggers active visual |
 | `active_when_operator` | string | `'equals'` | `equals`, `contains`, `not_equals`, `gt`, `gte`, `lt`, `lte` |
-| `show_when` | object\|null | `null` | Conditional visibility: `{entity, attribute, operator, state}` |
-| `tap_action` | object\|null | `null` | HA action override (navigate, more-info, etc.) |
+| `show_when_entity` | string | `''` | Editor-backed conditional visibility source |
+| `show_when_attribute` | string | `''` | Optional attribute for conditional visibility |
+| `show_when_operator` | string | `'equals'` | Conditional operator for show/hide |
+| `show_when_state` | string | `''` | Conditional comparison value |
+| `service_data` | object | `{}` | YAML-compatible raw service payload. Preserved when supplied directly. |
+| `show_when` | object\|null | `null` | YAML-compatible raw conditional visibility object. Structured editor fields synthesize this shape. |
+| `tap_action` | object\|null | `null` | HA action override (navigate, more-info, etc.). YAML power-user path. |
 
 ### Editor
 
-3 fields: variant (select), mode_entity (entity picker, input_select filter), compact (boolean).
+4 top-level fields: variant (select), mode_entity (entity picker, input_select filter), compact (boolean), and a structured `actions` object editor.
 
-The `actions[]` array is intentionally not in the editor — `service_data` payloads are arbitrary per domain. The `mode_strip` variant provides a zero-YAML path for the most common use case (OAL mode switching).
+The card still remains `yaml-first` because raw `service_data`, raw `show_when`, and `tap_action` remain richer than the editor surface. The editor now covers the common structured authoring path while preserving existing YAML action objects.
 
 ### Stub Config
 
@@ -236,6 +273,7 @@ Section-span caveat: default numeric `columns` is a default, not a universal ful
 - `variant`: default vs mode_strip (select)
 - `mode_entity`: which input_select controls OAL modes (entity picker)
 - `compact`: chip density (boolean)
+- `actions[]`: structured action editor for the common path (name, icon, accent, service, target entity/option, active state, show-when fields)
 
 **Synthesizer** (what setConfig infers):
 - If `variant = mode_strip` and no explicit `actions[]`: auto-generates `DEFAULT_MODE_ACTIONS` with `__MODE_ENTITY__` → `mode_entity` substitution
@@ -243,17 +281,18 @@ Section-span caveat: default numeric `columns` is a default, not a universal ful
 - Per-action normalization: fills defaults for icon ('circle'), accent ('amber'), active_when ('on'), operator ('equals')
 
 **Runtime model** (what the card consumes):
-- Fully normalized `actions[]` array with all 10 per-action fields resolved
+- Fully normalized `actions[]` array with structured editor fields synthesized into the richer runtime shape
 
-**Editor level**: Level 1 (getConfigForm with simple selectors). The mode_strip variant IS the authoring-model-driven design — user picks a variant, card synthesizes the action array.
+**Editor level**: Level 1 + structured object editor. The mode_strip variant remains the zero-YAML authoring-model path; the structured `actions[]` editor now covers the common custom-strip path without replacing the richer YAML runtime model.
 
 **Future consideration**: Level 2 (object+fields+multiple) for actions[] with a nested raw object selector for service_data. Would let power users build custom action strips without YAML. Not CD1 scope.
 
 ### Known Limitations
 
-- Custom actions require dashboard YAML — the full `actions[]` with `service_data` is not editor-representable without Level 2+ work
-- The 7-operator condition system (`evaluateCondition`) is powerful but undocumented to users
+- Arbitrary raw `service_data`, raw `show_when`, and `tap_action` remain power-user YAML paths even though the common `actions[]` structure is now editable
+- The 7-operator condition system (`evaluateCondition`) is powerful but still under-documented to users
 - mode_strip is effectively an inference-driven authoring model — pick variant + entity, get a complete action strip
+- Phone `mode_strip` chip overflow remains the primary open visual/runtime pressure point for CD5
 
 ---
 
@@ -274,7 +313,7 @@ Scene/script/automation activation strip. Domain-aware — automatically calls `
 | `show_header` | boolean | `false` | true/false | Y | editor |
 | `name` | string | `'Scenes'` | any | Y | editor |
 | `compact` | boolean | `true` | true/false | Y | editor |
-| `allow_wrap` | boolean | `false` | true/false | Y | editor |
+| `allow_wrap` | boolean | `true` | true/false | Y | editor |
 | `scenes` | array | `DEFAULT_SCENES` | scene objects (see below) | Y | editor |
 
 #### Per-scene properties (all in editor via object+fields+multiple)
@@ -299,7 +338,7 @@ Scene/script/automation activation strip. Domain-aware — automatically calls `
 show_header: false
 name: Scenes
 compact: true
-allow_wrap: false
+allow_wrap: true
 scenes:
   - entity: ''
     name: All On
@@ -341,7 +380,7 @@ Default for standard (`column_span: 1`) sections. In wider sections, numeric `12
 
 ### Known Limitations
 
-- Default scroll mode (allow_wrap: false) is Sections-unsafe
+- Strip mode (`allow_wrap: false`) is the opt-in narrow-width exception; wrap mode is the live default and the preferred whole-home/phone contract
 - `active_when_operator` only supports 3 operators (equals, contains, not_equals) vs actions card's 7
 
 ---
@@ -354,7 +393,7 @@ Default for standard (`column_span: 1`) sections. In wider sections, numeric `12
 
 ### Purpose
 
-Standalone single-light control tile with drag-to-dim. The atomic unit of the lighting system. Two visual variants: vertical (tall, icon above name) and horizontal (wide, icon beside name). Used in room subviews for per-light control.
+Standalone single-light control tile with drag-to-dim. The atomic unit of the lighting system. Two visual variants: vertical (tall, icon above name) and horizontal (wide, icon beside name). Used in room subviews for per-light control. This is an atomic detail tile, not a standalone overview surface.
 
 ### Config Properties
 
@@ -391,25 +430,25 @@ Note: stub provides a real entity ID, not empty. Card renders unavailable if ent
 
 Dense-tile default for standard (`column_span: 1`) sections; intentionally not a full-width card.
 In wider sections, relative tile width shrinks further unless dashboard-level overrides are applied.
-Should still become variant-aware in CD4/CD6 (vertical vs horizontal, plus `tile_size` effects).
+Current HA grid hints remain dense-tile defaults and do not yet differentiate vertical vs horizontal or `tile_size` at the grid-hint layer. Any further tuning belongs to CD6, not shared-pass cleanup.
 
 ### Interaction
 
-- **Category**: Dual-purpose (tap + drag on same element)
-- **Tap**: toggle light on/off
-- **Horizontal drag**: adjust brightness via `createAxisLockedDrag()` — deadzone 8, axisBias 1.3
-- **Long press** (500ms): opens more-info dialog
+- **Current runtime**:
+  - tap toggles light on/off
+  - horizontal drag adjusts brightness via `createAxisLockedDrag()` with deadzone `8` and axisBias `1.3`
+  - long press (`500ms`) opens more-info
 - **Drag visual**: `.sliding` class scales tile to 1.05x
 - **Keyboard** (L809-838): Enter/Space toggle, Arrow ±5% (Shift ±10%)
-- **Future**: tap+drag dual-purpose should migrate to hold-to-drag (CD2)
+- **Contract note**: current runtime still behaves as a dual-purpose tile. Do not read the suite-wide control-tile target as already fully normalized here.
 
 ### Profile System
 
-Uses `selectProfileSize` + `resolveSizeProfile` + `_setProfileVars`. Controls tile geometry (padding, icon size, font size, progress bar height) based on `tile_size` and container width via ResizeObserver. Superseded as policy — CD4 migrates to shared helper.
+Uses `selectProfileSize` + `resolveSizeProfile` + `_setProfileVars`. Controls tile geometry (padding, icon size, font size, progress bar height) based on `tile_size` and container width via ResizeObserver. This is retained current-runtime machinery; do not read old shared-pass notes as meaning the card has already been re-authored around a different sizing system.
 
 ### Accessibility
 
-Has `role="button"`, `tabindex="0"`, `aria-label` with brightness state. **Gap**: arrow keys adjust brightness like a slider but role is "button" — should be `role="slider"` with `aria-valuenow/min/max`. CD3 fix.
+Has `role="button"`, `tabindex="0"`, and `aria-label` with brightness state. Current runtime still exposes arrow-key brightness adjustment without full slider semantics. Treat that as residual runtime semantics debt, not as a whole-home composition issue.
 
 ### Editor Architecture
 
@@ -433,6 +472,12 @@ Has `role="button"`, `tabindex="0"`, `aria-label` with brightness state. **Gap**
 
 Generally safe: overflow visible, profile-driven min-height, no forced internal row grid.
 Section-span caveat: tile density depends on section span because numeric `columns` is relative to section internal grid.
+Whole-home note: when this card feels visually "orphaned", that is usually a composition problem rather than a card-contract failure.
+
+### Known Limitations
+
+- Horizontal-variant label truncation on phone remains the main open polish issue for this card family
+- This card should be judged inside room-detail/detail-stack compositions, not as an overview/navigation surface
 
 ---
 
@@ -444,7 +489,7 @@ Section-span caveat: tile density depends on section span because numeric `colum
 
 ### Purpose
 
-Multi-zone lighting control surface. The most-used card in the dashboard — appears on overview, room subviews, and popups. ~1900 lines, most complex card in the suite. Shows a grid or scrollable strip of light tiles with brightness bars, optional header with adaptive lighting controls.
+Multi-zone lighting control surface. The most-used card in the dashboard — appears on overview, room subviews, and popups. ~1900 lines, most complex card in the suite. Shows a grid or scrollable strip of light tiles with brightness bars, optional header with adaptive lighting controls. This is the canonical room-detail light-control surface; `tunet-rooms-card` is the overview/navigation companion, not a replacement for this card's detailed-control role.
 
 ### Config Properties
 
@@ -515,18 +560,18 @@ In wider sections, numeric `12` becomes fractional unless dashboard-level overri
 
 ### Interaction
 
-- **Category**: Dual-purpose (tap + drag on l-tile elements)
-- **l-tile tap**: toggle individual light
-- **l-tile horizontal drag**: adjust brightness via `createAxisLockedDrag()` on light-grid (L1428)
-- **Header info-tile tap**: currently click-only (L1367) — needs Enter/Space keyboard handler (CD3)
+- **Current runtime**:
+  - l-tile tap toggles individual light
+  - l-tile horizontal drag adjusts brightness via `createAxisLockedDrag()` on the grid
+  - header info tile supports tap/keyboard activation and opens more-info
 - **Adaptive toggle**: tap toggles adaptive lighting switch
 - **Manual reset**: tap calls `script.oal_reset_soft`
 - **Keyboard** (L1391): Arrow ±5% (Shift ±10%), Enter/Space toggle on focused tile
-- **Future**: dual-purpose tile interaction → hold-to-drag (CD2)
+- **Contract note**: room-detail lighting runtime still uses toggle-plus-drag tile behavior. Treat any interaction redesign question as CD6-owned, not as an open shared-pass ambiguity.
 
 ### Profile System
 
-Uses `selectProfileSize` + `resolveSizeProfile` + `_setProfileVars`. ResizeObserver at L1184. Superseded — CD4 migration.
+Uses `selectProfileSize` + `resolveSizeProfile` + `_setProfileVars`. ResizeObserver remains part of the current runtime. Treat older shared-pass migration wording as historical, not as active program state.
 
 ### Sections Safety — Worst in Suite
 
@@ -534,11 +579,12 @@ Grid-context caveat:
 1. default numeric `columns` is section-span-relative and not universal full-width in wider sections.
 
 Content/layout risks:
-1. `grid-auto-rows: var(--grid-row, 110px)` at L367 — forced tile row height
-2. `.l-tile { overflow: hidden }` at L540 — clips content, mitigated by JS tile count limiting (L1291-1295)
-3. `.scroll-tile-stack { overflow: hidden }` at L418 — scroll mode clipping
+1. `grid-template-columns: repeat(var(--cols, 3), minmax(0, 180px))` at L383 caps tile width and creates dead space when combined with centered justification.
+2. `justify-content: center` at L389 produces stranded dead space in wider sections instead of filling available detail-surface width.
+3. scroll-layout clipping pressure remains active around the scroll/tile overflow contract at L396 and tile overflow handling at L434-L435.
+4. row-limit and layout-branch logic at L1259 remains part of the live sizing/clipping contract.
 
-All three are CD4 concerns.
+Best-in-class requirement: `3` columns at `390px` is not an acceptable default for the room-detail surface.
 
 ### Editor Architecture
 
@@ -581,7 +627,7 @@ adaptive_entity (deprecated singular), light_group (legacy), light_overrides (le
 - Current editor exposes 16 primary fields instead of the 6-field authoring model — CD1.8 should simplify
 - 6 rendering paths (3 surfaces × 2 layouts) need validation at all breakpoints
 - `surface: tile` is now accepted by editor/runtime, but currently shares card styling until a dedicated tile-surface CSS contract is defined
-- Sections safety issues are the most significant in the suite (grid-auto-rows, overflow:hidden, clipping)
+- Sections safety issues are the most significant in the suite (fixed-width cap, centered dead space, overflow/clipping, scroll pressure)
 - Legacy key precedence documented in `legacy_key_precedence.md`
 
 ---
@@ -594,7 +640,7 @@ adaptive_entity (deprecated singular), light_group (legacy), light_overrides (le
 
 ### Purpose
 
-Room navigation and control hub. Three distinct layout variants (tiles, row, slim) with fundamentally different interaction models. Row mode shows individual light orbs per room. Tile mode uses tap/hold gesture split. Integrates with adaptive lighting for manual control detection.
+Room navigation and control hub. Three distinct layout variants (tiles, row, slim) with fundamentally different interaction models. Row mode shows individual light orbs per room. Tile mode uses tap/hold gesture split. Integrates with adaptive lighting for manual control detection. This is an overview/navigation surface, not the canonical detailed room-light control surface.
 
 ### Config Properties
 
@@ -631,7 +677,7 @@ Room navigation and control hub. Three distinct layout variants (tiles, row, sli
 | Aspect | Tiles | Row | Slim |
 |--------|-------|-----|------|
 | Layout | Vertical cards in grid | Horizontal rows | Row at 70% scale |
-| Primary tap | Toggle room lights | Navigate to room | Navigate to room |
+| Primary tap | Toggle room lights today; target contract is navigate-first | Navigate to room | Navigate to room |
 | Light orbs | None | Yes, one per light | Yes, scaled 70% |
 | Power button | None | Yes, toggles all room lights | Yes |
 | Hold (400ms) | Fire hold_action (popup) | N/A | N/A |
@@ -643,6 +689,8 @@ Room navigation and control hub. Three distinct layout variants (tiles, row, sli
 **Row mode**: body tap navigates, orb tap toggles individual light, power button toggles all. `stopPropagation()` on orbs and power button prevents navigation when controls are tapped. Priority: `navigate_path` > `tap_action` > `hold_action`.
 
 **Tile mode**: quick tap (<400ms) toggles lights or fires `tap_action`. Long press (≥400ms) fires `hold_action` with haptic scale feedback (0.9x for 120ms). Priority: `tap_action` > toggle > temp more-info.
+
+Whole-home evaluation rule: judge this card primarily on room overview/navigation behavior and compact room status/control density. Do not judge it as a substitute for `tunet-lighting-card` when evaluating room-detail light control.
 
 ### Room Toggle Logic
 
@@ -681,6 +729,7 @@ In wider sections, numeric `12` is fractional unless dashboard-level overrides a
 - `getGridOptions()` currently static; row/slim and tiles have different real vertical density and should be validated against shared sizing rules in CD4/CD7.
 - Section-span caveat: numeric default `columns` is relative to section width; room-page YAML overrides are expected for intentional multi-column section compositions.
 - Known risk: row variant text density/truncation and control crowding at mobile breakpoints require explicit breakpoint evidence, not inferred parity.
+- Phone-default recommendation: prefer `tiles` or `slim` for overview surfaces; treat `row` as the densest and least phone-safe variant until CD7 closes.
 
 ### Editor Architecture
 
@@ -732,7 +781,7 @@ In wider sections, numeric `12` is fractional unless dashboard-level overrides a
 
 ### Purpose
 
-Climate control with dual-thumb heat/cool slider. The **gold standard** — measured visual baseline for all cards. Glass surface, smart color state machine, container-native responsiveness via ResizeObserver (no profile system).
+Climate control with dual-thumb heat/cool slider. The **gold standard** for single-card visual and interaction baseline work. Glass surface, smart color state machine, container-native responsiveness via ResizeObserver (no profile system). This does not imply every paired or cramped phone composition is climate-card-optimal.
 
 ### Config Properties
 
@@ -785,7 +834,7 @@ Static. Wants half-section width (6 of 12). Appropriate for companion placement.
 ### Interaction
 
 - **Category**: Dedicated controls + information tile
-- Header info tile tap opens more-info for the climate entity (currently click-only; keyboard parity is CD3 scope).
+- Header info tile supports tap/keyboard activation and opens more-info for the climate entity.
 - Slider thumbs are immediate drag handles (no hold gate), with preserved keyboard slider behavior.
 - No card-body hold gesture and no card-body drag gesture.
 
@@ -807,13 +856,13 @@ Advanced: `surface`, `humidity_entity`, `display_min`, `display_max`
 
 **Runtime model**: flat config. No synthesis gap — authoring model ≈ runtime model.
 
-**Status**: Already correct. No CD1 editor changes needed. Gold standard.
+**Status**: Already correct. No CD1 editor changes needed. Gold-standard single-card reference, not a blanket surface-composition guarantee.
 
 ### Known Limitations
 
-- Header tile is click-only (fires more-info) — needs keyboard activation (CD3)
 - No profile system — ResizeObserver provides container-native responsiveness instead
 - `display_min`/`display_max` are cosmetic; users might expect them to limit setpoints
+- Crowded phone pairings are usually a surface/composition issue, not a climate-card redesign signal
 
 ---
 
@@ -862,12 +911,12 @@ Failures silently caught; falls through to next method.
 { columns: 6, min_columns: 3, rows: 'auto', min_rows: 3 }
 ```
 
-Static. Same as climate — wants half-section width. Should be config-aware: daily with 7 items needs more width than 3 items.
+Static. Same as climate — wants half-section width. Should be config-aware: daily with 7 items needs more width than 3 items. Toggle-heavy variants are the primary phone-density risk; fixed daily/hourly variants are healthier phone defaults.
 
 ### Interaction
 
 - **Category**: Information tile + segmented controls
-- Header info tile tap opens more-info for weather entity (currently click-only; CD3 semantics pass hardens keyboard behavior).
+- Header info tile supports tap/keyboard activation and opens more-info for the weather entity.
 - Daily/Hourly and Temp/Precip segmented buttons are explicit native controls.
 - Forecast tiles may look interactive depending on state styling; semantic cleanup is tracked for CD3.
 
@@ -876,6 +925,7 @@ Static. Same as climate — wants half-section width. Should be config-aware: da
 - `rows: 'auto'` is appropriate for variable forecast counts and toggles.
 - Static `min_rows: 3` is a baseline; dense daily forecasts can need wider section placement to avoid crowding.
 - No forced fixed row-height grid in card internals; main risk is content density at narrow widths.
+- Whole-home phone contract: fixed daily/hourly variants are safer defaults than toggle-heavy auto-control presentations.
 
 ### Editor Architecture
 
@@ -891,10 +941,10 @@ Static. Same as climate — wants half-section width. Should be config-aware: da
 
 ### Known Limitations
 
-- Info tile header is click-only — needs keyboard activation (CD3)
 - Forecast tiles with `cursor: pointer` but no button semantics — fake-interactive (CD3)
 - All 10 config fields already in editor — genuinely editor-complete
 - No arrays in config — no editor upgrade needed
+- Toggle-heavy variants remain a P2 usability issue on phone; they should not be treated as the phone-default presentation
 
 ---
 
@@ -927,7 +977,7 @@ Environment sensor display with SVG sparkline charts, trend arrows, threshold-dr
 | Key | Type | Default | Notes |
 |-----|------|---------|-------|
 | `entity` | string | **required** | Any entity ID |
-| `label` | string | `''` | Display name |
+| `label` | string | `''` | Display name. This is the supported display-name override key; `name` is not a documented runtime alias in the current contract. |
 | `icon` | string | `''` | Material Symbol |
 | `accent` | string | `''` | Color accent |
 | `unit` | string | `''` | Display unit |
@@ -998,12 +1048,14 @@ sensors[] per-item: `entity` (required), `label`, `icon`, `accent`, `unit`, `pre
 **Runtime model**: normalized sensors array with all per-sensor fields + history caching + sparkline SVG paths.
 
 **Key design**: The object+fields+multiple for sensors covers the 80% case (pick entities, set labels). Thresholds are the 20% power-user path that stays YAML.
+Fixture/contract note: use `label` consistently for display-name overrides unless the runtime is explicitly expanded to support `name`.
 
 ### Known Limitations
 
 - `thresholds[]` is a nested array within sensor items — YAML-only (no nested arrays in object selector)
 - `icon_color` and `history_hours` are yaml-only — should be added to editor as simple fields
 - `data-interaction="none"` guard correctly disables hover/active on non-interactive rows
+- Raw entity-ID rendering is not an active coherent-build defect; the remaining doc debt is naming-contract clarity around `label` vs any fixture-level aliasing
 
 ---
 
@@ -1040,7 +1092,7 @@ Polymorphic tile grid with 5 tile subtypes: value, indicator, timer, alarm, drop
 
 **Alarm**: Three visual states — off (muted), set (blue pill with time), ringing (blue background + shaking icon animation + snooze/dismiss buttons). `playing_entity` controls ringing state, `snooze_action` and `dismiss_action` fire configured actions.
 
-**Dropdown**: Icon + current value + chevron + label. Opens custom glassmorphic overlay menu with smart positioning (flips above if no room below, caps height to viewport). Options read from entity's `options` attribute (input_select).
+**Dropdown**: Icon + current value + chevron + label. Opens a custom glassmorphic overlay menu with flip/cap-height heuristics. Options read from entity's `options` attribute (input_select). Current phone runtime still needs more conservative wording than "smart positioning" implies.
 
 ### Conditional Visibility (show_when)
 
@@ -1060,7 +1112,7 @@ Small pill button in tile top-right. Visible only when `aux_show_when` condition
 { columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 }
 ```
 
-Static. Should compute from `ceil(tiles.length / columns) + (show_header ? 1 : 0)`.
+Static. Should compute from `ceil(tiles.length / columns) + (show_header ? 1 : 0)`. The current 4-column summary default is not phone-safe at `390px`; `2` columns is the safe default unless labels are substantially shortened.
 
 ### Legacy Keys
 
@@ -1079,6 +1131,7 @@ Static. Should compute from `ceil(tiles.length / columns) + (show_header ? 1 : 0
 - Card intentionally uses fixed `grid-auto-rows` for uniform tile rhythm, unlike most other cards.
 - `rows: 'auto'` in `getGridOptions()` does not remove internal fixed tile row-height behavior.
 - This forced-height model is status-specific and remains under `G3S` lock (bugfix-only unless reopened).
+- Phone-default rule: treat the 4-column summary matrix as a desktop/tablet density, not a `390px` default.
 
 ### Editor Architecture
 
@@ -1114,6 +1167,7 @@ Static. Should compute from `ceil(tiles.length / columns) + (show_header ? 1 : 0
 - `column_breakpoints` is yaml-only
 - Alarm tile requires `playing_entity` + script entities for snooze/dismiss — complex setup
 - G3S scope lock: bugfix-only until explicitly reopened
+- Small-screen density and dropdown-overlay quality remain CD11 / G3S-owned issues even though broader structural work is locked
 
 ---
 
@@ -1150,7 +1204,7 @@ Sonos media player with album art, transport controls, volume slider, speaker dr
 ### Speaker Dropdown
 
 - Tap speaker name → selects as active (changes display, doesn't affect grouping)
-- Tap check icon → calls `sonos_toggle_group_membership` (optimistic UI: check toggles immediately)
+- Tap check icon → calls `sonos_toggle_group_membership` (optimistic UI: check toggles immediately). This control still needs semantic hardening in CD9.
 - Group All / Ungroup All buttons at bottom (call `sonos_group_all_to_playing` / `sonos_ungroup_all` scripts)
 
 ### Volume Drag
@@ -1179,7 +1233,7 @@ Static. Full section width. Should account for show_progress (adds height).
   - Header info tile tap opens more-info
   - Album art tap opens more-info
   - Speaker dropdown row tap selects active speaker
-  - Group check tap toggles membership
+  - Group check tap toggles membership (still pointer-first and not yet a finished semantics contract)
   - Volume drag operates on slider control (not hold-gated tile drag)
 - **Target contract** (CD9): speaker-tile interactions converge with the suite speaker-tile model (tap select, hold-drag volume, icon more-info, badge group toggle).
 - **Group volume policy**: selected-speaker-only volume control during drag.
@@ -1220,13 +1274,15 @@ Static. Full section width. Should account for show_progress (adds height).
 - `speakers[]` ← auto-discovered via `binary_sensor.sonos_*_in_active_group` regex when empty
 
 **Key insight**: 3 of the current 6 editor fields are Sonos sensor defaults that are ALWAYS THE SAME. Remove from primary editor; keep in advanced. User just picks entity + name + progress toggle.
+Best-in-class naming rule: compact speaker naming must not erase room identity.
 
 ### Known Limitations
 
 - `speakers[]` editor support is implemented (advanced object+fields+multiple); keep schema tests as regression guard
-- Info tile is click-only div — needs button semantics (CD3)
 - Album art opens more-info for transport target entity (verified in code at L885)
 - Volume slider needs `role="slider"` + arrow key handlers (deferred to CD9 — media bespoke)
+- `_firstWordName()`-style compact naming is not an acceptable long-term default when it hides room identity on phone
+- Remaining CD9 issues are primarily naming/semantics, not a broad coherent-build visual failure
 
 ---
 
@@ -1261,7 +1317,7 @@ Alternative Sonos player with inline speaker tiles (always visible, not hidden i
 
 ### Speaker Tiles
 
-Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue border, highlighted), not grouped (muted). Interactions: tap toggles group membership, drag adjusts volume, hold (500ms) opens more-info.
+Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue border, highlighted), not grouped (muted). Interactions: tap toggles group membership today, drag adjusts volume, hold (500ms) opens more-info. Narrow-width runtime shows active overflow pressure rather than merely theoretical width sensitivity.
 
 ### Grid Options
 
@@ -1285,9 +1341,9 @@ Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue 
 
 ### Sections Safety
 
-- Scrollable speaker-tile strip plus optional volume overlay means vertical size is mostly stable but width pressure is high on narrow layouts.
-- `rows: 'auto'` is appropriate; primary layout risk is horizontal overflow behavior, not forced card clipping.
-- Requires breakpoint verification that strip controls remain tappable at 390x844 and 768x1024.
+- Scrollable speaker-tile strip plus optional volume overlay means vertical size is mostly stable but width failure is active on narrow layouts.
+- `rows: 'auto'` is appropriate; the open defect is current source-button/dropdown and speaker-strip overflow at `390x844` / `768x1024`, not just hypothetical pressure.
+- Requires breakpoint verification that strip controls remain tappable at `390x844` and `768x1024`.
 
 ### Editor Architecture
 
@@ -1308,6 +1364,7 @@ Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue 
 - `speakers[]` editor support is implemented (object+fields+multiple)
 - ~~Hardcoded press scales (.90)~~ — resolved in CD2 (tokenized)
 - ~~`--spring` CSS variable undefined~~ — resolved in CD2 (replaced with `--ease-emphasized`)
+- Source button/dropdown width handling and speaker-strip overflow remain active CD9 runtime failures on phone/tablet
 
 ---
 
@@ -1349,7 +1406,7 @@ Not display-only — each tile is a draggable volume slider. `createAxisLockedDr
 { columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 }
 ```
 
-Static. Should compute from `ceil(speakers.length / columns) + (show_group_actions ? 1 : 0) + 1` (header).
+Static. Should compute from `ceil(speakers.length / columns) + (show_group_actions ? 1 : 0) + 1` (header). `4` columns is not a phone-safe default at `390px`; compact `2`-column layouts are the healthy narrow-width baseline.
 
 ### Interaction
 
@@ -1364,8 +1421,8 @@ Static. Should compute from `ceil(speakers.length / columns) + (show_group_actio
 ### Sections Safety
 
 - Variable-height risk comes from `show_group_actions` and speaker count density; `rows: 'auto'` is appropriate.
+- Compact `2`-column layouts are conditionally phone-safe; the failing cases are dense/default `4`-column configurations and other high-density layouts.
 - Static `max_rows: 12` may mask truncation risks in high-count speaker sets; verify with dense lab fixtures.
-- Horizontal/compact tile readability must be validated per breakpoint when columns are increased.
 
 ### Editor Architecture
 
@@ -1386,10 +1443,11 @@ Static. Should compute from `ceil(speakers.length / columns) + (show_group_actio
 
 ### Known Limitations
 
-- Profile system active — CD4 migration
+- Profile system remains part of current runtime behavior; do not read that alone as an active defect classification
 - ~~Hover `translateY(-1px)`~~ — resolved in CD2 (removed, shadow-lift only)
 - ~~`--spring` CSS variable undefined~~ — resolved in CD2 (replaced with `--ease-emphasized`)
 - ~~Focus ring uses `var(--accent)` instead of `var(--focus-ring-color)`~~ — resolved in CD2
+- Treat dense/default speaker-grid configurations as the active CD9 defect; compact 2-column layouts are the viable phone baseline
 
 ---
 
@@ -1401,7 +1459,7 @@ Static. Should compute from `ceil(speakers.length / columns) + (show_group_actio
 
 ### Purpose
 
-Persistent navigation chrome. Two modes: mobile bottom dock and desktop left rail. Active route detection via path prefix matching. Footer placement support (HA 2026.3). Reference implementation for tokens and accessibility.
+Persistent navigation chrome. Two modes: mobile bottom dock and desktop left rail. Active route detection via path prefix matching. Footer placement support (HA 2026.3). Strong interaction/accessibility reference, but not yet a stable layout-reference card while the offset strategy and desktop/sidebar coexistence remain open.
 
 ### Config Properties
 
@@ -1423,7 +1481,7 @@ Persistent navigation chrome. Two modes: mobile bottom dock and desktop left rai
 
 ### Mobile vs Desktop
 
-`desktop_breakpoint` (default 900px) via `matchMedia()`. Below: bottom dock (64px, horizontal). Above: left rail (84px, vertical). Card stays visible in both — layout changes, not visibility.
+`desktop_breakpoint` (default 900px) via `matchMedia()`. Below: bottom dock (64px, horizontal). Above: left rail (84px, vertical). Card stays visible in both — layout changes, not visibility. The open runtime issue is the desktop rail/sidebar coexistence path, not a universal mobile instability claim.
 
 ### Safe Area Handling
 
@@ -1431,7 +1489,7 @@ Mobile dock padding includes `env(safe-area-inset-bottom)` for iOS home bar. `mo
 
 ### Global CSS Injection
 
-Injects `<style id="tunet-nav-card-offsets">` into `document.head` with margins/padding on HA view elements. Sets `--tunet-nav-offset-left` and `--tunet-nav-offset-bottom` CSS variables. Cleanup on disconnect. Disable via `window.TUNET_NAV_OFFSETS_DISABLED` flag.
+Injects `<style id="tunet-nav-card-offsets">` into `document.head` with margins/padding on HA view elements. Sets `--tunet-nav-offset-left` and `--tunet-nav-offset-bottom` CSS variables. Cleanup on disconnect. Disable via `window.TUNET_NAV_OFFSETS_DISABLED` flag. The active validation risk is offset leakage / competition with HA's own sidebar in desktop rail mode.
 
 ### Grid Options
 
@@ -1453,6 +1511,7 @@ Uses `columns: 'full'` — spans entire section width. This is chrome, not conte
 - Uses `columns: 'full'` intentionally because nav is global chrome, not content card composition.
 - `rows: 'auto'` + `min_rows: 1` keeps nav height intrinsic while respecting section placement.
 - Global offset style injection affects surrounding layout and must be validated with sidebar/mobile dock states.
+- Best-in-class rule: nav can remain the interaction/accessibility reference while desktop offset strategy is still under CD10 validation; do not treat it as the layout-reference card until that conflict is closed.
 
 ### Editor Architecture
 
@@ -1471,4 +1530,4 @@ Advanced: `items` (object — custom nav items)
 
 ### Reference Implementation Status
 
-All fields editable. Native `<button>` elements with `aria-label`. `<nav>` landmark. Uses shared tokens (`--press-scale`, `--motion-ui`, `--ease-standard`, `--focus-ring-*`). Multi-property transitions. No `transition: all`. This is what CD2 is making every card look like.
+All fields editable. Native `<button>` elements with `aria-label`. `<nav>` landmark. Uses shared tokens (`--press-scale`, `--motion-ui`, `--ease-standard`, `--focus-ring-*`). Multi-property transitions. No `transition: all`. This remains the interaction/accessibility reference implementation, but desktop rail + HA sidebar coexistence and offset leakage are still open CD10 layout-validation issues.

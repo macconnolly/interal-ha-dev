@@ -5,6 +5,18 @@ Last updated: 2026-04-04
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 
+## Session Delta (2026-04-04, Control-Doc Normalization)
+
+Change marker: pre-CD5 docs-and-backlog rationalization
+
+- `CURRENT STATE`
+  - no tranche change: CD5 remains next
+- `DOC NORMALIZATION`
+  - `visual_defect_ledger.md` normalized against coherent-build evidence; stale claims downgraded; card defects vs composition constraints separated; tranche ownership explicit
+  - `cards_reference.md` encodes whole-home usage contract (rooms=navigation, lighting=room-detail); stale closed-tranche wording removed
+  - `legacy_key_precedence.md` actions-editor notes aligned with current contract
+  - `sections_layout_matrix.md` wording corrected: CD4 card-level accepted, CD12 surface breakpoint validation still required
+
 ## Session Delta (2026-04-04, Post-CD4 Rehab Lab Expansion + Visual Audit)
 
 Change marker: post-CD4 harness/doc expansion before CD5

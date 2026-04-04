@@ -1,90 +1,147 @@
 Built from screenshot evidence on the live HA surfaces at `390x844`, `768x1024`, `1024x1366`, and `1440x900`, with phone-focused card captures from the rehab lab plus full-page captures from G5 and Overview. Primary evidence: [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png), [audit-390-status-open.png](/home/mac/HA/implementation_10/audit-390-status-open.png), [audit-390-status-sonos-open.png](/home/mac/HA/implementation_10/audit-390-status-sonos-open.png), [audit-768-open-states.png](/home/mac/HA/implementation_10/audit-768-open-states.png), [g5-390-full.png](/home/mac/HA/implementation_10/g5-390-full.png), [g5-768-full.png](/home/mac/HA/implementation_10/g5-768-full.png), [g5-1024-full.png](/home/mac/HA/implementation_10/g5-1024-full.png), [g5-1440-full.png](/home/mac/HA/implementation_10/g5-1440-full.png), [overview-390-full.png](/home/mac/HA/implementation_10/overview-390-full.png).
 
+This file now separates:
+1. normalized master status summaries at the top of the file
+2. detailed coherent-build evidence in the appendix below
+
+When the normalized section and the appendix differ, the normalized section wins.
+
+## Normalized Status Model
+
+- `Open runtime defect`: current runtime behavior materially fails the current per-card contract or whole-home usage contract.
+- `Doc contradiction`: docs disagree with each other or with current runtime truth, but this is not itself a live card failure.
+- `Composition constraint`: the card is healthy inside its intended role; the issue appears when the card is used outside that role or in the wrong composition.
+- `Closed / stale`: earlier issue framing is superseded by newer coherent-build evidence.
+- `Implementation backlog`: decision-complete owning tranche and concrete follow-up scope for still-relevant work.
+
+### Canonical Decision Matrix
+
+| Card | Whole-home role | Normalized runtime position | Owning tranche |
+|------|-----------------|-----------------------------|----------------|
+| `tunet-actions-card` | utility strip | real phone overflow issue; editor wording corrected | CD5 |
+| `tunet-scenes-card` | utility strip | runtime healthy; contract cleanup only | CD5 |
+| `tunet-light-tile` | atomic detail tile | healthy card; one phone-truncation polish item | CD6 |
+| `tunet-lighting-card` | canonical room-detail surface | worst active card-level layout risk | CD6 |
+| `tunet-rooms-card` | overview/navigation | row-mode phone density remains open | CD7 |
+| `tunet-climate-card` | information companion | healthy card; composition caveats only | CD8 |
+| `tunet-weather-card` | information companion | variant-specific phone-density issue | CD8 |
+| `tunet-sensor-card` | information rows | raw-ID defect closed; contract clarity remains | CD8 |
+| `tunet-status-card` | locked summary/info surface | real phone density + dropdown-quality defects remain | CD11 |
+| `tunet-media-card` | primary media transport surface | visual failure claim closed; naming/semantics remain | CD9 |
+| `tunet-sonos-card` | inline-speaker Sonos surface | active phone/tablet width failures remain | CD9 |
+| `tunet-speaker-grid-card` | dedicated speaker-management grid | dense/default layouts fail; compact 2-col remains viable | CD9 |
+| `tunet-nav-card` | chrome | desktop/sidebar offset conflict remains | CD10 |
+
+### Tranche-Owned Open Backlog
+
+- `CD5`
+  - `tunet-actions-card`: phone `mode_strip` chip overflow
+  - `tunet-scenes-card`: keep strip-vs-wrap contract explicit; no active runtime failure
+- `CD6`
+  - `tunet-light-tile`: horizontal phone truncation polish only
+  - `tunet-lighting-card`: fixed-width cap, centered dead space, scroll clipping, and unsafe 3-col phone defaults
+- `CD7`
+  - `tunet-rooms-card`: row-mode phone density/truncation; preserve overview/navigation role
+- `CD8`
+  - `tunet-weather-card`: toggle-heavy phone density
+  - `tunet-sensor-card`: `label` naming-contract clarity only
+  - `tunet-climate-card`: no redesign backlog beyond composition discipline
+- `CD9`
+  - `tunet-media-card`: room-identity naming and pointer-first group-membership semantics
+  - `tunet-sonos-card`: source-button/dropdown and speaker-strip width failures
+  - `tunet-speaker-grid-card`: dense/default layout failure, not the whole family
+- `CD10`
+  - `tunet-nav-card`: desktop rail/sidebar coexistence and offset leakage
+- `CD11`
+  - `tunet-status-card`: 4-col phone density and dropdown/runtime quality under lock
+
 **Global**
-- `Runtime defect`: mobile/tablet composition is not stable enough to judge cards in isolation. Cards are repeatedly stranded in undersized left-biased islands with large dead whitespace, especially in [g5-768-full.png](/home/mac/HA/implementation_10/g5-768-full.png) and [audit-768-open-states.png](/home/mac/HA/implementation_10/audit-768-open-states.png).
-- `Runtime defect`: mobile nav is not reliably behaving as a bottom dock. In the per-card mobile evidence pack it renders as a left rail overlay over content, corrupting the card screenshots themselves, for example [mobile-viewport-card-12-tunet-lighting-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-12-tunet-lighting-card.png) and [mobile-viewport-card-09-tunet-rooms-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-09-tunet-rooms-card.png).
-- `Doc mismatch`: [cards_reference.md#L1410](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1410) describes nav as a stable mobile dock / desktop rail split, but current runtime behavior is visibly unstable.
-- `Improvement`: establish a stricter “phone companion” composition contract. Several cards look acceptable alone but bad when forced into current section compositions.
-- `Improvement`: all icon-bearing UI config fields should use a dropdown or validated icon picker, not raw free-form text. We already have at least one configured icon string that does not resolve to a real glyph at runtime, which proves the current editor contract is unsafe. This is currently inconsistent across the suite: some cards already use `selector: { icon: {} }` while others still use plain text for icon fields. Known free-form icon editor/config fields that should be upgraded include [tunet_light_tile.js#L883](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_light_tile.js#L883), [tunet_lighting_card.js#L1871](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L1871), [tunet_media_card.js#L576](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L576), [tunet_sensor_card.js#L434](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sensor_card.js#L434), [tunet_sonos_card.js#L619](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L619), and [tunet_speaker_grid_card.js#L562](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js#L562). This should be treated as both an editor UX defect and a runtime correctness defect.
+- Highest-confidence active card defects remain: lighting, rooms row density, status small-screen density/dropdown behavior, sonos width overflow, and nav desktop/sidebar conflict.
+- Variant-specific problems remain real for actions, weather, and speaker-grid, but they are not uniform card-family failures.
+- Some earlier complaints were really composition/surface issues, not card defects: light-tile orphaning and climate paired-phone crowding belong in surface composition decisions.
+- Stale or narrowed items are now treated accordingly: sensor raw entity IDs, broad media visual-failure framing, broad mobile-nav instability framing, and broad “speaker-grid is not phone-safe at all” framing.
+- Cross-cutting doc debt remains: icon-field editor consistency, actions editor wording, scenes `allow_wrap` default wording, sensor naming-contract clarity, status dropdown-confidence wording, and nav layout-reference overclaim.
 
 **1. `tunet-actions-card`**
-- `Runtime defect`: no catastrophic visual failure, but the strip still reads as a narrow utility row dropped into oversized sections, especially on tablet/desktop where dead space dwarfs the control itself in [g5-768-full.png](/home/mac/HA/implementation_10/g5-768-full.png).
-- `Doc mismatch`: [cards_reference.md#L173](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L173) says `actions` is editor `N`, but the current editor exposes an `actions` object selector at [tunet_actions_card.js#L307](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L307).
-- `Improvement`: either make the strip genuinely wrap/stack-aware or stop claiming multi-row sizing. The row never wraps at [tunet_actions_card.js#L190](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L190) while `getCardSize()` still claims row-based height at [tunet_actions_card.js#L440](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L440).
+- `Open runtime defect [CD5]`: `mode_strip` chip overflow at phone width remains real and should stay open.
+- `Doc contradiction`: `cards_reference.md` must stop claiming `actions[]` is absent from the editor; `getConfigForm()` already exposes a structured object editor at [tunet_actions_card.js#L307](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L307).
+- `Composition constraint`: “narrow utility row dropped into oversized sections” is a surface-composition note, not a card defect.
+- `Implementation backlog [CD5]`: if touched, normalize the row/height contract around [tunet_actions_card.js#L190](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L190) and [tunet_actions_card.js#L440](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_actions_card.js#L440).
 
 **2. `tunet-scenes-card`**
-- `Runtime defect`: no severe visual failure surfaced in the current mobile rehab fixture; this is one of the less visibly broken cards right now.
-- `Doc mismatch`: [cards_reference.md#L294](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L294) says `allow_wrap: true` is the Sections-safe default, but runtime still defaults it to false at [tunet_scenes_card.js#L400](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_scenes_card.js#L400).
-- `Improvement`: lock and document one strip contract. Right now the docs overstate CD4 closure.
+- `Closed / stale`: the earlier runtime-defect framing is no longer justified; scenes is currently one of the healthier cards in the coherent build.
+- `Doc contradiction`: the reference and old summary disagreed about `allow_wrap`; the live contract is wrap-first unless explicitly disabled in config.
+- `Implementation backlog [CD5]`: keep the strip-vs-wrap contract explicit, but do not treat scenes as an active visual failure.
 
 **3. `tunet-light-tile`**
-- `Runtime defect`: the standalone tiles look visually orphaned in rehab mobile because they sit between larger card families without enough local context in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png).
-- `Doc mismatch`: none severe in the visual contract itself; the card still largely behaves as documented in [cards_reference.md#L349](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L349).
-- `Improvement`: horizontal variant truncates too aggressively and needs stronger name/layout balancing on phone.
+- `Composition constraint`: the “orphaned” phone look is usually a composition issue, not a card-contract failure.
+- `Open runtime defect [CD6]`: horizontal-variant truncation on phone remains the one real card-level polish issue.
+- `Closed / stale`: broad “light tile is a major failure” framing is no longer accurate.
+- `Implementation backlog [CD6]`: keep this card scoped as an atomic detail tile, not an overview surface.
 
 **4. `tunet-lighting-card`**
-- `Runtime defect`: still one of the worst visual offenders. At tablet width the compact secondary row feels clipped/stranded rather than container-native, visible in [audit-768-open-states.png](/home/mac/HA/implementation_10/audit-768-open-states.png). On phone the card itself looks decent in isolation, but the overall section behavior is not adaptive enough.
-- `Runtime defect`: scroll-mode behavior remains suspect because the card still uses fixed grid and fixed scroll column math rather than true container-fit. Relevant source: [tunet_lighting_card.js#L383](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L383), [tunet_lighting_card.js#L396](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L396), [tunet_lighting_card.js#L1259](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L1259).
-- `Doc mismatch`: [cards_reference.md#L506](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L506) correctly calls it the worst Sections-safety card, but the current docs still under-describe how broken it feels in real tablet/mobile compositions.
-- `Improvement`: compact/grid needs true container-native drop behavior instead of breakpoint-driven fixed columns.
+- `Open runtime defect [CD6]`: this remains the worst active layout card. Scroll clipping, fixed-width column behavior, and poor phone/tablet adaptation are true card-level defects.
+- `Doc contradiction`: the reference already calls this the worst Sections-risk card, but it previously under-described how severe the live detail-surface failures are.
+- `Implementation backlog [CD6]`: explicit pressure points are [tunet_lighting_card.js#L383](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L383), [tunet_lighting_card.js#L389](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L389), [tunet_lighting_card.js#L396](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L396), and [tunet_lighting_card.js#L1259](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L1259).
+- `Implementation backlog [CD6]`: this is the canonical room-detail light-control surface. `3` columns at `390px` is not an acceptable default.
 
 **5. `tunet-rooms-card`**
-- `Runtime defect`: mobile row mode is overcompressed. Labels/status lines collapse into abbreviations and clipped fragments in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png).
-- `Runtime defect`: per-card screenshot [mobile-viewport-card-09-tunet-rooms-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-09-tunet-rooms-card.png) is partly contaminated by nav overlay, but it still shows how little horizontal room the row model has.
-- `Doc mismatch`: [cards_reference.md#L657](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L657) calls row-density/truncation a known risk. That should now be treated as an active defect, not just a validation note.
-- `Improvement`: row mode needs stronger phone typography, status compression rules, and control spacing.
+- `Open runtime defect [CD7]`: row-mode phone density/truncation is real and remains open.
+- `Composition constraint`: this card must be judged as room overview/navigation, not as the detailed room-light surface.
+- `Doc contradiction`: older wording left too much room to evaluate it like a detail-lighting surface; that is now explicitly wrong.
+- `Implementation backlog [CD7]`: tile/slim should be the phone-default overview variants until row density is brought under control.
 
 **6. `tunet-climate-card`**
-- `Runtime defect`: the single card is still relatively strong, but the standard + thin pairing at phone width is crowded and visually collides in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png).
-- `Doc mismatch`: [cards_reference.md#L752](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L752) calling climate the “gold standard” is too broad unless it means “baseline styling reference,” not “always-composed well on phone.”
-- `Improvement`: define a phone-specific companion-placement rule so two climate variants are not presented side-by-side in a cramped context.
+- `Composition constraint`: crowded standard+thin phone pairings are surface-placement issues, not evidence that the climate card itself is failing.
+- `Doc contradiction`: “gold standard” must mean single-card visual/interaction baseline, not “every arbitrary paired composition is optimal.”
+- `Closed / stale`: broad climate-card runtime-failure framing is no longer accurate.
+- `Implementation backlog [CD8]`: keep climate largely stable; use it as the baseline, not a redesign sandbox.
 
 **7. `tunet-weather-card`**
-- `Runtime defect`: least broken of the environment cards, but it spends too much vertical space on controls before the actual weather content on phone in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png).
-- `Runtime defect`: forecast density is still cramped at phone width in [mobile-viewport-card-08-tunet-weather-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-08-tunet-weather-card.png).
-- `Doc mismatch`: [cards_reference.md#L860](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L860) correctly warns about density, but the card currently looks less “dense but acceptable” and more “over-instrumented for phone.”
-- `Improvement`: reduce toggle chrome on phone and increase first-glance weather readability.
+- `Open runtime defect [CD8]`: toggle-heavy variants still waste vertical space and feel dense on phone, but this is variant-specific rather than a universal failure.
+- `Composition constraint`: fixed daily/hourly variants are the safer phone defaults; toggle-heavy auto-control variants should not be the default phone presentation.
+- `Doc contradiction`: prior wording blurred the difference between healthier fixed variants and the heavier toggle-driven variants.
+- `Implementation backlog [CD8]`: treat this as a P2 usability/density issue, not a primary suite-wide runtime failure.
 
 **8. `tunet-sensor-card`**
-- `Runtime defect`: live labels are not acceptable. Rows show raw entity IDs such as `sensor.dining_room_temperature` because render falls back to `sensorCfg.label || sensorCfg.entity` at [tunet_sensor_card.js#L710](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sensor_card.js#L710). This is obvious in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png) and [mobile-viewport-card-05-tunet-sensor-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-05-tunet-sensor-card.png).
-- `Doc mismatch`: [cards_reference.md#L923](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L923) documents `label`, but the rehab YAML uses `name`. The docs do not call out that `name` will not display.
-- `Improvement`: normalize `name -> label` in config, or tighten the docs and fixtures immediately.
+- `Closed / stale`: the raw-entity-ID runtime defect is superseded by the coherent-build correction later in this file.
+- `Doc contradiction`: the contract needs to stay explicit that `label` is the supported display-name key unless runtime support for `name` is formally added.
+- `Implementation backlog [CD8]`: the remaining issue is config-contract clarity around [tunet_sensor_card.js#L710](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sensor_card.js#L710), not a current visual/runtime failure.
 
 **9. `tunet-status-card`**
-- `Runtime defect`: the dropdown tile title/content model is visibly wrong on phone. The card repeats or awkwardly pairs title/value/label in ways that feel mechanical rather than intentional, visible in [audit-390-mobile-full.png](/home/mac/HA/implementation_10/audit-390-mobile-full.png).
-- `Runtime defect`: the dropdown overlay collides with lower content and the bottom nav in [audit-390-status-open.png](/home/mac/HA/implementation_10/audit-390-status-open.png).
-- `Runtime defect`: the dropdown control’s accessible/button name is polluted by the full option list because the menu lives inside the activated tile at [tunet_status_card.js#L1081](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_status_card.js#L1081) and opens in-place at [tunet_status_card.js#L1519](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_status_card.js#L1519).
-- `Doc mismatch`: [cards_reference.md#L1034](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1034) overstates the quality of the dropdown overlay positioning.
-- `Improvement`: the whole card needs content-hierarchy simplification on phone, not just bugfixes.
+- `Open runtime defect [CD11]`: the 4-column summary matrix is not phone-safe at `390px`, and the dropdown/content model still behaves poorly on small screens.
+- `Doc contradiction`: the reference overstated dropdown overlay quality; current behavior needs narrower wording.
+- `Implementation backlog [CD11]`: keep these issues explicitly owned by the status lock/G3S path rather than leaking into other tranches.
+- `Implementation backlog [CD11]`: phone-safe default is `2` columns unless labels are significantly shortened.
 
 **10. `tunet-media-card`**
-- `Runtime defect`: active speaker naming is too aggressively reduced. The card shows `Living` instead of the full speaker name because `_firstWordName()` is used at [tunet_media_card.js#L733](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L733) and injected into the UI at [tunet_media_card.js#L1077](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L1077).
-- `Runtime defect`: the media group-membership check remains pointer-only in source at [tunet_media_card.js#L1087](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L1087), so CD3 semantics are still not actually complete here.
-- `Doc mismatch`: [cards_reference.md#L1209](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1209) under-describes both the naming simplification and the remaining semantics gap.
-- `Improvement`: preserve identity-rich speaker naming on phone, even if compacted.
+- `Closed / stale`: the earlier broad visual-failure framing is superseded by the coherent-build correction; the card itself renders acceptably at `390px` in the current build.
+- `Open runtime defect [CD9]`: compact naming must not erase room identity; `_firstWordName()`-driven identity loss remains open.
+- `Open runtime defect [CD9]`: the group-membership control remains pointer-first and is not a completed semantics contract.
+- `Implementation backlog [CD9]`: key lines remain [tunet_media_card.js#L733](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L733), [tunet_media_card.js#L1077](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L1077), and [tunet_media_card.js#L1086](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L1086).
 
 **11. `tunet-sonos-card`**
-- `Runtime defect`: strongest live width/overflow offender. The source button and source dropdown are still width-unsafe at [tunet_sonos_card.js#L152](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L152) and [tunet_sonos_card.js#L178](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L178). This is visible in [audit-390-status-sonos-open.png](/home/mac/HA/implementation_10/audit-390-status-sonos-open.png) and [audit-768-open-states.png](/home/mac/HA/implementation_10/audit-768-open-states.png).
-- `Runtime defect`: source options still use a bare text node for the main name at [tunet_sonos_card.js#L1049](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L1049), so long names widen the menu.
-- `Runtime defect`: the always-visible speaker strip is over-wide and continues to spill beyond phone/tablet viewports.
-- `Doc mismatch`: [cards_reference.md#L1267](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1267) treats this as a width-pressure caveat; current runtime shows it as a real failure.
-- `Improvement`: width-safe long-name handling is mandatory, not polish.
+- `Open runtime defect [CD9]`: this remains one of the clearest true phone/tablet runtime failures. Source button/dropdown width handling and speaker-strip overflow are actively broken, not merely under pressure.
+- `Doc contradiction`: the reference previously softened this as width pressure when current runtime shows active failure.
+- `Implementation backlog [CD9]`: explicit pressure points are [tunet_sonos_card.js#L152](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L152), [tunet_sonos_card.js#L178](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L178), and [tunet_sonos_card.js#L1048](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L1048).
 
 **12. `tunet-speaker-grid-card`**
-- `Runtime defect`: still failing on phone/tablet. Even with the container query in [tunet_speaker_grid_card.js#L184](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js#L184), the rightmost tiles still spill or require an unrealistic amount of width in rehab mobile/tablet.
-- `Runtime defect`: per-card screenshot [mobile-viewport-card-03-tunet-speaker-grid-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-03-tunet-speaker-grid-card.png) is nav-contaminated, but the full-page captures already showed the card is not phone-safe.
-- `Doc mismatch`: [cards_reference.md#L1357](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1357) frames this as a validation concern; current state is worse than that.
-- `Improvement`: either enforce a real phone-safe stacked mode or treat this as not phone-eligible by default.
+- `Open runtime defect [CD9]`: dense/default configurations remain open defects; `4` columns at `390px` is not phone-safe.
+- `Composition constraint`: compact `2`-column speaker-grid can be phone-safe; do not describe the whole family as uniformly broken on phone.
+- `Doc contradiction`: earlier broad “not phone-safe” language is too absolute against the coherent-build correction later in this file.
+- `Implementation backlog [CD9]`: keep the defect scoped to dense/default layouts rather than the entire card family.
 
 **13. `tunet-nav-card`**
-- `Runtime defect`: the mobile nav is not stable enough to serve as reference chrome. In the mobile per-card screenshots it appears as a left rail overlay, not a bottom dock.
-- `Runtime defect`: the global offset approach still mutates page layout via injected margins/padding at [tunet_nav_card.js#L177](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_nav_card.js#L177) and [tunet_nav_card.js#L478](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_nav_card.js#L478).
-- `Doc mismatch`: [cards_reference.md#L1442](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1442) calling it the accessibility/token reference implementation is too generous while mobile mode is unstable.
-- `Improvement`: nav needs its own stabilization pass before it can be used as the baseline for judging other mobile cards.
+- `Open runtime defect [CD10]`: the real open issue is desktop rail/sidebar conflict plus global-offset layout mutation.
+- `Closed / stale`: broad “mobile instability” framing is too broad; the coherent-build correction narrows the issue to the desktop/sidebar/offset path.
+- `Doc contradiction`: the reference can still treat nav as the interaction/accessibility reference, but not as a layout-reference card until the offset strategy is stabilized.
+- `Implementation backlog [CD10]`: key lines remain [tunet_nav_card.js#L180](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_nav_card.js#L180) and [tunet_nav_card.js#L478](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_nav_card.js#L478).
 
 ---
 
-## Fresh Screenshot Audit (2026-04-04, coherent build ?v=20260404_cd4)
+## Detailed Coherent-Build Evidence Appendix (2026-04-04, coherent build ?v=20260404_cd4)
+
+This appendix preserves screenshot observations and lower-level notes. It is supporting evidence, not the normative backlog layer.
 
 Evidence: audit-my-390-top.png through audit-my-390-s12.png, audit-my-768-top.png through audit-my-768-s10.png, audit-my-1440-top.png through audit-my-1440-s10.png, audit-nav-390-top.png, audit-nav-768-top.png, audit-nav-1440-top.png.
 
@@ -213,16 +270,16 @@ Evidence: audit-my-390-top.png through audit-my-390-s12.png, audit-my-768-top.pn
 4. **V-SPK-2**: Speaker grid 2-col compact is genuinely usable at 390px. The 4-col standard variant is the one that fails.
 5. **Scenes allow_wrap**: The "Relaxed Wrap" variant shows wrapping working correctly. The CD4 default change is effective.
 
-### Remaining True P0 Issues (confirmed on coherent build)
+### Remaining True P0 Issues (confirmed on coherent build, mapped to owning tranche)
 
-1. **Lighting scroll left-edge clipping** — tiles cut off on left when scrolled
-2. **Lighting 3-col at 390px** — should drop to 2-col on phone
-3. **Rooms row mode at 390px** — single-letter names, disproportionate power button
-4. **Status 4-col Summary Matrix at 390px** — unreadable truncation
-5. **Sonos source button overflow** — text exceeds card width
-6. **Sonos speaker tile horizontal scroll clipping** — names truncated, left tiles clip
-7. **Speaker grid 4-col standard at 390px** — unusable
-8. **Nav sidebar mode conflicts with HA sidebar at desktop** — double-sidebar
+1. **Lighting scroll left-edge clipping** — tiles cut off on left when scrolled `[CD6]`
+2. **Lighting 3-col at 390px** — should drop to 2-col on phone `[CD6]`
+3. **Rooms row mode at 390px** — single-letter names, disproportionate power button `[CD7]`
+4. **Status 4-col Summary Matrix at 390px** — unreadable truncation `[CD11]`
+5. **Sonos source button overflow** — text exceeds card width `[CD9]`
+6. **Sonos speaker tile horizontal scroll clipping** — names truncated, left tiles clip `[CD9]`
+7. **Speaker grid 4-col standard at 390px** — unusable as a dense/default configuration `[CD9]`
+8. **Nav sidebar mode conflicts with HA sidebar at desktop** — double-sidebar `[CD10]`
 
 ---
 
@@ -274,7 +331,9 @@ Evidence: audit-my-1440-s1.png through audit-my-1440-s8.png
 
 ---
 
-## User-Reported Interactive Bugs (2026-04-04)
+## Unverified User-Reported Interactive Bugs (2026-04-04)
+
+These reports are preserved for follow-up, but they are not part of the normalized authoritative backlog until revalidated against the current coherent build.
 
 **V-INTERACT-1: Click-and-hold to drag brightness appears universally broken**
 - User reports drag-to-dim not working on light tiles / lighting card

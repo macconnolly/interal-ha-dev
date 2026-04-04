@@ -87,9 +87,14 @@ When the control documents disagree, use this precedence order:
 
 1. `plan.md`
 2. `FIX_LEDGER.md`
-3. `Dashboard/Tunet/Docs/agent_driver_pack.md`
-4. `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
+3. `handoff.md`
+4. `Dashboard/Tunet/Docs/cards_reference.md`
 5. `Dashboard/Tunet/CLAUDE.md`
+
+Skill-specific inputs (not general precedence):
+- `Dashboard/Tunet/Docs/agent_driver_pack.md`
+- `Dashboard/Tunet/DEPLOYMENT_RESOURCES.md`
+- `Dashboard/Tunet/Docs/visual_defect_ledger.md`
 
 Do not silently resolve conflicts. Record them in a `CONTROL_DOC_CONFLICTS` section.
 
@@ -110,8 +115,7 @@ Evaluate UX on `tunet-suite-storage`. Validate architecture on repo YAML.
 
 The current execution plan uses the consistency-driver pass order (CD0-CD12):
 - Sole execution authority: `~/.claude/plans/flickering-herding-wolf.md` (CD0–CD12)
-- Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (single source of truth, CD0–CD12)
-- Execution order: CD0 (build/lab, DONE) → CD1 (config clarity, IN PROGRESS) → CD2-CD4 (shared consistency passes) → CD5-CD11 (bespoke card passes) → CD12 (surface assembly)
+- Execution order: CD0 (build/lab, DONE) → CD1 (config/editor, DONE) → CD2 (interaction, DONE) → CD3 (semantics, DONE) → CD4 (sizing/Sections, DONE) → CD5 (utility strip, NEXT) → CD6-CD11 (bespoke card passes) → CD12 (surface assembly)
 - Surface assembly order when it resumes: Living Room → popup → overview → media → remaining rooms
 - Scope locks respected by default (see plan for full lock table)
 
@@ -128,10 +132,12 @@ Classify reused findings as one of:
 
 At minimum, explicitly reconcile these before restating them:
 
-- `back_path` coverage on Tunet suite subviews
-- the storage Living Room popup using one consolidated `tunet-lighting-card`
-- `tunet_sensor_card.js` `value_attribute` support
-- nav active color token drift in `tunet_nav_card.js`
+- `back_path` coverage on Tunet suite subviews — `OPEN` (deferred to CD12 surface assembly)
+- the storage Living Room popup using one consolidated `tunet-lighting-card` — `OPEN` (deferred to CD12)
+- `tunet_sensor_card.js` `value_attribute` support — `ALREADY FIXED IN REPO` (CD1 editor work + coherent build)
+- nav active color token drift in `tunet_nav_card.js` — `OPEN` (deferred to CD10 nav verify pass)
+
+Also check `Dashboard/Tunet/Docs/visual_defect_ledger.md` for current runtime defect status before restating any visual finding.
 
 ## Required Preflight Sections
 

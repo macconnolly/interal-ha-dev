@@ -6,6 +6,18 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole author
 Current tranche: **CD5 — Utility Strip Bespoke Pass** (next)
 Previous tranches: CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-04-04, Control-Doc Normalization)
+
+Tranche marker: pre-CD5 documentation/backlog rationalization
+
+- `CURRENT STATE`
+  - no tranche change: `CD5 — Utility Strip Bespoke Pass` remains next
+- `DOC NORMALIZATION`
+  - `Dashboard/Tunet/Docs/visual_defect_ledger.md` normalized against coherent-build evidence; stale/narrowed claims downgraded; card defects, composition constraints, and doc contradictions separated
+  - `Dashboard/Tunet/Docs/cards_reference.md` encodes whole-home usage contract (rooms=navigation, lighting=room-detail, per-card phone-safe defaults explicit); stale closed-tranche wording removed
+  - `Dashboard/Tunet/Docs/legacy_key_precedence.md` updated so actions-editor notes match current contract
+  - `Dashboard/Tunet/Docs/sections_layout_matrix.md` wording corrected: CD4 card-level accepted, CD12 surface breakpoint validation still required
+
 ## Session Delta (2026-04-04, Post-CD4 Rehab Lab Expansion + Visual Audit)
 
 Tranche marker: pre-CD5 documentation + validation harness expansion

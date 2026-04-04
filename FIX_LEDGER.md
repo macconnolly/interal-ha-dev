@@ -5,16 +5,26 @@ Last updated: 2026-04-03
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 
-## Session Delta (2026-04-03, CD3 Closeout + CD3.1 In Progress)
+## Session Delta (2026-04-04, CD4 Closeout)
 
-Change marker: CD3 tranche closure, CD3.1 dropdown clipping fix started
+Change marker: CD4 tranche closure — all shared passes complete
 
 - `AUTHORITY-LOCK`
   - `~/.claude/plans/flickering-herding-wolf.md` is the sole execution authority (CD0–CD12).
 - `CURRENT STATE`
-  - CD3 — Shared Semantics Adoption: **DONE** (Apr 3, 2026)
+  - CD4 — Shared Sizing And Sections Adoption: **DONE** (Apr 4, 2026)
   - CD3.1 — Dropdown Clipping Fix: **DONE** (Apr 4, 2026)
-  - CD4 — Shared Sizing And Sections Adoption: next tranche (after CD3.1 closes)
+  - CD3 — Shared Semantics Adoption: **DONE** (Apr 3, 2026)
+  - All shared passes (CD0–CD4) complete. Bespoke passes begin with CD5.
+  - CD5 — Utility Strip Bespoke Pass: next tranche
+- `CD4 CLOSURE EVIDENCE`
+  - sizing_sections_contract.test.js: 58/58 pass (rows:'auto' enforced, columns:'full' nav-only, scenes allow_wrap, profile override)
+  - Full npm test: 489/489 pass (9 suites)
+  - npm run tunet:build: 13 cards built
+  - All 13 cards confirmed rows:'auto' in getGridOptions()
+  - Scenes allow_wrap default changed from false to true (Sections-safe)
+  - sections_layout_matrix.md completed with per-card data (provisional → accepted)
+  - cards_reference.md scenes Sections safety documented as resolved
 - `CD3 CLOSURE EVIDENCE`
   - interaction_keyboard_contract.test.js: 63/63 pass (role, tabindex, Enter/Space, slider preservation)
   - Full npm test: 431/431 pass (8 suites)

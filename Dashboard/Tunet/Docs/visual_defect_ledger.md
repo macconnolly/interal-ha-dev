@@ -5,6 +5,7 @@ Built from screenshot evidence on the live HA surfaces at `390x844`, `768x1024`,
 - `Runtime defect`: mobile nav is not reliably behaving as a bottom dock. In the per-card mobile evidence pack it renders as a left rail overlay over content, corrupting the card screenshots themselves, for example [mobile-viewport-card-12-tunet-lighting-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-12-tunet-lighting-card.png) and [mobile-viewport-card-09-tunet-rooms-card.png](/home/mac/HA/implementation_10/mobile-viewport-card-09-tunet-rooms-card.png).
 - `Doc mismatch`: [cards_reference.md#L1410](/home/mac/HA/implementation_10/Dashboard/Tunet/Docs/cards_reference.md#L1410) describes nav as a stable mobile dock / desktop rail split, but current runtime behavior is visibly unstable.
 - `Improvement`: establish a stricter “phone companion” composition contract. Several cards look acceptable alone but bad when forced into current section compositions.
+- `Improvement`: all icon-bearing UI config fields should use a dropdown or validated icon picker, not raw free-form text. We already have at least one configured icon string that does not resolve to a real glyph at runtime, which proves the current editor contract is unsafe. This is currently inconsistent across the suite: some cards already use `selector: { icon: {} }` while others still use plain text for icon fields. Known free-form icon editor/config fields that should be upgraded include [tunet_light_tile.js#L883](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_light_tile.js#L883), [tunet_lighting_card.js#L1871](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L1871), [tunet_media_card.js#L576](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L576), [tunet_sensor_card.js#L434](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sensor_card.js#L434), [tunet_sonos_card.js#L619](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L619), and [tunet_speaker_grid_card.js#L562](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js#L562). This should be treated as both an editor UX defect and a runtime correctness defect.
 
 **1. `tunet-actions-card`**
 - `Runtime defect`: no catastrophic visual failure, but the strip still reads as a narrow utility row dropped into oversized sections, especially on tablet/desktop where dead space dwarfs the control itself in [g5-768-full.png](/home/mac/HA/implementation_10/g5-768-full.png).
@@ -375,10 +376,57 @@ Evidence: audit-my-1440-s1.png through audit-my-1440-s8.png
 
 ---
 
+---
+
+## Sonos Collapsed Dropdown + Surfaces Page Audit (2026-04-04)
+
+Evidence: audit-sonos-collapsed-390.png, audit-sonos-collapsed-390-2.png, audit-surfaces-390-*.png, audit-surfaces-1440-*.png
+
+### Sonos — Collapsed Speaker Name Overflow
+
+**V-SON-COLLAPSED-1: Speaker dropdown button text extends beyond card when COLLAPSED**
+- At 390px, "Living Room TV Sonos ..." extends past right card edge
+- Creates horizontal page scroll even without opening the dropdown
+- Source button at `tunet_sonos_card.js:152` has no max-width or overflow constraint
+- `P0`: Collapsed state itself causes horizontal overflow — not just open-state
+
+**V-SON-COLLAPSED-2: Speaker tiles in horizontal strip overflow at 390px when collapsed**
+- Tiles spill past viewport — no containment on the strip
+- `P0`: Strip needs overflow containment
+
+### Lighting Grid — Tiles Don't Fill Card Width
+
+**V-GRID-SPACING-1: Lighting grid tiles capped at 180px — dead space at all widths**
+- Root cause: `grid-template-columns: repeat(var(--cols, 3), minmax(0, 180px))` at L383
+- Combined with `justify-content: center` at L389 — tiles cluster in middle with margins
+- At 1440px (surfaces page): 3×2 grid of room lights centered in section with ~60px+ dead margin
+- At 390px (surfaces page): 2-col tiles narrower than card width with side gaps
+- Affects every lighting card instance across rehab lab AND surfaces page
+- `P0`: Fix is `minmax(0, 1fr)` to fill available space, or remove the 180px cap
+
+**V-GRID-SPACING-2: Same issue on surfaces Room Detail at all breakpoints**
+- Living Room: 6 tiles in centered 3×2 island
+- Kitchen: 3 tiles in centered row with margins
+- Bedroom: 3 tiles in 2+1 with dead space
+- Confirmed on production-like surface, not just rehab lab
+- `P0`: Consistent with V-DESK-1
+
+### Surfaces Page — Room Detail at 390px
+
+**V-SURFACES-1: Room Index row mode "Livi..." truncated — same as V-ROM-1/2/3**
+- Confirmed on production surface — room row compression is a real production issue
+
+**V-SURFACES-2: Surfaces page is a better composition validation target than rehab lab**
+- Overview composition works reasonably
+- Room Detail reveals all the tile spacing and row compression issues in realistic context
+- `P2`: Future visual validation should use surfaces page, not just rehab lab
+
+---
+
 ### Current Severity Count
 
 | Severity | Count | Notes |
 |----------|:-----:|-------|
-| P0 (visual break + interactive) | 9 | 8 visual + weather forecast (now FIXED) |
-| P1 (doc/runtime + consistency) | 11 | 6 docs + media naming + font sizing + manual dot + speaker color + speaker drag |
-| P2 (improvement opportunity) | 12+ | Density, naming, composition, desktop spacing |
+| P0 (visual break + interactive) | 13 | +2 sonos collapsed overflow, +2 grid spacing |
+| P1 (doc/runtime + consistency) | 11 | unchanged |
+| P2 (improvement opportunity) | 13+ | +1 surfaces as validation target |

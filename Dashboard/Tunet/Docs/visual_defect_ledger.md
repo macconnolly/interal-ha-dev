@@ -353,6 +353,13 @@ Evidence: audit-my-1440-s1.png through audit-my-1440-s8.png
 - May be a lab data issue (no manual override state) or an OAL configuration issue
 - `P1`: Needs live entity verification — not a CSS/code regression from CD2-CD4
 
+**V-INTERACT-5: Manual reset button not working**
+- User reports manual reset button (resets adaptive lighting manual override) is not functioning
+- Rooms card: manual reset calls `adaptive_lighting.set_manual_control` with `manual_control: false` at L1323-1325
+- The button itself is at L1014 (`$.manualResetBtn`)
+- Likely related to V-INTERACT-4 — if manual_control state isn't detected, the reset button may be hidden (`$.manualResetBtn.hidden = manualScopedCount === 0` at L1350)
+- `P1`: Needs live OAL entity verification — button may be hidden because manual state isn't being read
+
 **V-SPEAKER-1: Speaker grid accent color doesn't match sonos card accent color**
 - Speaker grid uses Steel Blue (`--accent: #4682B4` light / `#6BA3C7` dark) at tunet_speaker_grid_card.js L46/L63
 - Sonos card uses System Blue (`--sonos-blue: #007AFF` light / `#0A84FF` dark) at tunet_sonos_card.js L40/L59

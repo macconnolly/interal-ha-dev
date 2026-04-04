@@ -423,10 +423,82 @@ Evidence: audit-sonos-collapsed-390.png, audit-sonos-collapsed-390-2.png, audit-
 
 ---
 
+---
+
+## Surfaces Page — Media Composition at 390px (audit-surfaces-390-s4/s5/s6.png)
+
+**V-SURF-MEDIA-1: Media card "Main Media" header text truncated in surfaces composition**
+- "Main Media" info-tile shows "Full (progress + autodisc..." truncated
+- Speaker dropdown "Living ˅" visible — same _firstWordName() truncation
+- `P1`: Same as V-MED-1, confirmed on production surface
+
+**V-SURF-MEDIA-2: Sonos speaker tiles overflow horizontally in surfaces at 390px**
+- "oom TV Son...", "iving Room Credenza Sp...", "Kitchen Son...", "Bedroom So..." — same overflow
+- Confirmed identical to rehab lab behavior
+- `P0`: Same as V-SON-COLLAPSED-2
+
+**V-SURF-SPEAKER-1: Speaker Management grid at 390px — tiles readable in surfaces**
+- "Room TV Sddros...", "Room Credenza Sp...", "Kitchen Sonos", "Bathroom Sonos"
+- The speaker grid in the surfaces composition uses 2-col with tile names — partially readable
+- "Group All" / "Ungroup All" buttons visible
+- Better than 4-col but still truncated
+- `P1`: Names still too long for phone; needs shorter display names or line clamp
+
+## Surfaces Page — Overview Composition at 768px (audit-surfaces-768-top/s1.png)
+
+**V-SURF-768-1: Overview at 768px shows good 2-col layout**
+- Left: actions + scenes + status 2-col
+- Right: weather card
+- Below: Room Detail with lighting grids
+- This is actually a reasonably good tablet composition
+
+**V-SURF-768-2: Room Detail at 768px — lighting tiles visible but small**
+- "Kitchen" section: Island, Pendants, Main, Accent, Underlights, Table Lamps — 3×2 grid
+- Tiles fit but are small — the 180px cap is less visible at 768 because the section is narrower
+- `P2`: Tile spacing issue is less severe at tablet than desktop
+
+**V-SURF-768-3: Climate companion at 768px — climate + sensor side by side**
+- Climate shows "68°63° 6" (heat/cool) with slider
+- Sensor shows "Temp 68.5°" and "Humidity 32.0°" with sparklines
+- Good companion pairing at tablet
+- `OK`: This works well
+
+## YAML Configuration Audit
+
+**V-YAML-1: Rehab lab uses correct `label:` key for sensor cards — V-SNS-1 confirmed RESOLVED**
+- All sensor card instances use `label:` not `name:`
+- The raw entity ID display was stale base.js, now fixed
+
+**V-YAML-2: Scenes lab configs correctly mix allow_wrap true/false**
+- First: allow_wrap: true (wrap + header) — correct
+- Second: allow_wrap: false (scroll, no header) — correct opt-in exception
+- Third: allow_wrap: true (relaxed wrap) — correct
+- Fourth: allow_wrap: true (mixed domains) — correct
+- Lab YAML is correct per CD4 decision
+
+**V-YAML-3: Sonos lab configs include intentional stress tests**
+- "Living Room TV Sonos Soundbar with Long Source Name" — tests overflow handling
+- These expose the V-SON-COLLAPSED overflow bugs correctly
+- Lab config is intentionally aggressive — good for catching real issues
+
+**V-YAML-4: Speaker grid configs test all density variants**
+- 2-col compact (works at 390px)
+- 4-col standard (breaks at 390px — V-SPK-1)
+- 3-col large explicit
+- Autodiscovery
+- Good branch coverage
+
+**V-YAML-5: All card grid_options in lab use `columns: 24, rows: auto`**
+- This means each card takes full section width (24 = 2× the 12-col base)
+- `rows: auto` is correct per CD4
+- `P2`: Some compositions would benefit from testing at columns: 12 (half-section) to validate density
+
+---
+
 ### Current Severity Count
 
 | Severity | Count | Notes |
 |----------|:-----:|-------|
-| P0 (visual break + interactive) | 13 | +2 sonos collapsed overflow, +2 grid spacing |
-| P1 (doc/runtime + consistency) | 11 | unchanged |
-| P2 (improvement opportunity) | 13+ | +1 surfaces as validation target |
+| P0 (visual break + interactive) | 13 | 8 visual + weather FIXED + 2 sonos collapsed + 2 grid spacing |
+| P1 (doc/runtime + consistency) | 13 | +1 media surfaces, +1 speaker name truncation |
+| P2 (improvement opportunity) | 15+ | +2 from surfaces/YAML observations |

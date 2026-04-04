@@ -1,9 +1,36 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `main`
-Last updated: 2026-04-03
+Last updated: 2026-04-04
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
+
+## Session Delta (2026-04-04, Post-CD4 Rehab Lab Expansion + Visual Audit)
+
+Change marker: post-CD4 harness/doc expansion before CD5
+
+- `CURRENT STATE`
+  - CD5 — Utility Strip Bespoke Pass: **next tranche**
+  - YAML rehab dashboard now registered separately as `tunet-card-rehab-yaml`
+  - storage dashboard and YAML dashboard now coexist for comparison
+- `REHAB HARNESS`
+  - `Dashboard/Tunet/tunet-card-rehab-lab.yaml` expanded to 5 views:
+    - `lab`
+    - `states`
+    - `surfaces`
+    - `phone-stress`
+    - `nav-lab`
+  - room-detail composition rule clarified in the harness:
+    - `tunet-rooms-card` = overview/navigation
+    - `tunet-lighting-card` = detailed room light control
+- `VISUAL DEFECT LEDGER`
+  - `Dashboard/Tunet/Docs/visual_defect_ledger.md` is now the running screenshot-first audit log for live Tunet defects and improvement opportunities
+  - current ledger captures:
+    - phone/tablet/desktop layout defects
+    - doc/runtime contradictions
+    - config/editor improvement backlog
+  - new backlog item recorded:
+    - icon-bearing editor/config fields should use a dropdown or validated icon picker rather than free-form text where invalid icon strings can silently fail
 
 ## Session Delta (2026-04-04, CD4 Closeout)
 

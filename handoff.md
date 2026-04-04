@@ -1,12 +1,41 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-04-03 (America/Denver)  
+Last updated: 2026-04-04 (America/Denver)  
 Intended reader: next Claude Code session  
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Current tranche: **CD5 — Utility Strip Bespoke Pass** (next)
 Previous tranches: CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-04-04, Post-CD4 Rehab Lab Expansion + Visual Audit)
+
+- `REHAB YAML DASHBOARD`
+  - `Dashboard/Tunet/tunet-card-rehab-lab.yaml` is now a multi-view YAML review harness with:
+    - `lab`
+    - `states`
+    - `surfaces`
+    - `phone-stress`
+    - `nav-lab`
+  - all internal navigation paths target the YAML dashboard namespace:
+    - `/tunet-card-rehab-yaml/...`
+  - HA registration uses `tunet-card-rehab-yaml` to avoid collision with the storage dashboard `tunet-card-rehab-lab`
+- `WHOLE-HOME REVIEW RULE`
+  - treat `tunet-rooms-card` as the overview/navigation card
+  - treat `tunet-lighting-card` as the detailed room light-control surface
+  - rehab `surfaces` view now encodes that split with dedicated room-detail lighting stacks
+- `VISUAL AUDIT LOG`
+  - `Dashboard/Tunet/Docs/visual_defect_ledger.md` is now the running screenshot-first defect log
+  - latest additions include:
+    - card-by-card visual issues
+    - doc/runtime mismatches
+    - improvement backlog
+    - editor/config issue: icon-bearing fields should use a dropdown or validated icon picker rather than raw free-form text
+- `NEXT PRACTICAL START POINT`
+  - CD5 remains the next implementation tranche
+  - before changing behavior, use the YAML rehab dashboard and the visual defect ledger together:
+    - YAML lab for branch/state/surface review
+    - defect ledger for prioritized runtime/doc corrections
 
 ## Session Delta (2026-04-03, CD2 Closeout)
 

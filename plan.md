@@ -1,10 +1,36 @@
 # Tunet Suite Dashboard - Implementation Plan
 
 Working branch: `main`
-Last updated: 2026-04-03
+Last updated: 2026-04-04
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Current tranche: **CD5 — Utility Strip Bespoke Pass** (next)
 Previous tranches: CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-04-04, Post-CD4 Rehab Lab Expansion + Visual Audit)
+
+Tranche marker: pre-CD5 documentation + validation harness expansion
+
+- `REHAB-LAB EXPANSION`
+  - `Dashboard/Tunet/tunet-card-rehab-lab.yaml` expanded into a multi-view YAML dashboard harness:
+    - `lab`
+    - `states`
+    - `surfaces`
+    - `phone-stress`
+    - `nav-lab`
+  - all 13 Tunet card families remain represented
+  - coverage widened from representative smoke variants to meaningful authoring/runtime branches intended for whole-home review
+  - internal navigation paths now target the YAML dashboard namespace (`/tunet-card-rehab-yaml/...`)
+- `SURFACE ARCHITECTURE CLARIFICATION`
+  - room-detail review should be judged primarily through `tunet-lighting-card`, not `tunet-rooms-card`
+  - `tunet-rooms-card` remains the overview/navigation card
+  - rehab `surfaces` view now encodes that rule with dedicated room-detail `tunet-lighting-card` stacks
+- `LIVE YAML DASHBOARD`
+  - YAML dashboard file deployed to `/homeassistant/dashboards/tunet-card-rehab-lab.yaml`
+  - HA dashboard registration moved to `tunet-card-rehab-yaml` to avoid collision with the existing storage dashboard
+- `VISUAL AUDIT`
+  - screenshot-first defect review expanded substantially across mobile, tablet, and desktop
+  - running defect inventory recorded in `Dashboard/Tunet/Docs/visual_defect_ledger.md`
+  - new editor/config debt captured: icon-bearing UI config fields should use a dropdown or validated icon picker instead of raw free-form text where invalid icon strings can silently render as broken glyphs
 
 ## Session Delta (2026-04-03, CD2 Closeout)
 

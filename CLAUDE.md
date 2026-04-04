@@ -68,6 +68,14 @@ Control documents:
 - `plan.md`, `FIX_LEDGER.md`, `handoff.md`
 - `Dashboard/Tunet/CLAUDE.md` (overrides this file for Tunet-specific rules)
 
+### HA Instance Organizer
+
+For discovery-first audit and safe cleanup of HA organizational metadata, use:
+- `.claude/skills/ha-instance-organizer/SKILL.md`
+- `docs/ha_instance_organizer_runbook.md` (full operational runbook)
+
+Invoke with `/ha-instance-organizer`. Covers areas, floors, zones, labels, categories, aliases, groups, visibility, helpers, room aggregates, device-entity inheritance, and dead or orphaned entities.
+
 ### Architectural Rules
 
 - For Tunet work, root guidance defers to `Dashboard/Tunet/AGENTS.md`

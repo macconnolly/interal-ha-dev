@@ -495,6 +495,21 @@ Evidence: audit-sonos-collapsed-390.png, audit-sonos-collapsed-390-2.png, audit-
 
 ---
 
+---
+
+## Plan Integration
+
+The following P0/P1 issues have been added to the canonical execution plan (`~/.claude/plans/flickering-herding-wolf.md`):
+
+| Issue | Added To | Plan Item |
+|-------|----------|-----------|
+| Lighting grid 180px cap + dead space | CD6 L982 item 5 | Evaluate `minmax(0, 1fr)`, verify drag headroom |
+| Lighting scroll left-edge clipping | CD6 L982 item 6 | Fix scroll container left clip |
+| Sonos source button overflow + naming | CD9 sonos item 5 | Unify naming contract across media/sonos |
+| Media `_firstWordName()` too aggressive | CD9 media item 6 | Replace with shared naming strategy |
+| Speaker accent color mismatch | CD9 sonos item 6 | Unify to sonos blue |
+| Status 4-col phone density | CD11 item 2 (lock-lifted) | Responsive column count, height drift, a11y name |
+
 ### Current Severity Count
 
 | Severity | Count | Notes |

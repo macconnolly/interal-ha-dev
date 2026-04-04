@@ -6,7 +6,9 @@ Purpose: reset Sections layout work to the three real HA control layers:
 2. section width/span
 3. card width/span
 
-Status: **accepted** — completed with per-card getGridOptions data (CD4, Apr 4, 2026). Live breakpoint pass still recommended before surface assembly (CD12).
+Status:
+- **Card-level authority**: accepted for the CD4 card-level Sections contract. Per-card `getGridOptions()` data was captured Apr 4, 2026 and is the current authority for card-level sizing hints.
+- **Surface-assembly authority**: still provisional. Live breakpoint validation is required before CD12 surface assembly is treated as locked.
 
 ## Applied Baseline (Storage Surface, 2026-03-06)
 
@@ -18,8 +20,8 @@ Applied to `Dashboard/Tunet/tunet-suite-storage-config.yaml`:
 - one concrete subview example (`living-room`) now uses explicit `3/1` split
 - nav moved to view `footer.card` across sections views (HA 2026.3 capability), with ongoing validation against nav-card JS behavior
 
-Remaining required step:
-- live breakpoint pass at `390x844`, `768x1024`, `1024x1366`, `1440x900` before this doc can move from provisional to accepted.
+Surface-assembly validation still required:
+- rerun the live breakpoint pass at `390x844`, `768x1024`, `1024x1366`, `1440x900` before CD12 surface composition is locked. This validates assembled surfaces, not the already-accepted CD4 card-level contract.
 
 Important:
 - `4/3/1` is a composition pattern for specific surfaces (for example Overview hero/support rows), not a universal rule for every view.

@@ -102,10 +102,20 @@
       "Bash(scp:*)",
       "Bash(for file:*)",
       "Bash(do echo:*)",
-      "Read(//home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v2/**)"
+      "Read(//home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v2/**)",
+      "Read(//home/mac/.claude/plans/**)",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_playwright_playwright__browser_run_code",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npx vitest:*)",
+      "mcp__plugin_playwright_playwright__browser_resize",
+      "mcp__plugin_playwright_playwright__browser_evaluate"
     ],
     "deny": [],
     "ask": []
   },
-  "outputStyle": "Explanatory"
+  "outputStyle": "default"
 }

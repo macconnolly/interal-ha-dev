@@ -2,83 +2,59 @@
 
 **This file EXTENDS Global CLAUDE.md. The phase protocol is defined there.**
 
+This file should read similarly to the root `AGENTS.md` for local execution work.
+For Tunet tasks, it is a continuity layer. The scoped execution authority remains:
+- `Dashboard/Tunet/AGENTS.md`
+
 ---
 
-## CURRENT WORK: Tunet Dashboard — Card Rehabilitation Reset
+## Root Rules
 
-**Active execution plan**: `~/.claude/plans/flickering-herding-wolf.md` — sole authority (consistency-driver rehab, CD0–CD12).
+- Use the single project worktree:
+  - `/home/mac/HA/implementation_10`
+- Do not create or use additional Tunet worktrees unless explicitly requested.
+- Do not run destructive git operations unless explicitly requested.
 
-**Execution authority for Tunet scope**: `Dashboard/Tunet/AGENTS.md`
+## Scope Routing
 
-**Current tranche**: CD5 — Utility Strip Bespoke Pass (next)
-**Previous tranches**: CD4 — Shared Sizing And Sections Adoption (completed Apr 4, 2026), CD3 — Shared Semantics Adoption (completed Apr 3, 2026), CD2 — Shared Interaction Adoption (completed Apr 3, 2026), CD1 — Configuration Clarity And Editor Policy (completed Apr 3, 2026), CD0 — Build Architecture And Rehab Lab (completed Apr 3, 2026)
+- If work touches `Dashboard/Tunet/**`, use:
+  - `Dashboard/Tunet/AGENTS.md` as the execution contract
+  - `Dashboard/Tunet/CLAUDE.md` as Tunet-specific continuity/context
+- For non-Tunet paths, use prompt/developer/system instructions plus local file context.
 
-### Build & Deploy
+## Current Tunet Work
+
+- **Active execution plan**: `~/.claude/plans/flickering-herding-wolf.md` — sole authority for Tunet execution (`CD0–CD12`)
+- **Current tranche**: `CD5 — Utility Strip Bespoke Pass` (next)
+- **Previous tranches**:
+  - `CD4` — Shared Sizing And Sections Adoption (completed Apr 4, 2026)
+  - `CD3` — Shared Semantics Adoption (completed Apr 3, 2026)
+  - `CD2` — Shared Interaction Adoption (completed Apr 3, 2026)
+  - `CD1` — Configuration Clarity And Editor Policy (completed Apr 3, 2026)
+  - `CD0` — Build Architecture And Rehab Lab (completed Apr 3, 2026)
+
+Current priority:
+- rehabilitate the Tunet v3 card suite first
+- keep docs and backlog authority normalized
+- resume surface assembly only after the card families are stable enough for deliberate composition
+
+## Tunet Authority Snapshot
+
+- `Dashboard/Tunet/Cards/v3/` = sole implementation authority
+- `Dashboard/Tunet/Docs/cards_reference.md` = normative per-card contract
+- `Dashboard/Tunet/Docs/visual_defect_ledger.md` = normalized runtime truth + owning-tranche backlog
+- `Dashboard/Tunet/Docs/sections_layout_matrix.md` = accepted CD4 card-level sizing authority, still provisional for CD12 surface assembly
+- `plan.md`, `FIX_LEDGER.md`, `handoff.md` = session-level control docs that must stay synced after meaningful change
+
+## Tunet Build / Validation Shortcuts
 
 - `npm run tunet:build` — esbuild 13 cards to `Dashboard/Tunet/Cards/v3/dist/`
 - `npm run tunet:deploy:lab` — build + SCP to HA server
-- `npm test` — vitest (62 tests: profile resolver, sizing, bundle safety, config contract)
-- After deploy, ALWAYS clear browser cache before testing editor changes
-- Lab dashboard: `http://10.0.0.21:8123/tunet-card-rehab-lab/lab`
+- `npm test` — vitest suite
+- Lab dashboard:
+  - `http://10.0.0.21:8123/tunet-card-rehab-lab/lab`
 
-**Current priority**: rehabilitate the Tunet v3 card suite first; resume full surface assembly only after the card families are stable.
-
-**End state**: A finished, functional home-wide dashboard remains the product goal, but it is downstream of the current card-rehabilitation sequence.
-
-### Key Files
-
-| What | File | Why it matters |
-|------|------|----------------|
-| **Design spec** | `Dashboard/Tunet/Mockups/design_language.md` (v9.0) | Canonical architecture + profile contract (being superseded for sizing) |
-| **Visual spec** | `Dashboard/Tunet/tunet-design-system.md` (v8.3) | Interaction choreography §6, animation timing §11 — still valid for visual reference |
-| **Gold standard** | `Dashboard/Tunet/Cards/v3/tunet_climate_card.js` | Measured visual baseline for all cards |
-| **Implementation authority** | `Dashboard/Tunet/Cards/v3/` | v3 is sole authority (promoted Mar 14, 2026) |
-| **Execution contract** | `Dashboard/Tunet/AGENTS.md` | Active governance contract for Tunet work |
-| **Superseded plan** | `Dashboard/Tunet/Docs/plans/consistency_driver_method_plan.md` | Historical reference only — superseded by execution plan |
-| **Active execution plan** | `~/.claude/plans/flickering-herding-wolf.md` | Single source of truth (CD0–CD12) |
-| **Cards reference** | `Dashboard/Tunet/Docs/cards_reference.md` | Per-card config contract + editor architecture |
-| **Legacy key precedence** | `Dashboard/Tunet/Docs/legacy_key_precedence.md` | setConfig overlap/fallback rules |
-
-### Execution Model
-
-**Consistency-driver pass order (CD0-CD12).** Current execution:
-- CD0: Build architecture + rehab lab (DONE Apr 3)
-- CD1: Configuration clarity + editor policy (DONE Apr 3)
-- CD2-CD4: Shared consistency passes (interaction, semantics, sizing)
-- CD5-CD11: Bespoke card passes
-- CD12: Surface assembly
-
-When surface work resumes, the retained surface assembly order is:
-- Living Room page
-- Living Room popup
-- Overview
-- Media
-- remaining rooms
-
-**Governance**: Existing scope locks respected by default. Changes require explicit rationale + doc sync + user approval. See plan file for lock table.
-
-### Tunet Multi-Agent Driver
-
-For broad planning, tranche execution, or multi-agent review, use:
-- `.claude/skills/tunet-agent-driver/SKILL.md`
-
-Control documents:
-- `Dashboard/Tunet/Docs/agent_driver_pack.md`
-- `Dashboard/Tunet/Docs/TRANCHE_TEMPLATE.md`
-- `plan.md`, `FIX_LEDGER.md`, `handoff.md`
-- `Dashboard/Tunet/CLAUDE.md` (overrides this file for Tunet-specific rules)
-
-### Architectural Rules
-
-- For Tunet work, root guidance defers to `Dashboard/Tunet/AGENTS.md`
-- Do not create or use additional Tunet worktrees unless explicitly requested
-- Real Home Assistant Sections dashboard — no layout hacks
-- Do not force vertical sizing unless required; prefer intrinsic height
-- Persistent nav is dashboard chrome, not content
-- Popups via Browser Mod (locked); stay minimal and high-utility
-- Sections sizing: reason page → section → card (not viewport/theme shortcuts)
-- Validation breakpoints: 390×844, 768×1024, 1024×1366, 1440×900
-- Documentation before code — each tranche starts with doc updates
+If this root file and the Tunet-scoped file differ on Tunet behavior, follow the scoped file and the scoped `AGENTS.md`.
 
 ### User Preference
 Dark blue glass variant `rgba(30,41,59,0.65)` in dark mode. If preference and spec diverge, preserve both and make conflict explicit.

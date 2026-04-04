@@ -62,9 +62,14 @@ The lighting card accepts entities from 4 config patterns. `setConfig()` resolve
 
 **Template substitution**: When using `DEFAULT_MODE_ACTIONS`, the template entity `__MODE_ENTITY__` in `state_entity` and `service_data.entity_id` is replaced with the configured `mode_entity` value (default: `input_select.oal_active_configuration`).
 
-**Editor impact**: `getConfigForm()` exposes only `variant`, `mode_entity`, `compact`. The `actions[]` array is NOT in the editor — the entire rich action model (service, service_data, state_entity, active_when, active_when_operator, show_when, tap_action) is YAML-only.
+**Editor impact**: `getConfigForm()` now exposes `variant`, `mode_entity`, `compact`, and a structured `actions[]` editor for the common authoring path. That editor covers `name`, `icon`, `accent`, `service`, `entity_id`, `option`, `state_entity`, `active_when`, and show-when helper fields.
 
-**Why yaml-first is correct**: The action model supports arbitrary service domains (`light.turn_on`, `input_select.select_option`, `script.turn_on`), each with different `service_data` payloads. A visual editor can't meaningfully edit arbitrary service_data objects. The mode_strip variant with `__MODE_ENTITY__` substitution provides a useful default without YAML editing for the common case.
+**Why yaml-first is still correct**: The action model still supports richer raw runtime shapes than the editor surface covers cleanly:
+- arbitrary `service_data` payloads
+- raw `show_when` objects
+- `tap_action` overrides
+
+The editor now covers the common structured strip-authoring path, while YAML remains the power-user/runtime path. The mode_strip variant with `__MODE_ENTITY__` substitution still provides a useful zero-YAML default for the common case.
 
 ---
 

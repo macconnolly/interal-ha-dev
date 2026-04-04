@@ -189,7 +189,7 @@ const CARD_STYLES = `
   .weather-detail .val { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
   /* Forecast */
-  .weather-forecast { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+  .weather-forecast { display: grid; grid-template-columns: repeat(var(--forecast-cols, 5), minmax(0, 1fr)); gap: 5px; }
   .forecast-tile {
     display: flex; flex-direction: column; align-items: center; gap: 3px;
     padding: 6px 4px 5px; border-radius: 11px;
@@ -704,6 +704,7 @@ class TunetWeatherCard extends HTMLElement {
       return;
     }
 
+    this.$.forecast.style.setProperty('--forecast-cols', points.length);
     this.$.forecast.innerHTML = points.map((fc, i) => {
       const dt = new Date(fc.datetime);
       const dayName = this._viewMode === 'hourly'

@@ -336,10 +336,42 @@ Evidence: audit-my-1440-s1.png through audit-my-1440-s8.png
 
 ---
 
+---
+
+## Additional User-Reported Issues (2026-04-04 continued)
+
+**V-WEATHER-FIX: Hourly forecast grid column count fixed**
+- Was: `grid-template-columns: repeat(5, ...)` hardcoded — 8 hourly tiles crammed into 5 cols
+- Fix: Now uses `var(--forecast-cols)` set dynamically by `_renderForecast()` to `points.length`
+- Status: **FIXED**, deployed
+
+**V-INTERACT-4: Manual control red dot not showing on lights**
+- User reports red glow indicator for manually-controlled lights not appearing
+- Rooms card: uses `switch.adaptive_lighting_*` entity's `manual_control` attribute (L1297)
+- Light tile: uses `entity.attributes.manual_override === true` (L641)
+- These are live HA entity state dependencies — requires OAL adaptive lighting to be running and the light to be manually overridden
+- May be a lab data issue (no manual override state) or an OAL configuration issue
+- `P1`: Needs live entity verification — not a CSS/code regression from CD2-CD4
+
+**V-SPEAKER-1: Speaker grid accent color doesn't match sonos card accent color**
+- Speaker grid uses Steel Blue (`--accent: #4682B4` light / `#6BA3C7` dark) at tunet_speaker_grid_card.js L46/L63
+- Sonos card uses System Blue (`--sonos-blue: #007AFF` light / `#0A84FF` dark) at tunet_sonos_card.js L40/L59
+- Media card uses green (`--green`) for group state
+- User prefers the sonos card's lighter blue
+- `P1`: Speaker accent color unification deferred to CD9 per user decision. User now confirms preference for sonos blue.
+
+**V-SPEAKER-2: Click-and-hold to drag volume not implemented on speaker grid tiles**
+- Sonos card speaker tiles have hold-to-drag volume via `createAxisLockedDrag` at tunet_sonos_card.js L961
+- Speaker grid tiles also have `createAxisLockedDrag` at tunet_speaker_grid_card.js L961 — but the interaction model may differ
+- Need to verify: does speaker grid's drag work the same as sonos? Or is the gesture model different?
+- `P1`: Speaker tile interaction parity between sonos and speaker-grid is a CD9 target
+
+---
+
 ### Current Severity Count
 
 | Severity | Count | Notes |
 |----------|:-----:|-------|
-| P0 (visual break + interactive) | 10 | 8 visual + 2 interactive (drag, weather forecast) |
-| P1 (doc/runtime + consistency) | 8 | 6 docs + media naming + font sizing |
+| P0 (visual break + interactive) | 9 | 8 visual + weather forecast (now FIXED) |
+| P1 (doc/runtime + consistency) | 11 | 6 docs + media naming + font sizing + manual dot + speaker color + speaker drag |
 | P2 (improvement opportunity) | 12+ | Density, naming, composition, desktop spacing |

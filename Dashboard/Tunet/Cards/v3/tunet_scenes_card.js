@@ -397,7 +397,7 @@ class TunetScenesCard extends HTMLElement {
       show_header: config.show_header === true,
       name: String(config.name || 'Scenes').trim() || 'Scenes',
       compact: config.compact !== false,
-      allow_wrap: config.allow_wrap === true,
+      allow_wrap: config.allow_wrap !== false,
       scenes: coerceScenes(config.scenes),
     };
 

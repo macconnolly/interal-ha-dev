@@ -3,8 +3,137 @@
 Working branch: `main`
 Last updated: 2026-04-06
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
-Current tranche: **CD9 — Media Bespoke Pass** (selected-target audio routing; media/sonos dropdown parity; visible speaker-tile semantics landed; speaker-grid mobile-density fallback + media semantics/accessibility remain)
-Previous tranches: CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+Current tranche: **CD10 — Navigation Bespoke Pass** (desktop rail/sidebar coexistence; offset leakage; layout-reference overclaim cleanup)
+Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-04-06, CD9 closeout)
+
+Tranche marker: `CD9` is closed; active ownership advances to `CD10`
+
+- `AUTHORITY NOTE`
+  - the remaining CD9 complaints were reclassified and resolved as follows:
+    - speaker-grid phone density/grid pressure: fixed by the card-level mobile column fallback and accepted live review
+    - media/sonos dropdown/runtime issues: fixed and deployed
+    - album-art proxy spam: Tunet now suppresses repeated retries of the same failing art URL; the remaining single `media_player_proxy` `500` is backend-side
+    - `/unknown/node_modules/@webcomponents/scoped-custom-element-registry/src/scoped-custom-element-registry.ts` `404`: confirmed on the default HA dashboard too, so not Tunet-owned
+  - chosen interpretation:
+    - CD9 closes on the current runtime and rehab evidence
+    - any future explicit long-name authoring pressure or slider/accessibility polish is enhancement-level work, not an open CD9 runtime blocker
+- `VALIDATION`
+  - `npm test` → `625/625`
+  - `npm run tunet:deploy:lab` → live resources at `?v=build_20260406_151051Z`
+  - key accepted runtime evidence:
+    - media dropdown phone probe opened successfully and remained solid/opaque
+    - sonos/speaker-grid visible tile semantics accepted in live review
+    - speaker-grid problematic mobile explicit-large case accepted after fallback
+    - album-art console noise reduced to single first-failure behavior
+- `RESULT`
+  - `CD9` is closed
+  - next active tranche is `CD10 — tunet-nav-card`
+  - remaining non-Tunet/global noise should not reopen CD9
+
+## Session Delta (2026-04-06, CD9 subpass — Album Art Proxy Resilience)
+
+Tranche marker: `CD9` remains active; album-art rendering is now more resilient, and the observed `/unknown/...scoped-custom-element-registry.ts` 404 is confirmed as Home Assistant-global rather than Tunet-owned
+
+- `AUTHORITY NOTE`
+  - live console review showed two distinct errors:
+    - `media_player_proxy` album-art requests for `media_player.living_room` returning `500`
+    - `/unknown/node_modules/@webcomponents/scoped-custom-element-registry/src/scoped-custom-element-registry.ts` returning `404`
+  - chosen interpretation:
+    - the `/unknown/...` request is not a Tunet bug because it reproduces on the default Home Assistant dashboard too
+    - the album-art `500` is a real backend proxy failure, but Tunet should still avoid repeatedly retrying the same broken art URL on every refresh/update
+- `IMPLEMENTATION`
+  - `tunet_base.js`
+    - added shared media-art helpers:
+      - prefer `entity_picture_local`, then `media_image_url`, then `entity_picture`
+      - normalize relative URLs
+      - track failed art URLs with a short TTL so cards stop hammering a broken proxy URL but can still recover on a new image URL
+  - `tunet_media_card.js`
+    - now uses the shared media-art helpers instead of reading `entity_picture` directly
+  - `tunet_sonos_card.js`
+    - same shared media-art resolution/suppression path as media
+  - `audio_cd9_bespoke.test.js`
+    - added coverage for preferred art-source ordering and failed-URL suppression/recovery
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_base.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_media_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js` → `25/25`
+- `RESULT`
+  - media and sonos now prefer better Home Assistant image attributes when available
+  - once a proxy/image URL has failed, the cards stop re-requesting that same URL during the short suppression window
+  - the HA-global `/unknown/...scoped-custom-element-registry.ts` 404 remains outside Tunet scope
+
+## Session Delta (2026-04-06, CD9 subpass — Volume Auto-Exit Drag Guard)
+
+Tranche marker: `CD9` remains active; volume inactivity timers now pause during active manual drag instead of dismissing the control under the pointer
+
+- `AUTHORITY NOTE`
+  - live testing found that the 5-second auto-exit could still fire while the user was actively dragging the volume slider
+  - chosen interpretation:
+    - keep the 5-second inactivity model
+    - active manual dragging does not count as inactivity
+    - drag start clears the timer; drag end re-arms the 5-second timer
+- `IMPLEMENTATION`
+  - `tunet_media_card.js`
+    - volume-view auto-exit timer now clears on slider pointerdown
+    - debounced volume commits no longer re-arm the timer while drag is active
+    - pointerup / pointercancel re-arm the 5-second inactivity timer
+  - `tunet_sonos_card.js`
+    - volume-overlay auto-exit timer now clears on slider pointerdown
+    - debounced volume commits no longer re-arm the timer while drag is active
+    - pointerup / pointercancel re-arm the 5-second inactivity timer
+  - `audio_cd9_bespoke.test.js`
+    - added media + sonos regressions proving the overlay/view stays open through 5 seconds of active drag and only auto-exits after drag ends
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_media_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js` → `23/23`
+  - full `npm test` → `621/621`
+  - `npm run tunet:deploy:lab` → live resources at `?v=build_20260406_150124Z`
+- `RESULT`
+  - media volume view and sonos volume overlay no longer auto-close while a manual drag is in progress
+  - the 5-second auto-exit behavior resumes immediately after drag end
+
+## Session Delta (2026-04-06, CD9 subpass — Media Dropdown Surface + Compact Badge Polish)
+
+Tranche marker: `CD9` remains active; media dropdown runtime is corrected on phone and compact speaker-grid badge no longer crowds the value lane
+
+- `AUTHORITY NOTE`
+  - live mobile testing found two final visual/runtime issues:
+    - media dropdown surface still looked translucent and the phone card was failing to open the menu
+    - compact speaker-grid badge was partially covering the volume percentage lane
+  - chosen interpretation:
+    - keep media/sonos dropdown parity, but make that shell fully solid rather than blurred/translucent
+    - treat the media dropdown failure as a real runtime blocker
+    - move/shrink the badge only on the compact speaker-grid path; standard is already acceptable
+- `IMPLEMENTATION`
+  - `tunet_media_card.js`
+    - removed dropdown blur so the menu surface is fully opaque
+    - fixed `_buildSpeakerMenu()` runtime failure by restoring the missing `groupedCount` value used by grouped coordinator rows
+  - `tunet_sonos_card.js`
+    - removed dropdown blur to keep the sonos shell matched `1:1` with media
+  - `tunet_speaker_grid_card.js`
+    - compact badge now sits tighter in the top-right corner and is slightly smaller so it clears the volume percentage lane
+  - `audio_cd9_bespoke.test.js`
+    - added coverage for solid dropdown shell primitives, media dropdown open/populate behavior, and compact speaker-grid badge geometry
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_media_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js` → `21/21`
+  - full `npm test` → `621/621`
+  - `npm run tunet:deploy:lab` → live resources at `?v=build_20260406_144842Z`
+  - authenticated phone probe after deploy:
+    - media dropdown now opens on `390x844` with `aria-expanded="true"`, `open=true`, `options=8`, `display=flex`, `backdropFilter=none`
+    - screenshot: `/tmp/media-mobile-dropdown-open-after-fix.png`
+- `RESULT`
+  - media dropdown now opens on the live phone rehab card and uses a fully solid surface
+  - sonos keeps the same solid dropdown shell treatment
+  - compact speaker-grid no longer lets the group badge crowd the volume percentage lane
 
 ## Session Delta (2026-04-06, CD9 subpass — Speaker Icon Hold Alias)
 
@@ -30,10 +159,11 @@ Tranche marker: `CD9` remains active; visible speaker-tile semantics stay landed
   - `node --check Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`
   - `node --check Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
   - `node --check Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
-  - `npm test -- Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
-  - full `npm test`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js` → `19/19`
+  - full `npm test` → `619/619`
   - `npm run tunet:build`
-  - `npm run tunet:deploy:lab`
+  - `npm run tunet:deploy:lab` completed; changed sonos/speaker-grid assets deployed and Lovelace resources synced to `?v=build_20260406_141346Z`
+  - deploy note: an unrelated transient `tunet_lighting_card.js` SCP hit `port 22: Connection refused` during the multi-file fan-out, but it did not affect the touched CD9 assets
 - `RESULT`
   - sonos and speaker-grid speaker icons now expose the default more-info picker on both tap and hold
   - `CD9` remains open on media semantics/accessibility and any residual speaker-grid density signoff
@@ -100,21 +230,21 @@ Tranche marker: `CD9` remains active; sonos/speaker-grid visible tile semantics 
     - visible speaker tiles now use the suite speaker-tile contract:
       - body tap selects active target
       - hold `400ms` then drag adjusts selected-target volume
-      - icon tap opens more-info
+      - icon tap/hold opens more-info
       - badge toggles group membership
     - tiles now expose explicit `selected` and grouped states, and visible tile drag inherits the selected-target/group-volume routing model
   - `tunet_speaker_grid_card.js`
     - removed the old tap-toggle-group / hold-more-info behavior
     - body tap now selects active target
     - hold `400ms` then drag adjusts selected-target volume
-    - icon tap opens more-info
+    - icon tap/hold opens more-info
     - badge toggles group membership
     - `createAxisLockedDrag()` path is no longer the active interaction model for visible speaker tiles
   - `audio_cd9_bespoke.test.js`
     - new coverage for sonos and speaker-grid visible-tile semantics:
       - tap selects active target
       - badge toggles group membership
-      - icon opens more-info
+      - icon tap/hold opens more-info
       - hold-drag routes volume to the selected target
 - `VALIDATION`
   - `node --check Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`

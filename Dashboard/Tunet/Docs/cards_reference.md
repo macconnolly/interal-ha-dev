@@ -169,9 +169,9 @@ This section is the composition contract for later whole-home dashboard work. It
 | `tunet-weather-card` | information | weather companion/info surface | fixed daily/hourly variants | toggle-heavy auto-control variants as the default phone composition | CD8 |
 | `tunet-sensor-card` | information | environment/status rows and glanceable metrics | concise labeled rows with controlled sensor counts | unlabeled or alias-ambiguous fixture contracts | CD8 |
 | `tunet-status-card` | information | status/summary matrix where explicitly needed | 2-column phone-safe density unless labels are substantially shortened | 4-column phone summary matrix at `390px` | CD11 / G3S lock |
-| `tunet-media-card` | media control | primary transport/media state surface | compact/default labels preserve room identity while selected-target volume stays obvious | pointer-first group badge semantics and slider accessibility gap | CD9 |
-| `tunet-sonos-card` | media control | alternate inline-speaker Sonos control surface | default/autodiscovered source + speaker path now width-safe; visible tiles align with suite speaker-tile semantics | explicit long-name authoring pressure on phone | CD9 |
-| `tunet-speaker-grid-card` | media control | dedicated speaker-management grid | compact 2-column speaker grid with suite speaker-tile semantics | 4-column standard/default on phone | CD9 |
+| `tunet-media-card` | media control | primary transport/media state surface | compact/default labels preserve room identity; selected-target volume, dropdown behavior, and art resilience accepted | explicit long-name authoring polish only | CD9 |
+| `tunet-sonos-card` | media control | alternate inline-speaker Sonos control surface | default/autodiscovered source + speaker path width-safe; visible tiles align with suite speaker-tile semantics | explicit long-name authoring polish only | CD9 |
+| `tunet-speaker-grid-card` | media control | dedicated speaker-management grid | compact 2-column phone baseline with card-level mobile fallback for larger/dense configs | desktop-facing dense authoring without phone overrides | CD9 |
 | `tunet-nav-card` | chrome | persistent navigation chrome | bottom dock | desktop rail as a layout reference while offset/sidebar strategy is unstable | CD10 |
 
 Locked decisions:
@@ -1348,7 +1348,7 @@ Sonos media player with album art, transport controls, volume slider, speaker dr
 ### Speaker Dropdown
 
 - Tap speaker row → selects the active target (changes display and volume target, doesn't affect grouping)
-- Tap check icon → calls `sonos_toggle_group_membership` (optimistic UI: check toggles immediately). This control still needs semantic hardening in CD9.
+- Tap check icon → calls `sonos_toggle_group_membership` (optimistic UI: check toggles immediately). This explicit menu action is the accepted grouped-membership control for the media dropdown path.
 - Group All / Ungroup All buttons at bottom (call `sonos_group_all_to_playing` / `sonos_ungroup_all` scripts)
 - Default compact labels now preserve room identity aggressively (`Living`, `Dining`, `Kitchen`, `Bed`, etc.), even when the authored label is long. Full names should live in metadata/title text, not the primary phone label lane.
 
@@ -1359,6 +1359,13 @@ Pointer capture via `setPointerCapture()`. Debounce 200ms before service call. C
 ### Progress Bar
 
 When `show_progress: true`: reads `media_position` + `media_duration` from coordinator. `setInterval` updates fill every 1 second during playback. Shows current/total time labels.
+
+### Album Art
+
+- Preferred image source order: `entity_picture_local` → `media_image_url` → `entity_picture`
+- Relative URLs normalize against the active HA origin
+- If HA returns a broken proxy/image URL, the failed URL is suppressed temporarily so the card does not keep hammering the same failing art endpoint on every refresh cycle
+- A new art URL is still allowed immediately, so normal track/art changes recover automatically
 
 ### "Nothing Playing" State
 
@@ -1378,14 +1385,15 @@ Static. Full section width. Should account for show_progress (adds height).
   - Header info tile tap opens more-info
   - Album art tap opens more-info
   - Speaker dropdown row tap selects the active target
-  - Group check tap toggles membership (still pointer-first and not yet a finished semantics contract)
+  - Group check tap toggles membership as an explicit menu action
   - Volume drag operates on slider control (not hold-gated tile drag)
-- **Target contract** (CD9): speaker-tile interactions converge with the suite speaker-tile model (tap select, hold-drag volume, icon more-info, badge group toggle).
+- **CD9 closeout note**: media remains a dropdown-first audio surface rather than a visible speaker-tile surface; sonos/speaker-grid own the visible speaker-tile contract.
 - **Group volume policy**: selected-target volume control during drag. Selecting the grouped coordinator routes proportional group volume; selecting any other speaker routes speaker-only volume.
 - **Volume view lifecycle requirement**:
   - entering volume view happens via the volume button
   - volume view exits immediately via `X` close button
   - after any volume adjustment, volume view auto-exits to regular track view after 5 seconds of inactivity
+  - active manual dragging pauses the inactivity timer; the 5-second timer re-arms on drag end
   - each new volume adjustment resets the 5-second timer
 
 ### Sections Safety
@@ -1425,9 +1433,8 @@ Best-in-class naming rule: compact speaker naming must not erase room identity.
 
 - `speakers[]` editor support is implemented (advanced object+fields+multiple); keep schema tests as regression guard
 - Album art opens more-info for transport target entity (verified in code at L885)
-- Volume slider needs `role="slider"` + arrow key handlers (deferred to CD9 — media bespoke)
 - Default compact naming now uses a shared room-preserving compaction rule; explicit speaker names no longer bypass it.
-- Remaining CD9 issues are semantics/accessibility, not a broad coherent-build visual failure
+- No active CD9 runtime defect remains; any future slider-keyboard enhancement or authoring polish should be treated as a new enhancement pass, not a tranche-close blocker.
 
 ---
 
@@ -1460,6 +1467,12 @@ Alternative Sonos player with inline speaker tiles (always visible, not hidden i
 - Source selection dropdown now uses the same full shell/action model as the media dropdown
 - No Group All/Ungroup All buttons — grouping done per-tile
 
+### Album Art
+
+- Uses the same image source preference order as the media card:
+  - `entity_picture_local` → `media_image_url` → `entity_picture`
+- Failed art URLs are suppressed temporarily so the card does not repeatedly retry a broken HA media proxy on every render/update
+
 ### Speaker Tiles
 
 Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue border, highlighted), `.selected` (green active-target ring), not grouped (muted). Interactions now follow the suite speaker-tile contract: body tap selects the active target, hold (400ms) then drag adjusts volume, icon tap/hold opens more-info, and the badge toggles group membership. Default/autodiscovered narrow-width runtime is now materially healthier with compact room-preserving labels and the media dropdown shell; explicit full-name authoring can still overpressure phone widths.
@@ -1478,17 +1491,18 @@ Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue 
   - Speaker icon tap/hold opens more-info
   - Group badge toggles membership
   - Dropdown option tap also selects the active target
-- **CD9 status**: visible speaker-tile semantics now align with the suite speaker-tile contract; remaining work is explicit long-name authoring pressure and any later accessibility follow-up.
+- **CD9 status**: closed. Visible speaker-tile semantics align with the suite speaker-tile contract, and the remaining explicit long-name pressure is authored-density guidance rather than a runtime blocker.
 - **Group volume policy**: selected-target volume drag. Selecting the grouped coordinator routes proportional group volume; selecting any other speaker routes speaker-only volume.
 - **Volume overlay lifecycle requirement**:
   - volume overlay exits immediately via `X` close button
   - after any volume adjustment, overlay auto-exits to regular view after 5 seconds of inactivity
+  - active manual dragging pauses the inactivity timer; the 5-second timer re-arms on drag end
   - each new volume adjustment resets the 5-second timer
 
 ### Sections Safety
 
-- Scrollable speaker-tile strip plus optional volume overlay means vertical size is mostly stable; the old default dropdown width failure is closed, and the remaining narrow-width pressure is authored long names plus any later strip-density tuning.
-- `rows: 'auto'` is appropriate; the remaining open narrow-width issue is authored long-name/header pressure and any later strip-density tuning at `390x844` / `768x1024`, not the old default dropdown shell.
+- Scrollable speaker-tile strip plus optional volume overlay means vertical size is mostly stable; the old default dropdown width failure is closed.
+- `rows: 'auto'` is appropriate; any remaining narrow-width pressure is authored long-name/header pressure or later enhancement work, not a current default-runtime blocker.
 - Requires breakpoint verification that strip controls remain tappable at `390x844` and `768x1024`.
 
 ### Editor Architecture
@@ -1511,7 +1525,7 @@ Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue 
 - ~~Hardcoded press scales (.90)~~ — resolved in CD2 (tokenized)
 - ~~`--spring` CSS variable undefined~~ — resolved in CD2 (replaced with `--ease-emphasized`)
 - Default/autodiscovered source dropdown width handling is now aligned to the media dropdown shell and visually healthy on rehab phone/tablet captures.
-- Remaining CD9 issues are explicit long-name authoring pressure on phone widths plus any later accessibility pass.
+- No active CD9 runtime defect remains; explicit long-name authoring pressure is guidance-level follow-up only.
 
 ---
 
@@ -1563,7 +1577,7 @@ Static. Should compute from `ceil(speakers.length / columns) + (show_group_actio
   - Icon tap/hold opens more-info
   - Group badge toggles group membership
   - Group All / Ungroup All remain explicit action buttons
-- **CD9 status**: visible speaker-tile semantics now align with the suite speaker-tile model; the remaining open runtime issue is dense/default layout pressure, not tile interaction semantics.
+- **CD9 status**: closed. Visible speaker-tile semantics align with the suite speaker-tile model, and the blocking mobile density issue is resolved by the card-level phone column fallback.
 - **Group volume policy**: once the suite speaker-tile model is aligned, volume follows the selected target; selecting the grouped coordinator routes proportional group volume.
 
 ### Phone Column Policy
@@ -1576,7 +1590,7 @@ Static. Should compute from `ceil(speakers.length / columns) + (show_group_actio
 ### Sections Safety
 
 - Variable-height risk comes from `show_group_actions` and speaker count density; `rows: 'auto'` is appropriate.
-- Compact `2`-column layouts remain the viable phone baseline; after the mobile fallback landing, any remaining dense/default failures should be judged against the post-fallback runtime rather than the old forced `3`/`4` column phone path.
+- Compact `2`-column layouts remain the viable phone baseline; the card-level fallback now prevents desktop-facing explicit column counts from forcing the same density on phone.
 - Static `max_rows: 12` may mask truncation risks in high-count speaker sets; verify with dense lab fixtures.
 
 ### Editor Architecture
@@ -1602,7 +1616,7 @@ Static. Should compute from `ceil(speakers.length / columns) + (show_group_actio
 - ~~Hover `translateY(-1px)`~~ — resolved in CD2 (removed, shadow-lift only)
 - ~~`--spring` CSS variable undefined~~ — resolved in CD2 (replaced with `--ease-emphasized`)
 - ~~Focus ring uses `var(--accent)` instead of `var(--focus-ring-color)`~~ — resolved in CD2
-- Treat any remaining dense/default speaker-grid defects as post-fallback density problems, not as a license to ignore the card-level phone column policy above
+- No active CD9 runtime defect remains; treat any future dense/default complaints as new composition/authoring issues unless a fresh runtime regression is proven.
 
 ---
 

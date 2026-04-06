@@ -137,6 +137,7 @@ function cleanup(el) {
 
 afterEach(() => {
   vi.useRealTimers();
+  window.__tunetFailedMediaArtUrls = new Map();
   document.body.innerHTML = '';
 });
 
@@ -212,17 +213,76 @@ describe('CD9 audio target contract', () => {
     expect(el.shadowRoot.getElementById('volOverlay').classList.contains('active')).toBe(false);
     cleanup(el);
   });
+
+  it('media volume view does not auto-revert while the slider is actively dragged', () => {
+    vi.useFakeTimers();
+    const el = createMediaCard();
+    const track = el.shadowRoot.getElementById('volTrack');
+    track.setPointerCapture = () => {};
+
+    el._setView('volume');
+    track.dispatchEvent(Object.assign(new Event('pointerdown', { bubbles: true }), {
+      pointerId: 1,
+      clientX: 10,
+    }));
+    vi.advanceTimersByTime(5000);
+    expect(el._view).toBe('volume');
+
+    track.dispatchEvent(new Event('pointerup', { bubbles: true }));
+    vi.advanceTimersByTime(5000);
+    expect(el._view).toBe('track');
+    cleanup(el);
+  });
+
+  it('sonos volume overlay does not auto-revert while the slider is actively dragged', () => {
+    vi.useFakeTimers();
+    const el = createSonosCard();
+    const track = el.shadowRoot.getElementById('volTrack');
+    track.setPointerCapture = () => {};
+
+    el._setVolumeOverlayActive(true);
+    track.dispatchEvent(Object.assign(new Event('pointerdown', { bubbles: true }), {
+      pointerId: 2,
+      clientX: 10,
+    }));
+    vi.advanceTimersByTime(5000);
+    expect(el.shadowRoot.getElementById('volOverlay').classList.contains('active')).toBe(true);
+
+    track.dispatchEvent(new Event('pointerup', { bubbles: true }));
+    vi.advanceTimersByTime(5000);
+    expect(el.shadowRoot.getElementById('volOverlay').classList.contains('active')).toBe(false);
+    cleanup(el);
+  });
 });
 
 describe('CD9 audio dropdown contract', () => {
   it('sonos adopts the same dropdown shell primitives as media', () => {
+    const mediaCss = readCardCSS('tunet_media_card.js');
     const css = readCardCSS('tunet_sonos_card.js');
+    expect(mediaCss).toMatch(/\.dd-menu\s*\{/);
+    expect(mediaCss).toMatch(/background:\s*rgba\(255,255,255,\s*1\)/);
+    expect(mediaCss).toMatch(/backdrop-filter:\s*none/);
     expect(css).toMatch(/\.speaker-wrap\s*\{/);
     expect(css).toMatch(/\.speaker-btn\s*\{/);
     expect(css).toMatch(/\.dd-menu\s*\{/);
+    expect(css).toMatch(/background:\s*rgba\(255,255,255,\s*1\)/);
+    expect(css).toMatch(/backdrop-filter:\s*none/);
     expect(css).toMatch(/\.dd-option\s*\{/);
     expect(css).toMatch(/\.grp-check\s*\{/);
     expect(css).toMatch(/\.dd-divider\s*\{/);
+  });
+
+  it('media dropdown opens and populates speaker rows', () => {
+    const el = createMediaCard();
+    const button = el.shadowRoot.getElementById('spkBtn');
+    const menu = el.shadowRoot.getElementById('spkMenu');
+
+    button.click();
+
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(menu.classList.contains('open')).toBe(true);
+    expect(menu.children.length).toBeGreaterThan(0);
+    cleanup(el);
   });
 
   it('sonos dropdown renders compact labels plus group controls and group actions', () => {
@@ -244,6 +304,97 @@ describe('CD9 audio dropdown contract', () => {
     el._updateAll();
     expect(el.shadowRoot.getElementById('sourceIcon').textContent).toBe('speaker_group');
     expect(el.shadowRoot.getElementById('sourceBtn').getAttribute('title')).toContain('Group volume');
+    cleanup(el);
+  });
+});
+
+describe('CD9 album art resilience', () => {
+  it('prefers entity_picture_local over proxy art when available', () => {
+    const media = createMediaCard({}, {
+      'media_player.living_room': {
+        entity_id: 'media_player.living_room',
+        state: 'playing',
+        attributes: {
+          friendly_name: 'Living Room TV Sonos Soundbar',
+          volume_level: 0.13,
+          is_volume_muted: false,
+          media_title: 'I Need You',
+          media_artist: 'Lynyrd Skynyrd',
+          entity_picture_local: '/api/image/serve/media-local',
+          media_image_url: '/api/image/serve/media-remote',
+          entity_picture: '/api/media_player_proxy/media_player.living_room?token=bad',
+        },
+      },
+    });
+    const sonos = createSonosCard({}, {
+      'media_player.living_room': {
+        entity_id: 'media_player.living_room',
+        state: 'playing',
+        attributes: {
+          friendly_name: 'Living Room TV Sonos Soundbar',
+          volume_level: 0.13,
+          is_volume_muted: false,
+          media_title: 'I Need You',
+          media_artist: 'Lynyrd Skynyrd',
+          entity_picture_local: '/api/image/serve/media-local',
+          media_image_url: '/api/image/serve/media-remote',
+          entity_picture: '/api/media_player_proxy/media_player.living_room?token=bad',
+        },
+      },
+    });
+
+    const mediaImg = media.shadowRoot.getElementById('albumArt').querySelector('img');
+    const sonosImg = sonos.shadowRoot.getElementById('albumArt').querySelector('img');
+    expect(mediaImg.src).toContain('/api/image/serve/media-local');
+    expect(sonosImg.src).toContain('/api/image/serve/media-local');
+
+    cleanup(media);
+    cleanup(sonos);
+  });
+
+  it('suppresses repeated retries for a failed album art URL until the URL changes', () => {
+    const el = createMediaCard({}, {
+      'media_player.living_room': {
+        entity_id: 'media_player.living_room',
+        state: 'playing',
+        attributes: {
+          friendly_name: 'Living Room TV Sonos Soundbar',
+          volume_level: 0.13,
+          is_volume_muted: false,
+          media_title: 'I Need You',
+          media_artist: 'Lynyrd Skynyrd',
+          entity_picture: '/api/media_player_proxy/media_player.living_room?token=bad-1',
+        },
+      },
+    });
+
+    const albumArt = el.shadowRoot.getElementById('albumArt');
+    const firstImg = albumArt.querySelector('img');
+    expect(firstImg).toBeTruthy();
+    firstImg.dispatchEvent(new Event('error'));
+    expect(albumArt.querySelector('img')).toBeNull();
+
+    el._updateAll();
+    expect(albumArt.querySelector('img')).toBeNull();
+
+    el.hass = makeAudioHass({
+      'media_player.living_room': {
+        entity_id: 'media_player.living_room',
+        state: 'playing',
+        attributes: {
+          friendly_name: 'Living Room TV Sonos Soundbar',
+          volume_level: 0.13,
+          is_volume_muted: false,
+          media_title: 'I Need You',
+          media_artist: 'Lynyrd Skynyrd',
+          entity_picture: '/api/media_player_proxy/media_player.living_room?token=bad-2',
+        },
+      },
+    });
+
+    const nextImg = albumArt.querySelector('img');
+    expect(nextImg).toBeTruthy();
+    expect(nextImg.src).toContain('token=bad-2');
     cleanup(el);
   });
 });
@@ -416,5 +567,11 @@ describe('CD9 visible speaker tile semantics', () => {
     expect(el.$.spkGrid.style.getPropertyValue('--cols')).toBe('4');
     expect(el.$.spkGrid.style.getPropertyValue('--cols-sm')).toBe('2');
     cleanup(el);
+  });
+
+  it('speaker-grid compact badge shifts into the corner and shrinks slightly', () => {
+    const css = readCardCSS('tunet_speaker_grid_card.js');
+    expect(css).toMatch(/:host\(\[tile-size="compact"\]\)\s+\.group-badge\s*\{[\s\S]*top:\s*4px;[\s\S]*right:\s*4px;[\s\S]*width:\s*20px;[\s\S]*height:\s*20px;/);
+    expect(css).toMatch(/:host\(\[tile-size="compact"\]\)\s+\.group-badge\s+\.icon\s*\{\s*font-size:\s*12px;/);
   });
 });

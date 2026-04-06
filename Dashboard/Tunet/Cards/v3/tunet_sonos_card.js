@@ -27,6 +27,7 @@ import {
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion, clamp,
   renderConfigPlaceholder, compactSpeakerName,
+  resolveMediaArtUrl, shouldAttemptMediaArtUrl, markMediaArtUrlFailed, clearMediaArtUrlFailure,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '1.0.0';
@@ -175,7 +176,7 @@ const SOURCE_DROPDOWN_STYLES = `
     position: absolute; top: calc(100% + 6px); right: 0;
     min-width: 210px; padding: 4px; border-radius: 12px;
     background: rgba(255,255,255, 1);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
     border: 1px solid var(--dd-border); box-shadow: var(--shadow-up);
     z-index: 2147483000; display: none; flex-direction: column; gap: 0;
   }
@@ -1137,7 +1138,7 @@ class TunetSonosCard extends HTMLElement {
           entity_id: volumeTarget,
           volume_level: pct / 100,
         });
-        this._resetVolumeAutoExit();
+        if (!this._volDragging) this._resetVolumeAutoExit();
         this._serviceCooldown = true;
         clearTimeout(this._cooldownTimer);
         this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
@@ -1147,6 +1148,7 @@ class TunetSonosCard extends HTMLElement {
     track.addEventListener('pointerdown', (e) => {
       dragging = true;
       this._volDragging = true;
+      this._clearVolumeAutoExit();
       track.setPointerCapture(e.pointerId);
       setVol(e);
     });
@@ -1154,10 +1156,12 @@ class TunetSonosCard extends HTMLElement {
     track.addEventListener('pointerup', () => {
       dragging = false;
       this._volDragging = false;
+      this._resetVolumeAutoExit();
     });
     track.addEventListener('pointercancel', () => {
       dragging = false;
       this._volDragging = false;
+      this._resetVolumeAutoExit();
     });
   }
 
@@ -1579,17 +1583,20 @@ class TunetSonosCard extends HTMLElement {
     $.trackArtist.textContent = a.media_artist || (isActive ? '' : 'Tap a speaker to start');
 
     // Album art
-    const artUrl = a.entity_picture;
+    const artUrl = resolveMediaArtUrl(a);
     const existingImg = $.albumArt.querySelector('img');
-    if (artUrl) {
-      const normalizedUrl = artUrl.startsWith('/') ? `${location.origin}${artUrl}` : artUrl;
+    if (artUrl && shouldAttemptMediaArtUrl(artUrl)) {
       if (existingImg) {
-        if (existingImg.src !== normalizedUrl) existingImg.src = normalizedUrl;
+        if (existingImg.src !== artUrl) existingImg.src = artUrl;
       } else {
         const img = document.createElement('img');
-        img.src = normalizedUrl;
+        img.src = artUrl;
         img.alt = '';
-        img.onerror = () => img.remove();
+        img.onload = () => clearMediaArtUrlFailure(artUrl);
+        img.onerror = () => {
+          markMediaArtUrlFailed(artUrl);
+          img.remove();
+        };
         $.albumArt.appendChild(img);
       }
     } else if (existingImg) {

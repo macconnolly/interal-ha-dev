@@ -15,6 +15,7 @@ import {
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
   renderConfigPlaceholder, bindButtonActivation, compactSpeakerName,
+  resolveMediaArtUrl, shouldAttemptMediaArtUrl, markMediaArtUrlFailed, clearMediaArtUrlFailure,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.2.2';
@@ -138,7 +139,7 @@ const CARD_STYLES = `
     position: absolute; top: calc(100% + 6px); right: 0;
     min-width: 210px; padding: 4px; border-radius: 12px;
     background: rgba(255,255,255, 1);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
     border: 1px solid var(--dd-border); box-shadow: var(--shadow-up);
     z-index: 2147483000; display: none; flex-direction: column; gap: 0;
   }
@@ -1003,7 +1004,7 @@ class TunetMediaCard extends HTMLElement {
           entity_id: volumeTarget,
           volume_level: pct / 100,
         });
-        this._resetVolumeAutoExit();
+        if (!this._volDragging) this._resetVolumeAutoExit();
         this._serviceCooldown = true;
         clearTimeout(this._cooldownTimer);
         this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
@@ -1013,6 +1014,7 @@ class TunetMediaCard extends HTMLElement {
     track.addEventListener('pointerdown', (e) => {
       dragging = true;
       this._volDragging = true;
+      this._clearVolumeAutoExit();
       track.classList.add('dragging');
       track.setPointerCapture(e.pointerId);
       setVol(e);
@@ -1024,11 +1026,13 @@ class TunetMediaCard extends HTMLElement {
       dragging = false;
       this._volDragging = false;
       track.classList.remove('dragging');
+      this._resetVolumeAutoExit();
     });
     track.addEventListener('pointercancel', () => {
       dragging = false;
       this._volDragging = false;
       track.classList.remove('dragging');
+      this._resetVolumeAutoExit();
     });
   }
 
@@ -1079,6 +1083,7 @@ class TunetMediaCard extends HTMLElement {
     $.spkMenu.innerHTML = '';
 
     const speakers = this._cachedSpeakers || [];
+    const groupedCount = this._getGroupedCount();
 
     for (const spk of speakers) {
       const entity = this._hass.states[spk.entity];
@@ -1258,17 +1263,20 @@ class TunetMediaCard extends HTMLElement {
     $.trackArtist.textContent = artist;
 
     // Album art
-    const artUrl = a.entity_picture;
+    const artUrl = resolveMediaArtUrl(a);
     const existingImg = $.albumArt.querySelector('img');
-    if (artUrl) {
-      const normalizedUrl = artUrl.startsWith('/') ? `${location.origin}${artUrl}` : artUrl;
+    if (artUrl && shouldAttemptMediaArtUrl(artUrl)) {
       if (existingImg) {
-        if (existingImg.src !== normalizedUrl) existingImg.src = normalizedUrl;
+        if (existingImg.src !== artUrl) existingImg.src = artUrl;
       } else {
         const img = document.createElement('img');
-        img.src = normalizedUrl;
+        img.src = artUrl;
         img.alt = '';
-        img.onerror = () => img.remove();
+        img.onload = () => clearMediaArtUrlFailure(artUrl);
+        img.onerror = () => {
+          markMediaArtUrlFailed(artUrl);
+          img.remove();
+        };
         $.albumArt.appendChild(img);
       }
     } else if (existingImg) {

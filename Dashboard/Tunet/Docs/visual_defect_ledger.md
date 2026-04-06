@@ -27,9 +27,9 @@ When the normalized section and the appendix differ, the normalized section wins
 | `tunet-weather-card` | information companion | card-level runtime healthy; phone-density redesign closed on YAML rehab evidence | CD8 |
 | `tunet-sensor-card` | information rows | visually healthy; raw-ID defect closed; contract clarity remains | CD8 |
 | `tunet-status-card` | locked summary/info surface | real phone density + dropdown-quality defects remain | CD11 |
-| `tunet-media-card` | primary media transport surface | visually healthy; selected-target routing adopted; semantics/accessibility remain | CD9 |
-| `tunet-sonos-card` | inline-speaker Sonos surface | default width/dropdown path corrected; visible speaker-tile semantics aligned; explicit-name pressure remains | CD9 |
-| `tunet-speaker-grid-card` | dedicated speaker-management grid | visible speaker-tile semantics aligned; dense/default layouts still fail while compact 2-col remains viable | CD9 |
+| `tunet-media-card` | primary media transport surface | runtime healthy; selected-target routing, dropdown parity, and album-art resilience accepted | CD9 |
+| `tunet-sonos-card` | inline-speaker Sonos surface | runtime healthy; dropdown parity, visible speaker-tile semantics, and album-art resilience accepted | CD9 |
+| `tunet-speaker-grid-card` | dedicated speaker-management grid | runtime healthy; visible speaker-tile semantics aligned and phone fallback landed | CD9 |
 | `tunet-nav-card` | chrome | desktop/sidebar offset conflict remains | CD10 |
 
 ### Tranche-Owned Open Backlog
@@ -40,17 +40,13 @@ When the normalized section and the appendix differ, the normalized section wins
 - `CD6`
   - `tunet-light-tile`: keep atomic-detail role explicit; no active runtime defect
   - `tunet-lighting-card`: family parity is closed; only a low-priority scroll transport/centering quirk remains outside the closed parity gate
-- `CD9`
-  - `tunet-media-card`: pointer-first group-membership semantics + slider accessibility; selected-target routing and compact naming are now aligned
-  - `tunet-sonos-card`: explicit long-name phone pressure; media-style dropdown convergence and visible speaker-tile semantics are now landed
-  - `tunet-speaker-grid-card`: dense/default layout failure, not the whole family
 - `CD10`
   - `tunet-nav-card`: desktop rail/sidebar coexistence and offset leakage
 - `CD11`
   - `tunet-status-card`: 4-col phone density and dropdown/runtime quality under lock
 
 **Global**
-- Highest-confidence active card defects remain: status small-screen density/dropdown behavior, nav desktop/sidebar conflict, and speaker-grid dense/default layout failure.
+- Highest-confidence active card defects remain: status small-screen density/dropdown behavior and nav desktop/sidebar conflict.
 - Variant-specific problems remain real for actions and speaker-grid, but they are not uniform card-family failures. `CD8` is now card-level healthy after the 2026-04-06 weather closeout.
 - Some earlier complaints were really composition/surface issues, not card defects: light-tile orphaning, climate paired-phone crowding, and undecided room-page/storage layout belong in surface composition decisions.
 - Stale or narrowed items are now treated accordingly: sensor raw entity IDs, broad media visual-failure framing, broad mobile-nav instability framing, and broad “speaker-grid is not phone-safe at all” framing.
@@ -153,25 +149,22 @@ When the normalized section and the appendix differ, the normalized section wins
 - `Closed / stale`: the earlier broad visual-failure framing is superseded by the coherent-build correction; the card itself renders acceptably at `390px` in the current build.
 - `Closed [CD9 subpass]`: default compact naming now preserves room identity via the shared `compactSpeakerName()` strategy.
 - `Closed [CD9 subpass]`: volume routing now follows the selected target; grouped coordinator selection becomes the proportional group-volume target instead of forcing selected-speaker-only behavior.
-- `Open runtime defect [CD9]`: the group-membership control remains pointer-first and is not a completed semantics contract.
-- `Implementation backlog [CD9]`: remaining work is semantics/accessibility: pointer-first group badge behavior and slider keyboard semantics.
+- `Closed [CD9 closeout]`: dropdown-first group-membership actions are the accepted interaction model for the media dropdown path and are no longer tracked as an open runtime blocker.
+- `Closed [CD9 closeout]`: album-art handling now prefers better HA image attributes and suppresses repeated retries of the same failed proxy URL.
+- `Non-blocking note`: a remaining single `media_player_proxy` `500` is backend-side first-failure behavior, not a Tunet-owned runtime defect.
 
 **11. `tunet-sonos-card`**
 - `Closed [CD9 subpass]`: the default/autodiscovered source selector now uses the healthier media-card dropdown shell and no longer presents the old broad phone/tablet width failure in rehab captures.
 - `Closed [CD9 subpass]`: selected-target volume routing now matches the adopted suite rule; grouped coordinator selection becomes the proportional group-volume target.
 - `Closed [CD9 subpass]`: visible speaker tiles now follow the suite speaker-tile semantics: body tap selects active target, hold (400ms) then drag adjusts selected-target volume, icon tap/hold opens more-info, and badge toggles group membership.
-- `Composition / authoring pressure`: explicit full-name source labels can still overgrow the phone header; treat that as an authored-density issue, not the default runtime path.
-- `Validation note [CD9]`: visible speaker-tile semantics landed with build `?v=build_20260406_035732Z`; screenshot manifest `/tmp/tunet-playwright-review/2026-04-06T03-57-42-318Z/review-manifest.json`.
-- `Implementation backlog [CD9]`: decide whether explicit full-name variants need stronger phone truncation guidance or runtime compaction.
+- `Closed [CD9 closeout]`: album-art handling now prefers better HA image attributes and suppresses repeated retries of the same failed proxy URL.
+- `Authoring guidance`: explicit full-name source labels can still overgrow the phone header; treat that as authored-density pressure, not the default runtime path.
+- `Validation note [CD9 closeout]`: accepted closeout build `?v=build_20260406_151051Z`; semantics landing evidence remains in `/tmp/tunet-playwright-review/2026-04-06T03-57-42-318Z/review-manifest.json`.
 
 **12. `tunet-speaker-grid-card`**
 - `Closed [CD9 subpass]`: visible speaker tiles now align with the suite speaker-tile contract; the card no longer uses tap-toggle-group / hold-more-info semantics, and icon tap/hold both route to more-info.
-- `Open runtime defect [CD9]`: dense/default configurations remain open defects; `4` columns at `390px` is not phone-safe.
-- `Composition constraint`: compact `2`-column speaker-grid can be phone-safe; do not describe the whole family as uniformly broken on phone.
-- `Doc contradiction`: earlier broad “not phone-safe” language is too absolute against the coherent-build correction later in this file.
-- `Validation note [CD9]`: build `?v=build_20260406_041426Z` adds a card-level phone column fallback (`large -> 1`, non-large -> max `2`) even when `use_profiles: true`; judge remaining density issues against the post-fallback runtime rather than the old forced `3`/`4` column phone path.
-- `Validation note [CD9]`: semantics landing and dense/default evidence are both captured in `/tmp/tunet-playwright-review/2026-04-06T03-57-42-318Z/review-manifest.json`.
-- `Implementation backlog [CD9]`: keep the defect scoped to dense/default layouts rather than the entire card family.
+- `Closed [CD9 closeout]`: the card-level phone column fallback (`large -> 1`, non-large -> max `2`) resolved the blocking mobile density failure; explicit desktop-facing multi-column configs no longer force the same pressure on phone.
+- `Composition / authoring guidance`: compact `2`-column remains the clean default phone baseline; treat any future dense/default complaints as composition/authoring choices unless a new runtime regression is proven.
 
 **13. `tunet-nav-card`**
 - `Open runtime defect [CD10]`: the real open issue is desktop rail/sidebar conflict plus global-offset layout mutation.
@@ -317,9 +310,7 @@ Evidence: audit-my-390-top.png through audit-my-390-s12.png, audit-my-768-top.pn
 ### Remaining Highest-Confidence Open Issues (confirmed on coherent build, mapped to owning tranche)
 
 1. **Status 4-col Summary Matrix at 390px** — unreadable truncation `[CD11]`
-2. **Speaker grid 4-col standard at 390px** — unusable as a dense/default configuration `[CD9]`
-3. **Sonos/speaker-grid visible tile semantics still diverge from the suite speaker-tile contract** `[CD9]`
-4. **Nav sidebar mode conflicts with HA sidebar at desktop** — double-sidebar `[CD10]`
+2. **Nav sidebar mode conflicts with HA sidebar at desktop** — double-sidebar `[CD10]`
 
 ---
 

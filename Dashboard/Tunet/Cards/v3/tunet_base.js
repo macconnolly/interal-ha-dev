@@ -1628,6 +1628,88 @@ export function compactSpeakerName(label) {
   return parts.length ? parts[0] : cleaned;
 }
 
+const MEDIA_ART_FAILURE_TTL_MS = 60_000;
+
+function getFailedMediaArtMap() {
+  if (typeof window === 'undefined') return null;
+  if (!(window.__tunetFailedMediaArtUrls instanceof Map)) {
+    window.__tunetFailedMediaArtUrls = new Map();
+  }
+  return window.__tunetFailedMediaArtUrls;
+}
+
+/**
+ * Resolve the best available media-art URL from Home Assistant attributes.
+ * Preference order:
+ *  1. entity_picture_local
+ *  2. media_image_url
+ *  3. entity_picture
+ * Relative URLs are normalized against the current location origin.
+ *
+ * @param {Record<string, any>} attrs
+ * @returns {string}
+ */
+export function resolveMediaArtUrl(attrs = {}) {
+  const raw = [
+    attrs.entity_picture_local,
+    attrs.media_image_url,
+    attrs.entity_picture,
+  ].find((value) => typeof value === 'string' && value.trim());
+
+  if (!raw) return '';
+  const normalized = raw.trim();
+  if (/^(?:https?:)?\/\//i.test(normalized) || /^(?:data|blob):/i.test(normalized)) {
+    return normalized;
+  }
+  if (normalized.startsWith('/') && typeof location !== 'undefined' && location.origin) {
+    return `${location.origin}${normalized}`;
+  }
+  return normalized;
+}
+
+/**
+ * Avoid repeatedly retrying a media-art URL that is already known-bad.
+ * Failed URLs expire after a short TTL so transient backend issues can recover.
+ *
+ * @param {string} url
+ * @returns {boolean}
+ */
+export function shouldAttemptMediaArtUrl(url) {
+  const normalized = String(url || '').trim();
+  if (!normalized) return false;
+  const failures = getFailedMediaArtMap();
+  if (!(failures instanceof Map)) return true;
+  const failedAt = failures.get(normalized);
+  if (!failedAt) return true;
+  if (Date.now() - failedAt > MEDIA_ART_FAILURE_TTL_MS) {
+    failures.delete(normalized);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Mark a media-art URL as failed so cards stop hammering a broken proxy.
+ *
+ * @param {string} url
+ */
+export function markMediaArtUrlFailed(url) {
+  const normalized = String(url || '').trim();
+  if (!normalized) return;
+  getFailedMediaArtMap()?.set(normalized, Date.now());
+}
+
+/**
+ * Clear a previous media-art failure marker after a successful load.
+ *
+ * @param {string} url
+ */
+export function clearMediaArtUrlFailure(url) {
+  const normalized = String(url || '').trim();
+  if (!normalized) return;
+  getFailedMediaArtMap()?.delete(normalized);
+}
+
 /**
  * Navigate using HA's navigation event, with history fallback.
  * @param {string} path

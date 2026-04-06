@@ -361,6 +361,20 @@ const CARD_STYLES = `
     outline: var(--focus-ring-width) solid var(--focus-ring-color);
     outline-offset: var(--focus-ring-offset);
   }
+  :host([tile-size="compact"]) .group-badge {
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+  }
+  :host([tile-size="compact"]) .group-badge .icon { font-size: 12px; }
+  :host(:not([use-profiles])[tile-size="compact"]) .group-badge {
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+  }
+  :host(:not([use-profiles])[tile-size="compact"]) .group-badge .icon { font-size: 12px; }
 
   /* ── Floating Volume Pill (during drag) ──────── */
   .vol-pill {

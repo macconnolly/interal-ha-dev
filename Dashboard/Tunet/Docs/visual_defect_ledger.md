@@ -159,13 +159,13 @@ When the normalized section and the appendix differ, the normalized section wins
 **11. `tunet-sonos-card`**
 - `Closed [CD9 subpass]`: the default/autodiscovered source selector now uses the healthier media-card dropdown shell and no longer presents the old broad phone/tablet width failure in rehab captures.
 - `Closed [CD9 subpass]`: selected-target volume routing now matches the adopted suite rule; grouped coordinator selection becomes the proportional group-volume target.
-- `Closed [CD9 subpass]`: visible speaker tiles now follow the suite speaker-tile semantics: body tap selects active target, hold (400ms) then drag adjusts selected-target volume, icon tap opens more-info, and badge toggles group membership.
+- `Closed [CD9 subpass]`: visible speaker tiles now follow the suite speaker-tile semantics: body tap selects active target, hold (400ms) then drag adjusts selected-target volume, icon tap/hold opens more-info, and badge toggles group membership.
 - `Composition / authoring pressure`: explicit full-name source labels can still overgrow the phone header; treat that as an authored-density issue, not the default runtime path.
 - `Validation note [CD9]`: visible speaker-tile semantics landed with build `?v=build_20260406_035732Z`; screenshot manifest `/tmp/tunet-playwright-review/2026-04-06T03-57-42-318Z/review-manifest.json`.
 - `Implementation backlog [CD9]`: decide whether explicit full-name variants need stronger phone truncation guidance or runtime compaction.
 
 **12. `tunet-speaker-grid-card`**
-- `Closed [CD9 subpass]`: visible speaker tiles now align with the suite speaker-tile contract; the card no longer uses tap-toggle-group / hold-more-info semantics.
+- `Closed [CD9 subpass]`: visible speaker tiles now align with the suite speaker-tile contract; the card no longer uses tap-toggle-group / hold-more-info semantics, and icon tap/hold both route to more-info.
 - `Open runtime defect [CD9]`: dense/default configurations remain open defects; `4` columns at `390px` is not phone-safe.
 - `Composition constraint`: compact `2`-column speaker-grid can be phone-safe; do not describe the whole family as uniformly broken on phone.
 - `Doc contradiction`: earlier broad “not phone-safe” language is too absolute against the coherent-build correction later in this file.

@@ -8,7 +8,7 @@
  * Interactions:
  *   Tap        = select active speaker
  *   Hold/drag  = volume control
- *   Icon tap   = open more-info dialog
+ *   Icon tap/hold = open more-info dialog
  *   Badge tap  = toggle group membership
  *
  * Version 3.1.3
@@ -1044,11 +1044,40 @@ class TunetSpeakerGridCard extends HTMLElement {
       icon.className = 'icon icon-20';
       icon.textContent = spk.icon || 'speaker';
       iconWrap.appendChild(icon);
+      let iconHoldTimer = null;
+      let iconHoldFired = false;
+      const clearIconHold = (resetFired = false) => {
+        clearTimeout(iconHoldTimer);
+        iconHoldTimer = null;
+        if (resetFired) iconHoldFired = false;
+      };
       iconWrap.addEventListener('pointerdown', (event) => {
         event.stopPropagation();
+        if (event.button !== undefined && event.button !== 0) return;
+        clearIconHold(true);
+        iconHoldTimer = setTimeout(() => {
+          iconHoldFired = true;
+          this._openSpeakerMoreInfo(spk.entity);
+        }, LONG_PRESS_MS);
+      });
+      iconWrap.addEventListener('pointerup', (event) => {
+        event.stopPropagation();
+        clearIconHold(false);
+      });
+      iconWrap.addEventListener('pointerleave', (event) => {
+        event.stopPropagation();
+        clearIconHold(true);
+      });
+      iconWrap.addEventListener('pointercancel', (event) => {
+        event.stopPropagation();
+        clearIconHold(true);
       });
       iconWrap.addEventListener('click', (event) => {
         event.stopPropagation();
+        if (iconHoldFired) {
+          iconHoldFired = false;
+          return;
+        }
         this._openSpeakerMoreInfo(spk.entity);
       });
       tile.appendChild(iconWrap);

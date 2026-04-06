@@ -170,8 +170,8 @@
 |-------|-------|
 | **Status** | CONTRACTED for CD9 |
 | **Locked By** | cards_reference.md §Speaker Tile Unification Target (Apr 3, 2026) |
-| **Decision** | Across media_card, sonos_card, and speaker_grid_card: (1) tile body tap selects active speaker, (2) hold (400ms) then drag adjusts volume, (3) icon tap opens more-info, (4) group badge tap toggles group membership. |
-| **Current State** | media_card aligns on selected-target routing but still uses dropdown-first selection and pointer-first group badge semantics. sonos_card and speaker_grid_card now align on the visible speaker-tile contract: body tap selects active target, hold (400ms) then drag adjusts selected-target volume, icon tap opens more-info, and badge toggles group membership. |
+| **Decision** | Across media_card, sonos_card, and speaker_grid_card: (1) tile body tap selects active speaker, (2) hold (400ms) then drag adjusts volume, (3) icon tap/hold opens more-info, (4) group badge tap toggles group membership. |
+| **Current State** | media_card aligns on selected-target routing but still uses dropdown-first selection and pointer-first group badge semantics. sonos_card and speaker_grid_card now align on the visible speaker-tile contract: body tap selects active target, hold (400ms) then drag adjusts selected-target volume, icon tap/hold opens more-info, and badge toggles group membership. |
 | **Revisit Trigger** | If the unified model creates confusion between "select active" and "toggle group" — these are different actions on the same tile and must be visually distinct. |
 
 ---

@@ -1,0 +1,184 @@
+  # Notification Hub Redesign
+
+  ## Summary
+
+  Recommend a full notification-hub redesign built around a Local To-do queue plus a shared notification transport layer:
+
+  - Canonical queue backend: todo.notification_inbox from the built-in Local To-do integration.
+  - Canonical response event: a new custom event, notification_hub_action.
+  - Canonical scripts/services: script.notification_hub_send, script.notification_hub_dispatch_action, script.notification_hub_clear, and a rebuilt
+    script.notification_hub_confirmable.
+  - Dashboard surface: a new Tunet card, tunet-notification-inbox-card, that reads the todo queue over websocket and renders buttons dynamically.
+  - Business logic stays in OAL/Sonos. The hub owns queueing, delivery, normalization, and clearing. OAL/Sonos keep the actual “what happens when user
+    taps X” logic.
+
+  This is the best tradeoff for a redesign because it gives you a real queue, survives frontend reloads and normal HA storage, supports live
+  subscriptions, and does not force the card to infer state from entities.
+
+  ## Backend Decision
+
+  - A. persistent_notification
+      - Load: persistent_notification/get
+      - Live: persistent_notification/subscribe
+      - Reject for canonical queue: current core still supports websocket access, but persistent notifications are no longer state-machine entities and
+        are stored in memory, so restart durability is poor without extra HACS glue.
+  - B. todo / Local To-do
+      - Load: todo/item/list
+      - Live: todo/item/subscribe
+      - Recommend: entity-backed, websocket-native, disk-backed in local_todo, supports description/due fields, and is a better fit for a live inbox.
+  - C. Trigger template sensor
+      - Reject: awkward append/update/remove semantics, poor restart behavior for complex attributes, brittle for concurrent flows.
+  - D. input_text JSON slots
+      - Reject: helper-size limits and manual slot management make it the wrong primitive.
+  - E. File-based JSON
+      - Reject: polling/fetch model, no native realtime stream, awkward auth/resource lifecycle.
+  - F. Existing HACS/community
+      - No exact fit found. Closest prior art is read-only or transport-only:
+      - lovelace-home-feed-card is a feed for persistent notifications, not a dynamic actionable inbox.
+      - lovelace-notify-card sends notifications from Lovelace, not queue/replay them.
+      - restore-persistent-notifications patches reboot persistence for persistent notifications, but does not solve action replay or queue semantics.
+
+  ## Public Interfaces
+
+  - Todo entity
+      - todo.notification_inbox
+  - Canonical event
+      - notification_hub_action
+      - Data: id, action, tag, source, payload
+  - Queue payload schema stored as JSON in todo item description
+      - id: stable queue key
+      - tag: mobile notification tag
+      - family: oal or sonos
+      - title, message
+      - created_at, optional expires_at
+      - actions: array of { action, title, destructive?, icon? }
+      - payload: compact context object for handlers
+  - Hub scripts
+      - script.notification_hub_send
+      - script.notification_hub_dispatch_action
+      - script.notification_hub_clear
+      - script.notification_hub_confirmable
+  - Tunet card
+      - custom:tunet-notification-inbox-card
+      - Config: entity defaulting to todo.notification_inbox, optional title, empty_text, max_items
+
+  ## Implementation Changes
+
+  - Notification hub package
+      - Add a new shared package that owns queue upsert, mobile delivery, canonical action dispatch, and clearing.
+      - notification_hub_send must upsert by id: read current todo items, parse each JSON description, update matching item or add a new one.
+      - notification_hub_clear must remove the todo item and send clear_notification with the same mobile tag.
+      - notification_hub_dispatch_action must emit notification_hub_action; the card should call this script, not try to fire HA events directly.
+      - notification_hub_confirmable replaces the current Sonos confirmable_notification script so dynamic one-off actions wait on
+        notification_hub_action, not only mobile_app_notification_action.
+  - OAL and Sonos package refactor
+      - Replace direct notify.mobile_app_* sends for actionable flows with script.notification_hub_send.
+      - Replace direct clear paths with script.notification_hub_clear.
+      - Refactor existing action handlers to listen to notification_hub_action as the canonical input.
+      - Add one bridge automation from mobile_app_notification_action to notification_hub_action so phone actions and dashboard actions converge
+        immediately.
+      - Keep existing action IDs where possible (OAL_EXTEND_MODE, OAL_TV_ENTER, etc.) to reduce migration risk.
+  - Auto-clear policy
+      - Backend-owned only. The card should not poll entities to decide staleness.
+      - Every sender/timeout/resolve path must call notification_hub_clear(id).
+      - Add a startup reconcile automation that clears stale queue items and lets family-specific startup logic republish any still-valid prompts.
+  - Tunet card
+      - Initial load with hass.callWS({ type: "todo/item/list", entity_id })
+      - Realtime updates with hass.connection.subscribeMessage(..., { type: "todo/item/subscribe", entity_id })
+      - Render title/message/age/optional expiry plus dynamic buttons from stored actions
+      - Button tap calls script.notification_hub_dispatch_action
+      - Optional row tap can open a Browser Mod popup for long context, but Browser Mod is not required for the core action path
+
+  ## Sync Rules
+
+  - Phone action
+      - mobile_app_notification_action -> bridge automation -> notification_hub_action -> OAL/Sonos handler -> notification_hub_clear
+  - Dashboard action
+      - card -> notification_hub_dispatch_action -> notification_hub_action -> same OAL/Sonos handler -> notification_hub_clear
+  - Phone swipe-away
+      - Treat as non-canonical on iPhone. iOS does not send a cleared event, so accidental dismiss must leave the dashboard item intact.
+      - If Android is used later, do not auto-clear the queue on mobile_app_notification_cleared; at most record it as metadata.
+
+  ## Example Flow
+
+  script:
+    notification_hub_send:
+      sequence:
+        - action: todo.get_items
+          target: { entity_id: todo.notification_inbox }
+          response_variable: inbox
+        - variables:
+            queue_json: >
+              {{ {
+                "id": "oal.override_reminder",
+                "tag": "oal_override_reminder",
+                "family": "oal",
+                "title": "Lights Still Manual",
+                "message": "3 zones overridden.",
+                "actions": [
+                  {"action": "OAL_RESET_ADAPTIVE", "title": "Reset to Adaptive"},
+                  {"action": "OAL_KEEP_MANUAL", "title": "Keep Manual"}
+                ],
+                "payload": {"zone_count": 3},
+                "created_at": now().isoformat()
+              } | tojson }}
+        - action: todo.add_item
+          target: { entity_id: todo.notification_inbox }
+          data:
+            item: "Lights Still Manual"
+            description: "{{ queue_json }}"
+        - action: notify.mobile_app_mac_s_iphone
+          data:
+            title: "Lights Still Manual"
+            message: "3 zones overridden."
+            data:
+              tag: "oal_override_reminder"
+              actions:
+                - action: "OAL_RESET_ADAPTIVE"
+                  title: "Reset to Adaptive"
+                - action: "OAL_KEEP_MANUAL"
+                  title: "Keep Manual"
+
+  automation:
+    - alias: OAL Override Reminder Handler
+      triggers:
+        - trigger: event
+          event_type: notification_hub_action
+          event_data: { action: "OAL_RESET_ADAPTIVE" }
+      actions:
+        - action: script.oal_reset_global
+        - action: script.notification_hub_clear
+          data:
+
+
+  - OAL override reminder appears in both phone notification tray and Tunet inbox.
+  - Tapping a dashboard action performs the same business logic as tapping the phone action.
+  - Phone action clears the dashboard item immediately.
+  - Dashboard action sends clear_notification and removes the phone notification.
+  - iPhone swipe-away does not remove the dashboard item.
+  - Condition resolution paths clear the queue without user action.
+  - Dynamic Sonos confirmable flows still support concurrent prompts with unique action IDs.
+  - After HA restart, startup reconcile removes stale items and republishes only still-valid prompts.
+
+  ## Assumptions And Defaults
+
+  - Your actual HA instance on April 5, 2026 reports Core 2026.4.0, not 2026.3.
+  - Adding the built-in Local To-do integration is acceptable.
+  - Single-user / primary-phone behavior is the main target.
+  - Queue items are live pending work only, not history; resolved items are removed, not completed.
+  - The redesign standardizes future actionable notifications around the hub instead of adding more direct notify.mobile_app_* + package-local wait logic.
+
+  ## Sources
+
+  - Persistent Notification integration docs (https://www.home-assistant.io/integrations/persistent_notification/)
+  - Local To-do integration docs (https://www.home-assistant.io/integrations/local_todo)
+  - Home Assistant core: persistent_notification websocket support
+    (https://github.com/home-assistant/core/blob/dev/homeassistant/components/persistent_notification/__init__.py)
+  - Home Assistant core: todo websocket/item model (https://github.com/home-assistant/core/blob/dev/homeassistant/components/todo/__init__.py)
+  - Home Assistant frontend: todo/item/list and todo/item/subscribe (https://github.com/home-assistant/frontend/blob/dev/src/data/todo.ts)
+  - Home Assistant frontend: persistent_notification/subscribe (https://github.com/home-assistant/frontend/blob/dev/src/data/persistent_notification.ts)
+  - Companion docs: actionable notifications (https://companion.home-assistant.io/docs/notifications/actionable-notifications/)
+  - Companion docs: tag replacement and clear_notification (https://companion.home-assistant.io/docs/notifications/notifications-basic/)
+  - Companion docs: mobile_app_notification_cleared is Android-only (https://companion.home-assistant.io/docs/notifications/notification-cleared/)
+  - Community prior art: mobile + dashboard notifications via one script
+    (https://community.home-assistant.io/t/updated-notify-all-mobile-devices-and-ha-dashboard-with-one-script/676340)

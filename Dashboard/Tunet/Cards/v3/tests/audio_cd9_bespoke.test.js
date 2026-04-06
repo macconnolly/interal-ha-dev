@@ -268,7 +268,7 @@ describe('CD9 visible speaker tile semantics', () => {
     cleanup(el);
   });
 
-  it('sonos group badge toggles membership and icon opens more-info', () => {
+  it('sonos group badge toggles membership and icon click opens more-info', () => {
     const el = createSonosCard();
     const refs = el._tileRefs.get('media_player.dining_room');
     const infoSpy = vi.fn();
@@ -282,6 +282,23 @@ describe('CD9 visible speaker tile semantics', () => {
     });
     expect(infoSpy).toHaveBeenCalled();
     expect(infoSpy.mock.calls.at(-1)[0].detail.entityId).toBe('media_player.dining_room');
+    cleanup(el);
+  });
+
+  it('sonos icon hold opens more-info once without a duplicate click open', () => {
+    vi.useFakeTimers();
+    const el = createSonosCard();
+    const refs = el._tileRefs.get('media_player.dining_room');
+    const infoSpy = vi.fn();
+    el.addEventListener('hass-more-info', infoSpy);
+
+    refs.iconWrap.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    vi.advanceTimersByTime(400);
+    refs.iconWrap.dispatchEvent(new Event('pointerup', { bubbles: true }));
+    refs.iconWrap.click();
+
+    expect(infoSpy).toHaveBeenCalledTimes(1);
+    expect(infoSpy.mock.calls[0][0].detail.entityId).toBe('media_player.dining_room');
     cleanup(el);
   });
 
@@ -323,7 +340,7 @@ describe('CD9 visible speaker tile semantics', () => {
     cleanup(el);
   });
 
-  it('speaker-grid badge toggles membership and icon opens more-info', () => {
+  it('speaker-grid badge toggles membership and icon click opens more-info', () => {
     const el = createSpeakerGridCard();
     const refs = el._tileRefs.get('media_player.dining_room');
     const infoSpy = vi.fn();
@@ -337,6 +354,23 @@ describe('CD9 visible speaker tile semantics', () => {
     });
     expect(infoSpy).toHaveBeenCalled();
     expect(infoSpy.mock.calls.at(-1)[0].detail.entityId).toBe('media_player.dining_room');
+    cleanup(el);
+  });
+
+  it('speaker-grid icon hold opens more-info once without a duplicate click open', () => {
+    vi.useFakeTimers();
+    const el = createSpeakerGridCard();
+    const refs = el._tileRefs.get('media_player.dining_room');
+    const infoSpy = vi.fn();
+    el.addEventListener('hass-more-info', infoSpy);
+
+    refs.iconWrap.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    vi.advanceTimersByTime(400);
+    refs.iconWrap.dispatchEvent(new Event('pointerup', { bubbles: true }));
+    refs.iconWrap.click();
+
+    expect(infoSpy).toHaveBeenCalledTimes(1);
+    expect(infoSpy.mock.calls[0][0].detail.entityId).toBe('media_player.dining_room');
     cleanup(el);
   });
 

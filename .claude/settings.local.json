@@ -112,7 +112,15 @@
       "Bash(npm test:*)",
       "Bash(npx vitest:*)",
       "mcp__plugin_playwright_playwright__browser_resize",
-      "mcp__plugin_playwright_playwright__browser_evaluate"
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_close",
+      "Read(//home/mac/**)",
+      "mcp__plugin_playwright_playwright__browser_tabs",
+      "Bash(npx @anthropic-ai/claude-code mcp restart playwright)",
+      "Bash(npx playwright:*)",
+      "Bash(pip show:*)",
+      "WebFetch(domain:chrisirwin.ca)",
+      "WebFetch(domain:companion.home-assistant.io)"
     ],
     "deny": [],
     "ask": []

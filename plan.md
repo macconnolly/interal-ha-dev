@@ -6,6 +6,38 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole author
 Current tranche: **CD9 — Media Bespoke Pass** (selected-target audio routing; media/sonos dropdown parity; visible speaker-tile semantics landed; speaker-grid mobile-density fallback + media semantics/accessibility remain)
 Previous tranches: CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-04-06, CD9 subpass — Speaker Icon Hold Alias)
+
+Tranche marker: `CD9` remains active; visible speaker-tile semantics stay landed and now support icon hold as a no-ambiguity alias for default more-info
+
+- `AUTHORITY NOTE`
+  - user approved the current visible speaker-tile model but requested one last precision tweak:
+    - icon hold should also open the default Home Assistant more-info picker so source selection remains reachable without relying on tap only
+  - chosen interpretation:
+    - keep icon tap behavior unchanged
+    - add icon hold as an alias, not a separate action
+    - suppress duplicate more-info on release/click after a successful hold
+- `IMPLEMENTATION`
+  - `tunet_sonos_card.js`
+    - speaker icon now opens more-info on tap or hold
+    - long-press release no longer double-fires the more-info event on the follow-up click
+  - `tunet_speaker_grid_card.js`
+    - speaker icon now opens more-info on tap or hold
+    - long-press release no longer double-fires the more-info event on the follow-up click
+  - `audio_cd9_bespoke.test.js`
+    - expanded speaker-tile semantics coverage to assert icon hold opens more-info exactly once in both sonos and speaker-grid
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
+  - full `npm test`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab`
+- `RESULT`
+  - sonos and speaker-grid speaker icons now expose the default more-info picker on both tap and hold
+  - `CD9` remains open on media semantics/accessibility and any residual speaker-grid density signoff
+
 ## Session Delta (2026-04-06, CD9 subpass — Audio Target Model + Sonos Dropdown Convergence)
 
 Tranche marker: `CD9` remains active; media/sonos target-selection work is landed, speaker-grid/visible-tile semantics remain open

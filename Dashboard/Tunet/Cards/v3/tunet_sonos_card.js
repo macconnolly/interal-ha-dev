@@ -10,7 +10,7 @@
  * Interactions:
  *   Tile tap        = select active speaker
  *   Tile hold/drag  = volume control (floating pill)
- *   Icon tap        = open more-info dialog
+ *   Icon tap/hold   = open more-info dialog
  *   Group badge tap = toggle group membership
  *   Source dropdown  = switch which Sonos entity to control
  *   Transport        = play/pause/prev/next on coordinator
@@ -1351,11 +1351,40 @@ class TunetSonosCard extends HTMLElement {
       icon.style.fontSize = '20px';
       icon.textContent = spk.icon || 'speaker';
       iconWrap.appendChild(icon);
+      let iconHoldTimer = null;
+      let iconHoldFired = false;
+      const clearIconHold = (resetFired = false) => {
+        clearTimeout(iconHoldTimer);
+        iconHoldTimer = null;
+        if (resetFired) iconHoldFired = false;
+      };
       iconWrap.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
+        if (e.button !== undefined && e.button !== 0) return;
+        clearIconHold(true);
+        iconHoldTimer = setTimeout(() => {
+          iconHoldFired = true;
+          this._openSpeakerMoreInfo(spk.entity);
+        }, LONG_PRESS_MS);
+      });
+      iconWrap.addEventListener('pointerup', (e) => {
+        e.stopPropagation();
+        clearIconHold(false);
+      });
+      iconWrap.addEventListener('pointerleave', (e) => {
+        e.stopPropagation();
+        clearIconHold(true);
+      });
+      iconWrap.addEventListener('pointercancel', (e) => {
+        e.stopPropagation();
+        clearIconHold(true);
       });
       iconWrap.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (iconHoldFired) {
+          iconHoldFired = false;
+          return;
+        }
         this._openSpeakerMoreInfo(spk.entity);
       });
       tile.appendChild(iconWrap);

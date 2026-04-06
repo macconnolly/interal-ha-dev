@@ -20,7 +20,7 @@ This section is the target contract; per-card entries call out current divergenc
 - **Tap** = select as active speaker (controls which speaker transport/volume affects)
 - **Hold** (400ms + haptic) = enter drag mode
 - **Drag** (after hold) = adjust volume
-- **Icon area tap** = more-info popup
+- **Icon area tap/hold** = more-info popup
 - **Group badge** (+/- icon, top-right) = toggle group membership
 - **Visual**: blue outline = in active group
 
@@ -63,7 +63,7 @@ Across `tunet-media-card`, `tunet-sonos-card`, and `tunet-speaker-grid-card`:
 Across `tunet-media-card`, `tunet-sonos-card`, and `tunet-speaker-grid-card`:
 - tile body tap selects active speaker
 - hold (400ms) then drag adjusts volume
-- icon tap opens more-info
+- icon tap/hold opens more-info
 - group badge tap toggles group membership
 
 Current state: `tunet-sonos-card` and `tunet-speaker-grid-card` now align for visible tiles; `tunet-media-card` still keeps a semantics/accessibility tail because speaker targeting lives in dropdown rows rather than visible tiles.
@@ -1462,7 +1462,7 @@ Alternative Sonos player with inline speaker tiles (always visible, not hidden i
 
 ### Speaker Tiles
 
-Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue border, highlighted), `.selected` (green active-target ring), not grouped (muted). Interactions now follow the suite speaker-tile contract: body tap selects the active target, hold (400ms) then drag adjusts volume, icon tap opens more-info, and the badge toggles group membership. Default/autodiscovered narrow-width runtime is now materially healthier with compact room-preserving labels and the media dropdown shell; explicit full-name authoring can still overpressure phone widths.
+Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue border, highlighted), `.selected` (green active-target ring), not grouped (muted). Interactions now follow the suite speaker-tile contract: body tap selects the active target, hold (400ms) then drag adjusts volume, icon tap/hold opens more-info, and the badge toggles group membership. Default/autodiscovered narrow-width runtime is now materially healthier with compact room-preserving labels and the media dropdown shell; explicit full-name authoring can still overpressure phone widths.
 
 ### Grid Options
 
@@ -1475,7 +1475,7 @@ Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue 
 - **Current implementation**:
   - Speaker tile body tap selects the active target
   - Hold (400ms) then drag adjusts volume for the selected target
-  - Speaker icon tap opens more-info
+  - Speaker icon tap/hold opens more-info
   - Group badge toggles membership
   - Dropdown option tap also selects the active target
 - **CD9 status**: visible speaker-tile semantics now align with the suite speaker-tile contract; remaining work is explicit long-name authoring pressure and any later accessibility follow-up.
@@ -1545,7 +1545,7 @@ When `config.speakers` is empty, `_getEffectiveSpeakers()` (L784) scans for `bin
 
 ### Per-Tile Volume Control
 
-Not display-only — each tile now uses the suite speaker-tile interaction model: body tap selects active target, hold (400ms) then drag adjusts selected-target volume, icon tap opens more-info, and badge toggles group membership. Floating pill shows percentage during drag.
+Not display-only — each tile now uses the suite speaker-tile interaction model: body tap selects active target, hold (400ms) then drag adjusts selected-target volume, icon tap/hold opens more-info, and badge toggles group membership. Floating pill shows percentage during drag.
 
 ### Grid Options
 
@@ -1560,7 +1560,7 @@ Static. Should compute from `ceil(speakers.length / columns) + (show_group_actio
 - **Current implementation**:
   - Tile body tap selects the active target
   - Hold (400ms) then drag adjusts selected-target volume
-  - Icon tap opens more-info
+  - Icon tap/hold opens more-info
   - Group badge toggles group membership
   - Group All / Ungroup All remain explicit action buttons
 - **CD9 status**: visible speaker-tile semantics now align with the suite speaker-tile model; the remaining open runtime issue is dense/default layout pressure, not tile interaction semantics.

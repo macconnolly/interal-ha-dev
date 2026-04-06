@@ -8,6 +8,34 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole author
 Current tranche: **CD9 — Media Bespoke Pass** (selected-target audio routing; media/sonos dropdown parity; visible speaker-tile semantics landed; speaker-grid phone-column fallback + media semantics/accessibility remain)
 Previous tranches: CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-04-06, CD9 subpass — Speaker Icon Hold Alias)
+
+- `CURRENT STATE`
+  - `CD9` remains active
+  - sonos and speaker-grid visible speaker tiles keep the same semantics, but icon hold is now a supported alias for the default more-info picker
+  - remaining `CD9` runtime work stays:
+    - `tunet-media-card`: pointer-first group-membership semantics + slider accessibility
+    - `tunet-speaker-grid-card`: dense/default layout signoff
+- `IMPLEMENTATION`
+  - `tunet_sonos_card.js`
+    - speaker icon now opens more-info on tap or hold
+    - completed holds no longer create a duplicate more-info open on release/click
+  - `tunet_speaker_grid_card.js`
+    - speaker icon now opens more-info on tap or hold
+    - completed holds no longer create a duplicate more-info open on release/click
+  - `audio_cd9_bespoke.test.js`
+    - expanded to assert icon hold opens more-info exactly once in both cards
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
+  - full `npm test`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab`
+- `RESULT`
+  - speaker icon more-info access is now available on tap or hold without changing the rest of the visible speaker-tile contract
+
 ## Session Delta (2026-04-06, CD9 subpass — Audio Target Model + Sonos Dropdown Convergence)
 
 - `CURRENT STATE`

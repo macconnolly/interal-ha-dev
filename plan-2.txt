@@ -1,0 +1,742 @@
+      
+       I now have comprehensive research data. Let me compile the full technical specification.
+
+       ---
+       Frontend Card Architecture & Synchronization: Technical Specification
+
+       This document addresses how a tunet_notifications_card (card #14 in the Tunet suite) should interact with Home Assistant for the notification
+       response surface. Every technique below has been verified against HA source code, official documentation, and the existing Tunet card patterns.
+
+       ---
+       1. How a Custom Lovelace Card Fires mobile_app_notification_action Events
+
+       Yes, a custom card can fire arbitrary events onto the HA event bus, including mobile_app_notification_action. The mechanism is
+       hass.connection.sendMessagePromise() with a fire_event message type.
+
+       The API
+
+       The hass object provided to every Lovelace card contains a connection property (an instance of the
+       https://github.com/home-assistant/home-assistant-js-websocket Connection class). That class exposes:
+
+       - sendMessage(message) -- fire-and-forget
+       - sendMessagePromise(message) -- returns a Promise<Result>
+
+       The HA WebSocket API documents a https://developers.home-assistant.io/docs/api/websocket/ that places an event directly on the event bus:
+
+       {
+         "id": 24,
+         "type": "fire_event",
+         "event_type": "mobile_app_notification_action",
+         "event_data": {
+           "action": "SNOOZE_5",
+           "tag": "sonos_alarm_playing"
+         }
+       }
+
+       The id field is auto-populated by the connection library when you use sendMessagePromise.
+
+       JavaScript for the Card
+
+       // Fire the same event that the phone fires when the user taps an action button
+       async _fireNotificationAction(actionId, tag, extraData = {}) {
+         try {
+           await this._hass.connection.sendMessagePromise({
+             type: 'fire_event',
+             event_type: 'mobile_app_notification_action',
+             event_data: {
+               action: actionId,
+               tag: tag,
+               ...extraData,
+             },
+           });
+         } catch (err) {
+           console.error('Failed to fire notification action:', err);
+         }
+       }
+
+       Why This Works
+
+       The existing handler automations in the OAL and Sonos packages trigger on:
+
+       trigger:
+         - platform: event
+           event_type: mobile_app_notification_action
+           event_data:
+             action: "SNOOZE_5"
+
+       The event bus does not distinguish between events fired by the Companion App and events fired via the WebSocket API. The context field in the event
+       will differ (the WebSocket event includes the user_id of the authenticated dashboard user), but the automation trigger matches on event_type +
+       event_data, so the existing handlers will pick it up identically.
+
+       Confidence: High. The fire_event WebSocket command is https://developers.home-assistant.io/docs/api/websocket/. The HA frontend itself uses
+       sendMessagePromise for various WebSocket commands. The mobile_app_notification_action event type has no special origin restriction in HA Core -- it
+       is a plain event bus event.
+
+       ---
+       2. How a Custom Card Clears a Mobile Notification from the Phone
+
+       The Companion App supports clearing a notification by sending a new push to the same device with message: "clear_notification" and the matching tag.
+       From the card, this is a standard service call.
+
+       JavaScript for the Card
+
+       // Clear the corresponding mobile notification by tag
+       async _clearMobileNotification(tag) {
+         // Config should contain the notify service target(s)
+         const notifyServices = this._config.notify_services || ['notify.mobile_app_iphone'];
+
+         for (const service of notifyServices) {
+           const [domain, serviceName] = service.split('.');
+           try {
+             await this._hass.callService(domain, serviceName, {
+               message: 'clear_notification',
+               data: {
+                 tag: tag,
+               },
+             });
+           } catch (err) {
+             console.error(`Failed to clear notification via ${service}:`, err);
+           }
+         }
+       }
+
+       YAML (automation-side equivalent for reference)
+
+       action:
+         - action: notify.mobile_app_iphone
+           data:
+             message: "clear_notification"
+             data:
+               tag: "sonos_alarm_playing"
+
+       Important Details
+
+       - The notification must have been originally sent with a tag (all 12 notification flows in the inventory already use tags).
+       - iOS requires Companion App version 2021.5+. The user is on HA 2026.3, so this is not a concern.
+       - Platform limitations: the Companion App may need to have been recently active for the clear to work on iOS. This is a known iOS platform
+       constraint, not an HA limitation.
+       - The data.tag nesting matches how the original notification was sent. Some notification flows use data: { tag: ... } inside the notify payload.
+
+       Confidence: High. Documented in the https://companion.home-assistant.io/docs/notifications/notifications-basic/ and confirmed by multiple
+       https://community.home-assistant.io/t/clearing-a-notification/197202.
+
+       ---
+       3. How a Custom Card Subscribes to Entity State Changes in Real-Time
+
+       The Tunet suite already uses two subscription patterns: (a) set hass(hass) setter for entity state diffing, and (b)
+       hass.connection.subscribeMessage() for WebSocket subscriptions. Both are relevant.
+
+       Pattern A: Entity State Diffing via set hass(hass)
+
+       HA's Lovelace framework calls set hass(newHass) on every card whenever any entity state changes. Every existing Tunet card uses reference equality
+       checks on the relevant entities:
+
+       set hass(hass) {
+         const oldHass = this._hass;
+         this._hass = hass;
+
+         // Only re-render if a watched entity actually changed
+         if (oldHass && this._watchedEntities.every(
+           e => oldHass.states[e] === hass.states[e]
+         )) return;
+
+         this._render();
+       }
+
+       This pattern works for any HA entity -- input_text, input_boolean, sensor, todo (entity-level state), template sensors, etc. It is the correct
+       approach for the queue backend if the backend exposes its state through entity attributes.
+
+       Applicable to:
+       - input_text state changes -- immediate, no extra subscription needed
+       - Template sensor attribute changes -- immediate via set hass()
+       - todo entity state (the todo.* entity has a state attribute showing item count, but not the items themselves)
+
+       Pattern B: WebSocket Subscription via subscribeMessage()
+
+       For data that is NOT exposed through entity state (like the contents of a todo list or persistent notifications), the card must establish a direct
+       WebSocket subscription. The weather card already demonstrates this pattern:
+
+       // From tunet_weather_card.js, lines 579-596
+       const unsub = await this._hass.connection.subscribeMessage(
+         (msg) => {
+           // Handle incoming data
+         },
+         {
+           type: 'weather/subscribe_forecast',
+           forecast_type: type,
+           entity_id: this._config.entity,
+         }
+       );
+       this._forecastUnsub[type] = unsub;
+
+       Subscribing to persistent_notification Updates
+
+       Since HA 2023.6, persistent notifications are
+       https://community.home-assistant.io/t/heads-up-2023-6-longer-has-persistent-notifications-in-states-what-to-do/578654. They are only accessible via
+       the WebSocket API. The HA frontend source (https://github.com/home-assistant/frontend/blob/dev/src/data/persistent_notification.ts) reveals the
+       subscription mechanism:
+
+       // Subscribe to persistent notification updates
+       async _subscribePersistentNotifications() {
+         this._pnUnsub = await this._hass.connection.subscribeMessage(
+           (msg) => {
+             // msg.type is one of: 'current', 'added', 'removed', 'updated'
+             // msg.notifications is Record<string, PersistentNotification>
+             this._handleNotificationUpdate(msg);
+           },
+           { type: 'persistent_notification/subscribe' }
+         );
+       }
+
+       // Notification data shape:
+       // {
+       //   type: 'added' | 'removed' | 'current' | 'updated',
+       //   notifications: {
+       //     'notification_id_1': {
+       //       created_at: '2026-04-06T12:00:00Z',
+       //       message: 'string with embedded JSON',
+       //       notification_id: 'notification_id_1',
+       //       title: 'Notification Title',
+       //       status: 'read' | 'unread'
+       //     }
+       //   }
+       // }
+
+       One-shot fetch is also available:
+
+       const notifications = await this._hass.connection.sendMessagePromise({
+         type: 'persistent_notification/get',
+       });
+
+       Subscribing to todo List Changes
+
+       The HA frontend source (https://github.com/home-assistant/frontend/blob/dev/src/data/todo.ts) reveals:
+
+       // Subscribe to todo item changes for a specific list
+       async _subscribeTodoItems() {
+         this._todoUnsub = await this._hass.connection.subscribeMessage(
+           (msg) => {
+             // msg contains the updated items for the todo list
+             this._handleTodoUpdate(msg);
+           },
+           {
+             type: 'todo/item/subscribe',
+             entity_id: 'todo.notification_inbox',
+           }
+         );
+       }
+
+       // One-shot fetch:
+       const result = await this._hass.connection.sendMessagePromise({
+         type: 'todo/item/list',
+         entity_id: 'todo.notification_inbox',
+       });
+       // result.items = [{ uid, summary, status, description, due, completed }]
+
+       Subscribing to Custom Events
+
+       For subscribing to mobile_app_notification_action events (to detect when the user responds on the phone):
+
+       async _subscribeNotificationActions() {
+         this._actionUnsub = await this._hass.connection.subscribeEvents(
+           (event) => {
+             // event.data.action = 'SNOOZE_5'
+             // event.data.tag = 'sonos_alarm_playing'
+             this._handlePhoneResponse(event);
+           },
+           'mobile_app_notification_action'
+         );
+       }
+
+       The subscribeEvents method on the Connection class (https://github.com/home-assistant/home-assistant-js-websocket/blob/master/lib/connection.ts)
+       sends a subscribe_events WebSocket message filtered by event type and returns an unsubscribe function.
+
+       Subscribing to input_text State Changes
+
+       No special subscription needed. Use the standard set hass(hass) setter and diff hass.states['input_text.notification_slot_1'].
+
+       Confidence: High for all patterns. The persistent_notification/subscribe type is verified from HA Core source
+       (https://github.com/home-assistant/core/blob/dev/homeassistant/components/persistent_notification/__init__.py). The todo/item/subscribe type is
+       verified from HA frontend source. The subscribeEvents pattern is documented in the https://github.com/home-assistant/home-assistant-js-websocket.
+
+       ---
+       4. Prior Art
+
+       lovelace-home-feed-card (https://github.com/gadgetchnnel/lovelace-home-feed-card)
+
+       - Displays persistent notifications, calendar events, and entities in a feed.
+       - Originally subscribed to persistent notification updates via WebSocket; later switched to polling the notification count on the sidebar icon for
+       performance reasons.
+       - Does NOT support actionable buttons on notifications. Purely display.
+       - Does NOT sync with mobile notifications.
+       - Useful reference for the persistent_notification subscription pattern, but insufficient as a solution to the user's problem.
+
+       HA-NotifyHelper (https://community.home-assistant.io/t/ha-notifyhelper-send-notifications-to-all-mobile-devices-of-a-person-at-once-and-display-notif
+       ications-on-a-custom-lovelace-card/819631)
+
+       - Custom integration that sends notifications to multiple mobile devices AND displays them on a Lovelace card.
+       - Closer to the user's problem, but does not appear to support actionable response buttons on the dashboard side.
+       - Documentation is sparse.
+
+       Alert2 UI (https://github.com/redstone99/hass-alert2-ui)
+
+       - Provides Alert2 Overview and Alert2 Manager cards.
+       - Supports interactive controls: ACK buttons, snooze, disable.
+       - Closest prior art for actionable dashboard alerts, but tightly coupled to the Alert2 integration and does not sync with mobile notifications.
+
+       Persistent Notification Card Proposal (https://github.com/home-assistant/frontend/discussions/11189)
+
+       - Long-standing feature request for a native Lovelace card that displays persistent notifications with dismiss buttons.
+       - https://github.com/home-assistant/frontend/discussions/11208 explicitly requests actionable notification support inside persistent notifications.
+       - Neither has been implemented as of HA 2026.3.
+
+       Conclusion on prior art: No existing card or integration solves the complete problem (queue + display + actionable buttons + mobile sync). A custom
+       card is required. The patterns used by these projects (persistent_notification subscription, service calls for responses) are all applicable.
+
+       ---
+       5. Mobile-to-Dashboard Synchronization (Phone Response)
+
+       When the user responds on their phone, the mobile_app_notification_action event fires on the HA event bus. The card can subscribe to this event type
+       and auto-clear the dashboard notification.
+
+       JavaScript for the Card
+
+       async connectedCallback() {
+         super.connectedCallback();
+         // Subscribe to phone responses
+         this._actionUnsub = await this._hass.connection.subscribeEvents(
+           (event) => this._onPhoneResponse(event),
+           'mobile_app_notification_action'
+         );
+       }
+
+       disconnectedCallback() {
+         super.disconnectedCallback();
+         if (this._actionUnsub) {
+           this._actionUnsub();
+           this._actionUnsub = null;
+         }
+       }
+
+       _onPhoneResponse(event) {
+         const { action, tag } = event.data;
+         // Find matching notification in the queue by tag
+         const notification = this._notifications.find(n => n.tag === tag);
+         if (!notification) return;
+
+         // Auto-clear from dashboard queue
+         this._clearFromQueue(notification);
+         this._render();
+       }
+
+       Key point: The subscription to mobile_app_notification_action gives the card real-time awareness of phone responses. When the event fires, the card
+       can immediately remove the matching notification from its display without polling.
+
+       ---
+       6. Dashboard-to-Mobile Synchronization (Dashboard Response)
+
+       When the user responds on the dashboard, three things must happen in sequence:
+
+       1. Fire the action event (triggers the existing handler automation)
+       2. Clear the mobile notification (removes from phone)
+       3. Clear the queue entry (removes from dashboard)
+
+       JavaScript for the Card
+
+       async _respondToNotification(notification, actionId) {
+         // 1. Fire the action event to trigger existing handler automations
+         await this._hass.connection.sendMessagePromise({
+           type: 'fire_event',
+           event_type: 'mobile_app_notification_action',
+           event_data: {
+             action: actionId,
+             tag: notification.tag,
+           },
+         });
+
+         // 2. Clear the mobile notification from the phone
+         await this._clearMobileNotification(notification.tag);
+
+         // 3. Clear from the queue backend
+         await this._clearFromQueue(notification);
+
+         // 4. Re-render
+         this._render();
+       }
+
+       async _clearMobileNotification(tag) {
+         const services = this._config.notify_services || ['notify.mobile_app_iphone'];
+         for (const svc of services) {
+           const [domain, name] = svc.split('.');
+           await this._hass.callService(domain, name, {
+             message: 'clear_notification',
+             data: { tag },
+           });
+         }
+       }
+
+       async _clearFromQueue(notification) {
+         // Implementation depends on backend choice. Examples:
+
+         // If using persistent_notification:
+         await this._hass.callService(
+           'persistent_notification', 'dismiss',
+           { notification_id: notification.notification_id }
+         );
+
+         // If using todo list:
+         await this._hass.callService(
+           'todo', 'remove_item',
+           { item: notification.uid, entity_id: 'todo.notification_inbox' }
+         );
+       }
+
+       YAML (automation-side handler -- unchanged from current)
+
+       The existing handler automations do not need modification for the action handling. They already listen for mobile_app_notification_action events:
+
+       # This automation already exists and works unchanged
+       automation:
+         - alias: "Sonos Alarm - Handle Snooze"
+           trigger:
+             - platform: event
+               event_type: mobile_app_notification_action
+               event_data:
+                 action: "SNOOZE_5"
+           action:
+             - service: script.sonos_snooze_alarm
+               data:
+                 duration: 5
+
+       ---
+       7. Auto-Clear Patterns
+
+       Recommended: Automation-Driven Clearing (Not Card Polling)
+
+       The cleanest pattern is that the automation which resolves the condition also clears the queue entry. The card should NOT poll entity states to
+       determine when to auto-clear. Reasons:
+
+       1. The automation already knows when the condition resolves -- it has the context.
+       2. Polling creates race conditions -- the card might clear before the automation runs.
+       3. Separation of concerns -- the card displays and responds; automations manage lifecycle.
+
+       YAML Example: Auto-Clear When Alarm Stops
+
+       automation:
+         - alias: "Sonos Alarm Stopped - Clear Queue"
+           trigger:
+             - platform: state
+               entity_id: media_player.bedroom_sonos
+               from: "playing"
+               to: "idle"
+           condition:
+             - condition: state
+               entity_id: input_boolean.sonos_alarm_active
+               state: "on"
+           action:
+             # Clear the queue entry
+             - action: persistent_notification.dismiss
+               data:
+                 notification_id: "sonos_alarm_playing"
+             # Clear the mobile notification
+             - action: notify.mobile_app_iphone
+               data:
+                 message: "clear_notification"
+                 data:
+                   tag: "sonos_alarm_playing"
+             # Reset tracking
+             - action: input_boolean.turn_off
+               target:
+                 entity_id: input_boolean.sonos_alarm_active
+
+       YAML Example: Auto-Clear When Mode Changes (OAL)
+
+       automation:
+         - alias: "OAL Override Expired - Clear Queue"
+           trigger:
+             - platform: state
+               entity_id: input_select.oal_active_configuration
+               to: "Adaptive"
+           action:
+             - action: persistent_notification.dismiss
+               data:
+                 notification_id: "oal_override_reminder"
+             - action: persistent_notification.dismiss
+               data:
+                 notification_id: "oal_override_expiring"
+             - action: notify.mobile_app_iphone
+               data:
+                 message: "clear_notification"
+                 data:
+                   tag: "oal_override_reminder"
+             - action: notify.mobile_app_iphone
+               data:
+                 message: "clear_notification"
+                 data:
+                   tag: "oal_override_expiring"
+
+       What the Card Sees
+
+       When the automation clears the queue entry, the card receives a real-time update via its subscription:
+       - If using persistent_notification/subscribe: receives a { type: 'removed', notifications: { 'notification_id': ... } } message
+       - If using todo/item/subscribe: receives an updated items list without the removed item
+       - If using entity state: set hass() fires with the updated entity state
+
+       No polling is needed. The subscription model is reactive.
+
+       ---
+       Complete End-to-End Example: OAL Override Reminder
+
+       Step 1: Automation Sends Notification + Writes Queue
+
+       automation:
+         - alias: "OAL Override Reminder - Send"
+           trigger:
+             - platform: state
+               entity_id: input_boolean.oal_manual_override_active
+               to: "on"
+               for: "00:30:00"
+           action:
+             # Write to queue (persistent_notification with embedded JSON)
+             - action: persistent_notification.create
+               data:
+                 notification_id: "oal_override_reminder"
+                 title: "Lights Still Manual"
+                 message: >-
+                   {"tag":"oal_override_reminder","actions":[
+                     {"action":"OAL_RESET_ADAPTIVE","title":"Reset to Adaptive","icon":"refresh"},
+                     {"action":"OAL_KEEP_MANUAL","title":"Keep Manual","icon":"hand_gesture"}
+                   ],"context":{"zones_overridden":3}}
+             # Send mobile push (existing, unchanged)
+             - action: notify.mobile_app_iphone
+               data:
+                 title: "Lights Still Manual"
+                 message: "3 zones overridden for 30+ minutes"
+                 data:
+                   tag: "oal_override_reminder"
+                   actions:
+                     - action: "OAL_RESET_ADAPTIVE"
+                       title: "Reset to Adaptive"
+                     - action: "OAL_KEEP_MANUAL"
+                       title: "Keep Manual"
+
+       Step 2: Card Subscribes and Renders
+
+       // In connectedCallback or when hass is first set:
+       async _setupSubscriptions() {
+         // Subscribe to persistent notifications for queue data
+         this._pnUnsub = await this._hass.connection.subscribeMessage(
+           (msg) => this._onNotificationUpdate(msg),
+           { type: 'persistent_notification/subscribe' }
+         );
+
+         // Subscribe to phone responses for cross-surface sync
+         this._actionUnsub = await this._hass.connection.subscribeEvents(
+           (event) => this._onPhoneResponse(event),
+           'mobile_app_notification_action'
+         );
+       }
+
+       _onNotificationUpdate(msg) {
+         // msg.type: 'current' | 'added' | 'removed' | 'updated'
+         // msg.notifications: Record<string, { notification_id, title, message, ... }>
+         if (msg.type === 'removed') {
+           for (const id of Object.keys(msg.notifications)) {
+             delete this._queue[id];
+           }
+         } else {
+           for (const [id, notif] of Object.entries(msg.notifications)) {
+             try {
+               const parsed = JSON.parse(notif.message);
+               this._queue[id] = {
+                 notification_id: id,
+                 title: notif.title,
+                 tag: parsed.tag,
+                 actions: parsed.actions || [],
+                 context: parsed.context || {},
+                 created_at: notif.created_at,
+               };
+             } catch {
+               // Not a notification-inbox entry; skip
+             }
+           }
+         }
+         this._render();
+       }
+
+       _renderActions(notification) {
+         return notification.actions.map(action => {
+           const btn = document.createElement('button');
+           btn.className = 'action-btn';
+           btn.textContent = action.title;
+           btn.addEventListener('click', () => {
+             this._respondToNotification(notification, action.action);
+           });
+           return btn;
+         });
+       }
+
+       Step 3: User Responds on Dashboard
+
+       async _respondToNotification(notification, actionId) {
+         // Fire event to trigger existing handler automation
+         await this._hass.connection.sendMessagePromise({
+           type: 'fire_event',
+           event_type: 'mobile_app_notification_action',
+           event_data: {
+             action: actionId,
+             tag: notification.tag,
+           },
+         });
+
+         // Clear mobile notification
+         await this._clearMobileNotification(notification.tag);
+
+         // Clear queue entry (triggers 'removed' subscription callback)
+         await this._hass.callService(
+           'persistent_notification', 'dismiss',
+           { notification_id: notification.notification_id }
+         );
+       }
+
+       Step 4: User Responds on Phone Instead
+
+       The mobile_app_notification_action event fires. The card's event subscription catches it:
+
+       _onPhoneResponse(event) {
+         const { tag } = event.data;
+         // Find the queue entry with this tag and remove it
+         for (const [id, notif] of Object.entries(this._queue)) {
+           if (notif.tag === tag) {
+             // Clear from queue backend
+             this._hass.callService(
+               'persistent_notification', 'dismiss',
+               { notification_id: id }
+             );
+             // The subscription callback will handle removing from this._queue
+             break;
+           }
+         }
+       }
+
+       Step 5: Condition Resolves (Auto-Clear)
+
+       The automation that handles the condition resolution also dismisses the persistent notification:
+
+       automation:
+         - alias: "OAL Override Ended - Clear Queue"
+           trigger:
+             - platform: state
+               entity_id: input_select.oal_active_configuration
+               to: "Adaptive"
+           action:
+             - action: persistent_notification.dismiss
+               data:
+                 notification_id: "oal_override_reminder"
+             - action: notify.mobile_app_iphone
+               data:
+                 message: "clear_notification"
+                 data:
+                   tag: "oal_override_reminder"
+
+       The card's subscription receives the removed message and updates immediately.
+
+       ---
+       Lifecycle Cleanup
+
+       The card must clean up WebSocket subscriptions when disconnected to prevent memory leaks:
+
+       disconnectedCallback() {
+         if (this._pnUnsub) { this._pnUnsub(); this._pnUnsub = null; }
+         if (this._actionUnsub) { this._actionUnsub(); this._actionUnsub = null; }
+         super.disconnectedCallback();
+       }
+
+       This matches the pattern already used in tunet_weather_card.js (line 571: this._unsubForecast()).
+
+       ---
+       Summary of Exact API Calls
+
+
+
+
+
+       ┌─────────────────────────────────────┬──────────────────────────────────────┬───────────────────────────────────────────────────────────────────────
+       ─┐
+       │              Operation              │                Method                │                               Arguments
+        │
+       ├─────────────────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────────────────────────────────
+       ─┤
+       │ Fire action event                   │ hass.connection.sendMessagePromise() │ { type: 'fire_event', event_type: 'mobile_app_notification_action',
+        │
+       │                                     │                                      │ event_data: { action, tag } }
+        │
+       ├─────────────────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────────────────────────────────
+       ─┤
+       │ Clear mobile notification           │ hass.callService()                   │ ('notify', 'mobile_app_iphone', { message: 'clear_notification', data:
+        │
+       │                                     │                                      │  { tag } })
+        │
+       ├─────────────────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────────────────────────────────
+       ─┤
+       │ Subscribe to queue                  │ hass.connection.subscribeMessage()   │ callback, { type: 'persistent_notification/subscribe' }
+        │
+       │ (persistent_notification)           │                                      │
+        │
+       ├─────────────────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────────────────────────────────
+       ─┤
+       │ Subscribe to queue (todo)           │ hass.connection.subscribeMessage()   │ callback, { type: 'todo/item/subscribe', entity_id }
+        │
+       ├─────────────────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────────────────────────────────
+       ─┤
+       │ Subscribe to phone responses        │ hass.connection.subscribeEvents()    │ callback, 'mobile_app_notification_action'
+        │
+       ├─────────────────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────────────────────────────────
+       ─┤
+       │ Dismiss persistent notification     │ hass.callService()                   │ ('persistent_notification', 'dismiss', { notification_id })
+        │
+       ├─────────────────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────────────────────────────────
+       ─┤
+       │ Fetch persistent notifications      │ hass.connection.sendMessagePromise() │ { type: 'persistent_notification/get' }
+        │
+       │ (one-shot)                          │                                      │
+        │
+       ├─────────────────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────────────────────────────────
+       ─┤
+       │ Fetch todo items (one-shot)         │ hass.connection.sendMessagePromise() │ { type: 'todo/item/list', entity_id }
+        │
+       └─────────────────────────────────────┴──────────────────────────────────────┴───────────────────────────────────────────────────────────────────────
+       ─┘
+
+       ---
+       Backend Recommendation Note
+
+       While this document focuses on the frontend/sync questions, the research strongly favors persistent_notification as the queue backend for the
+       following reasons:
+
+       1. Native WebSocket subscription with push-based added/removed/updated events -- no polling
+       2. Survives HA restarts (persistent by design)
+       3. Structured update types (current on initial subscribe, added/removed for incremental changes)
+       4. Simple CRUD (persistent_notification.create / .dismiss)
+       5. No entity state machine dependency (post-2023.6, it is WebSocket-native)
+       6. The notification_id is not slugified (post-PR #92828), so tags can be used directly as notification_ids
+
+       The message field can contain embedded JSON with the action definitions and context metadata. The card parses this JSON on receipt.
+
+       Sources:
+       - https://developers.home-assistant.io/docs/api/websocket/
+       - https://github.com/home-assistant/home-assistant-js-websocket
+       - https://companion.home-assistant.io/docs/notifications/actionable-notifications/
+       - https://companion.home-assistant.io/docs/notifications/notifications-basic/
+       - https://github.com/home-assistant/core/blob/dev/homeassistant/components/persistent_notification/__init__.py
+       - https://github.com/home-assistant/core/pull/92828
+       - https://community.home-assistant.io/t/heads-up-2023-6-longer-has-persistent-notifications-in-states-what-to-do/578654
+       - https://github.com/home-assistant/frontend/blob/dev/src/data/persistent_notification.ts
+       - https://github.com/home-assistant/frontend/blob/dev/src/data/todo.ts
+       - https://community.home-assistant.io/t/api-for-todo-lists/665773
+       - https://github.com/gadgetchnnel/lovelace-home-feed-card
+       - https://github.com/redstone99/hass-alert2-ui
+       - https://github.com/home-assistant/frontend/discussions/11189
+       - https://github.com/home-assistant/frontend/discussions/11208
+       - https://community.home-assistant.io/t/ha-notifyhelper-send-notifications-to-all-mobile-devices-of-a-person-at-once-and-display-notifications-on-a-c
+       ustom-lovelace-card/819631

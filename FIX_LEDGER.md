@@ -66,6 +66,35 @@ Change marker: sonos/speaker-grid visible speaker-tile semantics landed; `CD9` r
   - sonos and speaker-grid visible speaker tiles now align with the suite contract
   - remaining `CD9` runtime backlog narrows to media semantics/accessibility and speaker-grid dense/default layout pressure
 
+## Session Delta (2026-04-06, CD9 subpass — Speaker Icon Hold Alias)
+
+Change marker: speaker-tile semantics refined; `CD9` remains active
+
+- `CHOSEN INTERPRETATION`
+  - keep the current speaker-tile interaction model intact
+  - add icon hold as a direct alias for default more-info so source selection remains available from the icon without inventing a second action
+  - suppress duplicate more-info dispatch when a completed hold is followed by the synthetic click/release path
+- `IMPLEMENTATION`
+  - `tunet_sonos_card.js`
+    - speaker icon now opens more-info on tap or hold
+    - long-press release/click no longer double-fires more-info
+  - `tunet_speaker_grid_card.js`
+    - speaker icon now opens more-info on tap or hold
+    - long-press release/click no longer double-fires more-info
+  - `audio_cd9_bespoke.test.js`
+    - added explicit long-press coverage for sonos and speaker-grid icon behavior
+- `TESTS / VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
+  - `audio_cd9_bespoke.test.js`
+  - full `npm test`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab`
+- `RESULT`
+  - speaker icon more-info is now reachable by tap or hold in both sonos and speaker-grid
+  - remaining `CD9` runtime backlog is unchanged: media semantics/accessibility and speaker-grid density signoff
+
 ## Session Delta (2026-04-06, CD8 follow-up polish — Auto/Auto UV)
 
 Change marker: weather post-closeout polish only; `CD9` remains active

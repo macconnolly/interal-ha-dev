@@ -53,6 +53,18 @@ Here are the 12 notification flows currently in the system. Each one has a `tag`
 | 11 | Alarm notification clear | `sonos_alarm_playing` | (clears #1) | sonos |
 | 12 | OAL learning log | (file) | (not user-facing) | OAL |
 
+## Important: Current Notification Architecture
+
+**I am NOT currently using `persistent_notification` at all.** Every notification in the system today is a mobile-only push via `notify.mobile_app_*`. There are zero persistent notifications active on the instance. The HA sidebar notification bell is empty.
+
+This means:
+- `persistent_notification` is not "already in use" — adopting it would be net-new infrastructure
+- All 12 notification flows would need to be modified to also write to whatever queue backend we choose
+- The existing handler automations that listen for `mobile_app_notification_action` events are the only response mechanism today
+- There is no dashboard-side notification state whatsoever — the dashboard has zero awareness of what notifications have been sent or what actions are pending
+
+This is the core problem: **notifications are fire-and-forget to the phone, and the phone is the only place they exist.**
+
 ## Technical Constraints
 
 - **Home Assistant 2026.3** on a dedicated server

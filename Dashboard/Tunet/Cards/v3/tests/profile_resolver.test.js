@@ -55,10 +55,20 @@ describe('profile resolver', () => {
   });
 
   it('output shape is family-specific and does not leak extension keys', () => {
+    const lightingTile = resolveSizeProfile({ family: 'lighting-tile', size: 'standard' });
+    expect(lightingTile).toHaveProperty('lightingAspect');
+    expect(lightingTile).toHaveProperty('lightingPadTop');
+    expect(lightingTile).toHaveProperty('gridColMaxDesktop');
+    expect(lightingTile).not.toHaveProperty('orbSize');
+    expect(lightingTile).not.toHaveProperty('alarmBtnH');
+    expect(lightingTile).not.toHaveProperty('sparklineH');
+
     const tileGrid = resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
     expect(tileGrid).not.toHaveProperty('orbSize');
     expect(tileGrid).not.toHaveProperty('alarmBtnH');
     expect(tileGrid).not.toHaveProperty('sparklineH');
+    expect(tileGrid).not.toHaveProperty('lightingAspect');
+    expect(tileGrid).not.toHaveProperty('gridColMaxDesktop');
 
     const roomsRow = resolveSizeProfile({ family: 'rooms-row', size: 'standard' });
     expect(roomsRow).toHaveProperty('orbSize');
@@ -89,12 +99,12 @@ describe('profile resolver', () => {
   });
 
   it('resolveSizeProfile is idempotent and returns non-mutating copies', () => {
-    const first = resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
-    const second = resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
+    const first = resolveSizeProfile({ family: 'lighting-tile', size: 'standard' });
+    const second = resolveSizeProfile({ family: 'lighting-tile', size: 'standard' });
     expect(first).toEqual(second);
 
     first.tilePad = '99em';
-    const third = resolveSizeProfile({ family: 'tile-grid', size: 'standard' });
+    const third = resolveSizeProfile({ family: 'lighting-tile', size: 'standard' });
     expect(third.tilePad).not.toBe('99em');
   });
 
@@ -108,6 +118,10 @@ describe('profile resolver', () => {
   });
 
   it('selectProfileSize maps rooms row layout and respects explicit userSize', () => {
+    const lightingResult = selectProfileSize({ preset: 'lighting', layout: 'grid', widthHint: 390 });
+    expect(lightingResult.family).toBe('lighting-tile');
+    expect(PRESET_FAMILY_MAP.lighting).toBe('lighting-tile');
+
     const rowResult = selectProfileSize({ preset: 'rooms', layout: 'row', widthHint: 400 });
     expect(rowResult.family).toBe('rooms-row');
     expect(rowResult.size).toBe('compact');
@@ -115,5 +129,23 @@ describe('profile resolver', () => {
     const gridResult = selectProfileSize({ preset: 'rooms', layout: 'grid', widthHint: 400, userSize: 'large' });
     expect(gridResult.family).toBe('tile-grid');
     expect(gridResult.size).toBe('large');
+  });
+
+  it('lighting-tile tiers are meaningfully differentiated across compact, standard, and large', () => {
+    const compact = resolveSizeProfile({ family: 'lighting-tile', size: 'compact' });
+    const standard = resolveSizeProfile({ family: 'lighting-tile', size: 'standard' });
+    const large = resolveSizeProfile({ family: 'lighting-tile', size: 'large' });
+
+    expect(parseFloat(compact.tileMinH)).toBeLessThan(parseFloat(standard.tileMinH));
+    expect(parseFloat(standard.tileMinH)).toBeLessThan(parseFloat(large.tileMinH));
+
+    expect(parseFloat(compact.displayNameFont)).toBeLessThan(parseFloat(standard.displayNameFont));
+    expect(parseFloat(standard.displayNameFont)).toBeLessThan(parseFloat(large.displayNameFont));
+
+    expect(parseFloat(compact.displayValueFont)).toBeLessThan(parseFloat(standard.displayValueFont));
+    expect(parseFloat(standard.displayValueFont)).toBeLessThan(parseFloat(large.displayValueFont));
+
+    expect(parseFloat(compact.gridColMaxDesktop)).toBeLessThan(parseFloat(standard.gridColMaxDesktop));
+    expect(parseFloat(standard.gridColMaxDesktop)).toBeLessThan(parseFloat(large.gridColMaxDesktop));
   });
 });

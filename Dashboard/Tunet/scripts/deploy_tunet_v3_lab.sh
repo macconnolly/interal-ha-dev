@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Deploy Tunet v3 built card outputs to HA server.
+# Deploy Tunet v3 built card outputs to HA server and sync Lovelace resource URLs.
 #
 # Usage:
 #   ./Dashboard/Tunet/scripts/deploy_tunet_v3_lab.sh          # deploy built cards
@@ -10,6 +10,7 @@
 #   - sshpass installed (apt install sshpass)
 #   - .env file with HA_SSH_PASSWORD (HA_SSH_HOST / HA_SSH_USER optional)
 #   - For built outputs: run `npm run tunet:build` first
+#   - For automatic cache-busting: .env must include HA_LONG_LIVED_ACCESS_TOKEN or HA_TOKEN
 
 set -euo pipefail
 
@@ -107,6 +108,15 @@ done
 
 echo ""
 if [[ $FAILED -eq 0 ]]; then
+  echo ""
+  if [[ "${1:-}" == "--source" ]]; then
+    RESOURCE_VERSION="${TUNET_RESOURCE_VERSION:-source_$(date -u +%Y%m%d_%H%M%SZ)}"
+    echo "  Syncing Lovelace resources with source deploy token: $RESOURCE_VERSION"
+    node "$REPO_ROOT/Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs" --version "$RESOURCE_VERSION"
+  else
+    echo "  Syncing Lovelace resources from dist manifest"
+    node "$REPO_ROOT/Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs" --manifest "$DIST_DIR/manifest.json"
+  fi
   echo "  Deploy complete: ${#CARDS[@]} files → $HA_USER@$HA_HOST:$HA_TARGET"
 else
   echo "  Deploy finished with $FAILED failures."

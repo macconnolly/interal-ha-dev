@@ -8,9 +8,10 @@
  *   Horizontal-scroll speaker tiles with drag-to-volume
  *
  * Interactions:
- *   Tile tap        = toggle group membership
- *   Tile drag L/R   = volume control (floating pill)
- *   Tile hold 500ms = open more-info dialog
+ *   Tile tap        = select active speaker
+ *   Tile hold/drag  = volume control (floating pill)
+ *   Icon tap        = open more-info dialog
+ *   Group badge tap = toggle group membership
  *   Source dropdown  = switch which Sonos entity to control
  *   Transport        = play/pause/prev/next on coordinator
  *   Volume button    = show volume overlay for active entity
@@ -25,7 +26,7 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion, clamp,
-  renderConfigPlaceholder,
+  renderConfigPlaceholder, compactSpeakerName,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '1.0.0';
@@ -147,16 +148,13 @@ const PLAYER_HEADER_STYLES = `
    =============================================================== */
 
 const SOURCE_DROPDOWN_STYLES = `
-  .source-wrap { position: relative; z-index: 20; }
-
-  .source-btn {
+  .speaker-wrap { position: relative; z-index: 4000; }
+  .speaker-btn {
     display: flex; align-items: center; gap: 4px;
-    padding: 6px 10px;
-    border-radius: 10px;
-    border: 1px solid var(--ctrl-border);
-    background: var(--ctrl-bg);
-    box-shadow: var(--ctrl-sh);
-    font-family: inherit; font-size: 12px; font-weight: 600;
+    min-height: var(--ctrl-min-h, 34px); padding: 0 9px;
+    border-radius: 9px; border: 1px solid var(--ctrl-border);
+    background: var(--ctrl-bg); box-shadow: var(--ctrl-sh);
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
     color: var(--text-sub); letter-spacing: .2px;
     cursor: pointer;
     transition:
@@ -165,63 +163,89 @@ const SOURCE_DROPDOWN_STYLES = `
       background var(--motion-ui) var(--ease-standard),
       border-color var(--motion-ui) var(--ease-standard),
       color var(--motion-ui) var(--ease-standard);
-    white-space: nowrap;
   }
   @media (hover: hover) {
-    .source-btn:hover { box-shadow: var(--shadow); }
+    .speaker-btn:hover { box-shadow: var(--shadow); }
   }
-  .source-btn:active { transform: scale(var(--press-scale)); }
-  .source-btn .icon { font-size: 16px; }
-  .source-btn .chevron { font-size: 14px; transition: transform .2s ease; }
-  .source-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+  .speaker-btn:active { transform: scale(var(--press-scale)); }
+  .speaker-btn .chevron { transition: transform .2s ease; }
+  .speaker-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
 
-  .source-dd {
+  .dd-menu {
     position: absolute; top: calc(100% + 6px); right: 0;
-    min-width: 200px;
-    background: rgba(255,255,255, 0.96);
+    min-width: 210px; padding: 4px; border-radius: 12px;
+    background: rgba(255,255,255, 1);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--dd-border, var(--ctrl-border));
-    border-radius: 14px;
-    box-shadow: var(--shadow-up);
-    padding: 4px;
-    z-index: 2147483000;
-    display: none;
+    border: 1px solid var(--dd-border); box-shadow: var(--shadow-up);
+    z-index: 2147483000; display: none; flex-direction: column; gap: 0;
   }
-  :host(.dark) .source-dd {
-    background: rgba(30,41,59, 0.96);
+  :host(.dark) .dd-menu {
+    background: rgba(30,41,59, 1);
   }
-  .source-dd.open {
-    display: block;
-    animation: srcMenuIn .14s ease forwards;
-  }
+  .dd-menu.open { display: flex; animation: srcMenuIn .14s ease forwards; }
   @keyframes srcMenuIn {
     from { opacity: 0; transform: translateY(-4px) scale(.97); }
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
 
-  .source-opt {
+  .dd-option {
+    padding: 6px 8px; border-radius: 9px;
+    font-size: 12px; font-weight: 600; color: var(--text);
     display: flex; align-items: center; gap: 8px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    font-size: 13px; font-weight: 500;
-    color: var(--text);
-    cursor: pointer; transition: background .12s ease;
-    border: none; background: none; width: 100%;
-    text-align: left; font-family: inherit;
+    cursor: pointer; transition: background .1s;
+    user-select: none; border: none; background: transparent;
+    font-family: inherit;
   }
   @media (hover: hover) {
-    .source-opt:hover { background: var(--track-bg); }
+    .dd-option:hover { background: var(--track-bg); }
   }
-  .source-opt .icon { font-size: 18px; color: var(--text-sub); }
-  .source-opt.active { font-weight: 700; }
-  .source-opt.active .icon {
-    color: var(--sonos-blue);
+  .dd-option:active { transform: scale(var(--press-scale)); }
+  .dd-option.selected { font-weight: 700; color: var(--green); background: var(--green-fill); }
+  .dd-option.selected .spk-icon {
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
-  .source-opt .opt-sub {
-    font-size: 11px; font-weight: 500; color: var(--text-muted);
-    margin-left: auto; white-space: nowrap;
+
+  .spk-text { display: flex; align-items: center; gap: 0.22em; flex: 1; min-width: 0; }
+  .spk-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; max-width: 88px; }
+  .spk-now-playing {
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-top: 0;
+    flex: 1;
   }
+  .spk-now-playing::before {
+    content: "·";
+    margin-right: 0.25em;
+    opacity: 0.7;
+  }
+  .dd-option.selected .spk-now-playing { color: var(--green); opacity: 0.7; }
+
+  .grp-check {
+    width: 18px; height: 18px; border-radius: 999px; flex-shrink: 0;
+    border: 1.5px solid var(--text-muted); display: grid; place-items: center;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    position: relative; z-index: 2;
+  }
+  @media (hover: hover) {
+    .grp-check:hover { border-color: var(--green); }
+  }
+  .grp-check.in-group { background: var(--green); border-color: var(--green); }
+  .grp-check .icon {
+    color: #fff; opacity: 0; transition: opacity .1s;
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 14;
+  }
+  .grp-check.in-group .icon { opacity: 1; }
+
+  .dd-option.action { color: var(--text-sub); }
+  @media (hover: hover) {
+    .dd-option.action:hover { color: var(--text); }
+  }
+  .dd-option.action .icon { color: var(--green); }
+
+  .dd-divider { height: 1px; background: var(--divider); margin: 2px 6px; }
 `;
 
 /* ===============================================================
@@ -264,7 +288,7 @@ const SPEAKER_TILE_STYLES = `
     position: relative;
     cursor: pointer;
     user-select: none;
-    touch-action: pan-y;
+    touch-action: auto;
     -webkit-tap-highlight-color: transparent;
     transition:
       transform var(--motion-surface) var(--ease-emphasized),
@@ -274,6 +298,11 @@ const SPEAKER_TILE_STYLES = `
   }
   @media (hover: hover) {
     .speaker-tile:hover { box-shadow: var(--tile-shadow-lift); }
+  }
+  .speaker-tile.selected {
+    box-shadow:
+      0 0 0 1.5px var(--green-border),
+      var(--tile-shadow-lift);
   }
   .speaker-tile:focus-visible {
     outline: var(--focus-ring-width) solid var(--focus-ring-color);
@@ -313,17 +342,42 @@ const SPEAKER_TILE_STYLES = `
   :host(.dark) .spk-floating-pill { border-color: rgba(255,255,255,0.08); }
   .speaker-tile.sliding .spk-floating-pill { opacity: 1; }
 
-  /* Grouped dot indicator */
-  .group-dot {
+  /* Group badge indicator */
+  .group-badge {
     position: absolute; top: 8px; right: 8px;
-    width: 7px; height: 7px;
-    background: var(--sonos-blue);
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity .2s ease;
+    width: 22px; height: 22px;
+    border-radius: 999px;
+    border: 1px solid var(--ctrl-border);
+    background: var(--tile-bg);
+    color: var(--text-muted);
+    display: grid; place-items: center;
+    cursor: pointer;
+    z-index: 2;
+    padding: 0;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
+  }
+  .group-badge .icon { font-size: 14px; }
+  @media (hover: hover) {
+    .group-badge:hover {
+      border-color: var(--sonos-blue);
+      color: var(--sonos-blue);
+    }
+  }
+  .group-badge:active { transform: scale(var(--press-scale)); }
+  .group-badge:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+  .speaker-tile.grouped .group-badge {
+    background: var(--sonos-blue-fill);
+    border-color: var(--sonos-blue-border);
+    color: var(--sonos-blue);
     box-shadow: 0 0 8px var(--sonos-blue-glow);
   }
-  .speaker-tile.grouped .group-dot { opacity: 1; }
 
   /* Speaker icon wrap - spans both rows, sits on the left */
   .spk-icon-wrap {
@@ -339,6 +393,15 @@ const SPEAKER_TILE_STYLES = `
     color: var(--text-sub);
   }
   .spk-icon-wrap .icon { font-size: 20px; }
+  .spk-icon-btn {
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  .spk-icon-btn:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
   .speaker-tile.grouped .spk-icon-wrap {
     background: var(--sonos-blue-fill);
     color: var(--sonos-blue);
@@ -520,13 +583,13 @@ const TUNET_SONOS_TEMPLATE = `
             <span class="icon" style="font-size:20px" id="volBtnIcon">volume_up</span>
           </button>
         </div>
-        <div class="source-wrap" id="sourceWrap">
-          <button class="source-btn" id="sourceBtn" aria-expanded="false">
-            <span class="icon" id="sourceIcon">speaker</span>
+        <div class="speaker-wrap source-wrap" id="sourceWrap">
+          <button class="speaker-btn source-btn" id="sourceBtn" aria-expanded="false">
+            <span class="icon" id="sourceIcon" style="font-size:16px">speaker</span>
             <span id="sourceLabel">Speaker</span>
-            <span class="icon chevron">expand_more</span>
+            <span class="icon chevron" style="font-size:14px">expand_more</span>
           </button>
-          <div class="source-dd" id="sourceDd"></div>
+          <div class="dd-menu source-dd" id="sourceDd"></div>
         </div>
       </div>
 
@@ -554,7 +617,7 @@ const TUNET_SONOS_TEMPLATE = `
 
 const DRAG_THRESHOLD = 6;
 const DRAG_SCALE = 1.2; // px per 1% volume
-const LONG_PRESS_MS = 500;
+const LONG_PRESS_MS = 400;
 
 /* ===============================================================
    Card Class
@@ -576,6 +639,9 @@ class TunetSonosCard extends HTMLElement {
     this._dragStartX = 0;
     this._dragActive = false;
     this._dragVol = 0;
+    this._dragLastPct = 0;
+    this._dragTarget = null;
+    this._dragPointerId = null;
     this._ddDragRefs = null;
     this._ddDragFired = false;
     this._volDebounce = null;
@@ -587,6 +653,7 @@ class TunetSonosCard extends HTMLElement {
     // Volume overlay state
     this._volDragging = false;
     this._volOverlayDebounce = null;
+    this._volumeAutoExitTimer = null;
     this._serviceCooldown = false;
     this._cooldownTimer = null;
 
@@ -766,6 +833,7 @@ class TunetSonosCard extends HTMLElement {
     clearTimeout(this._longPressTimer);
     clearTimeout(this._volDebounce);
     clearTimeout(this._volOverlayDebounce);
+    clearTimeout(this._volumeAutoExitTimer);
     clearTimeout(this._cooldownTimer);
   }
 
@@ -794,6 +862,11 @@ class TunetSonosCard extends HTMLElement {
    */
   get _transportTarget() {
     return this._activeEntity || this._coordinator;
+  }
+
+  get _volumeTarget() {
+    if (this._isGroupedCoordinatorSelected()) return this._coordinator;
+    return this._activeEntity || this._coordinator || this._config.entity;
   }
 
   _callTransport(service) {
@@ -836,9 +909,69 @@ class TunetSonosCard extends HTMLElement {
     return !!legacyBinary && legacyBinary.state === 'on';
   }
 
+  _getGroupedCount() {
+    const members = this._activeGroupMembers();
+    if (members.length > 0) return members.length;
+    const speakers = this._cachedSpeakers || [];
+    return speakers.filter((spk) => this._isSpeakerInActiveGroup(spk.entity)).length;
+  }
+
+  _isGroupedCoordinatorSelected() {
+    return !!this._coordinator &&
+      this._activeEntity === this._coordinator &&
+      this._getGroupedCount() > 1;
+  }
+
+  _clearVolumeAutoExit() {
+    clearTimeout(this._volumeAutoExitTimer);
+    this._volumeAutoExitTimer = null;
+  }
+
+  _resetVolumeAutoExit() {
+    if (!this.$?.volOverlay?.classList.contains('active')) return;
+    this._clearVolumeAutoExit();
+    this._volumeAutoExitTimer = setTimeout(() => {
+      this._setVolumeOverlayActive(false);
+    }, 5000);
+  }
+
+  _setVolumeOverlayActive(active) {
+    this.$.volOverlay.classList.toggle('active', active);
+    if (active) this._resetVolumeAutoExit();
+    else this._clearVolumeAutoExit();
+  }
+
+  _setActiveEntity(entityId) {
+    if (!entityId) return;
+    if (this._activeEntity === entityId) {
+      this._resetVolumeAutoExit();
+      return;
+    }
+    this._activeEntity = entityId;
+    this._resetVolumeAutoExit();
+    this._updateAll();
+  }
+
+  _openSpeakerMoreInfo(entityId) {
+    this.dispatchEvent(new CustomEvent('hass-more-info', {
+      bubbles: true,
+      composed: true,
+      detail: { entityId },
+    }));
+  }
+
+  _toggleSpeakerGroup(entityId) {
+    this._callScript('sonos_toggle_group_membership', {
+      target_speaker: entityId,
+    });
+  }
+
   _getEffectiveSpeakers() {
     if (this._config.speakers && this._config.speakers.length > 0) {
-      return this._config.speakers;
+      return this._config.speakers.map((spk) => ({
+        ...spk,
+        _explicitName: Boolean(spk.name),
+      }));
     }
     if (!this._hass) return [];
     const speakers = [];
@@ -856,6 +989,7 @@ class TunetSonosCard extends HTMLElement {
             entity: playerEntity,
             name: playerState.attributes.friendly_name || room.replace(/_/g, ' '),
             icon: 'speaker',
+            _explicitName: false,
           });
         }
       }
@@ -879,18 +1013,11 @@ class TunetSonosCard extends HTMLElement {
     if (!this._hass) return entityId;
     const entity = this._hass.states[entityId];
     if (!entity) return entityId;
-    let name = entity.attributes.friendly_name || '';
-    // Strip common suffixes/prefixes for compact display
-    name = name
-      .replace(/\s+Sonos\s+Soundbar$/i, '')
-      .replace(/\s+Sonos$/i, '')
-      .replace(/\s+Soundbar$/i, '')
-      .replace(/\s+Speaker$/i, '')
-      .replace(/\s+Credenza\s+Speaker$/i, '')
-      .replace(/^Sonos\s+/i, '')
-      .replace(/\s+TV$/i, '')
-      .replace(/\s+Room$/i, '');
-    return name || entityId.replace('media_player.', '');
+    return compactSpeakerName(entity.attributes.friendly_name || entityId.replace('media_player.', ''));
+  }
+
+  _speakerLabel(spk, fallback = '') {
+    return compactSpeakerName(spk?.name || fallback);
   }
 
   /* ── Rendering ────────────────────────────────────── */
@@ -952,24 +1079,26 @@ class TunetSonosCard extends HTMLElement {
     // Volume button -> show overlay
     $.volBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      $.volOverlay.classList.toggle('active');
+      this._setVolumeOverlayActive(!$.volOverlay.classList.contains('active'));
     });
 
     // Volume overlay close
     $.volClose.addEventListener('click', (e) => {
       e.stopPropagation();
-      $.volOverlay.classList.remove('active');
+      this._setVolumeOverlayActive(false);
     });
 
     // Mute toggle
     $.muteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const entity = this._hass && this._hass.states[this._activeEntity];
+      const volumeTarget = this._volumeTarget;
+      const entity = this._hass && this._hass.states[volumeTarget];
       if (entity) {
         this._callService('media_player', 'volume_mute', {
-          entity_id: this._activeEntity,
+          entity_id: volumeTarget,
           is_volume_muted: !entity.attributes.is_volume_muted,
         });
+        this._resetVolumeAutoExit();
       }
     });
 
@@ -1003,10 +1132,12 @@ class TunetSonosCard extends HTMLElement {
 
       clearTimeout(this._volOverlayDebounce);
       this._volOverlayDebounce = setTimeout(() => {
+        const volumeTarget = this._volumeTarget;
         this._callService('media_player', 'volume_set', {
-          entity_id: this._activeEntity,
+          entity_id: volumeTarget,
           volume_level: pct / 100,
         });
+        this._resetVolumeAutoExit();
         this._serviceCooldown = true;
         clearTimeout(this._cooldownTimer);
         this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
@@ -1038,57 +1169,102 @@ class TunetSonosCard extends HTMLElement {
     dd.innerHTML = '';
 
     const speakers = this._cachedSpeakers || [];
+    const groupedCount = this._getGroupedCount();
     for (const spk of speakers) {
       const entity = this._hass.states[spk.entity];
       if (!entity) continue;
 
       const isActive = spk.entity === this._activeEntity;
+      const inGroup = this._isSpeakerInActiveGroup(spk.entity);
       const stateLabel = this._getSpeakerStateLabel(spk.entity);
 
       const opt = document.createElement('button');
-      opt.className = `source-opt${isActive ? ' active' : ''}`;
+      opt.className = `dd-option${isActive ? ' selected' : ''}`;
 
       const iconEl = document.createElement('span');
-      iconEl.className = 'icon';
-      iconEl.style.fontSize = '18px';
-      iconEl.textContent = spk.icon || 'speaker';
+      iconEl.className = 'icon spk-icon';
+      iconEl.style.fontSize = '16px';
+      iconEl.textContent = (spk.entity === this._coordinator && groupedCount > 1)
+        ? 'speaker_group'
+        : (spk.icon || 'speaker');
       opt.appendChild(iconEl);
 
-      const nameSpan = document.createTextNode(
-        ' ' + (spk.name || this._getSpeakerShortName(spk.entity)) + ' '
-      );
-      opt.appendChild(nameSpan);
-
+      const textWrap = document.createElement('span');
+      textWrap.className = 'spk-text';
+      const nameEl = document.createElement('span');
+      nameEl.className = 'spk-name';
+      nameEl.textContent = this._speakerLabel(spk, entity.attributes.friendly_name || spk.entity);
+      textWrap.appendChild(nameEl);
       const subSpan = document.createElement('span');
-      subSpan.className = 'opt-sub';
-      subSpan.textContent = stateLabel;
-      opt.appendChild(subSpan);
+      subSpan.className = 'spk-now-playing';
+      subSpan.textContent = (spk.entity === this._coordinator && groupedCount > 1)
+        ? `${groupedCount} grouped`
+        : stateLabel;
+      textWrap.appendChild(subSpan);
+      opt.appendChild(textWrap);
 
-      // Click to select speaker (fires only if no drag occurred)
+      const check = document.createElement('div');
+      check.className = `grp-check${inGroup ? ' in-group' : ''}`;
+      const checkIcon = document.createElement('span');
+      checkIcon.className = 'icon';
+      checkIcon.style.fontSize = '12px';
+      checkIcon.textContent = 'check';
+      check.appendChild(checkIcon);
+      opt.appendChild(check);
+
+      check.addEventListener('click', (e) => {
+        e.stopPropagation();
+        check.classList.toggle('in-group');
+        this._callScript('sonos_toggle_group_membership', {
+          target_speaker: spk.entity,
+        });
+      });
+
       opt.addEventListener('click', (e) => {
-        if (this._ddDragFired) { this._ddDragFired = false; return; }
         e.stopPropagation();
         this._activeEntity = spk.entity;
         this._closeSourceMenu();
+        this._resetVolumeAutoExit();
         this._updateAll();
       });
 
-      // Hold-drag on dropdown option for volume control
-      opt.addEventListener('pointerdown', (e) => {
-        e.stopPropagation();
-        const playerState = this._hass && this._hass.states[spk.entity];
-        this._dragEntity = spk.entity;
-        this._dragStartX = e.clientX;
-        this._dragActive = false;
-        this._ddDragFired = false;
-        this._dragVol = playerState ? Math.round((playerState.attributes.volume_level || 0) * 100) : 0;
-        // Store dd-specific refs so _onPointerMove can update the option
-        this._ddDragRefs = { el: opt, subEl: subSpan, entity: spk.entity };
-        clearTimeout(this._longPressTimer);
-        // No long-press action for dropdown items
-      });
-
       dd.appendChild(opt);
+    }
+
+    if (speakers.length > 1) {
+      const divider = document.createElement('div');
+      divider.className = 'dd-divider';
+      dd.appendChild(divider);
+
+      const groupAllBtn = document.createElement('button');
+      groupAllBtn.className = 'dd-option action';
+      const gaIcon = document.createElement('span');
+      gaIcon.className = 'icon';
+      gaIcon.style.fontSize = '18px';
+      gaIcon.textContent = 'link';
+      groupAllBtn.appendChild(gaIcon);
+      groupAllBtn.appendChild(document.createTextNode(' Group All'));
+      groupAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._callScript('sonos_group_all_to_playing');
+        this._closeSourceMenu();
+      });
+      dd.appendChild(groupAllBtn);
+
+      const ungroupBtn = document.createElement('button');
+      ungroupBtn.className = 'dd-option action';
+      const ugIcon = document.createElement('span');
+      ugIcon.className = 'icon';
+      ugIcon.style.fontSize = '18px';
+      ugIcon.textContent = 'link_off';
+      ungroupBtn.appendChild(ugIcon);
+      ungroupBtn.appendChild(document.createTextNode(' Ungroup All'));
+      ungroupBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._callScript('sonos_ungroup_all');
+        this._closeSourceMenu();
+      });
+      dd.appendChild(ungroupBtn);
     }
   }
 
@@ -1136,12 +1312,28 @@ class TunetSonosCard extends HTMLElement {
     for (const spk of speakers) {
       const tile = document.createElement('div');
       tile.className = 'speaker-tile';
+      tile.tabIndex = 0;
+      tile.setAttribute('role', 'button');
+      tile.setAttribute('aria-pressed', 'false');
+      tile.setAttribute('aria-label', `Select ${this._speakerLabel(spk, this._getSpeakerShortName(spk.entity))}`);
       tile.dataset.entity = spk.entity;
 
-      // Group dot
-      const dot = document.createElement('div');
-      dot.className = 'group-dot';
-      tile.appendChild(dot);
+      const badge = document.createElement('button');
+      badge.type = 'button';
+      badge.className = 'group-badge';
+      badge.setAttribute('aria-label', `Toggle group membership for ${this._speakerLabel(spk, this._getSpeakerShortName(spk.entity))}`);
+      const badgeIcon = document.createElement('span');
+      badgeIcon.className = 'icon';
+      badgeIcon.textContent = 'add';
+      badge.appendChild(badgeIcon);
+      badge.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+      });
+      badge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._toggleSpeakerGroup(spk.entity);
+      });
+      tile.appendChild(badge);
 
       // Floating pill
       const pill = document.createElement('div');
@@ -1150,19 +1342,28 @@ class TunetSonosCard extends HTMLElement {
       tile.appendChild(pill);
 
       // Icon wrap
-      const iconWrap = document.createElement('div');
-      iconWrap.className = 'spk-icon-wrap';
+      const iconWrap = document.createElement('button');
+      iconWrap.type = 'button';
+      iconWrap.className = 'spk-icon-wrap spk-icon-btn';
+      iconWrap.setAttribute('aria-label', `Open details for ${this._speakerLabel(spk, this._getSpeakerShortName(spk.entity))}`);
       const icon = document.createElement('span');
       icon.className = 'icon';
       icon.style.fontSize = '20px';
       icon.textContent = spk.icon || 'speaker';
       iconWrap.appendChild(icon);
+      iconWrap.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+      });
+      iconWrap.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._openSpeakerMoreInfo(spk.entity);
+      });
       tile.appendChild(iconWrap);
 
       // Name
       const nameEl = document.createElement('div');
       nameEl.className = 'spk-name';
-      nameEl.textContent = spk.name || this._getSpeakerShortName(spk.entity);
+      nameEl.textContent = this._speakerLabel(spk, this._getSpeakerShortName(spk.entity));
       tile.appendChild(nameEl);
 
       // Volume label
@@ -1180,14 +1381,23 @@ class TunetSonosCard extends HTMLElement {
       volTrack.appendChild(volFill);
       tile.appendChild(volTrack);
 
-      // Pointer events for drag-to-volume / tap-to-group
+      tile.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          this._setActiveEntity(spk.entity);
+        }
+      });
+
+      // Pointer events for hold-to-drag volume / tap-to-select
       tile.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
         e.stopPropagation();
         this._onTilePointerDown(spk.entity, e, tile);
       });
 
       scroll.appendChild(tile);
-      this._tileRefs.set(spk.entity, { tile, iconWrap, icon, nameEl, volEl, volFill, pill });
+      this._tileRefs.set(spk.entity, { tile, badge, badgeIcon, iconWrap, icon, nameEl, volEl, volFill, pill });
     }
   }
 
@@ -1198,25 +1408,34 @@ class TunetSonosCard extends HTMLElement {
     this._dragStartX = e.clientX;
     this._dragActive = false;
     this._longPressFired = false;
+    this._dragTarget = null;
+    this._dragPointerId = e.pointerId;
 
     const playerState = this._hass && this._hass.states[entity];
     this._dragVol = playerState ? Math.round((playerState.attributes.volume_level || 0) * 100) : 0;
+    this._dragLastPct = this._dragVol;
 
     clearTimeout(this._longPressTimer);
     this._longPressTimer = setTimeout(() => {
       if (!this._dragActive && this._dragEntity === entity) {
         this._longPressFired = true;
-        this.dispatchEvent(new CustomEvent('hass-more-info', {
-          bubbles: true, composed: true,
-          detail: { entityId: entity },
-        }));
-        this._dragEntity = null;
+        this._setActiveEntity(entity);
+        this._dragTarget = this._volumeTarget;
+        const targetState = this._hass && this._hass.states[this._dragTarget];
+        this._dragVol = targetState ? Math.round((targetState.attributes.volume_level || 0) * 100) : this._dragVol;
+        this._dragLastPct = this._dragVol;
+        try {
+          tile.setPointerCapture?.(this._dragPointerId);
+        } catch (_) {
+          // Document-level listeners still handle the drag if capture fails.
+        }
       }
     }, LONG_PRESS_MS);
   }
 
   _onPointerMove(e) {
     if (!this._dragEntity) return;
+    if (!this._longPressFired) return;
     const dx = e.clientX - this._dragStartX;
     const isDdDrag = !!this._ddDragRefs && this._ddDragRefs.entity === this._dragEntity;
 
@@ -1231,6 +1450,7 @@ class TunetSonosCard extends HTMLElement {
     }
 
     const newVol = clamp(Math.round(this._dragVol + (dx / DRAG_SCALE)), 0, 100);
+    this._dragLastPct = newVol;
 
     // Update tile refs if available
     const refs = this._tileRefs.get(this._dragEntity);
@@ -1248,7 +1468,7 @@ class TunetSonosCard extends HTMLElement {
     clearTimeout(this._volDebounce);
     this._volDebounce = setTimeout(() => {
       this._callService('media_player', 'volume_set', {
-        entity_id: this._dragEntity,
+        entity_id: this._dragTarget || this._dragEntity,
         volume_level: newVol / 100,
       });
       this._serviceCooldown = true;
@@ -1267,15 +1487,32 @@ class TunetSonosCard extends HTMLElement {
 
     if (refs) refs.tile.classList.remove('sliding');
 
-    if (!this._dragActive && !this._longPressFired && !isDdDrag) {
-      // Tap: toggle group membership (tile only, not dropdown)
-      this._callScript('sonos_toggle_group_membership', {
-        target_speaker: entity,
+    if (this._dragActive) {
+      clearTimeout(this._volDebounce);
+      this._callService('media_player', 'volume_set', {
+        entity_id: this._dragTarget || entity,
+        volume_level: this._dragLastPct / 100,
       });
+      this._serviceCooldown = true;
+      clearTimeout(this._cooldownTimer);
+      this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
+      this._resetVolumeAutoExit();
+    } else if (!this._longPressFired && !isDdDrag) {
+      this._setActiveEntity(entity);
+    }
+
+    if (refs?.tile && refs.tile.hasPointerCapture?.(this._dragPointerId)) {
+      try {
+        refs.tile.releasePointerCapture(this._dragPointerId);
+      } catch (_) {
+        // Ignore release failures on browsers that auto-release.
+      }
     }
 
     this._dragEntity = null;
     this._dragActive = false;
+    this._dragTarget = null;
+    this._dragPointerId = null;
     this._ddDragRefs = null;
   }
 
@@ -1289,6 +1526,7 @@ class TunetSonosCard extends HTMLElement {
     const coordId = this._coordinator;
     const coordEntity = this._hass.states[coordId];
     const activeEntity = this._hass.states[this._activeEntity];
+    const volumeEntity = this._hass.states[this._volumeTarget];
 
     if (!coordEntity && !activeEntity) {
       $.card.dataset.state = 'unavailable';
@@ -1341,10 +1579,10 @@ class TunetSonosCard extends HTMLElement {
     $.prevBtn.disabled = !isActive;
     $.nextBtn.disabled = !isActive;
 
-    // Volume button icon from active entity
-    if (!this._volDragging && activeEntity) {
-      const vol = Math.round((activeEntity.attributes.volume_level || 0) * 100);
-      const muted = activeEntity.attributes.is_volume_muted;
+    // Volume button icon from selected volume target
+    if (!this._volDragging && volumeEntity) {
+      const vol = Math.round((volumeEntity.attributes.volume_level || 0) * 100);
+      const muted = volumeEntity.attributes.is_volume_muted;
       const volIcon = muted ? 'volume_off' : vol < 40 ? 'volume_down' : 'volume_up';
       $.volBtnIcon.textContent = volIcon;
 
@@ -1356,12 +1594,17 @@ class TunetSonosCard extends HTMLElement {
 
     // Source button label
     const activeSpk = (this._cachedSpeakers || []).find(s => s.entity === this._activeEntity);
+    const isGroupTarget = this._isGroupedCoordinatorSelected();
     if (activeSpk) {
-      $.sourceLabel.textContent = activeSpk.name || this._getSpeakerShortName(this._activeEntity);
-      $.sourceIcon.textContent = activeSpk.icon || 'speaker';
+      $.sourceLabel.textContent = this._speakerLabel(activeSpk, this._getSpeakerShortName(this._activeEntity));
+      $.sourceIcon.textContent = isGroupTarget ? 'speaker_group' : (activeSpk.icon || 'speaker');
     } else if (activeEntity) {
       $.sourceLabel.textContent = this._getSpeakerShortName(this._activeEntity);
+      $.sourceIcon.textContent = isGroupTarget ? 'speaker_group' : 'speaker';
     }
+    $.sourceBtn.title = isGroupTarget
+      ? `Group volume • ${this._getGroupedCount()} grouped`
+      : `Control ${$.sourceLabel.textContent}`;
 
     // Update speaker tiles
     this._updateTiles();
@@ -1375,9 +1618,12 @@ class TunetSonosCard extends HTMLElement {
 
       const inGroup = this._isSpeakerInActiveGroup(spk.entity);
       const playerState = this._hass.states[spk.entity];
+      const isSelected = spk.entity === this._activeEntity;
 
       // Toggle grouped class
       refs.tile.classList.toggle('grouped', inGroup);
+      refs.tile.classList.toggle('selected', isSelected);
+      refs.tile.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
 
       // Icon fill
       if (inGroup) {
@@ -1385,6 +1631,10 @@ class TunetSonosCard extends HTMLElement {
       } else {
         refs.icon.classList.remove('filled');
       }
+
+      refs.badge.classList.toggle('in-group', inGroup);
+      refs.badge.title = inGroup ? 'Remove from group' : 'Add to group';
+      refs.badgeIcon.textContent = inGroup ? 'remove' : 'add';
 
       // Volume from entity state (only if not dragging this tile)
       if (playerState && this._dragEntity !== spk.entity) {

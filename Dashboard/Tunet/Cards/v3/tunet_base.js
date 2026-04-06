@@ -397,13 +397,13 @@ export const TOKENS_MIDNIGHT = `
 
 export const PROFILE_SCHEMA_VERSION = 'v1-20260308';
 
-export const FAMILY_KEYS = ['tile-grid', 'speaker-tile', 'rooms-row', 'indicator-tile', 'indicator-row'];
+export const FAMILY_KEYS = ['lighting-tile', 'tile-grid', 'speaker-tile', 'rooms-row', 'indicator-tile', 'indicator-row'];
 export const SIZE_KEYS = ['compact', 'standard', 'large'];
 
 const VALID_SIZES = new Set(SIZE_KEYS);
 
 export const PRESET_FAMILY_MAP = {
-  lighting: 'tile-grid',
+  lighting: 'lighting-tile',
   speakers: 'speaker-tile',
   rooms: 'tile-grid',
   'rooms-row': 'rooms-row',
@@ -496,6 +496,93 @@ export const PROFILE_BASE = {
 };
 
 export const SIZE_PROFILES = {
+  'lighting-tile': {
+    compact: {
+      ...PROFILE_BASE.compact,
+      tileMinH: '5.375em',
+      iconBox: '2.1875em',
+      iconGlyph: '1.09375em',
+      nameFont: '0.78125em',
+      valueFont: '1.09375em',
+      displayIconBox: '2.1875em',
+      displayIconGlyph: '1.09375em',
+      displayNameFont: '1.02em',
+      displayValueFont: '1.06em',
+      headerTitleFont: '0.95em',
+      headerSubFont: '0.82em',
+      progressH: '0.4375em',
+      lightingAspect: '1 / 0.6',
+      lightingPadX: '0.36em',
+      lightingProgressInset: '1.05em',
+      lightingPadTop: '0.56em',
+      lightingPadBottom: '1.45em',
+      lightingIconGap: '0.18em',
+      lightingNameGap: '0.06em',
+      lightingValueGap: '0.3em',
+      lightingProgressBottom: '0.62em',
+      gridColGapDesktop: '0.75em',
+      gridRowGapDesktop: '0.875em',
+      gridColMaxDesktop: '13.5em',
+      gridTileMinHDesktop: '6.5em',
+    },
+    standard: {
+      ...PROFILE_BASE.standard,
+      tileMinH: '6em',
+      iconBox: '2.5em',
+      iconGlyph: '1.25em',
+      nameFont: '0.84375em',
+      valueFont: '1.1875em',
+      displayIconBox: '2.5em',
+      displayIconGlyph: '1.25em',
+      displayNameFont: '1.12em',
+      displayValueFont: '1.18em',
+      headerTitleFont: '0.95em',
+      headerSubFont: '0.82em',
+      progressH: '0.5625em',
+      lightingAspect: '1 / 0.64',
+      lightingPadX: '0.5em',
+      lightingProgressInset: '1.425em',
+      lightingPadTop: '0.72em',
+      lightingPadBottom: '1.82em',
+      lightingIconGap: '0.22em',
+      lightingNameGap: '0.08em',
+      lightingValueGap: '0.38em',
+      lightingProgressBottom: '0.82em',
+      gridColGapDesktop: '0.875em',
+      gridRowGapDesktop: '1em',
+      gridColMaxDesktop: '14.5em',
+      gridTileMinHDesktop: '7.25em',
+    },
+    large: {
+      ...PROFILE_BASE.large,
+      tileMinH: '7em',
+      iconBox: '3.25em',
+      iconGlyph: '1.625em',
+      nameFont: '1em',
+      valueFont: '1.5em',
+      displayIconBox: '3.25em',
+      displayIconGlyph: '1.625em',
+      displayNameFont: '1.44em',
+      displayValueFont: '1.52em',
+      headerTitleFont: '0.9625em',
+      headerSubFont: '0.825em',
+      progressH: '0.6875em',
+      lightingAspect: '1 / 0.68',
+      lightingPadX: '0.62em',
+      lightingProgressInset: '1.8em',
+      lightingPadTop: '1em',
+      lightingPadBottom: '2.4em',
+      lightingIconGap: '0.36em',
+      lightingNameGap: '0.16em',
+      lightingValueGap: '0.56em',
+      lightingProgressBottom: '1em',
+      gridColGapDesktop: '1em',
+      gridRowGapDesktop: '1.125em',
+      gridColMaxDesktop: '15.75em',
+      gridTileMinHDesktop: '8em',
+    },
+  },
+
   'tile-grid': {
     compact: {
       ...PROFILE_BASE.compact,
@@ -799,6 +886,19 @@ export const TOKEN_MAP = {
   displayActionFont: '--_tunet-display-action-font',
   displayIconBox: '--_tunet-display-icon-box',
   displayIconGlyph: '--_tunet-display-icon-glyph',
+  lightingAspect: '--_tunet-lighting-aspect',
+  lightingPadX: '--_tunet-lighting-pad-x',
+  lightingProgressInset: '--_tunet-lighting-progress-inset',
+  lightingPadTop: '--_tunet-lighting-pad-top',
+  lightingPadBottom: '--_tunet-lighting-pad-bottom',
+  lightingIconGap: '--_tunet-lighting-icon-gap',
+  lightingNameGap: '--_tunet-lighting-name-gap',
+  lightingValueGap: '--_tunet-lighting-value-gap',
+  lightingProgressBottom: '--_tunet-lighting-progress-bottom',
+  gridColGapDesktop: '--_tunet-grid-col-gap-desktop',
+  gridRowGapDesktop: '--_tunet-grid-row-gap-desktop',
+  gridColMaxDesktop: '--_tunet-grid-col-max-desktop',
+  gridTileMinHDesktop: '--_tunet-grid-tile-min-h-desktop',
   progressH: '--_tunet-progress-h',
   ctrlMinH: '--_tunet-ctrl-min-h',
   ctrlPadX: '--_tunet-ctrl-pad-x',
@@ -1491,6 +1591,41 @@ export function normalizePath(value) {
   const raw = (value == null ? '' : String(value)).trim();
   if (!raw) return '';
   return raw.startsWith('/') || raw.startsWith('#') ? raw : `/${raw}`;
+}
+
+/**
+ * Compact common speaker/room labels for dense audio controls while
+ * preserving room identity.
+ * @param {string} label
+ * @returns {string}
+ */
+export function compactSpeakerName(label) {
+  const raw = String(label || '').trim();
+  if (!raw) return '';
+
+  const cleaned = raw
+    .replace(/\s+Sonos\s+Soundbar$/i, '')
+    .replace(/\s+Sonos$/i, '')
+    .replace(/\s+Soundbar$/i, '')
+    .replace(/\s+Speaker$/i, '')
+    .replace(/\s+TV$/i, '')
+    .replace(/^Sonos\s+/i, '')
+    .trim();
+
+  const lower = cleaned.toLowerCase();
+  if (/\bliving\b/.test(lower)) return 'Living';
+  if (/\bdining\b/.test(lower)) return 'Dining';
+  if (/\bkitchen\b/.test(lower)) return 'Kitchen';
+  if (/\boffice\b/.test(lower)) return 'Office';
+  if (/\b(bath|bathroom|powder)\b/.test(lower)) return 'Bath';
+  if (/\b(primary|master|bed|bedroom)\b/.test(lower)) return 'Bed';
+  if (/\bfamily\b/.test(lower)) return 'Family';
+  if (/\bden\b/.test(lower)) return 'Den';
+  if (/\bgarage\b/.test(lower)) return 'Garage';
+  if (/\bpatio\b/.test(lower)) return 'Patio';
+
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  return parts.length ? parts[0] : cleaned;
 }
 
 /**

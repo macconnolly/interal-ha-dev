@@ -7,8 +7,8 @@ If this file and `Dashboard/Tunet/AGENTS.md` ever disagree, follow `Dashboard/Tu
 
 **Consistency-driver card rehabilitation** — `~/.claude/plans/flickering-herding-wolf.md` is the sole execution authority (`CD0–CD12`).
 
-Current tranche: **CD6 — Lighting Bespoke Pass** (next)  
-Previous tranches: `CD5` (Apr 4), `CD4` (Apr 4), `CD3` (Apr 3), `CD2` (Apr 3), `CD1` (Apr 3), `CD0` (Apr 3)
+Current tranche: **CD9 — Media Bespoke Pass** (selected-target audio routing; media/sonos dropdown parity; speaker-grid dense/default + speaker-tile semantics)  
+Previous tranches: `CD8` (Apr 6; weather redesign accepted, climate/sensor narrowed healthy), `CD7` (Apr 6; card-level closeout only, room-page layout undecided), `CD6` (Apr 4), `CD5` (Apr 4), `CD4` (Apr 4), `CD3` (Apr 3), `CD2` (Apr 3), `CD1` (Apr 3), `CD0` (Apr 3)
 
 Execution order remains:
 - `CD0` build/lab

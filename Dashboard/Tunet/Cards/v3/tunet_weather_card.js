@@ -1,7 +1,7 @@
 /**
  * Tunet Weather Card (v2 – ES Module)
  * Current conditions + forecast with glassmorphism design
- * Version 1.6.1
+ * Version 1.6.3
  */
 
 import {
@@ -22,7 +22,7 @@ import {
   bindButtonActivation,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '1.6.1';
+const CARD_VERSION = '1.6.3';
 
 // ═══════════════════════════════════════════════════════════
 // Card-specific CSS overrides
@@ -98,51 +98,34 @@ const CARD_STYLES = `
     max-width: 100%;
     flex: 0 1 auto;
   }
-  .seg-group {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    padding: 2px;
+  .flip-chip {
+    min-height: 24px;
+    padding: 0 10px;
     border-radius: 999px;
     border: 1px solid var(--ctrl-border);
     background: var(--ctrl-bg);
     box-shadow: var(--ctrl-sh);
-    max-width: 100%;
-    min-width: 0;
-    flex: 0 1 auto;
-  }
-  .seg-btn {
-    flex: 1 1 auto;
-    min-width: 0;
-    min-height: 28px;
-    padding: 0 11px;
-    border-radius: 999px;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
+    color: var(--blue);
     font-family: inherit;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.25px;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
     transition:
       background var(--motion-fast) var(--ease-standard),
       color var(--motion-fast) var(--ease-standard);
     white-space: nowrap;
   }
-  .seg-btn.active {
-    background: var(--blue-fill);
-    color: var(--blue);
-  }
-  .seg-group[hidden] { display: none !important; }
+  .flip-chip[hidden] { display: none !important; }
 
   /* Weather body */
   .weather-body { display: flex; flex-direction: column; gap: 10px; }
   .weather-main {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: flex-start;
+    display: flex;
+    align-items: baseline;
     gap: 12px;
+    flex-wrap: wrap;
     padding: 0 2px;
   }
   .weather-current { display: flex; flex-direction: column; gap: 2px; }
@@ -166,31 +149,28 @@ const CARD_STYLES = `
   }
 
   .weather-details {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px 10px;
-    padding-top: 6px;
-    align-content: start;
-    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
   }
   .weather-detail {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     font-size: 12.5px;
     font-weight: 600;
     color: var(--text-sub);
-    min-width: 0;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
+  .weather-detail .lbl { /* visible by default — hidden at phone via media query */ }
   .weather-detail .icon { color: var(--blue); font-size: 16px; width: 16px; height: 16px; }
   .weather-detail .val { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
   /* Forecast */
   .weather-forecast { display: grid; grid-template-columns: repeat(var(--forecast-cols, 5), minmax(0, 1fr)); gap: 5px; }
   .forecast-tile {
+    position: relative;
     display: flex; flex-direction: column; align-items: center; gap: 3px;
     padding: 6px 4px 5px; border-radius: 11px;
     background: var(--ctrl-bg); border: 1px solid var(--ctrl-border);
@@ -202,6 +182,23 @@ const CARD_STYLES = `
   .forecast-day {
     font-size: 11.6px; font-weight: 700; letter-spacing: .2px; text-transform: uppercase; line-height: 1.08;
     color: var(--text-muted);
+  }
+  .forecast-aux {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.15px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .forecast-aux .tag {
+    color: var(--blue);
   }
   .forecast-tile:first-child .forecast-day { color: var(--blue); }
   .forecast-icon { color: var(--text-sub); font-size: 19px; line-height: 1; }
@@ -241,39 +238,22 @@ const CARD_STYLES = `
 
   @media (max-width: 720px) {
     .hdr-spacer { display: none; }
-    .hdr-controls {
-      gap: 4px;
-      width: 100%;
-      flex: 1 1 100%;
-      justify-content: stretch;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .seg-group { width: 100%; }
-    .seg-btn { padding: 0 8px; font-size: 11px; }
-    .weather-main { grid-template-columns: 1fr; gap: 8px; }
+    .weather-main { gap: 8px; }
     .weather-desc { max-width: none; }
   }
 
   @media (max-width: 480px) {
     .card { padding: var(--card-pad, 14px); }
-    .hdr-controls {
-      grid-template-columns: 1fr;
-    }
-    .weather-details {
-      grid-template-columns: 1fr;
-      gap: 5px;
-      padding-top: 2px;
-    }
-    .seg-btn {
-      min-height: 26px;
-      padding: 0 7px;
-      font-size: 10.8px;
-    }
+    .weather-detail .lbl { display: none; }
     .forecast-tile { padding: 6px 3px 4px; }
     .forecast-day { font-size: 11.2px; }
     .forecast-hi { font-size: 13.2px; }
     .forecast-lo { font-size: 12px; }
+    .forecast-aux {
+      top: 5px;
+      right: 5px;
+      font-size: 9.5px;
+    }
   }
 `;
 
@@ -362,6 +342,17 @@ const PRECIP_AMOUNT_KEYS = [
   'precipitation.value',
 ];
 
+const UV_KEYS = [
+  'uv_index',
+  'uv',
+  'uvIndex',
+  'ultraviolet_index',
+  'ultraviolet',
+  'solar_uv_index',
+  'solar_uv',
+  'uv.value',
+];
+
 // ═══════════════════════════════════════════════════════════
 // Card Class
 // ═══════════════════════════════════════════════════════════
@@ -401,6 +392,7 @@ class TunetWeatherCard extends HTMLElement {
         { name: 'show_view_toggle', selector: { boolean: {} } },
         { name: 'show_metric_toggle', selector: { boolean: {} } },
         { name: 'auto_precip_threshold', selector: { number: { min: 0, max: 100, step: 1, mode: 'box' } } },
+        { name: 'show_pressure', selector: { boolean: {} } },
         { name: 'show_last_updated', selector: { boolean: {} } },
       ],
       computeLabel: (s) => {
@@ -414,6 +406,7 @@ class TunetWeatherCard extends HTMLElement {
           show_view_toggle: 'Show Daily/Hourly Toggle',
           show_metric_toggle: 'Show Temp/Precip Toggle',
           auto_precip_threshold: 'Auto Precip Threshold (%)',
+          show_pressure: 'Show Pressure',
           show_last_updated: 'Show Last Updated',
         };
         return labels[s.name] || s.name;
@@ -443,6 +436,7 @@ class TunetWeatherCard extends HTMLElement {
       auto_precip_threshold: Number.isFinite(Number(config.auto_precip_threshold))
         ? Math.max(0, Math.min(100, Number(config.auto_precip_threshold)))
         : 45,
+      show_pressure: config.show_pressure === true,
       show_last_updated: config.show_last_updated !== false,
     };
     this._viewPinned = false;
@@ -509,14 +503,8 @@ class TunetWeatherCard extends HTMLElement {
             </div>
             <div class="hdr-spacer"></div>
             <div class="hdr-controls">
-              <div class="seg-group" id="viewToggle">
-                <button type="button" class="seg-btn" id="viewDailyBtn">Daily</button>
-                <button type="button" class="seg-btn" id="viewHourlyBtn">Hourly</button>
-              </div>
-              <div class="seg-group" id="metricToggle">
-                <button type="button" class="seg-btn" id="metricTempBtn">Temp</button>
-                <button type="button" class="seg-btn" id="metricPrecipBtn">Precip</button>
-              </div>
+              <button type="button" class="flip-chip" id="viewChip">Daily</button>
+              <button type="button" class="flip-chip" id="metricChip">Temp</button>
             </div>
           </div>
           <div class="weather-body">
@@ -543,12 +531,8 @@ class TunetWeatherCard extends HTMLElement {
       condDesc: this.shadowRoot.getElementById('condDesc'),
       details: this.shadowRoot.getElementById('details'),
       forecast: this.shadowRoot.getElementById('forecast'),
-      viewToggle: this.shadowRoot.getElementById('viewToggle'),
-      viewDailyBtn: this.shadowRoot.getElementById('viewDailyBtn'),
-      viewHourlyBtn: this.shadowRoot.getElementById('viewHourlyBtn'),
-      metricToggle: this.shadowRoot.getElementById('metricToggle'),
-      metricTempBtn: this.shadowRoot.getElementById('metricTempBtn'),
-      metricPrecipBtn: this.shadowRoot.getElementById('metricPrecipBtn'),
+      viewChip: this.shadowRoot.getElementById('viewChip'),
+      metricChip: this.shadowRoot.getElementById('metricChip'),
     };
 
     bindButtonActivation(this.$.infoTile, { label: 'Show weather details' });
@@ -559,10 +543,14 @@ class TunetWeatherCard extends HTMLElement {
         detail: { entityId: this._config.entity },
       }));
     });
-    this.$.viewDailyBtn?.addEventListener('click', () => this._setViewMode('daily', true));
-    this.$.viewHourlyBtn?.addEventListener('click', () => this._setViewMode('hourly', true));
-    this.$.metricTempBtn?.addEventListener('click', () => this._setMetricMode('temperature', true));
-    this.$.metricPrecipBtn?.addEventListener('click', () => this._setMetricMode('precipitation', true));
+    this.$.viewChip?.addEventListener('click', () => {
+      const next = this._viewMode === 'daily' ? 'hourly' : 'daily';
+      this._setViewMode(next, true);
+    });
+    this.$.metricChip?.addEventListener('click', () => {
+      const next = this._metricMode === 'temperature' ? 'precipitation' : 'temperature';
+      this._setMetricMode(next, true);
+    });
   }
 
   _unsubForecast() {
@@ -595,6 +583,7 @@ class TunetWeatherCard extends HTMLElement {
           if (msg.forecast && Array.isArray(msg.forecast)) {
             if (type === 'hourly') this._forecastHourly = msg.forecast;
             else this._forecastDaily = msg.forecast;
+            this._refreshForecastDrivenModes();
             this._renderForecast();
           }
         },
@@ -624,6 +613,7 @@ class TunetWeatherCard extends HTMLElement {
       if (Array.isArray(forecast) && forecast.length > 0) {
         if (type === 'hourly') this._forecastHourly = forecast;
         else this._forecastDaily = forecast;
+        this._refreshForecastDrivenModes();
         return;
       }
     } catch (_) {}
@@ -680,14 +670,15 @@ class TunetWeatherCard extends HTMLElement {
     if (a.uv_index != null) {
       details.push({ icon: 'wb_sunny', label: 'UV', value: String(Math.round(a.uv_index)) });
     }
-    if (a.pressure != null) {
+    if (this._config.show_pressure && a.pressure != null) {
       details.push({ icon: 'speed', label: 'Pressure', value: `${Math.round(a.pressure)} hPa` });
     }
 
     this.$.details.innerHTML = details.map(d =>
       `<div class="weather-detail">
         <span class="icon">${d.icon}</span>
-        ${d.label} <span class="val">${d.value}</span>
+        <span class="lbl">${d.label}</span>
+        <span class="val">${d.value}</span>
       </div>`
     ).join('');
 
@@ -715,9 +706,16 @@ class TunetWeatherCard extends HTMLElement {
       const hi = fc.temperature != null ? Math.round(fc.temperature) : '--';
       const lo = this._viewMode === 'daily' && fc.templow != null ? Math.round(fc.templow) : null;
       const precip = this._resolvePrecipPresentation(fc);
+      const hourlyUv = this._viewMode === 'hourly' && !isPrecip
+        ? this._resolveForecastUv(fc)
+        : null;
 
       return `
         <div class="forecast-tile">
+          ${Number.isFinite(hourlyUv)
+            ? `<span class="forecast-aux"><span class="tag">UV</span><span class="val">${hourlyUv}</span></span>`
+            : ''
+          }
           <span class="forecast-day">${dayName}</span>
           <span class="icon forecast-icon">${icon}</span>
           ${isPrecip
@@ -817,6 +815,14 @@ class TunetWeatherCard extends HTMLElement {
     return this._pickPrecipCandidate(fc, PRECIP_AMOUNT_KEYS, this._normalizePrecipAmount);
   }
 
+  _resolveForecastUv(fc) {
+    for (const key of UV_KEYS) {
+      const value = this._toFiniteNumber(this._readForecastValue(fc, key));
+      if (Number.isFinite(value)) return Math.max(0, Math.round(value));
+    }
+    return null;
+  }
+
   _resolvePrecipPresentation(fc) {
     const probability = this._resolvePrecipProbability(fc);
     const amount = this._resolvePrecipAmount(fc);
@@ -858,19 +864,30 @@ class TunetWeatherCard extends HTMLElement {
     this._renderForecast();
   }
 
+  _refreshForecastDrivenModes() {
+    if (!this._hass || !this._config.entity) return;
+    const entity = this._hass.states[this._config.entity];
+    if (!entity) return;
+    this._applyAutoModes(entity.state);
+    this._updateToggleControls();
+  }
+
   _updateToggleControls() {
     if (!this.$) return;
-    if (this.$.viewToggle) this.$.viewToggle.hidden = !this._config.show_view_toggle;
-    if (this.$.metricToggle) this.$.metricToggle.hidden = !this._config.show_metric_toggle;
-    this.$.viewDailyBtn?.classList.toggle('active', this._viewMode === 'daily');
-    this.$.viewHourlyBtn?.classList.toggle('active', this._viewMode === 'hourly');
-    this.$.metricTempBtn?.classList.toggle('active', this._metricMode === 'temperature');
-    this.$.metricPrecipBtn?.classList.toggle('active', this._metricMode === 'precipitation');
+    if (this.$.viewChip) {
+      this.$.viewChip.hidden = !this._config.show_view_toggle;
+      this.$.viewChip.textContent = this._viewMode === 'daily' ? 'Hourly' : 'Daily';
+    }
+    if (this.$.metricChip) {
+      this.$.metricChip.hidden = !this._config.show_metric_toggle;
+      this.$.metricChip.textContent = this._metricMode === 'temperature' ? 'Precip' : 'Temp';
+    }
   }
 
   _applyAutoModes(condition) {
     const precipCondition = this._isPrecipCondition(condition);
     const hourlySlice = (this._forecastHourly || []).slice(0, Math.max(1, this._config.forecast_hours || 8));
+    const hasHourlyUv = hourlySlice.some((fc) => Number.isFinite(this._resolveForecastUv(fc)));
     const maxPrecip = hourlySlice.reduce((maxVal, fc) => {
       const probability = this._resolvePrecipProbability(fc)?.value;
       if (Number.isFinite(probability)) return Math.max(maxVal, Number(probability));
@@ -886,7 +903,9 @@ class TunetWeatherCard extends HTMLElement {
     if (!this._viewPinned) {
       if (this._config.forecast_view === 'hourly') this._viewMode = 'hourly';
       else if (this._config.forecast_view === 'daily') this._viewMode = 'daily';
-      else this._viewMode = precipLikely ? 'hourly' : 'daily';
+      else if (precipLikely) this._viewMode = 'hourly';
+      else if (this._config.forecast_metric === 'auto' && hasHourlyUv) this._viewMode = 'hourly';
+      else this._viewMode = 'daily';
     }
 
     if (!this._metricPinned) {

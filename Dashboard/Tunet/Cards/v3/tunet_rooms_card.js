@@ -2,7 +2,7 @@
  * Tunet Rooms Card (v2 – ES Module)
  * Compact room grid with SmartThings-inspired square tiles
  * Glassmorphism design language
- * Version 2.9.1
+ * Version 3.0.0
  */
 
 import {
@@ -34,6 +34,8 @@ const CARD_VERSION = '3.0.0';
 // ═══════════════════════════════════════════════════════════
 
 const ICON_ALIASES = {
+  sofa: 'weekend',
+  couch: 'weekend',
   shelf_auto: 'shelves',
   countertops: 'kitchen',
   desk_lamp: 'desk',
@@ -338,6 +340,9 @@ const CARD_STYLES = `
 
   /* -- Row Variant (mockup parity mode) -- */
   .room-grid.row-mode .room-tile {
+    --row-btn-size: var(--_tunet-row-control-size, var(--rooms-row-btn-size, 3.16em));
+    --row-btn-radius: var(--rooms-row-btn-radius, 0.75em);
+    --row-btn-icon-size: var(--_tunet-row-control-icon, var(--rooms-row-btn-icon-size, 1.62em));
     min-height: var(--_tunet-row-min-h, 7.3125em);
     border-radius: calc(var(--r-tile) + 2px);
     padding: 0.9em 0.96em;
@@ -345,6 +350,9 @@ const CARD_STYLES = `
     align-items: center;
     justify-content: space-between;
     gap: var(--_tunet-row-gap, 0.52em);
+  }
+  .room-grid.row-mode .room-tile.control-press-active:active {
+    transform: none;
   }
   .room-grid.row-mode .room-progress-track {
     display: none;
@@ -367,12 +375,12 @@ const CARD_STYLES = `
     text-align: left;
   }
   .room-grid.row-mode .room-tile-name {
-    font-size: var(--_tunet-row-display-name-font, var(--type-row-title, 1.03125em));
+    font-size: var(--_tunet-row-display-name-font, var(--type-row-title, 1.09375em));
     font-weight: 700;
     line-height: var(--row-line-height-title, 1.16);
   }
   .room-grid.row-mode .room-tile-status {
-    font-size: var(--_tunet-row-display-status-font, var(--type-row-status, 0.90625em));
+    font-size: var(--_tunet-row-display-status-font, var(--type-row-status, 0.96875em));
     font-weight: 700;
     color: var(--text-sub);
     line-height: var(--row-line-height-status, 1.14);
@@ -383,25 +391,22 @@ const CARD_STYLES = `
     overflow: hidden;
   }
   .room-grid.row-mode .room-tile-icon {
-    width: var(--_tunet-row-lead-icon-box, calc(var(--_tunet-orb-size, 3.16em) * 0.66));
-    height: var(--_tunet-row-lead-icon-box, calc(var(--_tunet-orb-size, 3.16em) * 0.66));
+    width: var(--row-btn-size);
+    height: var(--row-btn-size);
     margin: 0;
-    border-radius: calc(var(--rooms-row-btn-radius, 0.75em) * 0.83);
+    border-radius: var(--row-btn-radius);
     flex: 0 0 auto;
   }
   .room-grid.row-mode .room-tile-icon .icon {
-    font-size: var(--_tunet-row-lead-icon-glyph, calc(var(--_tunet-orb-icon, 1.62em) * 0.74));
-    width: var(--_tunet-row-lead-icon-glyph, calc(var(--_tunet-orb-icon, 1.62em) * 0.74));
-    height: var(--_tunet-row-lead-icon-glyph, calc(var(--_tunet-orb-icon, 1.62em) * 0.74));
+    font-size: var(--row-btn-icon-size);
+    width: var(--row-btn-icon-size);
+    height: var(--row-btn-icon-size);
   }
   .room-row-controls {
     display: inline-flex;
     align-items: center;
     gap: calc(var(--_tunet-row-gap, 0.52em) * 1.18);
     flex-shrink: 0;
-    --row-btn-size: var(--_tunet-row-control-size, var(--rooms-row-btn-size, 3.16em));
-    --row-btn-radius: var(--rooms-row-btn-radius, 0.75em);
-    --row-btn-icon-size: var(--_tunet-row-control-icon, var(--rooms-row-btn-icon-size, 1.62em));
   }
   .room-action-btn {
     width: var(--row-btn-size);
@@ -448,8 +453,10 @@ const CARD_STYLES = `
       box-shadow: var(--shadow);
     }
   }
-  .room-action-btn:active {
+  .room-action-btn:active,
+  .room-action-btn.control-press-active {
     transform: scale(var(--press-scale-strong));
+    box-shadow: var(--shadow-up);
   }
   .room-orbs {
     display: inline-flex;
@@ -476,6 +483,7 @@ const CARD_STYLES = `
       border-color var(--motion-ui) var(--ease-standard),
       color var(--motion-ui) var(--ease-standard);
     box-sizing: border-box;
+    font-size: 1em;
   }
   .room-orb .icon {
     font-size: var(--row-btn-icon-size);
@@ -487,8 +495,10 @@ const CARD_STYLES = `
       box-shadow: var(--shadow);
     }
   }
-  .room-orb:active {
+  .room-orb:active,
+  .room-orb.control-press-active {
     transform: scale(var(--press-scale-strong));
+    box-shadow: var(--shadow-up);
   }
   .room-orb.on {
     color: var(--amber);
@@ -517,6 +527,9 @@ const CARD_STYLES = `
   }
 
   .room-grid.row-mode.slim-mode .room-tile {
+    --row-btn-size: calc(var(--_tunet-row-control-size, var(--rooms-row-btn-size, 3.16em)) * 0.7);
+    --row-btn-radius: calc(var(--rooms-row-btn-radius, 0.75em) * 0.75);
+    --row-btn-icon-size: calc(var(--_tunet-row-control-icon, var(--rooms-row-btn-icon-size, 1.62em)) * 0.7);
     min-height: calc(var(--_tunet-row-min-h, 7.3125em) * 0.7);
     padding: 0.64em 0.76em;
     gap: 0.58em;
@@ -526,30 +539,27 @@ const CARD_STYLES = `
     gap: 0.52em;
   }
   .room-grid.row-mode.slim-mode .room-tile-icon {
-    width: calc(var(--_tunet-orb-size, 3.16em) * 0.63);
-    height: calc(var(--_tunet-orb-size, 3.16em) * 0.63);
-    border-radius: calc(var(--rooms-row-btn-radius, 0.75em) * 0.75);
+    width: var(--row-btn-size);
+    height: var(--row-btn-size);
+    border-radius: var(--row-btn-radius);
   }
   .room-grid.row-mode.slim-mode .room-tile-icon .icon {
-    font-size: calc(var(--_tunet-orb-icon, 1.62em) * 0.74);
-    width: calc(var(--_tunet-orb-icon, 1.62em) * 0.74);
-    height: calc(var(--_tunet-orb-icon, 1.62em) * 0.74);
+    font-size: var(--row-btn-icon-size);
+    width: var(--row-btn-icon-size);
+    height: var(--row-btn-icon-size);
   }
   .room-grid.row-mode.slim-mode .room-row-info {
     gap: 0.06em;
   }
   .room-grid.row-mode.slim-mode .room-tile-name {
-    font-size: 0.78em;
+    font-size: 0.84em;
     letter-spacing: 0.01em;
   }
   .room-grid.row-mode.slim-mode .room-tile-status {
-    font-size: 0.66em;
+    font-size: 0.72em;
   }
   .room-grid.row-mode.slim-mode .room-row-controls {
     gap: 0.26em;
-    --row-btn-size: calc(var(--_tunet-row-control-size, var(--rooms-row-btn-size, 3.16em)) * 0.7);
-    --row-btn-radius: calc(var(--rooms-row-btn-radius, 0.75em) * 0.75);
-    --row-btn-icon-size: calc(var(--_tunet-row-control-icon, var(--rooms-row-btn-icon-size, 1.62em)) * 0.7);
   }
   .room-grid.row-mode.slim-mode .room-orbs {
     gap: 0.32em;
@@ -625,6 +635,9 @@ const CARD_STYLES = `
       font-size: 0.72em;
     }
     :host(:not([use-profiles])) .room-grid.row-mode .room-tile {
+      --row-btn-size: var(--rooms-row-btn-size, 2.82em);
+      --row-btn-icon-size: var(--rooms-row-btn-icon-size, 1.44em);
+      --row-btn-radius: 12px;
       padding: 0.9em 0.94em;
       gap: 0.82em;
     }
@@ -637,12 +650,10 @@ const CARD_STYLES = `
     :host(:not([use-profiles])) .room-grid.row-mode .room-tile-status {
       font-size: var(--type-row-status, 15.5px);
     }
-    :host(:not([use-profiles])) .room-grid.row-mode .room-row-controls {
-      --row-btn-size: var(--rooms-row-btn-size, 2.82em);
-      --row-btn-icon-size: var(--rooms-row-btn-icon-size, 1.44em);
-      --row-btn-radius: 12px;
-    }
     :host(:not([use-profiles])) .room-grid.row-mode.slim-mode .room-tile {
+      --row-btn-size: var(--rooms-row-btn-size-slim, 2.52em);
+      --row-btn-icon-size: var(--rooms-row-btn-icon-size-slim, 1.28em);
+      --row-btn-radius: 9px;
       padding: 0.58em 0.68em;
       gap: 0.54em;
     }
@@ -652,10 +663,46 @@ const CARD_STYLES = `
     :host(:not([use-profiles])) .room-grid.row-mode.slim-mode .room-tile-status {
       font-size: 0.66em;
     }
-    :host(:not([use-profiles])) .room-grid.row-mode.slim-mode .room-row-controls {
-      --row-btn-size: var(--rooms-row-btn-size-slim, 2.52em);
-      --row-btn-icon-size: var(--rooms-row-btn-icon-size-slim, 1.28em);
-      --row-btn-radius: 9px;
+    .room-grid.row-mode .room-tile {
+      --row-btn-size: 2.26em;
+      --row-btn-icon-size: 1.18em;
+      --row-btn-radius: 0.68em;
+      padding: 0.76em 0.78em;
+      gap: calc(var(--_tunet-row-gap, 0.52em) * 0.88);
+    }
+    .room-grid.row-mode .room-row-main {
+      gap: calc(var(--_tunet-row-gap, 0.52em) * 0.9);
+    }
+    .room-grid.row-mode .room-row-controls {
+      gap: calc(var(--_tunet-row-gap, 0.52em) * 0.72);
+    }
+    .room-grid.row-mode .room-orbs {
+      gap: calc(var(--_tunet-row-gap, 0.52em) * 0.42);
+    }
+    .room-grid.row-mode .room-chevron {
+      width: 1.18em;
+      height: 1.18em;
+    }
+    .room-grid.row-mode .room-tile-name {
+      font-size: 0.96em;
+    }
+    .room-grid.row-mode .room-tile-status {
+      font-size: 0.78em;
+    }
+    .room-grid.row-mode .room-row-info {
+      flex: 1 1 auto;
+    }
+    .room-grid.row-mode.slim-mode .room-tile {
+      --row-btn-size: 1.92em;
+      --row-btn-icon-size: 1em;
+      --row-btn-radius: 0.58em;
+    }
+    .room-grid.row-mode.slim-mode .room-orbs {
+      gap: 0.22em;
+    }
+    .room-grid.row-mode.slim-mode .room-chevron {
+      width: 1.04em;
+      height: 1.04em;
     }
   }
 `;
@@ -1047,6 +1094,7 @@ class TunetRoomsCard extends HTMLElement {
           <button type="button"
                   class="room-orb"
                   data-entity="${light.entity || ''}"
+                  data-name="${light.name || ''}"
                   aria-label="Toggle ${light.name || `Light ${idx + 1}`}">
             <span class="icon">${normalizeIcon(light.icon || 'lightbulb')}</span>
           </button>
@@ -1092,16 +1140,57 @@ class TunetRoomsCard extends HTMLElement {
       const toggleBtn = isRowVariant ? tile.querySelector(`#room-toggle-${i}`) : null;
       const orbRefs = isRowVariant
         ? [...tile.querySelectorAll('.room-orb')]
-            .map((el) => ({ el, entity: String(el.dataset.entity || '') }))
+            .map((el) => ({
+              el,
+              entity: String(el.dataset.entity || ''),
+              name: String(el.dataset.name || ''),
+            }))
             .filter((ref) => !!ref.entity)
         : [];
 
       if (toggleBtn) {
+        toggleBtn.setAttribute('title', `Toggle all ${roomCfg.name}`);
+      }
+      for (const orbRef of orbRefs) {
+        const lightLabel = orbRef.name || orbRef.entity || 'Light';
+        orbRef.el.setAttribute('title', lightLabel);
+        orbRef.el.setAttribute('aria-label', `Toggle ${lightLabel}`);
+      }
+
+      const setControlPressActive = (controlEl) => {
+        tile.classList.add('control-press-active');
+        controlEl?.classList.add('control-press-active');
+      };
+      const clearControlPressActive = (controlEl) => {
+        tile.classList.remove('control-press-active');
+        controlEl?.classList.remove('control-press-active');
+      };
+
+      if (toggleBtn) {
         const stopBubble = (e) => e.stopPropagation();
-        toggleBtn.addEventListener('pointerdown', stopBubble);
-        toggleBtn.addEventListener('pointerup', stopBubble);
-        toggleBtn.addEventListener('pointercancel', stopBubble);
+        toggleBtn.addEventListener('pointerdown', (e) => {
+          setControlPressActive(toggleBtn);
+          stopBubble(e);
+        });
+        toggleBtn.addEventListener('pointerup', (e) => {
+          clearControlPressActive(toggleBtn);
+          stopBubble(e);
+        });
+        toggleBtn.addEventListener('pointercancel', (e) => {
+          clearControlPressActive(toggleBtn);
+          stopBubble(e);
+        });
+        toggleBtn.addEventListener('keydown', (e) => {
+          setControlPressActive(toggleBtn);
+          stopBubble(e);
+        });
+        toggleBtn.addEventListener('keyup', (e) => {
+          clearControlPressActive(toggleBtn);
+          stopBubble(e);
+        });
+        toggleBtn.addEventListener('blur', () => clearControlPressActive(toggleBtn));
         toggleBtn.addEventListener('click', (e) => {
+          clearControlPressActive(toggleBtn);
           e.preventDefault();
           e.stopPropagation();
           this._toggleRoomGroup(roomCfg);
@@ -1110,10 +1199,29 @@ class TunetRoomsCard extends HTMLElement {
 
       for (const orbRef of orbRefs) {
         const stopBubble = (e) => e.stopPropagation();
-        orbRef.el.addEventListener('pointerdown', stopBubble);
-        orbRef.el.addEventListener('pointerup', stopBubble);
-        orbRef.el.addEventListener('pointercancel', stopBubble);
+        orbRef.el.addEventListener('pointerdown', (e) => {
+          setControlPressActive(orbRef.el);
+          stopBubble(e);
+        });
+        orbRef.el.addEventListener('pointerup', (e) => {
+          clearControlPressActive(orbRef.el);
+          stopBubble(e);
+        });
+        orbRef.el.addEventListener('pointercancel', (e) => {
+          clearControlPressActive(orbRef.el);
+          stopBubble(e);
+        });
+        orbRef.el.addEventListener('keydown', (e) => {
+          setControlPressActive(orbRef.el);
+          stopBubble(e);
+        });
+        orbRef.el.addEventListener('keyup', (e) => {
+          clearControlPressActive(orbRef.el);
+          stopBubble(e);
+        });
+        orbRef.el.addEventListener('blur', () => clearControlPressActive(orbRef.el));
         orbRef.el.addEventListener('click', (e) => {
+          clearControlPressActive(orbRef.el);
           e.preventDefault();
           e.stopPropagation();
           this._toggleSingleLight(orbRef.entity);
@@ -1164,7 +1272,7 @@ class TunetRoomsCard extends HTMLElement {
         }
         if (didLongPress) return;
 
-        // Tile mode short tap -> configured action, otherwise toggle room lights.
+        // Tile mode: tap toggles lights, hold navigates.
         if (roomCfg.tap_action) {
           this._handleRoomAction(roomCfg.tap_action, roomCfg);
         } else if ((roomCfg.lights || []).length) {
@@ -1189,6 +1297,8 @@ class TunetRoomsCard extends HTMLElement {
 
       // Keyboard
       tile.addEventListener('keydown', (e) => {
+        const target = e.target instanceof Element ? e.target : null;
+        if (target && target.closest('.room-row-controls')) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onPointerUp(e);
@@ -1381,17 +1491,22 @@ class TunetRoomsCard extends HTMLElement {
       if (ref.toggleBtn) {
         ref.toggleBtn.classList.toggle('on', anyOn);
         ref.toggleBtn.classList.toggle('off', !anyOn);
-        ref.toggleBtn.setAttribute('aria-label', anyOn
+        const toggleLabel = anyOn
           ? `Turn off all ${ref.cfg.name}`
-          : `Turn on all ${ref.cfg.name}`);
+          : `Turn on all ${ref.cfg.name}`;
+        ref.toggleBtn.setAttribute('aria-label', toggleLabel);
+        ref.toggleBtn.setAttribute('title', toggleLabel);
       }
       for (const orbRef of (ref.orbRefs || [])) {
         const entity = this._hass.states[orbRef.entity];
         const orbOn = !!(entity && entity.state === 'on');
         const orbManual = manualSet.has(orbRef.entity);
+        const lightLabel = entity?.attributes?.friendly_name || orbRef.name || orbRef.entity || 'Light';
         orbRef.el.classList.toggle('on', orbOn);
         orbRef.el.classList.toggle('off', !orbOn);
         orbRef.el.classList.toggle('manual', orbManual);
+        orbRef.el.setAttribute('title', lightLabel);
+        orbRef.el.setAttribute('aria-label', `Toggle ${lightLabel}`);
       }
 
       // Build status text
@@ -1405,7 +1520,7 @@ class TunetRoomsCard extends HTMLElement {
           parts.push(`<span class="on-count">${onCount}/${lights.length}</span>`);
         }
         if (!hasAmbientSensors) {
-          parts.push(`<span class="brightness">${avgBrt}% bri</span>`);
+          parts.push(`<span class="brightness">${avgBrt}%</span>`);
         }
       } else if (lights.length > 0) {
         parts.push('Off');

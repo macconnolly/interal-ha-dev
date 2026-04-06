@@ -93,7 +93,8 @@ Rules:
 
 ### 5.2 Family Keys
 
-The active family taxonomy is five keys:
+The active family taxonomy is six keys:
+- `lighting-tile`
 - `tile-grid`
 - `speaker-tile`
 - `rooms-row`
@@ -104,7 +105,7 @@ The active family taxonomy is five keys:
 
 ```js
 const PRESET_FAMILY_MAP = {
-  lighting: 'tile-grid',
+  lighting: 'lighting-tile',
   speakers: 'speaker-tile',
   rooms: 'tile-grid',
   'rooms-row': 'rooms-row',
@@ -115,6 +116,11 @@ const PRESET_FAMILY_MAP = {
 
 Rooms lookup is layout-aware after merge:
 - `mergedConfig.layout === 'row' ? 'rooms-row' : 'tile-grid'`
+
+Lighting lookup is family-locked:
+- `lighting` resolves to `lighting-tile`
+- scroll, grid, and section change container behavior only
+- the tile identity stays the same across `tunet-light-tile` and `tunet-lighting-card`
 
 ### 5.4 API Lock
 
@@ -197,6 +203,7 @@ Core lane tokens:
 - `--_tunet-progress-h`
 
 Family extension examples:
+- lighting tile: vertical stack geometry, icon/name/value/progress spacing, desktop non-scroll tile proportions
 - rooms row: orb/toggle/chevron/row-height tokens
 - indicator tile: dropdown and aux-action geometry tokens
 - indicator row: sparkline and trend geometry tokens

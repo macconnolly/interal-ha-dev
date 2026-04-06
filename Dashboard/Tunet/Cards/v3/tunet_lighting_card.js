@@ -58,11 +58,10 @@ function normalizeColumnBreakpoints(raw) {
   const parsed = [];
   const pushRule = (rule) => {
     if (!rule || typeof rule !== 'object') return;
-    const columns = clampInt(rule.columns, 2, 8, NaN);
+    const columns = clampInt(rule.columns, 1, 8, NaN);
     if (!Number.isFinite(columns)) return;
     const minWidth = Number.isFinite(Number(rule.min_width)) ? Math.max(0, Number(rule.min_width)) : null;
     const maxWidth = Number.isFinite(Number(rule.max_width)) ? Math.max(0, Number(rule.max_width)) : null;
-    if (minWidth == null && maxWidth == null) return;
     parsed.push({ columns, minWidth, maxWidth });
   };
 
@@ -72,12 +71,12 @@ function normalizeColumnBreakpoints(raw) {
     for (const [key, value] of Object.entries(raw)) {
       if (key === 'default') continue;
       const maxWidth = Number(key);
-      const columns = clampInt(value, 2, 8, NaN);
+      const columns = clampInt(value, 1, 8, NaN);
       if (!Number.isFinite(maxWidth) || !Number.isFinite(columns)) continue;
       parsed.push({ columns, minWidth: null, maxWidth });
     }
     if (Object.prototype.hasOwnProperty.call(raw, 'default')) {
-      const fallbackColumns = clampInt(raw.default, 2, 8, NaN);
+      const fallbackColumns = clampInt(raw.default, 1, 8, NaN);
       if (Number.isFinite(fallbackColumns)) {
         parsed.push({ columns: fallbackColumns, minWidth: null, maxWidth: null });
       }
@@ -90,6 +89,13 @@ function normalizeColumnBreakpoints(raw) {
     return aMax - bMax;
   });
   return parsed;
+}
+
+function defaultColumnBreakpoints(tileSize) {
+  if (tileSize === 'large') {
+    return normalizeColumnBreakpoints({ 640: 1, default: 2 });
+  }
+  return normalizeColumnBreakpoints({ 640: 2, default: 3 });
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -380,13 +386,12 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* Standard grid layout */
   .light-grid {
     display: grid;
-    grid-template-columns: repeat(var(--cols, 3), minmax(0, 180px));
-    grid-auto-rows: var(--grid-row, 110px);
+    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+    grid-auto-rows: auto;
     gap: var(--_tunet-tile-gap, 10px);
     width: 100%;
     min-width: 0;
     overflow-y: visible;
-    justify-content: center;
   }
 
   /* Max rows constraint — JS limits tile count in _render() instead
@@ -403,7 +408,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     overscroll-behavior-x: contain;
     overscroll-behavior-y: auto;
     scroll-snap-type: x mandatory;
-    scroll-padding-left: 4px;
+    padding-inline: 0.5em;
+    scroll-padding-inline: 0.5em;
     row-gap: 14px;
     padding-bottom: 8px;
     scrollbar-width: none;
@@ -415,11 +421,26 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   :host([layout="scroll"]) .light-grid::-webkit-scrollbar { display: none; }
 
+  @media (min-width: 1024px) {
+    :host(:not([layout="scroll"])) .light-grid {
+      column-gap: var(--_tunet-grid-col-gap-desktop, 0.875em);
+      row-gap: var(--_tunet-grid-row-gap-desktop, 1em);
+      max-width: min(
+        100%,
+        calc(
+          (var(--cols, 3) * var(--_tunet-grid-col-max-desktop, 14.5em))
+          + ((var(--cols, 3) - 1) * var(--_tunet-grid-col-gap-desktop, 0.875em))
+        )
+      );
+      margin-inline: auto;
+    }
+  }
+
   /* ═══════════════════════════════════════════════════
      LIGHT TILE (Design Language §3.5 Tile Surface)
      ═══════════════════════════════════════════════════ */
   .l-tile {
-    --tile-icon-size: var(--_tunet-icon-box, 2.35em);
+    --tile-icon-size: var(--_tunet-display-icon-box, var(--_tunet-icon-box, 2.35em));
     background: var(--tile-bg);
     border-radius: var(--_tunet-tile-radius, var(--r-tile));
     box-shadow: var(--shadow);
@@ -433,13 +454,12 @@ ${CARD_SURFACE_GLASS_STROKE}
     touch-action: pan-y;
     border: 1px solid var(--border-ghost);
     overflow: hidden;
-    min-height: 0;
-    height: 100%;
-    gap: var(--_tunet-tile-gap, 0.14em);
+    min-height: var(--_tunet-tile-min-h, 5.75em);
+    gap: 0;
     padding:
-      var(--_tunet-tile-pad, 0.62em)
-      calc(var(--_tunet-tile-pad, 0.62em) * 0.55)
-      calc(var(--_tunet-tile-pad, 0.62em) * 1.68);
+      var(--_tunet-lighting-pad-top, calc(var(--_tunet-tile-pad, 0.875em) * 0.7))
+      var(--_tunet-lighting-pad-x, calc(var(--_tunet-tile-pad, 0.875em) * 0.39))
+      var(--_tunet-lighting-pad-bottom, calc(var(--_tunet-tile-pad, 0.875em) * 1.03));
     -webkit-tap-highlight-color: transparent;
     transition:
       transform var(--motion-ui) var(--ease-emphasized),
@@ -449,9 +469,10 @@ ${CARD_SURFACE_GLASS_STROKE}
       opacity var(--motion-surface) var(--ease-standard);
   }
   :host([use-profiles]) .l-tile {
-    min-height: max(var(--_tunet-tile-min-h, 0px), 6.25em);
-    /* Keep text/progress lanes visible in compact profile mode. */
-    padding-bottom: calc(var(--_tunet-tile-pad, 0.62em) * 1.95);
+    min-height: var(--_tunet-tile-min-h, 6.25em);
+  }
+  :host([layout="scroll"]) .l-tile {
+    height: 100%;
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -498,7 +519,19 @@ ${CARD_SURFACE_GLASS_STROKE}
     margin-bottom: 6px;
   }
   :host(:not([use-profiles])[tile-size="large"]) .l-tile {
-    padding: 12px 10px 18px;
+    --tile-icon-size: 3em;
+    padding: 14px 12px 22px;
+  }
+  :host(:not([use-profiles])[tile-size="large"]) .tile-icon-wrap .icon {
+    width: 1.5em;
+    height: 1.5em;
+    font-size: 1.5em;
+  }
+  :host(:not([use-profiles])[tile-size="large"]) .zone-name {
+    font-size: 16px;
+  }
+  :host(:not([use-profiles])[tile-size="large"]) .zone-val {
+    font-size: 17px;
   }
 
   /* Scroll layout tile additions */
@@ -584,7 +617,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     pointer-events: none;
   }
 
-  .l-tile.sliding .progress-track { height: 6px; }
+  .l-tile.sliding .progress-track { height: 7px; }
 
   /* ── Tile Content ────────────────────────────────── */
   .tile-icon-wrap {
@@ -596,17 +629,17 @@ ${CARD_SURFACE_GLASS_STROKE}
     border-radius: 50%;
     display: grid;
     place-items: center;
-    margin-top: 0.08em;
-    margin-bottom: 0.2em;
+    margin-top: 0;
+    margin-bottom: var(--_tunet-lighting-icon-gap, 0.2em);
     transition:
       color var(--motion-ui) ease,
       background var(--motion-ui) ease,
       border-color var(--motion-ui) ease;
   }
   .tile-icon-wrap .icon {
-    width: var(--_tunet-icon-glyph, 1.3em);
-    height: var(--_tunet-icon-glyph, 1.3em);
-    font-size: var(--_tunet-icon-glyph, 1.3em);
+    width: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.3em));
+    height: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.3em));
+    font-size: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.3em));
     line-height: 1;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-icon-wrap .icon {
@@ -626,9 +659,15 @@ ${CARD_SURFACE_GLASS_STROKE}
     text-overflow: ellipsis;
     max-width: 90%;
     line-height: 1.15;
-    margin-bottom: 1px;
+    margin-bottom: var(--_tunet-lighting-name-gap, 0.08em);
     min-height: 1.1em;
     flex: 0 0 auto;
+  }
+
+  :host(:not([layout="scroll"])) .zone-name {
+    line-height: 1.22;
+    margin-bottom: 0.16em;
+    min-height: 1.25em;
   }
 
   .zone-val {
@@ -639,14 +678,15 @@ ${CARD_SURFACE_GLASS_STROKE}
     transition: color .2s;
     font-variant-numeric: tabular-nums;
     flex: 0 0 auto;
+    margin-bottom: var(--_tunet-lighting-value-gap, 0.38em);
   }
 
   /* ── Progress Track (bottom inset) ───────────────── */
   .progress-track {
     position: absolute;
-    bottom: calc(var(--_tunet-tile-pad, 14px) * 0.72);
-    left: var(--_tunet-tile-pad, 14px);
-    right: var(--_tunet-tile-pad, 14px);
+    bottom: var(--_tunet-lighting-progress-bottom, calc(var(--_tunet-tile-pad, 14px) * 0.85));
+    left: var(--_tunet-lighting-progress-inset, var(--_tunet-lighting-pad-x, var(--_tunet-tile-pad, 14px)));
+    right: var(--_tunet-lighting-progress-inset, var(--_tunet-lighting-pad-x, var(--_tunet-tile-pad, 14px)));
     height: var(--_tunet-progress-h, 4px);
     background: var(--track-bg);
     border-radius: var(--r-track);
@@ -655,9 +695,9 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   :host(:not([use-profiles])[tile-size="compact"]) .progress-track {
     bottom: 6px;
-    left: 10px;
-    right: 10px;
-    height: 3px;
+    left: 24px;
+    right: 24px;
+    height: 4px;
   }
   .progress-fill {
     height: 100%;
@@ -694,7 +734,10 @@ ${REDUCED_MOTION}
       padding: var(--card-pad, 14px);
       --r-track: 999px;
     }
-    .light-grid { gap: 6px; }
+    :host(:not([layout="scroll"])) .light-grid {
+      column-gap: 8px;
+      row-gap: 12px;
+    }
     .l-tile { min-height: 82px; }
     :host(:not([use-profiles])[tile-size="compact"]) .zone-name {
       font-size: 12.2px;
@@ -710,7 +753,8 @@ ${REDUCED_MOTION}
 
     :host([layout="scroll"]) .light-grid {
       grid-auto-columns: calc(44% - 6px);
-      scroll-padding-left: 0;
+      padding-inline: 0.375em;
+      scroll-padding-inline: 0.375em;
     }
 
     :host([surface="section"]) .card {
@@ -873,7 +917,10 @@ class TunetLightingCard extends HTMLElement {
     const adaptiveEntities = Array.from(new Set(
       (Array.isArray(config.adaptive_entities) ? config.adaptive_entities : []).filter(Boolean)
     ));
-    const columnBreakpoints = normalizeColumnBreakpoints(config.column_breakpoints);
+    const explicitBreakpoints = normalizeColumnBreakpoints(config.column_breakpoints);
+    const columnBreakpoints = explicitBreakpoints.length
+      ? explicitBreakpoints
+      : defaultColumnBreakpoints(tileSize);
     const rows = config.rows === 'auto' || config.rows == null
       ? null
       : (() => {
@@ -1066,10 +1113,10 @@ class TunetLightingCard extends HTMLElement {
     const zones = [];
     const seen = new Set();
 
-    const addZone = (entity, name, icon) => {
+    const addZone = (entity, name, icon, contextName = null) => {
       if (seen.has(entity)) return;
       seen.add(entity);
-      zones.push({ entity, name: name || null, icon: icon || null });
+      zones.push({ entity, name: name || null, icon: icon || null, contextName: contextName || null });
     };
 
     // Pattern 1: Rich per-entity YAML zones
@@ -1083,8 +1130,9 @@ class TunetLightingCard extends HTMLElement {
         if (this._config.expand_groups && entity && entity.attributes && entity.attributes.entity_id &&
             Array.isArray(entity.attributes.entity_id)) {
           // Group – expand with optional name/icon overrides
+          const contextName = z.name || this._friendlyName(z.entity);
           for (const memberId of entity.attributes.entity_id) {
-            addZone(memberId, null, null);
+            addZone(memberId, null, null, contextName);
           }
         } else {
           addZone(z.entity, z.name || null, z.icon || null);
@@ -1106,15 +1154,16 @@ class TunetLightingCard extends HTMLElement {
     if (this._config.expand_groups && entity && entity.attributes && entity.attributes.entity_id &&
         Array.isArray(entity.attributes.entity_id)) {
       // It's a group – expand to individual members
+      const contextName = this._friendlyName(id);
       for (const memberId of entity.attributes.entity_id) {
         if (!seen.has(memberId)) {
           seen.add(memberId);
-          zones.push({ entity: memberId, name: null, icon: null });
+          zones.push({ entity: memberId, name: null, icon: null, contextName });
         }
       }
     } else {
       seen.add(id);
-      zones.push({ entity: id, name: null, icon: null });
+      zones.push({ entity: id, name: null, icon: null, contextName: null });
     }
   }
 
@@ -1246,15 +1295,6 @@ class TunetLightingCard extends HTMLElement {
     } else {
       this.removeAttribute('dense-compact');
     }
-    const isMobile = this._widthBucket440 == null ? this._isWidthAtMost(440) : this._widthBucket440;
-    const rowHeight = useProfiles
-      ? 'max(var(--_tunet-tile-min-h, 110px), 6.25em)'
-      : (activeTileSize === 'compact'
-        ? (isMobile ? '94px' : '100px')
-        : (activeTileSize === 'large'
-          ? (isMobile ? '124px' : '132px')
-          : (isMobile ? '102px' : '110px')));
-    grid.style.setProperty('--grid-row', rowHeight);
 
     // Limit visible tiles when rows is set (avoids overflow:hidden clipping pill)
     const cols = activeColumns;
@@ -1507,9 +1547,64 @@ class TunetLightingCard extends HTMLElement {
     return raw.replace(/\b\w/g, c => c.toUpperCase());
   }
 
+  _contextLabelVariants(label) {
+    const normalized = String(label || '')
+      .toLowerCase()
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!normalized) return [];
+    const variants = new Set([normalized]);
+    const aliasMap = {
+      living: ['living room'],
+      bedroom: ['master bedroom', 'primary bedroom'],
+      dining: ['dining room'],
+      family: ['family room'],
+      office: ['home office'],
+      bath: ['bathroom'],
+    };
+    for (const alias of (aliasMap[normalized] || [])) variants.add(alias);
+    return [...variants].sort((a, b) => b.length - a.length);
+  }
+
+  _compactDerivedName(name, contextName = null) {
+    const original = String(name || '').replace(/\s+/g, ' ').trim();
+    if (!original) return original;
+
+    let compact = original;
+    for (const variant of this._contextLabelVariants(contextName)) {
+      const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      compact = compact
+        .replace(new RegExp(`^${escaped}\\s+`, 'i'), '')
+        .replace(new RegExp(`\\s+${escaped}$`, 'i'), '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    if (!compact) compact = original;
+
+    const stripLightingSuffix = (value) => String(value || '')
+      .replace(/\s+(lights?|lamps?)$/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const isGenericLightingLabel = (value) => /^(lights?|lamps?)$/i.test(String(value || '').trim());
+
+    const withoutLightingSuffix = stripLightingSuffix(compact);
+    const shortenedOriginal = stripLightingSuffix(original);
+
+    if (withoutLightingSuffix && !isGenericLightingLabel(withoutLightingSuffix)) {
+      return withoutLightingSuffix;
+    }
+    if (shortenedOriginal && !isGenericLightingLabel(shortenedOriginal)) {
+      return shortenedOriginal;
+    }
+
+    return compact || original;
+  }
+
   _zoneName(zone) {
     if (zone.name) return zone.name;
-    return this._friendlyName(zone.entity);
+    return this._compactDerivedName(this._friendlyName(zone.entity), zone.contextName);
   }
 
   _normalizeIcon(icon) {

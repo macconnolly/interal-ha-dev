@@ -57,7 +57,7 @@ const TILE_CSS = `
 
   /* ── Shared tile tokens ── */
   .lt {
-    --icon-size: var(--_tunet-icon-box, 2.375em);
+    --icon-size: var(--_tunet-display-icon-box, var(--_tunet-icon-box, 2.375em));
     --icon-radius: calc(var(--_tunet-tile-radius, 0.875em) * 0.9);
     --bar-h: var(--_tunet-progress-h, 0.5em);
     --bar-h-active: calc(var(--_tunet-progress-h, 0.5em) * 1.25);
@@ -90,21 +90,18 @@ const TILE_CSS = `
 
   /* ── Vertical variant (default) ── */
   .lt.vertical {
-    aspect-ratio: 1 / 0.9;
+    --bar-inset: var(--_tunet-lighting-progress-inset, var(--_tunet-lighting-pad-x, calc(var(--_tunet-tile-pad, 0.875em) * 0.39)));
+    --bar-bottom: var(--_tunet-lighting-progress-bottom, calc(var(--_tunet-tile-pad, 0.875em) * 0.72));
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     min-height: var(--_tunet-tile-min-h, 5.75em);
     padding:
-      calc(var(--_tunet-tile-pad, 0.875em) * 0.7)
-      calc(var(--_tunet-tile-pad, 0.875em) * 0.39)
-      calc(var(--_tunet-tile-pad, 0.875em) * 1.03);
-    gap: calc(var(--_tunet-tile-gap, 0.375em) * 0.4);
-  }
-
-  @media (max-width: 440px) {
-    :host(:not([use-profiles])) .lt.vertical { aspect-ratio: 1 / 0.98; }
+      var(--_tunet-lighting-pad-top, calc(var(--_tunet-tile-pad, 0.875em) * 0.7))
+      var(--_tunet-lighting-pad-x, calc(var(--_tunet-tile-pad, 0.875em) * 0.39))
+      var(--_tunet-lighting-pad-bottom, calc(var(--_tunet-tile-pad, 0.875em) * 1.03));
+    gap: 0;
   }
 
   /* ── Horizontal variant ── */
@@ -118,6 +115,17 @@ const TILE_CSS = `
       calc(var(--_tunet-tile-pad, 0.875em) * 0.92)
       calc(var(--_tunet-tile-pad, 0.875em) * 0.64);
     min-height: max(calc(var(--_tunet-tile-min-h, 5.75em) * 0.9), 3.5em);
+  }
+
+  :host([narrow-horizontal]) .lt.horizontal {
+    align-items: flex-start;
+    gap: calc(var(--_tunet-tile-gap, 0.375em) * 0.9);
+    padding:
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.56)
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.64)
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.9)
+      calc(var(--_tunet-tile-pad, 0.875em) * 0.56);
+    min-height: max(calc(var(--_tunet-tile-min-h, 5.75em) * 0.98), 4.4em);
   }
 
   @media (max-width: 440px) {
@@ -136,10 +144,22 @@ const TILE_CSS = `
     gap: calc(var(--_tunet-tile-gap, 0.375em) * 0.25);
   }
 
+  :host([narrow-horizontal]) .lt.horizontal .text-stack {
+    align-self: stretch;
+    justify-content: center;
+    padding-right: 0.1em;
+  }
+
   .lt.horizontal .val {
     flex-shrink: 0;
     min-width: calc(var(--_tunet-icon-box, 2.375em) * 0.9);
     text-align: right;
+  }
+
+  :host([narrow-horizontal]) .lt.horizontal .val {
+    min-width: 3ch;
+    font-size: calc(var(--_tunet-value-font, 1.125em) * 0.94);
+    line-height: 1.05;
   }
 
   /* ── Icon wrap ── */
@@ -157,7 +177,7 @@ const TILE_CSS = `
   }
 
   .lt.vertical .icon-wrap {
-    margin-bottom: calc(var(--_tunet-tile-gap, 0.375em) * 0.5);
+    margin-bottom: var(--_tunet-lighting-icon-gap, calc(var(--_tunet-tile-gap, 0.375em) * 0.5));
   }
 
   .lt.horizontal .icon-wrap {
@@ -173,14 +193,14 @@ const TILE_CSS = `
   }
 
   .tile-icon {
-    font-size: var(--_tunet-icon-glyph, 1.1875em);
-    width: var(--_tunet-icon-glyph, 1.1875em);
-    height: var(--_tunet-icon-glyph, 1.1875em);
+    font-size: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.1875em));
+    width: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.1875em));
+    height: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.1875em));
   }
 
   /* ── Name ── */
   .name {
-    font-size: var(--_tunet-name-font, 0.8125em);
+    font-size: var(--_tunet-display-name-font, var(--_tunet-name-font, 0.8125em));
     font-weight: 600;
     letter-spacing: 0.00625em;
     line-height: 1.15;
@@ -192,10 +212,20 @@ const TILE_CSS = `
   }
 
   .lt.vertical .name {
-    margin-bottom: calc(var(--_tunet-tile-gap, 0.375em) * 0.2);
+    margin-bottom: var(--_tunet-lighting-name-gap, calc(var(--_tunet-tile-gap, 0.375em) * 0.2));
     text-align: center;
     min-height: 1.12em;
     line-height: 1.12;
+  }
+
+  :host([narrow-horizontal]) .lt.horizontal .name {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.14;
   }
 
   @media (max-width: 440px) {
@@ -204,7 +234,7 @@ const TILE_CSS = `
 
   /* ── Value ── */
   .val {
-    font-size: var(--_tunet-value-font, 1.125em);
+    font-size: var(--_tunet-display-value-font, var(--_tunet-value-font, 1.125em));
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     transition: color var(--motion-ui, 0.18s);
@@ -216,7 +246,8 @@ const TILE_CSS = `
   }
   .lt.vertical .val {
     line-height: 1.12;
-    margin-top: calc(var(--_tunet-tile-gap, 0.375em) * 0.2);
+    margin-top: 0;
+    margin-bottom: var(--_tunet-lighting-value-gap, calc(var(--_tunet-tile-gap, 0.375em) * 0.35));
   }
 
   @media (max-width: 440px) {
@@ -234,16 +265,6 @@ const TILE_CSS = `
     border-radius: 99px;
     overflow: hidden;
     transition: height var(--motion-ui, 0.18s) ease;
-  }
-
-  /* Keep vertical variant content lane naturally centered with progress in flow */
-  .lt.vertical .progress-track {
-    position: relative;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    width: calc(100% - (var(--bar-inset) * 2));
-    margin-top: calc(var(--_tunet-tile-gap, 0.375em) * 1.2);
   }
 
   .lt.horizontal .progress-track {
@@ -536,6 +557,9 @@ class TunetLightTile extends HTMLElement {
 
   _applyProfile(widthHint = null) {
     const useProfiles = this._config?.use_profiles !== false;
+    const width = this._getHostWidth(widthHint);
+    const isNarrowHorizontal = this._config?.variant === 'horizontal' && width <= 420;
+    this.toggleAttribute('narrow-horizontal', isNarrowHorizontal);
     if (!useProfiles) {
       this._profileSelection = null;
       _setProfileVars(this, {}, { bridgePublicOverrides: false });
@@ -546,7 +570,6 @@ class TunetLightTile extends HTMLElement {
       return;
     }
 
-    const width = this._getHostWidth(widthHint);
     const selection = selectProfileSize({
       preset: 'lighting',
       layout: 'grid',

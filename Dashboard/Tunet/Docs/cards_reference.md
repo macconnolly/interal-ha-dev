@@ -23,12 +23,11 @@ This section is the target contract; per-card entries call out current divergenc
 - **Icon area tap** = more-info popup
 - **Group badge** (+/- icon, top-right) = toggle group membership
 - **Visual**: blue outline = in active group
-- Volume controls the SELECTED speaker specifically
 
-### 3. Navigation Tiles (rooms tile variant)
-- **Tap** = navigate to room page
-- **Hold** (400ms + haptic) = popup (Browser Mod)
-- **No drag** — rooms are destinations, not sliders
+### 3. Room Tiles (rooms tile variant)
+- **Tap** = toggle all room lights (on/off); `tap_action` override if configured
+- **Hold** (400ms + haptic) = navigate to room page or popup (Browser Mod via `hold_action`)
+- **No drag** — rooms are not sliders
 
 ### 4. Navigation Rows (rooms row variant)
 - **Body tap** = navigate to room page
@@ -52,10 +51,13 @@ This section is the target contract; per-card entries call out current divergenc
 ### Shared Pattern
 Hold-to-drag is used ONLY on tiles where the user adjusts a continuous value (brightness, volume). Navigation and action surfaces never use it. This is consistent and learnable.
 
-### Group Volume Decision (Locked)
-When the active speaker is in a group:
-- volume drag adjusts only the selected speaker
-- group-wide volume changes are explicit actions, not implicit side effects of tile drag
+### Group Volume Decision (Locked, Revised Apr 6 2026)
+Across `tunet-media-card`, `tunet-sonos-card`, and `tunet-speaker-grid-card`:
+- volume adjusts the currently selected target
+- selecting an individual speaker targets that speaker only
+- selecting the grouped coordinator / current group leader targets the active group proportionally
+- no synthetic extra group row is required if the coordinator row already serves as the grouped target
+- group membership changes remain explicit badge/action controls, not side effects of volume drag
 
 ### Speaker Tile Unification Target (CD9 Contract)
 Across `tunet-media-card`, `tunet-sonos-card`, and `tunet-speaker-grid-card`:
@@ -64,7 +66,7 @@ Across `tunet-media-card`, `tunet-sonos-card`, and `tunet-speaker-grid-card`:
 - icon tap opens more-info
 - group badge tap toggles group membership
 
-Current implementations still diverge from this target and are reconciled in CD9.
+Current state: `tunet-sonos-card` and `tunet-speaker-grid-card` now align for visible tiles; `tunet-media-card` still keeps a semantics/accessibility tail because speaker targeting lives in dropdown rows rather than visible tiles.
 
 ---
 
@@ -161,15 +163,15 @@ This section is the composition contract for later whole-home dashboard work. It
 | `tunet-actions-card` | utility strip | small dispatch strip for global or contextual utility actions | short chip sets only | dense chip sets in narrow spans | CD5 |
 | `tunet-scenes-card` | utility strip | scene/script/automation strip with wrap-first behavior | wrapped strip (`allow_wrap: true`) | forced horizontal strip in narrow spans unless explicitly chosen | CD5 |
 | `tunet-light-tile` | detail | atomic single-light control tile inside room-detail compositions | compact/standard detail tile within a detail stack | standalone overview surface | CD6 |
-| `tunet-lighting-card` | detail | canonical room-detail light-control surface | 2-column phone-safe lighting/detail layouts | 3-column phone defaults at `390px` | CD6 |
-| `tunet-rooms-card` | overview | room overview/navigation hub | `tiles` or `slim`, depending on density | `row` as the default phone overview layout; detailed room-light evaluation | CD7 |
+| `tunet-lighting-card` | detail | canonical room-detail light-control surface | 2-column phone-safe lighting/detail layouts | dense stress fixtures with verbose names and no explicit short labels | CD6 |
+| `tunet-rooms-card` | overview | room overview/navigation hub | `tiles` or `slim`, depending on density; `row` is card-level healthy, but final room-page composition remains a later surface decision | detailed room-light evaluation (use `tunet-lighting-card` instead) | CD7 |
 | `tunet-climate-card` | information | climate companion/reference surface | single-card climate presentation | cramped paired-phone compositions treated as a climate-card default | CD8 |
 | `tunet-weather-card` | information | weather companion/info surface | fixed daily/hourly variants | toggle-heavy auto-control variants as the default phone composition | CD8 |
 | `tunet-sensor-card` | information | environment/status rows and glanceable metrics | concise labeled rows with controlled sensor counts | unlabeled or alias-ambiguous fixture contracts | CD8 |
 | `tunet-status-card` | information | status/summary matrix where explicitly needed | 2-column phone-safe density unless labels are substantially shortened | 4-column phone summary matrix at `390px` | CD11 / G3S lock |
-| `tunet-media-card` | media control | primary transport/media state surface | current compact phone layout with full speaker identity preserved | compact naming that erases room identity | CD9 |
-| `tunet-sonos-card` | media control | alternate inline-speaker Sonos control surface | only after width-safe source/speaker handling is validated | current narrow-width source/dropdown and speaker-strip defaults | CD9 |
-| `tunet-speaker-grid-card` | media control | dedicated speaker-management grid | compact 2-column speaker grid | 4-column standard/default on phone | CD9 |
+| `tunet-media-card` | media control | primary transport/media state surface | compact/default labels preserve room identity while selected-target volume stays obvious | pointer-first group badge semantics and slider accessibility gap | CD9 |
+| `tunet-sonos-card` | media control | alternate inline-speaker Sonos control surface | default/autodiscovered source + speaker path now width-safe; visible tiles align with suite speaker-tile semantics | explicit long-name authoring pressure on phone | CD9 |
+| `tunet-speaker-grid-card` | media control | dedicated speaker-management grid | compact 2-column speaker grid with suite speaker-tile semantics | 4-column standard/default on phone | CD9 |
 | `tunet-nav-card` | chrome | persistent navigation chrome | bottom dock | desktop rail as a layout reference while offset/sidebar strategy is unstable | CD10 |
 
 Locked decisions:
@@ -438,7 +440,7 @@ Note: stub provides a real entity ID, not empty. Card renders unavailable if ent
 
 Dense-tile default for standard (`column_span: 1`) sections; intentionally not a full-width card.
 In wider sections, relative tile width shrinks further unless dashboard-level overrides are applied.
-Current HA grid hints remain dense-tile defaults and do not yet differentiate vertical vs horizontal or `tile_size` at the grid-hint layer. Any further tuning belongs to CD6, not shared-pass cleanup.
+Current HA grid hints remain dense-tile defaults and do not differentiate vertical vs horizontal at the grid-hint layer. Runtime phone readability is now handled in-card for narrow horizontal tiles; dashboard-level overrides still own context-specific placement.
 
 ### Interaction
 
@@ -453,6 +455,15 @@ Current HA grid hints remain dense-tile defaults and do not yet differentiate ve
 ### Profile System
 
 Uses `selectProfileSize` + `resolveSizeProfile` + `_setProfileVars`. Controls tile geometry (padding, icon size, font size, progress bar height) based on `tile_size` and container width via ResizeObserver. This is retained current-runtime machinery; do not read old shared-pass notes as meaning the card has already been re-authored around a different sizing system.
+
+### Lighting-Tile Family Contract
+
+This card is governed by the formal lighting-tile family contract in the `tunet-lighting-card` section below.
+
+Current lock:
+1. `tunet-light-tile` and `tunet-lighting-card` are the same lighting-tile family.
+2. When they drift visually without an explicit documented exception, treat that as contract failure.
+3. Shared family geometry belongs in `Dashboard/Tunet/Cards/v3/tunet_base.js`; this atomic tile should consume it rather than invent a separate visual language.
 
 ### Accessibility
 
@@ -482,10 +493,18 @@ Generally safe: overflow visible, profile-driven min-height, no forced internal 
 Section-span caveat: tile density depends on section span because numeric `columns` is relative to section internal grid.
 Whole-home note: when this card feels visually "orphaned", that is usually a composition problem rather than a card-contract failure.
 
+### Narrow Horizontal Runtime Behavior
+
+- Host width `<=420px` with `variant: horizontal` sets the host `narrow-horizontal` attribute.
+- In `narrow-horizontal` mode, `.name` switches from single-line truncation to a 2-line `-webkit-line-clamp`.
+- In `narrow-horizontal` mode, the `.val` lane shrinks to `min-width: 3ch`.
+- In `narrow-horizontal` mode, horizontal gap/padding tighten so the icon, value, and progress bar remain visible while reclaiming label room.
+
 ### Known Limitations
 
-- Horizontal-variant label truncation on phone remains the main open polish issue for this card family
+- No active card-level runtime defect is open in the current rehab fixtures
 - This card should be judged inside room-detail/detail-stack compositions, not as an overview/navigation surface
+- Broad long-name policy across media/status/rooms remains a later suite-level design problem, not a reopened CD6 card defect
 
 ---
 
@@ -514,7 +533,7 @@ Multi-zone lighting control surface. The most-used card in the dashboard — app
 | `surface` | string | `'card'` | `'card'`, `'section'`, `'tile'` | Y | editor |
 | `layout` | string | `'grid'` | `'grid'`, `'scroll'` | Y | editor |
 | `columns` | number | `3` | 2-8 | Y | editor |
-| `column_breakpoints` | array | `[]` | `[{min_width?, max_width?, columns}]` | Y | editor |
+| `column_breakpoints` | array | synthesized from `tile_size` when omitted | `[{min_width?, max_width?, columns}]` | Y | editor |
 | `scroll_rows` | number | `2` | 1-3 | Y | editor |
 | `rows` | string\|null | `null` | `'auto'` or 1-6 | Y | editor |
 | `tile_size` | string | `'standard'` | `'compact'`, `'standard'`, `'large'` | Y | editor |
@@ -581,18 +600,93 @@ In wider sections, numeric `12` becomes fractional unless dashboard-level overri
 
 Uses `selectProfileSize` + `resolveSizeProfile` + `_setProfileVars`. ResizeObserver remains part of the current runtime. Treat older shared-pass migration wording as historical, not as active program state.
 
-### Sections Safety — Worst in Suite
+### Sections Safety
 
 Grid-context caveat:
 1. default numeric `columns` is section-span-relative and not universal full-width in wider sections.
 
-Content/layout risks:
-1. `grid-template-columns: repeat(var(--cols, 3), minmax(0, 180px))` at L383 caps tile width and creates dead space when combined with centered justification.
-2. `justify-content: center` at L389 produces stranded dead space in wider sections instead of filling available detail-surface width.
-3. scroll-layout clipping pressure remains active around the scroll/tile overflow contract at L396 and tile overflow handling at L434-L435.
-4. row-limit and layout-branch logic at L1259 remains part of the live sizing/clipping contract.
+Current runtime position:
+1. default breakpoint synthesis is now phone-safe when `column_breakpoints` is omitted:
+   - compact/standard → `{640: 2, default: 3}`
+   - large → `{640: 1, default: 2}`
+2. `normalizeColumnBreakpoints()` now clamps the minimum column count to `1` instead of `2`, so the synthesized `large` phone case remains valid.
+3. grid tracks now use `repeat(var(--cols, 3), minmax(0, 1fr))`, replacing the old `180px` width cap.
+4. grid layout no longer relies on `justify-content: center`, so the chosen column count consumes the available section width instead of leaving centered dead gutters.
+5. scroll layout now includes inline inset plus matching scroll padding:
+   - desktop/base: `padding-inline: 0.5em`, `scroll-padding-inline: 0.5em`
+   - mobile: `padding-inline: 0.375em`, `scroll-padding-inline: 0.375em`
+6. row-limit and layout-branch logic at L1259 remains part of the live sizing contract.
+7. `CD6` follow-on closure: lighting-family parity is now accepted. Current implementation split is:
+   - shared tile identity and size-tier semantics in `tunet_base.js`
+   - container placement/column mechanics in `tunet-lighting-card`
+   - scroll transport behavior tracked separately from the closed tile-geometry parity work
 
-Best-in-class requirement: `3` columns at `390px` is not an acceptable default for the room-detail surface.
+### Formal Lighting-Tile Family Contract
+
+#### North Star
+
+Perfect is not “scroll and grid both look acceptable.” Perfect is one lighting-tile family, and every context shows the same object with the same visual grammar. Scroll only changes locomotion. Section/card/grid only change placement. The tile itself should not feel like a different component.
+
+#### Visual Design
+
+1. The tile reads as a vertically balanced stack:
+   - icon
+   - name
+   - value
+   - brightness bar
+2. Those four lanes should feel optically centered with deliberate breathing room between them. `%` crowded into the brightness bar lane is a contract failure.
+3. The brightness bar should sit slightly in from the left and right tile edges. It follows the lighting-family progress inset, not the raw content padding.
+4. Tile width is capped at an ideal readable width. Extra desktop space creates outer breathing room, not wider and wider tiles.
+5. Tile height scales with width so the card keeps a stable proportion. Wide-and-flat tiles are not acceptable.
+6. `compact`, `standard`, and `large` must be meaningfully different:
+   - `compact` = denser, still readable
+   - `standard` = baseline
+   - `large` = clearly larger icon, label, value, spacing, and bar presence
+7. `large` must never mean “same content inside a bigger empty box.”
+8. `scroll`, `grid`, `section`, and atomic light-tile contexts share the same tile geometry language. If one variant looks right, the others converge to it.
+9. Surface mode may change the outer shell, but it must not restyle the tile identity.
+10. On/off state must stay legible at a glance:
+   - `on` = stronger icon/value/bar emphasis
+   - `off` = quieter but still readable
+   - unavailable/manual states remain clear without breaking the family rhythm
+
+#### UI / Interaction
+
+1. A lighting tile is a control tile:
+   - tap = toggle
+   - hold-then-drag = brightness adjust
+   - keyboard = same intent, accessible
+2. Scroll behavior must never make tiles feel visually different. It changes transport, not tile identity.
+3. Press feedback communicates the action in progress:
+   - tap press = clear toggle feedback
+   - hold/drag = stronger engaged state
+4. Vertical page scroll wins unless the user clearly intends a brightness drag.
+5. Long names must preserve the tile structure first and then truncate gracefully.
+
+#### Implementation Contract
+
+1. The lighting-tile family contract lives in `Dashboard/Tunet/Cards/v3/tunet_base.js`, not as silent drift across cards.
+2. Base owns lighting-tile identity:
+   - preset mapping `lighting -> lighting-tile`
+   - size-tier semantics (`compact` / `standard` / `large`)
+   - icon, label, value, progress-lane inset/bottom-offset, and vertical-rhythm tokens
+3. `tunet-lighting-card` owns container behavior only:
+   - scroll vs grid mechanics
+   - column count
+   - group expansion
+   - explicit context-specific container exceptions
+4. Any card-local visual exception must be explicit, documented, and temporary.
+
+#### Acceptance Criteria
+
+1. At desktop, grid tiles do not stretch endlessly; they sit in a centered composition with stable proportions.
+2. The value lane has obvious air above the brightness bar.
+3. `large` is visibly more legible than `standard` from across the room.
+4. `section`, `scroll`, `grid`, and atomic light-tile captures look like the same product.
+5. If the tile is cropped out of its container, the context should not be obvious from the tile alone.
+
+Authoring note: dense stress fixtures should use explicit short config names (`Living`, `Dining`, etc.) instead of assuming raw friendly names will always fit in narrow 2-column phone layouts.
+Runtime note: when `expand_groups: true` auto-discovers member lights without explicit `zones[].name` overrides, the card compacts derived display names by stripping redundant room context and trailing lighting nouns where possible. Explicit `zones[].name` always wins and remains the preferred authoring path for intentional dense layouts.
 
 ### Editor Architecture
 
@@ -632,10 +726,11 @@ adaptive_entity (deprecated singular), light_group (legacy), light_overrides (le
 
 ### Known Limitations
 
-- Current editor exposes 16 primary fields instead of the 6-field authoring model — CD1.8 should simplify
+- Current editor exposes 16 primary fields instead of the 6-field authoring model — contract simplification remains desirable
 - 6 rendering paths (3 surfaces × 2 layouts) need validation at all breakpoints
 - `surface: tile` is now accepted by editor/runtime, but currently shares card styling until a dedicated tile-surface CSS contract is defined
-- Sections safety issues are the most significant in the suite (fixed-width cap, centered dead space, overflow/clipping, scroll pressure)
+- Use explicit short `name` values for intentionally dense fixtures when raw friendly names are verbose
+- D2/D3 are visually confirmed fixed; D4 was confirmed present with no code change needed
 - Legacy key precedence documented in `legacy_key_precedence.md`
 
 ---
@@ -684,19 +779,19 @@ Room navigation and control hub. Three distinct layout variants (tiles, row, sli
 
 | Aspect | Tiles | Row | Slim |
 |--------|-------|-----|------|
-| Layout | Vertical cards in grid | Horizontal rows | Row at 70% scale |
-| Primary tap | Toggle room lights today; target contract is navigate-first | Navigate to room | Navigate to room |
+| Layout | Vertical cards in grid | Horizontal rows | Row with reduced control scale but readability-preserved desktop type |
+| Primary tap | `tap_action` override if configured; otherwise toggle all room lights | Navigate to room | Navigate to room |
 | Light orbs | None | Yes, one per light | Yes, scaled 70% |
 | Power button | None | Yes, toggles all room lights | Yes |
 | Hold (400ms) | Fire hold_action (popup) | N/A | N/A |
 | Min height | 5.75em | 7.3125em | 5.12em |
 | Progress bar | Yes (avg brightness) | Hidden | Hidden |
 
-### Route/Control Contract (FRAGILE)
+### Route/Control Contract (Locked Card Contract)
 
-**Row mode**: body tap navigates, orb tap toggles individual light, power button toggles all. `stopPropagation()` on orbs and power button prevents navigation when controls are tapped. Priority: `navigate_path` > `tap_action` > `hold_action`.
+**Row mode**: body tap navigates, orb tap toggles individual light, power button toggles all. Pointer and keyboard events on row controls are isolated so nested buttons never trigger row navigation. Row/slim buttons expose desktop hover titles from the light or room label. Priority: `navigate_path` > `tap_action` > `hold_action`.
 
-**Tile mode**: quick tap (<400ms) toggles lights or fires `tap_action`. Long press (≥400ms) fires `hold_action` with haptic scale feedback (0.9x for 120ms). Priority: `tap_action` > toggle > temp more-info.
+**Tile mode**: quick tap (<400ms) toggles all room lights (on/off). If `tap_action` is configured, it fires instead. Fallback chain: `tap_action` > room-light toggle > temperature more-info. Long press (≥400ms) fires `hold_action` with haptic scale feedback (0.9x for 120ms), falling back to `navigate_path` when no explicit hold action exists. This is the locked contract — tile tap = toggle, hold = navigate.
 
 Whole-home evaluation rule: judge this card primarily on room overview/navigation behavior and compact room status/control density. Do not judge it as a substitute for `tunet-lighting-card` when evaluating room-detail light control.
 
@@ -706,10 +801,11 @@ Whole-home evaluation rule: judge this card primarily on room overview/navigatio
 
 ### Adaptive Lighting Integration
 
-- `_resolveAdaptiveEntitiesForRooms()` (L1198): auto-discovers `switch.adaptive_lighting_*` entities whose `lights` attribute overlaps with room lights
-- `_getManualLights()` (L1214): reads `manual_control` attribute array from AL switches
+- `_resolveAdaptiveEntitiesForRooms()`: auto-discovers `switch.adaptive_lighting_*` entities whose `lights` attribute overlaps with room lights
+- `_getManualLights()`: reads `manual_control` attribute array from AL switches
 - Visual: red shadow glow on manually-controlled orbs, "X manual" in status text
 - Reset button calls `adaptive_lighting.set_manual_control` with `manual_control: false`
+- **Dependency**: Adaptive Lighting HACS integration must be installed and configured with `manual_control` attribute exposed. If AL entities are unavailable, manual indicators and reset button are hidden automatically.
 
 ### Grid Options
 
@@ -723,21 +819,21 @@ In wider sections, numeric `12` is fractional unless dashboard-level overrides a
 
 ### Interaction
 
-- **Target contract**:
-  - Tile variant: tap navigate, hold popup, no drag
+- **Contract (locked)**:
+  - Tile variant: tap toggles room lights, hold navigates/popup, no drag
   - Row/slim variant: body tap navigate, orb tap light toggle, power tap room all-toggle, no hold
-- **Current implementation**:
-  - Tile variant short tap toggles room lights (unless `tap_action` override); long hold triggers `hold_action` or navigation fallback
-  - Row/slim already matches navigate + explicit controls model with stop-bubbling on row controls
-- **Planned delta**: CD7 aligns tile variant to the navigation-tile contract without regressing row control ownership.
+- **Implementation**:
+  - Tile: short tap toggles room lights; `tap_action` override when configured; hold fires `hold_action` or `navigate_path`
+  - Row/slim: navigate + explicit controls with pointer/keyboard isolation on row controls
+- **CD7 changes**: tightened phone row density, equalized row lead-icon/orb/power sizing, added control-press-active isolation, lifted desktop row/slim typography for readability, row/slim status now shows plain percent without the `bri` suffix, row buttons expose hover titles from room/light labels, hardened common room-icon aliases like `sofa` / `couch` to valid glyphs, locked tile tap = toggle contract.
 
 ### Sections Safety
 
 - Variable-content card with two structural modes (`tiles` grid vs `row/slim` flex-column) and fixed min-height contracts per mode.
-- `getGridOptions()` currently static; row/slim and tiles have different real vertical density and should be validated against shared sizing rules in CD4/CD7.
+- `getGridOptions()` currently static; row/slim and tiles have different real vertical density and should still be judged carefully when later surface/layout work chooses room-page composition.
 - Section-span caveat: numeric default `columns` is relative to section width; room-page YAML overrides are expected for intentional multi-column section compositions.
-- Known risk: row variant text density/truncation and control crowding at mobile breakpoints require explicit breakpoint evidence, not inferred parity.
-- Phone-default recommendation: prefer `tiles` or `slim` for overview surfaces; treat `row` as the densest and least phone-safe variant until CD7 closes.
+- Phone density (CD7 closed card-level): runtime now tightens row/slim control sizing and spacing at phone width while keeping the lead icon, orb buttons, and power button in the same size family. Status copy uses plain percent when brightness is shown so phone rows do not burn width on the word `brightness`. This closeout applies to the card on the YAML rehab dashboard only; it does not decide final room-page/storage composition.
+- Phone-default recommendation: prefer `tiles` or `slim` for lighter phone overview layouts; keep `row` for cases where per-light orb control is worth the denser presentation.
 
 ### Editor Architecture
 
@@ -876,7 +972,7 @@ Advanced: `surface`, `humidity_entity`, `display_min`, `display_max`
 
 ## 7. tunet-weather-card
 
-**Version**: v1.6.1  
+**Version**: v1.6.3  
 **Tier**: editor-complete  
 **File**: `Dashboard/Tunet/Cards/v3/tunet_weather_card.js`
 
@@ -897,6 +993,7 @@ Weather forecast card with auto-mode switching between daily/hourly and temperat
 | `show_view_toggle` | boolean | `true` | true/false | Y | editor |
 | `show_metric_toggle` | boolean | `true` | true/false | Y | editor |
 | `auto_precip_threshold` | number | `45` | 0-100 | Y | editor |
+| `show_pressure` | boolean | `false` | true/false | Y | editor |
 | `show_last_updated` | boolean | `true` | true/false | Y | editor |
 
 ### Auto-Mode Switching
@@ -904,6 +1001,7 @@ Weather forecast card with auto-mode switching between daily/hourly and temperat
 When `forecast_view: 'auto'` and/or `forecast_metric: 'auto'`:
 - Card detects precipitation likelihood from current condition + hourly forecast data
 - If precip likely (condition is rainy/snowy/hail OR maxPrecip ≥ threshold): switches to hourly view + precipitation metric
+- If both view and metric are `auto`, precip is not likely, and the hourly forecast exposes UV data: prefers hourly view + temperature metric so the default auto card can surface the UV cue
 - **Pin state**: user clicking Daily/Hourly or Temp/Precip toggle sets `_viewPinned`/`_metricPinned = true`, locking against auto-override. Pins are runtime-only — reset on page reload.
 
 ### WebSocket Subscription Chain
@@ -923,9 +1021,9 @@ Static. Same as climate — wants half-section width. Should be config-aware: da
 
 ### Interaction
 
-- **Category**: Information tile + segmented controls
+- **Category**: Information tile + header flip-chips
 - Header info tile supports tap/keyboard activation and opens more-info for the weather entity.
-- Daily/Hourly and Temp/Precip segmented buttons are explicit native controls.
+- Daily/Hourly and Temp/Precip flip-chips are explicit native controls.
 - Forecast tiles may look interactive depending on state styling; semantic cleanup is tracked for CD3.
 
 ### Sections Safety
@@ -952,7 +1050,45 @@ Static. Same as climate — wants half-section width. Should be config-aware: da
 - Forecast tiles with `cursor: pointer` but no button semantics — fake-interactive (CD3)
 - All 10 config fields already in editor — genuinely editor-complete
 - No arrays in config — no editor upgrade needed
-- Toggle-heavy variants remain a P2 usability issue on phone; they should not be treated as the phone-default presentation
+- Flip-chip/header weather variants are the intended phone-default presentation; broad old segmented-control wording is stale
+
+### CD8 Accepted Contract (Phone Density)
+
+Current accepted phone contract:
+- current conditions render as one condensed summary lane beside the large temperature
+- weather view/metric controls are compact flip-chips in the header
+- pressure is off by default
+- hourly + temperature forecast tiles may show a compact UV badge in the top-right when forecast data provides UV, including the dry `auto/auto` path when hourly UV is available
+
+**Target layout (phone)**:
+```
+┌──────────────────────────────────────┐
+│ ☀️ Header             [Hourly] [Temp]│  ← flip-chips in header row
+│                                      │
+│  42°  Sunny    💨4mph 💧30% ☀️6     │  ← one line: big temp + details
+│                                      │
+│ ┌─────┬─────┬─────┬─────┬─────┬────┐│
+│ │ NOW │ MON │ TUE │ WED │ THU │ FRI││  ← forecast tiles get max space
+│ │ ☀️  │ ⛅  │ ⛅  │ ⛅  │ 🌧  │ ☁️ ││
+│ │ 57° │ 59° │ 60° │ 60° │ 59° │ 43°││
+│ │ 40° │ 27° │ 28° │ 34° │ 33° │ 38°││
+│ └─────┴─────┴─────┴─────┴─────┴────┘│
+└──────────────────────────────────────┘
+```
+
+**Accepted changes**:
+
+1. **Details row**: Wind, Humidity, UV, ~~Pressure~~ become icon-only values in a single horizontal row beside the large temperature. No labels on phone — icons are self-explanatory. Pressure dropped from all views (user never references it).
+
+2. **Toggle chips**: Replace the two full-width segmented button rows with small inline flip-chips in the header area. Each chip shows the **alternate** state label — what you'll switch TO (e.g. "Hourly" when currently viewing daily). Tapping flips the view and updates the chip label. Same for Temp/Precip. One chip per toggle, not a two-button pair.
+
+3. **Hourly temperature cue**: In hourly + temperature mode, forecast tiles may render a compact UV badge in the top-right when the source forecast data provides UV. Dry `forecast_view: auto` + `forecast_metric: auto` may also prefer the hourly temperature presentation when UV is available so the default auto card can surface that cue. This is supplemental and should never displace the core hourly temp hierarchy.
+
+4. **Vertical savings**: ~120px recovered (4 detail rows → 0 extra rows; 2 toggle rows → 0 extra rows). Forecast tiles move above the fold on all phone layouts.
+
+**Desktop**: detail labels can remain visible (space permits). Chips stay compact. Hourly UV badges remain optional supplemental cues, not a second primary metric lane.
+
+**Config changes**: `show_pressure` defaults to `false`. Existing `show_view_toggle` / `show_metric_toggle` continue to control chip visibility.
 
 ---
 
@@ -1207,13 +1343,14 @@ Sonos media player with album art, transport controls, volume slider, speaker dr
 2. Fall back to `_activeEntity` (user's last selected speaker in dropdown)
 3. Fall back to `config.entity`
 
-**Why it matters**: transport commands go to the coordinator (group leader), not necessarily the displayed speaker. Current volume targeting prefers coordinator/group context; CD9 aligns speaker-tile interaction ownership explicitly.
+**Why it matters**: transport commands still go to the coordinator (group leader), but volume now follows the selected target explicitly. Selecting the grouped coordinator means group volume; selecting any other speaker means speaker-only volume.
 
 ### Speaker Dropdown
 
-- Tap speaker name → selects as active (changes display, doesn't affect grouping)
+- Tap speaker row → selects the active target (changes display and volume target, doesn't affect grouping)
 - Tap check icon → calls `sonos_toggle_group_membership` (optimistic UI: check toggles immediately). This control still needs semantic hardening in CD9.
 - Group All / Ungroup All buttons at bottom (call `sonos_group_all_to_playing` / `sonos_ungroup_all` scripts)
+- Default compact labels now preserve room identity aggressively (`Living`, `Dining`, `Kitchen`, `Bed`, etc.), even when the authored label is long. Full names should live in metadata/title text, not the primary phone label lane.
 
 ### Volume Drag
 
@@ -1240,11 +1377,11 @@ Static. Full section width. Should account for show_progress (adds height).
 - **Current implementation**:
   - Header info tile tap opens more-info
   - Album art tap opens more-info
-  - Speaker dropdown row tap selects active speaker
+  - Speaker dropdown row tap selects the active target
   - Group check tap toggles membership (still pointer-first and not yet a finished semantics contract)
   - Volume drag operates on slider control (not hold-gated tile drag)
 - **Target contract** (CD9): speaker-tile interactions converge with the suite speaker-tile model (tap select, hold-drag volume, icon more-info, badge group toggle).
-- **Group volume policy**: selected-speaker-only volume control during drag.
+- **Group volume policy**: selected-target volume control during drag. Selecting the grouped coordinator routes proportional group volume; selecting any other speaker routes speaker-only volume.
 - **Volume view lifecycle requirement**:
   - entering volume view happens via the volume button
   - volume view exits immediately via `X` close button
@@ -1289,8 +1426,8 @@ Best-in-class naming rule: compact speaker naming must not erase room identity.
 - `speakers[]` editor support is implemented (advanced object+fields+multiple); keep schema tests as regression guard
 - Album art opens more-info for transport target entity (verified in code at L885)
 - Volume slider needs `role="slider"` + arrow key handlers (deferred to CD9 — media bespoke)
-- `_firstWordName()`-style compact naming is not an acceptable long-term default when it hides room identity on phone
-- Remaining CD9 issues are primarily naming/semantics, not a broad coherent-build visual failure
+- Default compact naming now uses a shared room-preserving compaction rule; explicit speaker names no longer bypass it.
+- Remaining CD9 issues are semantics/accessibility, not a broad coherent-build visual failure
 
 ---
 
@@ -1320,12 +1457,12 @@ Alternative Sonos player with inline speaker tiles (always visible, not hidden i
 - No separate volume "view" — volume overlay appears inline below speaker tiles
 - Speaker tiles always visible in horizontal scroll strip (not hidden in dropdown)
 - Compact header (no large album art area)
-- Source selection dropdown with per-source volume drag within dropdown
+- Source selection dropdown now uses the same full shell/action model as the media dropdown
 - No Group All/Ungroup All buttons — grouping done per-tile
 
 ### Speaker Tiles
 
-Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue border, highlighted), not grouped (muted). Interactions: tap toggles group membership today, drag adjusts volume, hold (500ms) opens more-info. Narrow-width runtime shows active overflow pressure rather than merely theoretical width sensitivity.
+Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue border, highlighted), `.selected` (green active-target ring), not grouped (muted). Interactions now follow the suite speaker-tile contract: body tap selects the active target, hold (400ms) then drag adjusts volume, icon tap opens more-info, and the badge toggles group membership. Default/autodiscovered narrow-width runtime is now materially healthier with compact room-preserving labels and the media dropdown shell; explicit full-name authoring can still overpressure phone widths.
 
 ### Grid Options
 
@@ -1336,12 +1473,13 @@ Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue 
 ### Interaction
 
 - **Current implementation**:
-  - Speaker tile tap toggles group membership
-  - Speaker tile drag adjusts that tile's volume
-  - Speaker tile long press opens more-info
-  - Dropdown option tap selects active speaker
-- **Target contract** (CD9): unify with speaker-tile suite contract where tile body tap selects active speaker and group toggle is owned by an explicit badge control.
-- **Group volume policy**: selected-speaker-only volume drag.
+  - Speaker tile body tap selects the active target
+  - Hold (400ms) then drag adjusts volume for the selected target
+  - Speaker icon tap opens more-info
+  - Group badge toggles membership
+  - Dropdown option tap also selects the active target
+- **CD9 status**: visible speaker-tile semantics now align with the suite speaker-tile contract; remaining work is explicit long-name authoring pressure and any later accessibility follow-up.
+- **Group volume policy**: selected-target volume drag. Selecting the grouped coordinator routes proportional group volume; selecting any other speaker routes speaker-only volume.
 - **Volume overlay lifecycle requirement**:
   - volume overlay exits immediately via `X` close button
   - after any volume adjustment, overlay auto-exits to regular view after 5 seconds of inactivity
@@ -1349,8 +1487,8 @@ Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue 
 
 ### Sections Safety
 
-- Scrollable speaker-tile strip plus optional volume overlay means vertical size is mostly stable but width failure is active on narrow layouts.
-- `rows: 'auto'` is appropriate; the open defect is current source-button/dropdown and speaker-strip overflow at `390x844` / `768x1024`, not just hypothetical pressure.
+- Scrollable speaker-tile strip plus optional volume overlay means vertical size is mostly stable; the old default dropdown width failure is closed, and the remaining narrow-width pressure is authored long names plus any later strip-density tuning.
+- `rows: 'auto'` is appropriate; the remaining open narrow-width issue is authored long-name/header pressure and any later strip-density tuning at `390x844` / `768x1024`, not the old default dropdown shell.
 - Requires breakpoint verification that strip controls remain tappable at `390x844` and `768x1024`.
 
 ### Editor Architecture
@@ -1372,7 +1510,8 @@ Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue 
 - `speakers[]` editor support is implemented (object+fields+multiple)
 - ~~Hardcoded press scales (.90)~~ — resolved in CD2 (tokenized)
 - ~~`--spring` CSS variable undefined~~ — resolved in CD2 (replaced with `--ease-emphasized`)
-- Source button/dropdown width handling and speaker-strip overflow remain active CD9 runtime failures on phone/tablet
+- Default/autodiscovered source dropdown width handling is now aligned to the media dropdown shell and visually healthy on rehab phone/tablet captures.
+- Remaining CD9 issues are explicit long-name authoring pressure on phone widths plus any later accessibility pass.
 
 ---
 
@@ -1406,7 +1545,7 @@ When `config.speakers` is empty, `_getEffectiveSpeakers()` (L784) scans for `bin
 
 ### Per-Tile Volume Control
 
-Not display-only — each tile is a draggable volume slider. `createAxisLockedDrag()` per tile with debounce 200ms, cooldown 1500ms. Floating pill shows percentage during drag. `role="slider"` + `aria-valuenow` on tiles.
+Not display-only — each tile now uses the suite speaker-tile interaction model: body tap selects active target, hold (400ms) then drag adjusts selected-target volume, icon tap opens more-info, and badge toggles group membership. Floating pill shows percentage during drag.
 
 ### Grid Options
 
@@ -1419,17 +1558,25 @@ Static. Should compute from `ceil(speakers.length / columns) + (show_group_actio
 ### Interaction
 
 - **Current implementation**:
-  - Tile tap toggles group membership
-  - Drag adjusts per-tile volume
-  - Hold opens more-info
-  - Group All / Ungroup All are explicit action buttons
-- **Target contract** (CD9): align tile behavior with suite speaker-tile model (tap select active, hold-drag volume, icon more-info, badge group toggle).
-- **Group volume policy**: selected-speaker-only drag behavior.
+  - Tile body tap selects the active target
+  - Hold (400ms) then drag adjusts selected-target volume
+  - Icon tap opens more-info
+  - Group badge toggles group membership
+  - Group All / Ungroup All remain explicit action buttons
+- **CD9 status**: visible speaker-tile semantics now align with the suite speaker-tile model; the remaining open runtime issue is dense/default layout pressure, not tile interaction semantics.
+- **Group volume policy**: once the suite speaker-tile model is aligned, volume follows the selected target; selecting the grouped coordinator routes proportional group volume.
+
+### Phone Column Policy
+
+- At `<=440px`, speaker-grid now applies a card-level mobile column fallback:
+  - `tile_size: large` → `1` column
+  - `tile_size: compact` / `standard` → maximum `2` columns
+- This fallback applies even when `use_profiles: true`, so explicit desktop-facing configs like `columns: 3` or `columns: 4` no longer force the same density on phone widths.
 
 ### Sections Safety
 
 - Variable-height risk comes from `show_group_actions` and speaker count density; `rows: 'auto'` is appropriate.
-- Compact `2`-column layouts are conditionally phone-safe; the failing cases are dense/default `4`-column configurations and other high-density layouts.
+- Compact `2`-column layouts remain the viable phone baseline; after the mobile fallback landing, any remaining dense/default failures should be judged against the post-fallback runtime rather than the old forced `3`/`4` column phone path.
 - Static `max_rows: 12` may mask truncation risks in high-count speaker sets; verify with dense lab fixtures.
 
 ### Editor Architecture
@@ -1455,7 +1602,7 @@ Static. Should compute from `ceil(speakers.length / columns) + (show_group_actio
 - ~~Hover `translateY(-1px)`~~ — resolved in CD2 (removed, shadow-lift only)
 - ~~`--spring` CSS variable undefined~~ — resolved in CD2 (replaced with `--ease-emphasized`)
 - ~~Focus ring uses `var(--accent)` instead of `var(--focus-ring-color)`~~ — resolved in CD2
-- Treat dense/default speaker-grid configurations as the active CD9 defect; compact 2-column layouts are the viable phone baseline
+- Treat any remaining dense/default speaker-grid defects as post-fallback density problems, not as a license to ignore the card-level phone column policy above
 
 ---
 

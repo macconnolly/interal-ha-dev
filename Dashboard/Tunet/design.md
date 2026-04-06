@@ -39,6 +39,7 @@ Use this order when docs conflict:
 2. Profile direction is Option C (family profile consumption)
 3. Container-first width source is a hard prerequisite
 4. Family split is locked to:
+- `lighting-tile`
 - `tile-grid`
 - `speaker-tile`
 - `rooms-row`

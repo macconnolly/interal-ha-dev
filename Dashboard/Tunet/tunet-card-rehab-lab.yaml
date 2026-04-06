@@ -452,7 +452,7 @@ views:
               rows: auto
           - type: custom:tunet-light-tile
             entity: light.living_room_floor_lamp
-            name: Horiz Standard
+            name: Living Room Floor Lamp Reading Nook
             variant: horizontal
             tile_size: standard
             use_profiles: true
@@ -488,6 +488,7 @@ views:
               rows: auto
           - type: custom:tunet-light-tile
             entity: light.kitchen_island_pendants
+            name: Kitchen Island Pendant Bar Run
             variant: horizontal
             tile_size: large
             use_profiles: true
@@ -663,7 +664,6 @@ views:
             grid_options:
               columns: 24
               rows: auto
-
       - type: grid
         column_span: 4
         cards:
@@ -760,13 +760,13 @@ views:
               rows: auto
           - type: custom:tunet-weather-card
             entity: weather.home
-            name: Short daily
-            forecast_view: daily
+            name: Hourly temp + UV
+            forecast_view: hourly
             forecast_metric: temperature
             show_metric_toggle: false
-            show_view_toggle: true
+            show_view_toggle: false
             show_last_updated: false
-            forecast_days: 3
+            forecast_hours: 6
             grid_options:
               columns: 24
               rows: auto

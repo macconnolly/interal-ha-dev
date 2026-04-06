@@ -156,11 +156,11 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | LOCKED |
-| **Locked By** | cards_reference.md §Interaction Model (Apr 3, 2026) |
-| **Decision** | When the active speaker is in a group, volume drag adjusts only the selected speaker. Group-wide volume changes are explicit actions, not implicit side effects of tile drag. |
-| **Rationale** | Implicit group volume changes are surprising and hard to undo. Explicit "Group All volume" actions give users control and predictability. |
-| **Revisit Trigger** | If users report that per-speaker volume in grouped mode is frustrating or unexpected. |
+| **Status** | LOCKED (revised Apr 6, 2026) |
+| **Locked By** | Explicit user decision during CD9 + cards_reference.md §Interaction Model |
+| **Decision** | Volume controls the currently selected target. Selecting an individual speaker adjusts that speaker only. Selecting the grouped coordinator/current group leader adjusts the active group proportionally. Group membership changes remain explicit badge/action controls. |
+| **Rationale** | This matches the Sonos mental model more closely, keeps one active audio target at a time, and makes the dropdown selection the single source of truth for transport/volume focus. |
+| **Revisit Trigger** | If users want a separate explicit group-volume action instead of the grouped coordinator acting as the group target. |
 
 ---
 
@@ -171,7 +171,7 @@
 | **Status** | CONTRACTED for CD9 |
 | **Locked By** | cards_reference.md §Speaker Tile Unification Target (Apr 3, 2026) |
 | **Decision** | Across media_card, sonos_card, and speaker_grid_card: (1) tile body tap selects active speaker, (2) hold (400ms) then drag adjusts volume, (3) icon tap opens more-info, (4) group badge tap toggles group membership. |
-| **Current State** | All three cards diverge from this target. sonos_card: tap toggles group, drag adjusts volume, hold opens more-info. speaker_grid_card: tap toggles group, drag adjusts volume, hold opens more-info. media_card: dropdown-based speaker selection. |
+| **Current State** | media_card aligns on selected-target routing but still uses dropdown-first selection and pointer-first group badge semantics. sonos_card and speaker_grid_card now align on the visible speaker-tile contract: body tap selects active target, hold (400ms) then drag adjusts selected-target volume, icon tap opens more-info, and badge toggles group membership. |
 | **Revisit Trigger** | If the unified model creates confusion between "select active" and "toggle group" — these are different actions on the same tile and must be visually distinct. |
 
 ---

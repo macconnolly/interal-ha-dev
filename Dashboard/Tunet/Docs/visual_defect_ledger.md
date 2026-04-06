@@ -20,16 +20,16 @@ When the normalized section and the appendix differ, the normalized section wins
 |------|-----------------|-----------------------------|----------------|
 | `tunet-actions-card` | utility strip | real phone overflow issue; editor wording corrected | CD5 |
 | `tunet-scenes-card` | utility strip | runtime healthy; contract cleanup only | CD5 |
-| `tunet-light-tile` | atomic detail tile | healthy card; one phone-truncation polish item | CD6 |
-| `tunet-lighting-card` | canonical room-detail surface | worst active card-level layout risk | CD6 |
-| `tunet-rooms-card` | overview/navigation | row-mode phone density remains open | CD7 |
-| `tunet-climate-card` | information companion | healthy card; composition caveats only | CD8 |
-| `tunet-weather-card` | information companion | variant-specific phone-density issue | CD8 |
-| `tunet-sensor-card` | information rows | raw-ID defect closed; contract clarity remains | CD8 |
+| `tunet-light-tile` | atomic detail tile | runtime healthy; no active card-level defect | CD6 |
+| `tunet-lighting-card` | canonical room-detail surface | CD6 phone/core layout defects closed; desktop parity follow-on closed, scroll transport quirk deferred | CD6 |
+| `tunet-rooms-card` | overview/navigation | card-level runtime healthy; room-page layout remains undecided for later surface assembly | CD7 |
+| `tunet-climate-card` | information companion | healthy card; latest screenshot review still supports composition caveats only | CD8 |
+| `tunet-weather-card` | information companion | card-level runtime healthy; phone-density redesign closed on YAML rehab evidence | CD8 |
+| `tunet-sensor-card` | information rows | visually healthy; raw-ID defect closed; contract clarity remains | CD8 |
 | `tunet-status-card` | locked summary/info surface | real phone density + dropdown-quality defects remain | CD11 |
-| `tunet-media-card` | primary media transport surface | visual failure claim closed; naming/semantics remain | CD9 |
-| `tunet-sonos-card` | inline-speaker Sonos surface | active phone/tablet width failures remain | CD9 |
-| `tunet-speaker-grid-card` | dedicated speaker-management grid | dense/default layouts fail; compact 2-col remains viable | CD9 |
+| `tunet-media-card` | primary media transport surface | visually healthy; selected-target routing adopted; semantics/accessibility remain | CD9 |
+| `tunet-sonos-card` | inline-speaker Sonos surface | default width/dropdown path corrected; visible speaker-tile semantics aligned; explicit-name pressure remains | CD9 |
+| `tunet-speaker-grid-card` | dedicated speaker-management grid | visible speaker-tile semantics aligned; dense/default layouts still fail while compact 2-col remains viable | CD9 |
 | `tunet-nav-card` | chrome | desktop/sidebar offset conflict remains | CD10 |
 
 ### Tranche-Owned Open Backlog
@@ -38,17 +38,11 @@ When the normalized section and the appendix differ, the normalized section wins
   - `tunet-actions-card`: phone `mode_strip` chip overflow
   - `tunet-scenes-card`: keep strip-vs-wrap contract explicit; no active runtime failure
 - `CD6`
-  - `tunet-light-tile`: horizontal phone truncation polish only
-  - `tunet-lighting-card`: fixed-width cap, centered dead space, scroll clipping, and unsafe 3-col phone defaults
-- `CD7`
-  - `tunet-rooms-card`: row-mode phone density/truncation; preserve overview/navigation role
-- `CD8`
-  - `tunet-weather-card`: toggle-heavy phone density
-  - `tunet-sensor-card`: `label` naming-contract clarity only
-  - `tunet-climate-card`: no redesign backlog beyond composition discipline
+  - `tunet-light-tile`: keep atomic-detail role explicit; no active runtime defect
+  - `tunet-lighting-card`: family parity is closed; only a low-priority scroll transport/centering quirk remains outside the closed parity gate
 - `CD9`
-  - `tunet-media-card`: room-identity naming and pointer-first group-membership semantics
-  - `tunet-sonos-card`: source-button/dropdown and speaker-strip width failures
+  - `tunet-media-card`: pointer-first group-membership semantics + slider accessibility; selected-target routing and compact naming are now aligned
+  - `tunet-sonos-card`: explicit long-name phone pressure; media-style dropdown convergence and visible speaker-tile semantics are now landed
   - `tunet-speaker-grid-card`: dense/default layout failure, not the whole family
 - `CD10`
   - `tunet-nav-card`: desktop rail/sidebar coexistence and offset leakage
@@ -56,11 +50,16 @@ When the normalized section and the appendix differ, the normalized section wins
   - `tunet-status-card`: 4-col phone density and dropdown/runtime quality under lock
 
 **Global**
-- Highest-confidence active card defects remain: lighting, rooms row density, status small-screen density/dropdown behavior, sonos width overflow, and nav desktop/sidebar conflict.
-- Variant-specific problems remain real for actions, weather, and speaker-grid, but they are not uniform card-family failures.
-- Some earlier complaints were really composition/surface issues, not card defects: light-tile orphaning and climate paired-phone crowding belong in surface composition decisions.
+- Highest-confidence active card defects remain: status small-screen density/dropdown behavior, nav desktop/sidebar conflict, and speaker-grid dense/default layout failure.
+- Variant-specific problems remain real for actions and speaker-grid, but they are not uniform card-family failures. `CD8` is now card-level healthy after the 2026-04-06 weather closeout.
+- Some earlier complaints were really composition/surface issues, not card defects: light-tile orphaning, climate paired-phone crowding, and undecided room-page/storage layout belong in surface composition decisions.
 - Stale or narrowed items are now treated accordingly: sensor raw entity IDs, broad media visual-failure framing, broad mobile-nav instability framing, and broad “speaker-grid is not phone-safe at all” framing.
 - Cross-cutting doc debt remains: icon-field editor consistency, actions editor wording, scenes `allow_wrap` default wording, sensor naming-contract clarity, status dropdown-confidence wording, and nav layout-reference overclaim.
+- Cross-cutting interaction follow-up remains open: on mobile, grabbing cards while scrolling can still produce pressed feedback on card surfaces. Treat this as shared interaction debt, not a CD7-only rooms defect.
+- Cross-cutting editor follow-up remains open: icon-bearing editor/config fields should use a dropdown or validated icon picker so invalid tokens do not render raw fallback text like `WEATHER_SUNSET_DOWN`.
+- `Implementation backlog [CD12]`: alarm settings page — existing popup system works (2 alarms per room, weekday/weekend, only 2-3 alarms actively used). All backend exists in `packages/sonos_package.yaml`: helper entities, edit scripts, 7 automations, template sensors. Working YAML reference at `Dashboard/Tunet/Docs/sonos_alarm_popup_reference.md`. Integration into Tunet surface composition is the remaining work.
+- `Implementation backlog [CD12]`: notification response page needed — dynamic surface for reviewing notification context and taking action (snooze alarms, TV mode, OAL reset, etc.). Not a static settings page; a live action surface where the user can respond to system events. Requires investigation into: current notification automations/actions, actionable notification payloads, and how to surface decision-making controls dynamically. Scope TBD pending investigation.
+- `Open runtime defect`: OAL unified timer notification (`automation.oal_v14_unified_timer_notification`) appears broken — mode/zone expiring notifications not firing or not actionable. Needs investigation in `packages/oal_lighting_control_package.yaml` around line 5122. Related: if a user accidentally dismisses the mobile notification, there is currently no way to recover the context or take the action from the dashboard.
 
 **1. `tunet-actions-card`**
 - `Closed [CD5]`: mode_strip and relaxed chip overflow resolved — wraps and fills each row under phone-width pressure; compact default strips scroll horizontally.
@@ -76,37 +75,72 @@ When the normalized section and the appendix differ, the normalized section wins
 
 **3. `tunet-light-tile`**
 - `Composition constraint`: the “orphaned” phone look is usually a composition issue, not a card-contract failure.
-- `Open runtime defect [CD6]`: horizontal-variant truncation on phone remains the one real card-level polish issue.
+- `Closed [CD6]`: narrow horizontal light-tile mode now preserves readable phone labels without dropping the icon, value, or progress bar.
+- `Validation note [CD6]`: the code path is deployed and test-covered; final live visual signoff still depends on HA reloading the YAML dashboard so the long-name fixtures render again.
 - `Closed / stale`: broad “light tile is a major failure” framing is no longer accurate.
 - `Implementation backlog [CD6]`: keep this card scoped as an atomic detail tile, not an overview surface.
 
 **4. `tunet-lighting-card`**
-- `Open runtime defect [CD6]`: this remains the worst active layout card. Scroll clipping, fixed-width column behavior, and poor phone/tablet adaptation are true card-level defects.
-- `Doc contradiction`: the reference already calls this the worst Sections-risk card, but it previously under-described how severe the live detail-surface failures are.
-- `Implementation backlog [CD6]`: explicit pressure points are [tunet_lighting_card.js#L383](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L383), [tunet_lighting_card.js#L389](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L389), [tunet_lighting_card.js#L396](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L396), and [tunet_lighting_card.js#L1259](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_lighting_card.js#L1259).
-- `Implementation backlog [CD6]`: this is the canonical room-detail light-control surface. `3` columns at `390px` is not an acceptable default.
+- `Closed [CD6]`: synthesized phone-safe default columns, fill-width grid tracks, and scroll inset removed the old left-edge clipping / dead-space / `3`-column-at-`390px` failures.
+- `Visual audit [CD6]`: D2 dead-space fix confirmed at `390x844`, `768x1024`, `1440x900`; D3 scroll-left clipping fix confirmed at `390x844`, `1440x900`; D4 info-tile keyboard semantics confirmed present with no code change needed.
+- `Closed [CD6 follow-on]`: lighting tile-family parity is now complete across the formal five-point contract:
+  - desktop grid tiles are centered with stable proportions
+  - the value lane has clear air above the brightness bar
+  - `large` is visibly more legible than `standard`
+  - `grid`, `section`, `scroll`, and atomic tiles read as the same product
+  - cropped tiles do not reveal their source container
+- `Implementation note [CD6 follow-on]`: the accepted split is:
+  - shared lighting-family identity and size-tier semantics in `tunet_base.js`
+  - container placement mechanics in `tunet_lighting_card.js`
+  - shared atomic/detail consumption in `tunet_light_tile.js`
+  - auto-derived `expand_groups` member labels compact in-card; explicit `zones[].name` overrides remain authoritative
+- `Validation evidence [CD6 follow-on]`:
+  - phone grid: `/tmp/tunet-playwright-review/2026-04-05T21-48-10-378Z/390x844/light/rehab/lab/cards/tunet-lighting-card__01.png`
+  - phone section: `/tmp/tunet-playwright-review/2026-04-05T21-48-10-378Z/390x844/light/rehab/lab/cards/tunet-lighting-card__03.png`
+  - desktop scroll sample: `/tmp/tunet-playwright-review/2026-04-05T21-46-49-213Z/1440x900/light/rehab/lab/cards/tunet-lighting-card__02.png`
+  - desktop section: `/tmp/tunet-playwright-review/2026-04-05T21-46-49-213Z/1440x900/light/rehab/lab/cards/tunet-lighting-card__03.png`
+- `Separate non-blocking note`: the scroll variant still has a low-priority transport/centering quirk when there are not enough tiles to scroll; do not reopen the parity closure gate for that.
+- `Composition constraint`: intentionally dense phone-stress layouts should use explicit short config names (`Living`, `Dining`, etc.) rather than treating extreme friendly-name length as a card defect.
 
 **5. `tunet-rooms-card`**
-- `Open runtime defect [CD7]`: row-mode phone density/truncation is real and remains open.
+- `Closed [CD7 card-level]`: row-mode phone density, row/slim control isolation, and same-family control sizing now pass the YAML rehab dashboard at the locked breakpoints.
+- `Validation note [CD7]`: orb/power size parity and the split between row-body press feedback vs nested-control press feedback now hold in live review and should be treated as regression targets.
+- `Validation note [CD7]`: row lead-icon parity with the orb/power controls, plain-percent row status text, desktop/base row readability, slim desktop readability, and row-button hover titles now hold in rehab review and should be treated as regression targets.
+- `Validation note [CD7]`: rooms now normalizes common invalid room-icon aliases like `sofa` / `couch` to valid glyphs, which cleared the rehab slim raw-text icon bleed; the broader cross-card icon-picker/editor backlog remains open.
+- `Validation evidence [CD7 closeout]`:
+  - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/lab/cards/tunet-rooms-card__01.png`
+  - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/lab/cards/tunet-rooms-card__02.png`
+  - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/lab/cards/tunet-rooms-card__03.png`
+  - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/lab/cards/tunet-rooms-card__04.png`
+  - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/lab/cards/tunet-rooms-card__05.png`
+  - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/phone-stress/cards/tunet-rooms-card__01.png`
+  - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/surfaces/cards/tunet-rooms-card__01.png`
 - `Composition constraint`: this card must be judged as room overview/navigation, not as the detailed room-light surface.
 - `Doc contradiction`: older wording left too much room to evaluate it like a detail-lighting surface; that is now explicitly wrong.
-- `Implementation backlog [CD7]`: tile/slim should be the phone-default overview variants until row density is brought under control.
+- `Accepted contract`: tile tap = toggle; `tap_action` override when configured; hold = navigate / popup fallback; row/slim body tap = navigate with nested controls owning toggles.
+- `Surface-layout note`: this closeout does **not** decide room-page/storage composition. Later surface work can choose tiles/row/slim placement without reopening the rooms card itself.
 
 **6. `tunet-climate-card`**
 - `Composition constraint`: crowded standard+thin phone pairings are surface-placement issues, not evidence that the climate card itself is failing.
 - `Doc contradiction`: “gold standard” must mean single-card visual/interaction baseline, not “every arbitrary paired composition is optimal.”
 - `Closed / stale`: broad climate-card runtime-failure framing is no longer accurate.
+- `Validation note [2026-04-05]`: authenticated rehab screenshots keep climate in the same bucket; the cramped phone surfaces capture still reads as composition pressure, not a new card-local failure.
 - `Implementation backlog [CD8]`: keep climate largely stable; use it as the baseline, not a redesign sandbox.
 
 **7. `tunet-weather-card`**
-- `Open runtime defect [CD8]`: toggle-heavy variants still waste vertical space and feel dense on phone, but this is variant-specific rather than a universal failure.
-- `Composition constraint`: fixed daily/hourly variants are the safer phone defaults; toggle-heavy auto-control variants should not be the default phone presentation.
-- `Doc contradiction`: prior wording blurred the difference between healthier fixed variants and the heavier toggle-driven variants.
-- `Implementation backlog [CD8]`: treat this as a P2 usability/density issue, not a primary suite-wide runtime failure.
+- `Closed [CD8]`: the phone-density redesign is now accepted on the YAML rehab dashboard.
+- `Accepted contract`: single-line detail row, compact inline flip-chips in the header, pressure off by default, and an optional UV cue on hourly temperature forecast tiles when source data provides UV; dry `auto/auto` may prefer the hourly temperature presentation when UV data is available.
+- `Validation note [2026-04-06]`: the screenshot harness now waits for web fonts before capture, which removed the earlier raw-icon false negatives from the phone review path.
+- `Validation evidence [CD8 closeout]`:
+  - `/tmp/tunet-playwright-review/2026-04-06T02-27-25-961Z/390x844/light/rehab/lab/cards/tunet-weather-card__01.png`
+  - `/tmp/tunet-playwright-review/2026-04-06T02-27-25-961Z/390x844/light/rehab/lab/cards/tunet-weather-card__05.png`
+  - `/tmp/tunet-playwright-review/2026-04-06T02-27-25-961Z/1440x900/light/rehab/lab/cards/tunet-weather-card__01.png`
+  - `/tmp/tunet-playwright-review/2026-04-06T02-27-25-961Z/1440x900/light/rehab/lab/cards/tunet-weather-card__05.png`
 
 **8. `tunet-sensor-card`**
 - `Closed / stale`: the raw-entity-ID runtime defect is superseded by the coherent-build correction later in this file.
 - `Doc contradiction`: the contract needs to stay explicit that `label` is the supported display-name key unless runtime support for `name` is formally added.
+- `Validation note [2026-04-05]`: authenticated rehab screenshots keep sensor in the healthy bucket; no new runtime visual failure was observed.
 - `Implementation backlog [CD8]`: the remaining issue is config-contract clarity around [tunet_sensor_card.js#L710](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sensor_card.js#L710), not a current visual/runtime failure.
 
 **9. `tunet-status-card`**
@@ -117,19 +151,26 @@ When the normalized section and the appendix differ, the normalized section wins
 
 **10. `tunet-media-card`**
 - `Closed / stale`: the earlier broad visual-failure framing is superseded by the coherent-build correction; the card itself renders acceptably at `390px` in the current build.
-- `Open runtime defect [CD9]`: compact naming must not erase room identity; `_firstWordName()`-driven identity loss remains open.
+- `Closed [CD9 subpass]`: default compact naming now preserves room identity via the shared `compactSpeakerName()` strategy.
+- `Closed [CD9 subpass]`: volume routing now follows the selected target; grouped coordinator selection becomes the proportional group-volume target instead of forcing selected-speaker-only behavior.
 - `Open runtime defect [CD9]`: the group-membership control remains pointer-first and is not a completed semantics contract.
-- `Implementation backlog [CD9]`: key lines remain [tunet_media_card.js#L733](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L733), [tunet_media_card.js#L1077](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L1077), and [tunet_media_card.js#L1086](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_media_card.js#L1086).
+- `Implementation backlog [CD9]`: remaining work is semantics/accessibility: pointer-first group badge behavior and slider keyboard semantics.
 
 **11. `tunet-sonos-card`**
-- `Open runtime defect [CD9]`: this remains one of the clearest true phone/tablet runtime failures. Source button/dropdown width handling and speaker-strip overflow are actively broken, not merely under pressure.
-- `Doc contradiction`: the reference previously softened this as width pressure when current runtime shows active failure.
-- `Implementation backlog [CD9]`: explicit pressure points are [tunet_sonos_card.js#L152](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L152), [tunet_sonos_card.js#L178](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L178), and [tunet_sonos_card.js#L1048](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sonos_card.js#L1048).
+- `Closed [CD9 subpass]`: the default/autodiscovered source selector now uses the healthier media-card dropdown shell and no longer presents the old broad phone/tablet width failure in rehab captures.
+- `Closed [CD9 subpass]`: selected-target volume routing now matches the adopted suite rule; grouped coordinator selection becomes the proportional group-volume target.
+- `Closed [CD9 subpass]`: visible speaker tiles now follow the suite speaker-tile semantics: body tap selects active target, hold (400ms) then drag adjusts selected-target volume, icon tap opens more-info, and badge toggles group membership.
+- `Composition / authoring pressure`: explicit full-name source labels can still overgrow the phone header; treat that as an authored-density issue, not the default runtime path.
+- `Validation note [CD9]`: visible speaker-tile semantics landed with build `?v=build_20260406_035732Z`; screenshot manifest `/tmp/tunet-playwright-review/2026-04-06T03-57-42-318Z/review-manifest.json`.
+- `Implementation backlog [CD9]`: decide whether explicit full-name variants need stronger phone truncation guidance or runtime compaction.
 
 **12. `tunet-speaker-grid-card`**
+- `Closed [CD9 subpass]`: visible speaker tiles now align with the suite speaker-tile contract; the card no longer uses tap-toggle-group / hold-more-info semantics.
 - `Open runtime defect [CD9]`: dense/default configurations remain open defects; `4` columns at `390px` is not phone-safe.
 - `Composition constraint`: compact `2`-column speaker-grid can be phone-safe; do not describe the whole family as uniformly broken on phone.
 - `Doc contradiction`: earlier broad “not phone-safe” language is too absolute against the coherent-build correction later in this file.
+- `Validation note [CD9]`: build `?v=build_20260406_041426Z` adds a card-level phone column fallback (`large -> 1`, non-large -> max `2`) even when `use_profiles: true`; judge remaining density issues against the post-fallback runtime rather than the old forced `3`/`4` column phone path.
+- `Validation note [CD9]`: semantics landing and dense/default evidence are both captured in `/tmp/tunet-playwright-review/2026-04-06T03-57-42-318Z/review-manifest.json`.
 - `Implementation backlog [CD9]`: keep the defect scoped to dense/default layouts rather than the entire card family.
 
 **13. `tunet-nav-card`**
@@ -167,6 +208,7 @@ Evidence: audit-my-390-top.png through audit-my-390-s12.png, audit-my-768-top.pn
 - Section Surface + Expand Groups (3-col): "Couch La...", "Floor Lam...", "Credenza ..." — **names severely truncated at 3-col on 390px**
 - `P0`: 3-col is too many columns for 390px; should be 2-col
 - Tile Surface Grid Large (2-col): fits well
+- `CD6 update (fresh rehab captures)`: scroll cards now retain left inset at scroll start and phone-stress grids render in 2 columns. Dense stress fixtures should use explicit short config names instead of treating extreme friendly-name length as a runtime defect.
 
 **4. Light Tile (audit-my-390-s3.png, s4.png)**
 - Vert Compact: clean, readable "100%"
@@ -174,6 +216,7 @@ Evidence: audit-my-390-top.png through audit-my-390-s12.png, audit-my-768-top.pn
 - Vert Large: clean, "54%" with wide progress bar
 - Horiz Compact (no profiles): clean, "100%"
 - Light tile in isolation is fine at 390px
+- `CD6 update (fresh rehab captures)`: horizontal light tiles retain readable labels at phone width without losing the value lane or progress bar.
 
 **5. Rooms Card (audit-my-390-s4.png, s5.png)**
 - Row mode: **"L" visible for Living Room — name truncated to single letter**. Status "C" and "·" visible but unreadable. Orbs (3) are tiny circles. Power button is **massive** relative to orbs (~3x size).
@@ -271,16 +314,12 @@ Evidence: audit-my-390-top.png through audit-my-390-s12.png, audit-my-768-top.pn
 4. **V-SPK-2**: Speaker grid 2-col compact is genuinely usable at 390px. The 4-col standard variant is the one that fails.
 5. **Scenes allow_wrap**: The "Relaxed Wrap" variant shows wrapping working correctly. The CD4 default change is effective.
 
-### Remaining True P0 Issues (confirmed on coherent build, mapped to owning tranche)
+### Remaining Highest-Confidence Open Issues (confirmed on coherent build, mapped to owning tranche)
 
-1. **Lighting scroll left-edge clipping** — tiles cut off on left when scrolled `[CD6]`
-2. **Lighting 3-col at 390px** — should drop to 2-col on phone `[CD6]`
-3. **Rooms row mode at 390px** — single-letter names, disproportionate power button `[CD7]`
-4. **Status 4-col Summary Matrix at 390px** — unreadable truncation `[CD11]`
-5. **Sonos source button overflow** — text exceeds card width `[CD9]`
-6. **Sonos speaker tile horizontal scroll clipping** — names truncated, left tiles clip `[CD9]`
-7. **Speaker grid 4-col standard at 390px** — unusable as a dense/default configuration `[CD9]`
-8. **Nav sidebar mode conflicts with HA sidebar at desktop** — double-sidebar `[CD10]`
+1. **Status 4-col Summary Matrix at 390px** — unreadable truncation `[CD11]`
+2. **Speaker grid 4-col standard at 390px** — unusable as a dense/default configuration `[CD9]`
+3. **Sonos/speaker-grid visible tile semantics still diverge from the suite speaker-tile contract** `[CD9]`
+4. **Nav sidebar mode conflicts with HA sidebar at desktop** — double-sidebar `[CD10]`
 
 ---
 
@@ -305,7 +344,7 @@ Evidence: audit-my-1440-s1.png through audit-my-1440-s8.png
 **V-DESK-4: Rooms Row mode — rows have excessive vertical spacing at 1440px**
 - Each row has significant vertical padding/margin creating tall gaps between rows
 - At desktop the rows feel vertically sparse
-- `P2`: Row min-height (7.3125em) is generous for desktop; could tighten
+- `Historical appendix note`: do not treat this as normalized CD7 scope unless it is freshly reproven on the current runtime
 
 **V-DESK-5: Climate cards — two variants side by side work well at 1440px**
 - Standard + Thin side by side is readable. No issue here.

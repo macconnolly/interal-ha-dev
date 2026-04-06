@@ -16,6 +16,7 @@ import * as esbuild from 'esbuild';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { updateTunetV3Resources } from './Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs';
 
 // ─── Configuration ──────────────────────────────────────────────────────
 
@@ -164,7 +165,7 @@ function validateBundleOutputs() {
 
 // ─── Deploy ─────────────────────────────────────────────────────────────
 
-function deployToHA() {
+async function deployToHA(manifest) {
   const env = readDotEnv('.env');
   const host = env.HA_SSH_HOST || HA_HOST_DEFAULT;
   const user = env.HA_SSH_USER || HA_USER_DEFAULT;
@@ -191,6 +192,21 @@ function deployToHA() {
   }
 
   console.log('  Deploy complete.\n');
+
+  try {
+    console.log(`  Syncing Lovelace resources to ?v=${manifest.versionToken}...`);
+    const summary = await updateTunetV3Resources({
+      manifestPath: path.join(DIST_ROOT, 'manifest.json'),
+      versionToken: manifest.versionToken,
+      envPath: '.env',
+    });
+    const updatedCount = summary.results.filter((result) => result.status === 'updated').length;
+    const missingCount = summary.results.filter((result) => result.status === 'missing').length;
+    console.log(`  Resource sync complete (${updatedCount} updated, ${missingCount} missing).\n`);
+  } catch (e) {
+    console.error(`  ✗ resource sync failed — ${e.message}`);
+    throw e;
+  }
 }
 
 // ─── CLI ────────────────────────────────────────────────────────────────
@@ -205,11 +221,11 @@ try {
   const result = await buildAllCards({ watch: isWatch });
 
   if (!isWatch) {
-    writeManifest(result);
+    const manifest = writeManifest(result);
     const valid = validateBundleOutputs();
 
     if (isDeploy && valid) {
-      deployToHA();
+      await deployToHA(manifest);
     }
 
     if (!valid) {

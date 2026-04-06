@@ -14,7 +14,7 @@ import {
   REDUCED_MOTION, FONT_LINKS,
   injectFonts, detectDarkMode, applyDarkClass,
   registerCard, logCardVersion,
-  renderConfigPlaceholder, bindButtonActivation,
+  renderConfigPlaceholder, bindButtonActivation, compactSpeakerName,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.2.2';
@@ -460,7 +460,7 @@ const TUNET_MEDIA_TEMPLATE = `
         </span>
         <div class="speaker-wrap" id="spkWrap" style="display:none">
           <button class="speaker-btn" id="spkBtn" aria-expanded="false">
-            <span class="icon" style="font-size:16px">speaker</span>
+            <span class="icon" style="font-size:16px" id="spkBtnIcon">speaker</span>
             <span id="spkLabel">Speaker</span>
             <span class="icon chevron" style="font-size:14px">expand_more</span>
           </button>
@@ -544,6 +544,7 @@ class TunetMediaCard extends HTMLElement {
     this._volDebounce = null;
     this._serviceCooldown = false;
     this._cooldownTimer = null;
+    this._volumeAutoExitTimer = null;
     this._view = 'track'; // 'track' | 'volume'
     this._activeEntity = null;
     this._cachedSpeakers = null;
@@ -718,6 +719,7 @@ class TunetMediaCard extends HTMLElement {
     document.removeEventListener('click', this._onDocClick);
     window.removeEventListener('resize', this._onViewportChange);
     window.removeEventListener('scroll', this._onViewportChange);
+    clearTimeout(this._volumeAutoExitTimer);
     this._stopProgress();
   }
 
@@ -731,11 +733,7 @@ class TunetMediaCard extends HTMLElement {
   }
 
   _firstWordName(label) {
-    const raw = String(label || '').trim();
-    if (!raw) return '';
-    const cleaned = raw.replace(/\s+Sonos$/i, '').trim();
-    const parts = cleaned.split(/\s+/).filter(Boolean);
-    return parts.length ? parts[0] : cleaned;
+    return compactSpeakerName(label);
   }
 
   get _coordinator() {
@@ -764,7 +762,31 @@ class TunetMediaCard extends HTMLElement {
   }
 
   get _volumeTarget() {
-    return this._coordinator || this._activeEntity || this._config.entity;
+    if (this._isGroupedCoordinatorSelected()) return this._coordinator;
+    return this._activeEntity || this._coordinator || this._config.entity;
+  }
+
+  _isGroupedCoordinatorSelected() {
+    return !!this._coordinator &&
+      this._activeEntity === this._coordinator &&
+      this._getGroupedCount() > 1;
+  }
+
+  _clearVolumeAutoExit() {
+    clearTimeout(this._volumeAutoExitTimer);
+    this._volumeAutoExitTimer = null;
+  }
+
+  _resetVolumeAutoExit() {
+    if (this._view !== 'volume') return;
+    this._clearVolumeAutoExit();
+    this._volumeAutoExitTimer = setTimeout(() => {
+      this._setView('track');
+    }, 5000);
+  }
+
+  _speakerLabel(spk, fallback = '') {
+    return this._firstWordName(spk?.name || fallback);
   }
 
   _callTransport(service) {
@@ -812,7 +834,10 @@ class TunetMediaCard extends HTMLElement {
 
   _getEffectiveSpeakers() {
     if (this._config.speakers && this._config.speakers.length > 0) {
-      return this._config.speakers;
+      return this._config.speakers.map((spk) => ({
+        ...spk,
+        _explicitName: Boolean(spk.name),
+      }));
     }
     if (!this._hass) return [];
     const speakers = [];
@@ -830,6 +855,7 @@ class TunetMediaCard extends HTMLElement {
             entity: playerEntity,
             name: playerState.attributes.friendly_name || room.replace(/_/g, ' '),
             icon: 'speaker',
+            _explicitName: false,
           });
         }
       }
@@ -841,6 +867,7 @@ class TunetMediaCard extends HTMLElement {
     const members = this._activeGroupMembers();
     if (members.length > 0) return members.length;
     const speakers = this._cachedSpeakers || [];
+    const groupedCount = this._getGroupedCount();
     return speakers.filter((spk) => this._isSpeakerInActiveGroup(spk.entity)).length;
   }
 
@@ -860,7 +887,7 @@ class TunetMediaCard extends HTMLElement {
     this.$ = {};
     const ids = [
       'card', 'infoTile', 'cardTitle', 'hdrSub', 'tvBadge',
-      'spkWrap', 'spkBtn', 'spkLabel', 'spkMenu',
+      'spkWrap', 'spkBtn', 'spkBtnIcon', 'spkLabel', 'spkMenu',
       'trackRow', 'albumArt', 'trackName', 'trackArtist', 'progressWrap',
       'progCur', 'progFill', 'progDur',
       'prevBtn', 'playBtn', 'playIcon', 'nextBtn', 'volShowBtn', 'volShowIcon',
@@ -935,6 +962,7 @@ class TunetMediaCard extends HTMLElement {
           entity_id: volumeTarget,
           is_volume_muted: !entity.attributes.is_volume_muted,
         });
+        this._resetVolumeAutoExit();
       }
     });
 
@@ -975,6 +1003,7 @@ class TunetMediaCard extends HTMLElement {
           entity_id: volumeTarget,
           volume_level: pct / 100,
         });
+        this._resetVolumeAutoExit();
         this._serviceCooldown = true;
         clearTimeout(this._cooldownTimer);
         this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
@@ -1007,6 +1036,8 @@ class TunetMediaCard extends HTMLElement {
     this._view = v;
     this.$.trackRow.classList.toggle('hidden', v !== 'track');
     this.$.volRow.classList.toggle('hidden', v !== 'volume');
+    if (v === 'volume') this._resetVolumeAutoExit();
+    else this._clearVolumeAutoExit();
   }
 
   _onDocClick(e) {
@@ -1068,18 +1099,22 @@ class TunetMediaCard extends HTMLElement {
       const iconEl = document.createElement('span');
       iconEl.className = 'icon spk-icon';
       iconEl.style.fontSize = '16px';
-      iconEl.textContent = spk.icon || 'speaker';
+      iconEl.textContent = (spk.entity === this._coordinator && groupedCount > 1)
+        ? 'speaker_group'
+        : (spk.icon || 'speaker');
       opt.appendChild(iconEl);
 
       const textWrap = document.createElement('span');
       textWrap.className = 'spk-text';
       const nameEl = document.createElement('span');
       nameEl.className = 'spk-name';
-      nameEl.textContent = this._firstWordName(spk.name || entity.attributes.friendly_name || spk.entity);
+      nameEl.textContent = this._speakerLabel(spk, entity.attributes.friendly_name || spk.entity);
       textWrap.appendChild(nameEl);
       const nowEl = document.createElement('span');
       nowEl.className = 'spk-now-playing';
-      nowEl.textContent = nowPlaying;
+      nowEl.textContent = (spk.entity === this._coordinator && groupedCount > 1)
+        ? `${groupedCount} grouped`
+        : nowPlaying;
       textWrap.appendChild(nowEl);
       opt.appendChild(textWrap);
 
@@ -1105,6 +1140,7 @@ class TunetMediaCard extends HTMLElement {
         e.stopPropagation();
         this._activeEntity = spk.entity;
         this._closeSpeakerMenu();
+        this._resetVolumeAutoExit();
         this._updateAll();
       });
 
@@ -1266,9 +1302,14 @@ class TunetMediaCard extends HTMLElement {
     // Speaker label
     if ($.spkLabel) {
       const activeSpk = (this._cachedSpeakers || []).find(s => s.entity === this._activeEntity);
+      const isGroupTarget = this._isGroupedCoordinatorSelected();
       $.spkLabel.textContent = activeSpk
-        ? this._firstWordName(activeSpk.name)
+        ? this._speakerLabel(activeSpk, activeEntity && activeEntity.attributes.friendly_name)
         : this._firstWordName((activeEntity && activeEntity.attributes.friendly_name) || this._config.name);
+      $.spkBtnIcon.textContent = isGroupTarget ? 'speaker_group' : (activeSpk?.icon || 'speaker');
+      $.spkBtn.title = isGroupTarget
+        ? `Group volume • ${this._getGroupedCount()} grouped`
+        : `Control ${$.spkLabel.textContent}`;
     }
 
     // Progress timer management

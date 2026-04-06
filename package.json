@@ -5,7 +5,10 @@
     "tunet:build": "node build.mjs",
     "tunet:build:watch": "node build.mjs --watch",
     "tunet:deploy:lab": "node build.mjs --deploy",
-    "tunet:lab:screenshot": "echo 'Use Playwright MCP to capture lab screenshots at locked breakpoints'",
+    "tunet:resources:sync": "node Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs",
+    "tunet:review": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface all",
+    "tunet:review:smoke": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --smoke",
+    "tunet:lab:screenshot": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab",
     "test": "vitest run"
   },
   "dependencies": {

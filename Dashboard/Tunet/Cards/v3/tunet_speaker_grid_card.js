@@ -6,9 +6,10 @@
  * Horizontal tile layout: icon | name + song | vol% | vol-bar (bottom)
  *
  * Interactions:
- *   Tap        = toggle group membership
- *   Drag L/R   = volume control (200px = full range)
- *   Hold 500ms = open more-info dialog
+ *   Tap        = select active speaker
+ *   Hold/drag  = volume control
+ *   Icon tap   = open more-info dialog
+ *   Badge tap  = toggle group membership
  *
  * Version 3.1.3
  */
@@ -28,7 +29,6 @@ import {
   selectProfileSize,
   resolveSizeProfile,
   _setProfileVars,
-  createAxisLockedDrag,
   registerCard,
   logCardVersion,
   renderConfigPlaceholder,
@@ -36,6 +36,9 @@ import {
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.2.0';
+const DRAG_THRESHOLD = 6;
+const DRAG_SCALE = 2;
+const LONG_PRESS_MS = 400;
 
 // ═══════════════════════════════════════════════════════════
 // Card-specific CSS overrides
@@ -169,7 +172,7 @@ const CARD_STYLES = `
     border: 1px solid transparent;
     box-shadow: var(--tile-shadow-rest);
     cursor: pointer; user-select: none;
-    touch-action: pan-y;
+    touch-action: auto;
     min-height: var(--_tunet-tile-min-h, 58px);
     min-width: 0;
     overflow: visible;
@@ -225,7 +228,7 @@ const CARD_STYLES = `
       right: 8px;
       bottom: 6px;
     }
-    .group-dot {
+    .group-badge {
       top: 6px;
       right: 6px;
     }
@@ -235,6 +238,11 @@ const CARD_STYLES = `
     .spk-tile:hover {
       box-shadow: var(--tile-shadow-lift);
     }
+  }
+  .spk-tile.selected {
+    box-shadow:
+      0 0 0 1.5px var(--green-border),
+      var(--tile-shadow-lift);
   }
   .spk-tile:active { transform: scale(var(--press-scale)); }
   .spk-tile:focus-visible {
@@ -260,6 +268,15 @@ const CARD_STYLES = `
     font-size: var(--_tunet-icon-glyph, 20px);
     color: inherit;
     transition: color .15s ease;
+  }
+  .tile-icon-btn {
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  .tile-icon-btn:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
   }
 
   /* ── Text stack (center) ─────────────────────── */
@@ -312,13 +329,37 @@ const CARD_STYLES = `
     transition: width .15s ease-out;
   }
 
-  /* ── Group dot (top-right corner) ────────────── */
-  .group-dot {
+  /* ── Group badge (top-right corner) ──────────── */
+  .group-badge {
     position: absolute;
     top: 8px; right: 8px;
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    display: none;
+    width: 22px; height: 22px;
+    border-radius: 999px;
+    border: 1px solid var(--ctrl-border);
+    background: var(--tile-bg);
+    color: var(--text-muted);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    cursor: pointer;
+    z-index: 2;
+    transition:
+      transform var(--motion-fast) var(--ease-emphasized),
+      background var(--motion-ui) var(--ease-standard),
+      border-color var(--motion-ui) var(--ease-standard),
+      color var(--motion-ui) var(--ease-standard);
+  }
+  .group-badge .icon { font-size: 14px; }
+  @media (hover: hover) {
+    .group-badge:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  }
+  .group-badge:active { transform: scale(var(--press-scale)); }
+  .group-badge:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
   }
 
   /* ── Floating Volume Pill (during drag) ──────── */
@@ -366,9 +407,10 @@ const CARD_STYLES = `
   .spk-tile.in-group .spk-meta { color: var(--text-sub); }
   .spk-tile.in-group .spk-vol  { color: var(--accent); }
   .spk-tile.in-group .vol-fill { background: var(--accent-vol-bar); }
-  .spk-tile.in-group .group-dot {
-    display: block;
+  .spk-tile.in-group .group-badge {
     background: var(--accent);
+    border-color: var(--accent-border);
+    color: #fff;
     box-shadow: 0 0 10px var(--accent-glow);
   }
 
@@ -387,9 +429,10 @@ const CARD_STYLES = `
   .spk-tile.in-group.paused .spk-meta { color: var(--text-muted); font-style: italic; }
   .spk-tile.in-group.paused .spk-vol  { color: var(--text-muted); }
   .spk-tile.in-group.paused .vol-fill { background: var(--accent-vol-bar); opacity: 0.30; }
-  .spk-tile.in-group.paused .group-dot {
-    display: block;
+  .spk-tile.in-group.paused .group-badge {
     background: var(--accent);
+    border-color: var(--accent-border);
+    color: #fff;
     box-shadow: 0 0 10px var(--accent-glow);
     opacity: 0.5;
   }
@@ -428,11 +471,11 @@ const CARD_STYLES = `
 
   /* ── Responsive ────────────────────────────────── */
   @media (max-width: 440px) {
-    :host(:not([use-profiles])) .card { padding: var(--card-pad, 14px); --r-card: 20px; }
-    :host(:not([use-profiles])) .spk-grid {
+    .spk-grid {
       grid-template-columns: repeat(var(--cols-sm, 2), minmax(0, 1fr));
       gap: 8px;
     }
+    :host(:not([use-profiles])) .card { padding: var(--card-pad, 14px); --r-card: 20px; }
     :host(:not([use-profiles])) .spk-tile {
       min-height: 68px;
       padding: 7px 6px 10px;
@@ -519,18 +562,30 @@ class TunetSpeakerGridCard extends HTMLElement {
     this._hass = null;
     this._rendered = false;
     this._cachedSpeakers = null;
+    this._activeEntity = null;
     this._serviceCooldown = false;
     this._cooldownTimer = null;
     this._tileRefs = new Map();
-    this._tileDragControllers = [];
     this._volDebounce = null;
     this._resizeObserver = null;
     this._usingWindowResizeFallback = false;
     this._profileSelection = null;
+    this._dragEntity = null;
+    this._dragTile = null;
+    this._dragPointerId = null;
+    this._dragStartX = 0;
+    this._dragStartVol = 0;
+    this._dragLastPct = 0;
+    this._dragTarget = null;
+    this._dragActive = false;
+    this._longPressTimer = null;
+    this._longPressFired = false;
 
     injectFonts();
     this._onWindowResize = this._onWindowResize.bind(this);
     this._onHostResize = this._onHostResize.bind(this);
+    this._onPointerMove = this._onPointerMove.bind(this);
+    this._onPointerUp = this._onPointerUp.bind(this);
   }
 
   /* ── Config ─────────────────────────────────────── */
@@ -666,9 +721,13 @@ class TunetSpeakerGridCard extends HTMLElement {
       this._buildGrid();
     }
 
+    if (!this._activeEntity) {
+      this._activeEntity = this._coordinator;
+    }
+
     let changed = !oldHass;
     if (!changed) {
-      const watchList = [this._config.entity, this._config.coordinator_sensor];
+      const watchList = [this._config.entity, this._config.coordinator_sensor, this._activeEntity];
       for (const spk of (this._cachedSpeakers || [])) {
         watchList.push(spk.entity);
         watchList.push(this._binarySensorFor(spk.entity));
@@ -774,6 +833,9 @@ class TunetSpeakerGridCard extends HTMLElement {
 
   connectedCallback() {
     this._setupResizeObserver();
+    document.addEventListener('pointermove', this._onPointerMove);
+    document.addEventListener('pointerup', this._onPointerUp);
+    document.addEventListener('pointercancel', this._onPointerUp);
     if (typeof ResizeObserver === 'undefined') {
       this._usingWindowResizeFallback = true;
       window.addEventListener('resize', this._onWindowResize);
@@ -783,10 +845,10 @@ class TunetSpeakerGridCard extends HTMLElement {
   }
 
   disconnectedCallback() {
-    for (const ctrl of this._tileDragControllers) {
-      ctrl.destroy();
-    }
-    this._tileDragControllers = [];
+    document.removeEventListener('pointermove', this._onPointerMove);
+    document.removeEventListener('pointerup', this._onPointerUp);
+    document.removeEventListener('pointercancel', this._onPointerUp);
+    clearTimeout(this._longPressTimer);
     clearTimeout(this._volDebounce);
     clearTimeout(this._cooldownTimer);
     if (this._usingWindowResizeFallback) {
@@ -811,6 +873,54 @@ class TunetSpeakerGridCard extends HTMLElement {
   _callService(domain, service, data) {
     if (!this._hass) return;
     this._hass.callService(domain, service, data);
+  }
+
+  get _coordinator() {
+    if (!this._hass) return this._activeEntity || this._config.entity;
+    const sensor = this._hass.states[this._config.coordinator_sensor];
+    if (sensor && sensor.state && !['unknown', 'unavailable', 'none'].includes(sensor.state)) {
+      if (this._hass.states[sensor.state]) return sensor.state;
+    }
+    return this._activeEntity || this._config.entity;
+  }
+
+  _getGroupedCount() {
+    const speakers = this._cachedSpeakers || [];
+    return speakers.filter((spk) => {
+      const bs = this._hass && this._hass.states[this._binarySensorFor(spk.entity)];
+      return !!bs && bs.state === 'on';
+    }).length;
+  }
+
+  _isGroupedCoordinatorSelected() {
+    return !!this._coordinator &&
+      this._activeEntity === this._coordinator &&
+      this._getGroupedCount() > 1;
+  }
+
+  get _volumeTarget() {
+    if (this._isGroupedCoordinatorSelected()) return this._coordinator;
+    return this._activeEntity || this._coordinator || this._config.entity;
+  }
+
+  _setActiveEntity(entityId) {
+    if (!entityId || this._activeEntity === entityId) return;
+    this._activeEntity = entityId;
+    this._updateAll();
+  }
+
+  _openSpeakerMoreInfo(entityId) {
+    this.dispatchEvent(new CustomEvent('hass-more-info', {
+      bubbles: true,
+      composed: true,
+      detail: { entityId },
+    }));
+  }
+
+  _toggleSpeakerGroup(entityId) {
+    this._callScript('sonos_toggle_group_membership', {
+      target_speaker: entityId,
+    });
   }
 
   _getEffectiveSpeakers() {
@@ -889,10 +999,6 @@ class TunetSpeakerGridCard extends HTMLElement {
   _buildGrid() {
     const grid = this.$.spkGrid;
     if (!grid) return;
-    for (const ctrl of this._tileDragControllers) {
-      ctrl.destroy();
-    }
-    this._tileDragControllers = [];
     grid.innerHTML = '';
     this._tileRefs.clear();
 
@@ -900,30 +1006,51 @@ class TunetSpeakerGridCard extends HTMLElement {
 
     const speakers = this._cachedSpeakers || [];
     const cols = this._config.columns;
+    const colsSm = this._config.tile_size === 'large' ? 1 : Math.min(cols, 2);
     grid.style.setProperty('--cols', cols);
-    grid.style.setProperty('--cols-sm', 1);
+    grid.style.setProperty('--cols-sm', String(colsSm));
 
     for (const spk of speakers) {
       const tile = document.createElement('div');
       tile.className = 'spk-tile idle';
       tile.tabIndex = 0;
-      tile.setAttribute('role', 'slider');
-      tile.setAttribute('aria-label', spk.name || spk.entity);
-      tile.setAttribute('aria-valuemin', '0');
-      tile.setAttribute('aria-valuemax', '100');
-      tile.setAttribute('aria-valuenow', '0');
+      tile.setAttribute('role', 'button');
+      tile.setAttribute('aria-label', `Select ${spk.name || spk.entity}`);
+      tile.setAttribute('aria-pressed', 'false');
       tile.dataset.entity = spk.entity;
 
-      const dotEl = document.createElement('div');
-      dotEl.className = 'group-dot';
-      tile.appendChild(dotEl);
+      const badgeEl = document.createElement('button');
+      badgeEl.type = 'button';
+      badgeEl.className = 'group-badge';
+      badgeEl.setAttribute('aria-label', `Toggle group membership for ${spk.name || spk.entity}`);
+      const badgeIcon = document.createElement('span');
+      badgeIcon.className = 'icon icon-18';
+      badgeIcon.textContent = 'add';
+      badgeEl.appendChild(badgeIcon);
+      badgeEl.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      badgeEl.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this._toggleSpeakerGroup(spk.entity);
+      });
+      tile.appendChild(badgeEl);
 
-      const iconWrap = document.createElement('div');
-      iconWrap.className = 'tile-icon-wrap';
+      const iconWrap = document.createElement('button');
+      iconWrap.type = 'button';
+      iconWrap.className = 'tile-icon-wrap tile-icon-btn';
+      iconWrap.setAttribute('aria-label', `Open details for ${spk.name || spk.entity}`);
       const icon = document.createElement('span');
       icon.className = 'icon icon-20';
       icon.textContent = spk.icon || 'speaker';
       iconWrap.appendChild(icon);
+      iconWrap.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      iconWrap.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this._openSpeakerMoreInfo(spk.entity);
+      });
       tile.appendChild(iconWrap);
 
       const textWrap = document.createElement('div');
@@ -959,92 +1086,125 @@ class TunetSpeakerGridCard extends HTMLElement {
       pill.textContent = '0%';
       tile.appendChild(pill);
       tile.addEventListener('contextmenu', (event) => event.preventDefault());
-
-      const dragController = createAxisLockedDrag({
-        element: tile,
-        deadzone: 8,
-        axisBias: 1.3,
-        longPressMs: 500,
-        pointerCapture: false,
-        getContext: () => {
-          const playerState = this._hass && this._hass.states[spk.entity];
-          const startVol = playerState ? Math.round((playerState.attributes.volume_level || 0) * 100) : 0;
-          return {
-            entity: spk.entity,
-            tile,
-            startVol,
-            lastPct: startVol,
-          };
-        },
-        onDragStart: () => {
-          tile.classList.add('dragging');
-          document.body.style.cursor = 'grabbing';
-        },
-        onDragMove: (event, payload) => {
-          const ctx = payload && payload.context;
-          if (!ctx) return;
-          const pct = Math.max(0, Math.min(100, ctx.startVol + Math.round(payload.dx / 2)));
-          ctx.lastPct = pct;
-
-          const refs = this._tileRefs.get(ctx.entity);
-          if (refs) {
-            refs.volEl.textContent = `${pct}%`;
-            refs.pill.textContent = `${pct}%`;
-            refs.volFill.style.width = `${pct}%`;
-            refs.tile.setAttribute('aria-valuenow', String(pct));
-          }
-          if (event.cancelable) event.preventDefault();
-
-          clearTimeout(this._volDebounce);
-          this._volDebounce = setTimeout(() => {
-            this._callService('media_player', 'volume_set', {
-              entity_id: ctx.entity,
-              volume_level: pct / 100,
-            });
-            this._serviceCooldown = true;
-            clearTimeout(this._cooldownTimer);
-            this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
-          }, 200);
-        },
-        onDragEnd: (_event, payload) => {
-          const ctx = payload && payload.context;
-          if (!ctx) return;
-          clearTimeout(this._volDebounce);
-          tile.classList.remove('dragging');
-          document.body.style.cursor = '';
-
-          if (!payload.committed) return;
-          this._callService('media_player', 'volume_set', {
-            entity_id: ctx.entity,
-            volume_level: Math.max(0, Math.min(100, ctx.lastPct)) / 100,
-          });
-          this._serviceCooldown = true;
-          clearTimeout(this._cooldownTimer);
-          this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
-        },
-        onTap: () => {
-          this._callScript('sonos_toggle_group_membership', {
-            target_speaker: spk.entity,
-          });
-        },
-        onLongPress: () => {
-          this.dispatchEvent(new CustomEvent('hass-more-info', {
-            bubbles: true,
-            composed: true,
-            detail: { entityId: spk.entity },
-          }));
-        },
+      tile.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          event.stopPropagation();
+          this._setActiveEntity(spk.entity);
+        }
       });
-      this._tileDragControllers.push(dragController);
+      tile.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        event.stopPropagation();
+        this._onTilePointerDown(spk.entity, event, tile);
+      });
 
       grid.appendChild(tile);
-      this._tileRefs.set(spk.entity, { tile, iconWrap, nameEl, metaEl, volEl, volFill, dotEl, pill });
+      this._tileRefs.set(spk.entity, { tile, iconWrap, nameEl, metaEl, volEl, volFill, badgeEl, badgeIcon, pill });
     }
 
     if (this.$.gridActions) {
       this.$.gridActions.style.display =
         (this._config.show_group_actions && speakers.length > 1) ? '' : 'none';
     }
+  }
+
+  _onTilePointerDown(entity, event, tile) {
+    this._dragEntity = entity;
+    this._dragTile = tile;
+    this._dragPointerId = event.pointerId;
+    this._dragStartX = event.clientX;
+    this._dragActive = false;
+    this._longPressFired = false;
+    this._dragTarget = null;
+
+    clearTimeout(this._longPressTimer);
+    this._longPressTimer = setTimeout(() => {
+      if (this._dragEntity !== entity || this._dragActive) return;
+      this._longPressFired = true;
+      this._setActiveEntity(entity);
+      this._dragTarget = this._volumeTarget;
+      const targetState = this._hass && this._hass.states[this._dragTarget];
+      this._dragStartVol = targetState ? Math.round((targetState.attributes.volume_level || 0) * 100) : 0;
+      this._dragLastPct = this._dragStartVol;
+      try {
+        tile.setPointerCapture?.(this._dragPointerId);
+      } catch (_) {
+        // Global listeners still complete the gesture if capture is unavailable.
+      }
+    }, LONG_PRESS_MS);
+  }
+
+  _onPointerMove(event) {
+    if (!this._dragEntity || !this._longPressFired) return;
+    const dx = event.clientX - this._dragStartX;
+
+    if (!this._dragActive) {
+      if (Math.abs(dx) < DRAG_THRESHOLD) return;
+      this._dragActive = true;
+      this._dragTile?.classList.add('dragging');
+      document.body.style.cursor = 'grabbing';
+    }
+
+    const pct = Math.max(0, Math.min(100, this._dragStartVol + Math.round(dx / DRAG_SCALE)));
+    this._dragLastPct = pct;
+    const refs = this._tileRefs.get(this._dragEntity);
+    if (refs) {
+      refs.volEl.textContent = `${pct}%`;
+      refs.pill.textContent = `${pct}%`;
+      refs.volFill.style.width = `${pct}%`;
+    }
+    if (event.cancelable) event.preventDefault();
+
+    clearTimeout(this._volDebounce);
+    this._volDebounce = setTimeout(() => {
+      this._callService('media_player', 'volume_set', {
+        entity_id: this._dragTarget || this._dragEntity,
+        volume_level: pct / 100,
+      });
+      this._serviceCooldown = true;
+      clearTimeout(this._cooldownTimer);
+      this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
+    }, 200);
+  }
+
+  _onPointerUp() {
+    if (!this._dragEntity) return;
+    clearTimeout(this._longPressTimer);
+
+    const entity = this._dragEntity;
+    const tile = this._dragTile;
+    if (tile) {
+      tile.classList.remove('dragging');
+      if (tile.hasPointerCapture?.(this._dragPointerId)) {
+        try {
+          tile.releasePointerCapture(this._dragPointerId);
+        } catch (_) {
+          // Ignore release failures on browsers that auto-release.
+        }
+      }
+    }
+    document.body.style.cursor = '';
+
+    if (this._dragActive) {
+      clearTimeout(this._volDebounce);
+      this._callService('media_player', 'volume_set', {
+        entity_id: this._dragTarget || entity,
+        volume_level: Math.max(0, Math.min(100, this._dragLastPct)) / 100,
+      });
+      this._serviceCooldown = true;
+      clearTimeout(this._cooldownTimer);
+      this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
+    } else if (!this._longPressFired) {
+      this._setActiveEntity(entity);
+    }
+
+    this._dragEntity = null;
+    this._dragTile = null;
+    this._dragPointerId = null;
+    this._dragTarget = null;
+    this._dragActive = false;
+    this._longPressFired = false;
   }
 
   /* ── Full Update ────────────────────────────────── */
@@ -1057,11 +1217,7 @@ class TunetSpeakerGridCard extends HTMLElement {
     const speakers = this._cachedSpeakers || [];
     $.cardTitle.textContent = this._config.name;
 
-    let groupedCount = 0;
-    for (const spk of speakers) {
-      const bs = this._hass.states[this._binarySensorFor(spk.entity)];
-      if (bs && bs.state === 'on') groupedCount++;
-    }
+    const groupedCount = this._getGroupedCount();
 
     $.hdrSub.textContent = `${speakers.length} speakers \u00b7 ${groupedCount} grouped`;
 
@@ -1079,6 +1235,7 @@ class TunetSpeakerGridCard extends HTMLElement {
       const playerState = this._hass.states[spk.entity];
       const speakerState = playerState ? playerState.state : 'idle';
       const isPaused = speakerState === 'paused';
+      const isSelected = spk.entity === this._activeEntity;
 
       refs.tile.className = 'spk-tile';
       if (inGroup) {
@@ -1087,6 +1244,10 @@ class TunetSpeakerGridCard extends HTMLElement {
       } else {
         refs.tile.classList.add('idle');
       }
+      refs.tile.classList.toggle('selected', isSelected);
+      refs.tile.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+      refs.badgeEl.title = inGroup ? 'Remove from group' : 'Add to group';
+      refs.badgeIcon.textContent = inGroup ? 'remove' : 'add';
 
       if (inGroup && playerState) {
         if (isPaused) {
@@ -1109,7 +1270,6 @@ class TunetSpeakerGridCard extends HTMLElement {
         const vol = Math.round((playerState.attributes.volume_level || 0) * 100);
         refs.volEl.textContent = vol + '%';
         refs.volFill.style.width = vol + '%';
-        refs.tile.setAttribute('aria-valuenow', String(vol));
       }
     }
   }

@@ -11,6 +11,13 @@ Lab:       http://10.0.0.21:8123/tunet-card-rehab-yaml/lab
 
 Each card is bundled with esbuild. `tunet_base.js` is inlined into each card bundle — there is no separate shared chunk. This eliminates the two-layer cache busting problem (no more `?v=` strings on import paths).
 
+Deploys now also sync the live Lovelace resource URLs automatically:
+- `build.mjs` writes a manifest `versionToken`
+- deploy copies the built bundles to `/config/www/tunet/v3/`
+- deploy then updates every matching `/local/tunet/v3/*.js?v=...` resource entry over the Home Assistant websocket API
+
+Result: a normal deploy automatically cache-busts the frontend. Manual resource editing is no longer part of the v3 workflow.
+
 ## npm Scripts
 
 | Script | Command | What it does |
@@ -18,7 +25,10 @@ Each card is bundled with esbuild. `tunet_base.js` is inlined into each card bun
 | `tunet:build` | `node build.mjs` | One-shot build: 13 entries → `dist/`, manifest, validation |
 | `tunet:build:watch` | `node build.mjs --watch` | Watch `Cards/v3/` for changes, rebuild on save |
 | `tunet:deploy:lab` | `node build.mjs --deploy` | Build + SCP all outputs to HA server |
-| `tunet:lab:screenshot` | — | Use Playwright MCP to capture lab screenshots |
+| `tunet:resources:sync` | `node Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs` | Re-sync live `/local/tunet/v3/*.js?v=...` resource URLs from the current manifest |
+| `tunet:review` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface all` | Authenticated screenshot review across rehab + storage routes |
+| `tunet:review:smoke` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --smoke` | Fast authenticated screenshot smoke pass (`390x844`, light, first rehab view) |
+| `tunet:lab:screenshot` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab` | Authenticated rehab-dashboard screenshot review |
 | `test` | `vitest run` | Run all tests (profile resolver, sizing, bundle safety, config contract) |
 
 ## Build
@@ -36,6 +46,7 @@ Validation runs automatically:
 - `node --check` on every output file
 - Missing file detection
 - Exit code 1 on any failure
+- `manifest.json` version token becomes the deploy-time Lovelace resource version
 
 ## Deploy
 
@@ -51,7 +62,12 @@ Or use the shell script directly:
 ./Dashboard/Tunet/scripts/deploy_tunet_v3_lab.sh
 ```
 
-This SCPs all 13 built files to `/config/www/tunet/v3/` on the HA server.
+This:
+1. builds all 13 bundled outputs
+2. SCPs them to `/config/www/tunet/v3/` on the HA server
+3. updates the live Lovelace resource URLs to `?v=<manifest versionToken>`
+
+That last step is the cache-busting layer. If the deploy succeeds, the frontend should request the fresh bundle URLs automatically.
 
 ### Source files (rollback path)
 
@@ -60,6 +76,10 @@ This SCPs all 13 built files to `/config/www/tunet/v3/` on the HA server.
 ```
 
 This deploys the unbundled source files + `tunet_base.js`, restoring the pre-build state. Use this if a built bundle introduces a regression.
+
+The shell script also updates the Lovelace resource URLs after copy:
+- built mode uses the `dist/manifest.json` version token
+- source mode uses `TUNET_RESOURCE_VERSION` when provided, otherwise a generated `source_<timestamp>` token
 
 ### Credentials
 
@@ -70,7 +90,11 @@ HA_SSH_HOST=10.0.0.21   # optional (default: 10.0.0.21)
 HA_SSH_USER=root        # optional (default: root)
 ```
 
-Requires `sshpass` installed (`apt install sshpass`).
+Requires:
+- `sshpass` installed (`apt install sshpass`)
+- `.env` token for automatic resource sync:
+  - `HA_LONG_LIVED_ACCESS_TOKEN` preferred
+  - `HA_TOKEN` accepted as fallback
 
 ## Watch Mode
 
@@ -118,7 +142,7 @@ npm test
 
 Runs vitest with jsdom environment. Test files: `Dashboard/Tunet/Cards/v3/tests/*.test.js`
 
-Current test suites (527 total):
+Current test suites (576 total):
 - `profile_resolver.test.js` — profile resolution contract (8 tests)
 - `sizing_contract.test.js` — boundary behavior for bucketFromWidth/autoSizeFromWidth (10 tests)
 - `bundle_safety.test.js` — font injection and registerCard guards (5 tests)
@@ -127,9 +151,10 @@ Current test suites (527 total):
 - `interaction_source_contract.test.js` — CD2 interaction vocabulary contract: hover guards, press tokens, focus-visible, transitions, tap-highlight, reduced-motion (146 tests)
 - `interaction_dom_contract.test.js` — CD2 runtime DOM verification: base exports, style injection with mock hass, rendered CSS compliance (66 tests)
 - `interaction_keyboard_contract.test.js` — CD3 keyboard semantics: bindButtonActivation, role/tabindex verification, Enter/Space activation, slider preservation (63 tests)
-- `sizing_sections_contract.test.js` — CD4 Sections contract + CD5 actions/scenes sizing tightening (64 tests)
-- `utility_strip_bespoke.test.js` — CD5 bespoke: wrap/scroll CSS, layout helper, aria-pressed, semantic header, unavailable guard (32 tests)
-- `sizing_sections_contract.test.js` — CD4 Sections contract: rows:'auto' enforcement, columns:'full' nav-only, scenes allow_wrap, profile override precedence (58 tests)
+- `sizing_sections_contract.test.js` — CD4 Sections contract + later bespoke sizing guardrails (61 tests)
+- `utility_strip_bespoke.test.js` — CD5 bespoke: wrap/scroll CSS, layout helper, aria-pressed, semantic header, unavailable guard (44 tests)
+- `lighting_bespoke.test.js` — CD6 bespoke lighting-family regressions (17 tests)
+- `rooms_bespoke.test.js` — CD7 bespoke rooms-family regressions (19 tests)
 
 ## Tranche Closure Validation (Strict)
 
@@ -139,7 +164,7 @@ For CD* tranche closure, run and record:
 - YAML parse-check for changed YAML
 - `npm run tunet:build` if build outputs are affected
 - `npm test`
-- Playwright screenshots at all 4 locked breakpoints in both dark and light mode
+- authenticated screenshot capture/review output at the locked breakpoints in both dark and light mode
 
 ## Rollback
 
@@ -147,9 +172,10 @@ If built outputs cause a regression:
 
 1. Deploy source files: `./Dashboard/Tunet/scripts/deploy_tunet_v3_lab.sh --source`
 2. Lovelace resources remain at `/local/tunet/v3/` — no path change needed
+3. Run `npm run tunet:resources:sync -- --version <rollback_token>` if you need to force a fresh cache-busting token without rebuilding
 3. Source files include `tunet_base.js` which the unbundled cards import via ES module
 
-The built and source files share the same deploy path. Deploying source overwrites built, and vice versa.
+The built and source files share the same deploy path. Deploying source overwrites built, and vice versa. The resource URLs are re-versioned during each deploy, so rollback also refreshes the frontend cache.
 
 ## Side-Effect Safety
 

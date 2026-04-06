@@ -1,9 +1,348 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `main`
-Last updated: 2026-04-04
+Last updated: 2026-04-06
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
+
+## Session Delta (2026-04-06, CD9 subpass — Speaker-Grid Phone Column Fallback)
+
+Change marker: narrow speaker-grid mobile-density fix; `CD9` remains active pending screenshot signoff and the remaining media semantics/accessibility tail
+
+- `CHOSEN INTERPRETATION`
+  - the rehab `Large 3-col Explicit` speaker-grid variant is a card-level mobile column-policy defect, not a reason to preserve explicit `3` columns on phone
+  - apply the phone fallback in-card even when `use_profiles: true`
+- `IMPLEMENTATION`
+  - `tunet_speaker_grid_card.js`
+    - mobile `@media (max-width: 440px)` grid-column fallback now applies to all speaker-grid variants
+    - `tile_size: large` collapses to `1` visible phone column
+    - `tile_size: compact` / `standard` collapse to at most `2` visible phone columns
+  - `audio_cd9_bespoke.test.js`
+    - added CSS/runtime coverage for the mobile fallback column policy
+- `TESTS / VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
+  - `audio_cd9_bespoke.test.js`: `17/17`
+  - full suite: `617/617`
+  - `npm run tunet:build` passed
+  - `npm run tunet:deploy:lab` passed; live resources synced to `?v=build_20260406_041426Z`
+  - post-fallback screenshot manifest:
+    - `/tmp/tunet-playwright-review/2026-04-06T04-14-35-066Z/review-manifest.json`
+- `RESULT`
+  - the explicit `large 3-col` fixture no longer forces a 3-column phone layout in the card runtime
+  - keep `CD9` open until the refreshed screenshot set is signed off and the remaining media semantics/accessibility work is addressed
+
+## Session Delta (2026-04-06, CD9 subpass — Visible Speaker-Tile Semantics)
+
+Change marker: sonos/speaker-grid visible speaker-tile semantics landed; `CD9` remains active on media semantics/accessibility and speaker-grid dense/default
+
+- `CHOSEN INTERPRETATION`
+  - keep the revised selected-target/group-volume policy as authoritative
+  - remove the stale “selected speaker specifically” wording from the interaction contract rather than reopening the audio-target decision
+  - treat sonos and speaker-grid visible tiles as the primary scope of this subpass; media remains a separate semantics/accessibility tail
+- `IMPLEMENTATION`
+  - `tunet_sonos_card.js`
+    - body tap now selects the active target
+    - hold `400ms` then drag adjusts selected-target volume
+    - icon tap opens more-info
+    - badge toggles group membership
+    - visible tiles now surface explicit selected/grouped states
+  - `tunet_speaker_grid_card.js`
+    - removed the old tap-toggle-group / hold-more-info path
+    - visible tiles now follow the same speaker-tile contract as sonos
+    - old `createAxisLockedDrag()`-driven tile semantics are no longer the active runtime model
+  - `audio_cd9_bespoke.test.js`
+    - added coverage for sonos/speaker-grid visible-tile tap, badge, icon, and hold-drag behavior
+- `TESTS / VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
+  - `audio_cd9_bespoke.test.js`: `15/15`
+  - full suite: `615/615`
+  - `npm run tunet:deploy:lab` passed; live resources synced to `?v=build_20260406_035732Z`
+  - screenshot manifest:
+    - `/tmp/tunet-playwright-review/2026-04-06T03-57-42-318Z/review-manifest.json`
+- `RESULT`
+  - sonos and speaker-grid visible speaker tiles now align with the suite contract
+  - remaining `CD9` runtime backlog narrows to media semantics/accessibility and speaker-grid dense/default layout pressure
+
+## Session Delta (2026-04-06, CD8 follow-up polish — Auto/Auto UV)
+
+Change marker: weather post-closeout polish only; `CD9` remains active
+
+- `CHOSEN INTERPRETATION`
+  - user wanted the existing rehab `Auto / Auto` card to surface the UV cue without abandoning auto mode
+  - accepted direction:
+    - keep precip-driven auto behavior unchanged
+    - when both `forecast_view` and `forecast_metric` are `auto`, precip is not likely, and the hourly forecast exposes UV, prefer hourly + temperature so the default auto card can show the UV badge
+- `IMPLEMENTATION`
+  - `tunet_weather_card.js`
+    - bumped to `v1.6.3`
+    - forecast arrival now re-runs auto-mode resolution so the hydrated forecast can change the live auto card from its initial dry daily/temp state
+  - `weather_bespoke.test.js`
+    - added coverage for dry `auto/auto` hourly+temperature preference and the post-hydration recompute path
+  - `cards_reference.md` / `visual_defect_ledger.md`
+    - accepted weather contract now explicitly includes the dry `auto/auto` hourly-temp UV behavior
+- `TESTS / VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_weather_card.js`
+  - `weather_bespoke.test.js`: `10/10`
+  - full suite: `599/599`
+  - `npm run tunet:deploy:lab` passed; live resources synced to `?v=build_20260406_023753Z`
+  - screenshot manifest:
+    - `/tmp/tunet-playwright-review/2026-04-06T02-38-06-738Z/review-manifest.json`
+  - key evidence:
+    - `/tmp/tunet-playwright-review/2026-04-06T02-38-06-738Z/390x844/light/rehab/lab/cards/tunet-weather-card__01.png`
+    - `/tmp/tunet-playwright-review/2026-04-06T02-38-06-738Z/1440x900/light/rehab/lab/cards/tunet-weather-card__01.png`
+- `RESULT`
+  - the main rehab `Auto / Auto` weather sample now surfaces the UV badge in its dry auto path
+  - `CD8` remains closed; no tranche rollback
+
+## Session Delta (2026-04-06, CD7 closeout — Rooms Bespoke Pass)
+
+Change marker: card-level closeout only; room-page layout remains intentionally undecided
+
+- `CHOSEN INTERPRETATION`
+  - close `CD7` on the YAML rehab dashboard evidence only
+  - do not treat storage/room-page composition as part of the card-level closure gate
+  - accepted rooms interaction contract remains:
+    - tile tap = toggle
+    - `tap_action` override when configured
+    - hold = navigate / popup fallback
+    - row/slim body tap = navigate with nested controls owning toggles
+- `VALIDATION`
+  - YAML rehab screenshot evidence at locked breakpoints:
+    - `390x844`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/lab/cards/tunet-rooms-card__01.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/lab/cards/tunet-rooms-card__02.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/lab/cards/tunet-rooms-card__03.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/lab/cards/tunet-rooms-card__04.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/lab/cards/tunet-rooms-card__05.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/phone-stress/cards/tunet-rooms-card__01.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/390x844/light/rehab/surfaces/cards/tunet-rooms-card__01.png`
+    - `768x1024`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/768x1024/light/rehab/lab/cards/tunet-rooms-card__01.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/768x1024/light/rehab/lab/cards/tunet-rooms-card__03.png`
+    - `1024x1366`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/1024x1366/light/rehab/lab/cards/tunet-rooms-card__01.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/1024x1366/light/rehab/lab/cards/tunet-rooms-card__03.png`
+    - `1440x900`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/1440x900/light/rehab/lab/cards/tunet-rooms-card__01.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/1440x900/light/rehab/lab/cards/tunet-rooms-card__02.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/1440x900/light/rehab/lab/cards/tunet-rooms-card__03.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/1440x900/light/rehab/lab/cards/tunet-rooms-card__04.png`
+      - `/tmp/tunet-playwright-review/2026-04-06T01-50-24-760Z/1440x900/light/rehab/lab/cards/tunet-rooms-card__05.png`
+- `RESULT`
+  - row-mode phone density, row/slim control isolation, icon/control size parity, plain-percent status text, and slim/desktop readability now hold on the YAML rehab dashboard
+  - `CD7` is closed for the rooms card itself
+  - room-page/storage layout is explicitly not decided by this closure and remains future surface-composition work
+  - this was a governance evidence pass only; no new runtime code changed and no build/test rerun happened in the closeout step
+
+## Session Delta (2026-04-06, CD8 closeout — Weather Phone-Density Redesign)
+
+Change marker: weather runtime/design accepted; `CD8` closed and control returns to `CD9`
+
+- `CHOSEN INTERPRETATION`
+  - use the YAML rehab dashboard as the only closure gate for weather
+  - climate and sensor remain in their narrowed healthy buckets; no new card-local runtime work was needed there
+  - repair the screenshot harness font race before trusting phone weather captures
+- `IMPLEMENTATION`
+  - `tunet_weather_card.js`
+    - `show_pressure` is editor-visible and defaults to `false`
+    - hourly temperature forecast tiles now render a compact UV badge in the top-right when forecast data provides UV
+  - `tunet_playwright_review.mjs`
+    - waits for `document.fonts.ready` (bounded) before capture to avoid raw Material Symbols ligature text on phone screenshots
+  - `tunet-card-rehab-lab.yaml`
+    - weather fixture `Short daily` replaced with `Hourly temp + UV`
+- `TESTS / VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_weather_card.js`
+  - `node --check Dashboard/Tunet/scripts/tunet_playwright_review.mjs`
+  - YAML parse-check passed for `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+  - `weather_bespoke.test.js`: `7/7` passed
+  - full suite: `597/597` passed across 13 suites
+  - `npm run tunet:deploy:lab` passed; live resources synced to `?v=build_20260406_022606Z`
+  - rehab YAML re-SCP'd to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - screenshot manifest:
+    - `/tmp/tunet-playwright-review/2026-04-06T02-27-25-961Z/review-manifest.json`
+  - key evidence:
+    - `/tmp/tunet-playwright-review/2026-04-06T02-27-25-961Z/390x844/light/rehab/lab/cards/tunet-weather-card__01.png`
+    - `/tmp/tunet-playwright-review/2026-04-06T02-27-25-961Z/390x844/light/rehab/lab/cards/tunet-weather-card__05.png`
+    - `/tmp/tunet-playwright-review/2026-04-06T02-27-25-961Z/1440x900/light/rehab/lab/cards/tunet-weather-card__01.png`
+    - `/tmp/tunet-playwright-review/2026-04-06T02-27-25-961Z/1440x900/light/rehab/lab/cards/tunet-weather-card__05.png`
+- `RESULT`
+  - inline flip-chips, single-line detail summary, and pressure-default-off now hold as the accepted weather phone-density contract
+  - hourly temp tiles support the requested UV cue
+  - `CD8` is closed; next active tranche is `CD9`
+
+## Session Delta (2026-04-05, CD8 screenshot review — governance only)
+
+Change marker: evidence pass only; no runtime edits and no tranche advance
+
+- `CHOSEN INTERPRETATION`
+  - the user had treated `CD8` as closed, but the authenticated rehab screenshot pass does not support a broad closeout
+  - resolved by keeping `CD8` open on weather only while leaving climate and sensor in their previously narrowed buckets
+- `VALIDATION`
+  - screenshot run:
+    - `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --cd CD8 --breakpoint 390x844,768x1024,1024x1366,1440x900 --theme light`
+  - manifest:
+    - `/tmp/tunet-playwright-review/2026-04-05T22-17-07-022Z/review-manifest.json`
+  - key evidence:
+    - weather phone lab: `/tmp/tunet-playwright-review/2026-04-05T22-17-07-022Z/390x844/light/rehab/lab/cards/tunet-weather-card__01.png`
+    - weather phone stress: `/tmp/tunet-playwright-review/2026-04-05T22-17-07-022Z/390x844/light/rehab/phone-stress/cards/tunet-weather-card__01.png`
+    - weather surfaces phone: `/tmp/tunet-playwright-review/2026-04-05T22-17-07-022Z/390x844/light/rehab/surfaces/cards/tunet-weather-card__01.png`
+    - climate surfaces phone: `/tmp/tunet-playwright-review/2026-04-05T22-17-07-022Z/390x844/light/rehab/surfaces/cards/tunet-climate-card__01.png`
+    - sensor surfaces phone: `/tmp/tunet-playwright-review/2026-04-05T22-17-07-022Z/390x844/light/rehab/surfaces/cards/tunet-sensor-card__01.png`
+- `RESULT`
+  - weather still fails the written `CD8` phone-density target:
+    - toggles are still separate rows below the header
+    - detail content is still vertically stacked instead of single-line
+    - pressure appears removed, but the redesign is not complete
+  - climate still reads as a composition constraint, not a new card-local defect
+  - sensor remains visually healthy; only the naming-contract/doc-clarity item remains
+  - no code changes were made in this step, so no syntax/build/test commands were rerun
+
+## Session Delta (2026-04-05, CD6 post-close refinement — Lighting Progress Inset)
+
+Change marker: user-directed narrow lighting-family polish after parity closure; no tranche reopen
+
+- `CHOSEN INTERPRETATION`
+  - treat the slider edge-clearance request as a narrow lighting-family token refinement, not a renewed geometry-parity pass
+- `IMPLEMENTATION`
+  - added `lightingProgressInset` to the shared `lighting-tile` family in `tunet_base.js`
+  - `tunet_lighting_card.js` now uses `--_tunet-lighting-progress-inset` for the bottom bar left/right inset
+  - `tunet_light_tile.js` vertical tiles now use the same shared inset token
+  - non-profile compact fallback inset widened from `10px` to `12px`
+- `TESTS / VALIDATION`
+  - `node --check` passed on `tunet_base.js`, `tunet_lighting_card.js`, and `tunet_light_tile.js`
+  - `lighting_bespoke.test.js`: `30/30` passed
+  - full suite: `590/590` passed across 12 suites
+  - `npm run tunet:build` passed
+  - `npm run tunet:deploy:lab` passed; live resources synced to `?v=build_20260405_215937Z`
+  - focused rehab screenshot evidence:
+    - `/tmp/tunet-playwright-review/2026-04-05T21-59-45-582Z/390x844/light/rehab/lab/cards/tunet-lighting-card__01.png`
+    - `/tmp/tunet-playwright-review/2026-04-05T21-59-45-582Z/390x844/light/rehab/lab/cards/tunet-lighting-card__03.png`
+    - `/tmp/tunet-playwright-review/2026-04-05T21-59-45-582Z/390x844/light/rehab/lab/cards/tunet-light-tile__01.png`
+- `RESULT`
+  - bottom slider edge clearance is improved across the shared lighting family
+  - no broader lighting-family geometry contract changed
+  - user then requested a stronger inset; current live resource token is `?v=build_20260405_220402Z`
+
+## Session Delta (2026-04-05, CD6 follow-on — Lighting Geometry Parity)
+
+Change marker: user-directed reopen of the logged CD6 lighting follow-on; closed after parity signoff, then handed back to CD7
+
+- `AUTHORITY NOTE`
+  - active plan sequence still places CD7 next
+  - user explicitly redirected implementation back to the previously logged lighting follow-on
+  - chosen interpretation: do not claim CD7 closed; switch the active work to the lighting follow-on
+- `LIGHTING TARGET`
+  - make desktop non-scroll lighting variants match the scroll reference on tile width, tile height/aspect balance, and spacing between tiles
+  - make the internal lighting-tile stack (`icon -> name -> value -> brightness bar`) read the same across scroll, grid, section, and atomic tiles
+  - scroll behavior remains separately broken and is not being treated as solved by this pass
+  - prior “column gap too tight” wording was incomplete; the real defect is full tile geometry parity versus scroll
+  - drift source traced to doc/runtime mismatch:
+    - design-language family map still treated lighting as generic `tile-grid`
+    - cards_reference already treated lighting as its own family
+    - runtime used card-local lighting-card geometry to compensate
+  - chosen direction: dedicated shared `lighting-tile` family in `tunet_base.js`; container mechanics remain card-local in `tunet-lighting-card`
+- `IMPLEMENTATION`
+  - `tunet_base.js` now owns the shared lighting-tile profile family and the size-tier geometry that was previously drifting between cards
+  - `tunet_lighting_card.js` now consumes shared lighting-family tokens for internal tile rhythm and desktop non-scroll geometry while keeping container mechanics local
+  - `tunet_light_tile.js` now consumes the same vertical stack tokens so atomic tiles and card tiles converge
+  - `expand_groups` member tiles now compact auto-derived display names in-card by trimming redundant room context and trailing lighting nouns; explicit `zones[].name` overrides still win
+- `TESTS / VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_lighting_card.js` passed
+  - `lighting_bespoke.test.js`: `29/29` passed
+  - full suite: `589/589` passed across 12 suites
+  - deploy passed and synced live resources to `?v=build_20260405_214802Z`
+  - rehab screenshots now satisfy the formal lighting-family acceptance contract at phone and desktop:
+    - `/tmp/tunet-playwright-review/2026-04-05T21-48-10-378Z/390x844/light/rehab/lab/cards/tunet-lighting-card__01.png`
+    - `/tmp/tunet-playwright-review/2026-04-05T21-48-10-378Z/390x844/light/rehab/lab/cards/tunet-lighting-card__03.png`
+    - `/tmp/tunet-playwright-review/2026-04-05T21-46-49-213Z/1440x900/light/rehab/lab/cards/tunet-lighting-card__02.png`
+    - `/tmp/tunet-playwright-review/2026-04-05T21-46-49-213Z/1440x900/light/rehab/lab/cards/tunet-lighting-card__03.png`
+- `CLOSED`
+  - lighting tile-family parity is now closed as a CD6 follow-on
+  - auto-derived `expand_groups` member labels compact in-card; explicit `zones[].name` overrides remain authoritative
+- `SEPARATE NON-BLOCKING NOTE`
+  - scroll transport/centering still has a low-priority behavior quirk when tile count is too small to scroll; that is not part of the parity closure gate
+
+## Session Delta (2026-04-05, CD7 — Rooms Bespoke Pass Recovery)
+
+Change marker: CD7 reopened; prior closeout claims withdrawn pending validation
+
+- `ROOMS CARD`
+  - removed the speculative orb-overflow badge approach
+  - phone row density now relies on smaller same-size orb/power controls plus tighter row spacing
+  - row control isolation is enforced for both pointer and keyboard interaction via `control-press-active` class
+  - common invalid room-icon aliases like `sofa` / `couch` now normalize to `weekend` so row/slim cards do not show raw ligature text in live captures
+  - desktop/base row typography and slim desktop typography were lifted for readability
+  - row status now shows plain percent values instead of `% bri`
+  - row lead icon now uses the same size family as the orb/power controls
+  - row orb/power controls now expose hover titles from room/light labels
+  - tile short tap toggles room lights (on/off); `tap_action` override when configured; hold navigates
+  - cards_reference.md interaction contract updated: tile tap = toggle, hold = navigate
+- `REHAB HARNESS`
+  - removed speculative overflow-specific fixtures; retained the existing authoritative rooms repro surfaces
+- `TESTS`
+  - `rooms_bespoke.test.js` covers phone row density, control isolation, icon alias normalization, tile tap precedence, adaptive-lighting reset
+  - full suite: `576/576` passing across 12 suites
+- `DOCS`
+  - cards_reference.md tile interaction contract updated: tile tap = toggle lights, hold = navigate/popup
+  - cards_reference.md §7 CD8 weather target contract written: single-line details (icon-only, pressure dropped), flip-chip toggles, ~120px vertical savings
+  - visual_defect_ledger.md reflects active CD7 work + CD8 weather target contract reference
+  - governance docs now also record a newly investigated `CD6` follow-on: lighting desktop/full-width column gap too tight at `1440x900`; root cause is shared `PROFILE_BASE.standard.tileGap = 0.375em` (6px) in tunet_base.js
+- `BUILD / DEPLOY`
+  - automatic cache-busting is restored for v3 deploys
+  - new helper script `Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs` uses the Home Assistant websocket `lovelace/resources/update` command to sync `/local/tunet/v3/*.js?v=...` resources to the current manifest token
+  - `build.mjs --deploy` now performs SCP + resource sync in one path
+  - `deploy_tunet_v3_lab.sh` also syncs Lovelace resources after copy (manifest token in built mode, generated source token in rollback mode)
+- `VALIDATION`
+  - `npm test` passed (576/576)
+  - `npm run tunet:build` passed (13 cards)
+  - deployed with resource version `?v=build_20260405_175253Z`
+  - HA resource registry verified live: all 13 `/local/tunet/v3/*.js` entries now match the manifest token after deploy
+  - targeted rehab screenshot review confirmed the rehab slim raw-`sofa` icon bleed is fixed after deploy
+  - targeted rehab screenshot review at `390x844` and `1440x900` also confirmed plain-percent row status text, row lead-icon parity with orb/power controls, and improved desktop row/slim readability
+  - storage overview screenshot review loaded, but the `1440x900` overview composition still truncates room labels aggressively in a narrow row layout; treat that as likely surface/config drift until proven card-local
+  - storage `rooms` route timed out waiting for Tunet cards in the screenshot harness
+  - separate governance review reproduced a lighting desktop issue on rehab `lab` at `1440x900`: `Card Grid Compact`, `Card Scroll Standard`, and `Section Surface + Expand Groups` now feel over-packed horizontally because `.light-grid` still inherits the shared `tile-grid` standard gap while using full-width tracks
+  - live breakpoint validation is still pending, so CD7 remains active
+
+## Session Delta (2026-04-04, CD6 — Lighting Bespoke Pass)
+
+Change marker: CD6 implementation landed, validated, redeployed, and closed; tranche marker advanced to CD7
+
+- `LIGHT TILE`
+  - narrow horizontal mode added for phone-width readability
+  - reduced gap/padding, narrower value lane, two-line label clamp in narrow horizontal mode
+  - interaction model unchanged
+- `LIGHTING CARD`
+  - synthesized `column_breakpoints` now derived from `tile_size` when omitted:
+    - compact/standard → `<=640px: 2`, default `3`
+    - large → `<=640px: 1`, default `2`
+  - grid tracks now fill available width (`minmax(0, 1fr)`); centered dead-space behavior removed
+  - scroll layout now applies inline inset and matching scroll padding so first tile is fully visible at scroll start
+  - dense-name pressure reclassified as config discipline: use explicit short names in dense fixtures
+- `REHAB HARNESS`
+  - rehab YAML remains the primary reproduction harness for lighting-family validation
+- `TESTS`
+  - new suite: `lighting_bespoke.test.js` (17 tests)
+  - targeted regression run: 246 assertions passing
+  - full suite: 553 tests, 11 suites, all passing
+- `VALIDATION`
+  - `node --check` passed on changed JS files
+  - YAML parse-check passed on `tunet-card-rehab-lab.yaml`
+  - `npm run tunet:build` passed
+  - `npm run tunet:deploy:lab` passed
+  - D2 visually confirmed fixed: no grid dead space at `390x844`, `768x1024`, `1440x900`
+  - D3 visually confirmed fixed: no left-edge scroll clipping at `390x844`, `1440x900`
+  - D4 confirmed present: info-tile keyboard wiring already existed and remains intact
+  - D1 code fix is deployed and test-covered; broader long-name handling was intentionally deferred beyond CD6
+  - no visual regressions were observed in the original CD6 audit, but a later governance review (2026-04-05) found a new follow-on at `1440x900`: full-width lighting grids now use a column gap that feels too tight in `Card Grid Compact`, `Card Scroll Standard`, and `Section Surface + Expand Groups`
+- `DEPLOY`
+  - Lovelace resource versions updated:
+    - initial CD6 completion bump: `tunet_light_tile.js` / `tunet_lighting_card.js` → `?v=20260404_cd6a`
+    - current live recovery bump: `tunet_light_tile.js` / `tunet_lighting_card.js` → `?v=20260404_cd6b`
+  - YAML dashboard re-SCP'd to `/config/dashboards/tunet-card-rehab-lab.yaml`
 
 ## Session Delta (2026-04-04, Control-Doc Normalization)
 
@@ -2177,3 +2516,49 @@ An item is only actually done when all of the following are true:
 - Validation:
   - `plan.md`, `handoff.md`, and `sections_layout_matrix.md` all show the same active one-surface queue and lock criteria.
   - At least Surface 1 (Living Room page) is marked locked with documented breakpoint outcomes before Surface 2 begins.
+## Session Delta (2026-04-06, CD9 subpass — Audio Target Model + Sonos Dropdown Convergence)
+
+Change marker: media/sonos semantics + dropdown convergence landed; `CD9` remains active on visible speaker-tile semantics and speaker-grid dense/default
+
+- `CHOSEN INTERPRETATION`
+  - sonos source selector should be replaced with the media dropdown shell `1:1`
+  - suite audio controls should follow the currently selected target:
+    - selected individual speaker => speaker-only volume
+    - selected grouped coordinator/current leader => proportional group volume
+  - compact/default speaker naming can be aggressively short as long as room identity survives
+- `IMPLEMENTATION`
+  - `tunet_base.js`
+    - added shared `compactSpeakerName()` for room-preserving compact audio labels
+  - `tunet_media_card.js`
+    - selected-target volume routing now replaces the old selected-speaker-only group-volume behavior
+    - grouped coordinator selection now surfaces group icon/title state
+    - volume view now auto-exits after `5s` of inactivity
+    - default speaker labels now compact aggressively, including long explicit names
+  - `tunet_sonos_card.js`
+    - source selector shell replaced with the media dropdown model
+    - dropdown rows now use media-style structure, compact labels, per-row group badges, and `Group All` / `Ungroup All` actions
+    - volume overlay now follows the selected target and auto-exits after `5s` of inactivity
+    - displayed source/speaker labels now compact even when the authored name is long
+  - `audio_cd9_bespoke.test.js`
+    - new coverage for compact naming, selected-target volume routing, auto-exit behavior, sonos dropdown parity, and explicit-name compaction
+- `TESTS / VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_base.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_media_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`
+  - `audio_cd9_bespoke.test.js`: `9/9`
+  - full suite previously green: `608/608`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` passed; live resources synced to `?v=build_20260406_032113Z`
+  - screenshot manifests:
+    - `/tmp/tunet-playwright-review/2026-04-06T03-12-03-934Z/review-manifest.json`
+    - `/tmp/tunet-playwright-review/2026-04-06T03-21-27-742Z/review-manifest.json`
+  - key evidence:
+    - `/tmp/tunet-playwright-review/2026-04-06T03-21-27-742Z/390x844/light/rehab/lab/cards/tunet-media-card__01.png`
+    - `/tmp/tunet-playwright-review/2026-04-06T03-12-03-934Z/390x844/light/rehab/lab/cards/tunet-sonos-card__01.png`
+    - `/tmp/tunet-playwright-review/2026-04-06T03-21-27-742Z/390x844/light/rehab/lab/cards/tunet-sonos-card__02.png`
+    - `/tmp/tunet-playwright-review/2026-04-06T03-12-03-934Z/1440x900/light/rehab/lab/cards/tunet-sonos-card__01.png`
+- `RESULT`
+  - media and sonos now share the selected-target volume model
+  - sonos default/autodiscovered source/dropdown width handling is no longer the broad runtime failure previously recorded
+  - remaining `CD9` runtime backlog narrows to visible speaker-tile semantics and speaker-grid dense/default layouts
+  - explicit long-name sonos variants now compact in the displayed label lane instead of overflowing the header

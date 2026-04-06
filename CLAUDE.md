@@ -25,8 +25,11 @@ For Tunet tasks, it is a continuity layer. The scoped execution authority remain
 ## Current Tunet Work
 
 - **Active execution plan**: `~/.claude/plans/flickering-herding-wolf.md` — sole authority for Tunet execution (`CD0–CD12`)
-- **Current tranche**: `CD6 — Lighting Bespoke Pass` (next)
+- **Current tranche**: `CD9 — Media Bespoke Pass` (selected-target audio routing; media/sonos dropdown parity; speaker-grid dense/default + speaker-tile semantics)
 - **Previous tranches**:
+  - `CD8` — Environment Bespoke Pass (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy)
+  - `CD7` — Rooms Bespoke Pass (completed Apr 6, 2026; card-level closeout only, room-page layout undecided)
+  - `CD6` — Lighting Bespoke Pass (completed Apr 4, 2026)
   - `CD5` — Utility Strip Bespoke Pass (completed Apr 4, 2026)
   - `CD4` — Shared Sizing And Sections Adoption (completed Apr 4, 2026)
   - `CD3` — Shared Semantics Adoption (completed Apr 3, 2026)
@@ -37,6 +40,7 @@ For Tunet tasks, it is a continuity layer. The scoped execution authority remain
 Current priority:
 - rehabilitate the Tunet v3 card suite first
 - keep docs and backlog authority normalized
+- finish `CD9` media/sonos/speaker-grid interaction and width cleanup before reopening broader surface assembly
 - resume surface assembly only after the card families are stable enough for deliberate composition
 
 ## Tunet Authority Snapshot

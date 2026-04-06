@@ -5,14 +5,35 @@ Intended reader: next Claude Code session
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
-Current tranche: **CD10 — Navigation Bespoke Pass** (desktop rail/sidebar coexistence; offset leakage; layout-reference overclaim cleanup)
+Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
+Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-04-06, CD11 kickoff)
+
+- `CURRENT STATE`
+  - `CD10` nav verify is deferred for now; it is not closed
+  - `CD11` is now the active tranche
+  - the active detailed status plan is `~/.claude/plans/synthetic-dazzling-oasis.md`
+  - the old `G3S/CD11` bugfix-only framing is no longer current policy
+- `CHOSEN INTERPRETATION`
+  - keep `~/.claude/plans/flickering-herding-wolf.md` as the sole CD0-CD12 program authority
+  - treat `~/.claude/plans/synthetic-dazzling-oasis.md` as the operative CD11 status plan under that master authority
+  - execute status as a narrow, status-only multi-mode redesign/runtime pass
+  - keep status yaml-first in CD11 and avoid widening into editor/surface assembly work
+- `RESULT`
+  - future sessions should start CD11 from the phased `CD11a / CD11b / CD11c` status plan, not from nav cleanup
+  - historical notes that describe status as bugfix-only remain archival only
+- `VALIDATION`
+  - governance/docs sync only
+  - no runtime code changed in this delta
+  - accepted live runtime remains `?v=build_20260406_151051Z`
 
 ## Session Delta (2026-04-06, CD9 closeout)
 
 - `CURRENT STATE`
   - `CD9` is closed on the current rehab/runtime evidence
-  - active tranche advances to `CD10`
+  - active tranche advanced to `CD10` at the time, but current policy is now `CD11` per the later status kickoff above
   - remaining album-art `500` behavior is backend-side first-failure only; repeated Tunet retry spam is fixed
   - `/unknown/node_modules/@webcomponents/scoped-custom-element-registry/src/scoped-custom-element-registry.ts` `404` is global HA/frontend noise, not Tunet-owned
 - `VALIDATION`
@@ -29,7 +50,7 @@ Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dr
     - HA-global `/unknown/...scoped-custom-element-registry.ts` console noise
     - backend-only single album-art proxy failures
     - authored long-name density pressure unless the user explicitly wants a new authoring/polish pass
-  - next work should start from `CD10 — tunet-nav-card`
+  - next work at the time was `CD10 — tunet-nav-card`; current work should now start from the CD11 status plan
 
 ## Session Delta (2026-04-06, CD9 subpass — Album Art Proxy Resilience)
 

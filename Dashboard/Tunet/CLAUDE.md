@@ -7,7 +7,8 @@ If this file and `Dashboard/Tunet/AGENTS.md` ever disagree, follow `Dashboard/Tu
 
 **Consistency-driver card rehabilitation** — `~/.claude/plans/flickering-herding-wolf.md` is the sole execution authority (`CD0–CD12`).
 
-Current tranche: **CD10 — Navigation Bespoke Pass** (desktop rail/sidebar coexistence; offset leakage; layout-reference overclaim cleanup)  
+Current detailed status plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (active CD11 status authority under the master CD0-CD12 plan)
+Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (narrow, status-only redesign/runtime pass; `CD10` nav verify intentionally deferred until room/surface composition is more settled)  
 Previous tranches: `CD9` (Apr 6; selected-target audio routing, dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, and album-art resilience accepted), `CD8` (Apr 6; weather redesign accepted, climate/sensor narrowed healthy), `CD7` (Apr 6; card-level closeout only, room-page layout undecided), `CD6` (Apr 4), `CD5` (Apr 4), `CD4` (Apr 4), `CD3` (Apr 3), `CD2` (Apr 3), `CD1` (Apr 3), `CD0` (Apr 3)
 
 Execution order remains:
@@ -35,6 +36,7 @@ Use the same review order as `Dashboard/Tunet/AGENTS.md`:
 8. `Dashboard/Tunet/Docs/cards_reference.md`
 9. `Dashboard/Tunet/Docs/legacy_key_precedence.md`
 10. `~/.claude/plans/flickering-herding-wolf.md`
+11. `~/.claude/plans/synthetic-dazzling-oasis.md` for active `CD11` status work
 
 ## Design / Execution Precedence
 
@@ -64,7 +66,7 @@ Keep these direction locks explicit:
 - popup direction remains Browser Mod
 - one-popup-per-room model remains active
 - nav is dashboard chrome, not ordinary content composition
-- status remains `G3S/CD11` bugfix-only unless explicitly reopened
+- status is explicitly reopened for the narrow `CD11` multi-mode redesign/runtime pass described in `~/.claude/plans/synthetic-dazzling-oasis.md`; full editor/synthesis expansion remains out of scope
 - actions remains `yaml-first`
 - real HA Sections dashboard only; no layout hacks
 - Sections reasoning remains page → section → card, not viewport-first shortcuts

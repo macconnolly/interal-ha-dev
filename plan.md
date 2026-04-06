@@ -3,8 +3,30 @@
 Working branch: `main`
 Last updated: 2026-04-06
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
-Current tranche: **CD10 — Navigation Bespoke Pass** (desktop rail/sidebar coexistence; offset leakage; layout-reference overclaim cleanup)
+Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
+Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-04-06, CD11 kickoff)
+
+Tranche marker: `CD11` active; `CD10` deferred
+
+- `AUTHORITY NOTE`
+  - `~/.claude/plans/flickering-herding-wolf.md` remains the sole program authority for `CD0-CD12`
+  - `~/.claude/plans/synthetic-dazzling-oasis.md` is now the active detailed status implementation plan for `CD11`
+  - chosen interpretation:
+    - the old `G3S/CD11` bugfix-only deferral is superseded by the adopted CD11 governance decision
+    - `tunet-status-card` is reopened for a narrow, status-only multi-mode redesign/runtime pass
+    - status remains yaml-first in CD11; this does not reopen full editor/synthesis work
+    - `CD10` nav verify remains open but is intentionally deferred until the room/surface composition direction is more settled
+- `RESULT`
+  - active tranche advances from `CD10` to `CD11`
+  - the active status work should start from the phased `CD11a / CD11b / CD11c` plan in `~/.claude/plans/synthetic-dazzling-oasis.md`
+  - future sessions should not treat the older “status bugfix-only” wording in historical deltas as current policy
+- `VALIDATION`
+  - governance/docs sync only
+  - no runtime code changed in this delta
+  - live runtime remains the last accepted CD9 build: `?v=build_20260406_151051Z`
 
 ## Session Delta (2026-04-06, CD9 closeout)
 
@@ -723,8 +745,8 @@ Tranche marker: pre-CD0 (documentation alignment)
     8. `CD7` — Rooms Bespoke Pass
     9. `CD8` — Environment Bespoke Pass
     10. `CD9` — Media Bespoke Pass
-    11. `CD10` — Navigation Verify Pass
-    12. `CD11` — Status Decision Gate
+    11. `CD10` — Navigation Verify Pass (deferred until room/surface composition settles)
+    12. `CD11` — Status Multi-Mode Design and Runtime Pass (active; detailed plan `~/.claude/plans/synthetic-dazzling-oasis.md`)
     13. `CD12` — Surface Assembly
   - Rule: shared passes (CD1-CD4) close one consistency dimension across an explicit file list. Bespoke passes (CD5-CD11) solve only the file-specific behavior remaining after shared passes close.
 - `CONFIGURATION SUPPORT POLICY`

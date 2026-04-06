@@ -36,6 +36,8 @@ Important:
   - `Dashboard/Tunet/Agent-Reviews/start.md` (execution start guide)
 - For the active execution plan, read:
   - `~/.claude/plans/flickering-herding-wolf.md` (sole execution authority, CD0–CD12)
+  - for active `CD11` status work, also read:
+    - `~/.claude/plans/synthetic-dazzling-oasis.md` (detailed status-only plan under the CD0-CD12 master authority)
 - For build and deploy:
   - `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` (build pipeline, deploy scripts, lab URL)
 
@@ -69,7 +71,7 @@ Do not silently resolve contradictions. Record the conflict and chosen interpret
 - Interaction supersession lock: room-card global `tap-toggle / hold-popup` language is historical. Active contract is card-body primary route action with explicit controls owning toggles.
 - `layout-card` is allowed and encouraged for breakpoint-specific compositions (example: desktop rooms tiles vs mobile rooms row).
 - Prefer Home Assistant `2026.3` UI configuration capabilities wherever practical before YAML-only solutions.
-- Status card scope is locked to G3S bugfix-only (no new features or editor work).
+- Status card scope is explicitly reopened for the narrow `CD11` multi-mode redesign/runtime pass in `~/.claude/plans/synthetic-dazzling-oasis.md`; keep it status-only and yaml-first, with no full editor/synthesis expansion.
 - Actions card remains YAML-driven until backend status/entity mapping work is completed.
 - Build system migration (esbuild bundling) is part of the early foundation sequence in the active plan; do not defer it behind Living Room surface assembly.
 

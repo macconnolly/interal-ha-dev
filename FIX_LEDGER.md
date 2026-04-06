@@ -4,10 +4,30 @@ Working branch: `main`
 Last updated: 2026-04-06
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
+Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
+Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (`CD10` nav verify deferred until room/surface composition is more settled)
+
+## Session Delta (2026-04-06, CD11 kickoff)
+
+Change marker: `CD11` active; `CD10` deferred
+
+- `CHOSEN INTERPRETATION`
+  - adopt the phased `CD11a / CD11b / CD11c` status plan in `~/.claude/plans/synthetic-dazzling-oasis.md`
+  - lift the old `G3S/CD11` bugfix-only lock for a narrow, status-only multi-mode redesign/runtime pass
+  - keep status yaml-first for CD11; do not reopen full editor/synthesis work
+  - keep `CD10` nav verify open but intentionally deferred until room/surface composition is more settled
+- `RESULT`
+  - active tranche is now `CD11`, not `CD10`
+  - the historical March/April bugfix-only status notes remain as history only and are no longer the active policy
+  - next implementation work should start from the status-specific plan file rather than from nav cleanup
+- `TESTS / VALIDATION`
+  - governance/docs sync only
+  - no runtime code changed in this delta
+  - accepted live runtime remains `?v=build_20260406_151051Z`
 
 ## Session Delta (2026-04-06, CD9 closeout)
 
-Change marker: `CD9` closed; active tranche advances to `CD10`
+Change marker: `CD9` closed; active tranche initially advanced to `CD10` before the later CD11 status-plan activation
 
 - `CHOSEN INTERPRETATION`
   - speaker-grid mobile density/grid pressure is now closed on the post-fallback runtime
@@ -20,7 +40,7 @@ Change marker: `CD9` closed; active tranche advances to `CD10`
   - `npm run tunet:deploy:lab` passed; live resources synced to `?v=build_20260406_151051Z`
 - `RESULT`
   - `CD9` no longer has an open card-level runtime blocker
-  - next tranche is `CD10 — tunet-nav-card` desktop rail/sidebar coexistence and offset leakage
+  - next tranche at the time was `CD10 — tunet-nav-card`; current active tranche is now `CD11` per the later status kickoff above
 
 ## Session Delta (2026-04-06, CD9 subpass — Album Art Proxy Resilience)
 

@@ -25,7 +25,8 @@ For Tunet tasks, it is a continuity layer. The scoped execution authority remain
 ## Current Tunet Work
 
 - **Active execution plan**: `~/.claude/plans/flickering-herding-wolf.md` — sole authority for Tunet execution (`CD0–CD12`)
-- **Current tranche**: `CD10 — Navigation Bespoke Pass` (desktop rail/sidebar coexistence; offset leakage; layout-reference overclaim cleanup)
+- **Active detailed CD11 plan**: `~/.claude/plans/synthetic-dazzling-oasis.md` — status-specific implementation authority under the CD0-CD12 master plan
+- **Current tranche**: `CD11 — Status Multi-Mode Design and Runtime Pass` (narrow, status-only redesign/runtime pass; `CD10` nav verify intentionally deferred until room/surface composition is more settled)
 - **Previous tranches**:
 - `CD9` — Media Bespoke Pass (completed Apr 6, 2026; selected-target audio routing, dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, and album-art resilience accepted)
   - `CD8` — Environment Bespoke Pass (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy)
@@ -41,7 +42,8 @@ For Tunet tasks, it is a continuity layer. The scoped execution authority remain
 Current priority:
 - rehabilitate the Tunet v3 card suite first
 - keep docs and backlog authority normalized
-- finish `CD10` nav desktop coexistence/offset cleanup before reopening broader surface assembly
+- execute `CD11` from `~/.claude/plans/synthetic-dazzling-oasis.md`
+- keep `CD10` nav desktop coexistence/offset cleanup deferred until the rooms/surface composition direction is more settled
 - resume surface assembly only after the card families are stable enough for deliberate composition
 
 ## Tunet Authority Snapshot

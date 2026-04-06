@@ -26,11 +26,11 @@ When the normalized section and the appendix differ, the normalized section wins
 | `tunet-climate-card` | information companion | healthy card; latest screenshot review still supports composition caveats only | CD8 |
 | `tunet-weather-card` | information companion | card-level runtime healthy; phone-density redesign closed on YAML rehab evidence | CD8 |
 | `tunet-sensor-card` | information rows | visually healthy; raw-ID defect closed; contract clarity remains | CD8 |
-| `tunet-status-card` | locked summary/info surface | real phone density + dropdown-quality defects remain | CD11 |
+| `tunet-status-card` | multi-mode status system under active redesign | lock lifted for narrow status-only multi-mode pass; current one-grid runtime still fails phone summary and dropdown structure goals | CD11 |
 | `tunet-media-card` | primary media transport surface | runtime healthy; selected-target routing, dropdown parity, and album-art resilience accepted | CD9 |
 | `tunet-sonos-card` | inline-speaker Sonos surface | runtime healthy; dropdown parity, visible speaker-tile semantics, and album-art resilience accepted | CD9 |
 | `tunet-speaker-grid-card` | dedicated speaker-management grid | runtime healthy; visible speaker-tile semantics aligned and phone fallback landed | CD9 |
-| `tunet-nav-card` | chrome | desktop/sidebar offset conflict remains | CD10 |
+| `tunet-nav-card` | chrome | desktop/sidebar offset conflict remains; deferred while CD11 status planning/execution is active | CD10 |
 
 ### Tranche-Owned Open Backlog
 
@@ -40,13 +40,15 @@ When the normalized section and the appendix differ, the normalized section wins
 - `CD6`
   - `tunet-light-tile`: keep atomic-detail role explicit; no active runtime defect
   - `tunet-lighting-card`: family parity is closed; only a low-priority scroll transport/centering quirk remains outside the closed parity gate
-- `CD10`
-  - `tunet-nav-card`: desktop rail/sidebar coexistence and offset leakage
+- `CD10` (deferred)
+  - `tunet-nav-card`: desktop rail/sidebar coexistence and offset leakage; keep open but intentionally deferred until room/surface composition is more settled
 - `CD11`
-  - `tunet-status-card`: 4-col phone density and dropdown/runtime quality under lock
+  - `tunet-status-card`: active detailed plan is `~/.claude/plans/synthetic-dazzling-oasis.md`
+  - `tunet-status-card`: narrow status-only multi-mode redesign/runtime pass (`home_summary`, `home_detail`, `room_row`, `info_only`, `alarms`, `custom`)
+  - `tunet-status-card`: current runtime still fails the phone summary matrix and dropdown/content structure; do not “solve” by simply making tiles taller or defaulting to 2 columns
 
 **Global**
-- Highest-confidence active card defects remain: status small-screen density/dropdown behavior and nav desktop/sidebar conflict.
+- Highest-confidence active card defect is now status multi-mode redesign/runtime recovery under `CD11`; nav desktop/sidebar conflict remains open but is intentionally deferred.
 - Variant-specific problems remain real for actions and speaker-grid, but they are not uniform card-family failures. `CD8` is now card-level healthy after the 2026-04-06 weather closeout.
 - Some earlier complaints were really composition/surface issues, not card defects: light-tile orphaning, climate paired-phone crowding, and undecided room-page/storage layout belong in surface composition decisions.
 - Stale or narrowed items are now treated accordingly: sensor raw entity IDs, broad media visual-failure framing, broad mobile-nav instability framing, and broad “speaker-grid is not phone-safe at all” framing.
@@ -140,10 +142,18 @@ When the normalized section and the appendix differ, the normalized section wins
 - `Implementation backlog [CD8]`: the remaining issue is config-contract clarity around [tunet_sensor_card.js#L710](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sensor_card.js#L710), not a current visual/runtime failure.
 
 **9. `tunet-status-card`**
-- `Open runtime defect [CD11]`: the 4-column summary matrix is not phone-safe at `390px`, and the dropdown/content model still behaves poorly on small screens.
-- `Doc contradiction`: the reference overstated dropdown overlay quality; current behavior needs narrower wording.
-- `Implementation backlog [CD11]`: keep these issues explicitly owned by the status lock/G3S path rather than leaking into other tranches.
-- `Implementation backlog [CD11]`: phone-safe default is `2` columns unless labels are significantly shortened.
+- `Open runtime/design defect [CD11]`: the current one-grid status runtime still serves phone summary, desktop detail, room strips, and alarm contexts with the same geometry/content budget, which fails the intended phone summary and dropdown structure goals.
+- `Chosen interpretation [CD11]`: the old `G3S/CD11` bugfix-only lock is lifted for a narrow, status-only redesign/runtime pass.
+- `Implementation backlog [CD11]`: active detailed plan is `~/.claude/plans/synthetic-dazzling-oasis.md`.
+- `Implementation backlog [CD11]`: execute the phased status plan:
+  - `CD11a`: structural fixes + mode framework + `home_summary` + `custom`
+  - `CD11b`: `home_detail` + `alarms` + remaining core recipes
+  - `CD11c`: `room_row` + `info_only` + final polish
+- `Implementation backlog [CD11]`: phone summary target is a fixed `4x2` matrix that uses space better; do not treat “default to 2 columns” or “make tiles taller” as the intended solution.
+- `Implementation backlog [CD11]`: core recipe/interaction requirements now include:
+  - `manual_overrides` visibility driven by numeric override count with explicit reset affordance
+  - `inside_temperature` defaulting to thermostat more-info via `action_entity`
+  - `next_alarm` preferring authored `navigate_path` to the alarms editor, with more-info fallback
 
 **10. `tunet-media-card`**
 - `Closed / stale`: the earlier broad visual-failure framing is superseded by the coherent-build correction; the card itself renders acceptably at `390px` in the current build.
@@ -598,7 +608,7 @@ The following P0/P1 issues have been added to the canonical execution plan (`~/.
 | Sonos source button overflow + naming | CD9 sonos item 5 | Unify naming contract across media/sonos |
 | Media `_firstWordName()` too aggressive | CD9 media item 6 | Replace with shared naming strategy |
 | Speaker accent color mismatch | CD9 sonos item 6 | Unify to sonos blue |
-| Status 4-col phone density | CD11 item 2 (lock-lifted) | Responsive column count, height drift, a11y name |
+| Status multi-mode redesign | CD11 active detailed plan | `~/.claude/plans/synthetic-dazzling-oasis.md` (structural fixes, multi-mode variants, recipe/interaction contract) |
 
 ### Current Severity Count
 

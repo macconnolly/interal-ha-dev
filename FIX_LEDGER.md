@@ -1,9 +1,51 @@
 # Tunet Suite Fix Ledger
 
-Working branch: `main`
+Working branch: `tunet/inbox-integration`
 Last updated: 2026-04-06
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
+
+## Session Delta (2026-04-06, TI2 activation — Branch-Local Inbox UI Exception)
+
+Change marker: the user explicitly re-opened Tunet inbox UI work in this worktree after the backend-first resequencing completed
+
+- `CHOSEN INTERPRETATION`
+  - do not replace the root Tunet program with an inbox tranche
+  - chosen implementation:
+    - keep the root program on `CD9`
+    - activate `TI2` only as a narrow branch-local exception for the governed inbox card/surface files
+    - require both Tunet root docs and inbox governance docs to stay synchronized during TI2
+- `RESULT`
+  - `Dashboard/Tunet/**` work is now allowed again in this branch, but only inside the `TI2` file boundary
+  - no broader Tunet tranche resequencing is implied by this activation
+
+## Session Delta (2026-04-06, Inbox backend closure — root Tunet docs unchanged)
+
+Change marker: the inbox backend work is now closed through non-Tunet tranches, but the root Tunet program remains on `CD9`
+
+- `CHOSEN INTERPRETATION`
+  - the inbox backend is now prod-ready without any `Dashboard/Tunet/**` implementation having started in this branch
+  - chosen implementation:
+    - keep the root Tunet docs on normal `CD9`
+    - do not promote a branch-local Tunet tranche
+    - treat any later inbox UI work as a new control point
+- `RESULT`
+  - root Tunet governance stays stable
+  - no one should infer that Tunet inbox UI work is active from this branch state
+
+## Session Delta (2026-04-06, TI2 deferral — Inbox Backend-First Resequencing)
+
+Change marker: user re-sequenced the inbox work away from Tunet implementation and back into backend productization
+
+- `CHOSEN INTERPRETATION`
+  - no `Dashboard/Tunet/**` files had been changed yet
+  - because the next requirement is “finalize the integration first,” the prior TI2 activation should not remain live
+  - chosen implementation:
+    - restore the root Tunet docs to their normal `CD9` state
+    - insert a backend-only inbox tranche instead of continuing into frontend work
+- `RESULT`
+  - there is no branch-local Tunet implementation tranche active now
+  - future Tunet edits must wait until the backend productization tranche closes
 
 ## Session Delta (2026-04-06, CD9 subpass — Speaker-Grid Phone Column Fallback)
 
@@ -2591,3 +2633,15 @@ Change marker: media/sonos semantics + dropdown convergence landed; `CD9` remain
   - sonos default/autodiscovered source/dropdown width handling is no longer the broad runtime failure previously recorded
   - remaining `CD9` runtime backlog narrows to visible speaker-tile semantics and speaker-grid dense/default layouts
   - explicit long-name sonos variants now compact in the displayed label lane instead of overflowing the header
+## Session Delta (2026-04-06, TI2 closeout — Inbox Card Live Proof Completed)
+
+Change marker: the governed inbox card/surface tranche is no longer merely implemented; it is live-proven and should not remain marked active
+
+- `CHOSEN INTERPRETATION`
+  - close the branch-local exception tranche explicitly
+  - keep the root Tunet program on `CD9`
+  - record the live operational finding that a brand-new YAML dashboard registration required a full HA restart for first activation
+- `RESULT`
+  - `TI2` is closed
+  - the rehab and standalone inbox surfaces are live-proven
+  - follow-up inbox card fixes are bugfixes inside the branch, not an active tranche by default

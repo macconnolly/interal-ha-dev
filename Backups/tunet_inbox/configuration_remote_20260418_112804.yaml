@@ -1,0 +1,164 @@
+default_config:
+  
+homeassistant:
+  packages: !include_dir_named packages
+  allowlist_external_dirs:
+    - /config/www/bubble
+
+tunet_inbox:
+  notify_device_helper: notify.tunet_inbox_all_devices
+  max_pending_items: 64
+  response_timeout_seconds: 30
+  archive_retention_days: 3
+  privacy_mode_default: false
+  debug_events: false
+notify:
+  - platform: group
+    name: tunet_inbox_all_devices
+    services:
+      - action: mobile_app_ipad
+      - action: mobile_app_iphone
+      - action: mobile_app_iphone_4
+      - action: mobile_app_iphone_deloitte
+      - action: mobile_app_iphone_mc
+      - action: mobile_app_mac_s_iphone
+      - action: mobile_app_macs_iphone_personal
+      - action: mobile_app_macs_work_phone
+      - action: mobile_app_old_iphone
+
+# Setup the custom dashboard
+lovelace:
+  resources:
+    - url: /hacsfiles/Bubble-Card/bubble-card.js?v=3.1.1
+      type: module
+    - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
+      type: module
+    - url: /hacsfiles/custom-sonos-card/custom-sonos-card.js
+      type: module      
+    - url: /hacsfiles/lovelace-mushroom/mushroom.js
+      type: module
+    - url: /hacsfiles/lovelace-layout-card/layout-card.js
+      type: module
+    - url: /hacsfiles/community/vertical-stack-in-card/vertical-stack-in-card.js
+      type: js
+    - url: /hacsfiles/community/stack-in-card/stack-in-card.js
+      type: module
+    - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
+      type: module
+    - url: /hacsfiles/streamline-card/streamline-card.js
+      type: module      
+    - url: /hacsfiles/lovelace-multiple-entity-row/multiple-entity-row.js
+      type: module      
+    - url: https://cdn.jsdelivr.net/gh/bramkragten/custom-ui@master/swipe-card/swipe-card.js
+      type: module
+    - url: /local/custom_fonts.css
+      type: css
+    - url: /hacsfiles/spotifyplus_card/spotifyplus_card.js
+      type: module
+    - url: /hacsfiles/lovelace-plotly-graph-card/plotly-graph-card.js
+      type: module  
+    - url: /hacsfiles/mass-player-card/mass-player-card.js
+      type: module 
+    - url: /hacsfiles/lovelace-multiple-entity-row/multiple-entity-row.js
+      type: module
+    - url: /hacsfiles/Bubble-Card/bubble-pop-up-fix.js
+      type: module      
+    - url: /hacsfiles/lovelace-card-mod/card-mod.js?v=4.2.1
+      type: module       
+      
+      
+      
+
+
+  dashboards:
+    adaptive-living:
+      mode: yaml
+      title: Adaptive Living
+      icon: mdi:home-automation
+      show_in_sidebar: true
+      filename: /dashboards/lovelace_bubble_dashboard.yaml
+
+    test-dash:
+      mode: yaml
+      title: Test Dash
+      icon: mdi:home-automation
+      show_in_sidebar: true
+      filename: dashboards/templates/home_center_dashboard.yaml
+      
+    lighting-manager:
+      mode: yaml
+      title: Lighting Control
+      icon: mdi:lightbulb-group
+      show_in_sidebar: true
+      filename: dashboards/lighting_manager_dashboard.yaml
+      
+
+
+    tunet-suite:
+      mode: yaml
+      title: Tunet Suite (POC)
+      icon: mdi:view-dashboard
+      show_in_sidebar: true
+      filename: dashboards/tunet-suite.yaml
+
+
+    tunet-g2-lab-v3:
+      mode: yaml
+      title: Tunet G2 Lab (v3)
+      icon: mdi:test-tube
+      show_in_sidebar: true
+      filename: dashboards/tunet-g2-lab-v3.yaml
+
+
+    tunet-card-rehab-yaml:
+      mode: yaml
+      title: Tunet Card Rehab Lab (YAML)
+      icon: mdi:flask-outline
+      show_in_sidebar: true
+      filename: dashboards/tunet-card-rehab-lab.yaml
+
+
+    tunet-inbox-yaml:
+      mode: yaml
+      title: Tunet Inbox
+      icon: mdi:inbox-multiple-outline
+      show_in_sidebar: true
+      filename: dashboards/tunet-inbox-dashboard.yaml
+
+# Logger Configuration - Updated for Lighting Manager
+logger:
+  default: info
+  logs:
+    homeassistant.components.core: info
+    homeassistant.components.script: info
+    homeassistant.components.automation: info
+    homeassistant.components.blueprint: info
+    homeassistant.loader: info
+    homeassistant.setup: info
+    custom_components.oal_learning: info
+    custom_components.lighting_manager: info
+    custom_components.tunet_inbox: debug
+    custom_components.tunet_inbox.mobile: info
+
+# Scenes
+scene: !include_dir_merge_list scenes/
+
+# Groups
+group: !include_dir_merge_named groups/
+
+# Standard UI-managed automations
+automation: !include automations.yaml
+
+# Your manually managed automations (merged into the main list)
+automation manual: !include_dir_merge_list automations_manual/
+
+nest:
+  client_id: 1057193467236-d9r2ljig6897uq3hdi60l0q9qouu2d31.apps.googleusercontent.com
+  client_secret: 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
+  project_id: e9b8dd64-ff2d-4398-a59c-2f8d063e61d7
+
+api:
+
+frontend:
+  themes: !include_dir_merge_named themes
+    

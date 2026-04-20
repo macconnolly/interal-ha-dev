@@ -9,6 +9,14 @@
     "tunet:review": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface all",
     "tunet:review:smoke": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --smoke",
     "tunet:lab:screenshot": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab",
+    "tinbox:check": "bash custom_components/tunet_inbox/scripts/check_tunet_inbox.sh",
+    "tinbox:deploy:integration": "bash custom_components/tunet_inbox/scripts/deploy_tunet_inbox.sh",
+    "tinbox:probe:runtime": "python3 custom_components/tunet_inbox/scripts/tunet_inbox_runtime_probe.py lock-conflict",
+    "tinbox:test:setup": "bash custom_components/tunet_inbox/scripts/setup_tunet_inbox_test_env.sh",
+    "tinbox:test": "bash custom_components/tunet_inbox/scripts/run_tunet_inbox_pytest.sh",
+    "tinbox:verify": "bash custom_components/tunet_inbox/scripts/verify_tunet_inbox_release.sh",
+    "tinbox:probe:api": "node custom_components/tunet_inbox/scripts/tunet_inbox_api_probe.mjs",
+    "tinbox:smoke": "node custom_components/tunet_inbox/scripts/tunet_inbox_smoke.mjs",
     "test": "vitest run"
   },
   "dependencies": {

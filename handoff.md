@@ -5,8 +5,44 @@ Intended reader: next Claude Code session
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
-Current tranche: **CD9 — Media Bespoke Pass** (selected-target audio routing; media/sonos dropdown parity; visible speaker-tile semantics landed; speaker-grid phone-column fallback + media semantics/accessibility remain)
+Current tranche: **CD9 — Media Bespoke Pass** (root Tunet program remains unchanged; branch-local exception tranche `TI2` is now closed after the governed inbox card/surface proof in this worktree)
 Previous tranches: CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-04-06, TI2 activation — Branch-Local Inbox UI Exception)
+
+- `CURRENT STATE`
+  - root Tunet authority remains `CD9`
+  - the inbox backend and compare-mode tranches are closed
+  - branch-local exception tranche `TI2` is now active for the governed inbox card/surface files in this worktree
+- `IMPLEMENTATION`
+  - re-entered Tunet scoped governance
+  - authorized only the TI2 file boundary for inbox UI work
+  - no non-inbox Tunet card work is reopened by this activation
+- `RESULT`
+  - the next session may proceed with `tunet_inbox_card.js`, rehab/dashboard wiring, and TI2 validation without reopening a new control-point decision
+
+## Session Delta (2026-04-06, Inbox backend closure — no branch-local Tunet tranche)
+
+- `CURRENT STATE`
+  - the inbox backend tranches are closed and backend-prod-ready
+  - no `Dashboard/Tunet/**` implementation is active in this branch
+  - `CD9` remains the root Tunet tranche exactly as before
+- `RESULT`
+  - do not start Tunet inbox UI work from this handoff point unless a new UI control point is explicitly activated
+
+## Session Delta (2026-04-06, TI2 deferral — Inbox Backend-First Resequencing)
+
+- `CURRENT STATE`
+  - the inbox workstream has completed its backend, live-proof, and local-test prerequisites
+  - no `Dashboard/Tunet/**` implementation is active in this branch right now
+  - `CD9` remains the root Tunet tranche exactly as before
+- `IMPLEMENTATION`
+  - recorded the backend-first resequencing request
+  - restored the root Tunet docs to normal `CD9` ownership
+  - deferred `TI2` until the backend productization tranche closes
+- `RESULT`
+  - no branch-local Tunet work should start from this handoff point
+  - the next inbox tranche is backend-only
 
 ## Session Delta (2026-04-06, CD9 subpass — Speaker Icon Hold Alias)
 
@@ -2260,3 +2296,17 @@ Use:
 - Confirm row/slim room controls are now comfortable tap targets on mobile.
 - Execute weather refactor tranche based on `weather_card_refactor_plan.md`.
 - Execute brightness alignment fix tranche based on `brightness_alignment_rca.md` (recommended Option A).
+## Session Delta (2026-04-06, TI2 closeout — Inbox Card Live Proof Completed)
+
+- `CURRENT STATE`
+  - root Tunet authority remains `CD9`
+  - branch-local exception tranche `TI2` is closed
+  - the inbox card, rehab fixtures, and standalone inbox dashboard are live and validated
+- `IMPLEMENTATION`
+  - deployed the governed inbox bundle
+  - proved the rehab surface with live queue items, action submission, dismiss behavior, and empty-state recovery
+  - registered and activated the standalone `tunet-inbox-yaml` dashboard
+  - confirmed first activation of a new YAML dashboard entry required full HA restart in live HA
+- `RESULT`
+  - no inbox UI tranche is currently active
+  - the next inbox promotion target is backend-side `TI3`, not more Tunet surface work

@@ -1,10 +1,57 @@
 # Tunet Suite Dashboard - Implementation Plan
 
-Working branch: `main`
+Working branch: `tunet/inbox-integration`
 Last updated: 2026-04-06
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
-Current tranche: **CD9 — Media Bespoke Pass** (selected-target audio routing; media/sonos dropdown parity; visible speaker-tile semantics landed; speaker-grid mobile-density fallback + media semantics/accessibility remain)
+Current tranche: **CD9 — Media Bespoke Pass** (mainline Tunet tranche remains the root program authority; branch-local exception tranche `TI2` is now closed after the governed inbox card/surface proof in this worktree)
 Previous tranches: CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-04-06, TI2 activation — Branch-Local Inbox UI Exception)
+
+Tranche marker: `CD9` remains the root Tunet authority; branch-local exception tranche `TI2` is now active only inside the `tunet/inbox-integration` worktree for the governed inbox card/surface files
+
+- `AUTHORITY NOTE`
+  - user explicitly re-authorized the inbox card work in this worktree after the backend and compare-mode tranches closed
+  - chosen interpretation:
+    - keep `CD9` as the mainline Tunet program authority
+    - activate `TI2` as a narrow branch-local exception tranche for:
+      - `Dashboard/Tunet/Cards/v3/tunet_inbox_card.js`
+      - `Dashboard/Tunet/Cards/v3/tests/inbox_bespoke.test.js`
+      - `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+      - `Dashboard/Tunet/tunet-inbox-dashboard.yaml`
+      - related build/docs/config wiring allowed by the TI2 tranche spec
+    - do not widen beyond the TI2 file boundary without a new control-point decision
+- `RESULT`
+  - root Tunet work stays on `CD9`
+  - inbox UI work is now permitted in this branch only under the TI2 tranche contract
+
+## Session Delta (2026-04-06, Inbox backend closure — no branch-local Tunet tranche)
+
+Tranche marker: `CD9` remains the root Tunet authority; inbox backend tranches are now closed and no `Dashboard/Tunet/**` implementation is active in this branch
+
+- `AUTHORITY NOTE`
+  - the inbox backend program is now productized and hardening-complete through its non-Tunet tranches
+  - chosen interpretation:
+    - keep the root Tunet docs on normal `CD9`
+    - do not activate any branch-local Tunet tranche yet
+    - treat any future inbox UI work as a new control-point decision
+- `RESULT`
+  - root Tunet governance stays unchanged
+  - the next inbox step is UI-only if it is explicitly reactivated later
+
+## Session Delta (2026-04-06, TI2 deferral — Inbox Backend-First Resequencing)
+
+Tranche marker: no branch-local Tunet tranche is active; inbox work returned to backend-only scope before any `Dashboard/Tunet/**` files changed
+
+- `AUTHORITY NOTE`
+  - the inbox program reached its frontend control point, but the user re-sequenced the work to finish productizing the integration first
+  - chosen interpretation:
+    - return the root Tunet docs to their normal `CD9` state
+    - treat `TI2` as not active until the new backend tranche closes
+    - do not authorize any `Dashboard/Tunet/**` implementation in this branch right now
+- `RESULT`
+  - `CD9` remains the root-program tranche
+  - inbox work continues only in backend integration files until the productization tranche closes
 
 ## Session Delta (2026-04-06, CD9 subpass — Speaker Icon Hold Alias)
 
@@ -2205,3 +2252,16 @@ If any one of those artifacts is missing, the interaction change is considered d
 - TODO DIAG.05: Try adding `custom:tunet-nav-card` via "Add card"; Outcome: simplest config surface; Verify: form appears (or not) consistently after cache bust.
 - TODO DIAG.06: If schema UI never appears, implement a `getConfigElement()` spike for ONE card; Outcome: prove editor pipeline; Verify: visual editor appears for that card.
 - TODO DIAG.07: If even `getConfigElement()` does not work, investigate broader frontend issues (failed module loads, CSP, JS errors); Outcome: root cause identified; Verify: underlying errors resolved before continuing.
+## Session Delta (2026-04-06, TI2 closeout — Inbox Card Live Proof Completed)
+
+Tranche marker: `CD9` remains the root Tunet authority; branch-local exception tranche `TI2` is now closed after live rehab and standalone dashboard proof
+
+- `AUTHORITY NOTE`
+  - the governed inbox UI work is complete in this branch
+  - chosen interpretation:
+    - close `TI2` instead of leaving it implied-active after implementation
+    - keep the root Tunet program on `CD9`
+    - treat any later inbox UI follow-up as narrow bugfix work, not a re-opened tranche by default
+- `RESULT`
+  - the inbox card, rehab fixtures, and standalone dashboard are live-proven
+  - a brand-new YAML dashboard registration required full HA restart for first activation; core reload alone was not sufficient in live proof

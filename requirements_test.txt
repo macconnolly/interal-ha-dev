@@ -1,0 +1,2 @@
+# Local Home Assistant custom integration test harness for tunet_inbox.
+pytest-homeassistant-custom-component==0.13.205

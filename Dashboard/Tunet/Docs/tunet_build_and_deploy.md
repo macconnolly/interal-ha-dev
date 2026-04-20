@@ -3,11 +3,16 @@
 ## Architecture
 
 ```
-Source:    Dashboard/Tunet/Cards/v3/*.js    (13 cards + tunet_base.js)
-Build:     Dashboard/Tunet/Cards/v3/dist/   (13 bundled outputs + source maps + manifest)
+Source:    Dashboard/Tunet/Cards/v3/*.js    (14 cards + tunet_base.js)
+Build:     Dashboard/Tunet/Cards/v3/dist/   (14 bundled outputs + source maps + manifest)
 Deploy:    ${HA_SSH_USER:-root}@${HA_SSH_HOST:-10.0.0.21}:/config/www/tunet/v3/
 Lab:       http://10.0.0.21:8123/tunet-card-rehab-yaml/lab
+Inbox:     http://10.0.0.21:8123/tunet-inbox-yaml/inbox
 ```
+
+Operational note:
+- updates to an already-registered YAML dashboard can ride the normal build/deploy/resource workflow
+- first activation of a brand-new YAML dashboard registration required a full Home Assistant restart in live proof; `ha_reload_core(target="core")` was not sufficient by itself
 
 Each card is bundled with esbuild. `tunet_base.js` is inlined into each card bundle — there is no separate shared chunk. This eliminates the two-layer cache busting problem (no more `?v=` strings on import paths).
 
@@ -22,7 +27,7 @@ Result: a normal deploy automatically cache-busts the frontend. Manual resource 
 
 | Script | Command | What it does |
 |--------|---------|--------------|
-| `tunet:build` | `node build.mjs` | One-shot build: 13 entries → `dist/`, manifest, validation |
+| `tunet:build` | `node build.mjs` | One-shot build: 14 entries → `dist/`, manifest, validation |
 | `tunet:build:watch` | `node build.mjs --watch` | Watch `Cards/v3/` for changes, rebuild on save |
 | `tunet:deploy:lab` | `node build.mjs --deploy` | Build + SCP all outputs to HA server |
 | `tunet:resources:sync` | `node Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs` | Re-sync live `/local/tunet/v3/*.js?v=...` resource URLs from the current manifest |
@@ -38,8 +43,8 @@ npm run tunet:build
 ```
 
 Output:
-- 13 `.js` files in `Dashboard/Tunet/Cards/v3/dist/`
-- 13 `.js.map` source maps
+- 14 `.js` files in `Dashboard/Tunet/Cards/v3/dist/`
+- 14 `.js.map` source maps
 - `manifest.json` with build timestamp, resource `versionToken`, and file inventory
 
 Validation runs automatically:
@@ -63,7 +68,7 @@ Or use the shell script directly:
 ```
 
 This:
-1. builds all 13 bundled outputs
+1. builds all 14 bundled outputs
 2. SCPs them to `/config/www/tunet/v3/` on the HA server
 3. updates the live Lovelace resource URLs to `?v=<manifest versionToken>`
 
@@ -112,7 +117,7 @@ The card rehab lab is the YAML dashboard `tunet-card-rehab-yaml`:
 http://10.0.0.21:8123/tunet-card-rehab-yaml/lab
 ```
 
-It contains one representative config for every Tunet card (all 13) plus focused review views (`states`, `surfaces`, `phone-stress`, `nav-lab`). It is the primary validation surface during card rehabilitation (CD0-CD11).
+It contains one representative config for every Tunet card (all 14) plus focused review views (`states`, `surfaces`, `phone-stress`, `nav-lab`). It is the primary validation surface during card rehabilitation (CD0-CD11) and now includes governed inbox fixtures backed by `tunet_inbox`.
 
 Architecture reference YAML: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
 
@@ -133,6 +138,7 @@ Architecture reference YAML: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
 | sonos | deep player |
 | speaker_grid | 4 speakers, group actions |
 | nav | self-referencing lab paths |
+| inbox | live inbox, privacy mode, family filters |
 
 ## Testing
 

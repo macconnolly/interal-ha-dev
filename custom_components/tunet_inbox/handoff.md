@@ -1,0 +1,303 @@
+# Tunet Inbox Handoff
+
+Last updated: 2026-04-19 (America/Denver)  
+Working branch: `tunet/inbox-integration`
+
+## Current State
+
+- `tunet_inbox` backend is live and governed from `custom_components/tunet_inbox/`.
+- Closed tranches:
+  - `TI0`
+  - `TI1`
+  - `TI1A`
+  - `TI1B`
+  - `TI1C`
+  - `TI1D`
+  - `TI1E`
+  - `TI2`
+  - `TI2A`
+  - `TI2B`
+  - `TI2C`
+  - `TI3`
+  - `TI4`
+  - `TI4A`
+- Active tranche:
+  - none
+  - no tranche is currently active
+  - `TI5A` is closed:
+    - `script.apple_tv_auto_off_notification` now posts via `tunet_inbox.post(send_mobile=true)`
+    - the legacy `script.confirmable_notification` bridge is removed from the Apple TV auto-off path
+    - a dedicated `tunet_inbox_action` handler owns `SONOS_ATV_CONFIRM_OFF` and `SONOS_ATV_KEEP_ON`
+    - live proof passed for phone body tap, phone keep-on, phone confirm-off, dashboard-card `respond`, duplicate replay rejection, and natural context clear
+    - final queue cleanup returned `tunet_inbox.list_items` to `meta.total: 0`
+  - `TI5B` is now `READY TO START` for the remaining OAL TV-family compare-mode retirement
+  - `TI5C` remains queued behind `TI5B` for the unified timer authoritative cutover
+  - each `TI5*` tranche must close with final live user feedback and end-of-tranche live testing recorded in governance
+- Latest closed tranche:
+  - `custom_components/tunet_inbox/Docs/tranches/TI5A_sonos_apple_tv_auto_off_authoritative_extraction.md`
+  - status: `CLOSED`
+- No `Dashboard/Tunet/**` tranche is active.
+- `TI2B` remains closed as a narrow parity patch.
+- `TI2C` is closed:
+  - backend-owned default inbox tap behavior is the governed contract
+  - `mobile_tap_url` is configurable in integration settings with `/tunet-inbox-yaml/inbox` as fallback
+  - raw `mobile.url` is now compatibility-only for the effective governed route
+- `TI3` is closed:
+  - the frozen OAL cutover set now relies on backend-owned mobile tap defaults instead of package-supplied route strings
+  - override reminder and override expiring were live-proven through real automation writers
+  - TV prompt handler/resolver proof was completed with a bounded synthetic queue item because Apple TV playback control was intentionally left out of scope
+  - later TV-family tranches still need domain-real playback proof before deleting adjacent compare-mode paths
+- `TI4` is closed:
+  - local validation passed:
+    - YAML parse check for `packages/sonos_package.yaml`
+    - `npm run tinbox:check`
+    - `npm run tinbox:test` -> `28 passed`
+  - package deploy/reload passed:
+    - remote backup created at `Backups/tunet_inbox/packages/sonos_package.20260419_124445.remote.yaml`
+    - remote package copy verified by byte count
+    - `ha_check_config() -> valid`
+    - `automation.reload` succeeded
+  - live pilot proof:
+    - package writer no longer sends a direct mobile notification
+    - real writer trace posted `sonos_alarm_playing:media_player.bedroom` through `tunet_inbox.post(send_mobile=true)`
+    - user confirmed mobile delivery succeeded
+    - user confirmed tapping the notification body opened the inbox surface correctly
+    - user confirmed the governed alarm controls worked from both the phone notification action and the dashboard
+    - duplicate replay returned `accepted: false, reason: item_not_found`
+    - user confirmed both notifications cleared on the second live test
+    - final `tunet_inbox.list_items` returned `meta.total: 0`
+- `TI4A` is closed:
+  - local validation passed:
+    - YAML parse check for `packages/sonos_package.yaml`
+    - `npm run tinbox:check`
+  - package deploy/reload passed:
+    - remote backup created at `Backups/tunet_inbox/packages/sonos_package.20260419_132059.remote.yaml`
+    - remote package copy verified by byte count
+    - `ha_check_config() -> valid`
+    - `automation.reload` alone left the old script body loaded
+    - `script.reload` activated the new governed nightly prompt path
+  - live extraction proof:
+    - authoritative writer created `sonos_evening_alarm_check:2026-04-20` through `tunet_inbox.post(send_mobile=true)`
+    - user confirmed tapping the notification body opened the inbox correctly
+    - user confirmed `Keep Enabled` cleared the notification
+    - dashboard-card `Disable` was accepted through `tunet_inbox.respond`
+    - `input_text.sonos_alarms_disabled_for_tomorrow` became `switch.sonos_alarm_182`
+    - `switch.sonos_alarm_182` turned `off`
+    - alarm state was restored after proof:
+      - `switch.sonos_alarm_182` returned to `on`
+      - `input_text.sonos_alarms_disabled_for_tomorrow` returned to empty
+      - `sensor.sonos_alarms_for_tomorrow` returned to `1 alarm(s) scheduled for tomorrow.`
+    - final `tunet_inbox.list_items` returned `meta.total: 0`
+    - user confirmed the governed functionality is fully baked
+  - routing watchpoint carried forward:
+    - duplicate phone delivery was observed on `Mac's iPhone personal`
+    - only one inbox item existed and the governed lifecycle worked correctly
+    - treat that as notify-group fan-out outside TI4A scope unless a later tranche explicitly narrows routing
+- Current operator rule:
+  - do not use HA restart as the default validation path for this workstream
+  - prefer browser reload of the integration:
+    - `Settings -> Devices & Services -> Integrations -> Tunet Inbox -> service row menu -> Reload`
+
+## Latest Proven State
+
+- Backend:
+  - `npm run tinbox:check`
+  - `npm run tinbox:test`
+  - `npm run tinbox:smoke`
+  - `npm run tinbox:probe:api`
+  - imported config-entry runtime ownership is live
+  - non-overlapping config-entry options such as `mobile_tap_url` are preserved under the governed reload/import path
+  - notify routing is live through `notify.tunet_inbox_all_devices`
+- OAL package state:
+  - authoritative:
+    - override reminder
+    - override expiring
+    - TV mode prompt
+  - compare-mode:
+    - TV mode activated
+    - bridge expiring
+    - TV presence prompt
+    - unified timer expiring
+  - Sonos authoritative:
+    - alarm playing
+    - evening alarm check
+  - Sonos compare-mode:
+    - Apple TV auto-off
+- Inbox UI:
+  - `custom:tunet-inbox-card` is live
+  - rehab fixtures exist
+  - standalone dashboard `tunet-inbox-yaml` is registered and reachable
+- Mobile continuity:
+  - direct iOS notifications still send
+  - touched notifications body-tap to the effective governed inbox route
+  - touched confirmation receipts were removed
+  - OAL TV prompt has a 5-minute debounce
+  - `sensor.sonos_alarm_playing` no longer restores into a broken/unavailable state
+- TI2B proof:
+  - local validation passed:
+    - `python3 -m py_compile custom_components/tunet_inbox/*.py`
+    - `python3 -m py_compile tests/components/tunet_inbox/*.py`
+    - `npm run tinbox:check`
+    - `npm run tinbox:test` -> `21 passed`
+  - live validation passed:
+    - integration-only deploy from the worktree
+    - `ha_check_config() -> valid`
+    - HA restart
+    - `npm run tinbox:smoke`
+    - `tunet_inbox.post` with `mobile.url` returned `accepted: true`
+    - `tunet_inbox.list_items` showed stored `mobile.url: "/tunet-inbox-yaml/inbox"`
+    - the proof item was dismissed and the queue returned to `total: 0`
+  - planning-control audit reran:
+    - `npm run tinbox:check`
+    - `npm run tinbox:test` -> `21 passed`
+    - `npm run tinbox:smoke`
+    - live `tunet_inbox.post(send_mobile=false)` with canonical `mobile.url`
+    - live `tunet_inbox.list_items` showed the persisted canonical `mobile.url`
+    - the audit item was dismissed successfully
+- TI2C progress:
+  - local validation passed after the import-preservation fix:
+    - `source .venv-tinbox/bin/activate && pytest -q tests/components/tunet_inbox/test_config_flow.py` -> `6 passed`
+    - `npm run tinbox:test` -> `28 passed`
+    - `npm run tinbox:check`
+  - live validation passed for the fallback route behavior:
+    - integration-only deploy from the worktree
+    - `ha_check_config() -> valid`
+    - HA restart
+    - `npm run tinbox:smoke`
+    - live `tunet_inbox.post(send_mobile=true)` without `mobile.url` returned `accepted: true`
+    - live `tunet_inbox.list_items` showed normalized `mobile.url: "/tunet-inbox-yaml/inbox"`
+    - the proof item was dismissed and the queue returned to `total: 0`
+  - configurable default tap URL is now implemented in config-entry/runtime code with `/tunet-inbox-yaml/inbox` as fallback
+  - live no-restart proof passed for a configured non-default route on the current runtime:
+    - `mobile_tap_url = http://10.0.0.21:8123/tunet-inbox-yaml/inbox`
+    - `tunet_inbox.post(send_mobile=true)` accepted and persisted that configured route
+    - matching legacy `mobile.url` was accepted and persisted
+    - mismatched legacy `mobile.url` was rejected over websocket with `service_validation_error`
+    - proof cleanup returned the queue to `total: 0`
+  - hidden restart blocker was proved and covered by code/test changes:
+    - the import-sourced entry dropped `mobile_tap_url` on restart because YAML import cleared all options
+    - `config_flow.py` now preserves non-overlapping options on import
+    - `tests/components/tunet_inbox/test_config_flow.py` now locks that behavior locally
+  - governed live activation proof passed under the current operator policy:
+    - `Tunet Inbox` was reloaded from the browser integration menu
+    - the configured-route canonical/compatibility/rejection proof passed after reload
+    - queue cleanup returned the live queue to `total: 0`
+- TI3 proof:
+  - local/static validation passed after the package edit:
+    - YAML parse check for `packages/oal_lighting_control_package.yaml`
+    - `npm run tinbox:check`
+    - `npm run tinbox:test` -> `28 passed`
+  - package deploy/reload path passed:
+    - remote backup created at `Backups/tunet_inbox/packages/oal_lighting_control_package.20260418_120035.remote.yaml`
+    - remote package copy verified by byte count
+    - `ha_check_config() -> valid`
+    - `automation.reload` succeeded
+  - override reminder proof:
+    - real automation writer created `oal_override_reminder`
+    - stored mobile URL normalized to `http://10.0.0.21:8123/tunet-inbox-yaml/inbox` without package-supplied `mobile.url`
+    - dashboard action `OAL_RESET_LIGHTS` was accepted through `tunet_inbox.respond`
+    - `sensor.oal_system_status.active_zonal_overrides` returned to `0`
+    - duplicate/stale replay returned `accepted: false, reason: item_not_found`
+    - natural resolver proof passed by creating a real override, posting the reminder, then running `script.oal_reset_soft`; the resolver trace closed the queue item with `reason: oal_overrides_cleared`
+  - override expiring proof:
+    - real automation writer created `oal_override_expiring:unknown`
+    - stored mobile URL normalized to `http://10.0.0.21:8123/tunet-inbox-yaml/inbox` without package-supplied `mobile.url`
+    - simulated phone action via REST event `mobile_app_notification_action` produced a real `tunet_inbox_action` trace and resolved the item with `reason: user_let_override_expire`
+  - TV prompt proof:
+    - package inspection confirmed both prompt writers now omit `mobile.url`
+    - no raw `mobile_app_notification_action` handler remains for `OAL_TV_ENTER` or `OAL_TV_DISMISS`
+    - a bounded synthetic prompt item proved:
+      - mobile swipe-dismiss event did not remove the inbox item
+      - dashboard dismiss set `input_boolean.oal_tv_mode_prompt_declined` on, `input_boolean.oal_tv_mode_prompt_pending` off, and `timer.oal_tv_mode_prompt` idle
+      - natural resolver ownership cleared the prompt item when `input_boolean.oal_tv_mode_prompt_pending` flipped off
+    - residual watchpoint:
+      - later TV-family tranches still need domain-real playback proof before deleting adjacent compare-mode paths
+  - final cleanup:
+    - `tunet_inbox.list_items` returned `meta.total: 0`
+    - `sensor.oal_system_status.active_zonal_overrides` returned to `0`
+    - `input_boolean.oal_tv_mode_prompt_pending` = `off`
+    - `input_boolean.oal_tv_mode_prompt_declined` = `off`
+    - `timer.oal_tv_mode_prompt` = `idle`
+
+## Current Contract Assumptions
+
+- dashboard ingress must go through `tunet_inbox.respond`
+- canonical business event is `tunet_inbox_action`
+- queue refresh event is `tunet_inbox_updated`
+- raw mobile action format is `TINBOX|<item_id>|<action_id>`
+- queue items are governed objects, not arbitrary JSON blobs
+- action payloads are identifiers and render metadata only
+- malformed persisted payloads must be quarantined and surfaced, not silently skipped
+- the governed inbox surface fallback route is `/tunet-inbox-yaml/inbox`
+- the current raw `mobile.url` field is a live compatibility surface, not the intended long-term public contract
+- the effective governed tap target is now:
+  - `mobile_tap_url` from integration settings when configured
+  - otherwise `/tunet-inbox-yaml/inbox`
+- default notify target may be either:
+  - a helper entity containing a mobile-app device id
+  - a direct `notify.*` service such as a notify group
+- blank notify routing is invalid and does not mean “all devices”
+
+## Known Gaps / Stubs
+
+- caller-supplied raw route strings still exist as a compatibility surface and must be validated against the configured governed route
+- Compare-mode duplication still exists by design for all non-cutover flows.
+- the first Sonos authoritative cutover is closed for `sonos_alarm_playing`.
+- `TI4` now covers `sonos_alarm_playing` only.
+- `TI4A` now covers `sonos_evening_alarm_check` because its current inline legacy wait path is a separate extraction problem.
+- `TI5A` is now closed:
+  - `sonos_apple_tv_auto_off` no longer uses `script.confirmable_notification` in any live production path
+  - the formerly broken Apple TV turn-off action now works through the governed inbox lifecycle
+- Bridge-expiring, presence-loss, TV-mode-activated, and unified-timer OAL flows remain compare-mode only and are now explicitly out of the closed TI3 scope.
+- The delivery fan-out path still depends on the Home Assistant notify group `notify.tunet_inbox_all_devices`; end-device receipt is outside the integration runtime and should be verified from the mobile side when delivery questions arise.
+- Duplicate delivery was observed on `Mac's iPhone personal` while the queue and governed action lifecycle remained singular; TI4A closed on the functional boundary and later routing work should treat this as notify-group fan-out, not a reopened TI4A blocker.
+- The earlier manual validation notifications used to explain the dashboard family-filter behavior were dismissed during TI2C cleanup; the live queue is currently clean.
+
+## Next Highest-Value Work
+
+1. start `TI5B` to retire compare-mode writers and raw mobile handlers across the remaining OAL TV-family flows
+2. keep `TI4`, `TI4A`, and `TI5A` closed unless contradictory evidence appears
+3. promote `TI5B` when the next OAL TV-family tranche actually begins
+4. keep `TI5C` frozen behind `TI5B` instead of widening the next slice
+5. keep backend-owned inbox tap behavior as the authority for all new cutovers
+
+## Deployment Notes
+
+- this worktree does not currently contain a checked-in `.env`
+- deploy scripts must therefore support:
+  - local `.env` in the current worktree when present
+  - fallback to the primary repo root `.env`
+- backend deploy must treat Python changes as `HA INTEGRATION RELOAD`
+- per current user direction, prefer browser reload of `Tunet Inbox` over HA restart after backend deploy unless the user explicitly requests restart
+- `npm run tinbox:deploy:integration` is the governed integration deploy helper:
+  - it deploys `custom_components/tunet_inbox/`
+  - it patches governed bootstrap in `configuration.yaml`
+  - it verifies the remote integration payload exists before asking for activation or reload
+- the latest deployed integration payload includes the import-preservation fix for non-overlapping options such as `mobile_tap_url`
+- package-only tranche work should prefer package deploy/reload rather than unrelated backend restarts
+- package YAML that changes `script:` blocks needs `script.reload`
+- package YAML that changes `automation:` blocks needs `automation.reload`
+- mixed package script/automation edits should run both reloads
+- latest live proof used:
+  - remote host `10.0.0.21`
+  - config backup under `Backups/tunet_inbox/`
+  - successful smoke target `http://10.0.0.21:8123`
+
+## Risks / Watchpoints
+
+- TI3 closed without reopening the backend contract gap; do not re-open that closed issue unless new contradictory evidence appears
+- treat `TI2B` as a parity patch, not the final inbox-tap architecture
+- preserve the per-flow `action-ready` vs `mirror-only` classification during package cutover work
+- TI3's TV prompt proof was bounded synthetic; later TV-family tranches still need domain-real playback proof before deleting adjacent compare-mode paths
+- do not broaden `TI4` to absorb `sonos_evening_alarm_check`; that flow is now explicitly owned by `TI4A`
+- do not reopen `TI5A` unless contradictory Apple TV evidence appears after closure
+- do not widen `TI5B` into unified-timer work
+- do not close any `TI5*` tranche on backend/package proof alone; record final live user feedback and end-of-tranche live testing before marking the tranche done
+- keep receipts and clears explicit; do not overload the queue with informational notifications
+- do not silently change action identifiers once package migrations start
+- keep the Sonos rollout split by actual legacy path:
+  - `TI4` = alarm-playing pilot
+  - `TI4A` = evening alarm extraction
+  - `TI5A` = Apple TV auto-off extraction
+  - `TI5B` = OAL TV-family compare-mode retirement
+  - `TI5C` = OAL unified timer authoritative cutover

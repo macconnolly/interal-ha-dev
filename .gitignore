@@ -7,6 +7,9 @@ __pycache__/
 *$py.class
 .Python
 *.so
+.pytest_cache/
+.venv-tinbox/
+.uv-cache/
 
 # IDE
 .idea/
@@ -36,4 +39,3 @@ Dashboard/Tunet/Cards/v3/dist/
 
 # Claude worktrees (managed by Claude Code, not repo content)
 .claude/worktrees/
-

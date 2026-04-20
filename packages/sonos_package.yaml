@@ -214,6 +214,11 @@ input_datetime:
     has_date: true
     has_time: true
 
+  sonos_last_alarm_notification:
+    name: Sonos Last Alarm Notification
+    has_date: true
+    has_time: true
+
 #  SPEAKER GROUP           #
 ############################
 group:
@@ -772,19 +777,12 @@ template:
     - name: "Sonos Alarm Playing"
       unique_id: sonos_alarm_playing
       icon: mdi:alarm-bell
-      # Trigger-based: evaluates when any speaker state changes.
-      # State and all attributes fire in the same HA evaluation cycle (same entity snapshot),
-      # eliminating the state/attribute divergence that existed in the polling version.
+      # State-based template: evaluates from the referenced speaker/alarm entities and `now()`.
+      # This is slightly less optimized than the trigger-based version, but it is materially
+      # more reliable at startup and after template reloads because it does not depend on
+      # trigger lifecycle timing to leave restored/unavailable state.
       # NOTE: media_player.office is intentionally absent — no office media_player entity
       # exists in this config. Add it here when the office speaker is configured.
-      trigger:
-        - platform: state
-          entity_id:
-            - media_player.bedroom
-            - media_player.bath
-            - media_player.kitchen
-            - media_player.living_room
-            - media_player.dining_room
       state: >
         {# Strategy 1: URI match (x-rincon-buzzer) — instant, catches built-in buzzer alarms    #}
         {# Strategy 2: time cross-reference — catches music-service alarms (Spotify, TuneIn…)   #}
@@ -1681,6 +1679,7 @@ script:
           message: "{{ message }}"
           data:
             tag: "{{ effective_tag }}"
+            url: "/tunet-inbox-yaml/inbox"
             actions:
               - action: "{{ action_confirm_event }}"
                 title: "{{ confirm_text }}"
@@ -1712,9 +1711,9 @@ script:
                       target: "{{ repeat.item.target | default({}) }}"
               - service: notify.notify
                 data:
-                  message: "Confirmed: {{ title }}."
+                  message: "clear_notification"
                   data:
-                    tag: "{{ effective_tag }}_receipt"
+                    tag: "{{ effective_tag }}"
 
           - conditions: "{{ wait.trigger and wait.trigger.event.data.action == action_dismiss_event }}"
             alias: "User dismissed"
@@ -1727,10 +1726,15 @@ script:
                       target: "{{ repeat.item.target | default({}) }}"
               - service: notify.notify
                 data:
-                  message: "Dismissed: {{ title }}."
+                  message: "clear_notification"
                   data:
-                    tag: "{{ effective_tag }}_receipt"
+                    tag: "{{ effective_tag }}"
         default: # Timeout
+          - service: notify.notify
+            data:
+              message: "clear_notification"
+              data:
+                tag: "{{ effective_tag }}"
           - service: system_log.write
             data:
               message: "Confirmable notification '{{ title }}' timed out. Tag: {{ effective_tag }}"
@@ -1882,8 +1886,9 @@ script:
               message: "No active Sonos alarms found scheduled for tomorrow to disable."
               level: info
 
-  # --- Nightly confirmable notification ---
-  # UPDATED: Removed target from notify.notify calls. Uses simplified update script.
+  # --- Nightly governed evening-alarm notification ---
+  # Phone delivery is now owned by tunet_inbox; timeout and no-alarm cleanup stay
+  # with the dedicated resolver below.
   evening_alarm_check_notification:
     alias: Evening Alarm Check Notification
     mode: single
@@ -1896,74 +1901,47 @@ script:
         state: "on"
       # Step 3: Define variables using the tomorrow-specific sensor
       - variables:
-          dev_id_check: "{{ states('input_text.notify_target_device_id') }}"
-          alarms_for_tomorrow: >
-            {{ state_attr('sensor.sonos_alarms_for_tomorrow', 'alarm_entities') | default([]) }}
           count: "{{ state_attr('sensor.sonos_alarms_for_tomorrow', 'alarm_count') | int(0) }}"
           earliest_time_str: "{{ state_attr('sensor.sonos_alarms_for_tomorrow', 'earliest_alarm_time_tomorrow') | default('unknown') }}"
+          shadow_key_date: "{{ (now() + timedelta(days=1)).strftime('%Y-%m-%d') }}"
+          shadow_key: "{{ 'sonos_evening_alarm_check:' ~ shadow_key_date }}"
+          shadow_expires_at: "{{ (utcnow() + timedelta(hours=1)).isoformat() }}"
           notification_title: "Sonos Alarm Check (Tomorrow)"
           notification_message: >
             {{ count }} alarm{{ 's' if count != 1 else '' }} will ring tomorrow (earliest at {{ earliest_time_str }}). Disable them?
-          action_confirm: "{{ 'SONOS_CONFIRM_' ~ context.id }}"
-          action_dismiss: "{{ 'SONOS_DISMISS_' ~ context.id }}"
           confirm_button_text: "Disable"
           dismiss_button_text: "Keep Enabled"
-      # Step 4: Check if there are alarms for tomorrow and if ANY device ID is set
-      - condition: template
-        value_template: >
-          {{ count > 0 }}
-      - condition: template
-        value_template: "{{ dev_id_check != '' and dev_id_check != none and dev_id_check != 'unavailable' and dev_id_check != 'unknown' }}"
-      # Step 5: Send the actionable notification
-      - service: notify.notify
-        data:
-          title: "{{ notification_title }}"
-          message: "{{ notification_message }}"
-          data:
-            actions:
-              - action: "{{ action_confirm }}"
-                title: "{{ confirm_button_text }}"
-              - action: "{{ action_dismiss }}"
-                title: "{{ dismiss_button_text }}"
-      # Step 6: Wait for the user to tap an action
-      - wait_for_trigger:
-          - platform: event
-            event_type: mobile_app_notification_action
-            event_data:
-              action: "{{ action_confirm }}"
-          - platform: event
-            event_type: mobile_app_notification_action
-            event_data:
-              action: "{{ action_dismiss }}"
-        timeout: 
-          hours: 1
-        continue_on_timeout: false 
-      # Step 7: Perform action based on the trigger
+      # Step 4: Post when tomorrow alarms exist; otherwise log the no-op path.
       - choose:
-          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == action_confirm }}"
+          - conditions: "{{ count > 0 }}"
             sequence:
-              - service: script.disable_tomorrows_sonos_alarms
-              - service: notify.notify 
+              - service: tunet_inbox.post
                 data:
-                  message: "OK, tomorrow's Sonos alarms have been disabled."
-          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == action_dismiss }}"
-            sequence:
-              - service: notify.notify 
-                data:
-                  message: "OK, tomorrow's Sonos alarms will remain enabled."
-        default: 
+                  key: "{{ shadow_key }}"
+                  title: "{{ notification_title }}"
+                  message: "{{ notification_message }}"
+                  family: "sonos"
+                  priority: 50
+                  severity: "notice"
+                  expires_at: "{{ shadow_expires_at }}"
+                  send_mobile: true
+                  actions:
+                    - id: "SONOS_DISABLE_TOMORROW"
+                      title: "{{ confirm_button_text }}"
+                    - id: "SONOS_KEEP_TOMORROW"
+                      title: "{{ dismiss_button_text }}"
+                  context:
+                    alarm_count: "{{ count }}"
+                    earliest_time_tomorrow: "{{ earliest_time_str }}"
+                    key_date: "{{ shadow_key_date }}"
+                  mobile:
+                    tag: "sonos_evening_alarm_check"
+                    clear_on_resolve: true
+        default:
           - service: system_log.write
             data:
-              message: "Sonos alarm notification confirmation timed out."
-              level: warning
-      # Step 8: Log if no alarms were found initially
-      - condition: template 
-        value_template: >
-          {{ count == 0 }}
-      - service: system_log.write
-        data:
-          message: "Evening Alarm Check: No Sonos alarms found scheduled for tomorrow (count was {{ count }})."
-          level: info
+              message: "Evening Alarm Check: No Sonos alarms found scheduled for tomorrow (count was {{ count }})."
+              level: info
 
   # --- Apple TV Auto Off Notification Script (with configurable entity IDs) ---
   apple_tv_auto_off_notification:
@@ -1979,48 +1957,51 @@ script:
         example: "media_player.living_room_samsung_q60"
     sequence:
       - variables:
-          dev_id: "{{ states('input_text.notify_target_device_id') }}"
           # Use entity_ids passed from automation via fields, otherwise fallback to global helpers
           effective_apple_tv_entity: "{{ apple_tv_entity_id if apple_tv_entity_id is defined else states('input_text.apple_tv_entity_id') }}"
           effective_display_entity: "{{ display_entity_id if display_entity_id is defined else states('input_text.apple_tv_display_entity_id') }}"
           apple_tv_friendly_name: "{{ state_attr(effective_apple_tv_entity, 'friendly_name') | default('The Apple TV') }}"
+          inbox_key: "{{ 'sonos_apple_tv_auto_off:' ~ effective_apple_tv_entity }}"
+          inbox_expires_at: "{{ (utcnow() + timedelta(minutes=30)).isoformat() }}"
+          mobile_tag: "apple_tv_auto_off_{{ effective_apple_tv_entity | replace('media_player.','') }}"
           # Check if display should also be turned off
           should_turn_off_display: >
             {{ effective_display_entity != '' and
                effective_display_entity != none and
                states(effective_display_entity) not in ['unavailable', 'unknown'] and
                effective_display_entity != effective_apple_tv_entity }}
-          # Build confirm_actions dynamically - only service calls, no conditions
-          confirm_actions_list: >
-            {% set actions = [{'service': 'media_player.turn_off', 'target': {'entity_id': effective_apple_tv_entity}}] %}
-            {% if should_turn_off_display %}
-              {% set actions = actions + [{'service': 'media_player.turn_off', 'target': {'entity_id': effective_display_entity}}] %}
-            {% endif %}
-            {{ actions }}
 
       - choose:
-          # Condition 1: Check if a valid notification device ID is available
           - conditions:
-              - condition: template
-                value_template: "{{ dev_id not in ['', none, 'unavailable', 'unknown'] }}"
-              # Condition 2: Check if the Apple TV entity to control is valid
               - condition: template
                 value_template: "{{ effective_apple_tv_entity not in ['', none] and states(effective_apple_tv_entity) not in ['unavailable', 'unknown'] }}"
             sequence:
-              - service: script.confirmable_notification
+              - service: tunet_inbox.post
                 data:
-                  notify_device: "{{ dev_id }}"
+                  key: "{{ inbox_key }}"
                   title: "{{ apple_tv_friendly_name }} Inactive"
                   message: "{{ apple_tv_friendly_name }} has been paused or idle for over 30 minutes. Would you like to turn it and the display off?"
-                  confirm_text: "Yes, Turn Off"
-                  confirm_actions: "{{ confirm_actions_list }}"
-                  dismiss_text: "No, Keep On"
-                  notification_tag: "apple_tv_auto_off_{{ effective_apple_tv_entity | replace('media_player.','') }}"
-                  timeout_seconds: 1800
+                  family: "sonos"
+                  priority: 45
+                  severity: "notice"
+                  expires_at: "{{ inbox_expires_at }}"
+                  send_mobile: true
+                  actions:
+                    - id: "SONOS_ATV_CONFIRM_OFF"
+                      title: "Yes, Turn Off"
+                    - id: "SONOS_ATV_KEEP_ON"
+                      title: "No, Keep On"
+                  context:
+                    apple_tv_entity_id: "{{ effective_apple_tv_entity }}"
+                    display_entity_id: "{{ effective_display_entity }}"
+                    should_turn_off_display: "{{ should_turn_off_display }}"
+                  mobile:
+                    tag: "{{ mobile_tag }}"
+                    clear_on_resolve: true
         default:
           - service: system_log.write
             data:
-              message: "Apple TV Auto Off Notification: Not sent. Invalid notify_device ('{{ dev_id }}') or Apple TV entity ('{{ effective_apple_tv_entity }}')."
+              message: "Apple TV Auto Off Notification: Not sent. Invalid Apple TV entity ('{{ effective_apple_tv_entity }}')."
               level: warning
 
   soonest_sonos_alarm_info:
@@ -2704,6 +2685,32 @@ automation:
     action:
       - service: script.evening_alarm_check_notification
 
+  - id: sonos_evening_alarm_check_shadow_resolver
+    alias: "Sonos - Evening Alarm Check Shadow Resolver"
+    description: "Clears mirrored inbox items when tomorrow alarms disappear or the nightly response window closes."
+    mode: queued
+    max: 4
+    trigger:
+      - platform: state
+        entity_id: sensor.sonos_alarms_for_tomorrow
+      - platform: time
+        at: "22:31:00"
+    action:
+      - variables:
+          shadow_key_date: "{{ (now() + timedelta(days=1)).strftime('%Y-%m-%d') }}"
+          shadow_key: "{{ 'sonos_evening_alarm_check:' ~ shadow_key_date }}"
+          tomorrow_alarm_count: "{{ state_attr('sensor.sonos_alarms_for_tomorrow', 'alarm_count') | int(0) }}"
+          window_closed: "{{ now().strftime('%H:%M:%S') >= '22:31:00' }}"
+      - condition: template
+        value_template: "{{ tomorrow_alarm_count == 0 or window_closed }}"
+      - service: tunet_inbox.resolve
+        data:
+          key: "{{ shadow_key }}"
+          reason: >
+            {{ 'no_tomorrow_alarms_remaining'
+               if tomorrow_alarm_count == 0
+               else 'evening_alarm_check_window_closed' }}
+
   # -------------------------------------------------------------------------
   # Reset snoozed alarm after it finishes playing
   # Triggers when sensor.sonos_alarm_playing goes from True to False
@@ -2758,14 +2765,12 @@ automation:
         state: "on"
     action:
       - variables:
-          dev_id: "{{ states('input_text.notify_target_device_id') | trim }}"
-      - condition: template
-        value_template: "{{ dev_id != '' and dev_id != 'unavailable' }}"
-      - action: "notify.mobile_app_{{ dev_id }}"
+          last_alarm_speaker: "{{ trigger.from_state.attributes.speaker | default('', true) | trim }}"
+          last_alarm_speaker_key: "{{ last_alarm_speaker if last_alarm_speaker != '' else 'unknown_speaker' }}"
+      - service: tunet_inbox.resolve
         data:
-          message: "clear_notification"
-          data:
-            tag: "sonos_alarm_playing"
+          key: "sonos_alarm_playing:{{ last_alarm_speaker_key }}"
+          reason: "sonos_alarm_stopped"
 
   # -------------------------------------------------------------------------
   # Midnight safety reset for any snoozed alarms
@@ -2852,6 +2857,113 @@ automation:
           message: "Apple TV Auto Off: Apple TV has been inactive for 30+ minutes. Notification sent."
           level: warning
 
+  - id: sonos_apple_tv_auto_off_action_handler
+    alias: "Sonos Apple TV Auto Off Action Handler"
+    description: "Handle governed confirm/keep actions for Apple TV auto-off prompts."
+    mode: single
+    trigger:
+      - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "SONOS_ATV_CONFIRM_OFF"
+        id: "confirm_off"
+      - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "SONOS_ATV_KEEP_ON"
+        id: "keep_on"
+    action:
+      - variables:
+          action: "{{ trigger.event.data.action_id }}"
+          inbox_item_id: "{{ trigger.event.data.item_id | default('', true) }}"
+          inbox_key: "{{ trigger.event.data.key | default('', true) }}"
+          event_context: "{{ trigger.event.data.context | default({}, true) }}"
+          effective_apple_tv_entity: >
+            {% if event_context is mapping and 'apple_tv_entity_id' in event_context %}
+              {{ event_context.apple_tv_entity_id }}
+            {% else %}
+              {{ states('input_text.apple_tv_entity_id') }}
+            {% endif %}
+          effective_display_entity: >
+            {% if event_context is mapping and 'display_entity_id' in event_context %}
+              {{ event_context.display_entity_id }}
+            {% else %}
+              {{ states('input_text.apple_tv_display_entity_id') }}
+            {% endif %}
+          should_turn_off_display: >
+            {% set raw = event_context.should_turn_off_display if event_context is mapping and 'should_turn_off_display' in event_context else false %}
+            {{ raw | string | lower in ['true', '1', 'on'] }}
+      - choose:
+          - conditions: "{{ action == 'SONOS_ATV_CONFIRM_OFF' }}"
+            sequence:
+              - choose:
+                  - conditions: "{{ effective_apple_tv_entity not in ['', none, 'unknown', 'unavailable'] }}"
+                    sequence:
+                      - service: media_player.turn_off
+                        target:
+                          entity_id: "{{ effective_apple_tv_entity }}"
+                      - choose:
+                          - conditions: >
+                              {{ should_turn_off_display
+                                 and effective_display_entity not in ['', none, 'unknown', 'unavailable']
+                                 and effective_display_entity != effective_apple_tv_entity }}
+                            sequence:
+                              - service: media_player.turn_off
+                                target:
+                                  entity_id: "{{ effective_display_entity }}"
+                default:
+                  - service: system_log.write
+                    data:
+                      message: "Apple TV Auto Off Action: Confirm received but Apple TV entity was invalid ('{{ effective_apple_tv_entity }}')."
+                      level: warning
+              - choose:
+                  - conditions: "{{ inbox_item_id != '' or inbox_key != '' }}"
+                    sequence:
+                      - service: tunet_inbox.resolve
+                        data:
+                          item_id: "{{ inbox_item_id }}"
+                          key: "{{ '' if inbox_item_id != '' else inbox_key }}"
+                          reason: "apple_tv_auto_off_confirmed"
+          - conditions: "{{ action == 'SONOS_ATV_KEEP_ON' }}"
+            sequence:
+              - choose:
+                  - conditions: "{{ inbox_item_id != '' or inbox_key != '' }}"
+                    sequence:
+                      - service: tunet_inbox.resolve
+                        data:
+                          item_id: "{{ inbox_item_id }}"
+                          key: "{{ '' if inbox_item_id != '' else inbox_key }}"
+                          reason: "apple_tv_auto_off_kept_on"
+
+  - id: sonos_apple_tv_auto_off_shadow_resolver
+    alias: "Sonos - Apple TV Auto Off Resolver"
+    description: "Clears governed inbox items when Apple TV auto-off is no longer relevant."
+    mode: queued
+    max: 4
+    trigger:
+      - platform: template
+        value_template: >
+          {% set apple_tv_id = states('input_text.apple_tv_entity_id') %}
+          {% set display_id = states('input_text.apple_tv_display_entity_id') %}
+          {% set apple_tv_state = states(apple_tv_id) %}
+          {% set display_state = states(display_id) %}
+          {{ apple_tv_id not in ['', none, 'unknown', 'unavailable']
+             and (
+               is_state('input_boolean.apple_tv_no_auto_off', 'on')
+               or apple_tv_state in ['off', 'standby', 'playing', 'unavailable', 'unknown']
+               or (display_id not in ['', none, 'unknown', 'unavailable']
+                   and display_state in ['off', 'standby', 'unavailable', 'unknown'])
+             ) }}
+    action:
+      - variables:
+          effective_apple_tv_entity: "{{ states('input_text.apple_tv_entity_id') }}"
+      - condition: template
+        value_template: "{{ effective_apple_tv_entity not in ['', none, 'unknown', 'unavailable'] }}"
+      - service: tunet_inbox.resolve
+        data:
+          key: "sonos_apple_tv_auto_off:{{ effective_apple_tv_entity }}"
+          reason: "apple_tv_auto_off_context_cleared"
+
   - id: sonos_reenable_tomorrows_alarms
     alias: Sonos Re-Enable Tomorrow's Alarms at 21:00
     description: "Re-enables Sonos alarms that were disabled for tomorrow."
@@ -2905,26 +3017,87 @@ automation:
         state: "on"
     action:
       - variables:
-          dev_id: "{{ states('input_text.notify_target_device_id') }}"
           alarm_speaker: "{{ state_attr('sensor.sonos_alarm_playing', 'speaker') | trim }}"
+          alarm_speaker_key: "{{ alarm_speaker if alarm_speaker != '' else 'unknown_speaker' }}"
           room_name: "{{ state_attr(alarm_speaker, 'friendly_name') | default('Sonos', true) }}"
+          last_alarm_notification_ts: "{{ as_timestamp(states('input_datetime.sonos_last_alarm_notification'), 0) }}"
       - condition: template
-        value_template: "{{ dev_id != '' and dev_id != none and dev_id != 'unavailable' }}"
-      - action: "notify.mobile_app_{{ dev_id }}"
+        value_template: "{{ (now().timestamp() - last_alarm_notification_ts) > 30 }}"
+      - service: tunet_inbox.post
         data:
+          key: "sonos_alarm_playing:{{ alarm_speaker_key }}"
           title: "⏰ Alarm - {{ room_name }}"
           message: "Your alarm is ringing"
-          data:
+          family: "sonos"
+          priority: 95
+          severity: "critical"
+          send_mobile: true
+          actions:
+            - id: "SONOS_SNOOZE_5"
+              title: "5 min"
+            - id: "SONOS_SNOOZE_10"
+              title: "10 min"
+            - id: "SONOS_SNOOZE_15"
+              title: "15 min"
+            - id: "SONOS_DISMISS_ALARM"
+              title: "Dismiss"
+          context:
+            speaker: "{{ alarm_speaker }}"
+            room_name: "{{ room_name }}"
+          mobile:
             tag: "sonos_alarm_playing"
-            actions:
-              - action: "SONOS_SNOOZE_5"
-                title: "5 min"
-              - action: "SONOS_SNOOZE_10"
-                title: "10 min"
-              - action: "SONOS_SNOOZE_15"
-                title: "15 min"
-              - action: "SONOS_DISMISS_ALARM"
-                title: "Dismiss"
+            clear_on_resolve: true
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.sonos_last_alarm_notification
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+  # -------------------------------------------------------------------------
+  # Handle governed evening-alarm prompt actions
+  # -------------------------------------------------------------------------
+  - id: sonos_evening_alarm_check_action_handler
+    alias: "Sonos Evening Alarm Check Action Handler"
+    description: "Handle governed disable/keep actions from the nightly Sonos alarm prompt"
+    mode: single
+    trigger:
+      - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "SONOS_DISABLE_TOMORROW"
+        id: "disable_tomorrow"
+      - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "SONOS_KEEP_TOMORROW"
+        id: "keep_tomorrow"
+    action:
+      - variables:
+          action: "{{ trigger.event.data.action_id }}"
+          inbox_item_id: "{{ trigger.event.data.item_id | default('', true) }}"
+          inbox_key: "{{ trigger.event.data.key | default('', true) }}"
+      - choose:
+          - conditions: "{{ action == 'SONOS_DISABLE_TOMORROW' }}"
+            sequence:
+              - action: script.disable_tomorrows_sonos_alarms
+              - choose:
+                  - conditions: "{{ inbox_item_id != '' or inbox_key != '' }}"
+                    sequence:
+                      - service: tunet_inbox.resolve
+                        data:
+                          item_id: "{{ inbox_item_id }}"
+                          key: "{{ '' if inbox_item_id != '' else inbox_key }}"
+                          reason: "sonos_disable_tomorrow"
+          - conditions: "{{ action == 'SONOS_KEEP_TOMORROW' }}"
+            sequence:
+              - choose:
+                  - conditions: "{{ inbox_item_id != '' or inbox_key != '' }}"
+                    sequence:
+                      - service: tunet_inbox.resolve
+                        data:
+                          item_id: "{{ inbox_item_id }}"
+                          key: "{{ '' if inbox_item_id != '' else inbox_key }}"
+                          reason: "sonos_keep_tomorrow"
 
   # -------------------------------------------------------------------------
   # Handle Alarm Notification Actions
@@ -2935,25 +3108,31 @@ automation:
     mode: single
     trigger:
       - platform: event
-        event_type: mobile_app_notification_action
+        event_type: tunet_inbox_action
         event_data:
-          action: "SONOS_SNOOZE_5"
+          action_id: "SONOS_SNOOZE_5"
+        id: "snooze_5"
       - platform: event
-        event_type: mobile_app_notification_action
+        event_type: tunet_inbox_action
         event_data:
-          action: "SONOS_SNOOZE_10"
+          action_id: "SONOS_SNOOZE_10"
+        id: "snooze_10"
       - platform: event
-        event_type: mobile_app_notification_action
+        event_type: tunet_inbox_action
         event_data:
-          action: "SONOS_SNOOZE_15"
+          action_id: "SONOS_SNOOZE_15"
+        id: "snooze_15"
       - platform: event
-        event_type: mobile_app_notification_action
+        event_type: tunet_inbox_action
         event_data:
-          action: "SONOS_DISMISS_ALARM"
+          action_id: "SONOS_DISMISS_ALARM"
+        id: "dismiss_alarm"
     action:
       - variables:
-          action: "{{ trigger.event.data.action }}"
-          dev_id: "{{ states('input_text.notify_target_device_id') | trim }}"
+          action: "{{ trigger.event.data.action_id }}"
+          inbox_item_id: "{{ trigger.event.data.item_id | default('', true) }}"
+          alarm_speaker: "{{ state_attr('sensor.sonos_alarm_playing', 'speaker') | default('', true) | trim }}"
+          alarm_key: "{{ 'sonos_alarm_playing:' ~ alarm_speaker if alarm_speaker != '' else '' }}"
           snooze_mins: >
             {% if action == 'SONOS_SNOOZE_5' %}5
             {% elif action == 'SONOS_SNOOZE_10' %}10
@@ -2966,22 +3145,22 @@ automation:
                 data:
                   minutes: "{{ snooze_mins }}"
                   stop_playback: true
-              - if: "{{ dev_id != '' and dev_id != 'unavailable' }}"
-                then:
-                  - action: "notify.mobile_app_{{ dev_id }}"
-                    data:
-                      message: "Alarm snoozed for {{ snooze_mins }} minutes"
-                      data:
-                        # Different tag so sonos_alarm_notification_clear (tag: sonos_alarm_playing)
-                        # doesn't race and wipe this confirmation before the user sees it
-                        tag: "sonos_alarm_confirmed"
+              - choose:
+                  - conditions: "{{ inbox_item_id != '' or alarm_key != '' }}"
+                    sequence:
+                      - service: tunet_inbox.resolve
+                        data:
+                          item_id: "{{ inbox_item_id }}"
+                          key: "{{ '' if inbox_item_id != '' else alarm_key }}"
+                          reason: "sonos_alarm_snoozed"
           - conditions: "{{ action == 'SONOS_DISMISS_ALARM' }}"
             sequence:
               - action: script.sonos_dismiss_alarm
-              - if: "{{ dev_id != '' and dev_id != 'unavailable' }}"
-                then:
-                  - action: "notify.mobile_app_{{ dev_id }}"
-                    data:
-                      message: "Alarm dismissed"
-                      data:
-                        tag: "sonos_alarm_confirmed"
+              - choose:
+                  - conditions: "{{ inbox_item_id != '' or alarm_key != '' }}"
+                    sequence:
+                      - service: tunet_inbox.resolve
+                        data:
+                          item_id: "{{ inbox_item_id }}"
+                          key: "{{ '' if inbox_item_id != '' else alarm_key }}"
+                          reason: "sonos_alarm_dismissed"

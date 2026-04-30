@@ -1,12 +1,81 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-04-06 (America/Denver)  
-Intended reader: next Claude Code session  
+Last updated: 2026-04-30 (America/Denver)
+Intended reader: next Claude Code session
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
-Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
-Current tranche: **CD9 — Media Bespoke Pass** (root Tunet program remains unchanged; branch-local exception tranche `TI2` is now closed after the governed inbox card/surface proof in this worktree)
-Previous tranches: CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+> **Out-of-spec side task — SA-series (recorded 2026-04-30):**
+> The Sonos alarm edit/manage work (SA0–SA4 + the All On/All Off optimistic-UI fix and Tunet-styled BrowserMod edit popup) was completed and deployed live, but it was **an isolated side task outside the active CD program**. Root Tunet authority and tranche order are unchanged — **CD9 — Media Bespoke Pass** remains current. The SA-series was driven by an immediate user need (alarm UX defects on the live dashboard) and is not a precedent for further out-of-tranche work. Future Tunet sessions resume CD9 / CD10–CD12 per `~/.claude/plans/flickering-herding-wolf.md`; the SA-series is complete and parked.
+
+Active execution plans:
+- `~/.claude/plans/flickering-herding-wolf.md` (root CD0–CD12 authority; current CD is CD9)
+- `~/.claude/plans/tunet-sonos-alarm-manage.md` (SA-series sibling to CD12 surface assembly — out-of-spec, complete + deployed)
+Current tranche: **CD9** (root) + **SA0–SA4 complete + deployed live** (sibling SA-series, out-of-spec)
+Previous tranches: CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026); SA0 (completed Apr 23, 2026); SA2/SA3/SA4 + alarm UX fixes (completed out-of-spec Apr 28–30, 2026)
+
+## Session Delta (2026-04-30, CD9 subpass — Media Card Dropdown Bug Fixes + Keyboard A11y Policy)
+
+- `CURRENT STATE`
+  - `CD9` remains the active root tranche
+  - Two latent bug fixes landed in `tunet_media_card.js`; live deployed at `?v=build_20260430_161421Z`
+  - New suite-wide standing rule recorded: keyboard accessibility is not a Tunet card requirement (chosen by user, scope option (c)). The CD9 §Required-work items for volume-slider and group-toggle keyboard semantics are deferred-by-policy, not omitted.
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_media_card.js`
+    - removed dead recursive call inside `_getGroupedCount()` (was at line 870; would infinite-loop when `sensor.sonos_active_group_coordinator.attributes.group_members` was empty)
+    - added `const groupedCount = this._getGroupedCount();` declaration at the top of `_buildSpeakerMenu()` so the coordinator-row `speaker_group` icon swap and "{N} grouped" subtitle (lines 1102 and 1115 in source) actually evaluate correctly when 2+ speakers are grouped
+  - `Dashboard/Tunet/Cards/v3/tests/audio_cd9_bespoke.test.js`
+    - 4 new regression tests covering both bugs and their downstream rendering
+  - `Dashboard/Tunet/Docs/cards_reference.md` §10 + Whole-Home Usage Contract row updated: keyboard accessibility recorded as out-of-scope per suite policy; latent dropdown-render bugs noted as closed
+  - `Dashboard/Tunet/Docs/visual_defect_ledger.md` CD9 backlog + §10 detailed entry updated to match
+- `VALIDATION`
+  - `node --check` passed on changed JS files
+  - `npm test -- audio_cd9_bespoke.test.js` → `23/23` (was 19, +4 new)
+  - full `npm test` → `659/659`
+  - `npm run tunet:build` passed (15 cards)
+  - `npm run tunet:deploy:lab` passed; live resources synced to `?v=build_20260430_161421Z`
+  - Authenticated bundle fetch confirms both fixes in the deployed JS at deployed lines 1789 and 1995
+  - Browser screenshot smoke skipped — Playwright MCP session was locked by another process. Live UI signoff (including bundled speaker-grid phone column fallback signoff from earlier) deferred to a follow-up when the browser frees up.
+- `RESULT`
+  - dropdown render path is now correct for any group-size scenario; the previously-silent failure of the coordinator-row `speaker_group` icon swap and "{N} grouped" subtitle is fixed
+  - CD9 remains active; remaining work narrows to:
+    - speaker-grid phone column fallback live signoff (already-deployed code; visual review only)
+    - sonos explicit long-name composition pressure (low priority, requires policy decision before runtime work)
+  - the active execution plan at `~/.claude/plans/flickering-herding-wolf.md` should be updated to reflect the keyboard-a11y policy when next opened
+
+## Session Delta (2026-04-30, SA-series live + alarm UX fixes — out-of-spec)
+
+- `CURRENT STATE`
+  - SA0–SA4 deployed live to HA on 2026-04-28; iterative alarm UX fixes through 2026-04-30 (single context-aware All On/All Off toggle with optimistic UI flip, Tunet-styled inlined BrowserMod edit popup with reactive `tile` cards, parallel `sonos.update_alarm` + verify-and-retry replacing buggy bulk `target.entity_id: [list]`).
+  - All four canonical alarms (`switch.sonos_alarm_{bedroom,bath,bedroom_weekend,bath_weekend}`) toggle reliably from the dashboard.
+  - **Done outside the active CD program** — root Tunet authority remained on **CD9** throughout. No CD tranche advanced.
+  - Final live state preserved per user request: `bedroom=on`, `bath=off`, `bedroom_weekend=off`, `bath_weekend=off`, `enabled_count=1`.
+- `NEXT TUNET SESSION`
+  - Resume CD9 (or whichever CD tranche is current per `~/.claude/plans/flickering-herding-wolf.md`).
+  - Do not treat the SA-series as a precedent for further out-of-tranche work.
+- `REFERENCE`
+  - File-by-file inventory + key defect-fix detail in `FIX_LEDGER.md` 2026-04-30 Session Delta.
+  - SA-plan `~/.claude/plans/tunet-sonos-alarm-manage.md` is marked complete + out-of-spec at the top.
+  - Tranche specs `Dashboard/Tunet/Docs/tranches/SA{0,2,3,4}_*.md` carry the same out-of-spec marker.
+
+## Session Delta (2026-04-23, SA0 closure — Sonos Alarm Backend Hygiene + Governance)
+
+- `CURRENT STATE`
+  - SA-series plan active at `~/.claude/plans/tunet-sonos-alarm-manage.md` as a sibling to the root CD program.
+  - SA0 closed in this session: alarm backend hygienic, governance synced, AGENTS.md §3 alarm-edit exception on record.
+  - Canonical alarm set locked per live MCP audit: `switch.sonos_alarm_{bedroom,bath,bedroom_weekend,bath_weekend}` (Sonos alarm_ids 42/37/155/823). Only `_bedroom` currently enabled (05:30 WEEKDAYS).
+  - Phantom entities `switch.sonos_alarm_{kitchen,living_room,office}` cleaned from automation triggers + template sensors.
+  - Quick-action scripts now target canonical entities (D3).
+  - `script.sonos_adjust_edit_time` regression-verified live (+5 min advances `input_datetime.sonos_alarm_edit_time` correctly).
+- `IMPLEMENTATION`
+  - Files touched in SA0: `packages/sonos_package.yaml` (sensors deleted, scripts rewritten, trigger cleaned), `Dashboard/Tunet/AGENTS.md` (§3 exception), `Dashboard/Tunet/Docs/nav_popup_ux_direction.md` (SA note), `Dashboard/Tunet/Docs/visual_defect_ledger.md` (CD12 alarm entry updated), `Dashboard/Tunet/Docs/sonos_alarm_popup_reference.md` (target architecture section added).
+  - Legacy Bubble Card popup YAMLs (`Dashboard/cards/sonos_alarms_popup.yaml`, `Dashboard/cards/sonos_alarm_edit_popup.yaml`, `Dashboard/sonos_alarm_edit_popup.yaml`, `Dashboard/sonos_alarm_popup.yaml`) left intact — retirement scheduled for SA4.
+  - Live deploy required: `HA PACKAGE RELOAD` on sonos_package.yaml (automation + script + template reload). Not yet applied to live HA; deploy is a separate step via the runbook.
+- `NEXT STEPS`
+  - SA2: build `Dashboard/Tunet/Cards/v3/tunet_alarm_card.js` (vanilla HTMLElement + shadow DOM, `tunet_base.js` token consumer, hold opens BrowserMod popup via script).
+  - Tokens: splice `TOKENS` CSS string; consume `--_tunet-tile-*` via `var(..., fallback)` pattern (mirror `tunet_light_tile.js:64,99`). Do NOT opt into the superseded profile resolver.
+  - Default card `alarms:` list: bedroom + bath weekday entities. Weekend variants are opt-in via YAML.
+  - Grid options: `{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2 }` matching sensor/speaker_grid/status.
+  - See `~/.claude/plans/tunet-sonos-alarm-manage.md` §SA2 for full exact-changes list.
 
 ## Session Delta (2026-04-06, TI2 activation — Branch-Local Inbox UI Exception)
 
@@ -2310,3 +2379,23 @@ Use:
 - `RESULT`
   - no inbox UI tranche is currently active
   - the next inbox promotion target is backend-side `TI3`, not more Tunet surface work
+
+## Session Delta (2026-04-30, post-CD5 — Scroll-container hover-clip closed across 4 cards)
+
+- `CURRENT STATE`
+  - root Tunet authority remains `CD9` (Media Bespoke Pass); not advanced
+  - actions / scenes / lighting / sonos cards now satisfy a new surface-composition contract: scroll containers (overflow-x:auto/scroll) must give vertical lift-clear breathing room (`padding-block ≥ 0.5em` with matching negative `margin-block`) so hover-lift shadows are not silently clipped by the spec-coerced `overflow-y: auto`
+  - new contract test in `Cards/v3/tests/interaction_source_contract.test.js` enforces the rule across all CD2 cards
+  - speaker_grid was inspected and has no scroll containers; not modified
+- `IMPLEMENTATION`
+  - applied `padding-block: 0.5em; margin-block: -0.5em` to scenes `.scene-row`, lighting `:host([layout="scroll"]) .light-grid`, sonos `.speakers-scroll`; matching wrap-variant zeroes where the variant uses `overflow-x: visible`
+  - lighting `[use-profiles]` `padding-top` raised to `0.5em` to keep cascade consistent
+  - guardrail line added to `Dashboard/Tunet/Cards/v3/CLAUDE.md`
+  - closure entry added to `visual_defect_ledger.md` §1 actions-card
+  - candidate spec-layer extraction plan filed at `Dashboard/Tunet/Docs/plans/cross_card_spec_layer_extraction_plan.md` (status: DEFERRED)
+  - `npm run tunet:build` + `npm run tunet:deploy:lab` deployed lab to `?v=build_20260430_161315Z`
+- `RESULT`
+  - hover-lift clipping closed on the four cards with scrolling lift-bearing strips
+  - test suite `655/655`
+  - `CD9` is the only active tranche; the new plan does NOT activate execution
+  - next session may resume `CD9` Media Bespoke Pass work or pick up the deferred CC1–CC4 plan if explicitly authorized

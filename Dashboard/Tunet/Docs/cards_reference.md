@@ -66,7 +66,7 @@ Across `tunet-media-card`, `tunet-sonos-card`, and `tunet-speaker-grid-card`:
 - icon tap/hold opens more-info
 - group badge tap toggles group membership
 
-Current state: `tunet-sonos-card` and `tunet-speaker-grid-card` now align for visible tiles; `tunet-media-card` still keeps a semantics/accessibility tail because speaker targeting lives in dropdown rows rather than visible tiles.
+Current state: `tunet-sonos-card` and `tunet-speaker-grid-card` now align for visible tiles. The remaining `tunet-media-card` semantics-tail (group toggle is pointer-first; volume slider is pointer-only) is intentionally not pursued — keyboard accessibility is not a Tunet card requirement (suite-wide rule, 2026-04-30).
 
 ---
 
@@ -169,10 +169,11 @@ This section is the composition contract for later whole-home dashboard work. It
 | `tunet-weather-card` | information | weather companion/info surface | fixed daily/hourly variants | toggle-heavy auto-control variants as the default phone composition | CD8 |
 | `tunet-sensor-card` | information | environment/status rows and glanceable metrics | concise labeled rows with controlled sensor counts | unlabeled or alias-ambiguous fixture contracts | CD8 |
 | `tunet-status-card` | information | status/summary matrix where explicitly needed | 2-column phone-safe density unless labels are substantially shortened | 4-column phone summary matrix at `390px` | CD11 / G3S lock |
-| `tunet-media-card` | media control | primary transport/media state surface | compact/default labels preserve room identity while selected-target volume stays obvious | pointer-first group badge semantics and slider accessibility gap | CD9 |
+| `tunet-media-card` | media control | primary transport/media state surface | compact/default labels preserve room identity while selected-target volume stays obvious | (none — keyboard a11y intentionally out of scope per suite policy) | CD9 |
 | `tunet-sonos-card` | media control | alternate inline-speaker Sonos control surface | default/autodiscovered source + speaker path now width-safe; visible tiles align with suite speaker-tile semantics | explicit long-name authoring pressure on phone | CD9 |
 | `tunet-speaker-grid-card` | media control | dedicated speaker-management grid | compact 2-column speaker grid with suite speaker-tile semantics | 4-column standard/default on phone | CD9 |
 | `tunet-nav-card` | chrome | persistent navigation chrome | bottom dock | desktop rail as a layout reference while offset/sidebar strategy is unstable | CD10 |
+| `tunet-alarm-card` | settings surface | Sonos alarm list + quick-actions (weekday/weekend/off/snooze); tap toggle, hold opens BrowserMod edit popup | default 2-tile bedroom+bath weekday list with quick-action strip | dense multi-alarm list (3+ tiles) on `390px` with labels longer than ~18 chars | SA2 (SA-series sibling to CD12) |
 
 Locked decisions:
 - `tunet-rooms-card` is the room overview/navigation surface, not the canonical detailed room-light surface.
@@ -1348,7 +1349,7 @@ Sonos media player with album art, transport controls, volume slider, speaker dr
 ### Speaker Dropdown
 
 - Tap speaker row → selects the active target (changes display and volume target, doesn't affect grouping)
-- Tap check icon → calls `sonos_toggle_group_membership` (optimistic UI: check toggles immediately). This control still needs semantic hardening in CD9.
+- Tap check icon → calls `sonos_toggle_group_membership` (optimistic UI: check toggles immediately). Pointer-only by design — keyboard accessibility is not a Tunet card requirement (suite-wide rule, 2026-04-30).
 - Group All / Ungroup All buttons at bottom (call `sonos_group_all_to_playing` / `sonos_ungroup_all` scripts)
 - Default compact labels now preserve room identity aggressively (`Living`, `Dining`, `Kitchen`, `Bed`, etc.), even when the authored label is long. Full names should live in metadata/title text, not the primary phone label lane.
 
@@ -1378,7 +1379,7 @@ Static. Full section width. Should account for show_progress (adds height).
   - Header info tile tap opens more-info
   - Album art tap opens more-info
   - Speaker dropdown row tap selects the active target
-  - Group check tap toggles membership (still pointer-first and not yet a finished semantics contract)
+  - Group check tap toggles membership (pointer-only by suite policy; keyboard a11y intentionally not pursued)
   - Volume drag operates on slider control (not hold-gated tile drag)
 - **Target contract** (CD9): speaker-tile interactions converge with the suite speaker-tile model (tap select, hold-drag volume, icon more-info, badge group toggle).
 - **Group volume policy**: selected-target volume control during drag. Selecting the grouped coordinator routes proportional group volume; selecting any other speaker routes speaker-only volume.
@@ -1425,9 +1426,9 @@ Best-in-class naming rule: compact speaker naming must not erase room identity.
 
 - `speakers[]` editor support is implemented (advanced object+fields+multiple); keep schema tests as regression guard
 - Album art opens more-info for transport target entity (verified in code at L885)
-- Volume slider needs `role="slider"` + arrow key handlers (deferred to CD9 — media bespoke)
+- Volume slider is pointer-only by suite policy — keyboard accessibility is not a Tunet card requirement (2026-04-30)
 - Default compact naming now uses a shared room-preserving compaction rule; explicit speaker names no longer bypass it.
-- Remaining CD9 issues are semantics/accessibility, not a broad coherent-build visual failure
+- `Closed [2026-04-30]`: latent infinite-recursion in `_getGroupedCount()` (dead recursive call removed) and undeclared `groupedCount` reference in `_buildSpeakerMenu` (now declared once at top of method). Latent before fix because live `sensor.sonos_active_group_coordinator.attributes.group_members` is non-empty in normal operation, but the speaker_group icon swap and "{N} grouped" subtitle on the coordinator dropdown row were silently broken whenever 2+ speakers were grouped.
 
 ---
 
@@ -1686,3 +1687,81 @@ Advanced: `items` (object — custom nav items)
 ### Reference Implementation Status
 
 All fields editable. Native `<button>` elements with `aria-label`. `<nav>` landmark. Uses shared tokens (`--press-scale`, `--motion-ui`, `--ease-standard`, `--focus-ring-*`). Multi-property transitions. No `transition: all`. This remains the interaction/accessibility reference implementation, but desktop rail + HA sidebar coexistence and offset leakage are still open CD10 layout-validation issues.
+
+---
+
+## 14. tunet-alarm-card
+
+**Tranche**: SA2 (SA-series sibling to CD12). Added 2026-04-23 post-SA0 backend hygiene.
+
+### Purpose
+
+Sonos alarm settings surface: list the curated canonical alarms (bedroom, bath, optional weekend variants), let the user toggle them on/off with a tap, open the Browser Mod edit popup with a 400 ms hold, and expose quick-action scripts (Weekday / Weekend / All Off / Snooze) beneath the list. Sibling to the evening-alarm-check flow handled by `tunet-inbox` (TI4A); the two don't overlap.
+
+### Config Properties
+
+| Property | Type | Default | Editor | Notes |
+|---|---|---|---|---|
+| `title` | string | `Alarms` | text | Header title |
+| `show_quick_actions` | boolean | `true` | boolean | Render the 4-button quick-action strip |
+| `alarms` | array<Alarm> | — (required) | `object` + `fields` + `multiple: true` | One entry per surfaced alarm |
+
+**Per-alarm entry:**
+
+| Field | Type | Editor | Notes |
+|---|---|---|---|
+| `entity` | switch entity_id | entity selector (domain filter: `switch`) | Required. The Sonos alarm switch. |
+| `label` | string | text | Tile display name. Falls back to entity_id. |
+| `room` | enum | select: bedroom / bath / kitchen / living_room / dining_room / office | Drives accent color. Auto-inferred from entity_id or label if omitted. |
+
+### Editor
+
+Level 2 per cards_reference Editor Mechanism table — `object` + `fields` + `multiple: true`. No YAML textbox. All per-alarm fields are first-class in the visual editor.
+
+### Stub Config
+
+```yaml
+type: custom:tunet-alarm-card
+title: Alarms
+show_quick_actions: true
+alarms:
+  - entity: switch.sonos_alarm_bedroom
+    label: Bedroom Weekdays
+    room: bedroom
+  - entity: switch.sonos_alarm_bath
+    label: Bath Weekdays
+    room: bath
+```
+
+### Grid Options
+
+`getGridOptions()` → `{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 }`. Matches sensor / speaker_grid / status list-like cards. Default is full-section-width; half-width placement is a YAML override (`grid_options: { columns: 6 }`).
+
+### Interaction
+
+Maps to Interaction Model Contract §3 Room Tiles with an explicit `hold_action`:
+
+- **Tap**: `hass.callService('switch', 'toggle', { entity_id })` — flips the Sonos alarm switch.
+- **Hold (400 ms + haptic)**: `hass.callService('script', 'sonos_load_alarm_for_edit', { alarm_entity })`. The script populates the `input_*` edit buffer *and* opens the Browser Mod popup (post-SA3: `popup_card_id: tunet-alarm-edit`; pre-SA3: still `browser_mod.navigate('#edit-alarm')` to the legacy Bubble Card hash popup). The card does not dispatch `fire-dom-event` — popup-open ownership lives in the script per the AGENTS.md §3 alarm-edit-popup exception.
+- **No drag** — alarms aren't continuous-value tiles; time editing happens in the popup.
+- **Keyboard**: Enter / Space = toggle; `E` = open edit. Row has `role="button"` + `tabindex="0"`.
+- **Quick-action strip**: four buttons map to `sonos_enable_weekday_alarms`, `sonos_enable_weekend_alarms`, `sonos_disable_all_alarms`, `sonos_snooze_next_alarm` (all canonical post-SA0-D3).
+
+### Sections Safety
+
+Follows the CD4 card-level Sections contract: `rows: 'auto'`, no forced viewport math, `min_rows: 2` as a floor so a short list doesn't collapse to sub-row height. Quick-action strip wraps on phone widths (`flex-wrap: wrap`). Em-anchor set to `16px` at `:host` level (D21-RESOLVED) so all em-based sizing is consistent.
+
+### Editor Architecture
+
+**Authoring model**: `{ title, show_quick_actions, alarms: [{entity, label, room}] }`.
+
+**Synthesizer**: minimal — accent color is inferred from `room` (or from entity_id / label if room omitted) via the `ROOM_ACCENT` map; recurrence display is derived from the `recurrence` attribute on the switch via the `humanRecurrence()` helper.
+
+**Runtime model**: same shape as authoring; `_config._needsConfig` flag is set when `alarms` is empty/missing, at which point `renderConfigPlaceholder` takes over the shadow root.
+
+### Known Limitations
+
+- Recurrence editing is deferred per LD3 — popup reads `sensor.sonos_edit_recurrence_display` read-only. "Change the weekday schedule" stays a HA-native more-info flow.
+- Hold haptic is best-effort via `navigator.vibrate(10)`; falls back silently on desktop and on browsers without the API.
+- The card does not auto-discover alarms — the `alarms:` list is hand-curated. This is intentional given LD1 (29-alarm sprawl vs. 2–4 first-class canonical alarms).
+- The AGENTS.md §3 alarm-edit-popup exception means this card's hold does not go through `fire-dom-event`. The exception is scoped to this card + the alarm-edit popup only.

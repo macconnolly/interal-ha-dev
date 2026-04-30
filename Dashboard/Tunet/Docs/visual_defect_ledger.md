@@ -27,7 +27,7 @@ When the normalized section and the appendix differ, the normalized section wins
 | `tunet-weather-card` | information companion | card-level runtime healthy; phone-density redesign closed on YAML rehab evidence | CD8 |
 | `tunet-sensor-card` | information rows | visually healthy; raw-ID defect closed; contract clarity remains | CD8 |
 | `tunet-status-card` | locked summary/info surface | real phone density + dropdown-quality defects remain | CD11 |
-| `tunet-media-card` | primary media transport surface | visually healthy; selected-target routing adopted; semantics/accessibility remain | CD9 |
+| `tunet-media-card` | primary media transport surface | visually healthy; selected-target routing adopted; keyboard a11y intentionally out of scope per suite policy (2026-04-30); latent dropdown-render bugs fixed 2026-04-30 | CD9 |
 | `tunet-sonos-card` | inline-speaker Sonos surface | default width/dropdown path corrected; visible speaker-tile semantics aligned; explicit-name pressure remains | CD9 |
 | `tunet-speaker-grid-card` | dedicated speaker-management grid | visible speaker-tile semantics aligned; dense/default layouts still fail while compact 2-col remains viable | CD9 |
 | `tunet-nav-card` | chrome | desktop/sidebar offset conflict remains | CD10 |
@@ -41,7 +41,7 @@ When the normalized section and the appendix differ, the normalized section wins
   - `tunet-light-tile`: keep atomic-detail role explicit; no active runtime defect
   - `tunet-lighting-card`: family parity is closed; only a low-priority scroll transport/centering quirk remains outside the closed parity gate
 - `CD9`
-  - `tunet-media-card`: pointer-first group-membership semantics + slider accessibility; selected-target routing and compact naming are now aligned
+  - `tunet-media-card`: closed 2026-04-30 — selected-target routing and compact naming were aligned earlier in CD9; latent dropdown-render bugs (`_getGroupedCount` infinite recursion + undeclared `groupedCount` in `_buildSpeakerMenu`) fixed in this pass; keyboard accessibility for group toggle and volume slider intentionally out of scope per suite policy
   - `tunet-sonos-card`: explicit long-name phone pressure; media-style dropdown convergence and visible speaker-tile semantics are now landed
   - `tunet-speaker-grid-card`: dense/default layout failure, not the whole family
 - `CD10`
@@ -57,7 +57,7 @@ When the normalized section and the appendix differ, the normalized section wins
 - Cross-cutting doc debt remains: icon-field editor consistency, actions editor wording, scenes `allow_wrap` default wording, sensor naming-contract clarity, status dropdown-confidence wording, and nav layout-reference overclaim.
 - Cross-cutting interaction follow-up remains open: on mobile, grabbing cards while scrolling can still produce pressed feedback on card surfaces. Treat this as shared interaction debt, not a CD7-only rooms defect.
 - Cross-cutting editor follow-up remains open: icon-bearing editor/config fields should use a dropdown or validated icon picker so invalid tokens do not render raw fallback text like `WEATHER_SUNSET_DOWN`.
-- `Implementation backlog [CD12]`: alarm settings page — existing popup system works (2 alarms per room, weekday/weekend, only 2-3 alarms actively used). All backend exists in `packages/sonos_package.yaml`: helper entities, edit scripts, 7 automations, template sensors. Working YAML reference at `Dashboard/Tunet/Docs/sonos_alarm_popup_reference.md`. Integration into Tunet surface composition is the remaining work.
+- `Implementation backlog [CD12]`: alarm settings page — **ACTIVE under SA-series tranche** (`~/.claude/plans/tunet-sonos-alarm-manage.md`, sibling to CD12 surface assembly). SA0 closed 2026-04-23: phantom entity cleanup (kitchen/living_room/office removed from triggers + dead template sensors deleted), quick-action scripts rewritten to canonical entities (`switch.sonos_alarm_{bedroom,bath,bedroom_weekend,bath_weekend}`), AGENTS.md §3 alarm-edit exception recorded, nav_popup_ux_direction.md LD2 migration note recorded. Remaining: SA2 (Tunet alarm list card), SA3 (Browser Mod edit popup), SA4 (subview + chip + legacy popup retirement). LD3 recurrence editing deferred — surface resurfaces here if user requests later.
 - `Implementation backlog [CD12]`: notification response page needed — dynamic surface for reviewing notification context and taking action (snooze alarms, TV mode, OAL reset, etc.). Not a static settings page; a live action surface where the user can respond to system events. Requires investigation into: current notification automations/actions, actionable notification payloads, and how to surface decision-making controls dynamically. Scope TBD pending investigation.
 - `Open runtime defect`: OAL unified timer notification (`automation.oal_v14_unified_timer_notification`) appears broken — mode/zone expiring notifications not firing or not actionable. Needs investigation in `packages/oal_lighting_control_package.yaml` around line 5122. Related: if a user accidentally dismisses the mobile notification, there is currently no way to recover the context or take the action from the dashboard.
 
@@ -66,6 +66,7 @@ When the normalized section and the appendix differ, the normalized section wins
 - `Closed [CD5]`: doc contradiction resolved — cards_reference.md updated to reflect editor + yaml-compatible actions[].
 - `Closed [CD5]`: row/height contract normalized via layout helper driving getCardSize/getGridOptions with variant-aware min_columns/min_rows.
 - `Composition constraint`: “narrow utility row dropped into oversized sections” is a surface-composition note, not a card defect.
+- `Closed [post-CD5]` (2026-04-30): hover lift on chips was clipped vertically by `.actions-row { overflow-x: auto }` — CSS spec coerces `overflow-y` to `auto` whenever `overflow-x` is non-`visible`, and the lift shadow paints outside the resulting padding-box clip. Fix in `tunet_actions_card.js`: `padding-block: 0.5em; margin-block: -0.5em` on `.actions-row` (extends the clip-box without shifting layout); the `.actions-row.wrap` variant resets both to 0 because its `overflow-x: visible` keeps `overflow-y` visible natively. Lab verified at 1440×900; deployed at `?v=build_20260429_220654Z`. Recipe codified in `Cards/v3/CLAUDE.md` Guardrails and in the §Surface composition test in `Cards/v3/tests/interaction_source_contract.test.js`.
 
 **2. `tunet-scenes-card`**
 - `Closed [CD5]`: header confirmed semantic (role=”heading” aria-level=”3”); icon marked decorative (aria-hidden).
@@ -153,8 +154,8 @@ When the normalized section and the appendix differ, the normalized section wins
 - `Closed / stale`: the earlier broad visual-failure framing is superseded by the coherent-build correction; the card itself renders acceptably at `390px` in the current build.
 - `Closed [CD9 subpass]`: default compact naming now preserves room identity via the shared `compactSpeakerName()` strategy.
 - `Closed [CD9 subpass]`: volume routing now follows the selected target; grouped coordinator selection becomes the proportional group-volume target instead of forcing selected-speaker-only behavior.
-- `Open runtime defect [CD9]`: the group-membership control remains pointer-first and is not a completed semantics contract.
-- `Implementation backlog [CD9]`: remaining work is semantics/accessibility: pointer-first group badge behavior and slider keyboard semantics.
+- `Closed [CD9 2026-04-30]`: keyboard accessibility for group toggle and volume slider is intentionally not pursued. Keyboard accessibility is out of scope for the Tunet card suite per the standing rule recorded 2026-04-30. The CD9 §Required-work escape clause ("if deferred, record that deferral as a tranche decision, not an omission") applies.
+- `Closed [CD9 2026-04-30]`: latent rendering bugs fixed — `_getGroupedCount()` no longer recurses on its own return (dead `const groupedCount = this._getGroupedCount();` line removed); `_buildSpeakerMenu()` now declares `const groupedCount = this._getGroupedCount();` once at the top so the coordinator-row `speaker_group` icon swap and "{N} grouped" subtitle actually render when 2+ speakers are grouped (was silently broken — `undefined > 1` is always false). Live verification via fetched bundle at `?v=build_20260430_161421Z`.
 
 **11. `tunet-sonos-card`**
 - `Closed [CD9 subpass]`: the default/autodiscovered source selector now uses the healthier media-card dropdown shell and no longer presents the old broad phone/tablet width failure in rehab captures.

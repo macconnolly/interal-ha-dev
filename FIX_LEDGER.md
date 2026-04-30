@@ -4,11 +4,32 @@ Working branch: `tunet/inbox-integration`
 Last updated: 2026-04-30
 Scope: `/home/mac/HA/implementation_10`
 
-> **Out-of-spec side task — SA-series (recorded 2026-04-30):** SA0–SA4 + the alarm UX fixes (All On/All Off context-aware toggle, optimistic UI flip, Tunet-styled BrowserMod edit popup, parallel + verify-and-retry scripts) were deployed live but were completed **outside the active CD program**. Root Tunet authority remains CD9 — the SA-series did not consume any CD-tranche slot. It was a one-off concession for an immediate user need (live alarm UX defects) and is not a precedent for further out-of-tranche work.
+> **Out-of-spec side task — SA-series (recorded 2026-04-30):** SA0–SA4 + the alarm UX fixes (All On/All Off context-aware toggle, optimistic UI flip, Tunet-styled BrowserMod edit popup, parallel + verify-and-retry scripts) were deployed live but were completed **outside the active CD program**. The SA-series did not consume any CD-tranche slot. It was a one-off concession for an immediate user need (live alarm UX defects) and is not a precedent for further out-of-tranche work.
 
 Active execution plans:
-- `~/.claude/plans/flickering-herding-wolf.md` (root CD0–CD12 authority; current CD is CD9)
+- `~/.claude/plans/flickering-herding-wolf.md` (root CD0–CD12 authority; current CD is CD10)
 - `~/.claude/plans/tunet-sonos-alarm-manage.md` (SA-series, sibling to CD12 surface assembly; out-of-spec, complete + deployed 2026-04-30)
+
+## Session Delta (2026-04-30, CD9 closeout — Media Bespoke Pass complete; CD10 next)
+
+Change marker: `CD9` is now closed. Tranche pointer advances to **CD10 — Navigation Verify Pass**. The closure is anchored on today's live grouped-state Playwright verification of the media-card dropdown bug fixes (the only remaining acceptance gate not already satisfied by Apr 6 sub-passes or by the keyboard-a11y standing rule).
+
+- `CHOSEN INTERPRETATION`
+  - close CD9 on the strength of: (a) all seven acceptance criteria satisfied; (b) the keyboard-a11y items (#1 + #3) superseded by the suite-wide standing rule recorded earlier in this session; (c) acceptance #5 (live HA validation) verified end-to-end via real Sonos hardware grouped-state test; (d) the sonos long-name composition pressure preserved as authored-density tradeoff, not a runtime defect
+  - advance to CD10 (Navigation Verify Pass) per program order in `flickering-herding-wolf.md:167`
+- `LIVE-VERIFICATION EVIDENCE`
+  - `media_player.join(entity_id=living_room, group_members=[dining_room])` returned `success=true`; `sensor.sonos_active_group_coordinator` advanced to `grouped_count=2`, `group_members=["media_player.living_room","media_player.dining_room"]`
+  - Playwright MCP `browser_evaluate` against the rehab lab read the rendered media-card dropdown and returned: `coordinator=media_player.living_room`, `groupedCount=2`, coordinator row `{icon: "speaker_group", name: "Living", sub: "2 grouped", inGroup: true}` — exactly the bug-fix payoff. Before the fix, `groupedCount` was undeclared and the icon-swap + subtitle would not have rendered.
+  - `media_player.unjoin(entity_id=dining_room)` restored baseline; final `grouped_count=1` matches session-start
+  - rehab-lab screenshot pass on the post-fix bundle (`/tmp/tunet-playwright-review/2026-04-30T17-58-23-563Z/review-manifest.json`) covers all three CD9 cards at `390x844`, `768x1024`, `1024x1366`, `1440x900` in both light and dark mode
+- `RESULT`
+  - `tunet-media-card`, `tunet-sonos-card`, `tunet-speaker-grid-card` all meet the post-policy CD9 acceptance bar
+  - dropdown rendering for any group-size scenario is now correct in the deployed bundle (`?v=build_20260430_161421Z`)
+  - sonos long-name authoring pressure is the only remaining open item under CD9 ownership; recorded as composition-level/authored-density tradeoff in `cards_reference.md` §11 — does not block closure
+- `NEXT TRANCHE — CD10 NAVIGATION VERIFY PASS`
+  - file scope: `Dashboard/Tunet/Cards/v3/tunet_nav_card.js` + `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+  - rule: verify-only; no new code unless a real failure is reproduced
+  - acceptance per `flickering-herding-wolf.md:1257-1263`: active-route highlighting correct across overview/rooms/media/room subviews; survives direct nav + in-app route changes + browser back/forward; safe-area + footer placement correct; no global style/offset leakage outside Tunet; `tunet_nav_card.js` retains accessibility-reference status (already-shipped CD3 a11y stays per the suite policy); `editor-complete` policy retained; `cards_reference.md` entry complete
 
 ## Session Delta (2026-04-30, CD9 subpass — Media Card Dropdown Bug Fixes + Keyboard A11y Policy)
 

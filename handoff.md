@@ -5,13 +5,34 @@ Intended reader: next Claude Code session
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 > **Out-of-spec side task — SA-series (recorded 2026-04-30):**
-> The Sonos alarm edit/manage work (SA0–SA4 + the All On/All Off optimistic-UI fix and Tunet-styled BrowserMod edit popup) was completed and deployed live, but it was **an isolated side task outside the active CD program**. Root Tunet authority and tranche order are unchanged — **CD9 — Media Bespoke Pass** remains current. The SA-series was driven by an immediate user need (alarm UX defects on the live dashboard) and is not a precedent for further out-of-tranche work. Future Tunet sessions resume CD9 / CD10–CD12 per `~/.claude/plans/flickering-herding-wolf.md`; the SA-series is complete and parked.
+> The Sonos alarm edit/manage work (SA0–SA4 + the All On/All Off optimistic-UI fix and Tunet-styled BrowserMod edit popup) was completed and deployed live, but it was **an isolated side task outside the active CD program**. Root Tunet authority and tranche order are unchanged — the active tranche advanced to **CD10 — Navigation Verify Pass** as of 2026-04-30 CD9 closeout. The SA-series was driven by an immediate user need (alarm UX defects on the live dashboard) and is not a precedent for further out-of-tranche work. Future Tunet sessions resume CD10 / CD11 / CD12 per `~/.claude/plans/flickering-herding-wolf.md`; the SA-series is complete and parked.
 
 Active execution plans:
-- `~/.claude/plans/flickering-herding-wolf.md` (root CD0–CD12 authority; current CD is CD9)
+- `~/.claude/plans/flickering-herding-wolf.md` (root CD0–CD12 authority; current CD is CD10)
 - `~/.claude/plans/tunet-sonos-alarm-manage.md` (SA-series sibling to CD12 surface assembly — out-of-spec, complete + deployed)
-Current tranche: **CD9** (root) + **SA0–SA4 complete + deployed live** (sibling SA-series, out-of-spec)
-Previous tranches: CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026); SA0 (completed Apr 23, 2026); SA2/SA3/SA4 + alarm UX fixes (completed out-of-spec Apr 28–30, 2026)
+Current tranche: **CD10 — Navigation Verify Pass** (root) + **SA0–SA4 complete + deployed live** (sibling SA-series, out-of-spec)
+Previous tranches: CD9 (completed 2026-04-30; selected-target audio routing, media/sonos dropdown convergence, visible speaker-tile semantics, speaker-grid phone column fallback, dropdown-render bug fixes, keyboard a11y recorded as suite-wide deferred-by-policy), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026); SA0 (completed Apr 23, 2026); SA2/SA3/SA4 + alarm UX fixes (completed out-of-spec Apr 28–30, 2026)
+
+## Session Delta (2026-04-30, CD9 closeout — Media Bespoke Pass complete; CD10 next)
+
+- `CURRENT STATE`
+  - `CD9` is now closed. Active tranche advances to **CD10 — Navigation Verify Pass**.
+  - All seven CD9 acceptance criteria satisfied. Items 1 and 3 superseded by the suite-wide keyboard-a11y standing rule (`flickering-herding-wolf.md` §2 item 9). Items 2, 4, 6, 7 verified via doc updates and source inspection. Item 5 (live HA validation) verified end-to-end this session.
+  - Live media-card bundle deployed at `?v=build_20260430_161421Z`; both dropdown-render bug fixes confirmed in deployed JS.
+- `LIVE-VERIFICATION TRACE (CD9 acceptance #5)`
+  - joined `media_player.dining_room` to `media_player.living_room` via `media_player.join` — `sensor.sonos_active_group_coordinator.attributes.grouped_count` advanced 1 → 2 with `group_members=["media_player.living_room","media_player.dining_room"]`
+  - opened the media card dropdown via Playwright MCP `evaluate` against the live rehab lab; coordinator row rendered `icon=speaker_group`, `sub="2 grouped"`, `inGroup=true` — exactly the bug-fix payoff path
+  - dining row rendered correctly with `inGroup=true`; non-grouped rows (Kitchen, Bath, Bed) rendered with default `speaker` icon and per-state subtitles
+  - unjoined `media_player.dining_room` to restore baseline; `grouped_count` returned to `1`, identical to session-start
+  - rehab-lab screenshot pass at `390x844`, `768x1024`, `1024x1366`, `1440x900` in both light and dark mode captured against the post-fix bundle: `/tmp/tunet-playwright-review/2026-04-30T17-58-23-563Z/review-manifest.json`
+- `OPEN BACKLOG`
+  - sonos explicit long-name authoring pressure on phone widths — recorded as composition-level/authored-density tradeoff in `cards_reference.md` §11; not a runtime defect, does not block CD9 closure
+- `NEXT TRANCHE — CD10 NAVIGATION VERIFY PASS`
+  - scope per `flickering-herding-wolf.md:1227`: verify `tunet_nav_card.js` active-route highlighting across overview / rooms / media / room subviews; verify state survives direct navigation, in-app routes, browser back/forward; verify safe-area + footer placement on supported surfaces; confirm no global style/offset leakage outside Tunet; verify `getConfigForm()` in HA editor flow; complete `cards_reference.md` entry
+  - explicit rule: no new code is added unless a real failure is reproduced (CD10 is verify-only by design)
+  - file scope: `Dashboard/Tunet/Cards/v3/tunet_nav_card.js` and `Dashboard/Tunet/tunet-card-rehab-lab.yaml` only
+- `REMINDER FOR NEXT SESSION`
+  - the suite-wide keyboard-a11y standing rule (recorded `~/.claude/plans/flickering-herding-wolf.md` §2 item 9 and `Dashboard/Tunet/Docs/cards_reference.md`) is now enforced for any future Tunet card work. Existing CD3 `bindButtonActivation` adoption and already-shipped accessibility on climate/light_tile stays in place — do not rip out as backwards-compat cleanup.
 
 ## Session Delta (2026-04-30, CD9 subpass — Media Card Dropdown Bug Fixes + Keyboard A11y Policy)
 

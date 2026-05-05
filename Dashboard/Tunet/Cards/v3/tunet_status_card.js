@@ -14,7 +14,7 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.8.0';
+const CARD_VERSION = '3.9.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -884,9 +884,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     font-size: 0.8375em;
     max-height: 2.35em;
   }
-  .tile-val.is-long {
-    font-size: var(--_tunet-status-long-font, 0.8125em);
-  }
+  /* T18 typography uniformity: .tile-val.is-long no longer overrides font-size at the
+     base layer — long-value auto-shrink is removed in favor of one uniform value size
+     per variant. The class is preserved as a hook in case future layouts need a
+     long-value-specific behavior, but it must not change typography. */
   :host(:not([use-profiles])[tile-size="compact"]) .tile-val.is-long {
     font-size: 0.8em;
   }
@@ -1161,12 +1162,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     line-height: 1.02;
   }
   :host([layout-variant="home_summary"]) .tile-val.is-text {
-    font-size: var(--_tunet-status-text-font);
     max-height: 1.16em;
     -webkit-line-clamp: 1;
-  }
-  :host([layout-variant="home_summary"]) .tile-val.is-long {
-    font-size: var(--_tunet-status-long-font);
   }
   :host([layout-variant="home_summary"]) .tile-label {
     font-size: var(--_tunet-status-label-font);
@@ -1265,6 +1262,14 @@ ${CARD_SURFACE_GLASS_STROKE}
     gap: var(--_tunet-row-gap, 0.75em);
     overflow-x: auto;
     overflow-y: visible;
+    /* T15 hover-clip recipe (claude-mem #11050/#11052/#11103): overflow-x: auto coerces
+       overflow-y to auto per CSS spec, which clips hovered tile box-shadows vertically.
+       padding-block extends the clip-box to accommodate the lift; the counter
+       margin-block keeps the layout footprint identical so the row aligns with sibling
+       cards. The mobile @media (max-width: 47.9375em) rule resets these to 0 because
+       overflow-x there is visible — no vertical clip to compensate for. */
+    padding-block: 0.5em;
+    margin-block: -0.5em;
     padding-bottom: 0.125em;
     scrollbar-width: none;
   }
@@ -1336,6 +1341,10 @@ ${CARD_SURFACE_GLASS_STROKE}
       overflow-x: visible;
       overflow-y: visible;
       gap: 0.5em;
+      /* T15: overflow-x is visible here, so the hover-clip compensation isn't needed.
+         Reset both to 0 so the wrapped grid aligns flush with neighboring cards. */
+      padding-block: 0;
+      margin-block: 0;
     }
     :host([layout-variant="room_row"]) .tile {
       flex: 1 1 6em;
@@ -1398,7 +1407,6 @@ ${CARD_SURFACE_GLASS_STROKE}
     line-height: 1;
   }
   :host([layout-variant="info_only"]) .tile-val.is-text {
-    font-size: var(--_tunet-status-text-font);
     max-height: 2.15em;
     line-height: 1.04;
   }
@@ -1590,15 +1598,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     :host([layout-variant="custom"]) .tile-val.is-text,
     :host([layout-variant="alarms"]) .tile-val.is-text,
     :host([layout-variant="info_only"]) .tile-val.is-text {
-      font-size: var(--_tunet-status-text-font);
       line-height: 1.04;
       max-height: 2.12em;
-    }
-    :host([layout-variant="home_detail"]) .tile-val.is-long,
-    :host([layout-variant="custom"]) .tile-val.is-long,
-    :host([layout-variant="alarms"]) .tile-val.is-long,
-    :host([layout-variant="info_only"]) .tile-val.is-long {
-      font-size: var(--_tunet-status-long-font);
     }
     :host([layout-variant="home_detail"]) .tile-label,
     :host([layout-variant="custom"]) .tile-label,

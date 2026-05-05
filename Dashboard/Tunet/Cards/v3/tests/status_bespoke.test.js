@@ -442,7 +442,12 @@ describe('Status: home_summary mode contract', () => {
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s*\{[^}]*--tile-row-h:\s*5\.375em;[^}]*--_tunet-status-icon-box:\s*2\.5em;[^}]*--_tunet-status-value-font:\s*1\.15625em;[^}]*--_tunet-status-text-font:\s*1\.0625em;[^}]*--_tunet-status-long-font:\s*0\.9375em;[^}]*--_tunet-status-label-font:\s*0\.8125em;[^}]*--_tunet-status-dropdown-font:\s*1\.0625em;/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile\s*\{[^}]*padding:\s*0\.6875em 0\.5625em 0\.5em;[^}]*gap:\s*0\.15625em;/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-val\s*\{[^}]*font-size:\s*var\(--_tunet-status-value-font\);[^}]*line-height:\s*1\.02;/s);
-    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-val\.is-text\s*\{[^}]*font-size:\s*var\(--_tunet-status-text-font\);[^}]*-webkit-line-clamp:\s*1;/s);
+    // T18 typography uniformity contract: .tile-val.is-text in home_summary preserves
+    // line-clamp/max-height for wrapping behavior but DOES NOT override font-size —
+    // text-shaped values must render at the same size as numeric ones so the value column
+    // reads as one component family. (Asserts the absence of `font-size:` between the
+    // selector and the closing brace via lookahead.)
+    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-val\.is-text\s*\{(?:(?!font-size:)[^}])*-webkit-line-clamp:\s*1;(?:(?!font-size:)[^}])*\}/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-label\s*\{[^}]*font-size:\s*var\(--_tunet-status-label-font\);[^}]*line-height:\s*1\.04;/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-dd-val\s*\{[^}]*justify-content:\s*center;[^}]*text-align:\s*center;[^}]*gap:\s*0;[^}]*font-size:\s*var\(--_tunet-status-dropdown-font\);/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-dd-val\s+\.dd-text\s*\{[^}]*text-align:\s*center;[^}]*width:\s*100%;/s);
@@ -682,14 +687,21 @@ describe('Status: room_row mode contract', () => {
 
     const css = readCardCSS();
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*nowrap;[^}]*overflow-x:\s*auto;[^}]*scrollbar-width:\s*none;/s);
+    // T15: room_row .grid uses overflow-x: auto, which CSS spec coerces overflow-y to
+    // auto, clipping hovered tile box-shadows vertically. The fix recipe (claude-mem
+    // #11050/#11052/#11103) extends the clip-box with padding-block: 0.5em and counters
+    // the layout shift with margin-block: -0.5em on the same scroll container.
+    expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*padding-block:\s*0\.5em;[^}]*margin-block:\s*-0\.5em;/s);
     expect(css).toMatch(/\.hdr-title\s*\{[^}]*font-size:\s*var\(--_tunet-status-title-font,\s*1\.0625em\);/s);
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*0 0 10\.75em;[^}]*padding:\s*var\(--_tunet-row-pad-y,\s*0\.75em\)\s+max\(var\(--_tunet-row-pad-x,\s*0\.25em\),\s*1\.125em\)\s+var\(--_tunet-row-pad-y,\s*0\.75em\)\s+var\(--_tunet-row-pad-x,\s*0\.25em\);[^}]*flex-direction:\s*row;[^}]*align-items:\s*center;[^}]*justify-content:\s*flex-start;/s);
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile-label\s*\{[^}]*text-transform:\s*none;[^}]*text-align:\s*left;/s);
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile-val\s*\{[^}]*margin-left:\s*auto;[^}]*text-align:\s*right;/s);
     // X3: at viewport ≤ 47.9375em (≈ 767px) the row variant switches from
     // horizontal scroll to wrapped vertical-stack tiles so 3-4 fit per row at
-    // 390px without the overflow-x scroll that hid tiles.
-    expect(css).toMatch(/@media \(max-width:\s*47\.9375em\)\s*\{[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*flex-wrap:\s*wrap;[^}]*overflow-x:\s*visible;[^}]*\}[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*1 1 6em;[^}]*min-width:\s*6em;[^}]*flex-direction:\s*column;[^}]*align-items:\s*center;/s);
+    // 390px without the overflow-x scroll that hid tiles. T15: the mobile rule also
+    // resets the hover-clip padding-block/margin-block to 0 because overflow-x: visible
+    // means overflow-y is also visible — no vertical clip to compensate for.
+    expect(css).toMatch(/@media \(max-width:\s*47\.9375em\)\s*\{[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*flex-wrap:\s*wrap;[^}]*overflow-x:\s*visible;[^}]*padding-block:\s*0;[^}]*margin-block:\s*0;[^}]*\}[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*1 1 6em;[^}]*min-width:\s*6em;[^}]*flex-direction:\s*column;[^}]*align-items:\s*center;/s);
   });
 
   it('uses compact labels, suppresses secondary and aux content, keeps actions, and collapses hidden tiles', () => {
@@ -1750,5 +1762,78 @@ describe('Status: CD11 cross-contract coverage anchors', () => {
     for (const label of ['UV Right Now', 'Forecast Heads Up', 'Now Playing', 'Bedroom Dry']) {
       expect(yaml).toContain(`label: ${label}`);
     }
+  });
+});
+
+// T18 — typography uniformity contract.
+// In every variant, every value tile renders at the same font-size regardless of whether
+// the value is text-shaped ("Home", "Adaptive", "Snowy") or numeric-shaped ("16/16",
+// "65°F", "+21%"). The .tile-val.is-text and .tile-val.is-long classes retain wrapping
+// behavior (line-clamp / max-height) but no longer override font-size — text-shaped
+// values used to render ~15% smaller than numerics, breaking the visual hierarchy.
+describe('Status: typography uniformity contract', () => {
+  const VARIANT_RECIPE_FIXTURES = {
+    home_summary: [
+      { recipe: 'home_presence', entity: 'person.mac_connolly' },
+      { recipe: 'lights_on' },
+      { recipe: 'mode_selector' },
+      { recipe: 'inside_temperature', entity: 'sensor.dining_room_temperature' },
+      { recipe: 'outside_temperature' },
+      { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
+    ],
+    home_detail: [
+      { recipe: 'home_presence', entity: 'person.mac_connolly' },
+      { recipe: 'lights_on' },
+      { recipe: 'boost_offset' },
+      { recipe: 'inside_temperature', entity: 'sensor.dining_room_temperature' },
+      { recipe: 'outside_temperature' },
+      { recipe: 'next_sun_event' },
+    ],
+    info_only: [
+      { recipe: 'inside_temperature', entity: 'sensor.dining_room_temperature' },
+      { recipe: 'outside_temperature' },
+      { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
+      { recipe: 'next_sun_event' },
+      { recipe: 'boost_offset' },
+    ],
+    alarms: [
+      { recipe: 'next_alarm', entity: 'sensor.sonos_next_alarm' },
+      { recipe: 'enabled_alarms', entity: 'sensor.sonos_enabled_alarm_count' },
+    ],
+  };
+
+  it.each(Object.keys(VARIANT_RECIPE_FIXTURES))(
+    '%s renders all tile values at one uniform font-size regardless of text-vs-numeric content',
+    (variant) => {
+      const el = createStatus({ layout_variant: variant, tiles: VARIANT_RECIPE_FIXTURES[variant] });
+      const valEls = [...el.shadowRoot.querySelectorAll('.tile-val')];
+      expect(valEls.length).toBeGreaterThan(0);
+      const sizes = new Set(valEls.map(v => getComputedStyle(v).fontSize));
+      // Every .tile-val should resolve to the same font-size — no .is-text or .is-long
+      // override should produce a smaller numeric value at the same hierarchical rank.
+      expect(sizes.size).toBe(1);
+    }
+  );
+
+  it('the variant CSS rules for .tile-val.is-text declare wrapping behavior but never override font-size', () => {
+    const css = readCardCSS();
+    // Each variant's `.tile-val.is-text` rule must contain wrapping properties
+    // (max-height + line-clamp) but must NOT contain a `font-size:` declaration.
+    // This is the implementation lock that backs the behavioral test above.
+    const variants = ['home_summary', 'home_detail', 'info_only', 'custom', 'alarms', 'room_row'];
+    for (const variant of variants) {
+      // Pull every rule for this selector pattern.
+      const ruleRegex = new RegExp(
+        `:host\\(\\[layout-variant="${variant}"\\]\\)\\s+\\.tile-val\\.is-text\\s*\\{([^}]*)\\}`,
+        'g'
+      );
+      let match;
+      while ((match = ruleRegex.exec(css)) !== null) {
+        expect(match[1]).not.toMatch(/font-size:/);
+      }
+    }
+    // The base .tile-val.is-long rule must also not declare a font-size override —
+    // long-value auto-shrink is no longer a typography hierarchy strategy.
+    expect(css).not.toMatch(/^\s*\.tile-val\.is-long\s*\{[^}]*font-size:/m);
   });
 });

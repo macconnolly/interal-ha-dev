@@ -237,6 +237,10 @@ function synthesizedRuntimeTile(layoutVariant, tileConfig) {
   return normalizeRuntimeTile(el._config.tiles[0]);
 }
 
+function normalizeRuntimeTiles(tiles) {
+  return tiles.map((tile) => normalizeRuntimeTile(tile));
+}
+
 function valueTiles(count) {
   return Array.from({ length: count }, (_, index) => ({
     type: 'value',
@@ -916,6 +920,145 @@ describe('Status: variant-aware Sections sizing contract', () => {
 
     expect(el.getGridOptions()).toEqual({ columns: 12, min_columns: 6, rows: 'auto', min_rows: 1, max_rows: 2 });
     expect(el.getCardSize()).toBe(1);
+  });
+});
+
+describe('Status: variant + recipe authoring contract', () => {
+  it('getConfigForm exposes variant selection and recipe_tiles authoring', () => {
+    const CardClass = customElements.get('tunet-status-card');
+    const form = CardClass.getConfigForm();
+    const layoutEntry = form.schema.find((entry) => entry.name === 'layout_variant');
+    const recipeEntry = form.schema.find((entry) => entry.name === 'recipe_tiles');
+
+    expect(layoutEntry?.selector?.select?.options.map((option) => option.value)).toEqual([
+      'home_summary',
+      'home_detail',
+      'room_row',
+      'info_only',
+      'alarms',
+      'custom',
+    ]);
+    expect(recipeEntry?.selector?.object?.multiple).toBe(true);
+    expect(recipeEntry?.selector?.object?.label_field).toBe('recipe');
+    expect(Object.keys(recipeEntry?.selector?.object?.fields || {})).toEqual([
+      'recipe',
+      'entity',
+      'label',
+      'compact_label',
+      'action_entity',
+      'navigate_path',
+    ]);
+  });
+
+  it.each([
+    'home_summary',
+    'home_detail',
+    'room_row',
+    'info_only',
+    'alarms',
+    'custom',
+  ])('%s stub config synthesizes a complete runtime tile set', (variant) => {
+    const CardClass = customElements.get('tunet-status-card');
+    const stub = CardClass.getStubConfigForVariant(variant);
+    const el = document.createElement('tunet-status-card');
+
+    expect(stub.layout_variant).toBe(variant);
+    expect(() => el.setConfig(stub)).not.toThrow();
+    expect(el._config.resolved_layout_variant).toBe(variant);
+    expect(el._config.tiles.length).toBeGreaterThan(0);
+    expect(el._config.tiles.every((tile) => el._isTileAllowedInVariant(tile, variant))).toBe(true);
+    if (variant === 'custom') {
+      expect(el._config.authoring_mode).toBe('tiles');
+    } else {
+      expect(el._config.authoring_mode).toBe('recipe_tiles');
+      expect(stub.recipe_tiles.length).toBe(el._config.tiles.length);
+    }
+  });
+
+  it.each([
+    [
+      'home_summary',
+      [
+        { recipe: 'home_presence', entity: 'person.mac_connolly' },
+        { recipe: 'mode_selector' },
+        { recipe: 'inside_temperature', entity: 'sensor.dining_room_temperature', action_entity: 'climate.downstairs' },
+      ],
+    ],
+    [
+      'home_detail',
+      [
+        { recipe: 'manual_overrides', entity: 'sensor.oal_system_status' },
+        { recipe: 'boost_offset', entity: 'sensor.oal_global_brightness_offset' },
+        { recipe: 'next_sun_event' },
+      ],
+    ],
+    [
+      'room_row',
+      [
+        { recipe: 'home_presence', entity: 'person.mac_connolly' },
+        { recipe: 'system_state', entity: 'sensor.oal_system_status' },
+      ],
+    ],
+    [
+      'info_only',
+      [
+        { recipe: 'inside_temperature', entity: 'sensor.dining_room_temperature' },
+        { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
+      ],
+    ],
+    [
+      'alarms',
+      [
+        { recipe: 'next_alarm', entity: 'sensor.sonos_next_alarm' },
+        { recipe: 'enabled_alarms', entity: 'sensor.sonos_enabled_alarm_count' },
+        { recipe: 'mode_ttl' },
+      ],
+    ],
+  ])('%s recipe_tiles authoring synthesizes the same runtime as equivalent raw tiles', (variant, recipeTiles) => {
+    const recipeAuthored = document.createElement('tunet-status-card');
+    recipeAuthored.setConfig({
+      layout_variant: variant,
+      recipe_tiles: recipeTiles,
+    });
+
+    const rawAuthored = document.createElement('tunet-status-card');
+    rawAuthored.setConfig({
+      layout_variant: variant,
+      tiles: recipeTiles,
+    });
+
+    expect(recipeAuthored._config.authoring_mode).toBe('recipe_tiles');
+    expect(normalizeRuntimeTiles(recipeAuthored._config.tiles)).toEqual(normalizeRuntimeTiles(rawAuthored._config.tiles));
+  });
+
+  it('recipes alias synthesizes recipe tiles when recipe_tiles is absent', () => {
+    const el = document.createElement('tunet-status-card');
+    el.setConfig({
+      layout_variant: 'home_summary',
+      recipes: ['mode_selector'],
+    });
+
+    expect(el._config.authoring_mode).toBe('recipes');
+    expect(el._config.tiles).toHaveLength(1);
+    expect(el._config.tiles[0].recipe).toBe('mode_selector');
+    expect(el._config.tiles[0].type).toBe('dropdown');
+  });
+
+  it('recipe_tiles wins over recipes and raw tiles when multiple authoring layers are present', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const el = document.createElement('tunet-status-card');
+    el.setConfig({
+      layout_variant: 'home_summary',
+      recipes: ['mode_selector'],
+      recipe_tiles: [{ recipe: 'home_presence', entity: 'person.mac_connolly' }],
+      tiles: [{ type: 'value', entity: 'sensor.oal_system_status', label: 'Raw' }],
+    });
+
+    expect(el._config.authoring_mode).toBe('recipe_tiles');
+    expect(el._config.tiles).toHaveLength(1);
+    expect(el._config.tiles[0].recipe).toBe('home_presence');
+    expect(warnSpy).toHaveBeenCalledWith('[tunet-status-card] Both recipe_tiles and recipes were provided; using recipe_tiles.');
+    expect(warnSpy).toHaveBeenCalledWith('[tunet-status-card] recipe_tiles authoring is active; ignoring raw tiles[] for runtime synthesis.');
   });
 });
 

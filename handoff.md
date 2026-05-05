@@ -9,6 +9,42 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-05-05, CD11 gap 3 — variant + recipe editor/stub authoring)
+
+- `CURRENT STATE`
+  - Gap 3 is complete in repo source and deployed to the HA lab
+  - `tunet-status-card` is now `v3.4.0`
+  - `getConfigForm()` exposes `layout_variant` and `recipe_tiles[]`
+  - `setConfig()` synthesizes authoring shapes in this order: `recipe_tiles[]`, then `recipes[]`, then raw `tiles[]`
+  - `getStubConfig()` returns the `home_summary` starter; `getStubConfigForVariant(variant)` returns a coherent starter for all six implemented variants
+  - remaining CD11 work: final cross-contract audit/test/doc closure and closure declaration
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - added variant selector metadata and recipe selector metadata
+    - added recipe-authoring normalization helpers
+    - added per-variant stub construction
+    - kept raw `tiles[]` available as YAML/runtime power-user surface, especially for `custom`
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - status bespoke suite now asserts editor schema, stubs, recipe-vs-raw synthesis equivalence, alias behavior, and precedence warnings
+  - `Dashboard/Tunet/Docs/cards_reference.md`
+    - §9 now documents the CD11 authoring/synthesizer/runtime model
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `63/63`
+  - full `npm test` → `688/688`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_061108Z`
+  - local visual fixture:
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-390x844.png`
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-768x1024.png`
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-1024x1366.png`
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-1440x900.png`
+  - live HA review:
+    - `/tmp/tunet-playwright-review/2026-05-05T06-12-00-979Z/review-manifest.json`
+- `NEXT`
+  - run Gap 4: audit §9 + sections matrix + lab fixtures against `status_bespoke.test.js`, add any missing coverage anchors, update docs, build/test/deploy, capture final live visual evidence, then declare CD11 closed
+
 ## Session Delta (2026-05-05, CD11 gap 2 — variant-aware grid sizing)
 
 - `CURRENT STATE`

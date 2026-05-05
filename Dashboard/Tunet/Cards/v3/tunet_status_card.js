@@ -1,5 +1,5 @@
 /**
- * Tunet Status Card  v3.3.0 (CD11c room_row + info_only)
+ * Tunet Status Card  v3.4.0 (CD11d variant + recipe authoring)
  * Home status grid with typed tiles: indicator, timer, value, dropdown, alarm
  * Migrated to tunet_base.js shared module.
  */
@@ -14,7 +14,7 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.3.0';
+const CARD_VERSION = '3.4.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -44,6 +44,15 @@ const IMPLEMENTED_LAYOUT_VARIANTS = new Set([
   'alarms',
   'custom',
 ]);
+
+const STATUS_LAYOUT_VARIANT_OPTIONS = [
+  { value: 'home_summary', label: 'Home Summary' },
+  { value: 'home_detail', label: 'Home Detail' },
+  { value: 'room_row', label: 'Room Row' },
+  { value: 'info_only', label: 'Info Only' },
+  { value: 'alarms', label: 'Alarms' },
+  { value: 'custom', label: 'Custom' },
+];
 
 const HOME_SUMMARY_ALLOWED_TYPES = new Set([
   'value',
@@ -312,6 +321,11 @@ const STATUS_RECIPES = {
   },
 };
 
+const STATUS_RECIPE_OPTIONS = Object.keys(STATUS_RECIPES).map((recipe) => ({
+  value: recipe,
+  label: recipe.replace(/_/g, ' '),
+}));
+
 function normalizeStatusIcon(icon) {
   if (!icon) return 'info';
   const raw = String(icon).replace(/^mdi:/, '').trim();
@@ -389,6 +403,181 @@ function normalizeColumnBreakpoints(raw) {
     return aMax - bMax;
   });
   return parsed;
+}
+
+function cloneStatusConfigValue(value) {
+  if (Array.isArray(value)) return value.map((item) => cloneStatusConfigValue(item));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, cloneStatusConfigValue(item)])
+    );
+  }
+  return value;
+}
+
+function normalizeRecipeAuthoringTile(rawTile) {
+  const raw = typeof rawTile === 'string'
+    ? { recipe: rawTile }
+    : (rawTile && typeof rawTile === 'object' ? cloneStatusConfigValue(rawTile) : null);
+  if (!raw) return null;
+  const recipe = String(raw.recipe || '').trim();
+  if (!recipe) return null;
+  if (!STATUS_RECIPES[recipe]) {
+    console.warn(`[tunet-status-card] Unknown recipe "${recipe}" in recipe_tiles; skipping.`);
+    return null;
+  }
+  return { ...raw, recipe };
+}
+
+function normalizeRecipeAuthoringList(rawList) {
+  const list = Array.isArray(rawList)
+    ? rawList
+    : (rawList == null || rawList === '' ? [] : [rawList]);
+  return list
+    .map((item) => normalizeRecipeAuthoringTile(item))
+    .filter(Boolean);
+}
+
+function buildStatusStubConfig(layoutVariant = 'home_summary') {
+  const variant = normalizeStatusLayoutVariant(layoutVariant);
+  const base = {
+    name: 'Home Status',
+    layout_variant: variant,
+    show_header: true,
+    tile_size: 'standard',
+    use_profiles: true,
+  };
+
+  if (variant === 'home_detail') {
+    return {
+      ...base,
+      name: 'Home Status Detail',
+      columns: 3,
+      recipe_tiles: [
+        { recipe: 'home_presence', entity: 'person.mac_connolly' },
+        { recipe: 'manual_overrides', entity: 'sensor.oal_system_status' },
+        { recipe: 'boost_offset', entity: 'sensor.oal_global_brightness_offset' },
+        {
+          recipe: 'inside_temperature',
+          entity: 'sensor.dining_room_temperature',
+          action_entity: 'climate.dining_room',
+        },
+        { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
+        { recipe: 'next_sun_event' },
+        {
+          recipe: 'next_alarm',
+          entity: 'sensor.sonos_next_alarm',
+          navigate_path: '/tunet-card-rehab-yaml/alarms',
+        },
+      ],
+    };
+  }
+
+  if (variant === 'room_row') {
+    return {
+      ...base,
+      name: 'Room Status Row',
+      columns: 4,
+      recipe_tiles: [
+        { recipe: 'home_presence', entity: 'person.mac_connolly' },
+        {
+          recipe: 'inside_temperature',
+          entity: 'sensor.dining_room_temperature',
+          action_entity: 'climate.dining_room',
+        },
+        { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
+        { recipe: 'system_state', entity: 'sensor.oal_system_status' },
+      ],
+    };
+  }
+
+  if (variant === 'info_only') {
+    return {
+      ...base,
+      name: 'Status Info',
+      columns: 3,
+      recipe_tiles: [
+        { recipe: 'inside_temperature', entity: 'sensor.dining_room_temperature' },
+        { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
+        { recipe: 'next_sun_event' },
+        { recipe: 'system_state', entity: 'sensor.oal_system_status' },
+      ],
+    };
+  }
+
+  if (variant === 'alarms') {
+    return {
+      ...base,
+      name: 'Alarm Status',
+      columns: 2,
+      recipe_tiles: [
+        {
+          recipe: 'next_alarm',
+          entity: 'sensor.sonos_next_alarm',
+          navigate_path: '/tunet-card-rehab-yaml/alarms',
+        },
+        {
+          recipe: 'enabled_alarms',
+          entity: 'sensor.sonos_enabled_alarm_count',
+          navigate_path: '/tunet-card-rehab-yaml/alarms',
+        },
+        { recipe: 'mode_ttl' },
+      ],
+    };
+  }
+
+  if (variant === 'custom') {
+    return {
+      ...base,
+      name: 'Custom Status',
+      columns: 3,
+      tiles: [
+        {
+          type: 'indicator',
+          entity: 'sensor.oal_system_status',
+          icon: 'info',
+          label: 'System',
+          accent: 'blue',
+        },
+        {
+          type: 'dropdown',
+          entity: 'input_select.oal_active_configuration',
+          icon: 'tune',
+          label: 'Mode',
+          accent: 'muted',
+        },
+        {
+          type: 'timer',
+          entity: 'timer.oal_mode_timeout',
+          icon: 'timer',
+          label: 'Mode TTL',
+          accent: 'amber',
+        },
+        {
+          type: 'alarm',
+          entity: 'sensor.sonos_next_alarm',
+          icon: 'alarm',
+          label: 'Alarm',
+          accent: 'blue',
+        },
+      ],
+    };
+  }
+
+  return {
+    ...base,
+    columns: 4,
+    recipe_tiles: [
+      { recipe: 'home_presence', entity: 'person.mac_connolly' },
+      { recipe: 'mode_selector' },
+      { recipe: 'manual_overrides', entity: 'sensor.oal_system_status' },
+      {
+        recipe: 'inside_temperature',
+        entity: 'sensor.dining_room_temperature',
+        action_entity: 'climate.dining_room',
+      },
+    ],
+  };
 }
 
 function humanizeStateValue(value) {
@@ -1555,6 +1744,43 @@ class TunetStatusCard extends HTMLElement {
     return {
       schema: [
         { name: 'name', selector: { text: {} } },
+        { name: 'layout_variant', selector: { select: { options: STATUS_LAYOUT_VARIANT_OPTIONS } } },
+        {
+          name: 'recipe_tiles',
+          selector: {
+            object: {
+              multiple: true,
+              label_field: 'recipe',
+              fields: {
+                recipe: {
+                  label: 'Recipe',
+                  selector: { select: { options: STATUS_RECIPE_OPTIONS } },
+                  required: true,
+                },
+                entity: {
+                  label: 'Entity',
+                  selector: { entity: {} },
+                },
+                label: {
+                  label: 'Label Override',
+                  selector: { text: {} },
+                },
+                compact_label: {
+                  label: 'Compact Label',
+                  selector: { text: {} },
+                },
+                action_entity: {
+                  label: 'Action Entity',
+                  selector: { entity: {} },
+                },
+                navigate_path: {
+                  label: 'Navigate Path',
+                  selector: { text: {} },
+                },
+              },
+            },
+          },
+        },
         { name: 'show_header', selector: { boolean: {} } },
         { name: 'columns', selector: { number: { min: 2, max: 8, step: 1, mode: 'box' } } },
         { name: 'column_breakpoints', selector: { object: {} } },
@@ -1573,6 +1799,8 @@ class TunetStatusCard extends HTMLElement {
         if (!s.name) return s.title || '';
         return ({
           name: 'Card Title',
+          layout_variant: 'Layout Variant',
+          recipe_tiles: 'Recipe Tiles',
           show_header: 'Show Header',
           columns: 'Columns',
           column_breakpoints: 'Responsive Column Breakpoints',
@@ -1582,6 +1810,8 @@ class TunetStatusCard extends HTMLElement {
         }[s.name] || s.name);
       },
       computeHelper: (s) => ({
+        layout_variant: 'Choose the page role for this status surface.',
+        recipe_tiles: 'High-level recipe authoring. Use tiles[] in YAML for raw custom tile definitions.',
         column_breakpoints: 'Example: [{max_width: 600, columns: 4}, {max_width: 1024, columns: 6}, {columns: 8}]',
         use_profiles: 'When enabled, geometry is sourced from the indicator-tile profile family.',
         custom_css: 'CSS rules injected into shadow DOM. Use .grid, .tile, etc.',
@@ -1589,19 +1819,24 @@ class TunetStatusCard extends HTMLElement {
     };
   }
 
-  static getStubConfig() {
-    return { name: 'Home Status', tile_size: 'standard', use_profiles: true, tiles: [] };
+  static getStubConfig(layoutVariant = 'home_summary') {
+    return buildStatusStubConfig(layoutVariant);
   }
 
-  setConfig(config) {
-    const tileSizeRaw = String(config.tile_size || 'standard').toLowerCase();
+  static getStubConfigForVariant(layoutVariant = 'home_summary') {
+    return buildStatusStubConfig(layoutVariant);
+  }
+
+  setConfig(config = {}) {
+    const rawConfig = config && typeof config === 'object' ? config : {};
+    const tileSizeRaw = String(rawConfig.tile_size || 'standard').toLowerCase();
     const tileSize = tileSizeRaw === 'regular'
       ? 'standard'
       : (tileSizeRaw === 'compact' || tileSizeRaw === 'large' ? tileSizeRaw : 'standard');
-    const useProfiles = config.use_profiles !== false;
-    const columns = clampInt(config.columns, 2, 8, 4);
-    const columnBreakpoints = normalizeColumnBreakpoints(config.column_breakpoints);
-    const requestedLayoutVariant = normalizeStatusLayoutVariant(config.layout_variant);
+    const useProfiles = rawConfig.use_profiles !== false;
+    const columns = clampInt(rawConfig.columns, 2, 8, 4);
+    const columnBreakpoints = normalizeColumnBreakpoints(rawConfig.column_breakpoints);
+    const requestedLayoutVariant = normalizeStatusLayoutVariant(rawConfig.layout_variant);
     const resolvedLayoutVariant = IMPLEMENTED_LAYOUT_VARIANTS.has(requestedLayoutVariant)
       ? requestedLayoutVariant
       : 'custom';
@@ -1610,8 +1845,30 @@ class TunetStatusCard extends HTMLElement {
         `[tunet-status-card] layout_variant "${requestedLayoutVariant}" is reserved for a later CD11 phase; falling back to custom for now.`
       );
     }
+    const recipeTiles = normalizeRecipeAuthoringList(rawConfig.recipe_tiles);
+    const recipeAliasTiles = normalizeRecipeAuthoringList(rawConfig.recipes);
+    const rawTiles = Array.isArray(rawConfig.tiles) ? rawConfig.tiles : [];
+    let authoredTiles = rawTiles;
+    let authoringMode = 'tiles';
+    if (recipeTiles.length) {
+      authoredTiles = recipeTiles;
+      authoringMode = 'recipe_tiles';
+      if (recipeAliasTiles.length) {
+        console.warn('[tunet-status-card] Both recipe_tiles and recipes were provided; using recipe_tiles.');
+      }
+      if (rawTiles.length) {
+        console.warn('[tunet-status-card] recipe_tiles authoring is active; ignoring raw tiles[] for runtime synthesis.');
+      }
+    } else if (recipeAliasTiles.length) {
+      authoredTiles = recipeAliasTiles;
+      authoringMode = 'recipes';
+      if (rawTiles.length) {
+        console.warn('[tunet-status-card] recipes authoring is active; ignoring raw tiles[] for runtime synthesis.');
+      }
+    }
+
     const tiles = [];
-    for (const [index, rawTile] of (config.tiles || []).entries()) {
+    for (const [index, rawTile] of authoredTiles.entries()) {
       const tile = this._normalizeTileConfig(rawTile, index, resolvedLayoutVariant);
       if (!this._isTileAllowedInVariant(tile, resolvedLayoutVariant)) {
         const allowedTypes = resolvedLayoutVariant === 'home_summary'
@@ -1629,15 +1886,18 @@ class TunetStatusCard extends HTMLElement {
       tiles.push(tile);
     }
     this._config = {
-      name: config.name || 'Home Status',
-      show_header: config.show_header !== false,
+      name: rawConfig.name || 'Home Status',
+      show_header: rawConfig.show_header !== false,
       columns,
       column_breakpoints: columnBreakpoints,
       layout_variant: requestedLayoutVariant,
       resolved_layout_variant: resolvedLayoutVariant,
       tile_size: tileSize,
       use_profiles: useProfiles,
-      custom_css: config.custom_css || '',
+      custom_css: rawConfig.custom_css || '',
+      recipe_tiles: recipeTiles,
+      recipes: recipeAliasTiles,
+      authoring_mode: authoringMode,
       tiles,
     };
     if (useProfiles) this.setAttribute('use-profiles', '');

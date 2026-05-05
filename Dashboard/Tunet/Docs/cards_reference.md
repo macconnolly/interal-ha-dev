@@ -511,7 +511,7 @@ Whole-home note: when this card feels visually "orphaned", that is usually a com
 ## 4. tunet-lighting-card
 
 **Version**: v3.5.0  
-**Tier**: editor-lite  
+**Tier**: editor-lite
 **File**: `Dashboard/Tunet/Cards/v3/tunet_lighting_card.js`
 
 ### Purpose
@@ -738,7 +738,7 @@ adaptive_entity (deprecated singular), light_group (legacy), light_overrides (le
 ## 5. tunet-rooms-card
 
 **Version**: v3.1.0  
-**Tier**: editor-lite  
+**Tier**: editor-lite
 **File**: `Dashboard/Tunet/Cards/v3/tunet_rooms_card.js`
 
 ### Purpose
@@ -1205,8 +1205,8 @@ Fixture/contract note: use `label` consistently for display-name overrides unles
 
 ## 9. tunet-status-card
 
-**Version**: v3.3.0
-**Tier**: yaml-first  
+**Version**: v3.4.0
+**Tier**: editor-lite (Level 2 narrow)
 **File**: `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
 
 ### Purpose
@@ -1232,7 +1232,9 @@ Important:
 | `show_header` | boolean | `true` | true/false | Y | editor |
 | `columns` | number | `4` | 2-8 | Y | editor |
 | `column_breakpoints` | array | `[]` | responsive rules | N | yaml-only |
-| `layout_variant` | string | `'custom'` | `'home_summary'`, `'home_detail'`, `'room_row'`, `'info_only'`, `'alarms'`, `'custom'` | N | yaml-only |
+| `layout_variant` | string | runtime default `'custom'`; UI stub default `'home_summary'` | `'home_summary'`, `'home_detail'`, `'room_row'`, `'info_only'`, `'alarms'`, `'custom'` | Y | editor |
+| `recipe_tiles` | array | `[]` | recipe authoring objects | Y | editor (object+fields+multiple) |
+| `recipes` | array/string | `[]` | legacy alias for recipe names/objects | N | yaml-only alias |
 | `tile_size` | string | `'standard'` | `'compact'`, `'standard'`, `'large'` | Y | editor |
 | `use_profiles` | boolean | `true` | true/false | Y | editor |
 | `custom_css` | string | `''` | CSS text | Y (advanced) | editor |
@@ -1244,6 +1246,29 @@ Important:
 - `recipe`: optional semantic recipe name
 - `action_entity`: default more-info target when display entity != control entity
 - `navigate_path`: default navigation shortcut; wins over recipe defaults
+
+### CD11 Authoring Model
+
+Status now uses a three-tier model:
+
+1. **Authoring**: UI/editor users choose `layout_variant` and add `recipe_tiles[]`.
+2. **Synthesizer**: `setConfig()` expands `recipe_tiles[]` or `recipes[]` into the rich runtime tile objects.
+3. **Runtime**: rendering still consumes normalized `tiles[]` with type, entity, icon, accent, format, dot rules, aux action, visibility, and primary action already resolved.
+
+`recipe_tiles[]` is canonical. The `recipes` key remains as a YAML shorthand alias and may be an array of recipe names or recipe objects. If both `recipe_tiles` and `recipes` are present, `recipe_tiles` wins and the card logs a warning. If either recipe authoring key is present alongside raw `tiles[]`, recipe authoring wins and raw `tiles[]` is ignored for runtime synthesis.
+
+Editor-exposed recipe tile fields:
+
+| Field | Purpose |
+|-------|---------|
+| `recipe` | Canonical semantic recipe name |
+| `entity` | Required external entity binding for user-bound recipes |
+| `label` | Optional full-label override |
+| `compact_label` | Optional compact-label override |
+| `action_entity` | Optional more-info/control target |
+| `navigate_path` | Optional navigation shortcut |
+
+Raw `tiles[]` remains YAML-only for advanced/custom cases because it is polymorphic across five tile types. `custom` stubs still demonstrate raw `tiles[]`; the editor path intentionally stays at the variant + recipe layer.
 
 ### Five Tile Types
 
@@ -1297,7 +1322,7 @@ This table is the canonical CD11 recipe surface. The `status_bespoke.test.js` re
 
 Current recipe behavior:
 
-- recipes provide defaults; authored YAML still owns render order
+- recipes provide defaults; authored `recipe_tiles[]`, `recipes[]`, or raw `tiles[]` still own render order
 - user-bound recipes warn when authored without `entity`, because entity binding is the one intentional external input in the shorthand contract
 - `home_summary` uses recipe priority only for slot-budget arbitration when more than 8 visible tiles compete for the summary matrix
 - `inside_temperature` defaults tile activation to `action_entity`
@@ -1398,31 +1423,34 @@ These values mirror `Dashboard/Tunet/Docs/sections_layout_matrix.md` and are loc
 
 ### Editor Architecture
 
-**Type**: Level 1 currently. Status remains yaml-first for `CD11`.
+**Type**: Level 2 narrow. The editor exposes the semantic CD11 authoring layer (`layout_variant` + `recipe_tiles[]`), while raw polymorphic `tiles[]` remains YAML-only.
 
-**Current authoring model** (top-level flags only):
-`name`, `show_header`, `columns`, `tile_size`, `use_profiles`, `custom_css`
+**Editor authoring fields**:
+`name`, `layout_variant`, `recipe_tiles`, `show_header`, `columns`, `tile_size`, `use_profiles`, `custom_css`
 
-**Yaml-first authoring surface**:
-- top-level editor fields remain shallow and mode-agnostic
-- `layout_variant`, `tiles[]`, `recipe`, `compact_label`, `action_entity`, `navigate_path`, and `column_breakpoints` are still YAML-authored
-- currently implemented runtime variants:
-  - `home_summary`
-  - `home_detail`
-  - `room_row`
-  - `info_only`
-  - `alarms`
-  - `custom`
+**Synthesizer precedence**:
+1. `recipe_tiles[]`
+2. `recipes[]` alias
+3. raw `tiles[]`
 
-**Editor follow-up direction**:
-- if status ever graduates beyond yaml-first, the editor should describe real landed variants rather than synthesizing undocumented `tiles[]` behind the user's back
-- do not document speculative mode synthesizers as active architecture until that work actually exists
+**Stub configs**:
+`getStubConfig()` returns the `home_summary` starter config. `getStubConfigForVariant(variant)` returns a coherent starter for each implemented variant:
+
+| Variant | Stub authoring shape |
+|---------|----------------------|
+| `home_summary` | Four-recipe summary: presence, mode selector, manual overrides, inside temperature |
+| `home_detail` | Recipe detail mix: presence, manual overrides, boost, indoor environment, sun, alarm |
+| `room_row` | Row-safe recipe mix: presence, temperature, humidity, system state |
+| `info_only` | Passive information recipe mix: temperature, humidity, sun, system state |
+| `alarms` | Alarm recipe mix: next alarm, enabled alarms, mode TTL |
+| `custom` | Raw tile starter with indicator, dropdown, timer, and alarm |
+
+The editor/stub contract is locked by the `Status: variant + recipe authoring contract` block in `status_bespoke.test.js`.
 
 ### Known Limitations
 
 - `tiles[]` remains yaml-only — polymorphic (5 types with different fields per type)
 - `column_breakpoints` is yaml-only
-- `layout_variant` is yaml-only
 - live breakpoint and aesthetic-polish work remains open, even though all planned `CD11` status runtime variants are now landed
 
 ---

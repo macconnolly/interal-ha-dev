@@ -7,6 +7,44 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole author
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (`CD10` nav verify deferred until room/surface composition is more settled)
 
+## Session Delta (2026-05-05, CD11 gap 3 — variant + recipe editor/stub authoring)
+
+Change marker: status editor/stub authoring now matches the CD11 runtime semantics
+
+- `CHOSEN INTERPRETATION`
+  - the status editor should expose the highest semantic layer CD11 has made reliable: variants and recipes
+  - the raw-tile surface stays YAML-only because it is still the advanced runtime escape hatch, not the canonical UI authoring path
+  - `setConfig()` is the correct Home Assistant boundary for synthesis because it is already where authored config becomes normalized runtime state
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - advanced to `v3.4.0`
+    - added `layout_variant` and `recipe_tiles[]` to `getConfigForm()`
+    - added `recipes[]` as a YAML shorthand alias
+    - added deterministic authoring precedence warnings when users mix `recipe_tiles[]`, `recipes[]`, and raw `tiles[]`
+    - added per-variant starter configs for `home_summary`, `home_detail`, `room_row`, `info_only`, `alarms`, and `custom`
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - added editor schema, stub, synthesis-equivalence, alias, and precedence coverage
+  - `Dashboard/Tunet/Docs/cards_reference.md`
+    - documented §9 as `editor-lite`
+    - replaced the stale yaml-first editor wording with the CD11 three-tier authoring model
+- `TESTS / VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `63/63`
+  - full `npm test` → `688/688`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_061108Z`
+  - local stub-authoring screenshots:
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-390x844.png`
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-768x1024.png`
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-1024x1366.png`
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-1440x900.png`
+  - live HA screenshot review:
+    - `/tmp/tunet-playwright-review/2026-05-05T06-12-00-979Z/review-manifest.json`
+- `RESULT`
+  - variant + recipe authoring is code/test/doc/deploy complete
+  - the remaining CD11 fix-ledger work is the final cross-contract audit and closure entry
+
 ## Session Delta (2026-05-05, CD11 gap 2 — variant-aware grid sizing)
 
 Change marker: status card Sections sizing is now variant-aware

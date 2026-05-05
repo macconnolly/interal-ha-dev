@@ -7,6 +7,49 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-05-05, CD11 gap 3 — variant + recipe editor/stub authoring)
+
+Tranche marker: status editor/stub closure only; final cross-contract closure remains open
+
+- `AUTHORITY NOTE`
+  - this is the narrow editor expansion authorized by CD11, not a suite-wide editor refactor
+  - the Home Assistant editor now exposes the same semantic layer the runtime supports: page role through `layout_variant`, canonical status meaning through `recipe_tiles[]`
+  - raw polymorphic `tiles[]` remains available for YAML power users, but it is no longer the first impression a UI user gets when adding the status card
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - promoted the card to `v3.4.0`
+    - added a six-option `layout_variant` selector for `home_summary`, `home_detail`, `room_row`, `info_only`, `alarms`, and `custom`
+    - added editor-level `recipe_tiles[]` authoring with fields for `recipe`, `entity`, `label`, `compact_label`, `action_entity`, and `navigate_path`
+    - added `recipes[]` as a YAML shorthand alias for recipe names or recipe objects
+    - made `setConfig()` the synthesizer boundary with deterministic precedence: `recipe_tiles[]` → `recipes[]` → raw `tiles[]`
+    - added coherent starter stubs for all six variants through `getStubConfig()` and `getStubConfigForVariant(variant)`
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - added the `Status: variant + recipe authoring contract` block covering editor schema, per-variant stub synthesis, recipe authoring equivalence, the `recipes` alias, and precedence warnings
+  - `Dashboard/Tunet/Docs/cards_reference.md`
+    - advanced §9 to `v3.4.0`
+    - documented the CD11 three-tier authoring model and per-variant stub contract
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `63/63`
+  - full `npm test` → `688/688`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_061108Z`
+  - local Playwright stub-authoring visual fixture at locked breakpoints:
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-390x844.png`
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-768x1024.png`
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-1024x1366.png`
+    - `/tmp/tunet-cd11-visual/gap3-stub-authoring/cd11-gap3-stubs-1440x900.png`
+  - authenticated live HA lab screenshot review at `390x844`, `768x1024`, `1024x1366`, `1440x900` in light and dark completed without harness failures:
+    - `/tmp/tunet-playwright-review/2026-05-05T06-12-00-979Z/review-manifest.json`
+- `VISUAL NOTES`
+  - all six variant stubs rendered non-empty from their authoring form
+  - the local stub fixture shows the expected horizontal overflow behavior for `room_row` at phone width
+  - an existing bottom-nav capture overlap remains visible in some live screenshots; CD10/nav verification is still intentionally deferred and was not touched
+- `RESULT`
+  - a user adding the card through UI now starts from variant + recipe intent instead of a blank raw tile array
+  - CD11 remains open only for final cross-contract test/doc closure and closure declaration
+
 ## Session Delta (2026-05-05, CD11 gap 2 — variant-aware grid sizing)
 
 Tranche marker: Sections sizing contract closure only; editor/stub closure remains open

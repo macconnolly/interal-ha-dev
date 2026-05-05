@@ -3460,8 +3460,10 @@ views:
                 entity: sensor.dining_room_temperature
                 action_entity: climate.dining_room
               - recipe: outside_temperature
+              - recipe: outside_weather
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
+              - recipe: speakers_playing
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm
                 compact_label: Bedroom
@@ -3493,9 +3495,11 @@ views:
                 entity: sensor.dining_room_temperature
                 action_entity: climate.dining_room
               - recipe: outside_temperature
+              - recipe: outside_weather
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
               - recipe: next_sun_event
+              - recipe: speakers_playing
               - recipe: mode_ttl
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm

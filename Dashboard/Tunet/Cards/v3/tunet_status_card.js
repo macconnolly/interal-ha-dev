@@ -14,7 +14,7 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.9.0';
+const CARD_VERSION = '3.10.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -91,10 +91,12 @@ const STATUS_RECIPE_PRIORITY = {
   manual_overrides: 4,
   inside_temperature: 5,
   outside_temperature: 6,
-  next_alarm: 7,
-  next_sun_event: 8,
-  inside_humidity: 9,
+  outside_weather: 7,
+  next_alarm: 8,
+  next_sun_event: 9,
+  inside_humidity: 10,
   mode_selector: 12,
+  speakers_playing: 13,
   mode_ttl: 15,
   enabled_alarms: 16,
 };
@@ -107,11 +109,13 @@ const STATUS_RECIPE_ENTITY_BINDING = {
   boost_offset: 'fixed',
   inside_temperature: 'user',
   outside_temperature: 'fixed',
+  outside_weather: 'fixed',
   inside_humidity: 'user',
   next_sun_event: 'fixed',
   next_alarm: 'user',
   enabled_alarms: 'user',
   mode_ttl: 'fixed',
+  speakers_playing: 'fixed',
 };
 
 const STATUS_VARIANT_GRID_OPTIONS = {
@@ -268,6 +272,24 @@ const STATUS_RECIPES = {
     },
     defaultAction: 'entity',
   },
+  // outside_weather: complements outside_temperature on the same weather.home entity
+  // but answers a different question — "what's it doing out?" (Snowy / Sunny / Partly
+  // Cloudy / Rainy / etc., resolved through humanizeStateValue's weather alias map).
+  // Static cloud icon for now; a future enhancement could resolve a state-specific
+  // glyph (sunny -> wb_sunny, snowy -> ac_unit, rainy -> rainy) similar to how
+  // next_sun_event swaps Sunset/Sunrise at runtime.
+  outside_weather: {
+    defaults: {
+      type: 'value',
+      entity: 'weather.home',
+      icon: 'cloud',
+      label: 'Weather',
+      compact_label: 'Weather',
+      accent: 'blue',
+      format: 'state',
+    },
+    defaultAction: 'entity',
+  },
   inside_humidity: {
     defaults: {
       type: 'value',
@@ -331,6 +353,28 @@ const STATUS_RECIPES = {
         attribute: 'mode_timeout_state',
         operator: 'equals',
         state: 'active',
+      },
+    },
+    defaultAction: 'entity',
+  },
+  // speakers_playing: shows the active Sonos coordinator's room name when at least one
+  // speaker is playing. The display entity (sensor.sonos_current_playing_group_coordinator)
+  // resolves to a short room label like "Living Room"; the visibility guard reads from
+  // a separate binary_sensor so the tile collapses cleanly when nothing is playing
+  // rather than rendering "none" in the value cell.
+  speakers_playing: {
+    defaults: {
+      type: 'value',
+      entity: 'sensor.sonos_current_playing_group_coordinator',
+      icon: 'speaker',
+      label: 'Playing',
+      compact_label: 'Playing',
+      accent: 'blue',
+      format: 'state',
+      show_when: {
+        entity: 'binary_sensor.sonos_playing_status',
+        operator: 'equals',
+        state: 'on',
       },
     },
     defaultAction: 'entity',
@@ -487,8 +531,10 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
           action_entity: 'climate.dining_room',
         },
         { recipe: 'outside_temperature' },
+        { recipe: 'outside_weather' },
         { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
         { recipe: 'next_sun_event' },
+        { recipe: 'speakers_playing' },
         { recipe: 'mode_ttl' },
         {
           recipe: 'next_alarm',
@@ -597,7 +643,9 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
     };
   }
 
-  // Default: home_summary stub — 8 tiles fitting the 4×2 phone matrix limit
+  // Default: home_summary stub. Tiles with show_when guards (manual_overrides,
+  // speakers_playing) only render when their condition is true, so the visible
+  // count fluctuates between ~7-9 in practice within the 4-col grid.
   return {
     ...base,
     columns: 4,
@@ -612,7 +660,9 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
         action_entity: 'climate.dining_room',
       },
       { recipe: 'outside_temperature' },
+      { recipe: 'outside_weather' },
       { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
+      { recipe: 'speakers_playing' },
       {
         recipe: 'next_alarm',
         entity: 'sensor.sonos_next_alarm',

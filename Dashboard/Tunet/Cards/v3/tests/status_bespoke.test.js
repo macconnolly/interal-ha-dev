@@ -118,6 +118,16 @@ function makeStatusHass(overrides = {}) {
           uv_index: 0,
         },
       },
+      'binary_sensor.sonos_playing_status': {
+        entity_id: 'binary_sensor.sonos_playing_status',
+        state: 'on',
+        attributes: { friendly_name: 'Sonos Playing Status' },
+      },
+      'sensor.sonos_current_playing_group_coordinator': {
+        entity_id: 'sensor.sonos_current_playing_group_coordinator',
+        state: 'Living Room',
+        attributes: { friendly_name: 'Sonos Current Playing Group Coordinator' },
+      },
       'input_select.oal_active_configuration': {
         entity_id: 'input_select.oal_active_configuration',
         state: 'TV Mode',
@@ -312,11 +322,13 @@ const CD11_STATUS_RECIPES = [
   'boost_offset',
   'inside_temperature',
   'outside_temperature',
+  'outside_weather',
   'inside_humidity',
   'next_sun_event',
   'next_alarm',
   'enabled_alarms',
   'mode_ttl',
+  'speakers_playing',
 ];
 
 const STATUS_PRIMARY_LAB_RECIPES = [
@@ -1500,6 +1512,57 @@ describe('Status: recipe and action precedence', () => {
         primary_action: {
           kind: 'action',
           config: { action: 'more-info', entity: 'sensor.oal_system_status' },
+        },
+      }),
+    ],
+    // outside_weather: weather state ("Snowy", "Sunny", "Partly Cloudy") via humanize map.
+    // Complements outside_temperature — both bind to weather.home but answer different
+    // questions (how cold? vs. what's it doing out?). Default action opens weather.home
+    // more-info for the user's "is this lasting?" follow-up question.
+    [
+      'outside_weather',
+      'home_summary',
+      { recipe: 'outside_weather' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'outside_weather',
+        entity: 'weather.home',
+        icon: 'cloud',
+        label: 'Weather',
+        compact_label: 'Weather',
+        accent: 'blue',
+        format: 'state',
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'weather.home' },
+        },
+      }),
+    ],
+    // speakers_playing: appears only when something is playing (show_when guard on
+    // binary_sensor.sonos_playing_status == 'on'). Value renders the coordinator room
+    // name from sensor.sonos_current_playing_group_coordinator. Default action navigates
+    // to the media surface; users who want a different target author tap_action.
+    [
+      'speakers_playing',
+      'home_summary',
+      { recipe: 'speakers_playing' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'speakers_playing',
+        entity: 'sensor.sonos_current_playing_group_coordinator',
+        icon: 'speaker',
+        label: 'Playing',
+        compact_label: 'Playing',
+        accent: 'blue',
+        format: 'state',
+        show_when: {
+          entity: 'binary_sensor.sonos_playing_status',
+          operator: 'equals',
+          state: 'on',
+        },
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'sensor.sonos_current_playing_group_coordinator' },
         },
       }),
     ],

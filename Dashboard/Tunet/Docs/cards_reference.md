@@ -1295,11 +1295,13 @@ Implemented recipes:
 - `boost_offset` (composite — see notes below)
 - `inside_temperature`
 - `outside_temperature`
+- `outside_weather`
 - `inside_humidity`
 - `next_sun_event`
 - `next_alarm`
 - `enabled_alarms`
 - `mode_ttl`
+- `speakers_playing`
 
 Canonical recipe defaults (v3.6.0 — CD11 Polish X1 — recipe consolidation + signed_percent, 2026-05-05):
 
@@ -1312,11 +1314,13 @@ Canonical recipe defaults (v3.6.0 — CD11 Polish X1 — recipe consolidation + 
 | `boost_offset` (composite) | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `entity: sensor.oal_system_status`, `icon: bolt`, **`label: Boost` (default; replaced at render time with the dominant cause)**, `compact_label: Boost`, `accent: amber`, `attribute: total_modification`, `format: signed_percent`, default action opens entity more-info | Fixed source |
 | `inside_temperature` | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `icon: thermostat`, `label/compact_label: Inside`, `accent: amber`, `format: integer`, default action prefers `action_entity` | User supplies `entity`; optional `action_entity` binds control target |
 | `outside_temperature` | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `entity: weather.home`, `icon: thermostat`, `label/compact_label: Outside`, `accent: blue`, `attribute: temperature`, `format: integer`, `unit: °F`, default action opens entity more-info | Fixed source |
+| `outside_weather` | `home_summary`, `home_detail`, optional info surface | `value` | `entity: weather.home`, `icon: cloud`, `label/compact_label: Weather`, `accent: blue`, `format: state` (humanized: "snowy" → "Snowy", "partlycloudy" → "Partly Cloudy"), default action opens entity more-info | Fixed source |
 | `inside_humidity` | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `icon: water_drop`, `label/compact_label: Humidity`, `accent: blue`, `format: integer`, `unit: %`, default action opens entity more-info except passive variants | User supplies `entity` |
 | `next_sun_event` | `home_summary`, `home_detail`, `info_only` | `value` | `entity: sensor.sun_next_setting`, `alt_entity: sensor.sun_next_rising`, `sun_entity: sun.sun`, `icon: weather_sunset_down`, `label/compact_label: Sunset`, `accent: amber`, `format: time`, passive default action | Fixed source |
 | `next_alarm` | `alarms`, `home_detail` | `value`; promoted to `alarm` in `alarms` unless `type` is authored | `icon: alarm`, `label/compact_label: Alarm`, `accent: blue`, `format: time_short`, default action prefers `action_entity` then entity more-info | User supplies `entity` |
 | `enabled_alarms` | `alarms`, optional `home_detail` | `value` | `icon: alarm_on`, `label/compact_label: Enabled`, `accent: blue`, `format: integer`, default action prefers `action_entity` then entity more-info | User supplies `entity` |
 | `mode_ttl` | `alarms`, optional `home_detail` | `value` | `entity: sensor.oal_system_status`, `attribute: mode_timeout_remaining`, `icon: timer`, `label: Mode Timer`, `compact_label: Timer`, `accent: amber`, `format: state`, `show_when.mode_timeout_state == 'active'`, default action opens entity more-info | Fixed source |
+| `speakers_playing` | `home_summary`, `home_detail`, optional info surface | `value` | `entity: sensor.sonos_current_playing_group_coordinator`, `icon: speaker`, `label/compact_label: Playing`, `accent: blue`, `format: state` (renders the coordinator room name like "Living Room"), `show_when.binary_sensor.sonos_playing_status == 'on'`, default action opens entity more-info | Fixed source |
 
 This table is the canonical CD11 recipe surface. The `status_bespoke.test.js` recipe-default self-containment block asserts the synthesized runtime tile for each shorthand recipe, so `{ recipe: 'mode_ttl' }` and the equivalent expanded runtime tile stay aligned.
 

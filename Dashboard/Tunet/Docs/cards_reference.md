@@ -1301,22 +1301,25 @@ Implemented recipes:
 - `enabled_alarms`
 - `mode_ttl`
 
-Canonical recipe defaults:
+Canonical recipe defaults (v3.5.0 — CD11 Theme A polish, 2026-05-05):
 
 | Recipe | Target variant(s) | Default type | Encoded defaults | Entity binding |
 |--------|-------------------|--------------|------------------|----------------|
-| `home_presence` | `home_summary`, optional detail/info surfaces | `value` | `icon: home`, `label/compact_label: Home`, `accent: green`, `format: state`, `dot_rules: home -> green, * -> red`, default action opens entity more-info | User supplies `entity` |
+| `home_presence` | `home_summary`, optional detail/info surfaces | `value` | `icon: home`, `label: Presence`, `compact_label: Home` (used by `room_row` so the label fits a 151px tile), `accent: green`, `format: state`, `dot_rules: home -> green, * -> red`, default action opens entity more-info | User supplies `entity` |
+| `lights_on` | `home_summary`, `home_detail`, `room_row` | `value` | `entity: sensor.oal_system_status`, `icon: lightbulb`, `label: Lights On`, `compact_label: Lights`, `accent: amber`, `attribute: lights_on_formatted` ("15/16"), `format: state`, `dot_rules: on -> amber, * -> muted`, default action opens entity more-info | Fixed source |
 | `adaptive_count` | `home_summary`, `home_detail` | `value` | `icon: sunny`, `label/compact_label: Adaptive`, `accent: green`, `attribute: zones_adaptive`, `format: integer`, default action opens entity more-info | User supplies `entity` |
 | `manual_overrides` | `home_summary`, `home_detail`, optional row/info surfaces | `value` | `icon: front_hand`, `label/compact_label: Manual`, `accent: red`, `attribute: active_zonal_overrides`, `format: integer`, `show_when.active_zonal_overrides > 0`, reset `aux_action` to `script.oal_reset_soft`, default action opens entity more-info | User supplies `entity`; `show_when.entity` is filled from it |
 | `mode_selector` | `home_summary`, `home_detail`, `custom` | `dropdown` | `entity: input_select.oal_active_configuration`, `icon: tune`, `label/compact_label: Mode`, `accent: muted`, summary option aliases, dropdown default action | Fixed source |
 | `boost_offset` | `home_detail`, optional summary/detail surfaces | `value` | `icon: bolt`, `label/compact_label: Boost`, `accent: amber`, `attribute: total_offset`, `format: integer`, `unit: %`, default action opens entity more-info | User supplies `entity` |
 | `inside_temperature` | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `icon: thermostat`, `label/compact_label: Inside`, `accent: amber`, `format: integer`, default action prefers `action_entity` | User supplies `entity`; optional `action_entity` binds control target |
+| `outside_temperature` | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `entity: weather.home`, `icon: thermostat`, `label/compact_label: Outside`, `accent: blue`, `attribute: temperature`, `format: integer`, `unit: °F`, default action opens entity more-info | Fixed source |
 | `inside_humidity` | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `icon: water_drop`, `label/compact_label: Humidity`, `accent: blue`, `format: integer`, `unit: %`, default action opens entity more-info except passive variants | User supplies `entity` |
+| `weather_modifier` | `home_detail`, `info_only` | `value` | `entity: sensor.oal_system_status`, `icon: cloud`, `label/compact_label: Weather`, `accent: blue`, `attribute: weather_modifier_value`, `format: integer`, `unit: %`, `show_when.weather_modifier_active == true`, default action opens entity more-info | Fixed source |
 | `next_sun_event` | `home_summary`, `home_detail`, `info_only` | `value` | `entity: sensor.sun_next_setting`, `alt_entity: sensor.sun_next_rising`, `sun_entity: sun.sun`, `icon: weather_sunset_down`, `label/compact_label: Sunset`, `accent: amber`, `format: time`, passive default action | Fixed source |
-| `system_state` | `home_detail`, `info_only` | `indicator` | `icon: info`, `label/compact_label: System`, `accent: blue`, `format: state`, default action opens entity more-info except passive variants | User supplies `entity` |
-| `next_alarm` | `alarms`, `home_detail` | `value`; promoted to `alarm` in `alarms` unless `type` is authored | `icon: alarm`, `label/compact_label: Alarm`, `accent: blue`, `format: state`, default action prefers `action_entity` then entity more-info | User supplies `entity` |
+| `system_state` | `home_detail`, `info_only` | `indicator` | `entity: sensor.oal_real_time_monitor` ("Boosted"), `icon: info`, `label/compact_label: System`, `accent: blue`, `format: state`, default action opens entity more-info except passive variants | Fixed source |
+| `next_alarm` | `alarms`, `home_detail` | `value`; promoted to `alarm` in `alarms` unless `type` is authored | `icon: alarm`, `label/compact_label: Alarm`, `accent: blue`, `format: time_short`, default action prefers `action_entity` then entity more-info | User supplies `entity` |
 | `enabled_alarms` | `alarms`, optional `home_detail` | `value` | `icon: alarm_on`, `label/compact_label: Enabled`, `accent: blue`, `format: integer`, default action prefers `action_entity` then entity more-info | User supplies `entity` |
-| `mode_ttl` | `alarms`, optional `home_detail` | `timer` | `entity: timer.oal_mode_timeout`, `icon: timer`, `label: Mode TTL`, `compact_label: TTL`, `accent: amber`, default action opens timer more-info | Fixed source |
+| `mode_ttl` | `alarms`, optional `home_detail` | `value` | `entity: sensor.oal_system_status`, `attribute: mode_timeout_remaining`, `icon: timer`, `label: Mode Timer`, `compact_label: Timer`, `accent: amber`, `format: state`, `show_when.mode_timeout_state == 'active'`, default action opens entity more-info | Fixed source |
 
 This table is the canonical CD11 recipe surface. The `status_bespoke.test.js` recipe-default self-containment block asserts the synthesized runtime tile for each shorthand recipe, so `{ recipe: 'mode_ttl' }` and the equivalent expanded runtime tile stay aligned.
 
@@ -1329,8 +1332,12 @@ Current recipe behavior:
 - `next_sun_event` auto-switches between sunrise/sunset icon + label
 - `next_alarm` prefers authored `navigate_path`, otherwise falls back to `action_entity`/entity more-info
 - `next_alarm` auto-renders as an `alarm` tile in `layout_variant: alarms` unless the author explicitly overrides the tile type
+- `next_alarm` in `home_summary` auto-applies `format: time_short_hm` (HH:MM, no seconds) so the matrix tile reads as a clean time string
 - `enabled_alarms` is intended for `alarms` and optional `home_detail`
-- `mode_ttl` is a timer recipe for `alarms` and optional `home_detail`
+- `mode_ttl` is bundled into `sensor.oal_system_status` attributes (state via `mode_timeout_remaining`, visibility via `mode_timeout_state == 'active'`); the timer entity `timer.oal_mode_timeout` is no longer the recipe default but remains available for explicit author overrides
+- `lights_on` is fixed-source on `sensor.oal_system_status.lights_on_formatted` to avoid the "X / total" three-line tile shape — the formatted attribute renders as a single "15/16" string
+- `system_state` is fixed-source on `sensor.oal_real_time_monitor` so the system tile reads as a concise single word ("Boosted") rather than the verbose `sensor.oal_system_status` state ("Environmental Boost")
+- `weather_modifier` reads `sensor.oal_system_status.weather_modifier_value` and only renders when `weather_modifier_active == true`; surfaces the active environmental modifier (e.g., +20% during rainy conditions)
 
 ### Conditional Visibility (show_when)
 

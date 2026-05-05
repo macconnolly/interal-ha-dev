@@ -1113,36 +1113,25 @@ views:
             tiles:
               - recipe: home_presence
                 entity: person.mac_connolly
-              - recipe: adaptive_count
-                entity: sensor.oal_system_status
-              - recipe: mode_selector
-              - type: value
+              - recipe: lights_on
                 entity: sensor.hero_all_lights_state
-                icon: lightbulb
-                label: Lights On
-                compact_label: Lights
-                accent: amber
-                attribute: number_on
-                format: integer
-                secondary:
-                  entity: sensor.hero_all_lights_state
-                  attribute: total_lights
-                dot_rules:
-                  - match: on
-                    dot: amber
-                  - match: "*"
-                    dot: muted
                 tap_action:
                   action: call-service
                   service: homeassistant.toggle
                   service_data:
                     entity_id: light.all_lights
+              - recipe: boost_offset
+                entity: sensor.oal_global_brightness_offset
+                label_entity: sensor.oal_real_time_monitor
+                label_map:
+                  Boosted: Env. Boost
               - recipe: manual_overrides
                 entity: sensor.oal_system_status
               - recipe: inside_temperature
                 entity: sensor.dining_room_temperature
                 action_entity: climate.dining_room
                 unit: "°F"
+              - recipe: outside_temperature
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
               - recipe: next_sun_event
@@ -1150,6 +1139,7 @@ views:
                 entity: sensor.oal_system_status
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm
+                compact_label: Bedroom
                 navigate_path: /tunet-card-rehab-yaml/alarms
               - type: value
                 entity: weather.home
@@ -1222,11 +1212,11 @@ views:
                   - match: "*"
                     dot: red
               - type: value
-                entity: sensor.oal_system_status
-                icon: sunny
-                label: Adaptive
-                accent: green
-                attribute: zones_adaptive
+                entity: sensor.hero_all_lights_state
+                icon: lightbulb
+                label: Lights On
+                accent: amber
+                attribute: number_on
                 format: integer
               - type: value
                 entity: sensor.oal_system_status
@@ -1264,9 +1254,9 @@ views:
                 attribute: total_offset
                 format: integer
                 unit: "%"
-                secondary:
-                  entity: sensor.oal_global_brightness_offset
-                  attribute: current_config
+                label_entity: sensor.oal_real_time_monitor
+                label_map:
+                  Boosted: Env. Boost
               - type: value
                 entity: sensor.sun_next_setting
                 icon: wb_twilight
@@ -1320,8 +1310,6 @@ views:
                     entity_id: light.all_lights
               - recipe: home_presence
                 entity: person.mac_connolly
-              - recipe: adaptive_count
-                entity: sensor.oal_system_status
               - recipe: manual_overrides
                 entity: sensor.oal_system_status
               - recipe: mode_selector
@@ -1338,9 +1326,9 @@ views:
                   state: unknown
               - recipe: boost_offset
                 entity: sensor.oal_global_brightness_offset
-                secondary:
-                  entity: sensor.oal_global_brightness_offset
-                  attribute: current_config
+                label_entity: sensor.oal_real_time_monitor
+                label_map:
+                  Boosted: Env. Boost
                 unit: "%"
                 show_when:
                   entity: sensor.oal_global_brightness_offset
@@ -1352,14 +1340,17 @@ views:
                 action_entity: climate.dining_room
                 label: Inside Temperature
                 unit: "°F"
+              - recipe: outside_temperature
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
               - recipe: next_sun_event
               - recipe: system_state
                 entity: sensor.oal_system_status
               - recipe: mode_ttl
-              - recipe: enabled_alarms
-                entity: sensor.sonos_enabled_alarm_count
+              - recipe: next_alarm
+                entity: sensor.sonos_next_alarm
+                label: Next Alarm
+                compact_label: Bedroom
                 navigate_path: /tunet-card-rehab-yaml/alarms
               - type: value
                 entity: input_text.tunet_weather_heads_up
@@ -1400,14 +1391,11 @@ views:
               - type: value
                 entity: sensor.sonos_alarms_for_tomorrow
                 icon: alarm
-                label: Tomorrow Alarms
+                label: Tomorrow Alarm
                 compact_label: Tomorrow
                 accent: blue
-                attribute: alarm_count
-                format: integer
-                secondary:
-                  entity: sensor.sonos_alarms_for_tomorrow
-                  attribute: earliest_alarm_time_tomorrow
+                attribute: earliest_alarm_time_tomorrow
+                format: time_short
                 navigate_path: /tunet-card-rehab-yaml/alarms
                 show_when:
                   entity: sensor.sonos_alarms_for_tomorrow
@@ -1482,8 +1470,12 @@ views:
                 action_entity: climate.dining_room
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
-              - recipe: system_state
-                entity: sensor.oal_system_status
+              - recipe: outside_temperature
+              - recipe: boost_offset
+                entity: sensor.oal_global_brightness_offset
+                label_entity: sensor.oal_real_time_monitor
+                label_map:
+                  Boosted: Env. Boost
             grid_options:
               columns: 24
               rows: auto
@@ -1507,8 +1499,12 @@ views:
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
               - recipe: next_sun_event
-              - recipe: system_state
-                entity: sensor.oal_system_status
+              - recipe: outside_temperature
+              - recipe: boost_offset
+                entity: sensor.oal_global_brightness_offset
+                label_entity: sensor.oal_real_time_monitor
+                label_map:
+                  Boosted: Env. Boost
               - type: value
                 entity: weather.home
                 attribute: uv_index
@@ -1548,11 +1544,11 @@ views:
               - type: value
                 entity: sensor.sonos_alarms_for_tomorrow
                 icon: alarm
-                label: Tomorrow Alarms
+                label: Tomorrow Alarm
                 compact_label: Tomorrow
                 accent: blue
-                attribute: alarm_count
-                format: integer
+                attribute: earliest_alarm_time_tomorrow
+                format: time_short
                 navigate_path: /tunet-card-rehab-yaml/alarms
                 show_when:
                   entity: sensor.sonos_alarms_for_tomorrow
@@ -1590,9 +1586,6 @@ views:
                     entity_id: script.sonos_dismiss_alarm
               - recipe: mode_ttl
                 entity: timer.oal_mode_timeout
-              - recipe: enabled_alarms
-                entity: sensor.sonos_enabled_alarm_count
-                navigate_path: /tunet-card-rehab-yaml/alarms
               - type: indicator
                 entity: sensor.sonos_alarm_playing
                 icon: notifications_active
@@ -1601,14 +1594,11 @@ views:
               - type: value
                 entity: sensor.sonos_alarms_for_tomorrow
                 icon: alarm
-                label: Tomorrow Alarms
+                label: Tomorrow Alarm
                 compact_label: Tomorrow
                 accent: blue
-                attribute: alarm_count
-                format: integer
-                secondary:
-                  entity: sensor.sonos_alarms_for_tomorrow
-                  attribute: earliest_alarm_time_tomorrow
+                attribute: earliest_alarm_time_tomorrow
+                format: time_short
                 navigate_path: /tunet-card-rehab-yaml/alarms
                 show_when:
                   entity: sensor.sonos_alarms_for_tomorrow
@@ -1634,8 +1624,12 @@ views:
               - type: timer
                 entity: timer.oal_mode_timeout
                 icon: timer
-                label: Mode TTL
+                label: Mode Timer
                 accent: amber
+                show_when:
+                  entity: timer.oal_mode_timeout
+                  operator: equals
+                  state: active
               - type: dropdown
                 entity: input_select.oal_active_configuration
                 icon: tune
@@ -2190,36 +2184,25 @@ views:
             tiles:
               - recipe: home_presence
                 entity: person.mac_connolly
-              - recipe: adaptive_count
-                entity: sensor.oal_system_status
-              - recipe: mode_selector
-              - type: value
+              - recipe: lights_on
                 entity: sensor.hero_all_lights_state
-                icon: lightbulb
-                label: Lights On
-                compact_label: Lights
-                accent: amber
-                attribute: number_on
-                format: integer
-                secondary:
-                  entity: sensor.hero_all_lights_state
-                  attribute: total_lights
-                dot_rules:
-                  - match: on
-                    dot: amber
-                  - match: "*"
-                    dot: muted
                 tap_action:
                   action: call-service
                   service: homeassistant.toggle
                   service_data:
                     entity_id: light.all_lights
+              - recipe: boost_offset
+                entity: sensor.oal_global_brightness_offset
+                label_entity: sensor.oal_real_time_monitor
+                label_map:
+                  Boosted: Env. Boost
               - recipe: manual_overrides
                 entity: sensor.oal_system_status
               - recipe: inside_temperature
                 entity: sensor.dining_room_temperature
                 action_entity: climate.dining_room
                 unit: "°F"
+              - recipe: outside_temperature
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
               - recipe: next_sun_event
@@ -2227,6 +2210,7 @@ views:
                 entity: sensor.oal_system_status
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm
+                compact_label: Bedroom
                 navigate_path: /tunet-card-rehab-yaml/alarms
               - type: value
                 entity: weather.home
@@ -2316,8 +2300,6 @@ views:
                     entity_id: light.all_lights
               - recipe: home_presence
                 entity: person.mac_connolly
-              - recipe: adaptive_count
-                entity: sensor.oal_system_status
               - recipe: manual_overrides
                 entity: sensor.oal_system_status
               - recipe: mode_selector
@@ -2334,9 +2316,9 @@ views:
                   state: unknown
               - recipe: boost_offset
                 entity: sensor.oal_global_brightness_offset
-                secondary:
-                  entity: sensor.oal_global_brightness_offset
-                  attribute: current_config
+                label_entity: sensor.oal_real_time_monitor
+                label_map:
+                  Boosted: Env. Boost
                 unit: "%"
                 show_when:
                   entity: sensor.oal_global_brightness_offset
@@ -2348,14 +2330,17 @@ views:
                 action_entity: climate.dining_room
                 label: Inside Temperature
                 unit: "°F"
+              - recipe: outside_temperature
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
               - recipe: next_sun_event
               - recipe: system_state
                 entity: sensor.oal_system_status
               - recipe: mode_ttl
-              - recipe: enabled_alarms
-                entity: sensor.sonos_enabled_alarm_count
+              - recipe: next_alarm
+                entity: sensor.sonos_next_alarm
+                label: Next Alarm
+                compact_label: Bedroom
                 navigate_path: /tunet-card-rehab-yaml/alarms
               - type: value
                 entity: input_text.tunet_weather_heads_up
@@ -2396,14 +2381,11 @@ views:
               - type: value
                 entity: sensor.sonos_alarms_for_tomorrow
                 icon: alarm
-                label: Tomorrow Alarms
+                label: Tomorrow Alarm
                 compact_label: Tomorrow
                 accent: blue
-                attribute: alarm_count
-                format: integer
-                secondary:
-                  entity: sensor.sonos_alarms_for_tomorrow
-                  attribute: earliest_alarm_time_tomorrow
+                attribute: earliest_alarm_time_tomorrow
+                format: time_short
                 navigate_path: /tunet-card-rehab-yaml/alarms
                 show_when:
                   entity: sensor.sonos_alarms_for_tomorrow
@@ -2473,9 +2455,6 @@ views:
                     entity_id: script.sonos_dismiss_alarm
               - recipe: mode_ttl
                 entity: timer.oal_mode_timeout
-              - recipe: enabled_alarms
-                entity: sensor.sonos_enabled_alarm_count
-                navigate_path: /tunet-card-rehab-yaml/alarms
               - type: indicator
                 entity: sensor.sonos_alarm_playing
                 icon: notifications_active
@@ -2484,14 +2463,11 @@ views:
               - type: value
                 entity: sensor.sonos_alarms_for_tomorrow
                 icon: alarm
-                label: Tomorrow Alarms
+                label: Tomorrow Alarm
                 compact_label: Tomorrow
                 accent: blue
-                attribute: alarm_count
-                format: integer
-                secondary:
-                  entity: sensor.sonos_alarms_for_tomorrow
-                  attribute: earliest_alarm_time_tomorrow
+                attribute: earliest_alarm_time_tomorrow
+                format: time_short
                 navigate_path: /tunet-card-rehab-yaml/alarms
                 show_when:
                   entity: sensor.sonos_alarms_for_tomorrow
@@ -2534,8 +2510,12 @@ views:
                 action_entity: climate.dining_room
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
-              - recipe: system_state
-                entity: sensor.oal_system_status
+              - recipe: outside_temperature
+              - recipe: boost_offset
+                entity: sensor.oal_global_brightness_offset
+                label_entity: sensor.oal_real_time_monitor
+                label_map:
+                  Boosted: Env. Boost
             grid_options:
               columns: 24
               rows: auto
@@ -2559,8 +2539,12 @@ views:
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
               - recipe: next_sun_event
-              - recipe: system_state
-                entity: sensor.oal_system_status
+              - recipe: outside_temperature
+              - recipe: boost_offset
+                entity: sensor.oal_global_brightness_offset
+                label_entity: sensor.oal_real_time_monitor
+                label_map:
+                  Boosted: Env. Boost
               - type: value
                 entity: weather.home
                 attribute: uv_index
@@ -2600,11 +2584,11 @@ views:
               - type: value
                 entity: sensor.sonos_alarms_for_tomorrow
                 icon: alarm
-                label: Tomorrow Alarms
+                label: Tomorrow Alarm
                 compact_label: Tomorrow
                 accent: blue
-                attribute: alarm_count
-                format: integer
+                attribute: earliest_alarm_time_tomorrow
+                format: time_short
                 navigate_path: /tunet-card-rehab-yaml/alarms
                 show_when:
                   entity: sensor.sonos_alarms_for_tomorrow
@@ -2635,8 +2619,12 @@ views:
               - type: timer
                 entity: timer.oal_mode_timeout
                 icon: timer
-                label: Mode TTL
+                label: Mode Timer
                 accent: amber
+                show_when:
+                  entity: timer.oal_mode_timeout
+                  operator: equals
+                  state: active
               - type: alarm
                 entity: sensor.sonos_next_alarm
                 playing_entity: sensor.sonos_alarm_playing
@@ -2661,6 +2649,9 @@ views:
                 attribute: total_offset
                 format: integer
                 unit: "%"
+                label_entity: sensor.oal_real_time_monitor
+                label_map:
+                  Boosted: Env. Boost
             grid_options:
               columns: 24
               rows: auto
@@ -3414,6 +3405,182 @@ views:
                 path: /tunet-card-rehab-yaml/nav-lab
                 match_paths:
                   - /tunet-card-rehab-yaml/nav-lab
+            grid_options:
+              columns: 24
+              rows: auto
+
+  - type: sections
+    title: Polish Review
+    path: polish-review
+    icon: mdi:auto-fix
+    max_columns: 4
+    dense_section_placement: false
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: markdown
+            content: |
+              ## CD11 Visual Polish Review (Theme A — recipe content + OAL sensor consolidation)
+              Each variant below uses **only recipe shorthand** with no per-tile overrides, so the new
+              v3.5.0 recipe defaults render exactly as authored. Compare against the existing `/states`
+              view (which preserves the prior fixture authoring) to see what Theme A changed:
+              - `home_presence` recipe label is now **Presence** (was duplicate "Home")
+              - `lights_on` recipe is now self-contained on `sensor.oal_system_status` `lights_on_formatted` ("15/16")
+              - `system_state` recipe defaults to **sensor.oal_real_time_monitor** ("Boosted" not "Environmental Boost")
+              - `weather_modifier` is a **new recipe** showing active weather modifier % when `weather_modifier_active`
+              - `mode_ttl` recipe migrates to `sensor.oal_system_status.attributes.mode_timeout_remaining`
+              - `next_alarm` in `home_summary` uses `time_short_hm` (HH:MM, no seconds)
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Status Summary — recipe-only authoring
+            heading_style: subtitle
+          - type: custom:tunet-status-card
+            name: "Status Summary (Polish)"
+            layout_variant: home_summary
+            show_header: true
+            columns: 4
+            tile_size: standard
+            use_profiles: true
+            recipe_tiles:
+              - recipe: home_presence
+                entity: person.mac_connolly
+              - recipe: lights_on
+              - recipe: mode_selector
+              - recipe: manual_overrides
+                entity: sensor.oal_system_status
+              - recipe: inside_temperature
+                entity: sensor.dining_room_temperature
+                action_entity: climate.dining_room
+              - recipe: outside_temperature
+              - recipe: inside_humidity
+                entity: sensor.kitchen_humidity
+              - recipe: next_alarm
+                entity: sensor.sonos_next_alarm
+                compact_label: Bedroom
+                navigate_path: /tunet-card-rehab-yaml/alarms
+            grid_options:
+              columns: 24
+              rows: auto
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Status Detail — recipe-only authoring
+            heading_style: subtitle
+          - type: custom:tunet-status-card
+            name: "Status Detail (Polish)"
+            layout_variant: home_detail
+            show_header: true
+            columns: 3
+            tile_size: standard
+            use_profiles: true
+            recipe_tiles:
+              - recipe: home_presence
+                entity: person.mac_connolly
+              - recipe: lights_on
+              - recipe: adaptive_count
+                entity: sensor.oal_system_status
+              - recipe: manual_overrides
+                entity: sensor.oal_system_status
+              - recipe: boost_offset
+                entity: sensor.oal_global_brightness_offset
+              - recipe: weather_modifier
+              - recipe: inside_temperature
+                entity: sensor.dining_room_temperature
+                action_entity: climate.dining_room
+              - recipe: outside_temperature
+              - recipe: inside_humidity
+                entity: sensor.kitchen_humidity
+              - recipe: next_sun_event
+              - recipe: system_state
+              - recipe: mode_ttl
+              - recipe: next_alarm
+                entity: sensor.sonos_next_alarm
+                navigate_path: /tunet-card-rehab-yaml/alarms
+            grid_options:
+              columns: 24
+              rows: auto
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Status Room Row — recipe-only authoring
+            heading_style: subtitle
+          - type: custom:tunet-status-card
+            name: "Status Room Row (Polish)"
+            layout_variant: room_row
+            show_header: true
+            columns: 4
+            tile_size: standard
+            use_profiles: true
+            recipe_tiles:
+              - recipe: lights_on
+              - recipe: home_presence
+                entity: person.mac_connolly
+              - recipe: inside_temperature
+                entity: sensor.dining_room_temperature
+                action_entity: climate.dining_room
+              - recipe: outside_temperature
+              - recipe: inside_humidity
+                entity: sensor.kitchen_humidity
+              - recipe: system_state
+            grid_options:
+              columns: 24
+              rows: auto
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Status Info Only — recipe-only authoring
+            heading_style: subtitle
+          - type: custom:tunet-status-card
+            name: "Status Info (Polish)"
+            layout_variant: info_only
+            show_header: true
+            columns: 3
+            tile_size: standard
+            use_profiles: true
+            recipe_tiles:
+              - recipe: inside_temperature
+                entity: sensor.dining_room_temperature
+              - recipe: outside_temperature
+              - recipe: inside_humidity
+                entity: sensor.kitchen_humidity
+              - recipe: weather_modifier
+              - recipe: next_sun_event
+              - recipe: system_state
+            grid_options:
+              columns: 24
+              rows: auto
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Status Alarms — recipe-only authoring
+            heading_style: subtitle
+          - type: custom:tunet-status-card
+            name: "Status Alarms (Polish)"
+            layout_variant: alarms
+            show_header: true
+            columns: 2
+            tile_size: standard
+            use_profiles: true
+            recipe_tiles:
+              - recipe: next_alarm
+                entity: sensor.sonos_next_alarm
+                navigate_path: /tunet-card-rehab-yaml/alarms
+              - recipe: enabled_alarms
+                entity: sensor.sonos_enabled_alarm_count
+                navigate_path: /tunet-card-rehab-yaml/alarms
+              - recipe: mode_ttl
             grid_options:
               columns: 24
               rows: auto

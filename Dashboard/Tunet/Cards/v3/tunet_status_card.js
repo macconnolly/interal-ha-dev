@@ -1,5 +1,5 @@
 /**
- * Tunet Status Card  v3.4.0 (CD11d variant + recipe authoring)
+ * Tunet Status Card  v3.5.0 (CD11 polish Theme A — recipe content + OAL sensor consolidation)
  * Home status grid with typed tiles: indicator, timer, value, dropdown, alarm
  * Migrated to tunet_base.js shared module.
  */
@@ -14,7 +14,7 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.4.0';
+const CARD_VERSION = '3.5.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -86,14 +86,17 @@ const MODE_SELECTOR_SUMMARY_ALIASES = {
 
 const STATUS_RECIPE_PRIORITY = {
   home_presence: 1,
-  mode_selector: 2,
-  adaptive_count: 3,
+  lights_on: 2,
+  boost_offset: 3,
   manual_overrides: 4,
-  boost_offset: 5,
-  inside_temperature: 6,
+  inside_temperature: 5,
+  outside_temperature: 6,
   next_alarm: 7,
   next_sun_event: 8,
-  inside_humidity: 12,
+  inside_humidity: 9,
+  weather_modifier: 10,
+  mode_selector: 12,
+  adaptive_count: 13,
   system_state: 14,
   mode_ttl: 15,
   enabled_alarms: 16,
@@ -101,14 +104,17 @@ const STATUS_RECIPE_PRIORITY = {
 
 const STATUS_RECIPE_ENTITY_BINDING = {
   home_presence: 'user',
+  lights_on: 'fixed',
   adaptive_count: 'user',
   manual_overrides: 'user',
   mode_selector: 'fixed',
   boost_offset: 'user',
   inside_temperature: 'user',
+  outside_temperature: 'fixed',
   inside_humidity: 'user',
   next_sun_event: 'fixed',
-  system_state: 'user',
+  system_state: 'fixed',
+  weather_modifier: 'fixed',
   next_alarm: 'user',
   enabled_alarms: 'user',
   mode_ttl: 'fixed',
@@ -164,13 +170,30 @@ const STATUS_RECIPES = {
     defaults: {
       type: 'value',
       icon: 'home',
-      label: 'Home',
+      label: 'Presence',
       compact_label: 'Home',
       accent: 'green',
       format: 'state',
       dot_rules: [
         { match: 'home', dot: 'green' },
         { match: '*', dot: 'red' },
+      ],
+    },
+    defaultAction: 'entity',
+  },
+  lights_on: {
+    defaults: {
+      type: 'value',
+      entity: 'sensor.oal_system_status',
+      icon: 'lightbulb',
+      label: 'Lights On',
+      compact_label: 'Lights',
+      accent: 'amber',
+      attribute: 'lights_on_formatted',
+      format: 'state',
+      dot_rules: [
+        { match: 'on', dot: 'amber' },
+        { match: '*', dot: 'muted' },
       ],
     },
     defaultAction: 'entity',
@@ -249,6 +272,20 @@ const STATUS_RECIPES = {
     },
     defaultAction: 'action_entity',
   },
+  outside_temperature: {
+    defaults: {
+      type: 'value',
+      entity: 'weather.home',
+      icon: 'thermostat',
+      label: 'Outside',
+      compact_label: 'Outside',
+      accent: 'blue',
+      attribute: 'temperature',
+      format: 'integer',
+      unit: '°F',
+    },
+    defaultAction: 'entity',
+  },
   inside_humidity: {
     defaults: {
       type: 'value',
@@ -278,11 +315,32 @@ const STATUS_RECIPES = {
   system_state: {
     defaults: {
       type: 'indicator',
+      entity: 'sensor.oal_real_time_monitor',
       icon: 'info',
       label: 'System',
       compact_label: 'System',
       accent: 'blue',
       format: 'state',
+    },
+    defaultAction: 'entity',
+  },
+  weather_modifier: {
+    defaults: {
+      type: 'value',
+      entity: 'sensor.oal_system_status',
+      attribute: 'weather_modifier_value',
+      icon: 'cloud',
+      label: 'Weather',
+      compact_label: 'Weather',
+      accent: 'blue',
+      format: 'integer',
+      unit: '%',
+      show_when: {
+        entity: 'sensor.oal_system_status',
+        attribute: 'weather_modifier_active',
+        operator: 'equals',
+        state: true,
+      },
     },
     defaultAction: 'entity',
   },
@@ -293,7 +351,7 @@ const STATUS_RECIPES = {
       label: 'Alarm',
       compact_label: 'Alarm',
       accent: 'blue',
-      format: 'state',
+      format: 'time_short',
     },
     defaultAction: 'action_entity',
   },
@@ -310,12 +368,20 @@ const STATUS_RECIPES = {
   },
   mode_ttl: {
     defaults: {
-      type: 'timer',
-      entity: 'timer.oal_mode_timeout',
+      type: 'value',
+      entity: 'sensor.oal_system_status',
+      attribute: 'mode_timeout_remaining',
       icon: 'timer',
-      label: 'Mode TTL',
-      compact_label: 'TTL',
+      label: 'Mode Timer',
+      compact_label: 'Timer',
       accent: 'amber',
+      format: 'state',
+      show_when: {
+        entity: 'sensor.oal_system_status',
+        attribute: 'mode_timeout_state',
+        operator: 'equals',
+        state: 'active',
+      },
     },
     defaultAction: 'entity',
   },
@@ -360,6 +426,13 @@ function cloneDotRules(rules) {
   return rules
     .filter((rule) => rule && typeof rule === 'object')
     .map((rule) => ({ ...rule }));
+}
+
+function cloneLabelMap(map) {
+  if (!map || typeof map !== 'object' || Array.isArray(map)) return null;
+  return Object.fromEntries(
+    Object.entries(map).map(([key, value]) => [String(key), String(value)])
+  );
 }
 
 function normalizeStatusLayoutVariant(value) {
@@ -455,15 +528,23 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
       columns: 3,
       recipe_tiles: [
         { recipe: 'home_presence', entity: 'person.mac_connolly' },
+        { recipe: 'lights_on' },
         { recipe: 'manual_overrides', entity: 'sensor.oal_system_status' },
-        { recipe: 'boost_offset', entity: 'sensor.oal_global_brightness_offset' },
+        {
+          recipe: 'boost_offset',
+          entity: 'sensor.oal_global_brightness_offset',
+        },
+        { recipe: 'weather_modifier' },
         {
           recipe: 'inside_temperature',
           entity: 'sensor.dining_room_temperature',
           action_entity: 'climate.dining_room',
         },
+        { recipe: 'outside_temperature' },
         { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
         { recipe: 'next_sun_event' },
+        { recipe: 'system_state' },
+        { recipe: 'mode_ttl' },
         {
           recipe: 'next_alarm',
           entity: 'sensor.sonos_next_alarm',
@@ -479,14 +560,16 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
       name: 'Room Status Row',
       columns: 4,
       recipe_tiles: [
+        { recipe: 'lights_on' },
         { recipe: 'home_presence', entity: 'person.mac_connolly' },
         {
           recipe: 'inside_temperature',
           entity: 'sensor.dining_room_temperature',
           action_entity: 'climate.dining_room',
         },
+        { recipe: 'outside_temperature' },
         { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
-        { recipe: 'system_state', entity: 'sensor.oal_system_status' },
+        { recipe: 'system_state' },
       ],
     };
   }
@@ -498,9 +581,11 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
       columns: 3,
       recipe_tiles: [
         { recipe: 'inside_temperature', entity: 'sensor.dining_room_temperature' },
+        { recipe: 'outside_temperature' },
         { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
+        { recipe: 'weather_modifier' },
         { recipe: 'next_sun_event' },
-        { recipe: 'system_state', entity: 'sensor.oal_system_status' },
+        { recipe: 'system_state' },
       ],
     };
   }
@@ -550,8 +635,13 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
           type: 'timer',
           entity: 'timer.oal_mode_timeout',
           icon: 'timer',
-          label: 'Mode TTL',
+          label: 'Mode Timer',
           accent: 'amber',
+          show_when: {
+            entity: 'timer.oal_mode_timeout',
+            operator: 'equals',
+            state: 'active',
+          },
         },
         {
           type: 'alarm',
@@ -564,17 +654,28 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
     };
   }
 
+  // Default: home_summary stub — 8 tiles fitting the 4×2 phone matrix limit
   return {
     ...base,
     columns: 4,
     recipe_tiles: [
       { recipe: 'home_presence', entity: 'person.mac_connolly' },
+      { recipe: 'lights_on' },
       { recipe: 'mode_selector' },
       { recipe: 'manual_overrides', entity: 'sensor.oal_system_status' },
       {
         recipe: 'inside_temperature',
         entity: 'sensor.dining_room_temperature',
         action_entity: 'climate.dining_room',
+      },
+      { recipe: 'outside_temperature' },
+      { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
+      {
+        recipe: 'next_alarm',
+        entity: 'sensor.sonos_next_alarm',
+        compact_label: 'Bedroom',
+        format: 'time_short',
+        navigate_path: '/tunet-card-rehab-yaml/alarms',
       },
     ],
   };
@@ -598,6 +699,8 @@ function humanizeStateValue(value) {
     fog: 'Fog',
     windy: 'Windy',
     windy_variant: 'Windy',
+    home: 'Home',
+    not_home: 'Away',
   };
   if (known[text]) return known[text];
 
@@ -683,7 +786,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     min-height: var(--_tunet-header-height, 2.625em);
   }
   .hdr-title {
-    font-size: var(--_tunet-header-title-font, var(--_tunet-header-font, 1em));
+    font-size: var(--_tunet-status-title-font, 1.0625em);
     font-weight: 700;
     color: var(--text);
     display: flex;
@@ -839,6 +942,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     color: var(--text-muted); line-height: 1.08; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
+  .tile-label:empty {
+    display: none;
+  }
   :host([use-profiles]) .tile-label {
     text-transform: none;
     letter-spacing: 0.01em;
@@ -906,20 +1012,20 @@ ${CARD_SURFACE_GLASS_STROKE}
     position: absolute;
     top: calc(var(--_tunet-tile-pad, 0.875em) * 0.45);
     right: calc(var(--_tunet-tile-pad, 0.875em) * 0.45);
-    min-height: calc(var(--_tunet-ctrl-min-h, 2.625em) * 0.7);
-    padding: 0 calc(var(--_tunet-ctrl-pad-x, 0.75em) * 0.66);
+    min-height: calc(var(--_tunet-ctrl-min-h, 2.625em) * 0.9);
+    padding: 0 calc(var(--_tunet-ctrl-pad-x, 0.75em) * 0.82);
     border-radius: 62.5em;
     border: 0.0625em solid var(--ctrl-border);
     background: var(--ctrl-bg);
     box-shadow: var(--ctrl-sh);
     color: var(--text-sub);
     font-family: inherit;
-    font-size: calc(var(--_tunet-sub-font, 0.6875em) * 0.95);
+    font-size: max(calc(var(--_tunet-sub-font, 0.6875em) * 1.06), 0.75em);
     font-weight: 700;
     letter-spacing: 0.0125em;
     display: inline-flex;
     align-items: center;
-    gap: 0.1875em;
+    gap: 0.25em;
     cursor: pointer;
     z-index: 2;
   }
@@ -928,7 +1034,12 @@ ${CARD_SURFACE_GLASS_STROKE}
     padding-top: calc(var(--_tunet-ctrl-min-h, 2.625em) + 0.5em);
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile.has-aux-visible {
-    padding-top: 1.875em;
+    padding-top: 2.1875em;
+  }
+  .tile-aux .aux-icon {
+    font-size: 0.95em;
+    width: 0.95em;
+    height: 0.95em;
   }
   .tile-aux:hover { box-shadow: var(--tile-shadow-rest); }
   .tile-aux:active { transform: scale(0.97); }
@@ -938,8 +1049,8 @@ ${CARD_SURFACE_GLASS_STROKE}
     background: rgba(239,68,68,0.12);
   }
   .tile-aux.summary-compact {
-    min-height: 1.75em;
-    width: 1.75em;
+    min-height: 2.25em;
+    width: 2.25em;
     padding: 0;
     justify-content: center;
     border-radius: 62.5em;
@@ -1050,10 +1161,11 @@ ${CARD_SURFACE_GLASS_STROKE}
     --tile-row-h: 5.375em;
     --_tunet-status-icon-box: 2em;
     --_tunet-status-icon-glyph: 1.5625em;
-    --_tunet-status-value-font: 1.3125em;
-    --_tunet-status-text-font: 1em;
-    --_tunet-status-label-font: 0.875em;
-    --_tunet-status-dropdown-font: 1.25em;
+    --_tunet-status-value-font: 1.15625em;
+    --_tunet-status-text-font: 1.0625em;
+    --_tunet-status-long-font: 0.9375em;
+    --_tunet-status-label-font: 0.8125em;
+    --_tunet-status-dropdown-font: 1.0625em;
   }
   :host([layout-variant="home_summary"]) .grid {
     gap: calc(var(--_tunet-tile-gap, 0.375em) * 0.85);
@@ -1078,7 +1190,11 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   :host([layout-variant="home_summary"]) .tile-val.is-text {
     font-size: var(--_tunet-status-text-font);
-    max-height: 2.12em;
+    max-height: 1.16em;
+    -webkit-line-clamp: 1;
+  }
+  :host([layout-variant="home_summary"]) .tile-val.is-long {
+    font-size: var(--_tunet-status-long-font);
   }
   :host([layout-variant="home_summary"]) .tile-label {
     font-size: var(--_tunet-status-label-font);
@@ -1169,7 +1285,6 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   :host([layout-variant="room_row"]) {
     --tile-row-h: var(--_tunet-row-min-h, 3.5em);
-    --_tunet-header-title-font: var(--_tunet-status-row-header-font, 1em);
   }
   :host([layout-variant="room_row"]) .grid {
     display: flex;
@@ -1190,7 +1305,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     min-height: var(--_tunet-row-min-h, 3.5em);
     padding:
       var(--_tunet-row-pad-y, 0.75em)
-      max(var(--_tunet-row-pad-x, 0.25em), 0.75em)
+      max(var(--_tunet-row-pad-x, 0.25em), 1.125em)
       var(--_tunet-row-pad-y, 0.75em)
       var(--_tunet-row-pad-x, 0.25em);
     gap: var(--_tunet-row-gap, 0.75em);
@@ -1240,10 +1355,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     --tile-row-h: 6.375em;
     --_tunet-status-icon-box: 2.75em;
     --_tunet-status-icon-glyph: 1.75em;
-    --_tunet-status-value-font: 1.4375em;
-    --_tunet-status-text-font: 1.1875em;
-    --_tunet-status-long-font: 1.0625em;
-    --_tunet-status-label-font: 0.75em;
+    --_tunet-status-value-font: 1.25em;
+    --_tunet-status-text-font: 1.0625em;
+    --_tunet-status-long-font: 0.96875em;
+    --_tunet-status-label-font: 0.8125em;
     --_tunet-status-dropdown-font: 1.375em;
   }
   :host([layout-variant="info_only"]) .grid {
@@ -1490,15 +1605,15 @@ ${CARD_SURFACE_GLASS_STROKE}
       display: none !important;
     }
     :host([layout-variant="room_row"]) .grid {
-      flex-wrap: wrap;
-      overflow-x: visible;
+      flex-wrap: nowrap;
+      overflow-x: auto;
       gap: 0.5em;
     }
     :host([layout-variant="room_row"]) .tile {
-      flex: 1 1 calc((100% - 0.5em) / 2);
-      min-width: calc((100% - 0.5em) / 2);
+      flex: 0 0 10em;
+      min-width: 10em;
       min-height: 3.125em;
-      padding: 0.625em 0.6875em 0.625em var(--_tunet-row-pad-x, 0.25em);
+      padding: 0.625em 1em 0.625em var(--_tunet-row-pad-x, 0.25em);
       gap: 0.5em;
     }
     :host([layout-variant="room_row"]) .tile-icon {
@@ -1680,6 +1795,13 @@ class TunetStatusCard extends HTMLElement {
       icon: normalizeStatusIcon(raw.icon || recipeDefaults.icon || 'info'),
       label: raw.label || recipeDefaults.label || '',
       compact_label: raw.compact_label || recipeDefaults.compact_label || '',
+      label_entity: raw.label_entity || recipeDefaults.label_entity || '',
+      label_attribute: raw.label_attribute || recipeDefaults.label_attribute || '',
+      label_format: raw.label_format || recipeDefaults.label_format || 'state',
+      label_map: cloneLabelMap(raw.label_map || recipeDefaults.label_map || null),
+      hide_label: raw.hide_label != null
+        ? Boolean(raw.hide_label)
+        : Boolean(recipeDefaults.hide_label),
       accent: raw.accent || recipeDefaults.accent || 'muted',
       show_when: cloneShowWhen(raw.show_when || recipeDefaults.show_when || null),
       tap_action: cloneActionConfig(raw.tap_action || recipeDefaults.tap_action),
@@ -1692,11 +1814,15 @@ class TunetStatusCard extends HTMLElement {
         ? {
             entity: raw.secondary.entity || raw.entity || recipeDefaults.entity || '',
             attribute: raw.secondary.attribute || '',
+            format: raw.secondary.format || 'state',
+            value_map: cloneLabelMap(raw.secondary.value_map || raw.secondary.map || null),
           }
         : (recipeDefaults.secondary
           ? {
               entity: recipeDefaults.secondary.entity || recipeDefaults.entity || '',
               attribute: recipeDefaults.secondary.attribute || '',
+              format: recipeDefaults.secondary.format || 'state',
+              value_map: cloneLabelMap(recipeDefaults.secondary.value_map || recipeDefaults.secondary.map || null),
             }
           : null),
       dot_rules: cloneDotRules(rawDotRules || recipeDefaults.dot_rules || null),
@@ -1720,6 +1846,12 @@ class TunetStatusCard extends HTMLElement {
   _applyVariantRecipeDefaults(tile, variant) {
     if (tile.recipe === 'next_alarm' && variant === 'alarms' && !tile._authoredType) {
       tile.type = 'alarm';
+    }
+    // CD11 Theme A: in home_summary, next_alarm shows HH:MM (no seconds) and prefers
+    // an authored compact_label (e.g. room name) so the tile reads "05:35 / Bedroom"
+    // rather than "05:35 · Bedroom / Alarm".
+    if (tile.recipe === 'next_alarm' && variant === 'home_summary') {
+      tile.format = tile.format === 'time_short' ? 'time_short_hm' : tile.format;
     }
   }
 
@@ -2145,6 +2277,11 @@ class TunetStatusCard extends HTMLElement {
   }
 
   _getDisplayLabel(tile) {
+    if (tile.hide_label) return '';
+
+    const dynamicLabel = this._resolveDynamicLabel(tile);
+    if (dynamicLabel) return dynamicLabel;
+
     const baseLabel = this._usesCompactLabels()
       ? (tile.compact_label || tile.label)
       : tile.label;
@@ -2155,6 +2292,22 @@ class TunetStatusCard extends HTMLElement {
       : Boolean(tile._authoredLabel);
     if (hasExplicitLabel) return baseLabel;
     return this._isSunAboveHorizon(tile) ? 'Sunset' : 'Sunrise';
+  }
+
+  _resolveDynamicLabel(tile) {
+    if (!tile.label_entity || !this._hass) return '';
+    const entity = this._hass.states[tile.label_entity];
+    if (!entity) return '';
+    let value = tile.label_attribute
+      ? entity.attributes?.[tile.label_attribute]
+      : entity.state;
+    if (Array.isArray(value)) value = value[0];
+    if (value == null) return '';
+    const mapped = tile.label_map?.[String(value)] ?? value;
+    const formatted = this._formatLabelValue(mapped, tile.label_format);
+    return formatted && !['unknown', 'unavailable', 'none'].includes(String(formatted).toLowerCase())
+      ? formatted
+      : '';
   }
 
   _getDisplayIcon(tile) {
@@ -2374,7 +2527,7 @@ class TunetStatusCard extends HTMLElement {
           auxBtn.title = auxLabel;
         }
         auxBtn.innerHTML = auxIcon
-          ? `<span class="icon" style="font-size:0.75em;width:0.75em;height:0.75em">${auxIcon}</span><span class="aux-label">${auxLabel}</span>`
+          ? `<span class="icon aux-icon">${auxIcon}</span><span class="aux-label">${auxLabel}</span>`
           : `<span class="aux-label">${auxLabel}</span>`;
         auxBtn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -2558,19 +2711,7 @@ class TunetStatusCard extends HTMLElement {
       : entity.state;
     const unit = config.unit || (!config.attribute ? entity.attributes?.unit_of_measurement || '' : '');
 
-    if (config.format === 'integer') {
-      const numStr = String(val).replace(/%/g, '').trim();
-      val = Math.round(Number(numStr));
-      if (isNaN(val)) val = String(entity.state).replace(/%/g, '').trim() || '—';
-    } else if (config.format === 'float1') {
-      const numStr = String(val).replace(/%/g, '').trim();
-      val = Number(numStr).toFixed(1);
-      if (val === 'NaN') val = '—';
-    } else if (config.format === 'time') {
-      val = this._formatLocalTime(val);
-    } else if (config.format === 'state') {
-      val = humanizeStateValue(val);
-    }
+    val = this._formatStatusValue(val, config.format, entity.state);
 
     this._renderValWithUnit(valEl, val, unit);
 
@@ -2580,12 +2721,17 @@ class TunetStatusCard extends HTMLElement {
 
     if (secEl && config.secondary) {
       const secEntity = this._hass.states[config.secondary.entity];
-      if (secEntity && config.secondary.attribute) {
-        let secVal = secEntity.attributes[config.secondary.attribute];
+      if (secEntity) {
+        let secVal = config.secondary.attribute
+          ? secEntity.attributes[config.secondary.attribute]
+          : secEntity.state;
         if (Array.isArray(secVal)) {
           secVal = secVal.map((m) => (m && m.name) || String(m)).join(', ');
         }
-        secEl.textContent = secVal != null ? String(secVal) : '';
+        const mapped = config.secondary.value_map?.[String(secVal)] ?? secVal;
+        secEl.textContent = mapped != null
+          ? this._formatStatusValue(mapped, config.secondary.format || 'state', mapped)
+          : '';
       } else {
         secEl.textContent = '';
       }
@@ -2623,7 +2769,7 @@ class TunetStatusCard extends HTMLElement {
 
     // Update display value
     if (valEl) {
-      valEl.textContent = isSet ? alarmTime : '--:--';
+      valEl.textContent = isSet ? this._formatShortTime(alarmTime) : '--:--';
     }
 
     // Toggle CSS state classes
@@ -2638,7 +2784,8 @@ class TunetStatusCard extends HTMLElement {
   _renderValWithUnit(valEl, val, unit) {
     const textValue = String(val ?? '');
     const isNumericText = /^-?\d+(\.\d+)?$/.test(textValue.trim());
-    valEl.classList.toggle('is-text', !unit && !isNumericText);
+    const isTimeText = /^\d{1,2}:\d{2}(?::\d{2})?(\s*[AP]M)?$/i.test(textValue.trim());
+    valEl.classList.toggle('is-text', !unit && !isNumericText && !isTimeText);
     valEl.classList.toggle('is-long', textValue.length > 10);
 
     if (unit === '°F' || unit === '°C' || unit === '°') {
@@ -2648,6 +2795,50 @@ class TunetStatusCard extends HTMLElement {
     } else {
       valEl.textContent = val;
     }
+  }
+
+  _formatStatusValue(value, format = 'state', fallbackValue = value) {
+    if (format === 'integer') {
+      const numStr = String(value).replace(/%/g, '').trim();
+      const rounded = Math.round(Number(numStr));
+      return Number.isFinite(rounded)
+        ? rounded
+        : (String(fallbackValue).replace(/%/g, '').trim() || '—');
+    }
+    if (format === 'float1') {
+      const numStr = String(value).replace(/%/g, '').trim();
+      const fixed = Number(numStr).toFixed(1);
+      return fixed === 'NaN' ? '—' : fixed;
+    }
+    if (format === 'time') return this._formatLocalTime(value);
+    if (format === 'time_short') return this._formatShortTime(value);
+    if (format === 'time_short_hm') return this._formatShortTime(value).replace(/\s*[AP]M$/i, '');
+    if (format === 'alarm_room') return this._extractAlarmRoom(value);
+    if (format === 'state') return humanizeStateValue(value);
+    return value == null || value === '' ? '—' : String(value);
+  }
+
+  _formatLabelValue(value, format = 'state') {
+    const formatted = this._formatStatusValue(value, format, value);
+    return String(formatted ?? '').trim();
+  }
+
+  _formatShortTime(rawValue) {
+    if (rawValue == null || rawValue === '') return '—';
+    const text = String(rawValue).trim();
+    const match = text.match(/\b(\d{1,2}:\d{2})(?::\d{2})?(\s*[AP]M)?\b/i);
+    if (match) return `${match[1]}${match[2] ? match[2].toUpperCase().replace(/\s+/, ' ') : ''}`;
+
+    const local = this._formatLocalTime(rawValue);
+    return local === String(rawValue) ? text : local;
+  }
+
+  _extractAlarmRoom(rawValue) {
+    const text = String(rawValue ?? '').trim();
+    if (!text) return '';
+    const parts = text.split(/\s*[·|-]\s*/).map((part) => part.trim()).filter(Boolean);
+    if (parts.length > 1) return parts[parts.length - 1];
+    return text.replace(/\b\d{1,2}:\d{2}(?::\d{2})?(\s*[AP]M)?\b/i, '').trim();
   }
 
   _formatLocalTime(rawValue) {

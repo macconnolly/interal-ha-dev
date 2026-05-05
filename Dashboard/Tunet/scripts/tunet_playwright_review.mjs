@@ -122,6 +122,7 @@ const ROUTE_SETS = {
     { id: 'surfaces', path: '/tunet-card-rehab-yaml/surfaces' },
     { id: 'phone-stress', path: '/tunet-card-rehab-yaml/phone-stress' },
     { id: 'nav-lab', path: '/tunet-card-rehab-yaml/nav-lab' },
+    { id: 'polish-review', path: '/tunet-card-rehab-yaml/polish-review' },
   ],
   storage: [
     { id: 'overview', path: '/tunet-suite-storage/overview' },

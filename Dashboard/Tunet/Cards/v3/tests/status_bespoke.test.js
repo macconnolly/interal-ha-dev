@@ -50,12 +50,21 @@ function makeStatusHass(overrides = {}) {
       },
       'sensor.oal_system_status': {
         entity_id: 'sensor.oal_system_status',
-        state: 'Adaptive',
+        state: 'Environmental Boost',
         attributes: {
           friendly_name: 'OAL System Status',
           zones_adaptive: 3,
           active_zonal_overrides: 2,
-          current_config: 'Adaptive',
+          current_config: 'Environmental Boost',
+        },
+      },
+      'sensor.hero_all_lights_state': {
+        entity_id: 'sensor.hero_all_lights_state',
+        state: 'on',
+        attributes: {
+          friendly_name: 'Hero All Lights State',
+          number_on: 3,
+          total_lights: 16,
         },
       },
       'sensor.dining_room_temperature': {
@@ -76,11 +85,27 @@ function makeStatusHass(overrides = {}) {
       },
       'sensor.oal_global_brightness_offset': {
         entity_id: 'sensor.oal_global_brightness_offset',
-        state: '15',
+        state: '+15%',
         attributes: {
           friendly_name: 'OAL Global Brightness Offset',
           total_offset: 15,
-          current_config: 'Adaptive',
+          current_config: 'Environmental Boost',
+        },
+      },
+      'sensor.oal_real_time_monitor': {
+        entity_id: 'sensor.oal_real_time_monitor',
+        state: 'Boosted',
+        attributes: { friendly_name: 'OAL Real-Time Monitor' },
+      },
+      'weather.home': {
+        entity_id: 'weather.home',
+        state: 'rainy',
+        attributes: {
+          friendly_name: 'Forecast Home',
+          temperature: 36,
+          temperature_unit: '°F',
+          humidity: 92,
+          uv_index: 0,
         },
       },
       'input_select.oal_active_configuration': {
@@ -108,7 +133,7 @@ function makeStatusHass(overrides = {}) {
       },
       'sensor.sonos_next_alarm': {
         entity_id: 'sensor.sonos_next_alarm',
-        state: '7:05 AM',
+        state: '05:35 · Bedroom',
         attributes: {},
       },
       'sensor.sonos_enabled_alarm_count': {
@@ -171,6 +196,11 @@ const RUNTIME_CONTRACT_KEYS = [
   'icon',
   'label',
   'compact_label',
+  'label_entity',
+  'label_attribute',
+  'label_format',
+  'label_map',
+  'hide_label',
   'accent',
   'show_when',
   'tap_action',
@@ -210,6 +240,11 @@ function expectedRuntimeTile(overrides = {}) {
     icon: 'info',
     label: '',
     compact_label: '',
+    label_entity: '',
+    label_attribute: '',
+    label_format: 'state',
+    label_map: null,
+    hide_label: false,
     accent: 'muted',
     show_when: null,
     tap_action: null,
@@ -261,16 +296,34 @@ const CD11_STATUS_VARIANTS = [
 
 const CD11_STATUS_RECIPES = [
   'home_presence',
+  'lights_on',
   'adaptive_count',
   'manual_overrides',
   'mode_selector',
   'boost_offset',
   'inside_temperature',
+  'outside_temperature',
   'inside_humidity',
+  'weather_modifier',
   'next_sun_event',
   'system_state',
   'next_alarm',
   'enabled_alarms',
+  'mode_ttl',
+];
+
+const STATUS_PRIMARY_LAB_RECIPES = [
+  'home_presence',
+  'lights_on',
+  'manual_overrides',
+  'mode_selector',
+  'boost_offset',
+  'inside_temperature',
+  'outside_temperature',
+  'inside_humidity',
+  'next_sun_event',
+  'system_state',
+  'next_alarm',
   'mode_ttl',
 ];
 
@@ -378,11 +431,12 @@ describe('Status: home_summary mode contract', () => {
     expect(el.shadowRoot.querySelector('.tile-secondary')).toBeNull();
   });
 
-  it('centers summary dropdown text without the chevron affordance and keeps larger summary typography', () => {
+  it('keeps home_summary typography bounded so mixed values read as one component family', () => {
     const css = readCardCSS();
-    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s*\{[^}]*--tile-row-h:\s*5\.375em;[^}]*--_tunet-status-icon-box:\s*2em;[^}]*--_tunet-status-value-font:\s*1\.3125em;[^}]*--_tunet-status-label-font:\s*0\.875em;[^}]*--_tunet-status-dropdown-font:\s*1\.25em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s*\{[^}]*--tile-row-h:\s*5\.375em;[^}]*--_tunet-status-icon-box:\s*2em;[^}]*--_tunet-status-value-font:\s*1\.15625em;[^}]*--_tunet-status-text-font:\s*1\.0625em;[^}]*--_tunet-status-long-font:\s*0\.9375em;[^}]*--_tunet-status-label-font:\s*0\.8125em;[^}]*--_tunet-status-dropdown-font:\s*1\.0625em;/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile\s*\{[^}]*padding:\s*0\.6875em 0\.5625em 0\.5em;[^}]*gap:\s*0\.15625em;/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-val\s*\{[^}]*font-size:\s*var\(--_tunet-status-value-font\);[^}]*line-height:\s*1\.02;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-val\.is-text\s*\{[^}]*font-size:\s*var\(--_tunet-status-text-font\);[^}]*-webkit-line-clamp:\s*1;/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-label\s*\{[^}]*font-size:\s*var\(--_tunet-status-label-font\);[^}]*line-height:\s*1\.04;/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-dd-val\s*\{[^}]*justify-content:\s*center;[^}]*text-align:\s*center;[^}]*gap:\s*0;[^}]*font-size:\s*var\(--_tunet-status-dropdown-font\);/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-dd-val\s+\.dd-text\s*\{[^}]*text-align:\s*center;[^}]*width:\s*100%;/s);
@@ -507,7 +561,7 @@ describe('Status: home_detail mode contract', () => {
     expect(el._resolveResponsiveColumns(1440)).toBe(4);
   });
 
-  it('keeps full labels, secondary values, and full aux pills in home_detail', () => {
+  it('keeps full labels, secondary values, dynamic labels, and full aux pills in home_detail', () => {
     const el = createStatus({
       layout_variant: 'home_detail',
       tiles: [
@@ -518,6 +572,14 @@ describe('Status: home_detail mode contract', () => {
         {
           recipe: 'boost_offset',
           entity: 'sensor.oal_global_brightness_offset',
+          label_entity: 'sensor.oal_real_time_monitor',
+          label_map: { Boosted: 'Env. Boost' },
+          unit: '%',
+        },
+        {
+          type: 'value',
+          entity: 'sensor.oal_global_brightness_offset',
+          label: 'Legacy Boost',
           secondary: {
             entity: 'sensor.oal_global_brightness_offset',
             attribute: 'current_config',
@@ -535,8 +597,8 @@ describe('Status: home_detail mode contract', () => {
     expect(aux).not.toBeNull();
     expect(aux.classList.contains('summary-compact')).toBe(false);
     expect(aux.querySelector('.aux-label')?.textContent?.trim()).toBe('Reset');
-    expect(labels).toEqual(['Manual', 'Boost']);
-    expect(secondary?.textContent?.trim()).toBe('Adaptive');
+    expect(labels).toEqual(['Manual', 'Env. Boost', 'Legacy Boost']);
+    expect(secondary?.textContent?.trim()).toBe('Environmental Boost');
   });
 
   it('raises home_detail icon and typography scale so tiles do not read undersized', () => {
@@ -614,11 +676,11 @@ describe('Status: room_row mode contract', () => {
 
     const css = readCardCSS();
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*nowrap;[^}]*overflow-x:\s*auto;[^}]*scrollbar-width:\s*none;/s);
-    expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s*\{[^}]*--_tunet-header-title-font:\s*var\(--_tunet-status-row-header-font,\s*1em\);/s);
-    expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*0 0 10\.75em;[^}]*padding:\s*var\(--_tunet-row-pad-y,\s*0\.75em\)\s+max\(var\(--_tunet-row-pad-x,\s*0\.25em\),\s*0\.75em\)\s+var\(--_tunet-row-pad-y,\s*0\.75em\)\s+var\(--_tunet-row-pad-x,\s*0\.25em\);[^}]*flex-direction:\s*row;[^}]*align-items:\s*center;[^}]*justify-content:\s*flex-start;/s);
+    expect(css).toMatch(/\.hdr-title\s*\{[^}]*font-size:\s*var\(--_tunet-status-title-font,\s*1\.0625em\);/s);
+    expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*0 0 10\.75em;[^}]*padding:\s*var\(--_tunet-row-pad-y,\s*0\.75em\)\s+max\(var\(--_tunet-row-pad-x,\s*0\.25em\),\s*1\.125em\)\s+var\(--_tunet-row-pad-y,\s*0\.75em\)\s+var\(--_tunet-row-pad-x,\s*0\.25em\);[^}]*flex-direction:\s*row;[^}]*align-items:\s*center;[^}]*justify-content:\s*flex-start;/s);
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile-label\s*\{[^}]*text-transform:\s*none;[^}]*text-align:\s*left;/s);
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile-val\s*\{[^}]*margin-left:\s*auto;[^}]*text-align:\s*right;/s);
-    expect(css).toMatch(/@media \(max-width:\s*27\.5em\)\s*\{[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*flex-wrap:\s*wrap;[^}]*overflow-x:\s*visible;[^}]*gap:\s*0\.5em;[^}]*\}[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*1 1 calc\(\(100% - 0\.5em\) \/ 2\);[^}]*min-width:\s*calc\(\(100% - 0\.5em\) \/ 2\);[^}]*padding:\s*0\.625em 0\.6875em 0\.625em var\(--_tunet-row-pad-x,\s*0\.25em\);/s);
+    expect(css).toMatch(/@media \(max-width:\s*27\.5em\)\s*\{[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*flex-wrap:\s*nowrap;[^}]*overflow-x:\s*auto;[^}]*gap:\s*0\.5em;[^}]*\}[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*0 0 10em;[^}]*min-width:\s*10em;[^}]*padding:\s*0\.625em 1em 0\.625em var\(--_tunet-row-pad-x,\s*0\.25em\);/s);
   });
 
   it('uses compact labels, suppresses secondary and aux content, keeps actions, and collapses hidden tiles', () => {
@@ -720,7 +782,7 @@ describe('Status: info_only mode contract', () => {
     expect(warnSpy).toHaveBeenCalledTimes(2);
 
     const css = readCardCSS();
-    expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s*\{[^}]*--tile-row-h:\s*6\.375em;[^}]*--_tunet-status-icon-glyph:\s*1\.75em;[^}]*--_tunet-status-value-font:\s*1\.4375em;[^}]*--_tunet-status-text-font:\s*1\.1875em;[^}]*--_tunet-status-long-font:\s*1\.0625em;[^}]*--_tunet-status-label-font:\s*0\.75em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s*\{[^}]*--tile-row-h:\s*6\.375em;[^}]*--_tunet-status-icon-glyph:\s*1\.75em;[^}]*--_tunet-status-value-font:\s*1\.25em;[^}]*--_tunet-status-text-font:\s*1\.0625em;[^}]*--_tunet-status-long-font:\s*0\.96875em;[^}]*--_tunet-status-label-font:\s*0\.8125em;/s);
     expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s+\.tile\s*\{[^}]*padding:\s*0\.9375em 0\.75em 0\.8125em;[^}]*box-shadow:\s*0 0\.1875em 0\.5em rgba\(0,0,0,0\.035\), 0 0\.0625em 0\.125em rgba\(0,0,0,0\.05\);/s);
     expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s+\.tile-label\s*\{[^}]*font-weight:\s*500;[^}]*opacity:\s*0\.78;[^}]*text-transform:\s*none;/s);
     expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s+\.tile-secondary\s*\{[^}]*display:\s*none !important;/s);
@@ -848,13 +910,45 @@ describe('Status: alarms mode contract', () => {
 
     expect(el._config.layout_variant).toBe('alarms');
     expect(el._config.resolved_layout_variant).toBe('alarms');
-    expect(el._config.tiles.map((tile) => tile.type)).toEqual(['alarm', 'timer', 'value']);
+    expect(el._config.tiles.map((tile) => tile.type)).toEqual(['alarm', 'value', 'value']);
     expect(warnSpy).toHaveBeenCalledTimes(1);
 
     document.body.appendChild(el);
     el.hass = makeStatusHass();
     expect(el.shadowRoot.querySelector('.tile[data-type="alarm"] .alarm-actions')).not.toBeNull();
+    expect(el.shadowRoot.querySelector('.tile[data-type="alarm"] .alarm-time-pill')?.textContent?.trim()).toBe('05:35');
     document.body.removeChild(el);
+  });
+
+  it('formats alarm-like value tiles as HH:MM without showing seconds or room text as the value', () => {
+    const el = createStatus({
+      layout_variant: 'home_detail',
+      tiles: [
+        {
+          recipe: 'next_alarm',
+          entity: 'sensor.sonos_next_alarm',
+          label: 'Next Alarm',
+          compact_label: 'Bedroom',
+        },
+        {
+          type: 'value',
+          entity: 'sensor.sonos_alarms_for_tomorrow',
+          label: 'Tomorrow Alarm',
+          attribute: 'earliest_alarm_time_tomorrow',
+          format: 'time_short',
+        },
+      ],
+    }, {
+      'sensor.sonos_alarms_for_tomorrow': {
+        entity_id: 'sensor.sonos_alarms_for_tomorrow',
+        state: '1 alarm(s) scheduled for tomorrow.',
+        attributes: { earliest_alarm_time_tomorrow: '05:35:00', alarm_count: 1 },
+      },
+    });
+
+    const values = [...el.shadowRoot.querySelectorAll('.tile-val')].map((node) => node.textContent.trim());
+    expect(values).toEqual(['05:35', '05:35']);
+    expect(values.join(' ')).not.toContain(':00');
   });
 
   it('collapses hidden tiles in alarms mode', () => {
@@ -1151,7 +1245,7 @@ describe('Status: recipe and action precedence', () => {
         recipe: 'home_presence',
         entity: 'person.mac_connolly',
         icon: 'home',
-        label: 'Home',
+        label: 'Presence',
         compact_label: 'Home',
         accent: 'green',
         format: 'state',
@@ -1162,6 +1256,30 @@ describe('Status: recipe and action precedence', () => {
         primary_action: {
           kind: 'action',
           config: { action: 'more-info', entity: 'person.mac_connolly' },
+        },
+      }),
+    ],
+    [
+      'lights_on',
+      'home_summary',
+      { recipe: 'lights_on' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'lights_on',
+        entity: 'sensor.oal_system_status',
+        icon: 'lightbulb',
+        label: 'Lights On',
+        compact_label: 'Lights',
+        accent: 'amber',
+        attribute: 'lights_on_formatted',
+        format: 'state',
+        dot_rules: [
+          { match: 'on', dot: 'amber' },
+          { match: '*', dot: 'muted' },
+        ],
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'sensor.oal_system_status' },
         },
       }),
     ],
@@ -1317,16 +1435,43 @@ describe('Status: recipe and action precedence', () => {
     [
       'system_state',
       'info_only',
-      { recipe: 'system_state', entity: 'sensor.oal_system_status' },
+      { recipe: 'system_state' },
       expectedRuntimeTile({
         type: 'indicator',
         recipe: 'system_state',
-        entity: 'sensor.oal_system_status',
+        entity: 'sensor.oal_real_time_monitor',
         icon: 'info',
         label: 'System',
         compact_label: 'System',
         accent: 'blue',
         format: 'state',
+      }),
+    ],
+    [
+      'weather_modifier',
+      'home_detail',
+      { recipe: 'weather_modifier' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'weather_modifier',
+        entity: 'sensor.oal_system_status',
+        icon: 'cloud',
+        label: 'Weather',
+        compact_label: 'Weather',
+        accent: 'blue',
+        attribute: 'weather_modifier_value',
+        format: 'integer',
+        unit: '%',
+        show_when: {
+          entity: 'sensor.oal_system_status',
+          attribute: 'weather_modifier_active',
+          operator: 'equals',
+          state: true,
+        },
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'sensor.oal_system_status' },
+        },
       }),
     ],
     [
@@ -1341,7 +1486,7 @@ describe('Status: recipe and action precedence', () => {
         label: 'Alarm',
         compact_label: 'Alarm',
         accent: 'blue',
-        format: 'state',
+        format: 'time_short',
         primary_action: {
           kind: 'action',
           config: { action: 'more-info', entity: 'sensor.sonos_next_alarm' },
@@ -1372,16 +1517,24 @@ describe('Status: recipe and action precedence', () => {
       'alarms',
       { recipe: 'mode_ttl' },
       expectedRuntimeTile({
-        type: 'timer',
+        type: 'value',
         recipe: 'mode_ttl',
-        entity: 'timer.oal_mode_timeout',
+        entity: 'sensor.oal_system_status',
         icon: 'timer',
-        label: 'Mode TTL',
-        compact_label: 'TTL',
+        label: 'Mode Timer',
+        compact_label: 'Timer',
         accent: 'amber',
+        attribute: 'mode_timeout_remaining',
+        format: 'state',
+        show_when: {
+          entity: 'sensor.oal_system_status',
+          attribute: 'mode_timeout_state',
+          operator: 'equals',
+          state: 'active',
+        },
         primary_action: {
           kind: 'action',
-          config: { action: 'more-info', entity: 'timer.oal_mode_timeout' },
+          config: { action: 'more-info', entity: 'sensor.oal_system_status' },
         },
       }),
     ],

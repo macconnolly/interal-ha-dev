@@ -1359,11 +1359,18 @@ Small top-right action affordance. Visible only when `aux_show_when` matches.
 
 ### Grid Options
 
-```javascript
-{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 }
-```
+`getGridOptions()` is variant-aware in CD11 while preserving the suite-wide Sections rule that rows remain `auto`.
 
-Still static at the helper layer. `getCardSize()` now clamps summary sizing to the `home_summary` slot budget, but the card remains Sections-override friendly rather than trying to infer whole-page intent.
+| Variant | `getGridOptions()` | `getCardSize()` estimate |
+|---------|--------------------|--------------------------|
+| `home_summary` | `{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 4 }` | fixed 4-column summary matrix, clamped to the 8-slot summary budget plus optional header |
+| `home_detail` | `{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 3, max_rows: 12 }` | authored columns/breakpoints + tile count, with room for richer detail rows |
+| `room_row` | `{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 1, max_rows: 2 }` | one row when headerless, two rows with header |
+| `info_only` | `{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 6 }` | compact passive information rows with a short ceiling |
+| `alarms` | `{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 3, max_rows: 8 }` | timer/alarm cluster with a taller minimum for alarm sub-shapes |
+| `custom` | `{ columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 }` | legacy authored grid estimate |
+
+These values mirror `Dashboard/Tunet/Docs/sections_layout_matrix.md` and are locked by the `Status: variant-aware Sections sizing contract` block in `status_bespoke.test.js`.
 
 ### Legacy Keys
 
@@ -1385,7 +1392,7 @@ Still static at the helper layer. `getCardSize()` now clamps summary sizing to t
 ### Sections Safety
 
 - `CD11a` removed the old fixed-height cap: status rows now use `grid-auto-rows: minmax(var(--tile-row-h), auto)` so taller content can grow without clipping.
-- `rows: 'auto'` in `getGridOptions()` still describes the helper contract; the internal summary/custom grids own their own row rhythm.
+- `rows: 'auto'` in `getGridOptions()` still describes the helper contract; variant-specific `min_rows` / `max_rows` describe the intrinsic shape without forcing fixed rows.
 - `home_summary` is intentionally phone-first with a fixed `4x2` summary target; do not reinterpret it as a desktop/tablet-only density.
 - `custom` remains the legacy escape hatch for authored freeform grids now that the opinionated `CD11` variants are implemented.
 

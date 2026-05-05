@@ -237,6 +237,14 @@ function synthesizedRuntimeTile(layoutVariant, tileConfig) {
   return normalizeRuntimeTile(el._config.tiles[0]);
 }
 
+function valueTiles(count) {
+  return Array.from({ length: count }, (_, index) => ({
+    type: 'value',
+    entity: `sensor.status_grid_${index}`,
+    label: `Tile ${index + 1}`,
+  }));
+}
+
 afterEach(() => {
   document.body.innerHTML = '';
   vi.restoreAllMocks();
@@ -807,6 +815,107 @@ describe('Status: alarms mode contract', () => {
     expect(css).toMatch(/:host\(\[layout-variant="alarms"\]\)\s+\.tile\s*\{[^}]*padding:\s*0\.75em 0\.625em 0\.5625em;[^}]*gap:\s*0\.15625em;/s);
     expect(css).toMatch(/:host\(\[layout-variant="alarms"\]\)\s+\.tile\[data-type="timer"\]\s+\.tile-val\s*\{[^}]*font-size:\s*1\.5em;/s);
     expect(css).toMatch(/:host\(\[layout-variant="alarms"\]\)\s+\.alarm-time-pill\s*\{[^}]*font-size:\s*1\.125em;/s);
+  });
+});
+
+describe('Status: variant-aware Sections sizing contract', () => {
+  it.each([
+    [
+      'home_summary',
+      {
+        layout_variant: 'home_summary',
+        show_header: true,
+        columns: 2,
+        tiles: valueTiles(9),
+      },
+      { columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 4 },
+      3,
+    ],
+    [
+      'home_detail',
+      {
+        layout_variant: 'home_detail',
+        show_header: true,
+        columns: 3,
+        tiles: valueTiles(7),
+      },
+      { columns: 12, min_columns: 6, rows: 'auto', min_rows: 3, max_rows: 12 },
+      4,
+    ],
+    [
+      'room_row',
+      {
+        layout_variant: 'room_row',
+        show_header: true,
+        columns: 4,
+        tiles: valueTiles(6),
+      },
+      { columns: 12, min_columns: 6, rows: 'auto', min_rows: 1, max_rows: 2 },
+      2,
+    ],
+    [
+      'info_only',
+      {
+        layout_variant: 'info_only',
+        show_header: true,
+        columns: 3,
+        tiles: [
+          ...valueTiles(4),
+          { type: 'indicator', entity: 'sensor.status_grid_indicator', label: 'Indicator' },
+        ],
+      },
+      { columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 6 },
+      3,
+    ],
+    [
+      'alarms',
+      {
+        layout_variant: 'alarms',
+        show_header: true,
+        columns: 2,
+        tiles: [
+          { type: 'alarm', entity: 'sensor.sonos_next_alarm', label: 'Alarm' },
+          { type: 'timer', entity: 'timer.oal_mode_timeout', label: 'Mode TTL' },
+          { type: 'value', entity: 'sensor.sonos_enabled_alarm_count', label: 'Enabled' },
+          { type: 'indicator', entity: 'sensor.sonos_alarm_playing', label: 'Playing' },
+        ],
+      },
+      { columns: 12, min_columns: 6, rows: 'auto', min_rows: 3, max_rows: 8 },
+      3,
+    ],
+    [
+      'custom',
+      {
+        layout_variant: 'custom',
+        show_header: true,
+        columns: 3,
+        tiles: [
+          ...valueTiles(3),
+          { type: 'timer', entity: 'timer.oal_mode_timeout', label: 'Mode TTL' },
+          { type: 'dropdown', entity: 'input_select.oal_active_configuration', label: 'Mode' },
+        ],
+      },
+      { columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 },
+      3,
+    ],
+  ])('%s returns variant-specific getGridOptions and getCardSize', (_variant, config, expectedGrid, expectedCardSize) => {
+    const el = document.createElement('tunet-status-card');
+    el.setConfig(config);
+
+    expect(el.getGridOptions()).toEqual(expectedGrid);
+    expect(el.getCardSize()).toBe(expectedCardSize);
+  });
+
+  it('room_row without a header stays a one-row Sections shape', () => {
+    const el = document.createElement('tunet-status-card');
+    el.setConfig({
+      layout_variant: 'room_row',
+      show_header: false,
+      tiles: valueTiles(4),
+    });
+
+    expect(el.getGridOptions()).toEqual({ columns: 12, min_columns: 6, rows: 'auto', min_rows: 1, max_rows: 2 });
+    expect(el.getCardSize()).toBe(1);
   });
 });
 

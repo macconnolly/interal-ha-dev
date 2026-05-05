@@ -1,11 +1,44 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `main`
-Last updated: 2026-05-04
+Last updated: 2026-05-05
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (`CD10` nav verify deferred until room/surface composition is more settled)
+
+## Session Delta (2026-05-05, CD11 gap 2 — variant-aware grid sizing)
+
+Change marker: status card Sections sizing is now variant-aware
+
+- `CHOSEN INTERPRETATION`
+  - all status variants keep `rows: auto`, but `min_rows`, `max_rows`, and `getCardSize()` should describe the visible shape the user actually gets
+  - `room_row` is a row surface, not a compact summary grid; `alarms` and `home_detail` need larger row envelopes than `info_only`
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - added per-variant grid options
+    - made `getGridOptions()` variant-aware
+    - made `getCardSize()` variant-aware and summary-slot-aware
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - added per-variant grid and card-size regression coverage
+  - `Dashboard/Tunet/Docs/sections_layout_matrix.md`
+    - added status variant grid table
+  - `Dashboard/Tunet/Docs/cards_reference.md`
+    - documented the same per-variant grid options in §9
+- `TESTS / VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `49/49`
+  - full `npm test` → `674/674`
+  - YAML parse: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_060140Z`
+  - rehab YAML re-SCP'd to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - live HA screenshot review in light/dark across all locked breakpoints:
+    - `/tmp/tunet-playwright-review/2026-05-05T06-01-58-703Z/review-manifest.json`
+- `RESULT`
+  - variant-aware status sizing is code/test/doc/deploy complete
+  - the next open CD11 gap is editor/stub authoring at the variant + recipe layer
 
 ## Session Delta (2026-05-04, CD11 gap 1 — recipe defaults self-containment)
 

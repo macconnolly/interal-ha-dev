@@ -1,6 +1,6 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-05-04 (America/Denver)
+Last updated: 2026-05-05 (America/Denver)
 Intended reader: next Claude Code session
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
@@ -8,6 +8,38 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole author
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-05, CD11 gap 2 — variant-aware grid sizing)
+
+- `CURRENT STATE`
+  - Gap 2 is complete in repo source and deployed to the HA lab
+  - `tunet-status-card` now returns variant-specific `getGridOptions()` and `getCardSize()` values
+  - remaining CD11 work: variant/recipe editor + stub authoring, then final cross-contract closure
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - `home_summary`: `min_rows: 2`, `max_rows: 4`
+    - `home_detail`: `min_rows: 3`, `max_rows: 12`
+    - `room_row`: `min_rows: 1`, `max_rows: 2`
+    - `info_only`: `min_rows: 2`, `max_rows: 6`
+    - `alarms`: `min_rows: 3`, `max_rows: 8`
+    - `custom`: legacy `min_rows: 2`, `max_rows: 12`
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - status bespoke suite now asserts every variant's Sections sizing contract
+  - `Dashboard/Tunet/Docs/sections_layout_matrix.md` and `Dashboard/Tunet/Docs/cards_reference.md`
+    - both now document the same variant sizing table
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `49/49`
+  - full `npm test` → `674/674`
+  - YAML parse: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_060140Z`
+  - rehab YAML re-pushed to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - live HA review:
+    - `/tmp/tunet-playwright-review/2026-05-05T06-01-58-703Z/review-manifest.json`
+- `NEXT`
+  - implement Gap 3: variant + recipe authoring in `getConfigForm()`, `recipe_tiles`/`recipes` synthesis in `setConfig()`, and coherent per-variant stub configs
 
 ## Session Delta (2026-05-04, CD11 gap 1 — recipe defaults self-containment)
 

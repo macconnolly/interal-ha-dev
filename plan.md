@@ -1,11 +1,46 @@
 # Tunet Suite Dashboard - Implementation Plan
 
 Working branch: `main`
-Last updated: 2026-05-04
+Last updated: 2026-05-05
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-05, CD11 gap 2 — variant-aware grid sizing)
+
+Tranche marker: Sections sizing contract closure only; editor/stub closure remains open
+
+- `AUTHORITY NOTE`
+  - `rows: auto` remains the suite-wide Home Assistant Sections rule
+  - CD11 variants are not interchangeable card skins; each variant now exposes the row envelope implied by its page role
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - added a per-variant grid-options table for `home_summary`, `home_detail`, `room_row`, `info_only`, `alarms`, and `custom`
+    - made `getGridOptions()` return that variant-specific contract
+    - made `getCardSize()` estimate rows from variant shape, header presence, active/authored columns, tile count, and the summary slot budget
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - added the `Status: variant-aware Sections sizing contract` block covering every variant's `getGridOptions()` and `getCardSize()`
+  - `Dashboard/Tunet/Docs/sections_layout_matrix.md`
+    - updated the status row and added a CD11 status-variant grid-options subsection
+  - `Dashboard/Tunet/Docs/cards_reference.md`
+    - replaced the stale static status grid-options block with the per-variant contract
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `49/49`
+  - full `npm test` → `674/674`
+  - YAML parse: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_060140Z`
+  - rehab YAML re-pushed to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - authenticated live HA lab screenshot review at `390x844`, `768x1024`, `1024x1366`, `1440x900` in light and dark completed without harness failures:
+    - `/tmp/tunet-playwright-review/2026-05-05T06-01-58-703Z/review-manifest.json`
+  - live DOM measurement confirmed all six variants return the documented grid options on the deployed lab
+- `RESULT`
+  - `room_row` is no longer sized as a full multi-row summary/detail grid
+  - `home_summary`, `home_detail`, `info_only`, `alarms`, and `custom` now each provide a Sections hint matching their intrinsic shape while retaining `rows: auto`
+  - CD11 remains open for variant/recipe editor + stub authoring and final cross-contract closure
 
 ## Session Delta (2026-05-04, CD11 gap 1 — recipe defaults self-containment)
 

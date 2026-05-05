@@ -105,6 +105,51 @@ const STATUS_RECIPE_ENTITY_BINDING = {
   mode_ttl: 'fixed',
 };
 
+const STATUS_VARIANT_GRID_OPTIONS = {
+  home_summary: {
+    columns: 12,
+    min_columns: 6,
+    rows: 'auto',
+    min_rows: 2,
+    max_rows: 4,
+  },
+  home_detail: {
+    columns: 12,
+    min_columns: 6,
+    rows: 'auto',
+    min_rows: 3,
+    max_rows: 12,
+  },
+  room_row: {
+    columns: 12,
+    min_columns: 6,
+    rows: 'auto',
+    min_rows: 1,
+    max_rows: 2,
+  },
+  info_only: {
+    columns: 12,
+    min_columns: 6,
+    rows: 'auto',
+    min_rows: 2,
+    max_rows: 6,
+  },
+  alarms: {
+    columns: 12,
+    min_columns: 6,
+    rows: 'auto',
+    min_rows: 3,
+    max_rows: 8,
+  },
+  custom: {
+    columns: 12,
+    min_columns: 6,
+    rows: 'auto',
+    min_rows: 2,
+    max_rows: 12,
+  },
+};
+
 const STATUS_RECIPES = {
   home_presence: {
     defaults: {
@@ -1643,25 +1688,23 @@ class TunetStatusCard extends HTMLElement {
   }
 
   getCardSize() {
-    if (this._isRoomRow()) {
-      return this._config.show_header !== false ? 2 : 1;
-    }
+    const variant = this._getResolvedLayoutVariant();
+    const grid = STATUS_VARIANT_GRID_OPTIONS[variant] || STATUS_VARIANT_GRID_OPTIONS.custom;
+    const headerRows = this._config.show_header !== false ? 1 : 0;
+    if (variant === 'room_row') return Math.min(grid.max_rows, Math.max(grid.min_rows, headerRows + 1));
+
     const cols = this._activeColumns || this._config.columns || 4;
-    const tileCount = this._isHomeSummary()
+    const tileCount = variant === 'home_summary'
       ? Math.min(this._config.tiles.length, HOME_SUMMARY_SLOT_LIMIT)
       : this._config.tiles.length;
-    const rows = Math.ceil(tileCount / cols);
-    return Math.max(2, rows + 1);
+    const tileRows = Math.max(1, Math.ceil(tileCount / Math.max(1, cols)));
+    const estimatedRows = tileRows + headerRows;
+    return Math.min(grid.max_rows, Math.max(grid.min_rows, estimatedRows));
   }
 
   getGridOptions() {
-    return {
-      columns: 12,
-      min_columns: 6,
-      rows: 'auto',
-      min_rows: 2,
-      max_rows: 12,
-    };
+    const variant = this._getResolvedLayoutVariant();
+    return { ...(STATUS_VARIANT_GRID_OPTIONS[variant] || STATUS_VARIANT_GRID_OPTIONS.custom) };
   }
 
   _getHostWidth(widthHint = null) {

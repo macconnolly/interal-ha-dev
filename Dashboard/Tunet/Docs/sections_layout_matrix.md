@@ -44,8 +44,23 @@ All 13 cards use `rows: 'auto'`. No card forces fixed row height in the Sections
 | sensor | 12 | 6 | auto | 2 | 12 | Yes (environment/row) | Row heights scale with profile |
 | sonos | 12 | 6 | auto | 2 | — | No | |
 | speaker_grid | 12 | 6 | auto | 2 | 12 | Yes (speakers/grid) | Slider tiles with drag; density scales with profile |
-| status | 12 | 6 | auto | 2 | 12 | Yes (status/grid\|row) | Scope-locked; known height: drift at L216 deferred to CD11 |
+| status | 12 | 6 | auto | 1-3 | 2-12 | Yes (status/grid\|row) | CD11 variant-aware; see status-specific breakdown below |
 | weather | 6 | 3 | auto | 3 | — | No | |
+
+### Status Variant Grid Options (CD11)
+
+`tunet-status-card` is one card with six page-role variants. The card still follows the CD4 rule that every variant returns `rows: 'auto'`, but each variant now exposes its own intrinsic row envelope so Home Assistant Sections can reason about the card as a summary matrix, detail surface, room row, passive info surface, alarm cluster, or legacy custom grid.
+
+| Variant | columns | min_columns | rows | min_rows | max_rows | getCardSize() intent |
+|---|:---:|:---:|:---:|:---:|:---:|---|
+| `home_summary` | 12 | 6 | auto | 2 | 4 | Fixed 4-column summary matrix, clamped to the 8-slot summary budget plus optional header |
+| `home_detail` | 12 | 6 | auto | 3 | 12 | Rich detail grid; estimates from authored columns/breakpoints and visible tile count |
+| `room_row` | 12 | 6 | auto | 1 | 2 | Single horizontal row; one row without header, two with header |
+| `info_only` | 12 | 6 | auto | 2 | 6 | Compact passive information grid with a short row ceiling |
+| `alarms` | 12 | 6 | auto | 3 | 8 | Alarm/timer cluster with a taller minimum for timer/alarm sub-shapes |
+| `custom` | 12 | 6 | auto | 2 | 12 | Legacy flexible status grid behavior preserved |
+
+The status variant grid contract is locked by `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` in the `Status: variant-aware Sections sizing contract` block.
 
 ### Key Sections Decisions (CD4)
 

@@ -1246,7 +1246,7 @@ describe('Status: recipe and action precedence', () => {
         entity: 'person.mac_connolly',
         icon: 'home',
         label: 'Presence',
-        compact_label: 'Home',
+        compact_label: 'Presence',
         accent: 'green',
         format: 'state',
         dot_rules: [

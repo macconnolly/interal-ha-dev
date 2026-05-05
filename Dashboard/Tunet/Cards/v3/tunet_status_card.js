@@ -171,7 +171,7 @@ const STATUS_RECIPES = {
       type: 'value',
       icon: 'home',
       label: 'Presence',
-      compact_label: 'Home',
+      compact_label: 'Presence',
       accent: 'green',
       format: 'state',
       dot_rules: [
@@ -1852,6 +1852,11 @@ class TunetStatusCard extends HTMLElement {
     // rather than "05:35 · Bedroom / Alarm".
     if (tile.recipe === 'next_alarm' && variant === 'home_summary') {
       tile.format = tile.format === 'time_short' ? 'time_short_hm' : tile.format;
+    }
+    // 'Presence' fits the 172px summary tile but clips in the 151px room_row.
+    // Downgrade to 'Status' only there when the user hasn't authored an override.
+    if (tile.recipe === 'home_presence' && variant === 'room_row' && !tile._authoredCompactLabel) {
+      tile.compact_label = 'Status';
     }
   }
 

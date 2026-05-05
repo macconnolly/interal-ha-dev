@@ -90,6 +90,21 @@ const STATUS_RECIPE_PRIORITY = {
   enabled_alarms: 16,
 };
 
+const STATUS_RECIPE_ENTITY_BINDING = {
+  home_presence: 'user',
+  adaptive_count: 'user',
+  manual_overrides: 'user',
+  mode_selector: 'fixed',
+  boost_offset: 'user',
+  inside_temperature: 'user',
+  inside_humidity: 'user',
+  next_sun_event: 'fixed',
+  system_state: 'user',
+  next_alarm: 'user',
+  enabled_alarms: 'user',
+  mode_ttl: 'fixed',
+};
+
 const STATUS_RECIPES = {
   home_presence: {
     defaults: {
@@ -242,6 +257,7 @@ const STATUS_RECIPES = {
   mode_ttl: {
     defaults: {
       type: 'timer',
+      entity: 'timer.oal_mode_timeout',
       icon: 'timer',
       label: 'Mode TTL',
       compact_label: 'TTL',
@@ -1334,6 +1350,11 @@ class TunetStatusCard extends HTMLElement {
     };
 
     this._applyVariantRecipeDefaults(tile, variant);
+    if (recipeName && STATUS_RECIPE_ENTITY_BINDING[recipeName] === 'user' && !tile.entity) {
+      console.warn(
+        `[tunet-status-card] Recipe "${recipeName}" requires an entity; the tile will render as unavailable until one is provided.`
+      );
+    }
     if (tile.show_when && !tile.show_when.entity) tile.show_when.entity = tile.entity;
     if (tile.aux_show_when && !tile.aux_show_when.entity) tile.aux_show_when.entity = tile.entity;
     tile.primary_action = this._resolveTilePrimaryAction(tile, variant);
@@ -2152,6 +2173,7 @@ class TunetStatusCard extends HTMLElement {
     let val = entity.state;
     if (config.format === 'integer') val = Math.round(Number(val));
     else if (config.format === 'float1') val = Number(val).toFixed(1);
+    else if (config.format === 'state') val = humanizeStateValue(val);
 
     this._renderValWithUnit(valEl, val, config.unit);
 

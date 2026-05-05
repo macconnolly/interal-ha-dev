@@ -159,6 +159,84 @@ function createStatus(config = {}, hassOverrides = {}) {
   return el;
 }
 
+const RUNTIME_CONTRACT_KEYS = [
+  'type',
+  'recipe',
+  'entity',
+  'alt_entity',
+  'sun_entity',
+  'action_entity',
+  'navigate_path',
+  'icon',
+  'label',
+  'compact_label',
+  'accent',
+  'show_when',
+  'tap_action',
+  'aux_action',
+  'aux_show_when',
+  'unit',
+  'format',
+  'attribute',
+  'secondary',
+  'dot_rules',
+  'playing_entity',
+  'snooze_action',
+  'dismiss_action',
+  'primary_action',
+];
+
+function cloneForContract(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeRuntimeTile(tile) {
+  return Object.fromEntries(
+    RUNTIME_CONTRACT_KEYS.map((key) => [key, cloneForContract(tile[key])])
+  );
+}
+
+function expectedRuntimeTile(overrides = {}) {
+  return {
+    type: 'value',
+    recipe: '',
+    entity: '',
+    alt_entity: '',
+    sun_entity: '',
+    action_entity: '',
+    navigate_path: '',
+    icon: 'info',
+    label: '',
+    compact_label: '',
+    accent: 'muted',
+    show_when: null,
+    tap_action: null,
+    aux_action: null,
+    aux_show_when: null,
+    unit: '',
+    format: 'state',
+    attribute: '',
+    secondary: null,
+    dot_rules: null,
+    playing_entity: '',
+    snooze_action: null,
+    dismiss_action: null,
+    primary_action: { kind: 'none' },
+    ...overrides,
+  };
+}
+
+function synthesizedRuntimeTile(layoutVariant, tileConfig) {
+  const el = document.createElement('tunet-status-card');
+  el.setConfig({
+    layout_variant: layoutVariant,
+    tiles: [tileConfig],
+  });
+  expect(el._config.tiles).toHaveLength(1);
+  return normalizeRuntimeTile(el._config.tiles[0]);
+}
+
 afterEach(() => {
   document.body.innerHTML = '';
   vi.restoreAllMocks();
@@ -733,6 +811,268 @@ describe('Status: alarms mode contract', () => {
 });
 
 describe('Status: recipe and action precedence', () => {
+  it.each([
+    [
+      'home_presence',
+      'home_summary',
+      { recipe: 'home_presence', entity: 'person.mac_connolly' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'home_presence',
+        entity: 'person.mac_connolly',
+        icon: 'home',
+        label: 'Home',
+        compact_label: 'Home',
+        accent: 'green',
+        format: 'state',
+        dot_rules: [
+          { match: 'home', dot: 'green' },
+          { match: '*', dot: 'red' },
+        ],
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'person.mac_connolly' },
+        },
+      }),
+    ],
+    [
+      'adaptive_count',
+      'home_summary',
+      { recipe: 'adaptive_count', entity: 'sensor.oal_system_status' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'adaptive_count',
+        entity: 'sensor.oal_system_status',
+        icon: 'sunny',
+        label: 'Adaptive',
+        compact_label: 'Adaptive',
+        accent: 'green',
+        attribute: 'zones_adaptive',
+        format: 'integer',
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'sensor.oal_system_status' },
+        },
+      }),
+    ],
+    [
+      'manual_overrides',
+      'home_summary',
+      { recipe: 'manual_overrides', entity: 'sensor.oal_system_status' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'manual_overrides',
+        entity: 'sensor.oal_system_status',
+        icon: 'front_hand',
+        label: 'Manual',
+        compact_label: 'Manual',
+        accent: 'red',
+        attribute: 'active_zonal_overrides',
+        format: 'integer',
+        show_when: {
+          entity: 'sensor.oal_system_status',
+          attribute: 'active_zonal_overrides',
+          operator: 'gt',
+          state: 0,
+        },
+        aux_action: {
+          label: 'Reset',
+          icon: 'restart_alt',
+          action: 'call-service',
+          service: 'script.turn_on',
+          service_data: {
+            entity_id: 'script.oal_reset_soft',
+          },
+        },
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'sensor.oal_system_status' },
+        },
+      }),
+    ],
+    [
+      'mode_selector',
+      'home_summary',
+      { recipe: 'mode_selector' },
+      expectedRuntimeTile({
+        type: 'dropdown',
+        recipe: 'mode_selector',
+        entity: 'input_select.oal_active_configuration',
+        icon: 'tune',
+        label: 'Mode',
+        compact_label: 'Mode',
+        accent: 'muted',
+        primary_action: { kind: 'dropdown' },
+      }),
+    ],
+    [
+      'boost_offset',
+      'home_detail',
+      { recipe: 'boost_offset', entity: 'sensor.oal_global_brightness_offset' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'boost_offset',
+        entity: 'sensor.oal_global_brightness_offset',
+        icon: 'bolt',
+        label: 'Boost',
+        compact_label: 'Boost',
+        accent: 'amber',
+        attribute: 'total_offset',
+        format: 'integer',
+        unit: '%',
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'sensor.oal_global_brightness_offset' },
+        },
+      }),
+    ],
+    [
+      'inside_temperature',
+      'home_summary',
+      {
+        recipe: 'inside_temperature',
+        entity: 'sensor.dining_room_temperature',
+        action_entity: 'climate.downstairs',
+      },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'inside_temperature',
+        entity: 'sensor.dining_room_temperature',
+        action_entity: 'climate.downstairs',
+        icon: 'thermostat',
+        label: 'Inside',
+        compact_label: 'Inside',
+        accent: 'amber',
+        format: 'integer',
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'climate.downstairs' },
+        },
+      }),
+    ],
+    [
+      'inside_humidity',
+      'info_only',
+      { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'inside_humidity',
+        entity: 'sensor.kitchen_humidity',
+        icon: 'water_drop',
+        label: 'Humidity',
+        compact_label: 'Humidity',
+        accent: 'blue',
+        format: 'integer',
+        unit: '%',
+      }),
+    ],
+    [
+      'next_sun_event',
+      'home_summary',
+      { recipe: 'next_sun_event' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'next_sun_event',
+        entity: 'sensor.sun_next_setting',
+        alt_entity: 'sensor.sun_next_rising',
+        sun_entity: 'sun.sun',
+        icon: 'wb_twilight',
+        label: 'Sunset',
+        compact_label: 'Sunset',
+        accent: 'amber',
+        format: 'time',
+        primary_action: { kind: 'none' },
+      }),
+    ],
+    [
+      'system_state',
+      'info_only',
+      { recipe: 'system_state', entity: 'sensor.oal_system_status' },
+      expectedRuntimeTile({
+        type: 'indicator',
+        recipe: 'system_state',
+        entity: 'sensor.oal_system_status',
+        icon: 'info',
+        label: 'System',
+        compact_label: 'System',
+        accent: 'blue',
+        format: 'state',
+      }),
+    ],
+    [
+      'next_alarm',
+      'home_detail',
+      { recipe: 'next_alarm', entity: 'sensor.sonos_next_alarm' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'next_alarm',
+        entity: 'sensor.sonos_next_alarm',
+        icon: 'alarm',
+        label: 'Alarm',
+        compact_label: 'Alarm',
+        accent: 'blue',
+        format: 'state',
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'sensor.sonos_next_alarm' },
+        },
+      }),
+    ],
+    [
+      'enabled_alarms',
+      'alarms',
+      { recipe: 'enabled_alarms', entity: 'sensor.sonos_enabled_alarm_count' },
+      expectedRuntimeTile({
+        type: 'value',
+        recipe: 'enabled_alarms',
+        entity: 'sensor.sonos_enabled_alarm_count',
+        icon: 'alarm_on',
+        label: 'Enabled',
+        compact_label: 'Enabled',
+        accent: 'blue',
+        format: 'integer',
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'sensor.sonos_enabled_alarm_count' },
+        },
+      }),
+    ],
+    [
+      'mode_ttl',
+      'alarms',
+      { recipe: 'mode_ttl' },
+      expectedRuntimeTile({
+        type: 'timer',
+        recipe: 'mode_ttl',
+        entity: 'timer.oal_mode_timeout',
+        icon: 'timer',
+        label: 'Mode TTL',
+        compact_label: 'TTL',
+        accent: 'amber',
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'timer.oal_mode_timeout' },
+        },
+      }),
+    ],
+  ])('%s recipe shorthand synthesizes the canonical runtime tile', (_recipe, layoutVariant, tileConfig, expected) => {
+    expect(synthesizedRuntimeTile(layoutVariant, tileConfig)).toEqual(expected);
+  });
+
+  it('warns when a user-bound recipe omits its required entity binding', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const el = document.createElement('tunet-status-card');
+    el.setConfig({
+      layout_variant: 'home_summary',
+      tiles: [{ recipe: 'manual_overrides' }],
+    });
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[tunet-status-card] Recipe "manual_overrides" requires an entity; the tile will render as unavailable until one is provided.'
+    );
+  });
+
   it('home_presence dot rules use exact state matching so not_home does not inherit home styling', () => {
     const el = createStatus(
       {

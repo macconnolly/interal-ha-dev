@@ -1,11 +1,47 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `main`
-Last updated: 2026-04-07
+Last updated: 2026-05-04
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (`CD10` nav verify deferred until room/surface composition is more settled)
+
+## Session Delta (2026-05-04, CD11 gap 1 — recipe defaults self-containment)
+
+Change marker: recipe shorthand runtime contract locked; no CD10/CD12 scope touched
+
+- `CHOSEN INTERPRETATION`
+  - a recipe is a semantic authoring primitive, not just a partial defaults helper
+  - fixed-source recipes must carry their own entity source; user-bound recipes must make the missing `entity` dependency explicit with a warning
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - added fixed/user recipe binding metadata
+    - added `timer.oal_mode_timeout` as the default entity for `mode_ttl`
+    - warned on missing entity bindings for user-bound recipes
+    - humanized indicator `format: state`
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - added runtime deep-equality contract checks for all 12 recipes
+    - added missing-entity warning coverage
+  - `Dashboard/Tunet/Docs/cards_reference.md`
+    - added the canonical per-recipe defaults table in §9
+- `TESTS / VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `42/42`
+  - full `npm test` → `667/667`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_055425Z`
+  - local Playwright screenshots captured against modified source:
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-390x844.png`
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-768x1024.png`
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-1024x1366.png`
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-1440x900.png`
+  - authenticated live HA screenshot review at locked breakpoints:
+    - `/tmp/tunet-playwright-review/2026-05-05T05-54-37-879Z/review-manifest.json`
+- `RESULT`
+  - recipe shorthand self-containment is code/test/doc complete
+  - visual evidence surfaced status sizing pressure for Gap 2 and bottom-nav capture overlap that remains outside CD11
 
 ## Session Delta (2026-04-07, CD11 status density pass vs sensor-card reference)
 

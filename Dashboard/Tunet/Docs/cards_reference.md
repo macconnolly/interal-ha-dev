@@ -1205,7 +1205,7 @@ Fixture/contract note: use `label` consistently for display-name overrides unles
 
 ## 9. tunet-status-card
 
-**Version**: v3.1.0  
+**Version**: v3.3.0
 **Tier**: yaml-first  
 **File**: `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
 
@@ -1276,9 +1276,29 @@ Implemented recipes:
 - `enabled_alarms`
 - `mode_ttl`
 
+Canonical recipe defaults:
+
+| Recipe | Target variant(s) | Default type | Encoded defaults | Entity binding |
+|--------|-------------------|--------------|------------------|----------------|
+| `home_presence` | `home_summary`, optional detail/info surfaces | `value` | `icon: home`, `label/compact_label: Home`, `accent: green`, `format: state`, `dot_rules: home -> green, * -> red`, default action opens entity more-info | User supplies `entity` |
+| `adaptive_count` | `home_summary`, `home_detail` | `value` | `icon: sunny`, `label/compact_label: Adaptive`, `accent: green`, `attribute: zones_adaptive`, `format: integer`, default action opens entity more-info | User supplies `entity` |
+| `manual_overrides` | `home_summary`, `home_detail`, optional row/info surfaces | `value` | `icon: front_hand`, `label/compact_label: Manual`, `accent: red`, `attribute: active_zonal_overrides`, `format: integer`, `show_when.active_zonal_overrides > 0`, reset `aux_action` to `script.oal_reset_soft`, default action opens entity more-info | User supplies `entity`; `show_when.entity` is filled from it |
+| `mode_selector` | `home_summary`, `home_detail`, `custom` | `dropdown` | `entity: input_select.oal_active_configuration`, `icon: tune`, `label/compact_label: Mode`, `accent: muted`, summary option aliases, dropdown default action | Fixed source |
+| `boost_offset` | `home_detail`, optional summary/detail surfaces | `value` | `icon: bolt`, `label/compact_label: Boost`, `accent: amber`, `attribute: total_offset`, `format: integer`, `unit: %`, default action opens entity more-info | User supplies `entity` |
+| `inside_temperature` | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `icon: thermostat`, `label/compact_label: Inside`, `accent: amber`, `format: integer`, default action prefers `action_entity` | User supplies `entity`; optional `action_entity` binds control target |
+| `inside_humidity` | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `icon: water_drop`, `label/compact_label: Humidity`, `accent: blue`, `format: integer`, `unit: %`, default action opens entity more-info except passive variants | User supplies `entity` |
+| `next_sun_event` | `home_summary`, `home_detail`, `info_only` | `value` | `entity: sensor.sun_next_setting`, `alt_entity: sensor.sun_next_rising`, `sun_entity: sun.sun`, `icon: weather_sunset_down`, `label/compact_label: Sunset`, `accent: amber`, `format: time`, passive default action | Fixed source |
+| `system_state` | `home_detail`, `info_only` | `indicator` | `icon: info`, `label/compact_label: System`, `accent: blue`, `format: state`, default action opens entity more-info except passive variants | User supplies `entity` |
+| `next_alarm` | `alarms`, `home_detail` | `value`; promoted to `alarm` in `alarms` unless `type` is authored | `icon: alarm`, `label/compact_label: Alarm`, `accent: blue`, `format: state`, default action prefers `action_entity` then entity more-info | User supplies `entity` |
+| `enabled_alarms` | `alarms`, optional `home_detail` | `value` | `icon: alarm_on`, `label/compact_label: Enabled`, `accent: blue`, `format: integer`, default action prefers `action_entity` then entity more-info | User supplies `entity` |
+| `mode_ttl` | `alarms`, optional `home_detail` | `timer` | `entity: timer.oal_mode_timeout`, `icon: timer`, `label: Mode TTL`, `compact_label: TTL`, `accent: amber`, default action opens timer more-info | Fixed source |
+
+This table is the canonical CD11 recipe surface. The `status_bespoke.test.js` recipe-default self-containment block asserts the synthesized runtime tile for each shorthand recipe, so `{ recipe: 'mode_ttl' }` and the equivalent expanded runtime tile stay aligned.
+
 Current recipe behavior:
 
 - recipes provide defaults; authored YAML still owns render order
+- user-bound recipes warn when authored without `entity`, because entity binding is the one intentional external input in the shorthand contract
 - `home_summary` uses recipe priority only for slot-budget arbitration when more than 8 visible tiles compete for the summary matrix
 - `inside_temperature` defaults tile activation to `action_entity`
 - `next_sun_event` auto-switches between sunrise/sunset icon + label

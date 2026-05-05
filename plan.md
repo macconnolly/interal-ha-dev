@@ -1,11 +1,50 @@
 # Tunet Suite Dashboard - Implementation Plan
 
 Working branch: `main`
-Last updated: 2026-04-07
+Last updated: 2026-05-04
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-04, CD11 gap 1 — recipe defaults self-containment)
+
+Tranche marker: recipe contract closure only; variant grid/editor closure remains open
+
+- `AUTHORITY NOTE`
+  - this pass follows `~/.claude/plans/synthetic-dazzling-oasis.md` and the four-gap CD11 closure sequence
+  - recipe shorthand is treated as the status card's user-empowerment layer: a canonical recipe may depend on authored entity binding, but it must otherwise synthesize the runtime tile shape consistently
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - added an explicit recipe entity-binding map distinguishing fixed-source recipes from user-bound recipes
+    - made `mode_ttl` self-contained with `entity: timer.oal_mode_timeout`
+    - added a warning when a user-bound recipe is authored without `entity`
+    - aligned indicator `format: state` with value-tile humanization so `system_state` shorthand renders the same semantic state text as the expanded runtime form
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - added deep runtime-shape assertions for all 12 recipe shorthands
+    - added a regression for missing entity warnings on user-bound recipes
+  - `Dashboard/Tunet/Docs/cards_reference.md`
+    - updated §9 to v3.3.0 reality and added the canonical per-recipe defaults table
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `42/42`
+  - full `npm test` → `667/667`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_055425Z`
+  - local Playwright visual smoke against modified source at `390x844`, `768x1024`, `1024x1366`, `1440x900`:
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-390x844.png`
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-768x1024.png`
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-1024x1366.png`
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-1440x900.png`
+  - authenticated live HA lab screenshot review at locked breakpoints completed without harness failures:
+    - `/tmp/tunet-playwright-review/2026-05-05T05-54-37-879Z/review-manifest.json`
+- `FOLLOW-UP CARRIED INTO GAP 2`
+  - visual smoke exposed phone-width timer text pressure in the `alarms` fixture; treat this as grid/sizing evidence for the variant-aware sizing cycle, not as a recipe-default regression
+  - live lab screenshots also show existing fixed-summary label truncation and bottom-nav overlap in some card captures; the nav overlap is out of CD11 scope and remains deferred with CD10/nav verification
+- `RESULT`
+  - `{ recipe: 'X' }` now has a test-locked runtime contract for every recipe
+  - CD11 still remains open for variant-aware grid sizing, editor/stub authoring, and final live/deployed verification
 
 ## Session Delta (2026-04-07, CD11 status density pass vs sensor-card reference)
 

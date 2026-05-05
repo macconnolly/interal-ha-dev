@@ -1,13 +1,47 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-04-07 (America/Denver)  
-Intended reader: next Claude Code session  
+Last updated: 2026-05-04 (America/Denver)
+Intended reader: next Claude Code session
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-04, CD11 gap 1 — recipe defaults self-containment)
+
+- `CURRENT STATE`
+  - CD11 is still active
+  - Gap 1 of the four-gap closure sequence is complete in repo source: recipe shorthand now has a code/test/doc contract
+  - remaining CD11 closure work: variant-aware grid sizing, editor/stub authoring, final cross-contract docs/tests, build/deploy/live visual verification
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - fixed-source vs user-bound recipe metadata now exists
+    - `mode_ttl` shorthand now binds `timer.oal_mode_timeout` by default
+    - missing user-bound recipe entities warn at config normalization
+    - `indicator` tiles now honor `format: state` humanization
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - status bespoke suite now includes deep synthesized-runtime assertions for all 12 recipes
+  - `Dashboard/Tunet/Docs/cards_reference.md`
+    - §9 now includes the canonical recipe defaults table
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `42/42`
+  - full `npm test` → `667/667`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_055425Z`
+  - local Playwright visual smoke at all locked breakpoints wrote:
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-390x844.png`
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-768x1024.png`
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-1024x1366.png`
+    - `/tmp/tunet-cd11-visual/gap1-recipe-defaults/cd11-gap1-recipes-1440x900.png`
+  - live HA review:
+    - `/tmp/tunet-playwright-review/2026-05-05T05-54-37-879Z/review-manifest.json`
+- `NEXT`
+  - start Gap 2 with the visual finding already known: `alarms` timer text is tight/clipped at 390px and must inform variant-aware sizing
+  - do not chase bottom-nav overlap in these card captures during CD11; CD10/nav verification remains intentionally deferred
 
 ## Session Delta (2026-04-07, CD11 status density pass vs sensor-card reference)
 

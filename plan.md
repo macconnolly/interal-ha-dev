@@ -1,11 +1,442 @@
 # Tunet Suite Dashboard - Implementation Plan
 
 Working branch: `main`
-Last updated: 2026-04-06
+Last updated: 2026-04-07
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-04-07, CD11 status density pass vs sensor-card reference)
+
+Tranche marker: runtime density/scale tuning only; implemented status modes unchanged semantically
+
+- `AUTHORITY NOTE`
+  - user still judged the status tiles too small after the first scale pass and explicitly pointed to `tunet-sensor-card` `standard` / `use_profiles: false` as the visual reference
+  - chosen interpretation:
+    - increase status scale again
+    - also reduce empty internal whitespace so the tiles feel denser, not just larger
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - raised base status icon/value/label/secondary/dropdown sizing again to sit closer to the sensor-card reference rhythm
+    - reduced status tile row height/padding/gap where needed so the content occupies more of the footprint
+    - tuned `home_summary`, `home_detail`, and `alarms` separately for the denser presentation
+    - tightened line-height/min-height behavior on values and labels so enlarged content does not float inside excess vertical space
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - updated focused CSS-contract assertions to lock the denser summary/detail/alarm sizing
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `25/25`
+  - full `npm test` → `650/650`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab`
+  - note:
+    - no post-deploy screenshot pass was run in this step
+- `RESULT`
+  - status tiles now read materially closer to the sensor-card standard/no-profiles scale reference instead of looking small inside a large tile shell
+
+## Session Delta (2026-04-07, CD11 status scale pass)
+
+Tranche marker: runtime visual-scale pass only; no layout-mode scope expansion
+
+- `AUTHORITY NOTE`
+  - user reported the implemented status tiles were reading undersized, with too much dead whitespace inside each tile
+  - chosen interpretation:
+    - increase icon, value, label, secondary, and dropdown scale across implemented status modes
+    - keep the change inside the landed `CD11` runtime rather than reopening unfinished `CD11c` modes
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - introduced explicit status-scale CSS variables for icon box/glyph, value text, label text, secondary text, dropdown text, and status-dot size
+    - raised the base status scale so implemented modes no longer read visually undersized inside the existing tile footprint
+    - tuned `home_summary`, `home_detail`, and `alarms` separately so each uses more of its tile area without changing mode semantics
+    - slightly tightened detail/alarm padding and gap values so the larger content reads denser instead of simply taller
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - expanded focused CSS-contract coverage for the new summary/detail/alarm scale tokens
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `25/25`
+  - full `npm test` → `650/650`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260407_051115Z`
+  - note:
+    - no live screenshot review was run in this pass
+- `RESULT`
+  - implemented status modes now use the tile area more effectively and should no longer read small against the amount of internal whitespace
+  - the scale pass is deployed without changing the current `home_summary` / `home_detail` / `alarms` / `custom` mode contract
+
+## Session Delta (2026-04-07, rehab `states` route restore — consolidated gallery)
+
+Tranche marker: YAML/dashboard recovery only; no runtime change
+
+- `AUTHORITY NOTE`
+  - user clarified the `states` route should be a consolidated gallery showing nearly every card/card-mode variation, not a narrowed status-only comparison page
+  - chosen interpretation:
+    - keep the extra dynamic/status stress sections
+    - restore broad family coverage on the same route by reusing the canonical `lab` fixtures
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+    - anchored the canonical `lab` family sections (`actions` through `nav`)
+    - updated `States Lab` intro copy to reflect its consolidated-gallery purpose
+    - aliased the canonical family sections into `path: states`
+    - preserved the state-heavy comparison/stress sections below the reused gallery blocks
+- `VALIDATION`
+  - `python3 -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('Dashboard/Tunet/tunet-card-rehab-lab.yaml').read_text())"`
+  - re-push `Dashboard/Tunet/tunet-card-rehab-lab.yaml` to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - note:
+    - no JS changed, so no build/deploy was required for this fix
+    - no live screenshot review was run in this pass
+- `RESULT`
+  - `http://10.0.0.21:8123/tunet-card-rehab-yaml/states` is back to being the one-route consolidated variant gallery
+  - future card-fixture edits can update `lab` once and inherit on `states` through YAML aliases
+
+## Session Delta (2026-04-07, rehab gallery expansion — rooms size matrix + media/nav edge branches)
+
+Tranche marker: YAML/gallery coverage expansion only; no runtime change
+
+- `AUTHORITY NOTE`
+  - user explicitly wants broad size-variant visibility, especially for `tunet-rooms-card` row/tile coverage
+  - chosen interpretation:
+    - prioritize missing size variants and interaction branches over more duplicate density samples
+    - keep additions in canonical `lab` sections so `states` inherits them automatically
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+    - expanded the rooms gallery to cover:
+      - row compact / standard / large
+      - tiles compact / standard / large
+      - slim compact
+      - tile-mode explicit `tap_action` + `hold_action` override sample
+    - added media gallery edge coverage for:
+      - grouped transport with manual target selection guidance
+      - idle / no-art fallback
+    - added sonos idle / no-art fallback coverage
+    - added the custom-items nav variant to the canonical nav gallery so the consolidated routes show both default and custom nav paths
+- `VALIDATION`
+  - `python3 -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('Dashboard/Tunet/tunet-card-rehab-lab.yaml').read_text())"`
+  - re-push `Dashboard/Tunet/tunet-card-rehab-lab.yaml` to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - note:
+    - no JS changed, so no build/deploy was required
+    - no live screenshot review was run in this pass
+- `RESULT`
+  - the consolidated rehab gallery now covers the missing rooms size matrix and several important media/nav edge branches
+  - `states` remains the fastest route for “show me nearly every configuration” review because it inherits these canonical sections
+
+## Session Delta (2026-04-07, CD11c — room_row + info_only)
+
+Tranche marker: `CD11c` runtime landed; `CD11` mode implementation is now complete
+
+- `AUTHORITY NOTE`
+  - stay inside the final status-only tranche:
+    - implement `room_row`
+    - implement `info_only`
+    - keep the pass structural/contract-focused rather than reopening broad visual tuning
+  - chosen interpretation:
+    - `room_row` should behave like the older responsive row-strip pattern, not a preserved-slot grid
+    - `info_only` should be the calm/passive utility surface:
+      - only explicit authored actions should activate tiles
+      - recipe-default entity actions should not make info tiles unexpectedly clickable
+    - keep post-deploy live screenshot review out of scope because the user only asked to prep/execute `11c`
+- `IMPLEMENTATION`
+  - `tunet_status_card.js`
+    - promoted `room_row` and `info_only` to real resolved `layout_variant` values
+    - `room_row` now:
+      - uses a horizontal flex strip instead of grid columns
+      - accepts only `value` and `indicator`
+      - uses compact labels
+      - suppresses secondary content and aux actions
+      - collapses/reflows hidden conditional tiles
+      - uses row-oriented profile selection and a row-specific `getCardSize()`
+    - `info_only` now:
+      - accepts only `value` and `indicator`
+      - uses compact labels with calmer/lighter card treatment
+      - suppresses secondary content and aux actions
+      - collapses/reflows hidden conditional tiles
+      - defaults tiles to passive unless the author explicitly provides `tap_action`, `navigate_path`, or `action_entity`
+    - corrected the mode-specific warning copy so unsupported `room_row` / `info_only` tiles now report the real allowed types
+  - `status_bespoke.test.js`
+    - expanded the focused suite to cover:
+      - `room_row` resolution, filtering, row-strip CSS, compact labels, collapse behavior, and preserved action handling
+      - `info_only` resolution, filtering, calmer CSS, passive-default behavior, explicit-action opt-in, and collapse behavior
+  - `tunet-card-rehab-lab.yaml`
+    - added canonical `Status: Room Row` and `Status: Info Only` fixtures
+    - expanded `States Lab` to include all six landed status variants:
+      - `home_summary`
+      - `home_detail`
+      - `room_row`
+      - `info_only`
+      - `alarms`
+      - `custom`
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `python3 -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('Dashboard/Tunet/tunet-card-rehab-lab.yaml').read_text())"`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `29/29`
+  - full `npm test` → `654/654`
+  - `npm run tunet:deploy:lab` → `?v=build_20260407_055959Z`
+  - rehab YAML re-pushed to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - note:
+    - no post-deploy live screenshot review was run in this tranche
+- `RESULT`
+  - `CD11c` is now landed in code/test/deploy terms
+  - all status runtime variants in the `CD11` plan are now implemented
+  - follow-up status work should shift from “finish missing modes” to:
+    - live tuning at locked breakpoints
+    - final per-surface variant selection for whole-home assembly
+
+## Session Delta (2026-04-07, CD11b — home_detail + alarms)
+
+Tranche marker: `CD11b` runtime landed; `CD11c` remains open
+
+- `FOLLOW-UP NOTE`
+  - user rejected preserved-gap behavior for `home_detail`
+  - chosen interpretation now matches the older responsive expectation:
+    - `home_detail` hidden tiles should collapse and reflow
+    - `custom` remains the preserve-slot escape hatch
+- `AUTHORITY NOTE`
+  - stay inside `CD11b` only:
+    - implement `home_detail`
+    - implement `alarms`
+    - land the remaining alarm/timer-specific recipes
+  - keep explicitly out of scope:
+    - `room_row`
+    - `info_only`
+    - any broad cross-mode polish or live visual tuning
+  - chosen interpretation:
+    - `home_detail` should preserve richer authored content rather than inherit summary compactness
+    - `home_detail` should preserve richer labels/secondary/aux treatment while hidden tiles still collapse
+    - `alarms` should be a real filtered mode with alarm/timer-specific density and hidden-tile collapse
+    - skip post-deploy live validation because the user explicitly said it was not needed right now and the old review harness is unstable
+  - `IMPLEMENTATION`
+  - `tunet_status_card.js`
+    - promoted `home_detail` and `alarms` from warning-only fallbacks into real resolved `layout_variant` values
+    - added mode-specific runtime rules:
+      - `home_detail` keeps authored columns/breakpoints, full labels, secondary values, and full aux pills
+      - `home_detail` hidden tiles collapse and reflow instead of preserving empty authored slots
+      - `alarms` collapses hidden tiles and rejects dropdown tiles while preserving alarm/timer/value/indicator branches
+    - added `CD11b` recipes:
+      - `enabled_alarms`
+      - `mode_ttl`
+    - upgraded `next_alarm` recipe behavior:
+      - still prefers explicit `navigate_path`
+      - now falls back cleanly to `action_entity` / entity more-info
+      - auto-promotes to `alarm` tile geometry in `layout_variant: alarms` when no explicit type is authored
+    - added modest `home_detail` / `alarms` variant CSS so detail/alarm layouts are structurally distinct without reopening later aesthetic work
+  - `status_bespoke.test.js`
+    - expanded the focused suite to cover:
+      - `home_detail` resolution and breakpoint honoring
+      - `home_detail` secondary/full-aux behavior
+      - `alarms` resolution, dropdown rejection, and collapsed visibility
+      - `next_alarm`, `enabled_alarms`, and `mode_ttl` action behavior
+  - `tunet-card-rehab-lab.yaml`
+    - added explicit `Status: Home Detail` and `Status: Alarms` rehab fixtures alongside the existing summary/custom fixtures
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `python3 -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('Dashboard/Tunet/tunet-card-rehab-lab.yaml').read_text())"`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `22/22`
+  - full `npm test` → `647/647`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260407_013028Z`
+  - rehab YAML re-pushed to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - note:
+    - no post-deploy live verification was performed in this tranche by explicit user request
+- `RESULT`
+  - `CD11b` is now landed in code/test/deploy terms
+  - the remaining status scope narrows to `CD11c`:
+    - `room_row`
+    - `info_only`
+    - final cross-mode polish after those modes exist
+  - follow-up runtime contract:
+    - `home_summary`, `home_detail`, and `alarms` all collapse hidden tiles
+    - `custom` is now the only preserve-slot mode
+
+## Session Delta (2026-04-07, CD11 rehab fixture refresh — utility-first authored tiles)
+
+Tranche marker: rehab YAML/content refresh only; no status runtime change
+
+- `AUTHORITY NOTE`
+  - keep this yaml-first and fixture-scoped:
+    - no `tunet_status_card.js` runtime widening
+    - no `CD11c` mode work
+  - chosen interpretation:
+    - status `layout_variant` controls presentation/interaction rules, not one global tile set
+    - home variants can be utility-first without changing the alarm/room contracts
+    - `room_row` remains untouched until `CD11c`
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+    - repointed `Status: Home Summary` away from low-value mode/system tiles toward utility tiles:
+      - `All Lights` toggle/count
+      - `Manual Overrides`
+      - inside temperature
+      - next alarm
+      - conditional `UV Right Now`
+      - conditional `Forecast Heads Up`
+      - conditional `Now Playing`
+      - conditional `Bedroom Dry`
+    - converted `Status: Home Detail` into the headerless responsive utility example
+      - keeps shared mode contract (`home_detail`) but authors a richer utility tile mix
+      - adds conditional heads-up tiles for weather/media/dry air/tomorrow alarms/overheat/reset state
+    - replaced the low-value `system_state` tile in `Status: Alarms` with a more useful tomorrow-alarm summary
+    - expanded `States Lab` so it now shows all landed status variants on one surface:
+      - `home_summary`
+      - `home_detail`
+      - `alarms`
+      - `custom`
+  - live HA dependencies now intentionally used by the rehab fixture:
+    - `input_text.tunet_weather_heads_up`
+    - `input_text.tunet_uv_peak_24h`
+    - `automation.tunet_weather_forecast_refresh`
+- `VALIDATION`
+  - `python3 -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('Dashboard/Tunet/tunet-card-rehab-lab.yaml').read_text())"`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - rehab YAML re-pushed to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - note:
+    - no JS build/deploy was needed because the status runtime did not change
+    - no post-push live visual verification was run by user request
+- `RESULT`
+  - the rehab status examples now demonstrate per-surface authored content rather than over-indexing on OAL mode/system tiles
+  - the `states` route now doubles as the variant-comparison surface for every currently implemented status mode
+  - runtime mode behavior remains the same shared `CD11b` implementation
+
+## Session Delta (2026-04-07, CD11a follow-up — Summary Dropdown/Typography Polish)
+
+Tranche marker: narrow `home_summary` polish only; no later-mode scope added
+
+- `AUTHORITY NOTE`
+  - keep this inside landed `CD11a` only
+  - address the live `home_summary` polish feedback:
+    - summary dropdown should center the mode text without the visible chevron
+    - summary typography should step up slightly
+  - do not widen into `CD11b` / `CD11c`
+- `IMPLEMENTATION`
+  - `tunet_status_card.js`
+    - increased `home_summary` row height/padding slightly
+    - increased summary value / label / text sizing
+    - centered summary dropdown text and hid the visible chevron in `home_summary`
+  - `status_bespoke.test.js`
+    - added CSS-contract assertions for the summary dropdown presentation and updated summary typography sizing
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `14/14`
+  - full `npm test` → `639/639`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260407_010727Z`
+  - rehab YAML re-pushed to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - direct live verification on `http://10.0.0.21:8123/tunet-card-rehab-yaml/lab` at `1440x900`
+    - screenshot: `/home/mac/HA/implementation_10/status-home-summary-live-1440.png`
+  - note:
+    - `tunet_playwright_review.mjs` timed out on `rehab/surfaces`, so this follow-up uses direct live browser verification instead of the leaking harness
+- `RESULT`
+  - the deployed summary card now matches the requested dropdown presentation and reads less undersized on desktop
+  - remaining known visual issue in the live summary card is the incorrect green home-presence dot when the state is `not_home`
+
+## Session Delta (2026-04-07, CD11a closeout fix + CD11b prep)
+
+Tranche marker: final `CD11a` bug fix landed; `CD11b` prepared but not started
+
+- `AUTHORITY NOTE`
+  - close the remaining `CD11a` live issue only: `home_presence` dot color on `not_home`
+  - do not start `home_detail` / `alarms` implementation in this step
+  - prepare the next-step scope for `CD11b` without widening into code changes beyond the dot-rule fix
+- `IMPLEMENTATION`
+  - `tunet_status_card.js`
+    - tightened `dot_rules` matching from substring behavior to exact case-insensitive matching plus wildcard support
+    - fixes the `not_home` -> `home` false positive on the summary presence tile
+  - `status_bespoke.test.js`
+    - added a regression test proving `not_home` resolves to the fallback red dot instead of inheriting the `home` rule
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `15/15`
+  - full `npm test` → `640/640`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260407_012103Z`
+  - note:
+    - post-fix live verification was intentionally deferred by user request
+- `CD11B PREP`
+  - start scope:
+    - `home_detail`
+    - `alarms`
+    - remaining core recipes that are detail/alarm-specific
+  - do not start yet:
+    - `room_row`
+    - `info_only`
+    - broad aesthetic polish outside the two `CD11b` modes
+  - expected touched files:
+    - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+  - first acceptance targets:
+    - `home_detail` allows richer labels, secondary values, and full aux pills without clipping
+    - `alarms` preserves timer/alarm branches and action buttons with no summary-mode compromises
+    - rehab fixtures clearly separate `home_detail` and `alarms` from `home_summary` and `custom`
+- `RESULT`
+  - the last known `CD11a` status bug is fixed in code and deployed
+  - next implementation work should begin at `CD11b`, not by reopening `CD11a`
+
+## Session Delta (2026-04-06, CD11a — Structural Fixes + Summary/Custom Framework)
+
+Tranche marker: `CD11a` structural foundation landed; `CD11b` / `CD11c` remain open
+
+- `AUTHORITY NOTE`
+  - this session stayed inside the user-directed `CD11a` scope only:
+    - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+  - chosen interpretation:
+    - land the structural fixes and mode framework before any later-mode or aesthetic work
+    - implement only `home_summary` and `custom` behavior in code
+    - accept the later `layout_variant` names now, but warn and fall back to `custom` for `home_detail`, `alarms`, `room_row`, and `info_only` until their own sub-phases
+    - resolve the stale “status still G3S locked / 2-column phone default” doc wording in the control/reference docs to match the active CD11 authority
+- `IMPLEMENTATION`
+  - `tunet_status_card.js`
+    - replaced the fixed row cap with `grid-auto-rows: minmax(var(--tile-row-h), auto)` and removed the old fixed `height`
+    - added dropdown listbox semantics (`role="listbox"`, `role="option"`, `aria-hidden` open/close state)
+    - added `layout_variant` normalization plus `custom` fallback for not-yet-implemented later variants
+    - added `compact_label`, `recipe`, `action_entity`, and `navigate_path` tile keys
+    - added `home_summary` recipe-aware runtime behavior:
+      - fixed 4-column summary matrix
+      - compact labels
+      - summary-only hidden-tile collapse/reflow
+      - compact aux icon affordance
+      - summary slot budget / priority arbitration
+    - preserved `custom` backward compatibility:
+      - omitted `layout_variant` still behaves as `custom`
+      - hidden tiles keep `visibility: hidden`
+      - all legacy tile types remain allowed
+    - added `CD11a` recipe defaults and action precedence for:
+      - `home_presence`
+      - `adaptive_count`
+      - `manual_overrides`
+      - `mode_selector`
+      - `boost_offset`
+      - `inside_temperature`
+      - `inside_humidity`
+      - `next_sun_event`
+      - `system_state`
+      - `next_alarm`
+  - `status_bespoke.test.js`
+    - new focused `CD11a` suite covering structural CSS, dropdown a11y, `home_summary`, `custom`, and recipe/action precedence
+  - `tunet-card-rehab-lab.yaml`
+    - replaced the old lead status fixture with `Status: Home Summary`
+    - converted the preserved legacy samples to explicit `layout_variant: custom` regression fixtures
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `python3 -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('Dashboard/Tunet/tunet-card-rehab-lab.yaml').read_text())"`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `12/12`
+  - full `npm test` → `637/637`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260407_003644Z`
+  - authenticated rehab review:
+    - `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --cd CD11 --breakpoint 390x844,768x1024,1024x1366,1440x900 --theme light,dark`
+    - manifest: `/tmp/tunet-playwright-review/2026-04-07T00-36-56-201Z/review-manifest.json`
+- `RESULT`
+  - `CD11a` is now a real landed runtime state, not just a governance decision
+  - the remaining status work narrows to `CD11b` (`home_detail` + `alarms`) and `CD11c` (`room_row` + `info_only`)
+  - status remains `yaml-first`; no editor/synthesis expansion was reopened
 
 ## Session Delta (2026-04-06, CD11 kickoff)
 

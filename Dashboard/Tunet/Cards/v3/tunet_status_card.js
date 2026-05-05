@@ -1,5 +1,5 @@
 /**
- * Tunet Status Card  v2.6.6 (v2 migration)
+ * Tunet Status Card  v3.3.0 (CD11c room_row + info_only)
  * Home status grid with typed tiles: indicator, timer, value, dropdown, alarm
  * Migrated to tunet_base.js shared module.
  */
@@ -14,7 +14,7 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.0.0';
+const CARD_VERSION = '3.3.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -25,6 +25,230 @@ const STATUS_ICON_ALIASES = {
   light_group: 'lightbulb',
   weather_sunset_down: 'wb_twilight',
   weather_sunset_up: 'sunny_snowing',
+};
+
+const STATUS_LAYOUT_VARIANTS = new Set([
+  'home_summary',
+  'home_detail',
+  'room_row',
+  'info_only',
+  'alarms',
+  'custom',
+]);
+
+const IMPLEMENTED_LAYOUT_VARIANTS = new Set([
+  'home_summary',
+  'home_detail',
+  'room_row',
+  'info_only',
+  'alarms',
+  'custom',
+]);
+
+const HOME_SUMMARY_ALLOWED_TYPES = new Set([
+  'value',
+  'indicator',
+  'dropdown',
+]);
+
+const ALARMS_ALLOWED_TYPES = new Set([
+  'alarm',
+  'timer',
+  'value',
+  'indicator',
+]);
+
+const PASSIVE_STATUS_ALLOWED_TYPES = new Set([
+  'value',
+  'indicator',
+]);
+
+const HOME_SUMMARY_SLOT_LIMIT = 8;
+
+const MODE_SELECTOR_SUMMARY_ALIASES = {
+  Adaptive: 'Adaptive',
+  'TV Mode': 'TV',
+  'Sleep Mode': 'Sleep',
+  Manual: 'Manual',
+  Bright: 'Bright',
+  Movie: 'Movie',
+  Off: 'Off',
+};
+
+const STATUS_RECIPE_PRIORITY = {
+  home_presence: 1,
+  mode_selector: 2,
+  adaptive_count: 3,
+  manual_overrides: 4,
+  boost_offset: 5,
+  inside_temperature: 6,
+  next_alarm: 7,
+  next_sun_event: 8,
+  inside_humidity: 12,
+  system_state: 14,
+  mode_ttl: 15,
+  enabled_alarms: 16,
+};
+
+const STATUS_RECIPES = {
+  home_presence: {
+    defaults: {
+      type: 'value',
+      icon: 'home',
+      label: 'Home',
+      compact_label: 'Home',
+      accent: 'green',
+      format: 'state',
+      dot_rules: [
+        { match: 'home', dot: 'green' },
+        { match: '*', dot: 'red' },
+      ],
+    },
+    defaultAction: 'entity',
+  },
+  adaptive_count: {
+    defaults: {
+      type: 'value',
+      icon: 'sunny',
+      label: 'Adaptive',
+      compact_label: 'Adaptive',
+      accent: 'green',
+      attribute: 'zones_adaptive',
+      format: 'integer',
+    },
+    defaultAction: 'entity',
+  },
+  manual_overrides: {
+    defaults: {
+      type: 'value',
+      icon: 'front_hand',
+      label: 'Manual',
+      compact_label: 'Manual',
+      accent: 'red',
+      attribute: 'active_zonal_overrides',
+      format: 'integer',
+      show_when: {
+        attribute: 'active_zonal_overrides',
+        operator: 'gt',
+        state: 0,
+      },
+      aux_action: {
+        label: 'Reset',
+        icon: 'restart_alt',
+        action: 'call-service',
+        service: 'script.turn_on',
+        service_data: {
+          entity_id: 'script.oal_reset_soft',
+        },
+      },
+    },
+    defaultAction: 'entity',
+  },
+  mode_selector: {
+    defaults: {
+      type: 'dropdown',
+      entity: 'input_select.oal_active_configuration',
+      icon: 'tune',
+      label: 'Mode',
+      compact_label: 'Mode',
+      accent: 'muted',
+    },
+    defaultAction: 'dropdown',
+    summaryOptionAliases: MODE_SELECTOR_SUMMARY_ALIASES,
+  },
+  boost_offset: {
+    defaults: {
+      type: 'value',
+      icon: 'bolt',
+      label: 'Boost',
+      compact_label: 'Boost',
+      accent: 'amber',
+      attribute: 'total_offset',
+      format: 'integer',
+      unit: '%',
+    },
+    defaultAction: 'entity',
+  },
+  inside_temperature: {
+    defaults: {
+      type: 'value',
+      icon: 'thermostat',
+      label: 'Inside',
+      compact_label: 'Inside',
+      accent: 'amber',
+      format: 'integer',
+    },
+    defaultAction: 'action_entity',
+  },
+  inside_humidity: {
+    defaults: {
+      type: 'value',
+      icon: 'water_drop',
+      label: 'Humidity',
+      compact_label: 'Humidity',
+      accent: 'blue',
+      format: 'integer',
+      unit: '%',
+    },
+    defaultAction: 'entity',
+  },
+  next_sun_event: {
+    defaults: {
+      type: 'value',
+      entity: 'sensor.sun_next_setting',
+      alt_entity: 'sensor.sun_next_rising',
+      sun_entity: 'sun.sun',
+      icon: 'weather_sunset_down',
+      label: 'Sunset',
+      compact_label: 'Sunset',
+      accent: 'amber',
+      format: 'time',
+    },
+    defaultAction: 'none',
+  },
+  system_state: {
+    defaults: {
+      type: 'indicator',
+      icon: 'info',
+      label: 'System',
+      compact_label: 'System',
+      accent: 'blue',
+      format: 'state',
+    },
+    defaultAction: 'entity',
+  },
+  next_alarm: {
+    defaults: {
+      type: 'value',
+      icon: 'alarm',
+      label: 'Alarm',
+      compact_label: 'Alarm',
+      accent: 'blue',
+      format: 'state',
+    },
+    defaultAction: 'action_entity',
+  },
+  enabled_alarms: {
+    defaults: {
+      type: 'value',
+      icon: 'alarm_on',
+      label: 'Enabled',
+      compact_label: 'Enabled',
+      accent: 'blue',
+      format: 'integer',
+    },
+    defaultAction: 'action_entity',
+  },
+  mode_ttl: {
+    defaults: {
+      type: 'timer',
+      icon: 'timer',
+      label: 'Mode TTL',
+      compact_label: 'TTL',
+      accent: 'amber',
+    },
+    defaultAction: 'entity',
+  },
 };
 
 function normalizeStatusIcon(icon) {
@@ -39,6 +263,33 @@ function clampInt(value, min, max, fallback) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+function cloneActionConfig(action) {
+  if (!action || typeof action !== 'object') return null;
+  return {
+    ...action,
+    service_data: action.service_data && typeof action.service_data === 'object'
+      ? { ...action.service_data }
+      : action.service_data,
+  };
+}
+
+function cloneShowWhen(condition) {
+  if (!condition || typeof condition !== 'object') return null;
+  return { ...condition };
+}
+
+function cloneDotRules(rules) {
+  if (!Array.isArray(rules)) return null;
+  return rules
+    .filter((rule) => rule && typeof rule === 'object')
+    .map((rule) => ({ ...rule }));
+}
+
+function normalizeStatusLayoutVariant(value) {
+  const candidate = String(value || 'custom').trim().toLowerCase();
+  return STATUS_LAYOUT_VARIANTS.has(candidate) ? candidate : 'custom';
 }
 
 function normalizeColumnBreakpoints(raw) {
@@ -124,10 +375,19 @@ ${CARD_SURFACE_GLASS_STROKE}
   :host {
     --card-pad: var(--_tunet-card-pad, 1.25em);
     --r-tile: var(--_tunet-tile-radius, 0.875em);
-    --type-label: var(--_tunet-name-font, 0.8125em);
-    --type-sub: var(--_tunet-sub-font, 0.6875em);
-    --type-value: var(--_tunet-value-font, 1.125em);
-    --tile-row-h: var(--_tunet-tile-min-h, 5.875em);
+    --_tunet-status-icon-box: 2.875em;
+    --_tunet-status-icon-glyph: 1.5625em;
+    --_tunet-status-value-font: 1.375em;
+    --_tunet-status-text-font: 0.9375em;
+    --_tunet-status-long-font: 0.875em;
+    --_tunet-status-label-font: 0.9375em;
+    --_tunet-status-secondary-font: 0.8125em;
+    --_tunet-status-dropdown-font: 1.3125em;
+    --_tunet-status-dot-size: 0.4375em;
+    --type-label: var(--_tunet-status-label-font, var(--_tunet-name-font, 0.875em));
+    --type-sub: var(--_tunet-status-secondary-font, var(--_tunet-sub-font, 0.75em));
+    --type-value: var(--_tunet-status-value-font, var(--_tunet-value-font, 1.25em));
+    --tile-row-h: var(--_tunet-tile-min-h, 5.75em);
     --tile-shadow-rest: 0 0.25em 0.75em rgba(0,0,0,0.04), 0 0.0625em 0.125em rgba(0,0,0,0.08);
     --tile-shadow-lift: 0 0.75em 2em rgba(0,0,0,0.12), 0 0.25em 0.75em rgba(0,0,0,0.08);
     --dd-bg: rgba(255,255,255,0.92);
@@ -186,7 +446,7 @@ ${CARD_SURFACE_GLASS_STROKE}
   .grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-auto-rows: var(--tile-row-h);
+    grid-auto-rows: minmax(var(--tile-row-h), auto);
     align-items: stretch;
     gap: var(--_tunet-tile-gap, 0.375em);
     overflow: visible;
@@ -199,21 +459,20 @@ ${CARD_SURFACE_GLASS_STROKE}
     border-radius: var(--_tunet-tile-radius, var(--r-tile));
     box-shadow: var(--tile-shadow-rest);
     padding:
-      var(--_tunet-status-pad-top, var(--_tunet-tile-pad, 0.875em))
-      calc(var(--_tunet-tile-pad, 0.875em) * 0.57)
-      var(--_tunet-status-pad-bottom, calc(var(--_tunet-tile-pad, 0.875em) * 0.57));
+      var(--_tunet-status-pad-top, 0.75em)
+      var(--_tunet-status-pad-x, 0.625em)
+      var(--_tunet-status-pad-bottom, 0.5625em);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--_tunet-status-tile-gap, calc(var(--_tunet-tile-gap, 0.375em) * 0.85));
+    gap: var(--_tunet-status-tile-gap, 0.1875em);
     cursor: pointer;
     transition: all .15s ease;
     position: relative;
     overflow: visible;
     min-width: 0;
     min-height: var(--tile-row-h);
-    height: var(--tile-row-h);
   }
   .tile[data-type="dropdown"] {
     z-index: 1;
@@ -238,19 +497,28 @@ ${CARD_SURFACE_GLASS_STROKE}
     outline: 0.125em solid var(--blue);
     outline-offset: 0.1875em;
   }
+  .tile.passive {
+    cursor: default;
+  }
+  .tile.passive:hover {
+    box-shadow: var(--tile-shadow-rest);
+  }
+  .tile.passive:active {
+    transform: none;
+  }
 
   /* ── Tile Icon Accents ───────────────────────── */
   .tile-icon {
-    width: var(--_tunet-display-icon-box, var(--_tunet-icon-box, 2.375em));
-    height: var(--_tunet-display-icon-box, var(--_tunet-icon-box, 2.375em));
+    width: var(--_tunet-status-icon-box, var(--_tunet-display-icon-box, var(--_tunet-icon-box, 2.625em)));
+    height: var(--_tunet-status-icon-box, var(--_tunet-display-icon-box, var(--_tunet-icon-box, 2.625em)));
     display: grid;
     place-items: center;
-    margin-bottom: calc(var(--_tunet-tile-gap, 0.375em) * 0.3);
+    margin-bottom: 0;
   }
   .tile-icon .tile-icon-glyph {
-    font-size: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.1875em));
-    width: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.1875em));
-    height: var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.1875em));
+    font-size: var(--_tunet-status-icon-glyph, var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.375em)));
+    width: var(--_tunet-status-icon-glyph, var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.375em)));
+    height: var(--_tunet-status-icon-glyph, var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.375em)));
     transform: none;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-icon {
@@ -282,13 +550,13 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Tile Values & Labels ────────────────────── */
   .tile-val {
-    font-size: var(--_tunet-display-name-font, var(--type-value, 1.125em)); font-weight: 700; letter-spacing: -.0125em; line-height: 1.06;
+    font-size: var(--_tunet-display-name-font, var(--type-value, 1.125em)); font-weight: 700; letter-spacing: -.0125em; line-height: 1.02;
     color: var(--text); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
   :host([use-profiles]) .tile-val {
-    line-height: 1.04;
-    min-height: 1.14em;
+    line-height: 1.02;
+    min-height: 1.08em;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -301,35 +569,35 @@ ${CARD_SURFACE_GLASS_STROKE}
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    line-height: 1.1;
+    line-height: 1.06;
     text-align: center;
-    font-size: var(--_tunet-name-font, 0.8125em);
-    max-height: 2.3em;
+    font-size: var(--_tunet-status-text-font, var(--_tunet-name-font, 0.875em));
+    max-height: 2.18em;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-val.is-text {
     font-size: 0.8375em;
     max-height: 2.35em;
   }
   .tile-val.is-long {
-    font-size: 0.75em;
+    font-size: var(--_tunet-status-long-font, 0.8125em);
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-val.is-long {
     font-size: 0.8em;
   }
   .tile-label {
-    font-size: var(--_tunet-display-value-font, var(--type-label, 0.8125em)); font-weight: 600; letter-spacing: .0125em; text-transform: uppercase;
-    color: var(--text-muted); line-height: 1.12; text-align: center; white-space: nowrap;
+    font-size: var(--_tunet-display-value-font, var(--type-label, 0.8125em)); font-weight: 600; letter-spacing: .01em; text-transform: uppercase;
+    color: var(--text-muted); line-height: 1.08; text-align: center; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
   :host([use-profiles]) .tile-label {
     text-transform: none;
     letter-spacing: 0.01em;
-    line-height: 1.04;
-    min-height: 1.14em;
+    line-height: 1.02;
+    min-height: 1.08em;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 0.02em;
+    margin-bottom: 0;
     flex: 0 0 auto;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-label {
@@ -348,9 +616,9 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
   .tile-deg { font-size: 0.6em; vertical-align: baseline; position: relative; top: -0.18em; margin-left: -0.0625em; }
   .tile-secondary {
-    font-size: var(--_tunet-display-meta-font, var(--type-sub, 0.6875em)); font-weight: 500; color: var(--text-sub); line-height: 1.12;
+    font-size: var(--_tunet-display-meta-font, var(--type-sub, 0.6875em)); font-weight: 500; color: var(--text-sub); line-height: 1.06;
     text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    max-width: 100%; margin-top: -0.0625em;
+    max-width: 100%; margin-top: -0.03125em;
   }
   :host([use-profiles]) .tile-secondary {
     line-height: 1.08;
@@ -363,8 +631,8 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Status Dots ─────────────────────────────── */
   .status-dot {
-    width: 0.375em; height: 0.375em; border-radius: 62.5em;
-    position: absolute; top: 0.625em; right: 0.625em;
+    width: var(--_tunet-status-dot-size, 0.4375em); height: var(--_tunet-status-dot-size, 0.4375em); border-radius: 62.5em;
+    position: absolute; top: 0.5625em; right: 0.5625em;
     display: none;
   }
   .status-dot.green { background: var(--green); display: block; }
@@ -376,6 +644,10 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* ── Conditional Visibility ──────────────────── */
   .tile.tile-hidden {
     visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  .tile.tile-collapsed {
+    display: none !important;
     pointer-events: none !important;
   }
 
@@ -415,11 +687,21 @@ ${CARD_SURFACE_GLASS_STROKE}
     border-color: rgba(239,68,68,0.32);
     background: rgba(239,68,68,0.12);
   }
+  .tile-aux.summary-compact {
+    min-height: 1.75em;
+    width: 1.75em;
+    padding: 0;
+    justify-content: center;
+    border-radius: 62.5em;
+  }
+  .tile-aux.summary-compact .aux-label {
+    display: none;
+  }
 
   /* ── Timer Tile ──────────────────────────────── */
   .tile[data-type="timer"] .tile-val {
     font-size: var(--_tunet-timer-display-font, var(--_tunet-timer-font, 1.125em));
-    letter-spacing: var(--_tunet-timer-ls, 0.03125em);
+    letter-spacing: var(--_tunet-timer-ls, 0.02em);
   }
 
   /* ── Dropdown Tile ───────────────────────────── */
@@ -428,7 +710,7 @@ ${CARD_SURFACE_GLASS_STROKE}
     align-items: center;
     justify-content: flex-start;
     gap: 0.125em;
-    font-size: var(--_tunet-dropdown-value-font, var(--_tunet-value-font, 1.125em));
+    font-size: var(--_tunet-status-dropdown-font, var(--_tunet-dropdown-value-font, var(--_tunet-value-font, 1.1875em)));
     font-weight: 600;
     color: var(--text);
     white-space: nowrap;
@@ -512,6 +794,233 @@ ${CARD_SURFACE_GLASS_STROKE}
     font-weight: 700;
     background: var(--blue-fill);
     color: var(--blue);
+  }
+
+  :host([layout-variant="home_summary"]) {
+    --tile-row-h: 5.375em;
+    --_tunet-status-icon-box: 2em;
+    --_tunet-status-icon-glyph: 1.5625em;
+    --_tunet-status-value-font: 1.3125em;
+    --_tunet-status-text-font: 1em;
+    --_tunet-status-label-font: 0.875em;
+    --_tunet-status-dropdown-font: 1.25em;
+  }
+  :host([layout-variant="home_summary"]) .grid {
+    gap: calc(var(--_tunet-tile-gap, 0.375em) * 0.85);
+  }
+  :host([layout-variant="home_summary"]) .tile {
+    padding: 0.6875em 0.5625em 0.5em;
+    gap: 0.15625em;
+  }
+  :host([layout-variant="home_summary"]) .tile-icon {
+    width: var(--_tunet-status-icon-box);
+    height: var(--_tunet-status-icon-box);
+    margin-bottom: 0;
+  }
+  :host([layout-variant="home_summary"]) .tile-icon .tile-icon-glyph {
+    font-size: var(--_tunet-status-icon-glyph);
+    width: var(--_tunet-status-icon-glyph);
+    height: var(--_tunet-status-icon-glyph);
+  }
+  :host([layout-variant="home_summary"]) .tile-val {
+    font-size: var(--_tunet-status-value-font);
+    line-height: 1.02;
+  }
+  :host([layout-variant="home_summary"]) .tile-val.is-text {
+    font-size: var(--_tunet-status-text-font);
+    max-height: 2.12em;
+  }
+  :host([layout-variant="home_summary"]) .tile-label {
+    font-size: var(--_tunet-status-label-font);
+    letter-spacing: 0.008em;
+    text-transform: none;
+    line-height: 1.04;
+  }
+  :host([layout-variant="home_summary"]) .tile-secondary {
+    display: none !important;
+  }
+  :host([layout-variant="home_summary"]) .tile-dd-val {
+    justify-content: center;
+    padding: 0;
+    text-align: center;
+    gap: 0;
+    font-size: var(--_tunet-status-dropdown-font);
+  }
+  :host([layout-variant="home_summary"]) .tile-dd-val .dd-text {
+    text-align: center;
+    width: 100%;
+  }
+  :host([layout-variant="home_summary"]) .tile-dd-val .chevron {
+    display: none;
+  }
+
+  :host([layout-variant="home_detail"]) {
+    --tile-row-h: 5.625em;
+    --_tunet-status-icon-box: 3em;
+    --_tunet-status-icon-glyph: 1.625em;
+    --_tunet-status-value-font: 1.5em;
+    --_tunet-status-text-font: 1em;
+    --_tunet-status-long-font: 0.9375em;
+    --_tunet-status-label-font: 0.9375em;
+    --_tunet-status-secondary-font: 0.8125em;
+    --_tunet-status-dropdown-font: 1.375em;
+  }
+  :host([layout-variant="home_detail"]) .tile {
+    padding: 0.75em 0.625em 0.5625em;
+    gap: 0.15625em;
+  }
+  :host([layout-variant="home_detail"]) .tile-label {
+    font-size: var(--_tunet-status-label-font);
+    text-transform: none;
+    letter-spacing: 0.01em;
+    line-height: 1.06;
+  }
+  :host([layout-variant="home_detail"]) .tile-secondary {
+    font-size: var(--_tunet-status-secondary-font);
+    line-height: 1.06;
+  }
+
+  :host([layout-variant="alarms"]) {
+    --tile-row-h: 5.75em;
+    --_tunet-status-icon-box: 2.875em;
+    --_tunet-status-icon-glyph: 1.5625em;
+    --_tunet-status-value-font: 1.375em;
+    --_tunet-status-label-font: 0.90625em;
+    --_tunet-status-secondary-font: 0.8125em;
+  }
+  :host([layout-variant="alarms"]) .grid {
+    gap: calc(var(--_tunet-tile-gap, 0.375em) * 0.95);
+  }
+  :host([layout-variant="alarms"]) .tile {
+    padding: 0.75em 0.625em 0.5625em;
+    gap: 0.15625em;
+  }
+  :host([layout-variant="alarms"]) .tile-label {
+    font-size: var(--_tunet-status-label-font);
+    text-transform: none;
+    letter-spacing: 0.01em;
+  }
+  :host([layout-variant="alarms"]) .tile[data-type="timer"] .tile-val {
+    font-size: 1.5em;
+  }
+  :host([layout-variant="alarms"]) .alarm-time-pill {
+    font-size: 1.125em;
+  }
+
+  :host([layout-variant="room_row"]) {
+    --tile-row-h: var(--_tunet-row-min-h, 3.5em);
+  }
+  :host([layout-variant="room_row"]) .grid {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--_tunet-row-gap, 0.75em);
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 0.125em;
+    scrollbar-width: none;
+  }
+  :host([layout-variant="room_row"]) .grid::-webkit-scrollbar {
+    display: none;
+  }
+  :host([layout-variant="room_row"]) .tile {
+    flex: 0 0 10.75em;
+    min-width: 10.75em;
+    min-height: var(--_tunet-row-min-h, 3.5em);
+    padding: var(--_tunet-row-pad-y, 0.75em) var(--_tunet-row-pad-x, 0.25em);
+    gap: var(--_tunet-row-gap, 0.75em);
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    border-radius: calc(var(--r-tile) * 0.88);
+  }
+  :host([layout-variant="room_row"]) .tile-icon {
+    order: 1;
+    width: var(--_tunet-row-lead-icon-box, 2.25em);
+    height: var(--_tunet-row-lead-icon-box, 2.25em);
+    margin-bottom: 0;
+    flex: 0 0 auto;
+  }
+  :host([layout-variant="room_row"]) .tile-icon .tile-icon-glyph {
+    font-size: var(--_tunet-row-lead-icon-glyph, 1.25em);
+    width: var(--_tunet-row-lead-icon-glyph, 1.25em);
+    height: var(--_tunet-row-lead-icon-glyph, 1.25em);
+  }
+  :host([layout-variant="room_row"]) .tile-label {
+    order: 2;
+    font-size: var(--_tunet-row-display-name-font, 0.95em);
+    line-height: 1.08;
+    color: var(--text-sub);
+    text-transform: none;
+    text-align: left;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  :host([layout-variant="room_row"]) .tile-val {
+    order: 3;
+    font-size: var(--_tunet-row-display-status-font, 1.05em);
+    line-height: 1;
+    margin-left: auto;
+    text-align: right;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  :host([layout-variant="room_row"]) .status-dot {
+    top: 0.5em;
+    right: 0.5em;
+  }
+
+  :host([layout-variant="info_only"]) {
+    --tile-row-h: 6.375em;
+    --_tunet-status-icon-box: 2.75em;
+    --_tunet-status-icon-glyph: 1.75em;
+    --_tunet-status-value-font: 1.625em;
+    --_tunet-status-text-font: 1.0625em;
+    --_tunet-status-long-font: 0.9375em;
+    --_tunet-status-label-font: 0.75em;
+    --_tunet-status-dropdown-font: 1.375em;
+  }
+  :host([layout-variant="info_only"]) .grid {
+    gap: calc(var(--_tunet-tile-gap, 0.375em) * 1.05);
+  }
+  :host([layout-variant="info_only"]) .tile {
+    padding: 0.9375em 0.75em 0.8125em;
+    gap: 0.25em;
+    box-shadow: 0 0.1875em 0.5em rgba(0,0,0,0.035), 0 0.0625em 0.125em rgba(0,0,0,0.05);
+  }
+  :host([layout-variant="info_only"]) .tile:hover {
+    box-shadow: 0 0.1875em 0.5em rgba(0,0,0,0.035), 0 0.0625em 0.125em rgba(0,0,0,0.05);
+  }
+  :host([layout-variant="info_only"]) .tile-icon {
+    width: var(--_tunet-status-icon-box);
+    height: var(--_tunet-status-icon-box);
+  }
+  :host([layout-variant="info_only"]) .tile-icon .tile-icon-glyph {
+    font-size: var(--_tunet-status-icon-glyph);
+    width: var(--_tunet-status-icon-glyph);
+    height: var(--_tunet-status-icon-glyph);
+  }
+  :host([layout-variant="info_only"]) .tile-val {
+    font-size: var(--_tunet-status-value-font);
+    line-height: 1;
+  }
+  :host([layout-variant="info_only"]) .tile-val.is-text {
+    font-size: var(--_tunet-status-text-font);
+    max-height: 2.15em;
+    line-height: 1.04;
+  }
+  :host([layout-variant="info_only"]) .tile-label {
+    font-size: var(--_tunet-status-label-font);
+    font-weight: 500;
+    color: var(--text-sub);
+    opacity: 0.78;
+    text-transform: none;
+    letter-spacing: 0.015em;
+    line-height: 1.08;
+  }
+  :host([layout-variant="info_only"]) .tile-secondary {
+    display: none !important;
   }
 
   /* ── Alarm Tile ─────────────────────────────── */
@@ -697,6 +1206,7 @@ class TunetStatusCard extends HTMLElement {
   }
 
   _resolveResponsiveColumns(widthHint = null) {
+    if (this._getResolvedLayoutVariant() === 'home_summary') return 4;
     const baseColumns = this._config.columns || 4;
     const width = Number.isFinite(Number(widthHint))
       ? Number(widthHint)
@@ -710,6 +1220,225 @@ class TunetStatusCard extends HTMLElement {
       if (width >= minWidth && width <= maxWidth) return rule.columns;
     }
     return baseColumns;
+  }
+
+  _getRequestedLayoutVariant() {
+    return this._config.layout_variant || 'custom';
+  }
+
+  _getResolvedLayoutVariant() {
+    return this._config.resolved_layout_variant || 'custom';
+  }
+
+  _isHomeSummary() {
+    return this._getResolvedLayoutVariant() === 'home_summary';
+  }
+
+  _isHomeDetail() {
+    return this._getResolvedLayoutVariant() === 'home_detail';
+  }
+
+  _isAlarms() {
+    return this._getResolvedLayoutVariant() === 'alarms';
+  }
+
+  _isRoomRow() {
+    return this._getResolvedLayoutVariant() === 'room_row';
+  }
+
+  _isInfoOnly() {
+    return this._getResolvedLayoutVariant() === 'info_only';
+  }
+
+  _usesCollapsedVisibility() {
+    return this._isHomeSummary() || this._isHomeDetail() || this._isRoomRow() || this._isInfoOnly() || this._isAlarms();
+  }
+
+  _usesCompactLabels() {
+    return this._isHomeSummary() || this._isRoomRow() || this._isInfoOnly();
+  }
+
+  _allowsSecondaryContent() {
+    return !(this._isHomeSummary() || this._isRoomRow() || this._isInfoOnly());
+  }
+
+  _allowsAuxAction() {
+    return !(this._isRoomRow() || this._isInfoOnly());
+  }
+
+  _applyLayoutVariantState() {
+    const variant = this._getResolvedLayoutVariant();
+    this.setAttribute('layout-variant', variant);
+  }
+
+  _normalizeTileConfig(rawTile, index, variant = this._getResolvedLayoutVariant()) {
+    const raw = rawTile && typeof rawTile === 'object' ? rawTile : {};
+    const recipeName = String(raw.recipe || '').trim();
+    const recipe = STATUS_RECIPES[recipeName] || null;
+    const explicitType = String(raw.type || '').trim().toLowerCase();
+    const recipeDefaults = recipe?.defaults || {};
+    const type = ['value', 'indicator', 'timer', 'dropdown', 'alarm'].includes(explicitType)
+      ? explicitType
+      : (recipeDefaults.type || 'value');
+    const rawDotRules = raw.status_dot && !raw.dot_rules
+      ? [{ match: '*', dot: raw.status_dot }]
+      : raw.dot_rules;
+
+    const tile = {
+      _authorIndex: index,
+      _recipePriority: STATUS_RECIPE_PRIORITY[recipeName] ?? Number.MAX_SAFE_INTEGER,
+      _recipeDefaultAction: recipe?.defaultAction || '',
+      _summaryOptionAliases: recipe?.summaryOptionAliases
+        ? { ...recipe.summaryOptionAliases }
+        : null,
+      _authoredType: Boolean(explicitType),
+      _authoredIcon: Boolean(raw.icon),
+      _authoredLabel: Boolean(raw.label),
+      _authoredCompactLabel: Boolean(raw.compact_label),
+      _authoredTapAction: Boolean(raw.tap_action),
+      _authoredNavigatePath: Boolean(raw.navigate_path),
+      _authoredActionEntity: Boolean(raw.action_entity),
+      type,
+      recipe: recipeName,
+      entity: raw.entity || recipeDefaults.entity || '',
+      alt_entity: raw.alt_entity || recipeDefaults.alt_entity || '',
+      sun_entity: raw.sun_entity || recipeDefaults.sun_entity || '',
+      action_entity: raw.action_entity || recipeDefaults.action_entity || '',
+      navigate_path: raw.navigate_path || '',
+      icon: normalizeStatusIcon(raw.icon || recipeDefaults.icon || 'info'),
+      label: raw.label || recipeDefaults.label || '',
+      compact_label: raw.compact_label || recipeDefaults.compact_label || '',
+      accent: raw.accent || recipeDefaults.accent || 'muted',
+      show_when: cloneShowWhen(raw.show_when || recipeDefaults.show_when || null),
+      tap_action: cloneActionConfig(raw.tap_action || recipeDefaults.tap_action),
+      aux_action: cloneActionConfig(raw.aux_action || recipeDefaults.aux_action),
+      aux_show_when: cloneShowWhen(raw.aux_show_when || recipeDefaults.aux_show_when || null),
+      unit: raw.unit || recipeDefaults.unit || '',
+      format: raw.format || recipeDefaults.format || 'state',
+      attribute: raw.attribute || recipeDefaults.attribute || '',
+      secondary: raw.secondary
+        ? {
+            entity: raw.secondary.entity || raw.entity || recipeDefaults.entity || '',
+            attribute: raw.secondary.attribute || '',
+          }
+        : (recipeDefaults.secondary
+          ? {
+              entity: recipeDefaults.secondary.entity || recipeDefaults.entity || '',
+              attribute: recipeDefaults.secondary.attribute || '',
+            }
+          : null),
+      dot_rules: cloneDotRules(rawDotRules || recipeDefaults.dot_rules || null),
+      playing_entity: raw.playing_entity || recipeDefaults.playing_entity || '',
+      snooze_action: cloneActionConfig(raw.snooze_action || recipeDefaults.snooze_action),
+      dismiss_action: cloneActionConfig(raw.dismiss_action || recipeDefaults.dismiss_action),
+    };
+
+    this._applyVariantRecipeDefaults(tile, variant);
+    if (tile.show_when && !tile.show_when.entity) tile.show_when.entity = tile.entity;
+    if (tile.aux_show_when && !tile.aux_show_when.entity) tile.aux_show_when.entity = tile.entity;
+    tile.primary_action = this._resolveTilePrimaryAction(tile, variant);
+    return tile;
+  }
+
+  _applyVariantRecipeDefaults(tile, variant) {
+    if (tile.recipe === 'next_alarm' && variant === 'alarms' && !tile._authoredType) {
+      tile.type = 'alarm';
+    }
+  }
+
+  _resolveTilePrimaryAction(tile, variant = this._getResolvedLayoutVariant()) {
+    if (variant === 'info_only') {
+      if (tile._authoredTapAction && tile.tap_action) {
+        return { kind: 'action', config: tile.tap_action };
+      }
+      if (tile._authoredNavigatePath && tile.navigate_path) {
+        return {
+          kind: 'action',
+          config: {
+            action: 'navigate',
+            navigation_path: tile.navigate_path,
+          },
+        };
+      }
+      if (tile._authoredActionEntity && tile.action_entity) {
+        return {
+          kind: 'action',
+          config: {
+            action: 'more-info',
+            entity: tile.action_entity,
+          },
+        };
+      }
+      return { kind: 'none' };
+    }
+    if (tile.tap_action) {
+      return { kind: 'action', config: tile.tap_action };
+    }
+    if (tile.navigate_path) {
+      return {
+        kind: 'action',
+        config: {
+          action: 'navigate',
+          navigation_path: tile.navigate_path,
+        },
+      };
+    }
+    if (tile.type === 'dropdown' || tile._recipeDefaultAction === 'dropdown') {
+      return { kind: 'dropdown' };
+    }
+    if (tile._recipeDefaultAction === 'action_entity' && tile.action_entity) {
+      return {
+        kind: 'action',
+        config: {
+          action: 'more-info',
+          entity: tile.action_entity,
+        },
+      };
+    }
+    if (tile._recipeDefaultAction === 'entity' && tile.entity) {
+      return {
+        kind: 'action',
+        config: {
+          action: 'more-info',
+          entity: tile.entity,
+        },
+      };
+    }
+    if (tile._recipeDefaultAction === 'none') {
+      return { kind: 'none' };
+    }
+    if (tile.action_entity) {
+      return {
+        kind: 'action',
+        config: {
+          action: 'more-info',
+          entity: tile.action_entity,
+        },
+      };
+    }
+    if (tile.entity) {
+      return {
+        kind: 'action',
+        config: {
+          action: 'more-info',
+          entity: tile.entity,
+        },
+      };
+    }
+    return { kind: 'none' };
+  }
+
+  _isTileAllowedInVariant(tile, variant) {
+    if (variant === 'home_summary') {
+      return HOME_SUMMARY_ALLOWED_TYPES.has(tile.type);
+    }
+    if (variant === 'room_row' || variant === 'info_only') {
+      return PASSIVE_STATUS_ALLOWED_TYPES.has(tile.type);
+    }
+    if (variant === 'alarms') {
+      return ALARMS_ALLOWED_TYPES.has(tile.type);
+    }
+    return true;
   }
 
   _setupResizeObserver() {
@@ -738,6 +1467,10 @@ class TunetStatusCard extends HTMLElement {
 
   _applyGridColumns() {
     if (!this._gridEl) return;
+    if (this._isRoomRow()) {
+      this._gridEl.style.gridTemplateColumns = '';
+      return;
+    }
     const cols = this._activeColumns || this._config.columns || 4;
     this._gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
   }
@@ -802,62 +1535,48 @@ class TunetStatusCard extends HTMLElement {
     const useProfiles = config.use_profiles !== false;
     const columns = clampInt(config.columns, 2, 8, 4);
     const columnBreakpoints = normalizeColumnBreakpoints(config.column_breakpoints);
+    const requestedLayoutVariant = normalizeStatusLayoutVariant(config.layout_variant);
+    const resolvedLayoutVariant = IMPLEMENTED_LAYOUT_VARIANTS.has(requestedLayoutVariant)
+      ? requestedLayoutVariant
+      : 'custom';
+    if (requestedLayoutVariant !== resolvedLayoutVariant) {
+      console.warn(
+        `[tunet-status-card] layout_variant "${requestedLayoutVariant}" is reserved for a later CD11 phase; falling back to custom for now.`
+      );
+    }
+    const tiles = [];
+    for (const [index, rawTile] of (config.tiles || []).entries()) {
+      const tile = this._normalizeTileConfig(rawTile, index, resolvedLayoutVariant);
+      if (!this._isTileAllowedInVariant(tile, resolvedLayoutVariant)) {
+        const allowedTypes = resolvedLayoutVariant === 'home_summary'
+          ? 'value, indicator, and dropdown'
+          : resolvedLayoutVariant === 'room_row' || resolvedLayoutVariant === 'info_only'
+            ? 'value and indicator'
+          : resolvedLayoutVariant === 'alarms'
+            ? 'alarm, timer, value, and indicator'
+            : 'all current tile types';
+        console.warn(
+          `[tunet-status-card] Skipping tile type "${tile.type}" in ${resolvedLayoutVariant}; allowed tile types are ${allowedTypes}.`
+        );
+        continue;
+      }
+      tiles.push(tile);
+    }
     this._config = {
       name: config.name || 'Home Status',
       show_header: config.show_header !== false,
       columns,
       column_breakpoints: columnBreakpoints,
+      layout_variant: requestedLayoutVariant,
+      resolved_layout_variant: resolvedLayoutVariant,
       tile_size: tileSize,
       use_profiles: useProfiles,
       custom_css: config.custom_css || '',
-      tiles: (config.tiles || []).map(t => {
-        const type = t.type || 'value';
-        const base = {
-          type,
-          entity: t.entity || '',
-          icon: normalizeStatusIcon(t.icon || 'info'),
-          label: t.label || '',
-          accent: t.accent || 'muted',
-          show_when: t.show_when || null,
-          tap_action: t.tap_action || null,
-          aux_action: t.aux_action || null,
-          aux_show_when: t.aux_show_when || null,
-        };
-
-        if (type === 'alarm') {
-          base.playing_entity = t.playing_entity || '';
-          base.snooze_action = t.snooze_action || null;
-          base.dismiss_action = t.dismiss_action || null;
-        } else if (type === 'indicator') {
-          base.format = t.format || 'state';
-          base.unit = t.unit || '';
-          base.dot_rules = t.dot_rules || [];
-        } else if (type === 'timer') {
-          // No extra config
-        } else if (type === 'dropdown') {
-          // No extra config
-        } else {
-          // value (default)
-          base.unit = t.unit || '';
-          base.format = t.format || 'state';
-          base.attribute = t.attribute || '';
-          base.secondary = t.secondary ? {
-            entity: t.secondary.entity || t.entity,
-            attribute: t.secondary.attribute || '',
-          } : null;
-          // Backward compat: convert old status_dot string to dot_rules
-          if (t.status_dot && !t.dot_rules) {
-            base.dot_rules = [{ match: '*', dot: t.status_dot }];
-          } else {
-            base.dot_rules = t.dot_rules || null;
-          }
-        }
-
-        return base;
-      }),
+      tiles,
     };
     if (useProfiles) this.setAttribute('use-profiles', '');
     else this.removeAttribute('use-profiles');
+    this._applyLayoutVariantState();
     this._applyProfile(this._getHostWidth());
     this._activeColumns = this._resolveResponsiveColumns();
     if (this._rendered) this._buildGrid();
@@ -883,6 +1602,8 @@ class TunetStatusCard extends HTMLElement {
     const relevantEntities = new Set();
     for (const t of this._config.tiles) {
       if (t.entity) relevantEntities.add(t.entity);
+      if (t.alt_entity) relevantEntities.add(t.alt_entity);
+      if (t.sun_entity) relevantEntities.add(t.sun_entity);
       if (t.show_when && t.show_when.entity) relevantEntities.add(t.show_when.entity);
       if (t.aux_show_when && t.aux_show_when.entity) relevantEntities.add(t.aux_show_when.entity);
       if (t.secondary && t.secondary.entity) relevantEntities.add(t.secondary.entity);
@@ -901,8 +1622,14 @@ class TunetStatusCard extends HTMLElement {
   }
 
   getCardSize() {
+    if (this._isRoomRow()) {
+      return this._config.show_header !== false ? 2 : 1;
+    }
     const cols = this._activeColumns || this._config.columns || 4;
-    const rows = Math.ceil(this._config.tiles.length / cols);
+    const tileCount = this._isHomeSummary()
+      ? Math.min(this._config.tiles.length, HOME_SUMMARY_SLOT_LIMIT)
+      : this._config.tiles.length;
+    const rows = Math.ceil(tileCount / cols);
     return Math.max(2, rows + 1);
   }
 
@@ -943,9 +1670,10 @@ class TunetStatusCard extends HTMLElement {
     }
 
     const width = this._getHostWidth(widthHint);
+    const variant = this._getResolvedLayoutVariant();
     const selection = selectProfileSize({
-      preset: 'status',
-      layout: 'grid',
+      preset: variant === 'room_row' ? 'environment' : 'status',
+      layout: variant === 'room_row' ? 'row' : 'grid',
       widthHint: width,
       userSize: this._config.tile_size,
     });
@@ -955,6 +1683,77 @@ class TunetStatusCard extends HTMLElement {
     this.setAttribute('profile-family', selection.family);
     this.setAttribute('profile-size', selection.size);
     this._setLegacyTileSizeAttr(selection.size);
+  }
+
+  _isSunAboveHorizon(tile) {
+    const sunEntityId = tile.sun_entity || 'sun.sun';
+    return this._hass?.states?.[sunEntityId]?.state === 'above_horizon';
+  }
+
+  _getResolvedTileEntityId(tile) {
+    if (tile.recipe === 'next_sun_event') {
+      const usePrimary = this._isSunAboveHorizon(tile);
+      return usePrimary ? (tile.entity || 'sensor.sun_next_setting') : (tile.alt_entity || tile.entity);
+    }
+    return tile.entity;
+  }
+
+  _getDisplayLabel(tile) {
+    const baseLabel = this._usesCompactLabels()
+      ? (tile.compact_label || tile.label)
+      : tile.label;
+    if (tile.recipe !== 'next_sun_event') return baseLabel;
+
+    const hasExplicitLabel = this._usesCompactLabels()
+      ? Boolean(tile._authoredCompactLabel || tile._authoredLabel)
+      : Boolean(tile._authoredLabel);
+    if (hasExplicitLabel) return baseLabel;
+    return this._isSunAboveHorizon(tile) ? 'Sunset' : 'Sunrise';
+  }
+
+  _getDisplayIcon(tile) {
+    if (tile.recipe === 'next_sun_event' && !tile._authoredIcon) {
+      return this._isSunAboveHorizon(tile)
+        ? normalizeStatusIcon('weather_sunset_down')
+        : normalizeStatusIcon('weather_sunset_up');
+    }
+    return tile.icon;
+  }
+
+  _getDropdownDisplayValue(tile, rawValue) {
+    const value = String(rawValue ?? '');
+    if (!this._isHomeSummary()) return value;
+    if (tile.recipe === 'mode_selector' && tile._summaryOptionAliases?.[value]) {
+      return tile._summaryOptionAliases[value];
+    }
+    return value;
+  }
+
+  _selectHomeSummaryVisibleTileIndexes(visibleTiles) {
+    if (visibleTiles.length <= HOME_SUMMARY_SLOT_LIMIT) {
+      return new Set(visibleTiles.map((tile) => tile.index));
+    }
+    const selected = [...visibleTiles]
+      .sort((a, b) => {
+        const priorityDelta = (a.config._recipePriority || Number.MAX_SAFE_INTEGER)
+          - (b.config._recipePriority || Number.MAX_SAFE_INTEGER);
+        if (priorityDelta !== 0) return priorityDelta;
+        return (a.config._authorIndex || 0) - (b.config._authorIndex || 0);
+      })
+      .slice(0, HOME_SUMMARY_SLOT_LIMIT)
+      .map((tile) => tile.index);
+    return new Set(selected);
+  }
+
+  _activateTile(tile, index, event) {
+    const activation = tile.primary_action || { kind: 'none' };
+    if (activation.kind === 'none') return;
+    if (activation.kind === 'dropdown') {
+      event?.stopPropagation?.();
+      this._toggleDropdown(index);
+      return;
+    }
+    this._handleTapAction(activation.config, this._getResolvedTileEntityId(tile));
   }
 
   /* ═══════════════════════════════════════════════════
@@ -992,6 +1791,7 @@ class TunetStatusCard extends HTMLElement {
     this._hdrEl = this.shadowRoot.querySelector('.hdr');
     this._cardEl = this.shadowRoot.querySelector('.card');
     this._gridEl = this.shadowRoot.getElementById('grid');
+    this._applyLayoutVariantState();
     this._applyProfile(this._getHostWidth());
     this._activeColumns = this._resolveResponsiveColumns();
     this._applyGridColumns();
@@ -1012,23 +1812,29 @@ class TunetStatusCard extends HTMLElement {
     this._titleEl.textContent = this._config.name;
     this._applyHeaderVisibility();
     this._applyGridColumns();
+    this._applyLayoutVariantState();
     // Refresh custom CSS on rebuild (covers config editor changes)
     if (this._customStyleEl) this._customStyleEl.textContent = this._config.custom_css || '';
     this._tileEls = [];
     this._clearAllTimers();
+    const summaryMode = this._isHomeSummary();
+    const allowSecondary = this._allowsSecondaryContent();
+    const allowAuxAction = this._allowsAuxAction();
 
     this._config.tiles.forEach((tile, i) => {
       const el = document.createElement('div');
       el.className = 'tile';
       el.dataset.accent = tile.accent;
       el.dataset.type = tile.type;
+      const labelText = this._getDisplayLabel(tile);
+      const iconText = this._getDisplayIcon(tile);
 
       switch (tile.type) {
         case 'alarm': {
           el.innerHTML = `
-            <div class="tile-icon"><span class="icon tile-icon-glyph">${tile.icon || 'alarm'}</span></div>
+            <div class="tile-icon"><span class="icon tile-icon-glyph" id="icon-${i}">${iconText || 'alarm'}</span></div>
             <span class="alarm-time-pill" id="val-${i}">--:--</span>
-            <span class="tile-label">${tile.label}</span>
+            <span class="tile-label" id="label-${i}">${labelText}</span>
             <div class="alarm-actions" id="alarm-actions-${i}">
               ${tile.snooze_action ? `<button type="button" class="alarm-btn snooze" id="alarm-snooze-${i}"><span class="icon">snooze</span>Snooze</button>` : ''}
               ${tile.dismiss_action ? `<button type="button" class="alarm-btn dismiss" id="alarm-dismiss-${i}"><span class="icon">alarm_off</span>Stop</button>` : ''}
@@ -1054,46 +1860,39 @@ class TunetStatusCard extends HTMLElement {
               });
             }
           }
-          // Tap on tile itself opens more-info or fires tap_action
-          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
           break;
         }
 
         case 'indicator':
           el.innerHTML = `
             <div class="status-dot" id="dot-${i}"></div>
-            <div class="tile-icon"><span class="icon tile-icon-glyph">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon tile-icon-glyph" id="icon-${i}">${iconText}</span></div>
             <span class="tile-val" id="val-${i}">--</span>
-            <span class="tile-label">${tile.label}</span>
+            <span class="tile-label" id="label-${i}">${labelText}</span>
           `;
-          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
           break;
 
         case 'timer':
           el.innerHTML = `
-            <div class="tile-icon"><span class="icon tile-icon-glyph">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon tile-icon-glyph" id="icon-${i}">${iconText}</span></div>
             <span class="tile-val" id="val-${i}">--:--</span>
-            <span class="tile-label">${tile.label}</span>
+            <span class="tile-label" id="label-${i}">${labelText}</span>
           `;
-          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
           break;
 
         case 'dropdown':
           el.innerHTML = `
-            <div class="tile-icon"><span class="icon tile-icon-glyph">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon tile-icon-glyph" id="icon-${i}">${iconText}</span></div>
             <div class="tile-dd-val" id="ddval-${i}" aria-expanded="false">
               <span class="dd-text" id="val-${i}">--</span>
               <span class="icon chevron">expand_more</span>
             </div>
-            <span class="tile-label">${tile.label}</span>
-            <div class="tile-dd-menu" id="ddmenu-${i}"></div>
+            <span class="tile-label" id="label-${i}">${labelText}</span>
+            <div class="tile-dd-menu" id="ddmenu-${i}" role="listbox" aria-hidden="true"></div>
           `;
-          this._bindTileAction(el, (e) => {
-            e.stopPropagation();
-            this._toggleDropdown(i);
-          }, tile);
           el.setAttribute('aria-haspopup', 'listbox');
           el.setAttribute('aria-expanded', 'false');
+          el.setAttribute('aria-labelledby', `val-${i} label-${i}`);
           break;
 
         case 'value':
@@ -1104,18 +1903,17 @@ class TunetStatusCard extends HTMLElement {
           }
           el.innerHTML = `
             ${dotHTML}
-            <div class="tile-icon"><span class="icon tile-icon-glyph">${tile.icon}</span></div>
+            <div class="tile-icon"><span class="icon tile-icon-glyph" id="icon-${i}">${iconText}</span></div>
             <span class="tile-val" id="val-${i}">--</span>
-            <span class="tile-secondary" id="sec-${i}"></span>
-            <span class="tile-label">${tile.label}</span>
+            ${allowSecondary ? `<span class="tile-secondary" id="sec-${i}"></span>` : ''}
+            <span class="tile-label" id="label-${i}">${labelText}</span>
           `;
-          this._bindTileAction(el, () => this._fireMoreInfo(tile.entity), tile);
           break;
         }
       }
 
       let auxEl = null;
-      if (tile.aux_action) {
+      if (tile.aux_action && allowAuxAction) {
         el.classList.add('has-aux');
         const auxBtn = document.createElement('button');
         auxBtn.type = 'button';
@@ -1124,9 +1922,14 @@ class TunetStatusCard extends HTMLElement {
         const auxLabel = tile.aux_action.label || 'Action';
         const looksDanger = String(auxLabel).toLowerCase().includes('reset');
         if (looksDanger) auxBtn.classList.add('danger');
+        if (summaryMode) {
+          auxBtn.classList.add('summary-compact');
+          auxBtn.setAttribute('aria-label', auxLabel);
+          auxBtn.title = auxLabel;
+        }
         auxBtn.innerHTML = auxIcon
-          ? `<span class="icon" style="font-size:0.75em;width:0.75em;height:0.75em">${auxIcon}</span><span>${auxLabel}</span>`
-          : `<span>${auxLabel}</span>`;
+          ? `<span class="icon" style="font-size:0.75em;width:0.75em;height:0.75em">${auxIcon}</span><span class="aux-label">${auxLabel}</span>`
+          : `<span class="aux-label">${auxLabel}</span>`;
         auxBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           this._handleTapAction(tile.aux_action, tile.entity);
@@ -1135,12 +1938,20 @@ class TunetStatusCard extends HTMLElement {
         auxEl = auxBtn;
       }
 
+      if (tile.primary_action?.kind === 'none') {
+        el.classList.add('passive');
+      } else {
+        this._bindTileAction(el, (event) => this._activateTile(tile, i, event));
+      }
+
       this._gridEl.appendChild(el);
       this._tileEls.push({
         el,
         config: tile,
         index: i,
         auxEl,
+        iconEl: el.querySelector(`#icon-${i}`),
+        labelEl: el.querySelector(`#label-${i}`),
         valEl: el.querySelector(`#val-${i}`),
         dotEl: el.querySelector(`#dot-${i}`),
         secEl: el.querySelector(`#sec-${i}`),
@@ -1162,14 +1973,10 @@ class TunetStatusCard extends HTMLElement {
     }));
   }
 
-  _bindTileAction(el, handler, tileConfig) {
+  _bindTileAction(el, handler) {
     el.setAttribute('tabindex', '0');
     el.setAttribute('role', 'button');
     const activate = (e) => {
-      if (tileConfig && tileConfig.tap_action) {
-        this._handleTapAction(tileConfig.tap_action, tileConfig.entity);
-        return;
-      }
       handler(e);
     };
     el.addEventListener('click', activate);
@@ -1185,13 +1992,28 @@ class TunetStatusCard extends HTMLElement {
   _evaluateVisibility() {
     if (!this._hass || !this._tileEls) return;
 
-    for (const tile of this._tileEls) {
-      const { config, el, auxEl } = tile;
-
-      const tileVisible = !config.show_when
+    const collapseHidden = this._usesCollapsedVisibility();
+    const baseVisibility = this._tileEls.map((tile) => {
+      const { config } = tile;
+      const visible = !config.show_when
         ? true
         : this._matchesShowWhen(this._hass.states[config.show_when.entity], config.show_when);
-      el.classList.toggle('tile-hidden', !tileVisible);
+      return { tile, visible };
+    });
+    const summaryVisibleIndexes = this._isHomeSummary()
+      ? this._selectHomeSummaryVisibleTileIndexes(
+          baseVisibility.filter((entry) => entry.visible).map((entry) => entry.tile)
+        )
+      : null;
+
+    for (const tile of this._tileEls) {
+      const { config, el, auxEl } = tile;
+      const baseVisible = !config.show_when
+        ? true
+        : this._matchesShowWhen(this._hass.states[config.show_when.entity], config.show_when);
+      const tileVisible = baseVisible && (!summaryVisibleIndexes || summaryVisibleIndexes.has(tile.index));
+      el.classList.toggle('tile-hidden', !tileVisible && !collapseHidden);
+      el.classList.toggle('tile-collapsed', !tileVisible && collapseHidden);
 
       if (auxEl) {
         const auxVisible = !config.aux_show_when
@@ -1200,6 +2022,10 @@ class TunetStatusCard extends HTMLElement {
         auxEl.hidden = !(tileVisible && auxVisible);
         el.classList.toggle('has-aux-visible', tileVisible && auxVisible);
       }
+    }
+
+    if (this._openDropdown != null && !summaryVisibleIndexes?.has(this._openDropdown) && collapseHidden) {
+      this._closeAllDropdowns();
     }
   }
 
@@ -1250,10 +2076,13 @@ class TunetStatusCard extends HTMLElement {
     if (!this._hass || !this._tileEls) return;
 
     for (const tile of this._tileEls) {
-      const { config, valEl, dotEl, secEl, ddMenuEl, ddValEl, index } = tile;
-      if (!config.entity) { if (valEl) valEl.textContent = '--'; continue; }
+      const { config, valEl, dotEl, secEl, ddMenuEl, ddValEl, labelEl, iconEl, index } = tile;
+      if (labelEl) labelEl.textContent = this._getDisplayLabel(config);
+      if (iconEl) iconEl.textContent = this._getDisplayIcon(config);
+      const entityId = this._getResolvedTileEntityId(config);
+      if (!entityId) { if (valEl) valEl.textContent = '--'; continue; }
 
-      const entity = this._hass.states[config.entity];
+      const entity = this._hass.states[entityId];
       if (!entity) { if (valEl) valEl.textContent = '?'; continue; }
 
       switch (config.type) {
@@ -1397,11 +2226,18 @@ class TunetStatusCard extends HTMLElement {
   }
 
   _applyDotRules(dotEl, state, rules) {
-    const stateStr = String(state);
+    const stateStr = String(state ?? '').trim();
+    const normalizedState = stateStr.toLowerCase();
     let dotColor = '';
 
     for (const rule of rules) {
-      if (rule.match === '*' || stateStr === rule.match || stateStr.includes(rule.match)) {
+      const rawMatch = String(rule?.match ?? '').trim();
+      if (!rawMatch) continue;
+      if (rawMatch === '*') {
+        dotColor = rule.dot;
+        break;
+      }
+      if (normalizedState === rawMatch.toLowerCase()) {
         dotColor = rule.dot;
         break;
       }
@@ -1432,7 +2268,9 @@ class TunetStatusCard extends HTMLElement {
   }
 
   _updateDropdownTile(valEl, ddMenuEl, ddValEl, entity, config, index) {
-    valEl.textContent = entity.state;
+    const displayValue = this._getDropdownDisplayValue(config, entity.state);
+    valEl.textContent = displayValue;
+    valEl.title = entity.state;
 
     const options = entity.attributes.options || [];
     const current = entity.state;
@@ -1441,6 +2279,8 @@ class TunetStatusCard extends HTMLElement {
     for (const opt of options) {
       const btn = document.createElement('button');
       btn.className = 'tile-dd-opt';
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('aria-selected', opt === current ? 'true' : 'false');
       if (opt === current) btn.classList.add('active');
       btn.textContent = opt;
       btn.addEventListener('click', (e) => {
@@ -1516,6 +2356,7 @@ class TunetStatusCard extends HTMLElement {
       this._elevateHostCard();
       this.classList.add('dd-open');
       tile.ddMenuEl.classList.add('open');
+      tile.ddMenuEl.setAttribute('aria-hidden', 'false');
       tile.ddValEl.setAttribute('aria-expanded', 'true');
       tile.el.setAttribute('aria-expanded', 'true');
       tile.el.classList.add('dropdown-open');
@@ -1555,6 +2396,7 @@ class TunetStatusCard extends HTMLElement {
       tile.el.classList.remove('dropdown-open');
       if (tile.ddMenuEl) {
         tile.ddMenuEl.classList.remove('open');
+        tile.ddMenuEl.setAttribute('aria-hidden', 'true');
         tile.ddMenuEl.style.top = '';
         tile.ddMenuEl.style.bottom = '';
         tile.ddMenuEl.style.maxHeight = '';

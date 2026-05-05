@@ -168,7 +168,7 @@ This section is the composition contract for later whole-home dashboard work. It
 | `tunet-climate-card` | information | climate companion/reference surface | single-card climate presentation | cramped paired-phone compositions treated as a climate-card default | CD8 |
 | `tunet-weather-card` | information | weather companion/info surface | fixed daily/hourly variants | toggle-heavy auto-control variants as the default phone composition | CD8 |
 | `tunet-sensor-card` | information | environment/status rows and glanceable metrics | concise labeled rows with controlled sensor counts | unlabeled or alias-ambiguous fixture contracts | CD8 |
-| `tunet-status-card` | information | status/summary matrix where explicitly needed | 2-column phone-safe density unless labels are substantially shortened | 4-column phone summary matrix at `390px` | CD11 / G3S lock |
+| `tunet-status-card` | information | mode-aware status surface where summary/detail/alarms are distinct jobs | `home_summary` fixed `4x2` phone matrix with compact labels; `custom` preserves authored flexibility | treating legacy `custom` grids as the universal phone default | CD11 |
 | `tunet-media-card` | media control | primary transport/media state surface | compact/default labels preserve room identity; selected-target volume, dropdown behavior, and art resilience accepted | explicit long-name authoring polish only | CD9 |
 | `tunet-sonos-card` | media control | alternate inline-speaker Sonos control surface | default/autodiscovered source + speaker path width-safe; visible tiles align with suite speaker-tile semantics | explicit long-name authoring polish only | CD9 |
 | `tunet-speaker-grid-card` | media control | dedicated speaker-management grid | compact 2-column phone baseline with card-level mobile fallback for larger/dense configs | desktop-facing dense authoring without phone overrides | CD9 |
@@ -179,7 +179,7 @@ Locked decisions:
 - `tunet-lighting-card` is the canonical detailed room-light surface.
 - `tunet-light-tile` is an atomic detail tile, not an overview card.
 - `tunet-nav-card` is chrome, not ordinary content composition.
-- `tunet-status-card` remains G3S/CD11 locked for structural changes.
+- `tunet-status-card` is in the active narrow `CD11` status-only redesign; `CD11a` has landed for `home_summary` + `custom`, while later modes remain pending.
 
 Classification note: composition misuse is not a card defect — use the table above before classifying a visual problem as card failure. Historical tranche language in per-card sections below is context only; check `visual_defect_ledger.md` for current open-issue status.
 
@@ -737,7 +737,7 @@ adaptive_entity (deprecated singular), light_group (legacy), light_overrides (le
 
 ## 5. tunet-rooms-card
 
-**Version**: v3.0.0  
+**Version**: v3.1.0  
 **Tier**: editor-lite  
 **File**: `Dashboard/Tunet/Cards/v3/tunet_rooms_card.js`
 
@@ -1094,7 +1094,7 @@ Current accepted phone contract:
 
 ## 8. tunet-sensor-card
 
-**Version**: v3.0.0  
+**Version**: v3.1.0  
 **Tier**: editor-complete  
 **File**: `Dashboard/Tunet/Cards/v3/tunet_sensor_card.js`
 
@@ -1205,13 +1205,24 @@ Fixture/contract note: use `label` consistently for display-name overrides unles
 
 ## 9. tunet-status-card
 
-**Version**: v3.0.0  
+**Version**: v3.1.0  
 **Tier**: yaml-first  
 **File**: `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
 
 ### Purpose
 
-Polymorphic tile grid with 5 tile subtypes: value, indicator, timer, alarm, dropdown. The most complex card for configuration due to per-type field differences. Supports conditional visibility, auxiliary actions, secondary displays, and status dots.
+Mode-aware status surface. `CD11` now separates the compact phone-summary job from the richer detail, strip, and passive info jobs:
+
+- `home_summary`: curated fixed `4x2` summary matrix with compact labels, compact aux affordances, and collapse/reflow behavior
+- `home_detail`: richer authored detail surface with full labels/secondary values and authored breakpoint control
+- `room_row`: compact horizontal strip with value/indicator-only filtering and collapse/reflow behavior
+- `info_only`: calmer informational grid with value/indicator-only filtering and passive-by-default interaction
+- `alarms`: alarm/timer-focused density with dropdown rejection and collapsed hidden-tile behavior
+- `custom`: backward-compatible authored grid; omitted `layout_variant` still lands here
+
+Important:
+- `layout_variant` changes presentation and interaction rules only
+- tile/entity choice remains per-instance YAML authoring, so different status surfaces can carry different content on the same shared runtime
 
 ### Config Properties (top-level)
 
@@ -1221,14 +1232,24 @@ Polymorphic tile grid with 5 tile subtypes: value, indicator, timer, alarm, drop
 | `show_header` | boolean | `true` | true/false | Y | editor |
 | `columns` | number | `4` | 2-8 | Y | editor |
 | `column_breakpoints` | array | `[]` | responsive rules | N | yaml-only |
+| `layout_variant` | string | `'custom'` | `'home_summary'`, `'home_detail'`, `'room_row'`, `'info_only'`, `'alarms'`, `'custom'` | N | yaml-only |
 | `tile_size` | string | `'standard'` | `'compact'`, `'standard'`, `'large'` | Y | editor |
 | `use_profiles` | boolean | `true` | true/false | Y | editor |
 | `custom_css` | string | `''` | CSS text | Y (advanced) | editor |
 | `tiles` | array | `[]` | tile objects | N | yaml-only |
 
+### Tile-Level CD11 Keys
+
+- `compact_label`: short mode-safe label used by `home_summary`, `room_row`, and `info_only`
+- `recipe`: optional semantic recipe name
+- `action_entity`: default more-info target when display entity != control entity
+- `navigate_path`: default navigation shortcut; wins over recipe defaults
+
 ### Five Tile Types
 
-**Value** (default): Icon + large value + optional secondary + optional unit + label. Supports `attribute` for reading entity attributes, `format` for display (state/integer/time), `dot_rules` for status dots, `secondary` for sub-value display.
+**Value** (default): Icon + large value + optional secondary + optional unit + label. Supports `attribute` for reading entity attributes, `format` for display (state/integer/time), `dot_rules` for status dots, `secondary` for sub-value display. `dot_rules` use exact case-insensitive state matching plus `'*'` wildcard fallback.
+
+Status-tile icons use raw Material Symbols glyph names. `normalizeStatusIcon()` only strips an optional `mdi:` prefix and applies a very small alias map; it does not translate arbitrary HA/MDI weather icon names into valid glyphs. If an unknown glyph name is authored, the text name will render.
 
 **Indicator**: Icon + value + label + status dot. Simpler than value — no secondary, no unit.
 
@@ -1238,17 +1259,83 @@ Polymorphic tile grid with 5 tile subtypes: value, indicator, timer, alarm, drop
 
 **Dropdown**: Icon + current value + chevron + label. Opens a custom glassmorphic overlay menu with flip/cap-height heuristics. Options read from entity's `options` attribute (input_select). Current phone runtime still needs more conservative wording than "smart positioning" implies.
 
+### CD11 Recipes
+
+Implemented recipes:
+
+- `home_presence`
+- `adaptive_count`
+- `manual_overrides`
+- `mode_selector`
+- `boost_offset`
+- `inside_temperature`
+- `inside_humidity`
+- `next_sun_event`
+- `system_state`
+- `next_alarm`
+- `enabled_alarms`
+- `mode_ttl`
+
+Current recipe behavior:
+
+- recipes provide defaults; authored YAML still owns render order
+- `home_summary` uses recipe priority only for slot-budget arbitration when more than 8 visible tiles compete for the summary matrix
+- `inside_temperature` defaults tile activation to `action_entity`
+- `next_sun_event` auto-switches between sunrise/sunset icon + label
+- `next_alarm` prefers authored `navigate_path`, otherwise falls back to `action_entity`/entity more-info
+- `next_alarm` auto-renders as an `alarm` tile in `layout_variant: alarms` unless the author explicitly overrides the tile type
+- `enabled_alarms` is intended for `alarms` and optional `home_detail`
+- `mode_ttl` is a timer recipe for `alarms` and optional `home_detail`
+
 ### Conditional Visibility (show_when)
 
-Per-tile condition: `{entity, state, operator, attribute}`. Operators: equals, not_equals, contains, not_contains, gt, lt. Evaluated on every HA state change. Hidden tiles use `visibility: hidden` (preserve grid space).
+Per-tile condition: `{entity, state, operator, attribute}`. Operators: equals, not_equals, contains, not_contains, gt, lt. Evaluated on every HA state change.
+
+Mode behavior differs:
+
+- `home_summary`: hidden tiles collapse with `display: none` and the grid reflows
+- `home_detail`: hidden tiles also collapse and reflow
+- `room_row`: hidden tiles collapse and the strip reflows
+- `info_only`: hidden tiles also collapse and reflow
+- `alarms`: hidden tiles also collapse and reflow
+- `custom`: hidden tiles preserve space with `visibility: hidden`
 
 ### Auxiliary Actions (aux_action)
 
-Small pill button in tile top-right. Visible only when `aux_show_when` condition matches. Has "danger" styling when label contains "reset". Fires custom action on tap.
+Small top-right action affordance. Visible only when `aux_show_when` matches.
+
+- `home_summary`: compact icon affordance only
+- `home_detail`: full pill treatment remains allowed
+- `room_row`: aux actions are suppressed
+- `info_only`: aux actions are suppressed
+- `custom`: full pill treatment remains allowed
 
 ### Tile Grid
 
-`grid-auto-rows: var(--tile-row-h)` — intentionally forced uniform row height. Standard: 5.875em, compact: 5.5em, large: 7.125em. Responsive columns via ResizeObserver.
+- `home_summary`
+  - fixed 4 columns regardless of width hints
+  - `grid-auto-rows: minmax(var(--tile-row-h), auto)`
+  - compact summary rhythm
+- `home_detail`
+  - honors authored `columns` + `column_breakpoints`
+  - preserves richer label / secondary / aux treatment while hidden tiles still collapse
+- `room_row`
+  - horizontal flex strip rather than grid columns
+  - allows only `value` and `indicator`
+  - compact labels, no secondary values, no aux actions
+  - hidden tiles collapse/reflow
+- `info_only`
+  - authored `columns` + `column_breakpoints`
+  - allows only `value` and `indicator`
+  - calmer/lighter informational treatment with compact labels
+  - no secondary values, no aux actions
+  - hidden tiles collapse/reflow
+- `alarms`
+  - allows only `alarm`, `timer`, `value`, and `indicator`
+  - uses a slightly taller alarm/timer rhythm than summary
+- `custom`
+  - authored `columns` + `column_breakpoints`
+  - same `minmax(var(--tile-row-h), auto)` structural fix, but legacy flexibility otherwise remains
 
 ### Grid Options
 
@@ -1256,7 +1343,7 @@ Small pill button in tile top-right. Visible only when `aux_show_when` condition
 { columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 }
 ```
 
-Static. Should compute from `ceil(tiles.length / columns) + (show_header ? 1 : 0)`. The current 4-column summary default is not phone-safe at `390px`; `2` columns is the safe default unless labels are substantially shortened.
+Still static at the helper layer. `getCardSize()` now clamps summary sizing to the `home_summary` slot budget, but the card remains Sections-override friendly rather than trying to infer whole-page intent.
 
 ### Legacy Keys
 
@@ -1265,53 +1352,51 @@ Static. Should compute from `ceil(tiles.length / columns) + (show_header ? 1 : 0
 ### Interaction
 
 - **Category**: Information tiles with optional action controls
-- Primary tile activation is tap/keyboard (`Enter`/`Space`) via bound button semantics.
-- Dropdown tiles open/close option menus with explicit option-button actions.
-- Aux action pill executes configured action when visible.
+- Primary activation precedence is: explicit `tap_action` -> explicit `navigate_path` -> recipe default -> `action_entity` more-info -> tile-entity more-info.
+- Interactive tiles use tap/keyboard (`Enter`/`Space`) button semantics; passive recipe tiles may intentionally render without button behavior.
+- `info_only` is passive by default; tiles only become interactive when the author explicitly provides `tap_action`, `navigate_path`, or `action_entity`.
+- Dropdown tiles open a custom overlay with `listbox` / `option` semantics and explicit option-button actions.
+- `home_summary` dropdowns center the selected value text and hide the visible chevron so the card reads like the other summary tiles.
+- Implemented status modes now intentionally use a larger icon/value/label scale than the first CD11 landing; if they drift back to a small/sparse look, treat that as a regression.
+- The current density target is closer to `tunet-sensor-card` `standard` / `use_profiles: false` than to the early sparse CD11 status prototypes.
+- Aux action executes when visible; `home_summary` renders the compact icon affordance rather than the full pill treatment.
 - No hold gesture and no drag gesture in status tiles.
 
 ### Sections Safety
 
-- Card intentionally uses fixed `grid-auto-rows` for uniform tile rhythm, unlike most other cards.
-- `rows: 'auto'` in `getGridOptions()` does not remove internal fixed tile row-height behavior.
-- This forced-height model is status-specific and remains under `G3S` lock (bugfix-only unless reopened).
-- Phone-default rule: treat the 4-column summary matrix as a desktop/tablet density, not a `390px` default.
+- `CD11a` removed the old fixed-height cap: status rows now use `grid-auto-rows: minmax(var(--tile-row-h), auto)` so taller content can grow without clipping.
+- `rows: 'auto'` in `getGridOptions()` still describes the helper contract; the internal summary/custom grids own their own row rhythm.
+- `home_summary` is intentionally phone-first with a fixed `4x2` summary target; do not reinterpret it as a desktop/tablet-only density.
+- `custom` remains the legacy escape hatch for authored freeform grids now that the opinionated `CD11` variants are implemented.
 
 ### Editor Architecture
 
-**Type**: Level 1 currently. Future: Level 3 (choose selector) or Level 4 (custom editor).
+**Type**: Level 1 currently. Status remains yaml-first for `CD11`.
 
 **Current authoring model** (top-level flags only):
 `name`, `show_header`, `columns`, `tile_size`, `use_profiles`, `custom_css`
 
-**Future authoring model** (mode-driven synthesis, when G3S lifts):
-| Field | Selector | What it synthesizes |
-|-------|----------|---------------------|
-| `mode` | select: summary / alarm / environment / custom | → tiles[] array |
-| `status_entity` | entity | → adaptive/manual/boost/mode tiles (when mode=summary) |
-| `weather_entity` | entity | → weather/outdoor temp/humidity tiles (when mode=summary) |
-| `temperature_entity` | entity | → indoor temp tile (when mode=summary) |
-| `alarm_entity` | entity | → alarm tile with ringing/snooze/dismiss (when mode=alarm) |
-| `entities` | multi-entity (sensor) | → value tile per sensor (when mode=environment) |
+**Yaml-first authoring surface**:
+- top-level editor fields remain shallow and mode-agnostic
+- `layout_variant`, `tiles[]`, `recipe`, `compact_label`, `action_entity`, `navigate_path`, and `column_breakpoints` are still YAML-authored
+- currently implemented runtime variants:
+  - `home_summary`
+  - `home_detail`
+  - `room_row`
+  - `info_only`
+  - `alarms`
+  - `custom`
 
-**Future synthesizer** (setConfig, when G3S lifts):
-- `mode = 'summary'` + `status_entity` → generates 8-tile OAL dashboard (adaptive, manual, boost, mode dropdown, weather, outdoor, humidity, indoor)
-- `mode = 'alarm'` + `alarm_entity` → generates alarm tile with synthesized snooze/dismiss actions
-- `mode = 'environment'` + `entities` → generates value tile per sensor with auto-detected unit/icon
-- `mode = 'custom'` → tiles[] from YAML, no synthesis
-- Precedence: explicit `tiles[]` > mode-synthesized tiles
-
-**Implementation path**: Level 3 (choose selector for mode-dependent fields) in getConfigForm, synthesis in setConfig. OR Level 4 (getConfigElement custom editor) if choose doesn't handle the conditional field sets cleanly.
-
-**G3S scope**: documented now, implemented when lock lifts.
+**Editor follow-up direction**:
+- if status ever graduates beyond yaml-first, the editor should describe real landed variants rather than synthesizing undocumented `tiles[]` behind the user's back
+- do not document speculative mode synthesizers as active architecture until that work actually exists
 
 ### Known Limitations
 
-- `tiles[]` is yaml-only until G3S lock lifts — polymorphic (5 types with different fields per type)
+- `tiles[]` remains yaml-only — polymorphic (5 types with different fields per type)
 - `column_breakpoints` is yaml-only
-- Alarm tile requires `playing_entity` + script entities for snooze/dismiss — complex setup
-- G3S scope lock: bugfix-only until explicitly reopened
-- Small-screen density and dropdown-overlay quality remain CD11 / G3S-owned issues even though broader structural work is locked
+- `layout_variant` is yaml-only
+- live breakpoint and aesthetic-polish work remains open, even though all planned `CD11` status runtime variants are now landed
 
 ---
 

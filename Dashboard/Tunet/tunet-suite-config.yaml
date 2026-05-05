@@ -66,7 +66,7 @@ views:
                 format: integer
               - type: value
                 entity: sensor.sun_next_setting
-                icon: weather_sunset_down
+                icon: wb_twilight
                 label: Sunset
                 accent: amber
                 format: time
@@ -664,7 +664,7 @@ views:
 
               - type: value
                 entity: sensor.sun_next_setting
-                icon: weather_sunset_down
+                icon: wb_twilight
                 label: Sunset
                 accent: amber
                 format: time
@@ -1622,7 +1622,7 @@ views:
 
               - type: value
                 entity: sensor.sun_next_setting
-                icon: weather_sunset_down
+                icon: wb_twilight
                 label: Sunset
                 accent: amber
                 format: time

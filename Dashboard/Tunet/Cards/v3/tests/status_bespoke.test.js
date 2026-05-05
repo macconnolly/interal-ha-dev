@@ -1,0 +1,917 @@
+/**
+ * CD11 Status Bespoke Tests
+ *
+ * Focused coverage for the status-card structural fixes, mode framework,
+ * implemented mode contracts, and custom backward compatibility.
+ */
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  extractCSSBlocks,
+  readCardSource,
+} from './helpers/css_contract_helpers.js';
+
+if (!window.matchMedia) {
+  window.matchMedia = (query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+}
+
+if (!window.requestAnimationFrame) {
+  window.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+}
+if (!globalThis.requestAnimationFrame) {
+  globalThis.requestAnimationFrame = window.requestAnimationFrame;
+}
+
+import '../tunet_status_card.js';
+
+function readCardCSS() {
+  return extractCSSBlocks(readCardSource('tunet_status_card.js')).join('\n');
+}
+
+function makeStatusHass(overrides = {}) {
+  return {
+    themes: { darkMode: false },
+    callService: vi.fn(() => Promise.resolve()),
+    states: {
+      'person.mac_connolly': {
+        entity_id: 'person.mac_connolly',
+        state: 'home',
+        attributes: { friendly_name: 'Mac' },
+      },
+      'sensor.oal_system_status': {
+        entity_id: 'sensor.oal_system_status',
+        state: 'Adaptive',
+        attributes: {
+          friendly_name: 'OAL System Status',
+          zones_adaptive: 3,
+          active_zonal_overrides: 2,
+          current_config: 'Adaptive',
+        },
+      },
+      'sensor.dining_room_temperature': {
+        entity_id: 'sensor.dining_room_temperature',
+        state: '70',
+        attributes: {
+          friendly_name: 'Dining Room Temperature',
+          unit_of_measurement: '°F',
+        },
+      },
+      'sensor.kitchen_humidity': {
+        entity_id: 'sensor.kitchen_humidity',
+        state: '34',
+        attributes: {
+          friendly_name: 'Kitchen Humidity',
+          unit_of_measurement: '%',
+        },
+      },
+      'sensor.oal_global_brightness_offset': {
+        entity_id: 'sensor.oal_global_brightness_offset',
+        state: '15',
+        attributes: {
+          friendly_name: 'OAL Global Brightness Offset',
+          total_offset: 15,
+          current_config: 'Adaptive',
+        },
+      },
+      'input_select.oal_active_configuration': {
+        entity_id: 'input_select.oal_active_configuration',
+        state: 'TV Mode',
+        attributes: {
+          options: ['Adaptive', 'TV Mode', 'Sleep Mode'],
+          friendly_name: 'OAL Active Configuration',
+        },
+      },
+      'sensor.sun_next_setting': {
+        entity_id: 'sensor.sun_next_setting',
+        state: '2026-04-06T19:27:00-06:00',
+        attributes: { friendly_name: 'Next Sunset' },
+      },
+      'sensor.sun_next_rising': {
+        entity_id: 'sensor.sun_next_rising',
+        state: '2026-04-07T06:41:00-06:00',
+        attributes: { friendly_name: 'Next Sunrise' },
+      },
+      'sun.sun': {
+        entity_id: 'sun.sun',
+        state: 'above_horizon',
+        attributes: {},
+      },
+      'sensor.sonos_next_alarm': {
+        entity_id: 'sensor.sonos_next_alarm',
+        state: '7:05 AM',
+        attributes: {},
+      },
+      'sensor.sonos_enabled_alarm_count': {
+        entity_id: 'sensor.sonos_enabled_alarm_count',
+        state: '3',
+        attributes: { friendly_name: 'Enabled Alarms' },
+      },
+      'sensor.sonos_alarm_playing': {
+        entity_id: 'sensor.sonos_alarm_playing',
+        state: 'off',
+        attributes: {},
+      },
+      'timer.oal_mode_timeout': {
+        entity_id: 'timer.oal_mode_timeout',
+        state: 'active',
+        last_updated: '2026-04-06T18:55:00-06:00',
+        attributes: {
+          friendly_name: 'Mode Timeout',
+          remaining: '00:29:30',
+        },
+      },
+      'sensor.override_target': {
+        entity_id: 'sensor.override_target',
+        state: '72',
+        attributes: {},
+      },
+      'climate.downstairs': {
+        entity_id: 'climate.downstairs',
+        state: 'cool',
+        attributes: {},
+      },
+      ...overrides,
+    },
+  };
+}
+
+function createStatus(config = {}, hassOverrides = {}) {
+  const el = document.createElement('tunet-status-card');
+  el.setConfig({
+    name: 'Home Status',
+    show_header: true,
+    columns: 4,
+    tile_size: 'standard',
+    use_profiles: true,
+    ...config,
+  });
+  document.body.appendChild(el);
+  el.hass = makeStatusHass(hassOverrides);
+  return el;
+}
+
+afterEach(() => {
+  document.body.innerHTML = '';
+  vi.restoreAllMocks();
+});
+
+describe('Status: structural CSS contract', () => {
+  it('uses minmax auto rows instead of a fixed row cap', () => {
+    const css = readCardCSS();
+    const match = css.match(/\.grid\s*\{([^}]*)\}/s);
+    expect(match).not.toBeNull();
+    expect(match[1]).toMatch(/grid-auto-rows\s*:\s*minmax\(var\(--tile-row-h\),\s*auto\)/);
+  });
+
+  it('keeps min-height on tiles without the old fixed height', () => {
+    const css = readCardCSS();
+    const match = css.match(/\.tile\s*\{([^}]*)\}/s);
+    expect(match).not.toBeNull();
+    expect(match[1]).toMatch(/min-height\s*:\s*var\(--tile-row-h\)/);
+    expect(match[1]).not.toMatch(/(?<![a-z-])height\s*:\s*var\(--tile-row-h\)/);
+  });
+});
+
+describe('Status: dropdown accessibility contract', () => {
+  it('renders a listbox menu that toggles aria-hidden and role=option', () => {
+    const el = createStatus({
+      layout_variant: 'home_summary',
+      tiles: [{ recipe: 'mode_selector' }],
+    });
+
+    const tile = el.shadowRoot.querySelector('.tile');
+    const menu = el.shadowRoot.querySelector('.tile-dd-menu');
+    expect(menu?.getAttribute('role')).toBe('listbox');
+    expect(menu?.getAttribute('aria-hidden')).toBe('true');
+
+    const options = [...el.shadowRoot.querySelectorAll('.tile-dd-opt')];
+    expect(options.length).toBe(3);
+    for (const option of options) {
+      expect(option.getAttribute('role')).toBe('option');
+    }
+
+    tile.click();
+    expect(menu?.classList.contains('open')).toBe(true);
+    expect(menu?.getAttribute('aria-hidden')).toBe('false');
+    expect(tile.getAttribute('aria-expanded')).toBe('true');
+  });
+});
+
+describe('Status: home_summary mode contract', () => {
+  it('locks home_summary to 4 columns regardless of width hints', () => {
+    const el = document.createElement('tunet-status-card');
+    el.setConfig({
+      layout_variant: 'home_summary',
+      columns: 2,
+      column_breakpoints: [{ max_width: 480, columns: 2 }],
+      tiles: [{ type: 'value', entity: 'sensor.dining_room_temperature', label: 'Temp' }],
+    });
+    expect(el._resolveResponsiveColumns(320)).toBe(4);
+    expect(el._resolveResponsiveColumns(1440)).toBe(4);
+  });
+
+  it('uses compact_label and suppresses secondary content in home_summary', () => {
+    const el = createStatus({
+      layout_variant: 'home_summary',
+      tiles: [
+        {
+          recipe: 'inside_temperature',
+          entity: 'sensor.dining_room_temperature',
+          action_entity: 'climate.downstairs',
+          label: 'Inside Temperature',
+          compact_label: 'Inside',
+          unit: '°F',
+        },
+        {
+          recipe: 'inside_humidity',
+          entity: 'sensor.kitchen_humidity',
+        },
+      ],
+    });
+
+    const labels = [...el.shadowRoot.querySelectorAll('.tile-label')].map((node) => node.textContent.trim());
+    expect(labels).toEqual(['Inside', 'Humidity']);
+    expect(el.shadowRoot.querySelector('.tile-secondary')).toBeNull();
+  });
+
+  it('centers summary dropdown text without the chevron affordance and keeps larger summary typography', () => {
+    const css = readCardCSS();
+    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s*\{[^}]*--tile-row-h:\s*5\.375em;[^}]*--_tunet-status-icon-box:\s*2em;[^}]*--_tunet-status-value-font:\s*1\.3125em;[^}]*--_tunet-status-label-font:\s*0\.875em;[^}]*--_tunet-status-dropdown-font:\s*1\.25em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile\s*\{[^}]*padding:\s*0\.6875em 0\.5625em 0\.5em;[^}]*gap:\s*0\.15625em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-val\s*\{[^}]*font-size:\s*var\(--_tunet-status-value-font\);[^}]*line-height:\s*1\.02;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-label\s*\{[^}]*font-size:\s*var\(--_tunet-status-label-font\);[^}]*line-height:\s*1\.04;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-dd-val\s*\{[^}]*justify-content:\s*center;[^}]*text-align:\s*center;[^}]*gap:\s*0;[^}]*font-size:\s*var\(--_tunet-status-dropdown-font\);/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-dd-val\s+\.dd-text\s*\{[^}]*text-align:\s*center;[^}]*width:\s*100%;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-dd-val\s+\.chevron\s*\{[^}]*display:\s*none;/s);
+  });
+
+  it('rejects timer and alarm tiles in home_summary with a warning', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const el = document.createElement('tunet-status-card');
+    el.setConfig({
+      layout_variant: 'home_summary',
+      tiles: [
+        { type: 'timer', entity: 'timer.oal_mode_timeout', label: 'Mode TTL' },
+        { type: 'alarm', entity: 'sensor.sonos_next_alarm', label: 'Alarm' },
+        { type: 'value', entity: 'sensor.dining_room_temperature', label: 'Temp' },
+      ],
+    });
+
+    expect(el._config.tiles).toHaveLength(1);
+    expect(el._config.tiles[0].type).toBe('value');
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('collapses hidden tiles instead of preserving blank slots', () => {
+    const el = createStatus(
+      {
+        layout_variant: 'home_summary',
+        tiles: [
+          {
+            recipe: 'manual_overrides',
+            entity: 'sensor.oal_system_status',
+          },
+          {
+            recipe: 'inside_temperature',
+            entity: 'sensor.dining_room_temperature',
+            action_entity: 'climate.downstairs',
+            unit: '°F',
+          },
+        ],
+      },
+      {
+        'sensor.oal_system_status': {
+          entity_id: 'sensor.oal_system_status',
+          state: 'Adaptive',
+          attributes: {
+            zones_adaptive: 3,
+            active_zonal_overrides: 0,
+            current_config: 'Adaptive',
+          },
+        },
+      }
+    );
+
+    const [manualTile] = el.shadowRoot.querySelectorAll('.tile');
+    expect(manualTile.classList.contains('tile-collapsed')).toBe(true);
+    expect(manualTile.classList.contains('tile-hidden')).toBe(false);
+  });
+});
+
+describe('Status: custom backward compatibility', () => {
+  it('defaults to custom mode, preserves hidden-space behavior, and keeps secondary content', () => {
+    const el = createStatus(
+      {
+        tiles: [
+          {
+            type: 'value',
+            entity: 'sensor.oal_system_status',
+            label: 'System',
+            secondary: {
+              entity: 'sensor.oal_system_status',
+              attribute: 'current_config',
+            },
+            show_when: {
+              entity: 'sensor.oal_system_status',
+              attribute: 'active_zonal_overrides',
+              operator: 'gt',
+              state: 5,
+            },
+          },
+          {
+            type: 'alarm',
+            entity: 'sensor.sonos_next_alarm',
+            label: 'Alarm',
+          },
+        ],
+      },
+      {
+        'sensor.oal_system_status': {
+          entity_id: 'sensor.oal_system_status',
+          state: 'Adaptive',
+          attributes: {
+            current_config: 'Adaptive',
+            active_zonal_overrides: 0,
+          },
+        },
+      }
+    );
+
+    const [hiddenTile] = el.shadowRoot.querySelectorAll('.tile');
+    expect(el._config.layout_variant).toBe('custom');
+    expect(el._config.resolved_layout_variant).toBe('custom');
+    expect(hiddenTile.classList.contains('tile-hidden')).toBe(true);
+    expect(hiddenTile.classList.contains('tile-collapsed')).toBe(false);
+    expect(el.shadowRoot.querySelector('.tile-secondary')).not.toBeNull();
+    expect(el._config.tiles.some((tile) => tile.type === 'alarm')).toBe(true);
+  });
+});
+
+describe('Status: home_detail mode contract', () => {
+  it('resolves home_detail without fallback and honors authored columns/breakpoints', () => {
+    const el = document.createElement('tunet-status-card');
+    el.setConfig({
+      layout_variant: 'home_detail',
+      columns: 3,
+      column_breakpoints: [{ max_width: 640, columns: 2 }, { min_width: 900, columns: 4 }],
+      tiles: [{ recipe: 'inside_temperature', entity: 'sensor.dining_room_temperature', label: 'Inside Temperature' }],
+    });
+
+    expect(el._config.layout_variant).toBe('home_detail');
+    expect(el._config.resolved_layout_variant).toBe('home_detail');
+    expect(el._resolveResponsiveColumns(390)).toBe(2);
+    expect(el._resolveResponsiveColumns(1440)).toBe(4);
+  });
+
+  it('keeps full labels, secondary values, and full aux pills in home_detail', () => {
+    const el = createStatus({
+      layout_variant: 'home_detail',
+      tiles: [
+        {
+          recipe: 'manual_overrides',
+          entity: 'sensor.oal_system_status',
+        },
+        {
+          recipe: 'boost_offset',
+          entity: 'sensor.oal_global_brightness_offset',
+          secondary: {
+            entity: 'sensor.oal_global_brightness_offset',
+            attribute: 'current_config',
+          },
+          unit: '%',
+        },
+      ],
+    });
+
+    const aux = el.shadowRoot.querySelector('.tile-aux');
+    const labels = [...el.shadowRoot.querySelectorAll('.tile-label')].map((node) => node.textContent.trim());
+    const secondary = [...el.shadowRoot.querySelectorAll('.tile-secondary')]
+      .find((node) => node.textContent.trim());
+
+    expect(aux).not.toBeNull();
+    expect(aux.classList.contains('summary-compact')).toBe(false);
+    expect(aux.querySelector('.aux-label')?.textContent?.trim()).toBe('Reset');
+    expect(labels).toEqual(['Manual', 'Boost']);
+    expect(secondary?.textContent?.trim()).toBe('Adaptive');
+  });
+
+  it('raises home_detail icon and typography scale so tiles do not read undersized', () => {
+    const css = readCardCSS();
+    expect(css).toMatch(/:host\(\[layout-variant="home_detail"\]\)\s*\{[^}]*--tile-row-h:\s*5\.625em;[^}]*--_tunet-status-icon-box:\s*3em;[^}]*--_tunet-status-icon-glyph:\s*1\.625em;[^}]*--_tunet-status-value-font:\s*1\.5em;[^}]*--_tunet-status-label-font:\s*0\.9375em;[^}]*--_tunet-status-secondary-font:\s*0\.8125em;[^}]*--_tunet-status-dropdown-font:\s*1\.375em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_detail"\]\)\s+\.tile\s*\{[^}]*padding:\s*0\.75em 0\.625em 0\.5625em;[^}]*gap:\s*0\.15625em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_detail"\]\)\s+\.tile-label\s*\{[^}]*font-size:\s*var\(--_tunet-status-label-font\);[^}]*line-height:\s*1\.06;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_detail"\]\)\s+\.tile-secondary\s*\{[^}]*font-size:\s*var\(--_tunet-status-secondary-font\);[^}]*line-height:\s*1\.06;/s);
+  });
+
+  it('collapses hidden tiles in home_detail', () => {
+    const el = createStatus(
+      {
+        layout_variant: 'home_detail',
+        tiles: [
+          {
+            recipe: 'manual_overrides',
+            entity: 'sensor.oal_system_status',
+            show_when: {
+              entity: 'sensor.oal_system_status',
+              attribute: 'active_zonal_overrides',
+              operator: 'gt',
+              state: 0,
+            },
+          },
+          {
+            recipe: 'inside_temperature',
+            entity: 'sensor.average_home_temperature',
+          },
+        ],
+      },
+      {
+        'sensor.oal_system_status': {
+          entity_id: 'sensor.oal_system_status',
+          state: 'Adaptive',
+          attributes: {
+            active_zonal_overrides: 0,
+          },
+        },
+      }
+    );
+
+    const [hiddenTile] = el.shadowRoot.querySelectorAll('.tile');
+    expect(hiddenTile.classList.contains('tile-collapsed')).toBe(true);
+    expect(hiddenTile.classList.contains('tile-hidden')).toBe(false);
+  });
+});
+
+describe('Status: room_row mode contract', () => {
+  it('resolves room_row without fallback, rejects unsupported tile types, and uses horizontal row CSS', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const el = document.createElement('tunet-status-card');
+    el.setConfig({
+      layout_variant: 'room_row',
+      columns: 4,
+      tiles: [
+        { type: 'value', entity: 'sensor.dining_room_temperature', label: 'Temp' },
+        { type: 'indicator', entity: 'sensor.oal_system_status', label: 'System' },
+        { type: 'dropdown', entity: 'input_select.oal_active_configuration', label: 'Mode' },
+        { type: 'timer', entity: 'timer.oal_mode_timeout', label: 'TTL' },
+      ],
+    });
+
+    expect(el._config.layout_variant).toBe('room_row');
+    expect(el._config.resolved_layout_variant).toBe('room_row');
+    expect(el._config.tiles.map((tile) => tile.type)).toEqual(['value', 'indicator']);
+    expect(el.getCardSize()).toBe(2);
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+
+    const css = readCardCSS();
+    expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*nowrap;[^}]*overflow-x:\s*auto;[^}]*scrollbar-width:\s*none;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*0 0 10\.75em;[^}]*flex-direction:\s*row;[^}]*align-items:\s*center;[^}]*justify-content:\s*flex-start;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile-label\s*\{[^}]*text-transform:\s*none;[^}]*text-align:\s*left;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile-val\s*\{[^}]*margin-left:\s*auto;[^}]*text-align:\s*right;/s);
+  });
+
+  it('uses compact labels, suppresses secondary and aux content, keeps actions, and collapses hidden tiles', () => {
+    const seen = [];
+    const el = createStatus(
+      {
+        layout_variant: 'room_row',
+        show_header: false,
+        tiles: [
+          {
+            recipe: 'manual_overrides',
+            entity: 'sensor.oal_system_status',
+          },
+          {
+            type: 'value',
+            entity: 'sensor.kitchen_humidity',
+            label: 'Bedroom Humidity',
+            compact_label: 'Dry Air',
+            accent: 'blue',
+            format: 'integer',
+            unit: '%',
+            secondary: {
+              entity: 'sensor.oal_system_status',
+              attribute: 'current_config',
+            },
+          },
+          {
+            recipe: 'inside_temperature',
+            entity: 'sensor.dining_room_temperature',
+            action_entity: 'climate.downstairs',
+            label: 'Inside Temperature',
+            compact_label: 'Inside',
+            unit: '°F',
+          },
+        ],
+      },
+      {
+        'sensor.oal_system_status': {
+          entity_id: 'sensor.oal_system_status',
+          state: 'Adaptive',
+          attributes: {
+            active_zonal_overrides: 0,
+            current_config: 'Adaptive',
+          },
+        },
+      }
+    );
+
+    el.addEventListener('hass-more-info', (event) => {
+      seen.push(event.detail.entityId);
+    });
+
+    const labels = [...el.shadowRoot.querySelectorAll('.tile-label')].map((node) => node.textContent.trim());
+    const [hiddenTile] = el.shadowRoot.querySelectorAll('.tile');
+
+    expect(labels).toEqual(['Manual', 'Dry Air', 'Inside']);
+    expect(el.shadowRoot.querySelector('.tile-secondary')).toBeNull();
+    expect(el.shadowRoot.querySelector('.tile-aux')).toBeNull();
+    expect(hiddenTile.classList.contains('tile-collapsed')).toBe(true);
+    expect(hiddenTile.classList.contains('tile-hidden')).toBe(false);
+
+    el._tileEls[2].el.click();
+    expect(seen).toEqual(['climate.downstairs']);
+  });
+});
+
+describe('Status: info_only mode contract', () => {
+  it('resolves info_only without fallback, rejects unsupported tile types, and uses the calmer info-only CSS contract', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const el = document.createElement('tunet-status-card');
+    el.setConfig({
+      layout_variant: 'info_only',
+      tiles: [
+        { type: 'value', entity: 'sensor.dining_room_temperature', label: 'Temp' },
+        { type: 'indicator', entity: 'sensor.oal_system_status', label: 'System' },
+        { type: 'dropdown', entity: 'input_select.oal_active_configuration', label: 'Mode' },
+        { type: 'alarm', entity: 'sensor.sonos_next_alarm', label: 'Alarm' },
+      ],
+    });
+
+    expect(el._config.layout_variant).toBe('info_only');
+    expect(el._config.resolved_layout_variant).toBe('info_only');
+    expect(el._config.tiles.map((tile) => tile.type)).toEqual(['value', 'indicator']);
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+
+    const css = readCardCSS();
+    expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s*\{[^}]*--tile-row-h:\s*6\.375em;[^}]*--_tunet-status-icon-glyph:\s*1\.75em;[^}]*--_tunet-status-value-font:\s*1\.625em;[^}]*--_tunet-status-label-font:\s*0\.75em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s+\.tile\s*\{[^}]*padding:\s*0\.9375em 0\.75em 0\.8125em;[^}]*box-shadow:\s*0 0\.1875em 0\.5em rgba\(0,0,0,0\.035\), 0 0\.0625em 0\.125em rgba\(0,0,0,0\.05\);/s);
+    expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s+\.tile-label\s*\{[^}]*font-weight:\s*500;[^}]*opacity:\s*0\.78;[^}]*text-transform:\s*none;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s+\.tile-secondary\s*\{[^}]*display:\s*none !important;/s);
+  });
+
+  it('is passive by default, allows only explicit actions, suppresses secondary and aux content, and collapses hidden tiles', () => {
+    const seen = [];
+    const el = createStatus(
+      {
+        layout_variant: 'info_only',
+        tiles: [
+          {
+            recipe: 'inside_temperature',
+            entity: 'sensor.dining_room_temperature',
+            label: 'Inside Temperature',
+            compact_label: 'Inside',
+            unit: '°F',
+          },
+          {
+            recipe: 'inside_temperature',
+            entity: 'sensor.dining_room_temperature',
+            action_entity: 'climate.downstairs',
+            label: 'Hall Temperature',
+            compact_label: 'Hall',
+            unit: '°F',
+          },
+          {
+            recipe: 'manual_overrides',
+            entity: 'sensor.oal_system_status',
+          },
+          {
+            type: 'value',
+            entity: 'sensor.kitchen_humidity',
+            label: 'Kitchen Humidity',
+            compact_label: 'Humidity',
+            accent: 'blue',
+            format: 'integer',
+            unit: '%',
+            secondary: {
+              entity: 'sensor.oal_system_status',
+              attribute: 'current_config',
+            },
+          },
+        ],
+      },
+      {
+        'sensor.oal_system_status': {
+          entity_id: 'sensor.oal_system_status',
+          state: 'Adaptive',
+          attributes: {
+            active_zonal_overrides: 0,
+            current_config: 'Adaptive',
+          },
+        },
+      }
+    );
+
+    el.addEventListener('hass-more-info', (event) => {
+      seen.push(event.detail.entityId);
+    });
+
+    const [passiveTile, activeTile, hiddenTile] = el.shadowRoot.querySelectorAll('.tile');
+    const labels = [...el.shadowRoot.querySelectorAll('.tile-label')].map((node) => node.textContent.trim());
+
+    expect(labels).toEqual(['Inside', 'Hall', 'Manual', 'Humidity']);
+    expect(passiveTile.classList.contains('passive')).toBe(true);
+    expect(passiveTile.getAttribute('role')).toBeNull();
+    expect(activeTile.classList.contains('passive')).toBe(false);
+    expect(el.shadowRoot.querySelector('.tile-secondary')).toBeNull();
+    expect(el.shadowRoot.querySelector('.tile-aux')).toBeNull();
+    expect(hiddenTile.classList.contains('tile-collapsed')).toBe(true);
+    expect(hiddenTile.classList.contains('tile-hidden')).toBe(false);
+
+    passiveTile.click();
+    activeTile.click();
+    expect(seen).toEqual(['climate.downstairs']);
+  });
+});
+
+describe('Status: alarms mode contract', () => {
+  it('resolves alarms without fallback, promotes next_alarm to alarm, and rejects dropdown tiles', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const el = document.createElement('tunet-status-card');
+    el.setConfig({
+      layout_variant: 'alarms',
+      tiles: [
+        {
+          recipe: 'next_alarm',
+          entity: 'sensor.sonos_next_alarm',
+          playing_entity: 'sensor.sonos_alarm_playing',
+          snooze_action: {
+            action: 'call-service',
+            service: 'script.turn_on',
+            service_data: { entity_id: 'script.sonos_snooze_next_alarm' },
+          },
+          dismiss_action: {
+            action: 'call-service',
+            service: 'script.turn_on',
+            service_data: { entity_id: 'script.sonos_dismiss_alarm' },
+          },
+        },
+        {
+          recipe: 'mode_ttl',
+          entity: 'timer.oal_mode_timeout',
+        },
+        {
+          recipe: 'enabled_alarms',
+          entity: 'sensor.sonos_enabled_alarm_count',
+        },
+        {
+          recipe: 'mode_selector',
+        },
+      ],
+    });
+
+    expect(el._config.layout_variant).toBe('alarms');
+    expect(el._config.resolved_layout_variant).toBe('alarms');
+    expect(el._config.tiles.map((tile) => tile.type)).toEqual(['alarm', 'timer', 'value']);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    document.body.appendChild(el);
+    el.hass = makeStatusHass();
+    expect(el.shadowRoot.querySelector('.tile[data-type="alarm"] .alarm-actions')).not.toBeNull();
+    document.body.removeChild(el);
+  });
+
+  it('collapses hidden tiles in alarms mode', () => {
+    const el = createStatus(
+      {
+        layout_variant: 'alarms',
+        tiles: [
+          {
+            recipe: 'enabled_alarms',
+            entity: 'sensor.sonos_enabled_alarm_count',
+            show_when: {
+              entity: 'sensor.sonos_enabled_alarm_count',
+              operator: 'gt',
+              state: 4,
+            },
+          },
+          {
+            recipe: 'mode_ttl',
+            entity: 'timer.oal_mode_timeout',
+          },
+        ],
+      },
+      {
+        'sensor.sonos_enabled_alarm_count': {
+          entity_id: 'sensor.sonos_enabled_alarm_count',
+          state: '1',
+          attributes: {},
+        },
+      }
+    );
+
+    const [hiddenTile] = el.shadowRoot.querySelectorAll('.tile');
+    expect(hiddenTile.classList.contains('tile-collapsed')).toBe(true);
+    expect(hiddenTile.classList.contains('tile-hidden')).toBe(false);
+  });
+
+  it('raises alarms typography and timer emphasis to use the tile area more effectively', () => {
+    const css = readCardCSS();
+    expect(css).toMatch(/:host\(\[layout-variant="alarms"\]\)\s*\{[^}]*--tile-row-h:\s*5\.75em;[^}]*--_tunet-status-icon-box:\s*2\.875em;[^}]*--_tunet-status-value-font:\s*1\.375em;[^}]*--_tunet-status-label-font:\s*0\.90625em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="alarms"\]\)\s+\.tile\s*\{[^}]*padding:\s*0\.75em 0\.625em 0\.5625em;[^}]*gap:\s*0\.15625em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="alarms"\]\)\s+\.tile\[data-type="timer"\]\s+\.tile-val\s*\{[^}]*font-size:\s*1\.5em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="alarms"\]\)\s+\.alarm-time-pill\s*\{[^}]*font-size:\s*1\.125em;/s);
+  });
+});
+
+describe('Status: recipe and action precedence', () => {
+  it('home_presence dot rules use exact state matching so not_home does not inherit home styling', () => {
+    const el = createStatus(
+      {
+        layout_variant: 'home_summary',
+        tiles: [{ recipe: 'home_presence', entity: 'person.mac_connolly' }],
+      },
+      {
+        'person.mac_connolly': {
+          entity_id: 'person.mac_connolly',
+          state: 'not_home',
+          attributes: { friendly_name: 'Mac' },
+        },
+      }
+    );
+
+    const dot = el.shadowRoot.querySelector('.status-dot');
+    expect(dot.classList.contains('green')).toBe(false);
+    expect(dot.classList.contains('red')).toBe(true);
+  });
+
+  it('inside_temperature routes default more-info to action_entity', () => {
+    const seen = [];
+    const el = createStatus({
+      layout_variant: 'home_summary',
+      tiles: [
+        {
+          recipe: 'inside_temperature',
+          entity: 'sensor.dining_room_temperature',
+          action_entity: 'climate.downstairs',
+          unit: '°F',
+        },
+      ],
+    });
+
+    el.addEventListener('hass-more-info', (event) => {
+      seen.push(event.detail.entityId);
+    });
+    el.shadowRoot.querySelector('.tile').click();
+    expect(seen).toEqual(['climate.downstairs']);
+  });
+
+  it('next_sun_event switches icon and label based on sun state', () => {
+    const daytime = createStatus({
+      layout_variant: 'home_summary',
+      tiles: [{ recipe: 'next_sun_event' }],
+    });
+    expect(daytime.shadowRoot.querySelector('.tile-label')?.textContent?.trim()).toBe('Sunset');
+    expect(daytime.shadowRoot.querySelector('.tile-icon-glyph')?.textContent?.trim()).toBe('wb_twilight');
+
+    document.body.removeChild(daytime);
+
+    const nighttime = createStatus(
+      {
+        layout_variant: 'home_summary',
+        tiles: [{ recipe: 'next_sun_event' }],
+      },
+      {
+        'sun.sun': {
+          entity_id: 'sun.sun',
+          state: 'below_horizon',
+          attributes: {},
+        },
+      }
+    );
+    expect(nighttime.shadowRoot.querySelector('.tile-label')?.textContent?.trim()).toBe('Sunrise');
+    expect(nighttime.shadowRoot.querySelector('.tile-icon-glyph')?.textContent?.trim()).toBe('sunny_snowing');
+  });
+
+  it('explicit tap_action overrides recipe defaults', () => {
+    const seen = [];
+    const el = createStatus({
+      layout_variant: 'home_summary',
+      tiles: [
+        {
+          recipe: 'inside_temperature',
+          entity: 'sensor.dining_room_temperature',
+          action_entity: 'climate.downstairs',
+          tap_action: {
+            action: 'more-info',
+            entity: 'sensor.override_target',
+          },
+          unit: '°F',
+        },
+      ],
+    });
+
+    el.addEventListener('hass-more-info', (event) => {
+      seen.push(event.detail.entityId);
+    });
+    el.shadowRoot.querySelector('.tile').click();
+    expect(seen).toEqual(['sensor.override_target']);
+  });
+
+  it('recipe:none (next_sun_event) stays passive even with action_entity present', () => {
+    const seen = [];
+    const el = createStatus({
+      layout_variant: 'home_summary',
+      tiles: [
+        {
+          recipe: 'next_sun_event',
+          action_entity: 'climate.downstairs',
+        },
+      ],
+    });
+
+    el.addEventListener('hass-more-info', (event) => {
+      seen.push(event.detail.entityId);
+    });
+    const tile = el.shadowRoot.querySelector('.tile');
+    expect(tile.classList.contains('passive')).toBe(true);
+    tile.click();
+    expect(seen).toEqual([]);
+  });
+
+  it('navigate_path takes precedence over recipe defaults', () => {
+    const pushSpy = vi.spyOn(window.history, 'pushState');
+    const el = createStatus({
+      layout_variant: 'home_summary',
+      tiles: [
+        {
+          recipe: 'next_alarm',
+          entity: 'sensor.sonos_next_alarm',
+          navigate_path: '/tunet-card-rehab-yaml/alarms',
+        },
+      ],
+    });
+
+    el.shadowRoot.querySelector('.tile').click();
+    expect(pushSpy).toHaveBeenCalledWith(null, '', '/tunet-card-rehab-yaml/alarms');
+  });
+
+  it('next_alarm falls back to action_entity more-info when no navigate_path is provided', () => {
+    const seen = [];
+    const el = createStatus({
+      layout_variant: 'home_detail',
+      tiles: [
+        {
+          recipe: 'next_alarm',
+          entity: 'sensor.sonos_next_alarm',
+          action_entity: 'sensor.override_target',
+        },
+      ],
+    });
+
+    el.addEventListener('hass-more-info', (event) => {
+      seen.push(event.detail.entityId);
+    });
+    el.shadowRoot.querySelector('.tile').click();
+    expect(seen).toEqual(['sensor.override_target']);
+  });
+
+  it('enabled_alarms prefers navigate_path when authored', () => {
+    const pushSpy = vi.spyOn(window.history, 'pushState');
+    const el = createStatus({
+      layout_variant: 'alarms',
+      tiles: [
+        {
+          recipe: 'enabled_alarms',
+          entity: 'sensor.sonos_enabled_alarm_count',
+          navigate_path: '/tunet-card-rehab-yaml/alarms',
+        },
+      ],
+    });
+
+    el.shadowRoot.querySelector('.tile').click();
+    expect(pushSpy).toHaveBeenCalledWith(null, '', '/tunet-card-rehab-yaml/alarms');
+  });
+
+  it('mode_ttl falls back to timer more-info', () => {
+    const seen = [];
+    const el = createStatus({
+      layout_variant: 'alarms',
+      tiles: [{ recipe: 'mode_ttl', entity: 'timer.oal_mode_timeout' }],
+    });
+
+    el.addEventListener('hass-more-info', (event) => {
+      seen.push(event.detail.entityId);
+    });
+    el.shadowRoot.querySelector('.tile').click();
+    expect(seen).toEqual(['timer.oal_mode_timeout']);
+  });
+});

@@ -3418,60 +3418,118 @@ automation:
   # ---------------------------------------------------------------------------
   - id: oal_dynamic_sunrise_manager_v13
     alias: "OAL v13 - Dynamic Sunrise Manager"
+    mode: restart
     trigger:
       - platform: state
         entity_id: sensor.sonos_upcoming_alarms
         attribute: earliest_alarm_timestamp
+      - platform: state
+        entity_id: input_boolean.oal_disable_next_sonos_wakeup
       - platform: time
         at: "03:05:00"
-    condition:
-      - condition: state
-        entity_id: input_boolean.oal_disable_next_sonos_wakeup
-        state: "off"
     variables:
       al_switches: "{{ expand('group.oal_control_switches') | map(attribute='entity_id') | reject('eq', 'switch.adaptive_lighting_column_lights') | list }}"
       alarm_timestamp: "{{ state_attr('sensor.sonos_upcoming_alarms', 'earliest_alarm_timestamp') | int(0) }}"
+      earliest_alarm_date: >
+        {% set all_data = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') | default({}, true) %}
+        {% set alarms = all_data.get('raw_alarm_list_sorted', []) if all_data is mapping else [] %}
+        {% if alarms | length > 0 %}
+          {{ alarms[0]['date'] | default('none') }}
+        {% else %}
+          none
+        {% endif %}
+      today_date: "{{ now().date().isoformat() }}"
+      next_rising_timestamp: >
+        {% set next_rising = state_attr('sun.sun', 'next_rising') %}
+        {{ as_timestamp(next_rising) | int(0) if next_rising else 0 }}
+      next_rising_date: >
+        {% set next_rising = state_attr('sun.sun', 'next_rising') %}
+        {% if next_rising %}
+          {{ as_timestamp(next_rising) | timestamp_custom('%Y-%m-%d', true) }}
+        {% else %}
+          none
+        {% endif %}
+      valid_wake_alarm: >
+        {# Only arm a synthetic sunrise for same-day alarms that are still before today's sunrise. #}
+        {% set skip_wakeup = is_state('input_boolean.oal_disable_next_sonos_wakeup', 'on') %}
+        {% set alarm_is_today = earliest_alarm_date == today_date %}
+        {% set sunrise_is_still_today = next_rising_date == today_date %}
+        {{ not skip_wakeup
+           and alarm_timestamp > 0
+           and alarm_is_today
+           and sunrise_is_still_today
+           and alarm_timestamp < next_rising_timestamp }}
     action:
-      # Only proceed if there's a valid alarm
-      - condition: template
-        value_template: "{{ alarm_timestamp > 0 }}"
-      
-      - repeat:
-          count: "{{ al_switches | length }}"
-          sequence:
-            - variables:
-                current_switch: "{{ al_switches[repeat.index - 1] }}"
-                alarm_offset: >
-                  {% if 'bedroom_primary' in current_switch %}
-                    -1800
-                  {% elif 'main_living' in current_switch %}
-                    -1200
-                  {% elif 'kitchen_island' in current_switch or 'kitchen_undercabinet' in current_switch %}
-                    -2700
-                  {% else %}
-                    -1500
-                  {% endif %}
-                final_sunrise_time: >
-                  {% set final_time = alarm_timestamp + alarm_offset %}
-                  {{ final_time | timestamp_custom('%H:%M:%S', true) }}
-            - service: adaptive_lighting.change_switch_settings
-              data:
-                entity_id: "{{ current_switch }}"
-                sunrise_time: "{{ final_sunrise_time }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ valid_wake_alarm }}"
+            sequence:
+              - repeat:
+                  count: "{{ al_switches | length }}"
+                  sequence:
+                    - variables:
+                        current_switch: "{{ al_switches[repeat.index - 1] }}"
+                        alarm_offset: >
+                          {% if 'bedroom_primary' in current_switch %}
+                            -1800
+                          {% elif 'main_living' in current_switch %}
+                            -1200
+                          {% elif 'kitchen_island' in current_switch or 'kitchen_undercabinet' in current_switch %}
+                            -2700
+                          {% else %}
+                            -1500
+                          {% endif %}
+                        final_sunrise_time: >
+                          {% set final_time = alarm_timestamp + alarm_offset %}
+                          {{ final_time | timestamp_custom('%H:%M:%S', true) }}
+                    - service: adaptive_lighting.change_switch_settings
+                      data:
+                        entity_id: "{{ current_switch }}"
+                        sunrise_time: "{{ final_sunrise_time }}"
+        default:
+          - repeat:
+              count: "{{ al_switches | length }}"
+              sequence:
+                - variables:
+                    current_switch: "{{ al_switches[repeat.index - 1] }}"
+                    current_sunrise_time: "{{ state_attr(current_switch, 'sunrise_time') }}"
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ current_sunrise_time not in [none, 'None', '', 'unknown', 'unavailable'] }}"
+                      sequence:
+                        - service: adaptive_lighting.change_switch_settings
+                          data:
+                            entity_id: "{{ current_switch }}"
+                            sunrise_time: "None"
 
   # ---------------------------------------------------------------------------
-  # 4.8 Wake-up sequence (staged brightening)
+  # 4.8 Wake-up sequence (selected wake lights)
   # ---------------------------------------------------------------------------
   - id: oal_wake_up_sequence_v13
-    alias: "OAL v13 - Wake-up Sequence (Staged Brightening)"
+    alias: "OAL v13 - Wake-up Sequence (Selected Lights)"
     mode: single
     trigger:
       - platform: time_pattern
         minutes: "/1"
+    variables:
+      wakeup_light_targets: >
+        {% set configured_targets = state_attr('group.oal_wakeup_lights', 'entity_id') | default([], true) %}
+        {% set fallback_targets = [
+          'light.bedroom_primary_lights',
+          'light.column_lights',
+          'light.entryway_lamp'
+        ] %}
+        {{ (configured_targets if configured_targets | length > 0 else fallback_targets)
+           | select('match', '^light\\.')
+           | list }}
     condition:
       - condition: state
         entity_id: input_boolean.oal_disable_next_sonos_wakeup
         state: "off"
+      - condition: template
+        value_template: "{{ wakeup_light_targets | length > 0 }}"
       - condition: template
         value_template: >
           {% set bedroom_sunrise_str = state_attr('switch.adaptive_lighting_bedroom_primary', 'sunrise_time') %}
@@ -3488,41 +3546,12 @@ automation:
             false
           {% endif %}
     action:
-      - service: adaptive_lighting.apply
+      - service: light.turn_on
+        target:
+          entity_id: "{{ wakeup_light_targets }}"
         data:
-          entity_id: switch.adaptive_lighting_bedroom_primary
           brightness_pct: 50
           transition: 600
-          turn_on_lights: true
-          set_manual_control: true
-      - service: adaptive_lighting.apply
-        data:
-          entity_id: switch.adaptive_lighting_main_living
-          lights: light.entryway_lamp
-          brightness_pct: 50
-          transition: 600
-          turn_on_lights: true
-          set_manual_control: true
-      - delay: "00:10:00"
-      - service: adaptive_lighting.apply
-        data:
-          entity_id: switch.adaptive_lighting_kitchen_island
-          brightness_pct: 80
-          transition: 600
-          turn_on_lights: true
-          set_manual_control: true
-      - service: adaptive_lighting.apply
-        data:
-          entity_id: switch.adaptive_lighting_kitchen_undercabinet
-          brightness_pct: 80
-          transition: 600
-          turn_on_lights: true
-          set_manual_control: true
-      - service: adaptive_lighting.apply
-        data:
-          entity_id: switch.adaptive_lighting_bedroom_primary
-          brightness_pct: 80
-          transition: 0
 
   # ---------------------------------------------------------------------------
   # 4.8a Reset "disable next wakeup" flag when the morning alarm fires

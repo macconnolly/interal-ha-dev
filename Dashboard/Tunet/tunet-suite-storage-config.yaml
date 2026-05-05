@@ -61,7 +61,7 @@ views:
                 format: integer
               - type: value
                 entity: sun.sun
-                icon: weather_sunset_down
+                icon: wb_twilight
                 label: Sunset
                 accent: amber
                 attribute: next_setting
@@ -72,7 +72,7 @@ views:
                   state: above_horizon
               - type: value
                 entity: sun.sun
-                icon: weather_sunset_up
+                icon: sunny_snowing
                 label: Sunrise
                 accent: amber
                 attribute: next_rising

@@ -26,7 +26,7 @@ When the normalized section and the appendix differ, the normalized section wins
 | `tunet-climate-card` | information companion | healthy card; latest screenshot review still supports composition caveats only | CD8 |
 | `tunet-weather-card` | information companion | card-level runtime healthy; phone-density redesign closed on YAML rehab evidence | CD8 |
 | `tunet-sensor-card` | information rows | visually healthy; raw-ID defect closed; contract clarity remains | CD8 |
-| `tunet-status-card` | multi-mode status system under active redesign | lock lifted for narrow status-only multi-mode pass; current one-grid runtime still fails phone summary and dropdown structure goals | CD11 |
+| `tunet-status-card` | multi-mode status system under active redesign | `CD11a` structural recovery landed for `home_summary` + `custom`; later variants and polish remain open | CD11 |
 | `tunet-media-card` | primary media transport surface | runtime healthy; selected-target routing, dropdown parity, and album-art resilience accepted | CD9 |
 | `tunet-sonos-card` | inline-speaker Sonos surface | runtime healthy; dropdown parity, visible speaker-tile semantics, and album-art resilience accepted | CD9 |
 | `tunet-speaker-grid-card` | dedicated speaker-management grid | runtime healthy; visible speaker-tile semantics aligned and phone fallback landed | CD9 |
@@ -44,15 +44,16 @@ When the normalized section and the appendix differ, the normalized section wins
   - `tunet-nav-card`: desktop rail/sidebar coexistence and offset leakage; keep open but intentionally deferred until room/surface composition is more settled
 - `CD11`
   - `tunet-status-card`: active detailed plan is `~/.claude/plans/synthetic-dazzling-oasis.md`
-  - `tunet-status-card`: narrow status-only multi-mode redesign/runtime pass (`home_summary`, `home_detail`, `room_row`, `info_only`, `alarms`, `custom`)
-  - `tunet-status-card`: current runtime still fails the phone summary matrix and dropdown/content structure; do not “solve” by simply making tiles taller or defaulting to 2 columns
+  - `tunet-status-card`: `CD11a` landed structural fixes + mode framework + `home_summary` + `custom`
+  - `tunet-status-card`: remaining runtime scope is `home_detail`, `room_row`, `info_only`, `alarms`, plus breakpoint/aesthetic polish on the landed framework
+  - `tunet-status-card`: keep the phone summary target as a fixed `4x2` matrix; do not “solve” later work by simply making tiles taller or defaulting to 2 columns
 
 **Global**
 - Highest-confidence active card defect is now status multi-mode redesign/runtime recovery under `CD11`; nav desktop/sidebar conflict remains open but is intentionally deferred.
 - Variant-specific problems remain real for actions and speaker-grid, but they are not uniform card-family failures. `CD8` is now card-level healthy after the 2026-04-06 weather closeout.
 - Some earlier complaints were really composition/surface issues, not card defects: light-tile orphaning, climate paired-phone crowding, and undecided room-page/storage layout belong in surface composition decisions.
 - Stale or narrowed items are now treated accordingly: sensor raw entity IDs, broad media visual-failure framing, broad mobile-nav instability framing, and broad “speaker-grid is not phone-safe at all” framing.
-- Cross-cutting doc debt remains: icon-field editor consistency, actions editor wording, scenes `allow_wrap` default wording, sensor naming-contract clarity, status dropdown-confidence wording, and nav layout-reference overclaim.
+- Cross-cutting doc debt remains: icon-field editor consistency, actions editor wording, scenes `allow_wrap` default wording, sensor naming-contract clarity, and nav layout-reference overclaim.
 - Cross-cutting interaction follow-up remains open: on mobile, grabbing cards while scrolling can still produce pressed feedback on card surfaces. Treat this as shared interaction debt, not a CD7-only rooms defect.
 - Cross-cutting editor follow-up remains open: icon-bearing editor/config fields should use a dropdown or validated icon picker so invalid tokens do not render raw fallback text like `WEATHER_SUNSET_DOWN`.
 - `Implementation backlog [CD12]`: alarm settings page — existing popup system works (2 alarms per room, weekday/weekend, only 2-3 alarms actively used). All backend exists in `packages/sonos_package.yaml`: helper entities, edit scripts, 7 automations, template sensors. Working YAML reference at `Dashboard/Tunet/Docs/sonos_alarm_popup_reference.md`. Integration into Tunet surface composition is the remaining work.
@@ -142,11 +143,11 @@ When the normalized section and the appendix differ, the normalized section wins
 - `Implementation backlog [CD8]`: the remaining issue is config-contract clarity around [tunet_sensor_card.js#L710](/home/mac/HA/implementation_10/Dashboard/Tunet/Cards/v3/tunet_sensor_card.js#L710), not a current visual/runtime failure.
 
 **9. `tunet-status-card`**
-- `Open runtime/design defect [CD11]`: the current one-grid status runtime still serves phone summary, desktop detail, room strips, and alarm contexts with the same geometry/content budget, which fails the intended phone summary and dropdown structure goals.
-- `Chosen interpretation [CD11]`: the old `G3S/CD11` bugfix-only lock is lifted for a narrow, status-only redesign/runtime pass.
+- `Implemented [CD11a]`: structural fixes, mode framework, recipe/action groundwork, and the `home_summary` + `custom` runtime split are now landed.
+- `Chosen interpretation [CD11]`: keep the narrow, status-only redesign/runtime pass; do not reopen broader surface scope while the remaining variants are unfinished.
 - `Implementation backlog [CD11]`: active detailed plan is `~/.claude/plans/synthetic-dazzling-oasis.md`.
-- `Implementation backlog [CD11]`: execute the phased status plan:
-  - `CD11a`: structural fixes + mode framework + `home_summary` + `custom`
+- `Implementation backlog [CD11]`: phased status plan now stands at:
+  - `CD11a`: landed
   - `CD11b`: `home_detail` + `alarms` + remaining core recipes
   - `CD11c`: `room_row` + `info_only` + final polish
 - `Implementation backlog [CD11]`: phone summary target is a fixed `4x2` matrix that uses space better; do not treat “default to 2 columns” or “make tiles taller” as the intended solution.

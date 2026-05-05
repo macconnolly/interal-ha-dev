@@ -439,7 +439,7 @@ describe('Status: home_summary mode contract', () => {
 
   it('keeps home_summary typography bounded so mixed values read as one component family', () => {
     const css = readCardCSS();
-    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s*\{[^}]*--tile-row-h:\s*5\.375em;[^}]*--_tunet-status-icon-box:\s*2em;[^}]*--_tunet-status-value-font:\s*1\.15625em;[^}]*--_tunet-status-text-font:\s*1\.0625em;[^}]*--_tunet-status-long-font:\s*0\.9375em;[^}]*--_tunet-status-label-font:\s*0\.8125em;[^}]*--_tunet-status-dropdown-font:\s*1\.0625em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s*\{[^}]*--tile-row-h:\s*5\.375em;[^}]*--_tunet-status-icon-box:\s*2\.5em;[^}]*--_tunet-status-value-font:\s*1\.15625em;[^}]*--_tunet-status-text-font:\s*1\.0625em;[^}]*--_tunet-status-long-font:\s*0\.9375em;[^}]*--_tunet-status-label-font:\s*0\.8125em;[^}]*--_tunet-status-dropdown-font:\s*1\.0625em;/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile\s*\{[^}]*padding:\s*0\.6875em 0\.5625em 0\.5em;[^}]*gap:\s*0\.15625em;/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-val\s*\{[^}]*font-size:\s*var\(--_tunet-status-value-font\);[^}]*line-height:\s*1\.02;/s);
     expect(css).toMatch(/:host\(\[layout-variant="home_summary"\]\)\s+\.tile-val\.is-text\s*\{[^}]*font-size:\s*var\(--_tunet-status-text-font\);[^}]*-webkit-line-clamp:\s*1;/s);
@@ -686,7 +686,10 @@ describe('Status: room_row mode contract', () => {
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*0 0 10\.75em;[^}]*padding:\s*var\(--_tunet-row-pad-y,\s*0\.75em\)\s+max\(var\(--_tunet-row-pad-x,\s*0\.25em\),\s*1\.125em\)\s+var\(--_tunet-row-pad-y,\s*0\.75em\)\s+var\(--_tunet-row-pad-x,\s*0\.25em\);[^}]*flex-direction:\s*row;[^}]*align-items:\s*center;[^}]*justify-content:\s*flex-start;/s);
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile-label\s*\{[^}]*text-transform:\s*none;[^}]*text-align:\s*left;/s);
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile-val\s*\{[^}]*margin-left:\s*auto;[^}]*text-align:\s*right;/s);
-    expect(css).toMatch(/@media \(max-width:\s*27\.5em\)\s*\{[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*flex-wrap:\s*nowrap;[^}]*overflow-x:\s*auto;[^}]*gap:\s*0\.5em;[^}]*\}[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*0 0 10em;[^}]*min-width:\s*10em;[^}]*padding:\s*0\.625em 1em 0\.625em var\(--_tunet-row-pad-x,\s*0\.25em\);/s);
+    // X3: at viewport ≤ 47.9375em (≈ 767px) the row variant switches from
+    // horizontal scroll to wrapped vertical-stack tiles so 3-4 fit per row at
+    // 390px without the overflow-x scroll that hid tiles.
+    expect(css).toMatch(/@media \(max-width:\s*47\.9375em\)\s*\{[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*flex-wrap:\s*wrap;[^}]*overflow-x:\s*visible;[^}]*\}[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*1 1 6em;[^}]*min-width:\s*6em;[^}]*flex-direction:\s*column;[^}]*align-items:\s*center;/s);
   });
 
   it('uses compact labels, suppresses secondary and aux content, keeps actions, and collapses hidden tiles', () => {

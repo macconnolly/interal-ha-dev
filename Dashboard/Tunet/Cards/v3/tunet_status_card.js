@@ -14,7 +14,7 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.7.0';
+const CARD_VERSION = '3.8.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -1323,6 +1323,46 @@ ${CARD_SURFACE_GLASS_STROKE}
     right: 0.5em;
   }
 
+  /* room_row mobile mode: at viewport ≤ 767px the horizontal row aesthetic is
+     replaced with a wrapped grid of compact vertical-stack tiles. The original
+     fixed 10.75em tile width was too wide for mobile (only 2-3 fit at 390px,
+     forcing horizontal scroll that hid the rest of the row). Wrapping onto
+     multiple rows reclaims width because each tile no longer needs space for
+     icon + label + value side-by-side — the column stack lets each row fit
+     ~3-4 narrow tiles without typography shrinkage. */
+  @media (max-width: 47.9375em) {
+    :host([layout-variant="room_row"]) .grid {
+      flex-wrap: wrap;
+      overflow-x: visible;
+      overflow-y: visible;
+      gap: 0.5em;
+    }
+    :host([layout-variant="room_row"]) .tile {
+      flex: 1 1 6em;
+      min-width: 6em;
+      max-width: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0.625em 0.5em;
+      gap: 0.1875em;
+    }
+    :host([layout-variant="room_row"]) .tile-icon {
+      order: 1;
+      margin-bottom: 0.125em;
+    }
+    :host([layout-variant="room_row"]) .tile-val {
+      order: 2;
+      margin-left: 0;
+      text-align: center;
+    }
+    :host([layout-variant="room_row"]) .tile-label {
+      order: 3;
+      text-align: center;
+    }
+  }
+
   :host([layout-variant="info_only"]) {
     --tile-row-h: 6.375em;
     --_tunet-status-icon-box: 2.75em;
@@ -1576,33 +1616,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     :host([layout-variant="home_detail"]) .tile-secondary {
       display: none !important;
     }
-    :host([layout-variant="room_row"]) .grid {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      gap: 0.5em;
-    }
-    :host([layout-variant="room_row"]) .tile {
-      flex: 0 0 10em;
-      min-width: 10em;
-      min-height: 3.125em;
-      padding: 0.625em 1em 0.625em var(--_tunet-row-pad-x, 0.25em);
-      gap: 0.5em;
-    }
-    :host([layout-variant="room_row"]) .tile-icon {
-      width: 1.875em;
-      height: 1.875em;
-    }
-    :host([layout-variant="room_row"]) .tile-icon .tile-icon-glyph {
-      font-size: 1.1875em;
-      width: 1.1875em;
-      height: 1.1875em;
-    }
-    :host([layout-variant="room_row"]) .tile-label {
-      font-size: 0.875em;
-    }
-    :host([layout-variant="room_row"]) .tile-val {
-      font-size: 0.9375em;
-    }
+    /* room_row at very narrow widths (≤ 27.5em ≈ 440px): the broader mobile
+       container query (max-width 47.9375em) handles the wrap+vertical-stack
+       layout; nothing to add here. */
     :host(:not([use-profiles])[tile-size="compact"]) .tile {
       padding: 0.5625em 0.4375em 0.4375em;
       gap: 0.1875em;

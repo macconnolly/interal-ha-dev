@@ -1285,7 +1285,11 @@ describe('Status: recipe and action precedence', () => {
         ],
         primary_action: {
           kind: 'action',
-          config: { action: 'more-info', entity: 'sensor.oal_system_status' },
+          config: {
+            action: 'call-service',
+            service: 'light.toggle',
+            service_data: { entity_id: 'light.all_adaptive_lights' },
+          },
         },
       }),
     ],
@@ -1414,7 +1418,10 @@ describe('Status: recipe and action precedence', () => {
         compact_label: 'Sunset',
         accent: 'amber',
         format: 'time',
-        primary_action: { kind: 'none' },
+        primary_action: {
+          kind: 'action',
+          config: { action: 'more-info', entity: 'weather.home' },
+        },
       }),
     ],
     [
@@ -1592,7 +1599,12 @@ describe('Status: recipe and action precedence', () => {
     expect(seen).toEqual(['sensor.override_target']);
   });
 
-  it('recipe:none (next_sun_event) stays passive even with action_entity present', () => {
+  it('next_sun_event taps to weather more-info — authored action_entity overrides the default weather.home target', () => {
+    // X2 contract change: next_sun_event is no longer "passive by default".
+    // Tap intent: "I want the weather context behind sunset/sunrise" → more-info on
+    // weather.home, or on action_entity if explicitly authored. Stays consistent with
+    // the cross-recipe tap-action philosophy: tap advances to the user's most-likely
+    // next action, not to a generic entity inspector.
     const seen = [];
     const el = createStatus({
       layout_variant: 'home_summary',
@@ -1608,9 +1620,9 @@ describe('Status: recipe and action precedence', () => {
       seen.push(event.detail.entityId);
     });
     const tile = el.shadowRoot.querySelector('.tile');
-    expect(tile.classList.contains('passive')).toBe(true);
+    expect(tile.classList.contains('passive')).toBe(false);
     tile.click();
-    expect(seen).toEqual([]);
+    expect(seen).toEqual(['climate.downstairs']);
   });
 
   it('navigate_path takes precedence over recipe defaults', () => {

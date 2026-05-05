@@ -1320,7 +1320,21 @@ Canonical recipe defaults (v3.6.0 — CD11 Polish X1 — recipe consolidation + 
 
 This table is the canonical CD11 recipe surface. The `status_bespoke.test.js` recipe-default self-containment block asserts the synthesized runtime tile for each shorthand recipe, so `{ recipe: 'mode_ttl' }` and the equivalent expanded runtime tile stay aligned.
 
-**X1 (v3.6.0) consolidation note** — the previously-separate `adaptive_count`, `weather_modifier`, and `system_state` recipes are removed from the registry. Authoring the single `boost_offset` composite recipe now answers all three of: "how much is OAL deviating from baseline?" (value, signed % from `total_modification`), "why?" (label, dynamically resolved from `active_modifiers[0].name`, `active_zonal_overrides`, `tv_mode_active`, `system_paused`, `mode_timeout_state`, or `current_preset`), and "is the system in an active modifier state?" (encoded in the cause label itself). This collapses three redundant tiles into one source-of-truth surface and aligns with HA's "tile = one signal" architectural principle.
+**X1 (v3.6.0) consolidation note** — the previously-separate `adaptive_count`, `weather_modifier`, and `system_state` recipes are removed from the registry. Authoring the single `boost_offset` composite recipe now answers all three of: "how much is OAL deviating from baseline?" (value, signed % from `total_modification`), "why?" (label, dynamically resolved from `active_modifiers[0].name`, `tv_mode_active`, `system_paused`, `mode_timeout_state`, or `current_preset`), and "is the system in an active modifier state?" (encoded in the cause label itself). This collapses three redundant tiles into one source-of-truth surface and aligns with HA's "tile = one signal" architectural principle. `active_zonal_overrides` is intentionally NOT in the cause priority — manual overrides don't contribute to `total_modification` and are already represented by the dedicated `manual_overrides` tile.
+
+**X2 (v3.7.0) tap intent contract** — every recipe now declares (or inherits) the most-likely user intent at the moment of tap, not a generic more-info fallback. The resolution chain is: authored `tap_action` → authored `navigate_path` → recipe-specific intent (`_recipeSpecificAction`) → authored `action_entity` more-info → entity more-info. Recipe-specific intents currently wired:
+
+| Recipe | Tap intent | Stopgap status |
+|--------|-----------|----------------|
+| `lights_on` | `light.toggle` on `action_entity` (default `light.all_adaptive_lights`, the canonical OAL group) | live |
+| `next_sun_event` | more-info on `action_entity` (default `weather.home`) | live |
+| `next_alarm` | call `script.sonos_load_alarm_for_edit` with the alarm switch entity read from `next_alarm_entity` attribute | stopgap pending SA3 retarget to Bubble Card 3.2 Adaptive popup; recipe contract stays identical when the underlying script's popup mechanism changes |
+
+Other recipes use the generic resolution chain. Future tap intents (CD11+): `inside_temperature` → Adaptive popup with `tunet-climate-card` (per claude-mem #11191), `home_presence` → household summary popup, `manual_overrides` → zonal override list popup, `boost_offset` (composite) → modifier breakdown popup, `enabled_alarms` → alarms list popup. All of those need their target popup surfaces built before wiring; until then, generic more-info is the safe fallback.
+
+**X2 (v3.7.0) variant-aware reset** — the `manual_overrides` aux pill renders the full "Reset" text on tablet/desktop (where the tile is wide enough to accommodate the pill without overlapping the icon) and collapses to a compact round button at viewport ≤ 390px (iPhone 12 Pro). Implemented as a `@media (max-width: 390px)` rule that forces `display: none` on `.tile-aux .aux-label` and reduces the pill to a 2.25em circle. Bypasses the per-variant `summary-compact` class so the responsive collapse applies to every variant uniformly.
+
+**X2 (v3.7.0) home icon centering** — `.tile-icon-glyph` now sets `place-self: center` and `text-align: center` so glyphs whose advance width exceeds the wrap (notably `home` in Material Symbols Rounded, which renders ~1.56em wide at the home_summary scale) center their visible representation around the wrap's center axis instead of left-aligning. Fixes a long-standing visual offset in `home_summary` that didn't reproduce in `home_detail` (where the wrap is wide enough to fully contain the glyph).
 
 Current recipe behavior:
 

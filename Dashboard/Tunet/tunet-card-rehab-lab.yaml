@@ -3465,7 +3465,6 @@ views:
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm
                 compact_label: Bedroom
-                navigate_path: /tunet-card-rehab-yaml/alarms
             grid_options:
               columns: 24
               rows: auto
@@ -3500,7 +3499,6 @@ views:
               - recipe: mode_ttl
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm
-                navigate_path: /tunet-card-rehab-yaml/alarms
             grid_options:
               columns: 24
               rows: auto
@@ -3574,7 +3572,6 @@ views:
             recipe_tiles:
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm
-                navigate_path: /tunet-card-rehab-yaml/alarms
               - recipe: enabled_alarms
                 entity: sensor.sonos_enabled_alarm_count
                 navigate_path: /tunet-card-rehab-yaml/alarms

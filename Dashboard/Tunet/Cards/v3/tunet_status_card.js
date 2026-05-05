@@ -14,7 +14,7 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.6.0';
+const CARD_VERSION = '3.7.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -493,7 +493,6 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
         {
           recipe: 'next_alarm',
           entity: 'sensor.sonos_next_alarm',
-          navigate_path: '/tunet-card-rehab-yaml/alarms',
         },
       ],
     };
@@ -619,7 +618,6 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
         entity: 'sensor.sonos_next_alarm',
         compact_label: 'Bedroom',
         format: 'time_short',
-        navigate_path: '/tunet-card-rehab-yaml/alarms',
       },
     ],
   };
@@ -817,6 +815,17 @@ ${CARD_SURFACE_GLASS_STROKE}
     width: var(--_tunet-status-icon-glyph, var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.375em)));
     height: var(--_tunet-status-icon-glyph, var(--_tunet-display-icon-glyph, var(--_tunet-icon-glyph, 1.375em)));
     transform: none;
+    /* Some Material Symbols ligatures (notably "home") render with an advance width
+       wider than 1em, so the glyph paints beyond its CSS box. Three properties together
+       keep the rendered glyph visually centered around the wrap centerline:
+         min-width 0   lets the explicit width win over flex min-content sizing
+                       (otherwise the box auto-expands to the glyph and shifts left)
+         place-self    centers the box within the grid wrap
+         text-align    centers the character within the inline-flex box so any
+                       overflow paints equally on both sides */
+    min-width: 0;
+    place-self: center;
+    text-align: center;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .tile-icon {
     width: 1.3125em;
@@ -1002,6 +1011,21 @@ ${CARD_SURFACE_GLASS_STROKE}
   .tile-aux.summary-compact .aux-label {
     display: none;
   }
+  /* Phone (≤390px viewport, iPhone 12 Pro): collapse every aux pill to its
+     compact-button form regardless of variant. The "Reset" text fits comfortably
+     in tablet+ tile widths but overlaps the icon at phone scale because the pill's
+     intrinsic width grows linearly with label length while the tile width does not. */
+  @media (max-width: 390px) {
+    .tile-aux .aux-label {
+      display: none;
+    }
+    .tile-aux {
+      min-height: 2.25em;
+      width: 2.25em;
+      padding: 0;
+      justify-content: center;
+    }
+  }
 
   /* ── Timer Tile ──────────────────────────────── */
   .tile[data-type="timer"] .tile-val {
@@ -1103,7 +1127,11 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   :host([layout-variant="home_summary"]) {
     --tile-row-h: 5.375em;
-    --_tunet-status-icon-box: 2em;
+    /* icon-box must accommodate the rendered glyph; some Material Symbols
+       (notably "home") render with an advance width of ~1.56em at this glyph
+       font-size, so the wrap needs ~2.5em to fully contain them and let
+       place-items: center align the visible glyph with the tile centerline. */
+    --_tunet-status-icon-box: 2.5em;
     --_tunet-status-icon-glyph: 1.5625em;
     --_tunet-status-value-font: 1.15625em;
     --_tunet-status-text-font: 1.0625em;
@@ -1844,6 +1872,12 @@ class TunetStatusCard extends HTMLElement {
     if (tile.type === 'dropdown' || tile._recipeDefaultAction === 'dropdown') {
       return { kind: 'dropdown' };
     }
+    // Recipe-specific tap defaults — these encode "the most likely user intent
+    // when tapping this tile" rather than the generic more-info fallback. Authored
+    // tap_action / navigate_path / action_entity above always win; this only fires
+    // when none were set. See cards_reference.md §9 Tap Contract for the full table.
+    const recipeAction = this._recipeSpecificAction(tile);
+    if (recipeAction) return recipeAction;
     if (tile._recipeDefaultAction === 'action_entity' && tile.action_entity) {
       return {
         kind: 'action',
@@ -1884,6 +1918,59 @@ class TunetStatusCard extends HTMLElement {
       };
     }
     return { kind: 'none' };
+  }
+
+  // Per-recipe tap intent. The architectural goal: tap should advance to the
+  // most-likely user action given what the tile just told them, not to a generic
+  // entity inspector. Returns null when the recipe has no specific intent or when
+  // the runtime data needed to construct the action is not yet available.
+  _recipeSpecificAction(tile) {
+    if (!tile.recipe) return null;
+    switch (tile.recipe) {
+      // lights_on shows the count; tap toggles all adaptive lights. The display
+      // sensor (sensor.oal_system_status) and the control target are intentionally
+      // decoupled — authored action_entity overrides the default group.
+      case 'lights_on': {
+        const target = tile.action_entity || 'light.all_adaptive_lights';
+        return {
+          kind: 'action',
+          config: {
+            action: 'call-service',
+            service: 'light.toggle',
+            service_data: { entity_id: target },
+          },
+        };
+      }
+      // Sunset/sunrise time — tap takes the user to the broader weather context.
+      case 'next_sun_event': {
+        const target = tile.action_entity || 'weather.home';
+        return {
+          kind: 'action',
+          config: { action: 'more-info', entity: target },
+        };
+      }
+      // Next alarm — stopgap until SA3 retargets to Bubble Card 3.2 Adaptive popup.
+      // Reads the alarm switch entity from the sensor's `next_alarm_entity` attribute
+      // and passes it into the existing script that loads the editor buffers. If hass
+      // isn't yet available at resolution time, return null so the caller falls back
+      // to entity more-info; the action gets re-resolved on the next render.
+      case 'next_alarm': {
+        if (!tile.entity || !this._hass) return null;
+        const sensor = this._hass.states[tile.entity];
+        const alarmEntity = sensor?.attributes?.next_alarm_entity;
+        if (!alarmEntity) return null;
+        return {
+          kind: 'action',
+          config: {
+            action: 'call-service',
+            service: 'script.sonos_load_alarm_for_edit',
+            service_data: { alarm_entity: alarmEntity },
+          },
+        };
+      }
+      default:
+        return null;
+    }
   }
 
   _isTileAllowedInVariant(tile, variant) {
@@ -2142,6 +2229,19 @@ class TunetStatusCard extends HTMLElement {
     const changed = [...relevantEntities].some(eid =>
       !oldHass || oldHass.states[eid] !== hass.states[eid]
     );
+
+    // Some recipe tap intents (notably next_alarm) read attributes from hass-resolved
+    // entities to construct their action config. Those tiles were resolved at
+    // setConfig time before hass arrived, so re-resolve them now that hass is available
+    // and again whenever the resolved entity changes (e.g. the next alarm rotates).
+    if ((changed || !oldHass) && this._config?.tiles) {
+      const variant = this._getResolvedLayoutVariant();
+      for (const t of this._config.tiles) {
+        if (t.recipe === 'next_alarm' && !t.tap_action && !t.navigate_path) {
+          t.primary_action = this._resolveTilePrimaryAction(t, variant);
+        }
+      }
+    }
 
     if (changed || !oldHass) {
       this._evaluateVisibility();

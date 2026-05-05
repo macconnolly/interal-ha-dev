@@ -9,6 +9,34 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next by root-plan order is `CD12` surface assembly, still parked pending user acceptance and explicit pointer update)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-05-05, CD11 post-closure status polish)
+
+- `CURRENT STATE`
+  - CD11 remains closed; this was a status-only live-polish follow-up
+  - live lab resources are on `?v=build_20260505_122827Z`
+  - no HA restart was performed
+  - no CD10/nav or CD12/surface files were modified
+- `IMPLEMENTATION`
+  - status detail/custom dropdown values are centered and compact
+  - info-only typography spread is bounded
+  - room-row temperature values inherit HA units and now show `°F`
+  - room-row phone layout wraps instead of clipping; desktop/tablet can remain the intended horizontal row strip
+  - row title scale now matches the other status headers
+  - detail mobile secondaries are hidden to reduce card height at phone width
+  - visual review tooling now has `--changed-cards` and generic probes for every selected/changed card; status has deeper CD11 probes
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `node --check Dashboard/Tunet/scripts/tunet_playwright_review.mjs`
+  - focused status suite → `69/69`
+  - full `npm test` → `694/694`
+  - final phone screenshots:
+    - `/tmp/tunet-cd11-visual/status-mobile-polish-final-2/`
+  - changed-card live probe across locked breakpoints:
+    - `/tmp/tunet-cd11-visual/probed-changed-cards-all-breakpoints/2026-05-05T12-37-40-917Z/review-manifest.json`
+- `NEXT`
+  - use `npm run tunet:review:changed -- --view <affected-view>` for future dashboard/card edits so visual acceptance is probe-backed, not screenshot-only
+
 ## Session Delta (2026-05-05, CD11 closure — final state)
 
 - `CURRENT STATE`

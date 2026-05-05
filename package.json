@@ -8,6 +8,7 @@
     "tunet:resources:sync": "node Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs",
     "tunet:review": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface all",
     "tunet:review:smoke": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --smoke",
+    "tunet:review:changed": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --changed-cards --with-probes",
     "tunet:lab:screenshot": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab",
     "test": "vitest run"
   },

@@ -1129,6 +1129,16 @@ ${CARD_SURFACE_GLASS_STROKE}
     font-size: var(--_tunet-status-secondary-font);
     line-height: 1.06;
   }
+  :host([layout-variant="home_detail"]) .tile[data-type="dropdown"] .tile-dd-val,
+  :host([layout-variant="custom"]) .tile[data-type="dropdown"] .tile-dd-val {
+    justify-content: center;
+    text-align: center;
+    font-size: min(var(--_tunet-status-dropdown-font), 1.125em);
+  }
+  :host([layout-variant="home_detail"]) .tile[data-type="dropdown"] .tile-dd-val .dd-text,
+  :host([layout-variant="custom"]) .tile[data-type="dropdown"] .tile-dd-val .dd-text {
+    text-align: center;
+  }
 
   :host([layout-variant="alarms"]) {
     --tile-row-h: 5.75em;
@@ -1159,6 +1169,7 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   :host([layout-variant="room_row"]) {
     --tile-row-h: var(--_tunet-row-min-h, 3.5em);
+    --_tunet-header-title-font: var(--_tunet-status-row-header-font, 1em);
   }
   :host([layout-variant="room_row"]) .grid {
     display: flex;
@@ -1177,7 +1188,11 @@ ${CARD_SURFACE_GLASS_STROKE}
     flex: 0 0 10.75em;
     min-width: 10.75em;
     min-height: var(--_tunet-row-min-h, 3.5em);
-    padding: var(--_tunet-row-pad-y, 0.75em) var(--_tunet-row-pad-x, 0.25em);
+    padding:
+      var(--_tunet-row-pad-y, 0.75em)
+      max(var(--_tunet-row-pad-x, 0.25em), 0.75em)
+      var(--_tunet-row-pad-y, 0.75em)
+      var(--_tunet-row-pad-x, 0.25em);
     gap: var(--_tunet-row-gap, 0.75em);
     flex-direction: row;
     align-items: center;
@@ -1225,9 +1240,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     --tile-row-h: 6.375em;
     --_tunet-status-icon-box: 2.75em;
     --_tunet-status-icon-glyph: 1.75em;
-    --_tunet-status-value-font: 1.625em;
-    --_tunet-status-text-font: 1.0625em;
-    --_tunet-status-long-font: 0.9375em;
+    --_tunet-status-value-font: 1.4375em;
+    --_tunet-status-text-font: 1.1875em;
+    --_tunet-status-long-font: 1.0625em;
     --_tunet-status-label-font: 0.75em;
     --_tunet-status-dropdown-font: 1.375em;
   }
@@ -1394,6 +1409,113 @@ ${CARD_SURFACE_GLASS_STROKE}
   @media (max-width: 27.5em) {
     :host(:not([use-profiles])) .card { padding: var(--card-pad, 0.875em); }
     .tile { min-height: var(--tile-row-h); }
+    :host([layout-variant="home_detail"]),
+    :host([layout-variant="custom"]),
+    :host([layout-variant="alarms"]) {
+      --tile-row-h: 5.125em;
+      --_tunet-status-icon-box: 1.875em;
+      --_tunet-status-icon-glyph: 1.375em;
+      --_tunet-status-value-font: 1.1875em;
+      --_tunet-status-text-font: 0.9375em;
+      --_tunet-status-long-font: 0.8125em;
+      --_tunet-status-label-font: 0.75em;
+      --_tunet-status-secondary-font: 0.6875em;
+      --_tunet-status-dropdown-font: 1.0625em;
+    }
+    :host([layout-variant="info_only"]) {
+      --tile-row-h: 5.375em;
+      --_tunet-status-icon-box: 2em;
+      --_tunet-status-icon-glyph: 1.5625em;
+      --_tunet-status-value-font: 1.3125em;
+      --_tunet-status-text-font: 1em;
+      --_tunet-status-long-font: 0.875em;
+      --_tunet-status-label-font: 0.875em;
+    }
+    :host([layout-variant="home_detail"]) .tile,
+    :host([layout-variant="custom"]) .tile,
+    :host([layout-variant="alarms"]) .tile,
+    :host([layout-variant="info_only"]) .tile {
+      padding: 0.6875em 0.5625em 0.5em;
+      gap: 0.15625em;
+    }
+    :host([layout-variant="home_detail"]) .tile-icon,
+    :host([layout-variant="custom"]) .tile-icon,
+    :host([layout-variant="alarms"]) .tile-icon,
+    :host([layout-variant="info_only"]) .tile-icon {
+      width: var(--_tunet-status-icon-box);
+      height: var(--_tunet-status-icon-box);
+    }
+    :host([layout-variant="home_detail"]) .tile-icon .tile-icon-glyph,
+    :host([layout-variant="custom"]) .tile-icon .tile-icon-glyph,
+    :host([layout-variant="alarms"]) .tile-icon .tile-icon-glyph,
+    :host([layout-variant="info_only"]) .tile-icon .tile-icon-glyph {
+      font-size: var(--_tunet-status-icon-glyph);
+      width: var(--_tunet-status-icon-glyph);
+      height: var(--_tunet-status-icon-glyph);
+    }
+    :host([layout-variant="home_detail"]) .tile-val,
+    :host([layout-variant="custom"]) .tile-val,
+    :host([layout-variant="alarms"]) .tile-val {
+      font-size: var(--_tunet-status-value-font);
+      line-height: 1.02;
+    }
+    :host([layout-variant="home_detail"]) .tile-val.is-text,
+    :host([layout-variant="custom"]) .tile-val.is-text,
+    :host([layout-variant="alarms"]) .tile-val.is-text,
+    :host([layout-variant="info_only"]) .tile-val.is-text {
+      font-size: var(--_tunet-status-text-font);
+      line-height: 1.04;
+      max-height: 2.12em;
+    }
+    :host([layout-variant="home_detail"]) .tile-val.is-long,
+    :host([layout-variant="custom"]) .tile-val.is-long,
+    :host([layout-variant="alarms"]) .tile-val.is-long,
+    :host([layout-variant="info_only"]) .tile-val.is-long {
+      font-size: var(--_tunet-status-long-font);
+    }
+    :host([layout-variant="home_detail"]) .tile-label,
+    :host([layout-variant="custom"]) .tile-label,
+    :host([layout-variant="alarms"]) .tile-label,
+    :host([layout-variant="info_only"]) .tile-label {
+      font-size: var(--_tunet-status-label-font);
+      line-height: 1.04;
+    }
+    :host([layout-variant="home_detail"]) .tile-secondary,
+    :host([layout-variant="custom"]) .tile-secondary,
+    :host([layout-variant="alarms"]) .tile-secondary {
+      font-size: var(--_tunet-status-secondary-font);
+      line-height: 1.04;
+    }
+    :host([layout-variant="home_detail"]) .tile-secondary {
+      display: none !important;
+    }
+    :host([layout-variant="room_row"]) .grid {
+      flex-wrap: wrap;
+      overflow-x: visible;
+      gap: 0.5em;
+    }
+    :host([layout-variant="room_row"]) .tile {
+      flex: 1 1 calc((100% - 0.5em) / 2);
+      min-width: calc((100% - 0.5em) / 2);
+      min-height: 3.125em;
+      padding: 0.625em 0.6875em 0.625em var(--_tunet-row-pad-x, 0.25em);
+      gap: 0.5em;
+    }
+    :host([layout-variant="room_row"]) .tile-icon {
+      width: 1.875em;
+      height: 1.875em;
+    }
+    :host([layout-variant="room_row"]) .tile-icon .tile-icon-glyph {
+      font-size: 1.1875em;
+      width: 1.1875em;
+      height: 1.1875em;
+    }
+    :host([layout-variant="room_row"]) .tile-label {
+      font-size: 0.875em;
+    }
+    :host([layout-variant="room_row"]) .tile-val {
+      font-size: 0.9375em;
+    }
     :host(:not([use-profiles])[tile-size="compact"]) .tile {
       padding: 0.5625em 0.4375em 0.4375em;
       gap: 0.1875em;
@@ -2434,7 +2556,7 @@ class TunetStatusCard extends HTMLElement {
     let val = config.attribute
       ? (entity.attributes[config.attribute] != null ? entity.attributes[config.attribute] : '?')
       : entity.state;
-    const unit = config.unit;
+    const unit = config.unit || (!config.attribute ? entity.attributes?.unit_of_measurement || '' : '');
 
     if (config.format === 'integer') {
       const numStr = String(val).replace(/%/g, '').trim();

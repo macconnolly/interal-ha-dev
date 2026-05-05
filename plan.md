@@ -7,6 +7,39 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next tranche by root-plan order is `CD12` surface assembly, but it remains parked pending user acceptance and explicit pointer update)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-05-05, CD11 post-closure status polish + visual guardrails)
+
+Tranche marker: post-closure status visual polish only; no CD10/nav or CD12/surface assembly files were changed
+
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+    - centered and compacted `home_detail`/`custom` dropdown current-value rendering
+    - bounded `info_only` value/text font spread
+    - let direct-state value tiles inherit HA `unit_of_measurement`, so room-row temperature renders `69°F` without redundant YAML unit config
+    - added right-side row padding, phone row wrapping, row-header title parity, and phone-density rules for detail/custom/info/alarms
+    - hides `home_detail` secondary lines only at the phone breakpoint so detail states are less tall on mobile while desktop detail remains information-rich
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - status suite now locks dropdown centering, row padding, inherited units, phone row wrapping, row title parity, and phone density rules (`69/69`)
+  - `Dashboard/Tunet/scripts/tunet_playwright_review.mjs`, `package.json`, `Dashboard/Tunet/Docs/tunet_build_and_deploy.md`
+    - added `--changed-cards` plus `npm run tunet:review:changed`
+    - generic probes now run for every selected/changed card and fail on blank render, uncontained horizontal overflow, or unintentional text clipping
+    - status probes now validate the CD11 visual contracts on the rehab `states` view: variant presence, dropdown centering, room-row phone wrapping, temperature unit rendering, phone title parity, detail secondary suppression, and info-only type spread
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - `node --check Dashboard/Tunet/scripts/tunet_playwright_review.mjs`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `69/69`
+  - full `npm test` → `694/694`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_122827Z`
+  - final phone visual screenshots:
+    - `/tmp/tunet-cd11-visual/status-mobile-polish-final-2/`
+  - changed-card probe evidence at all locked breakpoints on the live rehab `states` view:
+    - `/tmp/tunet-cd11-visual/probed-changed-cards-all-breakpoints/2026-05-05T12-37-40-917Z/review-manifest.json`
+- `RESULT`
+  - user-reported status visual issues are corrected in the live lab
+  - future changed-card visual reviews have executable probe guardrails instead of screenshot-only check-the-box evidence
+
 ## Session Delta (2026-05-05, CD11 closure — cross-contract docs/tests/live proof)
 
 Tranche marker: `CD11` closed; no CD10/nav or CD12/surface assembly files were changed

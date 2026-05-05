@@ -7,6 +7,28 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole author
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (`CD10` nav verify deferred until room/surface composition is more settled; `CD12` surface assembly remains parked pending user acceptance)
 
+## Session Delta (2026-05-05, CD11 post-closure status polish + probe guardrail)
+
+Change marker: status visual polish fixes landed after live review; screenshot-only validation weakness closed with changed-card probes
+
+- `FIXES`
+  - detail/custom dropdown current values now center and use compact status scale
+  - info-only status values use a bounded type spread so text and numeric states no longer read as different component families
+  - room-row values inherit direct entity units, giving temperature rows `°F` without redundant YAML
+  - room-row tiles gained right padding and wrap at the phone breakpoint instead of clipping off-screen
+  - row-header title scale now matches the other status variants
+  - detail-state secondaries are suppressed only on phone to reduce mobile height while preserving desktop detail semantics
+- `GUARDRAIL`
+  - added `tunet_playwright_review.mjs --changed-cards --with-probes`
+  - added `npm run tunet:review:changed`
+  - generic probes run for every selected/changed card; status-specific probes lock the CD11 visual contracts on the rehab `states` route
+- `VALIDATION`
+  - focused status suite → `69/69`
+  - full `npm test` → `694/694`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_122827Z`
+  - final screenshots: `/tmp/tunet-cd11-visual/status-mobile-polish-final-2/`
+  - changed-card probe manifest: `/tmp/tunet-cd11-visual/probed-changed-cards-all-breakpoints/2026-05-05T12-37-40-917Z/review-manifest.json`
+
 ## Session Delta (2026-05-05, CD11 closure — cross-contract lock)
 
 Change marker: CD11 status multi-mode redesign is closed in code/test/docs/deploy/visual terms

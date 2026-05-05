@@ -28,6 +28,7 @@ Result: a normal deploy automatically cache-busts the frontend. Manual resource 
 | `tunet:resources:sync` | `node Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs` | Re-sync live `/local/tunet/v3/*.js?v=...` resource URLs from the current manifest |
 | `tunet:review` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface all` | Authenticated screenshot review across rehab + storage routes |
 | `tunet:review:smoke` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --smoke` | Fast authenticated screenshot smoke pass (`390x844`, light, first rehab view) |
+| `tunet:review:changed` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --changed-cards --with-probes` | Authenticated screenshot + probe pass for Tunet card implementations touched in the current git working context |
 | `tunet:lab:screenshot` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab` | Authenticated rehab-dashboard screenshot review |
 | `test` | `vitest run` | Run all tests (profile resolver, sizing, bundle safety, config contract) |
 
@@ -165,6 +166,16 @@ For CD* tranche closure, run and record:
 - `npm run tunet:build` if build outputs are affected
 - `npm test`
 - authenticated screenshot capture/review output at the locked breakpoints in both dark and light mode
+- for any dashboard/card implementation touched in the current working context, run `npm run tunet:review:changed -- --view <affected-view>` or an equivalent `tunet_playwright_review.mjs --changed-cards --with-probes` command before declaring visual acceptance
+
+## Visual Probes
+
+Screenshot review is necessary but not sufficient for changed-card acceptance. Use `--with-probes` when the visual pass is meant to validate a modified card, not merely capture evidence.
+
+Probe layers:
+- generic card probes run for every selected card and fail on blank shadow DOM, uncontained horizontal overflow, or text clipping that lacks an explicit truncation/clamp mechanism
+- card-family probes add deeper contracts where needed; status currently checks variant coverage on the rehab `states` view, detail/custom dropdown centering, room-row phone wrapping, temperature unit rendering, phone title parity, and bounded info-only type spread
+- `--changed-cards` derives the selected cards from `git status` under `Dashboard/Tunet/Cards/v3/**` plus shared dashboard fixtures/configs; shared card context such as `tunet_base.js` or rehab dashboard YAML selects all cards because the visual blast radius is suite-wide
 
 ## Rollback
 

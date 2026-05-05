@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -49,6 +50,48 @@ const CARD_ALIASES = {
   nav: 'tunet-nav-card',
 };
 
+const CARD_SOURCE_PATHS = {
+  'tunet-actions-card': 'Dashboard/Tunet/Cards/v3/tunet_actions_card.js',
+  'tunet-scenes-card': 'Dashboard/Tunet/Cards/v3/tunet_scenes_card.js',
+  'tunet-light-tile': 'Dashboard/Tunet/Cards/v3/tunet_light_tile.js',
+  'tunet-lighting-card': 'Dashboard/Tunet/Cards/v3/tunet_lighting_card.js',
+  'tunet-rooms-card': 'Dashboard/Tunet/Cards/v3/tunet_rooms_card.js',
+  'tunet-climate-card': 'Dashboard/Tunet/Cards/v3/tunet_climate_card.js',
+  'tunet-weather-card': 'Dashboard/Tunet/Cards/v3/tunet_weather_card.js',
+  'tunet-sensor-card': 'Dashboard/Tunet/Cards/v3/tunet_sensor_card.js',
+  'tunet-status-card': 'Dashboard/Tunet/Cards/v3/tunet_status_card.js',
+  'tunet-media-card': 'Dashboard/Tunet/Cards/v3/tunet_media_card.js',
+  'tunet-sonos-card': 'Dashboard/Tunet/Cards/v3/tunet_sonos_card.js',
+  'tunet-speaker-grid-card': 'Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js',
+  'tunet-nav-card': 'Dashboard/Tunet/Cards/v3/tunet_nav_card.js',
+};
+
+const CARD_FILE_BASENAMES = Object.fromEntries(
+  Object.entries(CARD_SOURCE_PATHS).map(([tag, filePath]) => [path.basename(filePath), tag])
+);
+
+const CARD_TEST_HINTS = {
+  audio_cd9_bespoke: ['tunet-media-card', 'tunet-sonos-card', 'tunet-speaker-grid-card'],
+  config_contract: ALL_CARD_TAGS,
+  editor_array_schema: ALL_CARD_TAGS,
+  interaction_dom_contract: ALL_CARD_TAGS,
+  interaction_keyboard_contract: ALL_CARD_TAGS,
+  interaction_source_contract: ALL_CARD_TAGS,
+  lighting_bespoke: ['tunet-light-tile', 'tunet-lighting-card'],
+  rooms_bespoke: ['tunet-rooms-card'],
+  sizing_sections_contract: ALL_CARD_TAGS,
+  status_bespoke: ['tunet-status-card'],
+  utility_strip_bespoke: ['tunet-actions-card', 'tunet-scenes-card'],
+  weather_bespoke: ['tunet-weather-card'],
+};
+
+const SHARED_CARD_IMPACT_PATHS = new Set([
+  'Dashboard/Tunet/Cards/v3/tunet_base.js',
+  'Dashboard/Tunet/tunet-card-rehab-lab.yaml',
+  'Dashboard/Tunet/tunet-suite-config.yaml',
+  'Dashboard/Tunet/tunet-suite-storage-config.yaml',
+]);
+
 const CD_CARD_MAP = {
   CD0: ALL_CARD_TAGS,
   CD1: ALL_CARD_TAGS,
@@ -93,6 +136,7 @@ const ROUTE_SETS = {
 
 const THEMES = ['dark', 'light'];
 const ANY_CARD_SELECTOR = ALL_CARD_TAGS.join(', ');
+const STATUS_REQUIRED_VARIANTS = ['home_summary', 'home_detail', 'alarms', 'room_row', 'info_only', 'custom'];
 
 function readDotEnv(filePath = ENV_PATH) {
   const vars = {};
@@ -159,6 +203,7 @@ Options:
   --view <id[,id...]>             Specific route ids to review
   --cd <CD7[,CD9...]>             Filter cards by owning consistency-driver tranche
   --card <tag|alias[,more]>       Filter cards directly (e.g. rooms, tunet-rooms-card)
+  --changed-cards                 Filter to Tunet cards touched by the current git working context
   --breakpoint <390x844[,..]>     Locked breakpoint ids to capture
   --theme <dark|light[,..]>       Emulated color schemes to capture
   --base-url <url>                HA base URL (default: .env HA_LOCAL_URL or ${DEFAULT_BASE_URL})
@@ -178,6 +223,7 @@ function parseArgs(argv) {
     views: [],
     cds: [],
     cards: [],
+    changedCards: false,
     breakpoints: Object.keys(LOCKED_BREAKPOINTS),
     themes: [...THEMES],
     baseUrl: null,
@@ -204,6 +250,8 @@ function parseArgs(argv) {
     } else if (arg === '--card' && next) {
       options.cards.push(...parseListValue(next));
       i += 1;
+    } else if (arg === '--changed-cards') {
+      options.changedCards = true;
     } else if (arg === '--breakpoint' && next) {
       options.breakpoints = parseListValue(next);
       i += 1;
@@ -245,11 +293,13 @@ function parseArgs(argv) {
 
 function resolveCards(options) {
   const selected = new Set();
+  let explicitSelection = false;
 
   for (const cd of options.cds) {
     const tags = CD_CARD_MAP[cd];
     if (!tags) throw new Error(`Unknown CD selection: ${cd}`);
     tags.forEach((tag) => selected.add(tag));
+    explicitSelection = true;
   }
 
   for (const card of options.cards) {
@@ -259,9 +309,89 @@ function resolveCards(options) {
       throw new Error(`Unknown card selection: ${card}`);
     }
     selected.add(tag);
+    explicitSelection = true;
+  }
+
+  if (options.changedCards) {
+    const changedContext = resolveChangedCardContext();
+    options.changedCardContext = changedContext;
+    changedContext.cards.forEach((tag) => selected.add(tag));
+    if (!changedContext.cards.length && !explicitSelection) {
+      throw new Error('No changed Tunet card implementations were detected for --changed-cards.');
+    }
   }
 
   return selected.size ? Array.from(selected) : [...ALL_CARD_TAGS];
+}
+
+function parseGitStatusPath(line) {
+  const raw = String(line || '').slice(3).trim();
+  if (!raw) return '';
+  const renamed = raw.split(' -> ').pop();
+  return renamed.replace(/^"|"$/g, '');
+}
+
+function resolveChangedCardContext() {
+  let output = '';
+  try {
+    output = execFileSync(
+      'git',
+      [
+        '-C',
+        REPO_ROOT,
+        'status',
+        '--short',
+        '--',
+        'Dashboard/Tunet/Cards/v3',
+        'Dashboard/Tunet/tunet-card-rehab-lab.yaml',
+        'Dashboard/Tunet/tunet-suite-config.yaml',
+        'Dashboard/Tunet/tunet-suite-storage-config.yaml',
+      ],
+      { encoding: 'utf8' }
+    );
+  } catch (error) {
+    throw new Error(`Unable to inspect changed Tunet cards with git status: ${error.message}`);
+  }
+
+  const paths = output
+    .split(/\r?\n/)
+    .map(parseGitStatusPath)
+    .filter(Boolean);
+  const cards = new Set();
+  const reasons = [];
+
+  for (const filePath of paths) {
+    if (filePath.includes('/dist/') || filePath.endsWith('.map') || filePath.endsWith('/manifest.json')) {
+      continue;
+    }
+
+    if (SHARED_CARD_IMPACT_PATHS.has(filePath)) {
+      ALL_CARD_TAGS.forEach((tag) => cards.add(tag));
+      reasons.push({ path: filePath, cards: [...ALL_CARD_TAGS], reason: 'shared dashboard/card context changed' });
+      continue;
+    }
+
+    const basename = path.basename(filePath);
+    const directTag = CARD_FILE_BASENAMES[basename];
+    if (directTag) {
+      cards.add(directTag);
+      reasons.push({ path: filePath, cards: [directTag], reason: 'card implementation changed' });
+      continue;
+    }
+
+    const testHint = Object.entries(CARD_TEST_HINTS).find(([hint]) => basename.includes(hint));
+    if (testHint) {
+      const [, hintedCards] = testHint;
+      hintedCards.forEach((tag) => cards.add(tag));
+      reasons.push({ path: filePath, cards: hintedCards, reason: 'card regression test changed' });
+    }
+  }
+
+  return {
+    paths,
+    cards: [...cards],
+    reasons,
+  };
 }
 
 function resolveRoutes(options) {
@@ -332,6 +462,17 @@ function capturePath(root, ...parts) {
 function isIdentityTransform(transform) {
   if (!transform || transform === 'none') return true;
   return transform === 'matrix(1, 0, 0, 1, 0, 0)';
+}
+
+function addProbeAssertions(routeResult, assertions) {
+  routeResult.warnings = routeResult.warnings || [];
+  for (const assertion of assertions) {
+    if (!assertion.pass && assertion.severity === 'error') {
+      routeResult.failures.push(`Probe failed: ${assertion.name}${assertion.note ? ` (${assertion.note})` : ''}`);
+    } else if (!assertion.pass) {
+      routeResult.warnings.push(`Probe warning: ${assertion.name}${assertion.note ? ` (${assertion.note})` : ''}`);
+    }
+  }
 }
 
 function isRelevantTunetError(message) {
@@ -550,16 +691,366 @@ async function runRoomsProbes(page, routeResult, outputRoot) {
     },
   };
 
-  routeResult.warnings = routeResult.warnings || [];
-  for (const assertion of assertions) {
-    if (!assertion.pass && assertion.severity === 'error') {
-      routeResult.failures.push(`Probe failed: ${assertion.name}`);
-    } else if (!assertion.pass) {
-      routeResult.warnings.push(`Probe warning: ${assertion.name}`);
+  addProbeAssertions(routeResult, assertions);
+
+  return routeResult.probes.rooms;
+}
+
+async function runGenericCardProbes(page, routeResult, selectedCards) {
+  const cards = [];
+
+  for (const tag of selectedCards) {
+    const tagCards = await page.locator(tag).evaluateAll((instances, cardTag) => {
+      const hasScrollableClipAncestor = (node, root) => {
+        let current = node.parentElement;
+        while (current && current !== root) {
+          const style = getComputedStyle(current);
+          const overflowX = style.overflowX;
+          if (
+            ['auto', 'scroll', 'hidden', 'clip'].includes(overflowX) &&
+            current.scrollWidth > current.clientWidth + 1
+          ) {
+            return true;
+          }
+          current = current.parentElement;
+        }
+        return false;
+      };
+
+      const isVisibleElement = (node) => {
+        if (!(node instanceof Element)) return false;
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        return (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          Number(style.opacity) !== 0 &&
+          rect.width > 1 &&
+          rect.height > 1
+        );
+      };
+
+      const hasIntentionalTextClamp = (node, style) => {
+        const lineClamp = Number.parseInt(style.webkitLineClamp || style.lineClamp || '0', 10);
+        return (
+          style.textOverflow === 'ellipsis' ||
+          lineClamp > 0 ||
+          node.classList.contains('icon') ||
+          String(style.fontFamily || '').includes('Material Symbols')
+        );
+      };
+
+      return instances.map((card, index) => {
+        const root = card.shadowRoot;
+        const cardRect = card.getBoundingClientRect();
+        const visible = cardRect.width > 1 && cardRect.height > 1;
+        const elements = root ? [...root.querySelectorAll('*')].filter(isVisibleElement) : [];
+        const uncontained = [];
+        const textClipViolations = [];
+
+        for (const node of elements) {
+          const rect = node.getBoundingClientRect();
+          const className = String(node.className || '');
+          const tagName = node.tagName.toLowerCase();
+          if (
+            rect.left < cardRect.left - 2 ||
+            rect.right > cardRect.right + 2
+          ) {
+            if (!hasScrollableClipAncestor(node, root)) {
+              uncontained.push({
+                tag: tagName,
+                className,
+                text: node.textContent?.replace(/\s+/g, ' ').trim().slice(0, 80) || '',
+                left: Math.round(rect.left - cardRect.left),
+                right: Math.round(rect.right - cardRect.right),
+              });
+            }
+          }
+
+          const directText = [...node.childNodes]
+            .filter((child) => child.nodeType === Node.TEXT_NODE)
+            .map((child) => child.textContent || '')
+            .join('')
+            .replace(/\s+/g, ' ')
+            .trim();
+          if (!directText || directText.length < 3 || node.clientWidth <= 0) continue;
+          const style = getComputedStyle(node);
+          if (node.scrollWidth > node.clientWidth + 2 && !hasIntentionalTextClamp(node, style)) {
+            textClipViolations.push({
+              tag: tagName,
+              className,
+              text: directText.slice(0, 80),
+              scrollWidth: node.scrollWidth,
+              clientWidth: node.clientWidth,
+              textOverflow: style.textOverflow,
+              overflowX: style.overflowX,
+            });
+          }
+        }
+
+        return {
+          tag: cardTag,
+          index: index + 1,
+          visible,
+          hasShadowRoot: Boolean(root),
+          card: {
+            width: Math.round(cardRect.width),
+            height: Math.round(cardRect.height),
+          },
+          visibleDescendants: elements.length,
+          shadowTextLength: (root?.textContent || '').replace(/\s+/g, ' ').trim().length,
+          uncontained,
+          textClipViolations,
+        };
+      });
+    }, tag);
+    cards.push(...tagCards);
+  }
+
+  const probe = { selectedCards, cards };
+
+  const assertions = [];
+  const assert = (name, pass, severity = 'error', note = '') => {
+    assertions.push({ name, pass: Boolean(pass), severity, note });
+  };
+
+  for (const card of probe.cards) {
+    const id = `${card.tag}_${card.index}`;
+    assert(`visual_${id}_has_visible_area`, card.visible && card.card.width > 40 && card.card.height > 20, 'error');
+    assert(`visual_${id}_has_shadow_root`, card.hasShadowRoot, 'error');
+    assert(
+      `visual_${id}_has_rendered_descendants`,
+      card.visibleDescendants > 0 && card.shadowTextLength > 0,
+      'error',
+      `descendants=${card.visibleDescendants}, textLength=${card.shadowTextLength}`
+    );
+    assert(
+      `visual_${id}_no_uncontained_horizontal_overflow`,
+      card.uncontained.length === 0,
+      'error',
+      `${card.uncontained.length} visible descendant(s) escape host bounds`
+    );
+    assert(
+      `visual_${id}_text_clipping_is_intentional`,
+      card.textClipViolations.length === 0,
+      'error',
+      `${card.textClipViolations.length} unclamped text clip candidate(s)`
+    );
+  }
+
+  routeResult.probes = {
+    ...(routeResult.probes || {}),
+    genericCards: {
+      selectedCards,
+      cards: probe.cards,
+      assertions,
+    },
+  };
+  addProbeAssertions(routeResult, assertions);
+  return routeResult.probes.genericCards;
+}
+
+async function runStatusProbes(page, routeResult) {
+  const hasStatusCards = (await page.locator('tunet-status-card').count()) > 0;
+  if (!hasStatusCards) return null;
+
+  const cards = await page.locator('tunet-status-card').evaluateAll((instances, requiredVariants) => {
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const isPhone = viewportWidth <= 440;
+    const cards = instances
+      .filter((card) => {
+        const rect = card.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      })
+      .map((card, index) => {
+        const root = card.shadowRoot;
+        const cardRect = card.getBoundingClientRect();
+        const title = root?.querySelector('.hdr-title');
+        const grid = root?.querySelector('.grid');
+        const tiles = [...(root?.querySelectorAll('.tile') || [])];
+        const values = [...(root?.querySelectorAll('.tile-val') || [])];
+        const dropdowns = [...(root?.querySelectorAll('.tile[data-type="dropdown"] .tile-dd-val') || [])];
+        const secondary = [...(root?.querySelectorAll('.tile-secondary') || [])];
+        const gridStyle = grid ? getComputedStyle(grid) : null;
+        const titleStyle = title ? getComputedStyle(title) : null;
+        const firstTileStyle = tiles[0] ? getComputedStyle(tiles[0]) : null;
+        const firstTileRect = tiles[0]?.getBoundingClientRect?.();
+        const gridRect = grid?.getBoundingClientRect?.() || cardRect;
+        const tileOverflowCount = tiles.filter((tile) => {
+          const rect = tile.getBoundingClientRect();
+          const style = getComputedStyle(tile);
+          const visible = style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1;
+          return visible && (rect.left < gridRect.left - 1 || rect.right > gridRect.right + 1);
+        }).length;
+        const valueFontSizes = values.map((node) => Number.parseFloat(getComputedStyle(node).fontSize) || 0).filter(Boolean);
+        const valueTexts = values.map((node) => node.textContent.trim());
+        const variant = card.getAttribute('layout-variant') || '';
+
+        return {
+          index,
+          variant,
+          title: title?.textContent?.replace(/\s+/g, ' ').trim() || '',
+          card: {
+            width: cardRect.width,
+            height: cardRect.height,
+          },
+          grid: grid ? {
+            clientWidth: grid.clientWidth,
+            scrollWidth: grid.scrollWidth,
+            flexWrap: gridStyle.flexWrap,
+            overflowX: gridStyle.overflowX,
+            display: gridStyle.display,
+          } : null,
+          titleFontSize: titleStyle ? Number.parseFloat(titleStyle.fontSize) || 0 : 0,
+          firstTileHeight: firstTileRect?.height || 0,
+          firstTilePadding: firstTileStyle?.padding || '',
+          valueTexts,
+          valueFontSizes,
+          dropdowns: dropdowns.map((node) => {
+            const style = getComputedStyle(node);
+            return {
+              text: node.textContent.trim(),
+              justifyContent: style.justifyContent,
+              textAlign: style.textAlign,
+              fontSize: Number.parseFloat(style.fontSize) || 0,
+            };
+          }),
+          secondaryVisibleCount: secondary.filter((node) => {
+            const style = getComputedStyle(node);
+            const rect = node.getBoundingClientRect();
+            return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+          }).length,
+          tileOverflowCount,
+        };
+      });
+
+    const byVariant = Object.fromEntries(cards.map((card) => [card.variant, card]));
+    return {
+      viewportWidth,
+      isPhone,
+      requiredVariants,
+      presentVariants: cards.map((card) => card.variant),
+      cards,
+      byVariant,
+    };
+  }, STATUS_REQUIRED_VARIANTS);
+  const probe = cards;
+
+  const assertions = [];
+  const byVariant = probe.byVariant || {};
+  const summary = byVariant.home_summary;
+  const roomRow = byVariant.room_row;
+  const detail = byVariant.home_detail;
+  const infoOnly = byVariant.info_only;
+  const custom = byVariant.custom;
+
+  const assert = (name, pass, severity = 'error', note = '') => {
+    assertions.push({ name, pass: Boolean(pass), severity, note });
+  };
+
+  if (routeResult.surface === 'rehab' && routeResult.routeId === 'states') {
+    for (const variant of STATUS_REQUIRED_VARIANTS) {
+      assert(`status_states_variant_present_${variant}`, probe.presentVariants.includes(variant), 'error');
     }
   }
 
-  return routeResult.probes.rooms;
+  for (const card of probe.cards) {
+    if (card.variant === 'room_row' && !probe.isPhone) continue;
+    assert(
+      `status_${card.variant || card.index}_tiles_stay_inside_card`,
+      card.tileOverflowCount === 0,
+      'error',
+      `${card.tileOverflowCount} tile(s) overflow horizontally`
+    );
+  }
+
+  for (const card of [detail, custom].filter(Boolean)) {
+    for (const dropdown of card.dropdowns) {
+      assert(
+        `status_${card.variant}_dropdown_centered`,
+        dropdown.justifyContent === 'center' && dropdown.textAlign === 'center',
+        'error',
+        `justify=${dropdown.justifyContent}, textAlign=${dropdown.textAlign}`
+      );
+      assert(
+        `status_${card.variant}_dropdown_font_compact`,
+        dropdown.fontSize <= (probe.isPhone ? 16 : 18),
+        'error',
+        `fontSize=${dropdown.fontSize}px`
+      );
+    }
+  }
+
+  if (roomRow) {
+    const roomGrid = roomRow.grid || {};
+    assert(
+      'status_room_row_temperature_value_has_unit',
+      roomRow.valueTexts.some((value) => /-?\d+(?:\.\d+)?°[FC]\b/.test(value)),
+      'error',
+      `values=${roomRow.valueTexts.join(', ')}`
+    );
+    if (probe.isPhone) {
+      assert(
+        'status_room_row_wraps_on_phone',
+        roomGrid.flexWrap === 'wrap' && roomGrid.overflowX === 'visible',
+        'error',
+        `flexWrap=${roomGrid.flexWrap}, overflowX=${roomGrid.overflowX}`
+      );
+      assert(
+        'status_room_row_has_no_phone_horizontal_scroll',
+        Number(roomGrid.scrollWidth || 0) <= Number(roomGrid.clientWidth || 0) + 2,
+        'error',
+        `scrollWidth=${roomGrid.scrollWidth}, clientWidth=${roomGrid.clientWidth}`
+      );
+    }
+  }
+
+  if (probe.isPhone && summary) {
+    for (const card of [detail, roomRow, infoOnly, custom].filter(Boolean)) {
+      assert(
+        `status_${card.variant}_title_matches_phone_baseline`,
+        Math.abs(card.titleFontSize - summary.titleFontSize) <= 0.75,
+        'error',
+        `${card.titleFontSize}px vs summary ${summary.titleFontSize}px`
+      );
+    }
+    if (detail) {
+      assert(
+        'status_detail_phone_tile_height_not_larger_than_summary',
+        detail.firstTileHeight <= summary.firstTileHeight + 4,
+        'error',
+        `${detail.firstTileHeight}px vs summary ${summary.firstTileHeight}px`
+      );
+      assert(
+        'status_detail_secondary_hidden_on_phone',
+        detail.secondaryVisibleCount === 0,
+        'error',
+        `${detail.secondaryVisibleCount} visible secondary label(s)`
+      );
+    }
+  }
+
+  if (infoOnly?.valueFontSizes?.length > 1) {
+    const maxFont = Math.max(...infoOnly.valueFontSizes);
+    const minFont = Math.min(...infoOnly.valueFontSizes);
+    assert(
+      'status_info_only_value_font_spread_bounded',
+      minFont > 0 && maxFont / minFont <= 1.55,
+      'error',
+      `min=${minFont}px, max=${maxFont}px`
+    );
+  }
+
+  routeResult.probes = {
+    ...(routeResult.probes || {}),
+    status: {
+      viewportWidth: probe.viewportWidth,
+      cards: probe.cards,
+      assertions,
+    },
+  };
+  addProbeAssertions(routeResult, assertions);
+  return routeResult.probes.status;
 }
 
 async function captureCards(page, selectedCards, outputRoot) {
@@ -620,8 +1111,14 @@ async function captureRoute(page, route, selectedCards, reviewRoot, options = {}
   await page.screenshot({ path: routeResult.fullPageScreenshot, fullPage: true, animations: 'disabled' });
   routeResult.cardCaptures = await captureCards(page, selectedCards, routeRoot);
 
+  if (options.withProbes) {
+    await runGenericCardProbes(page, routeResult, selectedCards);
+  }
   if (options.withProbes && selectedCards.includes('tunet-rooms-card') && route.surface === 'rehab' && route.id === 'lab') {
     await runRoomsProbes(page, routeResult, routeRoot);
+  }
+  if (options.withProbes && selectedCards.includes('tunet-status-card') && route.surface === 'rehab' && route.id === 'states') {
+    await runStatusProbes(page, routeResult);
   }
 
   return routeResult;
@@ -650,6 +1147,7 @@ async function main() {
     createdAt: new Date().toISOString(),
     baseUrl: normalizeBaseUrl(options.baseUrl || env.HA_LOCAL_URL || env.HA_URL || DEFAULT_BASE_URL),
     selectedCards,
+    changedCardContext: options.changedCardContext || null,
     routes,
     breakpoints: breakpoints.map(({ id }) => id),
     themes,
@@ -662,6 +1160,10 @@ async function main() {
   console.log(`Tunet review output: ${runRoot}`);
   console.log(`Routes: ${routes.map((route) => `${route.surface}/${route.id}`).join(', ')}`);
   console.log(`Cards: ${selectedCards.join(', ')}`);
+  if (options.changedCardContext) {
+    console.log(`Changed-card paths: ${options.changedCardContext.paths.length}`);
+    console.log(`Changed-card selection: ${options.changedCardContext.cards.join(', ') || '(none)'}`);
+  }
   console.log(`Breakpoints: ${breakpoints.map(({ id }) => id).join(', ')}`);
   console.log(`Themes: ${themes.join(', ')}`);
   console.log(`Probes: ${options.withProbes ? 'enabled' : 'disabled (screenshot review only)'}`);
@@ -732,6 +1234,16 @@ async function main() {
   const manifestPath = path.join(runRoot, 'review-manifest.json');
   fs.writeFileSync(manifestPath, JSON.stringify(reviewManifest, null, 2));
   console.log(`Manifest written: ${manifestPath}`);
+
+  const hardFailures = reviewManifest.results.filter((result) => result.failures?.length);
+  if (hardFailures.length) {
+    console.log('Review completed with probe failures:');
+    for (const result of hardFailures) {
+      console.log(`- ${result.breakpoint} ${result.theme} ${result.surface}/${result.routeId}: ${result.failures.join('; ')}`);
+    }
+    process.exitCode = 1;
+    return;
+  }
 
   if (reviewManifest.failures.length) {
     console.log('Review completed with warnings:');

@@ -547,6 +547,12 @@ describe('Status: home_detail mode contract', () => {
     expect(css).toMatch(/:host\(\[layout-variant="home_detail"\]\)\s+\.tile-secondary\s*\{[^}]*font-size:\s*var\(--_tunet-status-secondary-font\);[^}]*line-height:\s*1\.06;/s);
   });
 
+  it('keeps detail and custom dropdown values centered at compact status scale', () => {
+    const css = readCardCSS();
+    expect(css).toMatch(/:host\(\[layout-variant="home_detail"\]\)\s+\.tile\[data-type="dropdown"\]\s+\.tile-dd-val,\s*:host\(\[layout-variant="custom"\]\)\s+\.tile\[data-type="dropdown"\]\s+\.tile-dd-val\s*\{[^}]*justify-content:\s*center;[^}]*text-align:\s*center;[^}]*font-size:\s*min\(var\(--_tunet-status-dropdown-font\),\s*1\.125em\);/s);
+    expect(css).toMatch(/:host\(\[layout-variant="home_detail"\]\)\s+\.tile\[data-type="dropdown"\]\s+\.tile-dd-val\s+\.dd-text,\s*:host\(\[layout-variant="custom"\]\)\s+\.tile\[data-type="dropdown"\]\s+\.tile-dd-val\s+\.dd-text\s*\{[^}]*text-align:\s*center;/s);
+  });
+
   it('collapses hidden tiles in home_detail', () => {
     const el = createStatus(
       {
@@ -608,9 +614,11 @@ describe('Status: room_row mode contract', () => {
 
     const css = readCardCSS();
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*nowrap;[^}]*overflow-x:\s*auto;[^}]*scrollbar-width:\s*none;/s);
-    expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*0 0 10\.75em;[^}]*flex-direction:\s*row;[^}]*align-items:\s*center;[^}]*justify-content:\s*flex-start;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s*\{[^}]*--_tunet-header-title-font:\s*var\(--_tunet-status-row-header-font,\s*1em\);/s);
+    expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*0 0 10\.75em;[^}]*padding:\s*var\(--_tunet-row-pad-y,\s*0\.75em\)\s+max\(var\(--_tunet-row-pad-x,\s*0\.25em\),\s*0\.75em\)\s+var\(--_tunet-row-pad-y,\s*0\.75em\)\s+var\(--_tunet-row-pad-x,\s*0\.25em\);[^}]*flex-direction:\s*row;[^}]*align-items:\s*center;[^}]*justify-content:\s*flex-start;/s);
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile-label\s*\{[^}]*text-transform:\s*none;[^}]*text-align:\s*left;/s);
     expect(css).toMatch(/:host\(\[layout-variant="room_row"\]\)\s+\.tile-val\s*\{[^}]*margin-left:\s*auto;[^}]*text-align:\s*right;/s);
+    expect(css).toMatch(/@media \(max-width:\s*27\.5em\)\s*\{[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*flex-wrap:\s*wrap;[^}]*overflow-x:\s*visible;[^}]*gap:\s*0\.5em;[^}]*\}[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*1 1 calc\(\(100% - 0\.5em\) \/ 2\);[^}]*min-width:\s*calc\(\(100% - 0\.5em\) \/ 2\);[^}]*padding:\s*0\.625em 0\.6875em 0\.625em var\(--_tunet-row-pad-x,\s*0\.25em\);/s);
   });
 
   it('uses compact labels, suppresses secondary and aux content, keeps actions, and collapses hidden tiles', () => {
@@ -675,6 +683,21 @@ describe('Status: room_row mode contract', () => {
     el._tileEls[2].el.click();
     expect(seen).toEqual(['climate.downstairs']);
   });
+
+  it('falls back to entity unit_of_measurement for direct-state row values', () => {
+    const el = createStatus({
+      layout_variant: 'room_row',
+      tiles: [
+        {
+          recipe: 'inside_temperature',
+          entity: 'sensor.dining_room_temperature',
+          compact_label: 'Inside',
+        },
+      ],
+    });
+
+    expect(el.shadowRoot.querySelector('.tile-val')?.textContent?.trim()).toBe('70°F');
+  });
 });
 
 describe('Status: info_only mode contract', () => {
@@ -697,7 +720,7 @@ describe('Status: info_only mode contract', () => {
     expect(warnSpy).toHaveBeenCalledTimes(2);
 
     const css = readCardCSS();
-    expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s*\{[^}]*--tile-row-h:\s*6\.375em;[^}]*--_tunet-status-icon-glyph:\s*1\.75em;[^}]*--_tunet-status-value-font:\s*1\.625em;[^}]*--_tunet-status-label-font:\s*0\.75em;/s);
+    expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s*\{[^}]*--tile-row-h:\s*6\.375em;[^}]*--_tunet-status-icon-glyph:\s*1\.75em;[^}]*--_tunet-status-value-font:\s*1\.4375em;[^}]*--_tunet-status-text-font:\s*1\.1875em;[^}]*--_tunet-status-long-font:\s*1\.0625em;[^}]*--_tunet-status-label-font:\s*0\.75em;/s);
     expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s+\.tile\s*\{[^}]*padding:\s*0\.9375em 0\.75em 0\.8125em;[^}]*box-shadow:\s*0 0\.1875em 0\.5em rgba\(0,0,0,0\.035\), 0 0\.0625em 0\.125em rgba\(0,0,0,0\.05\);/s);
     expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s+\.tile-label\s*\{[^}]*font-weight:\s*500;[^}]*opacity:\s*0\.78;[^}]*text-transform:\s*none;/s);
     expect(css).toMatch(/:host\(\[layout-variant="info_only"\]\)\s+\.tile-secondary\s*\{[^}]*display:\s*none !important;/s);
@@ -774,6 +797,16 @@ describe('Status: info_only mode contract', () => {
     passiveTile.click();
     activeTile.click();
     expect(seen).toEqual(['climate.downstairs']);
+  });
+});
+
+describe('Status: phone density contract', () => {
+  it('aligns detail, custom, alarms, and info-only typography to compact phone status scale', () => {
+    const css = readCardCSS();
+    expect(css).toMatch(/@media \(max-width:\s*27\.5em\)\s*\{[\s\S]*:host\(\[layout-variant="home_detail"\]\),\s*:host\(\[layout-variant="custom"\]\),\s*:host\(\[layout-variant="alarms"\]\)\s*\{[^}]*--tile-row-h:\s*5\.125em;[^}]*--_tunet-status-icon-box:\s*1\.875em;[^}]*--_tunet-status-value-font:\s*1\.1875em;[^}]*--_tunet-status-label-font:\s*0\.75em;[^}]*--_tunet-status-secondary-font:\s*0\.6875em;[^}]*--_tunet-status-dropdown-font:\s*1\.0625em;/s);
+    expect(css).toMatch(/@media \(max-width:\s*27\.5em\)\s*\{[\s\S]*:host\(\[layout-variant="info_only"\]\)\s*\{[^}]*--tile-row-h:\s*5\.375em;[^}]*--_tunet-status-icon-box:\s*2em;[^}]*--_tunet-status-value-font:\s*1\.3125em;[^}]*--_tunet-status-label-font:\s*0\.875em;/s);
+    expect(css).toMatch(/@media \(max-width:\s*27\.5em\)\s*\{[\s\S]*:host\(\[layout-variant="home_detail"\]\)\s+\.tile-val,\s*:host\(\[layout-variant="custom"\]\)\s+\.tile-val,\s*:host\(\[layout-variant="alarms"\]\)\s+\.tile-val\s*\{[^}]*font-size:\s*var\(--_tunet-status-value-font\);/s);
+    expect(css).toMatch(/@media \(max-width:\s*27\.5em\)\s*\{[\s\S]*:host\(\[layout-variant="home_detail"\]\)\s+\.tile-secondary\s*\{[^}]*display:\s*none !important;/s);
   });
 });
 

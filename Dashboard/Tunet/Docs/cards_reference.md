@@ -1289,39 +1289,38 @@ Status-tile icons use raw Material Symbols glyph names. `normalizeStatusIcon()` 
 Implemented recipes:
 
 - `home_presence`
-- `adaptive_count`
+- `lights_on`
 - `manual_overrides`
 - `mode_selector`
-- `boost_offset`
+- `boost_offset` (composite — see notes below)
 - `inside_temperature`
+- `outside_temperature`
 - `inside_humidity`
 - `next_sun_event`
-- `system_state`
 - `next_alarm`
 - `enabled_alarms`
 - `mode_ttl`
 
-Canonical recipe defaults (v3.5.0 — CD11 Theme A polish, 2026-05-05):
+Canonical recipe defaults (v3.6.0 — CD11 Polish X1 — recipe consolidation + signed_percent, 2026-05-05):
 
 | Recipe | Target variant(s) | Default type | Encoded defaults | Entity binding |
 |--------|-------------------|--------------|------------------|----------------|
 | `home_presence` | `home_summary`, optional detail/info surfaces | `value` | `icon: home`, `label: Presence`, `compact_label: Presence` (downgraded to `Status` in `room_row` so the label fits a 151px tile), `accent: green`, `format: state` (humanizes `home`/`not_home` to `Home`/`Away`), `dot_rules: home -> green, * -> red`, default action opens entity more-info | User supplies `entity` |
 | `lights_on` | `home_summary`, `home_detail`, `room_row` | `value` | `entity: sensor.oal_system_status`, `icon: lightbulb`, `label: Lights On`, `compact_label: Lights`, `accent: amber`, `attribute: lights_on_formatted` ("15/16"), `format: state`, `dot_rules: on -> amber, * -> muted`, default action opens entity more-info | Fixed source |
-| `adaptive_count` | `home_summary`, `home_detail` | `value` | `icon: sunny`, `label/compact_label: Adaptive`, `accent: green`, `attribute: zones_adaptive`, `format: integer`, default action opens entity more-info | User supplies `entity` |
 | `manual_overrides` | `home_summary`, `home_detail`, optional row/info surfaces | `value` | `icon: front_hand`, `label/compact_label: Manual`, `accent: red`, `attribute: active_zonal_overrides`, `format: integer`, `show_when.active_zonal_overrides > 0`, reset `aux_action` to `script.oal_reset_soft`, default action opens entity more-info | User supplies `entity`; `show_when.entity` is filled from it |
 | `mode_selector` | `home_summary`, `home_detail`, `custom` | `dropdown` | `entity: input_select.oal_active_configuration`, `icon: tune`, `label/compact_label: Mode`, `accent: muted`, summary option aliases, dropdown default action | Fixed source |
-| `boost_offset` | `home_detail`, optional summary/detail surfaces | `value` | `icon: bolt`, `label/compact_label: Boost`, `accent: amber`, `attribute: total_offset`, `format: integer`, `unit: %`, default action opens entity more-info | User supplies `entity` |
+| `boost_offset` (composite) | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `entity: sensor.oal_system_status`, `icon: bolt`, **`label: Boost` (default; replaced at render time with the dominant cause)**, `compact_label: Boost`, `accent: amber`, `attribute: total_modification`, `format: signed_percent`, default action opens entity more-info | Fixed source |
 | `inside_temperature` | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `icon: thermostat`, `label/compact_label: Inside`, `accent: amber`, `format: integer`, default action prefers `action_entity` | User supplies `entity`; optional `action_entity` binds control target |
 | `outside_temperature` | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `entity: weather.home`, `icon: thermostat`, `label/compact_label: Outside`, `accent: blue`, `attribute: temperature`, `format: integer`, `unit: °F`, default action opens entity more-info | Fixed source |
 | `inside_humidity` | `home_summary`, `home_detail`, `room_row`, `info_only` | `value` | `icon: water_drop`, `label/compact_label: Humidity`, `accent: blue`, `format: integer`, `unit: %`, default action opens entity more-info except passive variants | User supplies `entity` |
-| `weather_modifier` | `home_detail`, `info_only` | `value` | `entity: sensor.oal_system_status`, `icon: cloud`, `label/compact_label: Weather`, `accent: blue`, `attribute: weather_modifier_value`, `format: integer`, `unit: %`, `show_when.weather_modifier_active == true`, default action opens entity more-info | Fixed source |
 | `next_sun_event` | `home_summary`, `home_detail`, `info_only` | `value` | `entity: sensor.sun_next_setting`, `alt_entity: sensor.sun_next_rising`, `sun_entity: sun.sun`, `icon: weather_sunset_down`, `label/compact_label: Sunset`, `accent: amber`, `format: time`, passive default action | Fixed source |
-| `system_state` | `home_detail`, `info_only` | `indicator` | `entity: sensor.oal_real_time_monitor` ("Boosted"), `icon: info`, `label/compact_label: System`, `accent: blue`, `format: state`, default action opens entity more-info except passive variants | Fixed source |
 | `next_alarm` | `alarms`, `home_detail` | `value`; promoted to `alarm` in `alarms` unless `type` is authored | `icon: alarm`, `label/compact_label: Alarm`, `accent: blue`, `format: time_short`, default action prefers `action_entity` then entity more-info | User supplies `entity` |
 | `enabled_alarms` | `alarms`, optional `home_detail` | `value` | `icon: alarm_on`, `label/compact_label: Enabled`, `accent: blue`, `format: integer`, default action prefers `action_entity` then entity more-info | User supplies `entity` |
 | `mode_ttl` | `alarms`, optional `home_detail` | `value` | `entity: sensor.oal_system_status`, `attribute: mode_timeout_remaining`, `icon: timer`, `label: Mode Timer`, `compact_label: Timer`, `accent: amber`, `format: state`, `show_when.mode_timeout_state == 'active'`, default action opens entity more-info | Fixed source |
 
 This table is the canonical CD11 recipe surface. The `status_bespoke.test.js` recipe-default self-containment block asserts the synthesized runtime tile for each shorthand recipe, so `{ recipe: 'mode_ttl' }` and the equivalent expanded runtime tile stay aligned.
+
+**X1 (v3.6.0) consolidation note** — the previously-separate `adaptive_count`, `weather_modifier`, and `system_state` recipes are removed from the registry. Authoring the single `boost_offset` composite recipe now answers all three of: "how much is OAL deviating from baseline?" (value, signed % from `total_modification`), "why?" (label, dynamically resolved from `active_modifiers[0].name`, `active_zonal_overrides`, `tv_mode_active`, `system_paused`, `mode_timeout_state`, or `current_preset`), and "is the system in an active modifier state?" (encoded in the cause label itself). This collapses three redundant tiles into one source-of-truth surface and aligns with HA's "tile = one signal" architectural principle.
 
 Current recipe behavior:
 
@@ -1336,7 +1335,8 @@ Current recipe behavior:
 - `enabled_alarms` is intended for `alarms` and optional `home_detail`
 - `mode_ttl` is bundled into `sensor.oal_system_status` attributes (state via `mode_timeout_remaining`, visibility via `mode_timeout_state == 'active'`); the timer entity `timer.oal_mode_timeout` is no longer the recipe default but remains available for explicit author overrides
 - `lights_on` is fixed-source on `sensor.oal_system_status.lights_on_formatted` to avoid the "X / total" three-line tile shape — the formatted attribute renders as a single "15/16" string
-- `system_state` is fixed-source on `sensor.oal_real_time_monitor` so the system tile reads as a concise single word ("Boosted") rather than the verbose `sensor.oal_system_status` state ("Environmental Boost")
+- `boost_offset` is the composite OAL deviation tile: `format: signed_percent` renders the magnitude with explicit sign and built-in `%` (no `unit:` needed), and `_resolveDynamicLabel` replaces the static `Boost` label with the dominant cause from `sensor.oal_system_status` attributes — `Paused` > `Movie` > `Manual` (active zonal overrides) > preset+countdown when timer active > single active modifier name (e.g. `Snowy`, `Sunset`) > `Mixed` for multiple modifiers > `current_preset` if not Adaptive > fallback `Adaptive`. User-authored `label`/`compact_label` always win over the dynamic resolution; user-authored `label_entity` likewise wins, preserving existing dynamic-label authoring patterns.
+- `signed_percent` format is self-contained — never combine with `unit: '%'` or you'll render `+21%%`
 - `weather_modifier` reads `sensor.oal_system_status.weather_modifier_value` and only renders when `weather_modifier_active == true`; surfaces the active environmental modifier (e.g., +20% during rainy conditions)
 
 ### Conditional Visibility (show_when)

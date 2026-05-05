@@ -3421,16 +3421,20 @@ views:
         cards:
           - type: markdown
             content: |
-              ## CD11 Visual Polish Review (Theme A — recipe content + OAL sensor consolidation)
-              Each variant below uses **only recipe shorthand** with no per-tile overrides, so the new
-              v3.5.0 recipe defaults render exactly as authored. Compare against the existing `/states`
-              view (which preserves the prior fixture authoring) to see what Theme A changed:
-              - `home_presence` recipe label is now **Presence** (was duplicate "Home")
-              - `lights_on` recipe is now self-contained on `sensor.oal_system_status` `lights_on_formatted` ("15/16")
-              - `system_state` recipe defaults to **sensor.oal_real_time_monitor** ("Boosted" not "Environmental Boost")
-              - `weather_modifier` is a **new recipe** showing active weather modifier % when `weather_modifier_active`
-              - `mode_ttl` recipe migrates to `sensor.oal_system_status.attributes.mode_timeout_remaining`
-              - `next_alarm` in `home_summary` uses `time_short_hm` (HH:MM, no seconds)
+              ## CD11 Visual Polish Review — recipe content + OAL sensor consolidation
+              Each variant below uses **only recipe shorthand** with no per-tile overrides, so the
+              recipe defaults render exactly as authored. v3.6.0 (X1) collapses three previously-separate
+              tiles into one source-of-truth `boost_offset` composite:
+              - `boost_offset` is now the **single OAL deviation tile**: value = signed % (e.g. `+21%`),
+                label = dominant cause (`Snowy`, `Sunset`, `Manual`, `Movie`, `Paused`, etc.) read from
+                `sensor.oal_system_status` attributes. Replaces the prior boost + weather + system trio.
+              - `signed_percent` is a self-contained format primitive — no `unit: '%'` needed.
+              - `adaptive_count`, `weather_modifier`, `system_state` recipes are **removed** from the
+                registry. Authoring `boost_offset` covers all three signals through its composite label.
+              - `home_presence` label is **Presence** (compact_label downgrades to **Status** in `room_row`
+                where 151px tile clips). State humanizes `not_home` → "Away", `home` → "Home".
+              - `mode_ttl` reads `sensor.oal_system_status.attributes.mode_timeout_remaining`.
+              - `next_alarm` in `home_summary` uses `time_short_hm` (HH:MM, no seconds).
 
       - type: grid
         column_span: 4
@@ -3483,13 +3487,9 @@ views:
               - recipe: home_presence
                 entity: person.mac_connolly
               - recipe: lights_on
-              - recipe: adaptive_count
-                entity: sensor.oal_system_status
               - recipe: manual_overrides
                 entity: sensor.oal_system_status
               - recipe: boost_offset
-                entity: sensor.oal_global_brightness_offset
-              - recipe: weather_modifier
               - recipe: inside_temperature
                 entity: sensor.dining_room_temperature
                 action_entity: climate.dining_room
@@ -3497,7 +3497,6 @@ views:
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
               - recipe: next_sun_event
-              - recipe: system_state
               - recipe: mode_ttl
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm
@@ -3529,7 +3528,7 @@ views:
               - recipe: outside_temperature
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
-              - recipe: system_state
+              - recipe: boost_offset
             grid_options:
               columns: 24
               rows: auto
@@ -3553,9 +3552,8 @@ views:
               - recipe: outside_temperature
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
-              - recipe: weather_modifier
               - recipe: next_sun_event
-              - recipe: system_state
+              - recipe: boost_offset
             grid_options:
               columns: 24
               rows: auto

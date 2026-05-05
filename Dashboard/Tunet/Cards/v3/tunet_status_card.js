@@ -14,7 +14,7 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.5.0';
+const CARD_VERSION = '3.6.0';
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -94,10 +94,7 @@ const STATUS_RECIPE_PRIORITY = {
   next_alarm: 7,
   next_sun_event: 8,
   inside_humidity: 9,
-  weather_modifier: 10,
   mode_selector: 12,
-  adaptive_count: 13,
-  system_state: 14,
   mode_ttl: 15,
   enabled_alarms: 16,
 };
@@ -105,16 +102,13 @@ const STATUS_RECIPE_PRIORITY = {
 const STATUS_RECIPE_ENTITY_BINDING = {
   home_presence: 'user',
   lights_on: 'fixed',
-  adaptive_count: 'user',
   manual_overrides: 'user',
   mode_selector: 'fixed',
-  boost_offset: 'user',
+  boost_offset: 'fixed',
   inside_temperature: 'user',
   outside_temperature: 'fixed',
   inside_humidity: 'user',
   next_sun_event: 'fixed',
-  system_state: 'fixed',
-  weather_modifier: 'fixed',
   next_alarm: 'user',
   enabled_alarms: 'user',
   mode_ttl: 'fixed',
@@ -198,18 +192,6 @@ const STATUS_RECIPES = {
     },
     defaultAction: 'entity',
   },
-  adaptive_count: {
-    defaults: {
-      type: 'value',
-      icon: 'sunny',
-      label: 'Adaptive',
-      compact_label: 'Adaptive',
-      accent: 'green',
-      attribute: 'zones_adaptive',
-      format: 'integer',
-    },
-    defaultAction: 'entity',
-  },
   manual_overrides: {
     defaults: {
       type: 'value',
@@ -251,13 +233,13 @@ const STATUS_RECIPES = {
   boost_offset: {
     defaults: {
       type: 'value',
+      entity: 'sensor.oal_system_status',
       icon: 'bolt',
       label: 'Boost',
       compact_label: 'Boost',
       accent: 'amber',
-      attribute: 'total_offset',
-      format: 'integer',
-      unit: '%',
+      attribute: 'total_modification',
+      format: 'signed_percent',
     },
     defaultAction: 'entity',
   },
@@ -311,38 +293,6 @@ const STATUS_RECIPES = {
       format: 'time',
     },
     defaultAction: 'none',
-  },
-  system_state: {
-    defaults: {
-      type: 'indicator',
-      entity: 'sensor.oal_real_time_monitor',
-      icon: 'info',
-      label: 'System',
-      compact_label: 'System',
-      accent: 'blue',
-      format: 'state',
-    },
-    defaultAction: 'entity',
-  },
-  weather_modifier: {
-    defaults: {
-      type: 'value',
-      entity: 'sensor.oal_system_status',
-      attribute: 'weather_modifier_value',
-      icon: 'cloud',
-      label: 'Weather',
-      compact_label: 'Weather',
-      accent: 'blue',
-      format: 'integer',
-      unit: '%',
-      show_when: {
-        entity: 'sensor.oal_system_status',
-        attribute: 'weather_modifier_active',
-        operator: 'equals',
-        state: true,
-      },
-    },
-    defaultAction: 'entity',
   },
   next_alarm: {
     defaults: {
@@ -530,11 +480,7 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
         { recipe: 'home_presence', entity: 'person.mac_connolly' },
         { recipe: 'lights_on' },
         { recipe: 'manual_overrides', entity: 'sensor.oal_system_status' },
-        {
-          recipe: 'boost_offset',
-          entity: 'sensor.oal_global_brightness_offset',
-        },
-        { recipe: 'weather_modifier' },
+        { recipe: 'boost_offset' },
         {
           recipe: 'inside_temperature',
           entity: 'sensor.dining_room_temperature',
@@ -543,7 +489,6 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
         { recipe: 'outside_temperature' },
         { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
         { recipe: 'next_sun_event' },
-        { recipe: 'system_state' },
         { recipe: 'mode_ttl' },
         {
           recipe: 'next_alarm',
@@ -569,7 +514,7 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
         },
         { recipe: 'outside_temperature' },
         { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
-        { recipe: 'system_state' },
+        { recipe: 'boost_offset' },
       ],
     };
   }
@@ -583,9 +528,8 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
         { recipe: 'inside_temperature', entity: 'sensor.dining_room_temperature' },
         { recipe: 'outside_temperature' },
         { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
-        { recipe: 'weather_modifier' },
         { recipe: 'next_sun_event' },
-        { recipe: 'system_state' },
+        { recipe: 'boost_offset' },
       ],
     };
   }
@@ -2300,19 +2244,73 @@ class TunetStatusCard extends HTMLElement {
   }
 
   _resolveDynamicLabel(tile) {
-    if (!tile.label_entity || !this._hass) return '';
-    const entity = this._hass.states[tile.label_entity];
+    // Resolution order (most-specific authoring wins):
+    //   1. User-authored `label_entity` (explicit dynamic source)
+    //   2. Recipe-level dynamic resolvers (boost_offset cause, etc.)
+    //   3. Static recipe defaults / authored label (handled by caller)
+    if (tile.label_entity && this._hass) {
+      const entity = this._hass.states[tile.label_entity];
+      if (entity) {
+        let value = tile.label_attribute
+          ? entity.attributes?.[tile.label_attribute]
+          : entity.state;
+        if (Array.isArray(value)) value = value[0];
+        if (value != null) {
+          const mapped = tile.label_map?.[String(value)] ?? value;
+          const formatted = this._formatLabelValue(mapped, tile.label_format);
+          if (formatted && !['unknown', 'unavailable', 'none'].includes(String(formatted).toLowerCase())) {
+            return formatted;
+          }
+        }
+      }
+    }
+    // boost_offset composite: value = signed magnitude, label = dominant cause from
+    // sensor.oal_system_status attributes. Collapses the previously-separate boost +
+    // weather + system tiles into one source-of-truth tile that always answers
+    // "how much is OAL deviating from baseline, and why?"
+    if (
+      tile.recipe === 'boost_offset' &&
+      !tile._authoredLabel &&
+      !tile._authoredCompactLabel &&
+      this._hass
+    ) {
+      const cause = this._resolveBoostCause(tile);
+      if (cause) return cause;
+    }
+    return '';
+  }
+
+  // Cause resolution mirrors what produces total_modification (= cfg + env + sun).
+  // Active zonal overrides and other orthogonal state flags do NOT contribute to that
+  // magnitude — they have their own tiles (manual_overrides) and don't belong here.
+  // Priority:
+  //   1. system_paused      — system isn't computing offsets at all
+  //   2. tv_mode_active     — TV bridge supersedes normal calc
+  //   3. mode_timeout_state — preset is timer-bound; show preset + countdown
+  //   4. active_modifiers   — the actual sources of magnitude (weather + sunset offsets)
+  //   5. current_preset     — when no modifiers active, the configured preset is the cause
+  //   6. fallback           — "Adaptive"
+  _resolveBoostCause(tile) {
+    const entityId = tile.entity || 'sensor.oal_system_status';
+    const entity = this._hass.states[entityId];
     if (!entity) return '';
-    let value = tile.label_attribute
-      ? entity.attributes?.[tile.label_attribute]
-      : entity.state;
-    if (Array.isArray(value)) value = value[0];
-    if (value == null) return '';
-    const mapped = tile.label_map?.[String(value)] ?? value;
-    const formatted = this._formatLabelValue(mapped, tile.label_format);
-    return formatted && !['unknown', 'unavailable', 'none'].includes(String(formatted).toLowerCase())
-      ? formatted
-      : '';
+    const a = entity.attributes || {};
+    if (a.system_paused === true) return 'Paused';
+    if (a.tv_mode_active === true) return 'Movie';
+    const timeoutState = a.mode_timeout_state;
+    if (timeoutState && timeoutState !== 'idle') {
+      const remaining = a.soonest_reset_formatted;
+      const preset = a.current_preset || 'Mode';
+      return remaining ? `${preset} ${remaining}` : preset;
+    }
+    const modifiers = Array.isArray(a.active_modifiers) ? a.active_modifiers : [];
+    if (modifiers.length === 1) {
+      const name = modifiers[0]?.name;
+      if (name) return String(name);
+    }
+    if (modifiers.length > 1) return 'Mixed';
+    if (a.current_preset && a.current_preset !== 'Adaptive') return String(a.current_preset);
+    return 'Adaptive';
   }
 
   _getDisplayIcon(tile) {
@@ -2820,6 +2818,17 @@ class TunetStatusCard extends HTMLElement {
     if (format === 'time_short_hm') return this._formatShortTime(value).replace(/\s*[AP]M$/i, '');
     if (format === 'alarm_room') return this._extractAlarmRoom(value);
     if (format === 'state') return humanizeStateValue(value);
+    if (format === 'signed_percent') {
+      // Self-contained format: an offset value rendered with explicit sign.
+      // 21 -> "+21%", -10 -> "−10%" (Unicode minus U+2212), 0 -> "0%", non-finite -> "—".
+      const numStr = String(value).replace(/%/g, '').trim();
+      const num = Number(numStr);
+      if (!Number.isFinite(num)) return '—';
+      const rounded = Math.round(num);
+      if (rounded === 0) return '0%';
+      const sign = rounded > 0 ? '+' : '−';
+      return `${sign}${Math.abs(rounded)}%`;
+    }
     return value == null || value === '' ? '—' : String(value);
   }
 

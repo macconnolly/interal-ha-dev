@@ -168,7 +168,7 @@ This section is the composition contract for later whole-home dashboard work. It
 | `tunet-climate-card` | information | climate companion/reference surface | single-card climate presentation | cramped paired-phone compositions treated as a climate-card default | CD8 |
 | `tunet-weather-card` | information | weather companion/info surface | fixed daily/hourly variants | toggle-heavy auto-control variants as the default phone composition | CD8 |
 | `tunet-sensor-card` | information | environment/status rows and glanceable metrics | concise labeled rows with controlled sensor counts | unlabeled or alias-ambiguous fixture contracts | CD8 |
-| `tunet-status-card` | information | mode-aware status surface where summary/detail/alarms are distinct jobs | `home_summary` fixed `4x2` phone matrix with compact labels; `custom` preserves authored flexibility | treating legacy `custom` grids as the universal phone default | CD11 |
+| `tunet-status-card` | information | mode-aware status surface where summary/detail/row/info/alarm roles are distinct jobs | `home_summary` fixed `4x2` phone matrix, `room_row` row strip, `info_only` passive glance surface, and `alarms` alarm cluster as context-specific defaults; `custom` preserves authored flexibility | treating legacy `custom` grids as the universal phone default | CD11 |
 | `tunet-media-card` | media control | primary transport/media state surface | compact/default labels preserve room identity; selected-target volume, dropdown behavior, and art resilience accepted | explicit long-name authoring polish only | CD9 |
 | `tunet-sonos-card` | media control | alternate inline-speaker Sonos control surface | default/autodiscovered source + speaker path width-safe; visible tiles align with suite speaker-tile semantics | explicit long-name authoring polish only | CD9 |
 | `tunet-speaker-grid-card` | media control | dedicated speaker-management grid | compact 2-column phone baseline with card-level mobile fallback for larger/dense configs | desktop-facing dense authoring without phone overrides | CD9 |
@@ -179,7 +179,7 @@ Locked decisions:
 - `tunet-lighting-card` is the canonical detailed room-light surface.
 - `tunet-light-tile` is an atomic detail tile, not an overview card.
 - `tunet-nav-card` is chrome, not ordinary content composition.
-- `tunet-status-card` is in the active narrow `CD11` status-only redesign; `CD11a` has landed for `home_summary` + `custom`, while later modes remain pending.
+- `tunet-status-card` CD11 now has six landed status roles: `home_summary`, `home_detail`, `room_row`, `info_only`, `alarms`, and `custom`. Historical `CD11a` language about later modes being pending is superseded as of 2026-05-05.
 
 Classification note: composition misuse is not a card defect — use the table above before classifying a visual problem as card failure. Historical tranche language in per-card sections below is context only; check `visual_defect_ledger.md` for current open-issue status.
 
@@ -1446,6 +1446,18 @@ These values mirror `Dashboard/Tunet/Docs/sections_layout_matrix.md` and are loc
 | `custom` | Raw tile starter with indicator, dropdown, timer, and alarm |
 
 The editor/stub contract is locked by the `Status: variant + recipe authoring contract` block in `status_bespoke.test.js`.
+
+### CD11 Coverage Anchors
+
+The CD11 status contract is intentionally locked from multiple directions so future work cannot change the user-facing status semantics from only one layer.
+
+| Contract surface | Regression anchor |
+|------------------|-------------------|
+| structural row growth, hidden-tile collapse, dropdown semantics, and per-variant render paths | `Status: structural CSS contract`, `Status: dropdown accessibility contract`, and each variant mode-contract block in `status_bespoke.test.js` |
+| recipe shorthand defaults, action precedence, dot rules, passive recipes, and recipe warnings | `Status: recipe and action precedence` in `status_bespoke.test.js` |
+| variant-aware `getGridOptions()` / `getCardSize()` values | `Status: variant-aware Sections sizing contract` in `status_bespoke.test.js` |
+| editor schema, `recipe_tiles[]`, `recipes[]` alias, synthesizer precedence, and per-variant stubs | `Status: variant + recipe authoring contract` in `status_bespoke.test.js` |
+| §9 docs, Sections sizing docs, rehab-lab fixture coverage for every variant/recipe, and dedicated conditional signal stress coverage | `Status: CD11 cross-contract coverage anchors` in `status_bespoke.test.js` |
 
 ### Known Limitations
 

@@ -60,7 +60,7 @@ All 13 cards use `rows: 'auto'`. No card forces fixed row height in the Sections
 | `alarms` | 12 | 6 | auto | 3 | 8 | Alarm/timer cluster with a taller minimum for timer/alarm sub-shapes |
 | `custom` | 12 | 6 | auto | 2 | 12 | Legacy flexible status grid behavior preserved |
 
-The status variant grid contract is locked by `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` in the `Status: variant-aware Sections sizing contract` block.
+The status variant grid contract is locked by `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` in the `Status: variant-aware Sections sizing contract` block and cross-checked against this document by the `Status: CD11 cross-contract coverage anchors` block.
 
 ### Key Sections Decisions (CD4)
 

@@ -55,7 +55,7 @@ const CARDS = [
   { tag: 'tunet-sonos-card', tier: 'editor-lite' },
   { tag: 'tunet-speaker-grid-card', tier: 'editor-lite' },
   { tag: 'tunet-nav-card', tier: 'editor-complete' },
-  { tag: 'tunet-status-card', tier: 'yaml-first' },
+  { tag: 'tunet-status-card', tier: 'editor-lite' },
 ];
 
 // Known CD1 findings: these stubs produce configs that setConfig() rejects.
@@ -66,7 +66,7 @@ const CARDS = [
 // Remaining entries are intentionally deferred — complex cards where editor parity
 // is not the current priority.
 const KNOWN_STUB_FAILURES = {
-  // Status: polymorphic tile types (5 subtypes) — editor parity deferred
+  // Status raw tiles remain polymorphic, but CD11 now provides an editor-lite variant+recipe stub path.
   // Sensor: requires sensors array with entity IDs — stub has real IDs but may not match target HA instance
 };
 

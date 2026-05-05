@@ -5,7 +5,47 @@ Last updated: 2026-05-05
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
-Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (`CD10` nav verify deferred until room/surface composition is more settled)
+Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (`CD10` nav verify deferred until room/surface composition is more settled; `CD12` surface assembly remains parked pending user acceptance)
+
+## Session Delta (2026-05-05, CD11 closure — cross-contract lock)
+
+Change marker: CD11 status multi-mode redesign is closed in code/test/docs/deploy/visual terms
+
+- `CHOSEN INTERPRETATION`
+  - closure requires one voice across runtime, authoring, docs, test coverage, and live fixtures
+  - the lab must preserve broad status stress coverage, but each variant fixture should still respect its architectural role
+  - `room_row` therefore stays a row-role strip; removed stress signals are represented in the separate `Status: Conditional Signal Stress` fixture
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - added final cross-contract coverage anchors for docs, Sections sizing, lab variants, lab recipes, and conditional signal stress coverage
+  - `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+    - added all recipe shorthands to live fixture coverage
+    - kept all six variants visible in the canonical lab
+    - added `Status: Conditional Signal Stress` as the replacement stress subsection
+  - `Dashboard/Tunet/Docs/cards_reference.md`
+    - added CD11 coverage anchor table and superseded stale pending-mode wording
+  - `Dashboard/Tunet/Docs/sections_layout_matrix.md`
+    - linked the status variant sizing table to the final cross-contract test
+  - `Dashboard/Tunet/Cards/v3/tests/config_contract.test.js`
+    - updated status card tier to `editor-lite`
+- `TESTS / VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - YAML parse: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `66/66`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/config_contract.test.js` → `39/39`
+  - full `npm test` → `691/691`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_063622Z`
+  - rehab YAML re-SCP'd to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - final focused status visual review:
+    - `/tmp/tunet-playwright-review/2026-05-05T06-36-46-901Z/review-manifest.json`
+  - final full rehab visual review:
+    - `/tmp/tunet-playwright-review/2026-05-05T06-40-24-560Z/review-manifest.json`
+  - supplemental nav-hidden status screenshots:
+    - `/tmp/tunet-cd11-visual/gap4-final-nav-hidden/`
+- `RESULT`
+  - CD11 is closed
+  - no CD10/nav code or CD12/surface assembly files were touched
 
 ## Session Delta (2026-05-05, CD11 gap 3 — variant + recipe editor/stub authoring)
 

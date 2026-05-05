@@ -1113,6 +1113,9 @@ views:
             tiles:
               - recipe: home_presence
                 entity: person.mac_connolly
+              - recipe: adaptive_count
+                entity: sensor.oal_system_status
+              - recipe: mode_selector
               - type: value
                 entity: sensor.hero_all_lights_state
                 icon: lightbulb
@@ -1140,6 +1143,11 @@ views:
                 entity: sensor.dining_room_temperature
                 action_entity: climate.dining_room
                 unit: "°F"
+              - recipe: inside_humidity
+                entity: sensor.kitchen_humidity
+              - recipe: next_sun_event
+              - recipe: system_state
+                entity: sensor.oal_system_status
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm
                 navigate_path: /tunet-card-rehab-yaml/alarms
@@ -1312,8 +1320,11 @@ views:
                     entity_id: light.all_lights
               - recipe: home_presence
                 entity: person.mac_connolly
+              - recipe: adaptive_count
+                entity: sensor.oal_system_status
               - recipe: manual_overrides
                 entity: sensor.oal_system_status
+              - recipe: mode_selector
               - type: value
                 entity: sensor.oal_soonest_override
                 icon: schedule
@@ -1341,6 +1352,15 @@ views:
                 action_entity: climate.dining_room
                 label: Inside Temperature
                 unit: "°F"
+              - recipe: inside_humidity
+                entity: sensor.kitchen_humidity
+              - recipe: next_sun_event
+              - recipe: system_state
+                entity: sensor.oal_system_status
+              - recipe: mode_ttl
+              - recipe: enabled_alarms
+                entity: sensor.sonos_enabled_alarm_count
+                navigate_path: /tunet-card-rehab-yaml/alarms
               - type: value
                 entity: input_text.tunet_weather_heads_up
                 icon: partly_cloudy_day
@@ -1457,54 +1477,13 @@ views:
                     entity_id: light.all_lights
               - recipe: home_presence
                 entity: person.mac_connolly
-              - type: value
-                entity: weather.home
-                attribute: uv_index
-                icon: wb_sunny
-                label: UV Right Now
-                compact_label: UV
-                accent: amber
-                format: float1
-                action_entity: weather.home
-                show_when:
-                  entity: sun.sun
-                  operator: equals
-                  state: above_horizon
-              - type: value
-                entity: input_text.tunet_weather_heads_up
-                icon: partly_cloudy_day
-                label: Forecast Heads Up
-                compact_label: Weather
-                accent: blue
-                action_entity: weather.home
-                show_when:
-                  entity: input_text.tunet_weather_heads_up
-                  operator: not_equals
-                  state: Quiet
-              - type: value
-                entity: sensor.hero_media_state
-                attribute: display_label
-                icon: music_note
-                label: Now Playing
-                compact_label: Media
-                accent: blue
-                action_entity: media_player.living_room
-                show_when:
-                  entity: sensor.hero_media_state
-                  operator: equals
-                  state: playing
-              - type: value
-                entity: sensor.bedroom_temp_humidity_sensor_humidity
-                icon: water_drop
-                label: Bedroom Dry
-                compact_label: Dry
-                accent: amber
-                format: integer
-                unit: "%"
-                show_when:
-                  entity: sensor.bedroom_temp_humidity_sensor_humidity
-                  operator: lt
-                  state: 35
+              - recipe: inside_temperature
+                entity: sensor.dining_room_temperature
+                action_entity: climate.dining_room
+              - recipe: inside_humidity
+                entity: sensor.kitchen_humidity
+              - recipe: system_state
+                entity: sensor.oal_system_status
             grid_options:
               columns: 24
               rows: auto
@@ -1525,14 +1504,11 @@ views:
                 label: Inside Temperature
                 compact_label: Inside
                 unit: "°F"
-              - type: value
+              - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
-                icon: water_drop
-                label: Humidity
-                compact_label: Humidity
-                accent: blue
-                format: integer
-                unit: "%"
+              - recipe: next_sun_event
+              - recipe: system_state
+                entity: sensor.oal_system_status
               - type: value
                 entity: weather.home
                 attribute: uv_index
@@ -1617,6 +1593,11 @@ views:
               - recipe: enabled_alarms
                 entity: sensor.sonos_enabled_alarm_count
                 navigate_path: /tunet-card-rehab-yaml/alarms
+              - type: indicator
+                entity: sensor.sonos_alarm_playing
+                icon: notifications_active
+                label: Playing
+                accent: blue
               - type: value
                 entity: sensor.sonos_alarms_for_tomorrow
                 icon: alarm
@@ -1682,6 +1663,89 @@ views:
                 label: Enabled
                 accent: blue
                 format: integer
+            grid_options:
+              columns: 24
+              rows: auto
+          - type: custom:tunet-status-card
+            name: "Status: Conditional Signal Stress"
+            layout_variant: home_detail
+            show_header: true
+            columns: 3
+            column_breakpoints:
+              - max_width: 640
+                columns: 2
+              - columns: 3
+            tile_size: standard
+            use_profiles: true
+            tiles:
+              - type: value
+                entity: weather.home
+                attribute: uv_index
+                icon: wb_sunny
+                label: UV Right Now
+                compact_label: UV
+                accent: amber
+                format: float1
+                action_entity: weather.home
+                show_when:
+                  entity: sun.sun
+                  operator: equals
+                  state: above_horizon
+              - type: value
+                entity: input_text.tunet_weather_heads_up
+                icon: partly_cloudy_day
+                label: Forecast Heads Up
+                compact_label: Weather
+                accent: blue
+                action_entity: weather.home
+                show_when:
+                  entity: input_text.tunet_weather_heads_up
+                  operator: not_equals
+                  state: Quiet
+              - type: value
+                entity: sensor.hero_media_state
+                attribute: display_label
+                icon: music_note
+                label: Now Playing
+                compact_label: Media
+                accent: blue
+                action_entity: media_player.living_room
+                show_when:
+                  entity: sensor.hero_media_state
+                  operator: equals
+                  state: playing
+              - type: value
+                entity: sensor.bedroom_temp_humidity_sensor_humidity
+                icon: water_drop
+                label: Bedroom Dry
+                compact_label: Dry
+                accent: amber
+                format: integer
+                unit: "%"
+                show_when:
+                  entity: sensor.bedroom_temp_humidity_sensor_humidity
+                  operator: lt
+                  state: 35
+              - type: value
+                entity: sensor.master_presence_overheat
+                icon: warning
+                label: Master Overheat
+                compact_label: Hot
+                accent: red
+                show_when:
+                  entity: sensor.master_presence_overheat
+                  operator: not_equals
+                  state: No Alert
+              - type: value
+                entity: sensor.living_room_presence_dimmer_overheat
+                icon: warning
+                label: Living Overheat
+                compact_label: Hot
+                accent: red
+                show_when:
+                  entity: sensor.living_room_presence_dimmer_overheat
+                  operator: not_equals
+                  state: No Alert
             grid_options:
               columns: 24
               rows: auto
@@ -2126,6 +2190,9 @@ views:
             tiles:
               - recipe: home_presence
                 entity: person.mac_connolly
+              - recipe: adaptive_count
+                entity: sensor.oal_system_status
+              - recipe: mode_selector
               - type: value
                 entity: sensor.hero_all_lights_state
                 icon: lightbulb
@@ -2153,6 +2220,11 @@ views:
                 entity: sensor.dining_room_temperature
                 action_entity: climate.dining_room
                 unit: "°F"
+              - recipe: inside_humidity
+                entity: sensor.kitchen_humidity
+              - recipe: next_sun_event
+              - recipe: system_state
+                entity: sensor.oal_system_status
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm
                 navigate_path: /tunet-card-rehab-yaml/alarms
@@ -2244,8 +2316,11 @@ views:
                     entity_id: light.all_lights
               - recipe: home_presence
                 entity: person.mac_connolly
+              - recipe: adaptive_count
+                entity: sensor.oal_system_status
               - recipe: manual_overrides
                 entity: sensor.oal_system_status
+              - recipe: mode_selector
               - type: value
                 entity: sensor.oal_soonest_override
                 icon: schedule
@@ -2273,6 +2348,15 @@ views:
                 action_entity: climate.dining_room
                 label: Inside Temperature
                 unit: "°F"
+              - recipe: inside_humidity
+                entity: sensor.kitchen_humidity
+              - recipe: next_sun_event
+              - recipe: system_state
+                entity: sensor.oal_system_status
+              - recipe: mode_ttl
+              - recipe: enabled_alarms
+                entity: sensor.sonos_enabled_alarm_count
+                navigate_path: /tunet-card-rehab-yaml/alarms
               - type: value
                 entity: input_text.tunet_weather_heads_up
                 icon: partly_cloudy_day
@@ -2392,6 +2476,11 @@ views:
               - recipe: enabled_alarms
                 entity: sensor.sonos_enabled_alarm_count
                 navigate_path: /tunet-card-rehab-yaml/alarms
+              - type: indicator
+                entity: sensor.sonos_alarm_playing
+                icon: notifications_active
+                label: Playing
+                accent: blue
               - type: value
                 entity: sensor.sonos_alarms_for_tomorrow
                 icon: alarm
@@ -2440,54 +2529,13 @@ views:
                     entity_id: light.all_lights
               - recipe: home_presence
                 entity: person.mac_connolly
-              - type: value
-                entity: weather.home
-                attribute: uv_index
-                icon: wb_sunny
-                label: UV Right Now
-                compact_label: UV
-                accent: amber
-                format: float1
-                action_entity: weather.home
-                show_when:
-                  entity: sun.sun
-                  operator: equals
-                  state: above_horizon
-              - type: value
-                entity: input_text.tunet_weather_heads_up
-                icon: partly_cloudy_day
-                label: Forecast Heads Up
-                compact_label: Weather
-                accent: blue
-                action_entity: weather.home
-                show_when:
-                  entity: input_text.tunet_weather_heads_up
-                  operator: not_equals
-                  state: Quiet
-              - type: value
-                entity: sensor.hero_media_state
-                attribute: display_label
-                icon: music_note
-                label: Now Playing
-                compact_label: Media
-                accent: blue
-                action_entity: media_player.living_room
-                show_when:
-                  entity: sensor.hero_media_state
-                  operator: equals
-                  state: playing
-              - type: value
-                entity: sensor.bedroom_temp_humidity_sensor_humidity
-                icon: water_drop
-                label: Bedroom Dry
-                compact_label: Dry
-                accent: amber
-                format: integer
-                unit: "%"
-                show_when:
-                  entity: sensor.bedroom_temp_humidity_sensor_humidity
-                  operator: lt
-                  state: 35
+              - recipe: inside_temperature
+                entity: sensor.dining_room_temperature
+                action_entity: climate.dining_room
+              - recipe: inside_humidity
+                entity: sensor.kitchen_humidity
+              - recipe: system_state
+                entity: sensor.oal_system_status
             grid_options:
               columns: 24
               rows: auto
@@ -2508,14 +2556,11 @@ views:
                 label: Inside Temperature
                 compact_label: Inside
                 unit: "°F"
-              - type: value
+              - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
-                icon: water_drop
-                label: Humidity
-                compact_label: Humidity
-                accent: blue
-                format: integer
-                unit: "%"
+              - recipe: next_sun_event
+              - recipe: system_state
+                entity: sensor.oal_system_status
               - type: value
                 entity: weather.home
                 attribute: uv_index

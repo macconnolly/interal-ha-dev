@@ -4,8 +4,60 @@ Working branch: `main`
 Last updated: 2026-05-05
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
-Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled)
+Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next tranche by root-plan order is `CD12` surface assembly, but it remains parked pending user acceptance and explicit pointer update)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-05, CD11 closure — cross-contract docs/tests/live proof)
+
+Tranche marker: `CD11` closed; no CD10/nav or CD12/surface assembly files were changed
+
+- `AUTHORITY NOTE`
+  - `~/.claude/plans/synthetic-dazzling-oasis.md` is satisfied for the status-only scope
+  - the six status roles now speak as six constrained page-role contracts, not one overloaded status grid
+  - recipe shorthand is locked as the user-empowerment path: canonical semantic status meaning is authored once and synthesized into the full runtime tile contract
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - added `Status: CD11 cross-contract coverage anchors`
+    - the test now verifies §9 docs, Sections grid docs, every implemented variant, every recipe shorthand, rehab fixture coverage, and the dedicated conditional signal stress fixture
+  - `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+    - canonical status lab now contains all six variants and all 12 recipe shorthands
+    - `room_row` was kept to row-safe status content rather than overloaded with unrelated stress signals
+    - removed row-overload stress coverage was replaced with `Status: Conditional Signal Stress` so broad lab coverage is preserved in a separate subsection
+  - `Dashboard/Tunet/Docs/cards_reference.md`
+    - added CD11 coverage anchors and marked historical pending-mode language superseded
+  - `Dashboard/Tunet/Docs/sections_layout_matrix.md`
+    - cross-linked the status variant sizing table to the final coverage test block
+  - `Dashboard/Tunet/Cards/v3/tests/config_contract.test.js`
+    - updated `tunet-status-card` from `yaml-first` to `editor-lite`
+- `CLOSURE EVIDENCE`
+  - every `STATUS_LAYOUT_VARIANTS` value has a render path and fixture coverage
+  - every `STATUS_RECIPES` entry is tested as shorthand and represented in the lab fixture
+  - `getStubConfig()` and `getStubConfigForVariant(variant)` synthesize working starter configs for every implemented variant
+  - `getConfigForm()` exposes variant + recipe authoring while raw `tiles[]` remains the YAML power-user path
+  - `getGridOptions()` and `getCardSize()` are variant-aware and documented in §9 plus `sections_layout_matrix.md`
+  - `cards_reference.md` §9 reflects `v3.4.0` reality: variants, recipes, aux-action behavior, allowlists, grid options, editor/stub authoring, and test anchors
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+  - YAML parse: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js` → `66/66`
+  - `npm test -- Dashboard/Tunet/Cards/v3/tests/config_contract.test.js` → `39/39`
+  - full `npm test` → `691/691`
+  - `npm run tunet:build`
+  - `npm run tunet:deploy:lab` → `?v=build_20260505_063622Z`
+  - rehab YAML re-pushed to `/config/dashboards/tunet-card-rehab-lab.yaml` (`123465` bytes)
+  - final focused deployed status visual review at all locked breakpoints and light/dark:
+    - `/tmp/tunet-playwright-review/2026-05-05T06-36-46-901Z/review-manifest.json`
+  - final full deployed rehab visual review at all locked breakpoints and light/dark:
+    - `/tmp/tunet-playwright-review/2026-05-05T06-40-24-560Z/review-manifest.json`
+  - supplemental nav-hidden review screenshots for status-only assessment where the existing bottom dock overlaps 390px card captures:
+    - `/tmp/tunet-cd11-visual/gap4-final-nav-hidden/`
+- `VISUAL NOTES`
+  - final full review completed without harness-detected failures
+  - final lab shows 9 status captures, including six canonical variants, custom branch coverage, headerless responsive custom, and the conditional signal stress card
+  - the existing bottom-nav overlay can cover lower 390px card captures; CD10/nav verification remains intentionally deferred and was not touched
+- `RESULT`
+  - `CD11` is closed
+  - per root execution order the program can next discuss `CD12` surface assembly, but no active-tranche pointer in `Dashboard/Tunet/CLAUDE.md` was advanced in this session
 
 ## Session Delta (2026-05-05, CD11 gap 3 — variant + recipe editor/stub authoring)
 

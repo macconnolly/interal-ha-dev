@@ -5,6 +5,7 @@
  * implemented mode contracts, and custom backward compatibility.
  */
 
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   extractCSSBlocks,
@@ -247,6 +248,50 @@ function valueTiles(count) {
     entity: `sensor.status_grid_${index}`,
     label: `Tile ${index + 1}`,
   }));
+}
+
+const CD11_STATUS_VARIANTS = [
+  'home_summary',
+  'home_detail',
+  'room_row',
+  'info_only',
+  'alarms',
+  'custom',
+];
+
+const CD11_STATUS_RECIPES = [
+  'home_presence',
+  'adaptive_count',
+  'manual_overrides',
+  'mode_selector',
+  'boost_offset',
+  'inside_temperature',
+  'inside_humidity',
+  'next_sun_event',
+  'system_state',
+  'next_alarm',
+  'enabled_alarms',
+  'mode_ttl',
+];
+
+const CD11_STATUS_GRID_CONTRACT = {
+  home_summary: { columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 4 },
+  home_detail: { columns: 12, min_columns: 6, rows: 'auto', min_rows: 3, max_rows: 12 },
+  room_row: { columns: 12, min_columns: 6, rows: 'auto', min_rows: 1, max_rows: 2 },
+  info_only: { columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 6 },
+  alarms: { columns: 12, min_columns: 6, rows: 'auto', min_rows: 3, max_rows: 8 },
+  custom: { columns: 12, min_columns: 6, rows: 'auto', min_rows: 2, max_rows: 12 },
+};
+
+function readTunetText(relativePath) {
+  return readFileSync(new URL(relativePath, import.meta.url), 'utf8');
+}
+
+function getStatusReferenceSection() {
+  const docs = readTunetText('../../../Docs/cards_reference.md');
+  const start = docs.indexOf('## 9. tunet-status-card');
+  const end = docs.indexOf('## 10. tunet-media-card');
+  return docs.slice(start, end);
 }
 
 afterEach(() => {
@@ -1505,5 +1550,61 @@ describe('Status: recipe and action precedence', () => {
     });
     el.shadowRoot.querySelector('.tile').click();
     expect(seen).toEqual(['timer.oal_mode_timeout']);
+  });
+});
+
+describe('Status: CD11 cross-contract coverage anchors', () => {
+  it('cards_reference §9 documents every implemented variant, recipe, and authoring layer', () => {
+    const section = getStatusReferenceSection();
+
+    expect(section).toContain('**Version**: v3.4.0');
+    expect(section).toContain('**Tier**: editor-lite (Level 2 narrow)');
+    for (const variant of CD11_STATUS_VARIANTS) {
+      expect(section).toContain(`\`${variant}\``);
+    }
+    for (const recipe of CD11_STATUS_RECIPES) {
+      expect(section).toContain(`\`${recipe}\``);
+    }
+    expect(section).toContain('`recipe_tiles[]` is canonical');
+    expect(section).toContain('`recipes[]` alias');
+    expect(section).toContain('raw `tiles[]`');
+    expect(section).toContain('`getStubConfigForVariant(variant)`');
+    expect(section).toContain('Status: recipe and action precedence');
+    expect(section).toContain('Status: variant-aware Sections sizing contract');
+    expect(section).toContain('Status: variant + recipe authoring contract');
+    expect(section).toContain('Status: CD11 cross-contract coverage anchors');
+  });
+
+  it('sections_layout_matrix mirrors the variant-aware grid options', () => {
+    const matrix = readTunetText('../../../Docs/sections_layout_matrix.md');
+    for (const [variant, options] of Object.entries(CD11_STATUS_GRID_CONTRACT)) {
+      const row = new RegExp(
+        `\\| \`${variant}\` \\| ${options.columns} \\| ${options.min_columns} \\| ${options.rows} \\| ${options.min_rows} \\| ${options.max_rows} \\|`
+      );
+      expect(matrix).toMatch(row);
+    }
+    expect(matrix).toContain('Status: variant-aware Sections sizing contract');
+    expect(matrix).toContain('Status: CD11 cross-contract coverage anchors');
+  });
+
+  it('rehab lab fixture contains every CD11 variant and recipe shorthand', () => {
+    const yaml = readTunetText('../../../tunet-card-rehab-lab.yaml');
+    const statusBlocks = yaml.split(/\n\s*-\s+type:\s+custom:tunet-status-card/).slice(1);
+    const variants = new Set(
+      statusBlocks
+        .map((block) => block.match(/layout_variant:\s+([a-z_]+)/)?.[1])
+        .filter(Boolean)
+    );
+
+    for (const variant of CD11_STATUS_VARIANTS) {
+      expect(variants.has(variant)).toBe(true);
+    }
+    for (const recipe of CD11_STATUS_RECIPES) {
+      expect(yaml).toMatch(new RegExp(`recipe:\\s+${recipe}\\b`));
+    }
+    expect(yaml).toContain('Status: Conditional Signal Stress');
+    for (const label of ['UV Right Now', 'Forecast Heads Up', 'Now Playing', 'Bedroom Dry']) {
+      expect(yaml).toContain(`label: ${label}`);
+    }
   });
 });

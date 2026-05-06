@@ -348,3 +348,115 @@ describe('§1 Hover: no translateY on hover', () => {
     });
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════════
+// §Surface composition — overflow vs hover-lift
+//
+// Rule: A scroll container (overflow-x: auto/scroll, or overflow:auto/scroll)
+// silently clips its children's hover-lift shadow vertically because the CSS
+// spec coerces overflow-y to compute as auto whenever overflow-x is
+// non-visible. To let var(--tile-shadow-lift) paint without clipping, the
+// container must extend its clip-box via padding-block AND keep layout
+// neutral via matching negative margin-block (≥ 0.5em / ≤ -0.5em).
+//
+// Origin: 2026-04-30 actions-card hover clip closeout. See
+// visual_defect_ledger.md §1 actions-card and Cards/v3/CLAUDE.md Guardrails.
+//
+// Opt-out: place /* lift-clear:none */ inside the rule body to declare that
+// the container has no lift-bearing descendants and the rule does not apply.
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('§Surface composition — overflow vs hover-lift', () => {
+  const SCROLL_DECL = /\boverflow(?:-x)?\s*:\s*(?:auto|scroll)\b/;
+  const LIFT_CLEAR_OPT_OUT = /\/\*\s*lift-clear\s*:\s*none\s*\*\//;
+  // Match selector { ... } at the top level of a CSS template. We rely on
+  // the simpler "no nested braces in card CSS" assumption already used by
+  // the §5 transitions test above (line ~311).
+  const RULE_BLOCK = /([.#&:][^{}]*?)\{([^{}]*)\}/g;
+
+  // Convert a CSS length value to pixels for threshold comparison.
+  // Supports: Npx, Nem, N (treated as px). Anchor: 16px (per cards' :host
+  // font-size: 16px convention noted in MEMORY.md).
+  function toPx(val) {
+    if (!val) return null;
+    const num = parseFloat(val);
+    if (!Number.isFinite(num)) return null;
+    if (/em\b/.test(val)) return num * 16;
+    return num; // px or unitless
+  }
+
+  function readsBlock(decl, prop) {
+    const re = new RegExp(`(?:^|;|\\s)${prop}\\s*:\\s*([^;]+)`, 'i');
+    const m = decl.match(re);
+    return m ? m[1].trim() : null;
+  }
+
+  for (const card of CD2_CARDS) {
+    it(`${card.file} scroll containers give vertical clip room for hover-lift`, () => {
+      const css = cardCSS.get(card.file);
+      const violations = [];
+
+      let match;
+      RULE_BLOCK.lastIndex = 0;
+      while ((match = RULE_BLOCK.exec(css)) !== null) {
+        const selector = match[1].trim();
+        const body = match[2];
+
+        if (!SCROLL_DECL.test(body)) continue;
+        if (LIFT_CLEAR_OPT_OUT.test(body)) continue;
+
+        // Read padding-block (or pad-top/pad-bottom both) and margin-block
+        // (or margin-top/margin-bottom both). Require ≥ 0.5em (8px) padding
+        // and matching ≤ -0.5em margin to compensate.
+        const padBlock = readsBlock(body, 'padding-block');
+        const padTop = readsBlock(body, 'padding-top');
+        const padBot = readsBlock(body, 'padding-bottom');
+        const padPx = padBlock != null
+          ? toPx(padBlock.split(/\s+/)[0])
+          : Math.min(toPx(padTop) ?? 0, toPx(padBot) ?? 0);
+
+        const marBlock = readsBlock(body, 'margin-block');
+        const marTop = readsBlock(body, 'margin-top');
+        const marBot = readsBlock(body, 'margin-bottom');
+        const marPx = marBlock != null
+          ? toPx(marBlock.split(/\s+/)[0])
+          : Math.max(toPx(marTop) ?? 0, toPx(marBot) ?? 0);
+
+        if (!(padPx >= 8) || !(marPx <= -8)) {
+          violations.push(
+            `${selector.replace(/\s+/g, ' ').slice(0, 120)} — ` +
+            `pad=${padPx}px, mar=${marPx}px (need pad≥8 and mar≤-8, ` +
+            `or add /* lift-clear:none */ comment)`
+          );
+        }
+      }
+
+      expect(
+        violations,
+        `Scroll containers without lift-clear breathing room:\n${violations.join('\n')}`
+      ).toHaveLength(0);
+    });
+  }
+
+  // Specific positive test: actions-card .actions-row default carries the pair.
+  it('tunet_actions_card.js .actions-row (default) has padding-block + counter margin-block', () => {
+    const css = cardCSS.get('tunet_actions_card.js');
+    // Match the .actions-row rule but NOT the .actions-row.wrap variant.
+    const m = css.match(/\.actions-row\s*\{([^{}]*)\}/);
+    expect(m, '.actions-row default rule not found').not.toBeNull();
+    const body = m[1];
+    expect(body).toMatch(/padding-block\s*:\s*0\.5em/);
+    expect(body).toMatch(/margin-block\s*:\s*-0\.5em/);
+  });
+
+  // Specific exception test: wrap variant resets to 0 because its
+  // overflow-x: visible already lets overflow-y stay visible.
+  it('tunet_actions_card.js .actions-row.wrap resets padding-block + margin-block to 0', () => {
+    const css = cardCSS.get('tunet_actions_card.js');
+    const m = css.match(/\.actions-row\.wrap\s*\{([^{}]*)\}/);
+    expect(m, '.actions-row.wrap rule not found').not.toBeNull();
+    const body = m[1];
+    expect(body).toMatch(/padding-block\s*:\s*0\b/);
+    expect(body).toMatch(/margin-block\s*:\s*0\b/);
+  });
+});

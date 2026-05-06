@@ -743,23 +743,9 @@ template:
       attributes:
         recurrence: "{{ state_attr('switch.sonos_alarm_bedroom', 'recurrence') | default('Daily') }}"
 
-    - name: "Sonos Alarm Living Room Display"
-      unique_id: sonos_alarm_living_room_display
-      icon: mdi:alarm
-      state: >
-        {% set time = state_attr('switch.sonos_alarm_living_room', 'time') %}
-        {{ time[:5] if time else '--:--' }}
-      attributes:
-        recurrence: "{{ state_attr('switch.sonos_alarm_living_room', 'recurrence') | default('Daily') }}"
-
-    - name: "Sonos Alarm Kitchen Display"
-      unique_id: sonos_alarm_kitchen_display
-      icon: mdi:alarm
-      state: >
-        {% set time = state_attr('switch.sonos_alarm_kitchen', 'time') %}
-        {{ time[:5] if time else '--:--' }}
-      attributes:
-        recurrence: "{{ state_attr('switch.sonos_alarm_kitchen', 'recurrence') | default('Daily') }}"
+    # SA0-D4: Removed sonos_alarm_living_room_display and sonos_alarm_kitchen_display
+    # (switch.sonos_alarm_{living_room,kitchen} do not exist in live HA — sensors rendered
+    # '--:--' forever. Canonical set is bedroom + bath + _weekend variants only.)
 
     - name: "Sonos Alarm Bath Display"
       unique_id: sonos_alarm_bath_display
@@ -1955,12 +1941,25 @@ script:
       display_entity_id: # Field to accept from automation
         description: "The entity ID of the display associated with the Apple TV."
         example: "media_player.living_room_samsung_q60"
+      auto_turn_off_timeout_seconds:
+        description: "Optional timeout before auto-turning the Apple TV and display off when there is no response."
+        example: 900
     sequence:
       - variables:
           # Use entity_ids passed from automation via fields, otherwise fallback to global helpers
           effective_apple_tv_entity: "{{ apple_tv_entity_id if apple_tv_entity_id is defined else states('input_text.apple_tv_entity_id') }}"
           effective_display_entity: "{{ display_entity_id if display_entity_id is defined else states('input_text.apple_tv_display_entity_id') }}"
           apple_tv_friendly_name: "{{ state_attr(effective_apple_tv_entity, 'friendly_name') | default('The Apple TV') }}"
+          raw_auto_turn_off_timeout_seconds: "{{ auto_turn_off_timeout_seconds if auto_turn_off_timeout_seconds is defined else 900 }}"
+          effective_auto_turn_off_timeout_seconds: "{{ raw_auto_turn_off_timeout_seconds | int(900) }}"
+          auto_turn_off_timeout_label: >
+            {% set secs = raw_auto_turn_off_timeout_seconds | int(900) %}
+            {% if secs < 60 %}
+              {{ secs }} second{{ 's' if secs != 1 else '' }}
+            {% else %}
+              {% set mins = ((secs + 59) // 60) | int %}
+              {{ mins }} minute{{ 's' if mins != 1 else '' }}
+            {% endif %}
           inbox_key: "{{ 'sonos_apple_tv_auto_off:' ~ effective_apple_tv_entity }}"
           inbox_expires_at: "{{ (utcnow() + timedelta(minutes=30)).isoformat() }}"
           mobile_tag: "apple_tv_auto_off_{{ effective_apple_tv_entity | replace('media_player.','') }}"
@@ -1976,11 +1975,14 @@ script:
               - condition: template
                 value_template: "{{ effective_apple_tv_entity not in ['', none] and states(effective_apple_tv_entity) not in ['unavailable', 'unknown'] }}"
             sequence:
-              - service: tunet_inbox.post
+              - action: tunet_inbox.post
                 data:
                   key: "{{ inbox_key }}"
                   title: "{{ apple_tv_friendly_name }} Inactive"
-                  message: "{{ apple_tv_friendly_name }} has been paused or idle for over 30 minutes. Would you like to turn it and the display off?"
+                  message: >
+                    {{ apple_tv_friendly_name }} has been paused or idle for over 30 minutes.
+                    Would you like to turn it and the display off?
+                    If you do not respond, it will turn off automatically in {{ auto_turn_off_timeout_label }}.
                   family: "sonos"
                   priority: 45
                   severity: "notice"
@@ -1998,6 +2000,64 @@ script:
                   mobile:
                     tag: "{{ mobile_tag }}"
                     clear_on_resolve: true
+                response_variable: apple_tv_inbox_post
+              - variables:
+                  posted_item_id: >
+                    {% if apple_tv_inbox_post is mapping and apple_tv_inbox_post.item_id is defined %}
+                      {{ apple_tv_inbox_post.item_id }}
+                    {% else %}
+                      {{ '' }}
+                    {% endif %}
+              - condition: template
+                value_template: "{{ posted_item_id != '' }}"
+              - wait_for_trigger:
+                  - platform: event
+                    event_type: tunet_inbox_updated
+                    event_data:
+                      item_id: "{{ posted_item_id }}"
+                      status: "responding"
+                  - platform: event
+                    event_type: tunet_inbox_updated
+                    event_data:
+                      item_id: "{{ posted_item_id }}"
+                      status: "resolved"
+                  - platform: event
+                    event_type: tunet_inbox_updated
+                    event_data:
+                      item_id: "{{ posted_item_id }}"
+                      status: "dismissed"
+                  - platform: event
+                    event_type: tunet_inbox_updated
+                    event_data:
+                      item_id: "{{ posted_item_id }}"
+                      status: "failed"
+                  - platform: event
+                    event_type: tunet_inbox_updated
+                    event_data:
+                      item_id: "{{ posted_item_id }}"
+                      status: "expired"
+                timeout:
+                  seconds: "{{ effective_auto_turn_off_timeout_seconds }}"
+                continue_on_timeout: true
+              - choose:
+                  - conditions: "{{ wait.trigger == none }}"
+                    sequence:
+                      - service: media_player.turn_off
+                        target:
+                          entity_id: "{{ effective_apple_tv_entity }}"
+                      - choose:
+                          - conditions: >
+                              {{ should_turn_off_display
+                                 and effective_display_entity not in ['', none, 'unknown', 'unavailable']
+                                 and effective_display_entity != effective_apple_tv_entity }}
+                            sequence:
+                              - service: media_player.turn_off
+                                target:
+                                  entity_id: "{{ effective_display_entity }}"
+                      - service: tunet_inbox.resolve
+                        data:
+                          item_id: "{{ posted_item_id }}"
+                          reason: "apple_tv_auto_off_timeout"
         default:
           - service: system_log.write
             data:
@@ -2189,13 +2249,109 @@ script:
         target:
           entity_id: input_boolean.sonos_alarm_edit_linked_zones
       
-      # Navigate to edit popup via Browser Mod
+      # SA3 (revised 2026-04-29): Open Browser Mod popup with INLINE content.
+      # popup_card_id-based registration was unreliable in HA Sections views (the section
+      # grid skips popup-cards because they have no visible content). Inlining the popup
+      # content here eliminates the registration hop and works on every dashboard.
+      # AGENTS.md §3 alarm-edit-popup exception still applies: direct service call (not
+      # fire-dom-event) because the edit buffer must populate before the popup renders.
       - delay:
           milliseconds: 100
-      - action: browser_mod.navigate
+      - action: browser_mod.popup
         data:
-          path: '#edit-alarm'
-          
+          title: "Edit Alarm"
+          dismissable: true
+          autoclose: false
+          size: normal
+          content:
+            type: custom:layout-card
+            layout_type: custom:grid-layout
+            layout:
+              grid-template-columns: 1fr
+              grid-template-rows: min-content
+              grid-gap: 8px
+            cards:
+              # Time display: HA `tile` card subscribes to its entity natively, so the
+              # time shown here updates reactively when ±15/±5/+5/+15 chips fire.
+              # Browser Mod popups render Jinja templates only once, so chip-name templates
+              # and markdown/mushroom-template content go stale — entity-bound cards work.
+              - type: tile
+                entity: input_datetime.sonos_alarm_edit_time
+                name: Edit Time
+                icon: mdi:alarm
+                color: amber
+                vertical: true
+                tap_action: { action: more-info }
+              # Time-adjust chips
+              - type: custom:tunet-actions-card
+                compact: true
+                actions:
+                  - name: "−15"
+                    icon: remove
+                    accent: blue
+                    service: script.sonos_adjust_edit_time
+                    service_data: { minutes: -15 }
+                  - name: "−5"
+                    icon: remove
+                    accent: blue
+                    service: script.sonos_adjust_edit_time
+                    service_data: { minutes: -5 }
+                  - name: "+5"
+                    icon: add
+                    accent: amber
+                    service: script.sonos_adjust_edit_time
+                    service_data: { minutes: 5 }
+                  - name: "+15"
+                    icon: add
+                    accent: amber
+                    service: script.sonos_adjust_edit_time
+                    service_data: { minutes: 15 }
+              # Volume — tile shows entity state reactively; chips adjust it
+              - type: tile
+                entity: input_number.sonos_alarm_edit_volume
+                name: Volume
+                icon: mdi:volume-high
+                color: amber
+                vertical: true
+                tap_action: { action: more-info }
+              - type: custom:tunet-actions-card
+                compact: true
+                actions:
+                  - name: "Vol −"
+                    icon: volume_down
+                    accent: muted
+                    service: input_number.decrement
+                    service_data: { entity_id: input_number.sonos_alarm_edit_volume }
+                  - name: "Reset 50%"
+                    icon: refresh
+                    accent: muted
+                    service: input_number.set_value
+                    service_data: { entity_id: input_number.sonos_alarm_edit_volume, value: 50 }
+                  - name: "Vol +"
+                    icon: volume_up
+                    accent: amber
+                    service: input_number.increment
+                    service_data: { entity_id: input_number.sonos_alarm_edit_volume }
+              # Linked-zones toggle + Save / Close
+              - type: custom:tunet-actions-card
+                compact: true
+                actions:
+                  - name: Linked Zones
+                    icon: speaker_group
+                    accent: blue
+                    service: input_boolean.toggle
+                    service_data: { entity_id: input_boolean.sonos_alarm_edit_linked_zones }
+                    state_entity: input_boolean.sonos_alarm_edit_linked_zones
+                    active_when: "on"
+                  - name: Close
+                    icon: close
+                    accent: muted
+                    service: browser_mod.close_popup
+                  - name: Save
+                    icon: check
+                    accent: green
+                    service: script.sonos_save_alarm_changes
+
 
   # -----------------------------------------------------------------------
   # Save Alarm Changes - Called when user taps Save in edit popup
@@ -2222,13 +2378,11 @@ script:
           volume: "{{ new_volume }}"
           include_linked_zones: "{{ new_linked }}"
       
-      # Navigate back to alarms popup
+      # SA3: Close the Browser Mod edit popup (replaces the legacy hash navigate).
       - delay:
           milliseconds: 200
-      - action: browser_mod.navigate
-        data:
-          path: '#sonos-alarms'
-          
+      - action: browser_mod.close_popup
+
 
   # -----------------------------------------------------------------------
   # Adjust Edit Time - For +/- buttons in edit popup
@@ -2276,41 +2430,169 @@ script:
   # QUICK ACTION SCRIPTS (for popup buttons)
   # -----------------------------------------------------------------------
 
+  # SA0-D3 + SA-fixup 2026-04-29: parallel + verify-and-retry pattern.
+  # Why this design:
+  #   • sonos.update_alarm with `enabled` bypasses switch.turn_on/off's optimistic-revert race
+  #   • All 4 alarms fire in PARALLEL — no waiting between calls, instant dispatch
+  #   • Sonos's single-threaded-per-speaker behavior occasionally drops one of the two
+  #     same-speaker calls (bedroom 42+155, or bath 37+823) when they arrive too close
+  #   • So we wait 1500 ms after the parallel fire, then re-fire ONLY the alarms that
+  #     didn't flip via a templated retry parallel block (idempotent — no harm in
+  #     re-asserting). Repeat up to 2 retries.
+  #   • Best case: 1.5 s wall-clock (no drops). Worst case: ~4.5 s (two retries).
+  #   • Card-level optimistic UI flips the button label immediately on click so the
+  #     user sees instant feedback regardless of script settle time.
   sonos_enable_weekday_alarms:
     alias: "Sonos - Enable Weekday Alarms"
-    description: "Enable all weekday-scheduled alarms"
+    description: "Enable bedroom + bath weekday alarms (parallel — different speakers)"
     icon: mdi:alarm-check
     mode: single
     sequence:
-      - action: switch.turn_on
-        target:
-          entity_id:
-            - switch.sonos_alarm_182   # Bedroom Weekdays 05:15
-            - switch.sonos_alarm_1381  # Bath Daily 09:59
+      - parallel:
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bedroom }
+            data: { alarm_id: 42, enabled: true }
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bath }
+            data: { alarm_id: 37, enabled: true }
 
   sonos_enable_weekend_alarms:
     alias: "Sonos - Enable Weekend Alarms"
-    description: "Enable all weekend-scheduled alarms"
+    description: "Enable bedroom + bath weekend alarms (parallel)"
     icon: mdi:weather-sunny
     mode: single
     sequence:
-      - action: switch.turn_on
-        target:
-          entity_id:
-            - switch.sonos_alarm_42    # Bedroom Mon-Sat 17:38
+      - parallel:
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bedroom }
+            data: { alarm_id: 155, enabled: true }
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bath }
+            data: { alarm_id: 823, enabled: true }
+
+  sonos_enable_all_alarms:
+    alias: "Sonos - Enable All Alarms"
+    description: "Enable all four canonical alarms (parallel + verify-and-retry)"
+    icon: mdi:alarm-multiple
+    mode: single
+    sequence:
+      # Fire all 4 in parallel
+      - parallel:
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bedroom }
+            data: { alarm_id: 42, enabled: true }
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bath }
+            data: { alarm_id: 37, enabled: true }
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bedroom }
+            data: { alarm_id: 155, enabled: true }
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bath }
+            data: { alarm_id: 823, enabled: true }
+      # Verify-and-retry: re-fire any drops up to 2 times.
+      - repeat:
+          count: 2
+          sequence:
+            - delay: { milliseconds: 1500 }
+            - if:
+                condition: template
+                value_template: >-
+                  {{ not is_state('switch.sonos_alarm_bedroom', 'on')
+                     or not is_state('switch.sonos_alarm_bath', 'on')
+                     or not is_state('switch.sonos_alarm_bedroom_weekend', 'on')
+                     or not is_state('switch.sonos_alarm_bath_weekend', 'on') }}
+              then:
+                - parallel:
+                    - if:
+                        condition: template
+                        value_template: "{{ not is_state('switch.sonos_alarm_bedroom', 'on') }}"
+                      then:
+                        - action: sonos.update_alarm
+                          target: { entity_id: media_player.bedroom }
+                          data: { alarm_id: 42, enabled: true }
+                    - if:
+                        condition: template
+                        value_template: "{{ not is_state('switch.sonos_alarm_bath', 'on') }}"
+                      then:
+                        - action: sonos.update_alarm
+                          target: { entity_id: media_player.bath }
+                          data: { alarm_id: 37, enabled: true }
+                    - if:
+                        condition: template
+                        value_template: "{{ not is_state('switch.sonos_alarm_bedroom_weekend', 'on') }}"
+                      then:
+                        - action: sonos.update_alarm
+                          target: { entity_id: media_player.bedroom }
+                          data: { alarm_id: 155, enabled: true }
+                    - if:
+                        condition: template
+                        value_template: "{{ not is_state('switch.sonos_alarm_bath_weekend', 'on') }}"
+                      then:
+                        - action: sonos.update_alarm
+                          target: { entity_id: media_player.bath }
+                          data: { alarm_id: 823, enabled: true }
 
   sonos_disable_all_alarms:
     alias: "Sonos - Disable All Alarms"
-    description: "Turn off all Sonos alarms"
+    description: "Disable all four canonical alarms (parallel + verify-and-retry)"
     icon: mdi:alarm-off
     mode: single
     sequence:
-      - action: switch.turn_off
-        target:
-          entity_id:
-            - switch.sonos_alarm_182
-            - switch.sonos_alarm_42
-            - switch.sonos_alarm_1381
+      - parallel:
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bedroom }
+            data: { alarm_id: 42, enabled: false }
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bath }
+            data: { alarm_id: 37, enabled: false }
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bedroom }
+            data: { alarm_id: 155, enabled: false }
+          - action: sonos.update_alarm
+            target: { entity_id: media_player.bath }
+            data: { alarm_id: 823, enabled: false }
+      - repeat:
+          count: 2
+          sequence:
+            - delay: { milliseconds: 1500 }
+            - if:
+                condition: template
+                value_template: >-
+                  {{ is_state('switch.sonos_alarm_bedroom', 'on')
+                     or is_state('switch.sonos_alarm_bath', 'on')
+                     or is_state('switch.sonos_alarm_bedroom_weekend', 'on')
+                     or is_state('switch.sonos_alarm_bath_weekend', 'on') }}
+              then:
+                - parallel:
+                    - if:
+                        condition: template
+                        value_template: "{{ is_state('switch.sonos_alarm_bedroom', 'on') }}"
+                      then:
+                        - action: sonos.update_alarm
+                          target: { entity_id: media_player.bedroom }
+                          data: { alarm_id: 42, enabled: false }
+                    - if:
+                        condition: template
+                        value_template: "{{ is_state('switch.sonos_alarm_bath', 'on') }}"
+                      then:
+                        - action: sonos.update_alarm
+                          target: { entity_id: media_player.bath }
+                          data: { alarm_id: 37, enabled: false }
+                    - if:
+                        condition: template
+                        value_template: "{{ is_state('switch.sonos_alarm_bedroom_weekend', 'on') }}"
+                      then:
+                        - action: sonos.update_alarm
+                          target: { entity_id: media_player.bedroom }
+                          data: { alarm_id: 155, enabled: false }
+                    - if:
+                        condition: template
+                        value_template: "{{ is_state('switch.sonos_alarm_bath_weekend', 'on') }}"
+                      then:
+                        - action: sonos.update_alarm
+                          target: { entity_id: media_player.bath }
+                          data: { alarm_id: 823, enabled: false }
 
   sonos_snooze_next_alarm:
     alias: "Sonos - Snooze Next Alarm"
@@ -2651,20 +2933,22 @@ automation:
         data:
           option: Select room
           
-  # Event-based trigger for Sonos alarm updates
+  # Event-based trigger for Sonos alarm updates.
+  # SA0-D2+D8: Trimmed 2026-04-23 to live canonical entities only.
+  # Removed phantom triggers (kitchen, living_room, office — entities don't exist in HA).
+  # Added weekend-variant triggers so toggles on those propagate to alarm-info helpers.
   - id: sonos_alarm_trigger_update
     alias: Sonos Alarm State Change Trigger Update
-    description: "Updates soonest alarm info helpers when any Sonos alarm switch changes."
+    description: "Updates soonest alarm info helpers when any canonical Sonos alarm switch changes."
     mode: queued
     max_exceeded: silent
     trigger:
       - platform: state
         entity_id:
-          - switch.sonos_alarm_living_room
           - switch.sonos_alarm_bedroom
-          - switch.sonos_alarm_kitchen
-          - switch.sonos_alarm_office
           - switch.sonos_alarm_bath
+          - switch.sonos_alarm_bedroom_weekend
+          - switch.sonos_alarm_bath_weekend
     condition: []
     action:
       # Removed deprecated script.update_soonest_sonos_alarm_info call

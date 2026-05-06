@@ -3687,14 +3687,14 @@ views:
                   -webkit-backdrop-filter: blur(24px);
                 }
             cards:
-              # Open Full Player — header-adjacent navigation button at the very
-              # top of the body. Bubble Card 3.2-beta.1 doesn't expose sub_button
-              # arrays on popup cards (verified against pop-up/create.js source),
-              # so this is the closest architectural fit. card_mod styles trim
-              # vertical padding so it visually attaches to the header strip.
-              - type: custom:bubble-card
-                card_type: button
-                button_type: name
+              # Open Full Player — header-adjacent navigation. HA core `type: button`
+              # is used here instead of custom:bubble-card because Bubble Card's
+              # button card renders the icon as an internal sub_button with its
+              # own click handler that doesn't share the rest of the card's tap
+              # surface — so only the icon area was firing the navigation in the
+              # prior implementation. The HA core button makes the entire ha-card
+              # the tap target with one explicit tap_action.
+              - type: button
                 name: Open Full Player
                 icon: mdi:music-box-multiple
                 show_state: false
@@ -3703,19 +3703,44 @@ views:
                   navigation_path: '#sonos-rich'
                 card_mod:
                   style: |
+                    /* HA core button card defaults to icon-on-top + name-below
+                       (vertical flex). For a header-adjacent action button we
+                       want a horizontal compact pill: small icon left, label
+                       right, single-line height matching the popup header pill.
+                       Flipping flex-direction on ha-card directly is the
+                       cleanest path because the button's children (ha-ripple,
+                       ha-state-icon, span) are direct ha-card descendants. */
                     ha-card {
-                      background: rgba(10, 132, 255, 0.10) !important;
-                      border: 1px solid rgba(10, 132, 255, 0.32) !important;
+                      background: rgba(10, 132, 255, 0.06) !important;
+                      border: none !important;
                       box-shadow: none !important;
-                      min-height: 2.5em !important;
+                      flex-direction: row !important;
+                      align-items: center !important;
+                      justify-content: flex-start !important;
+                      gap: 10px !important;
+                      padding: 10px 16px !important;
+                      min-height: 2.75em !important;
+                      height: auto !important;
                       margin-top: -0.25em !important;
+                      cursor: pointer !important;
+                      --primary-color: var(--blue, #0A84FF);
+                      --paper-item-icon-color: var(--blue, #0A84FF);
                     }
-                    .bubble-button-card-container { min-height: 2.5em !important; }
-                    .bubble-icon { color: var(--blue, #0A84FF) !important; }
-                    .bubble-name {
+                    ha-card:hover {
+                      background: rgba(10, 132, 255, 0.10) !important;
+                    }
+                    ha-state-icon {
+                      --mdc-icon-size: 20px !important;
                       color: var(--blue, #0A84FF) !important;
-                      font-weight: 600;
-                      font-size: 0.875em;
+                      flex: 0 0 auto !important;
+                    }
+                    span {
+                      color: var(--blue, #0A84FF) !important;
+                      font-weight: 600 !important;
+                      font-size: 0.9375em !important;
+                      letter-spacing: 0.01em !important;
+                      flex: 1 1 auto !important;
+                      text-align: left !important;
                     }
 
               # Mobile combo (visible at ≤ 47.9375em). tunet-media-card "Full +
@@ -3821,13 +3846,17 @@ views:
             hash: '#sonos-rich'
             name: Sonos
             icon: mdi:music-box-multiple
-            popup_mode: adaptive-dialog
+            # popup_mode: centered (Dialog) gives a fixed-dimension popup that
+            # doesn't resize between sonos-card sections. Previously this used
+            # adaptive-dialog which let the popup shrink for player and grow for
+            # favorites — a layout jitter every time the user switched tabs.
+            # With centered mode + min-height on the inner card, all sections
+            # render in the same vertical footprint (taller sections fill it,
+            # shorter ones leave whitespace below — predictable, no jumping).
+            popup_mode: centered
             show_header: true
             show_previous_button: true
             show_close_button: true
-            # The rich Sonos card needs more space for the media browser + queue
-            # sections. 800px desktop width + 3vh margin gives more vertical room
-            # without overwhelming the viewport.
             width_desktop: 800px
             margin_top_desktop: 3vh
             bg_opacity: 92
@@ -3879,17 +3908,23 @@ views:
                     numberToShow: 12
                 card_mod:
                   style: |
-                    /* Match Tunet's canonical card-primary surface (CARD_SURFACE
-                       token in tunet_base.js) so the embedded HACS sonos-card
-                       reads as a peer of every other Tunet card. The earlier
-                       `background: transparent` removed all visual definition
-                       and let the card content float on the popup chrome —
-                       a defect at light mode where there's no contrast between
-                       card body and popup backdrop. HA theme tokens
-                       (--ha-card-background, --divider-color) make the surface
-                       theme-adaptive (light + dark). max-width + margin auto
-                       center the card horizontally so it doesn't stretch to
-                       the full 800px popup width on wide-screen. */
+                    /* Tunet card-primary surface so the embedded HACS sonos-card
+                       reads as a peer of every other Tunet card. HA theme tokens
+                       make this light/dark adaptive. min-height stabilizes the
+                       popup vertical footprint across sonos-card sections — the
+                       player section is short, favorites is taller, and the
+                       previous adaptive-dialog popup mode caused the whole popup
+                       to resize between sections. With min-height on the card
+                       AND popup_mode: centered, all sections render in the same
+                       vertical box; shorter ones leave whitespace, taller ones
+                       fill naturally.
+
+                       Color overrides bind every Material Design / paper-slider
+                       token to the Tunet blue accent. Without these the play
+                       button and volume slider rendered as raw black blocks at
+                       light mode — too much contrast against the soft card
+                       surface. Mapping all primary-action colors to the blue
+                       accent gives a coherent visual language. */
                     ha-card {
                       background: var(--ha-card-background, var(--card-background-color, rgba(255, 255, 255, 0.92))) !important;
                       backdrop-filter: blur(18px) !important;
@@ -3898,8 +3933,49 @@ views:
                       border-radius: 18px !important;
                       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.04) !important;
                       max-width: 720px !important;
+                      min-height: 600px !important;
                       margin: 0 auto !important;
                       color: var(--primary-text-color) !important;
+                      /* Tunet blue across every theme + Material Web Component
+                         primitive the Sonos card ultimately reaches for. The
+                         play/pause filled button + volume slider thumb were
+                         rendering pure black at light mode because the card
+                         falls back to --mwc-* (Material Web Components) and
+                         --mdc-* (Material Design Components) tokens that are
+                         distinct from --primary-color. Binding all four
+                         token families to the blue accent gives the soft,
+                         theme-coherent rendering the user asked for. */
                       --accent-color: var(--blue, #0A84FF);
                       --primary-color: var(--blue, #0A84FF);
+                      --mdc-theme-primary: var(--blue, #0A84FF);
+                      --mdc-theme-on-primary: white;
+                      --mdc-icon-button-icon-color: var(--blue, #0A84FF);
+                      --mwc-icon-button-icon-color: var(--blue, #0A84FF);
+                      --mdc-fab-background: var(--blue, #0A84FF);
+                      --mdc-button-fill-color: var(--blue, #0A84FF);
+                      --paper-slider-knob-color: var(--blue, #0A84FF);
+                      --paper-slider-knob-start-color: var(--blue, #0A84FF);
+                      --paper-slider-active-color: var(--blue, #0A84FF);
+                      --paper-slider-secondary-color: rgba(10, 132, 255, 0.32);
+                      --paper-slider-pin-color: var(--blue, #0A84FF);
+                      --paper-progress-active-color: var(--blue, #0A84FF);
+                      --paper-progress-container-color: rgba(10, 132, 255, 0.16);
+                      --switch-checked-color: var(--blue, #0A84FF);
+                    }
+                    /* Direct CSS overrides for the Sonos card's internal
+                       elements that ignore the variables above — fall back to
+                       targeting the rendered classes directly. This is fragile
+                       (couples to the third-party card's internal class names)
+                       but the variables didn't fully reach the play-button and
+                       slider thumb. */
+                    button.play, button[part="play"], .play-button,
+                    mwc-icon-button.play, ha-icon-button.play {
+                      color: var(--blue, #0A84FF) !important;
+                      background-color: rgba(10, 132, 255, 0.12) !important;
+                    }
+                    input[type="range"]::-webkit-slider-thumb {
+                      background-color: var(--blue, #0A84FF) !important;
+                    }
+                    input[type="range"]::-moz-range-thumb {
+                      background-color: var(--blue, #0A84FF) !important;
                     }

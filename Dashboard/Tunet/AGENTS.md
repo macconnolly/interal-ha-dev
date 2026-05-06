@@ -72,6 +72,7 @@ Do not silently resolve contradictions. Record the conflict and chosen interpret
 - Status card scope is locked to G3S bugfix-only (no new features or editor work).
 - Actions card remains YAML-driven until backend status/entity mapping work is completed.
 - Build system migration (esbuild bundling) is part of the early foundation sequence in the active plan; do not defer it behind Living Room surface assembly.
+- **Alarm-edit popup exception (SA3-era, recorded 2026-04-23):** The Sonos alarm edit popup opens via an internal `browser_mod.popup` service call from `script.sonos_load_alarm_for_edit`, **not** via `fire-dom-event` from a card `hold_action`. Rationale: the script must populate `input_*` edit buffers before the popup renders so the user sees loaded values on open; doing this purely from `fire-dom-event` would require either a race-prone parallel call or a popup on-open hook that Browser Mod does not expose. The SA2 alarm card's `hold_action` invokes the script via `hass.callService`; the script chain runs in the originating browser's websocket context, so `browser_mod.popup` without an explicit `browser_id` still targets the correct browser. **Scope of exception**: alarm-edit popup only (`popup_card_id: tunet-alarm-edit`). All other popup triggers remain browser-scoped via `fire-dom-event`.
 
 ## 4) Workflow / Scope Discipline
 

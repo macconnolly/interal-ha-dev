@@ -255,19 +255,24 @@ const SOURCE_DROPDOWN_STYLES = `
    =============================================================== */
 
 const SPEAKER_TILE_STYLES = `
-  /* Horizontal scroll container */
+  /* Horizontal scroll container.
+     overflow-x: auto coerces overflow-y to auto per CSS spec, which clips
+     the speaker-tile hover-lift var(--tile-shadow-lift) vertically.
+     padding-block extends the clip-box; margin-block compensates so layout
+     is neutral. Inline padding/margin pair (4px / -4px) preserves prior
+     horizontal scroll-edge inset behavior. */
   .speakers-scroll {
     display: flex;
     gap: 10px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scroll-padding-left: 0;
-    padding: 4px 0 6px 0;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    margin: 0 -4px;
-    padding-left: 4px;
-    padding-right: 4px;
+    padding-inline: 4px;
+    padding-block: 0.5em;
+    margin-inline: -4px;
+    margin-block: -0.5em;
   }
   .speakers-scroll::-webkit-scrollbar { display: none; }
 

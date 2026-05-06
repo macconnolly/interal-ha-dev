@@ -397,7 +397,11 @@ ${CARD_SURFACE_GLASS_STROKE}
   /* Max rows constraint — JS limits tile count in _render() instead
      of CSS overflow:hidden, so floating pill is never clipped */
 
-  /* Scroll layout overrides */
+  /* Scroll layout overrides.
+     overflow-x: auto coerces overflow-y to auto per CSS spec (the explicit
+     overflow-y: visible below is silently ignored). padding-block extends
+     the clip-box so .l-tile/.info-tile/.toggle-btn hover-lift shadows
+     paint without being clipped; margin-block keeps layout neutral. */
   :host([layout="scroll"]) .light-grid {
     grid-template-columns: unset;
     grid-template-rows: repeat(var(--scroll-rows, 2), 1fr);
@@ -411,13 +415,16 @@ ${CARD_SURFACE_GLASS_STROKE}
     padding-inline: 0.5em;
     scroll-padding-inline: 0.5em;
     row-gap: 14px;
-    padding-bottom: 8px;
+    padding-block: 0.5em;
+    margin-block: -0.5em;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
   :host([use-profiles]) .light-grid {
-    /* Reserve a little vertical headroom so drag pill can float above first row cleanly. */
-    padding-top: 0.4em;
+    /* Reserve a little vertical headroom so drag pill can float above first row cleanly.
+       Aligned to 0.5em so it doesn't shrink the lift-clear padding when both
+       [layout="scroll"] and [use-profiles] are present. */
+    padding-top: 0.5em;
   }
   :host([layout="scroll"]) .light-grid::-webkit-scrollbar { display: none; }
 

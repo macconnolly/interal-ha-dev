@@ -1,9 +1,50 @@
-# Sonos Alarm Popup — Working Reference
+# Sonos Alarm Popup — Reference
 
-Working example of alarm tile + popup + edit flow using Bubble Card and Mushroom.
-This is the design target for the alarm settings page (see visual_defect_ledger.md backlog).
+**Status (post-SA0, 2026-04-23):** This document has two layers. The **target architecture** section below is the current SA-series contract (Tunet v3 card + stock Browser Mod `custom:popup-card` + canonical entity IDs). The **historical Bubble Card example** that follows is retained as design-pattern reference only; the SA-series work retires those YAMLs at SA4.
 
-## Architecture
+## Target Architecture (SA-series contract — 2026-04-23)
+
+Governing plan: `~/.claude/plans/tunet-sonos-alarm-manage.md`. Current status: SA0 closed (backend hygiene + governance sync). SA2/SA3/SA4 pending.
+
+- **Alarm list card**: `tunet-alarm-card` (SA2) — vanilla HTMLElement + shadow DOM, `tunet_base.js` token consumer, follows `cards_reference.md` §3 Room Tiles interaction contract (tap = toggle switch, hold = open edit popup). Two default tiles: bedroom + bath weekday alarms.
+- **Edit popup**: Stock Browser Mod `custom:popup-card` wrapper (`popup_card_id: tunet-alarm-edit`, `popup_card_all_views: true`) with vanilla HA card content — no bespoke Tunet popup card is built. Content: time display + ±5/±15 buttons + volume slider (mushroom-number-card) + linked-zones toggle (mushroom-entity-card) + save/close buttons.
+- **Surface placement** (SA4): dedicated `/alarms` subview on both `tunet-suite-storage` and `tunet-suite` dashboards + optional compact next-alarm chip on overview.
+- **Interaction flow**: SA2 card hold → `hass.callService("script", "sonos_load_alarm_for_edit", { alarm_entity })` → script populates edit buffer and calls `browser_mod.popup` with `popup_card_id: tunet-alarm-edit`. See AGENTS.md §3 exception for why this uses a direct service call rather than `fire-dom-event`.
+- **Save flow**: popup Save button → `script.sonos_save_alarm_changes` → `sonos.update_alarm` → `browser_mod.close_popup`.
+
+### Canonical alarm entities (live 2026-04-23)
+
+| Entity | Sonos alarm_id | Time | Recurrence | State |
+|--------|:---:|---|---|---|
+| `switch.sonos_alarm_bedroom` | 42 | 05:30 | WEEKDAYS | on |
+| `switch.sonos_alarm_bath` | 37 | 17:00 | WEEKDAYS | off |
+| `switch.sonos_alarm_bedroom_weekend` | 155 | 17:00 | WEEKENDS | off |
+| `switch.sonos_alarm_bath_weekend` | 823 | 17:00 | WEEKENDS | off |
+
+Numeric-ID siblings (`switch.sonos_alarm_{10,182,1381,...}`) exist in HA (auto-named for un-renamed alarms) but are not surfaced in the Tunet UI. Phantom entities (`switch.sonos_alarm_{kitchen,living_room,office}`) were cleaned from automations and template sensors in SA0-D2/D4/D8.
+
+### Supporting scripts (live post-SA0)
+
+- `script.sonos_load_alarm_for_edit` — populate edit buffer + open BrowserMod popup (post-SA3; currently still calls `browser_mod.navigate('#edit-alarm')`).
+- `script.sonos_save_alarm_changes` — `sonos.update_alarm` + navigate back (post-SA3: close_popup).
+- `script.sonos_adjust_edit_time` — ±minutes on `input_datetime.sonos_alarm_edit_time` (regression-verified 05:30 → 05:35 on 2026-04-24).
+- Quick-action scripts: `sonos_enable_weekday_alarms`, `sonos_enable_weekend_alarms`, `sonos_disable_all_alarms`, `sonos_snooze_next_alarm` — all now target canonical entities per SA0-D3.
+
+### Supporting sensors
+
+- `sensor.sonos_next_alarm` — display string `"05:30 · Bedroom"` + `next_alarm_entity` attribute.
+- `sensor.sonos_enabled_alarm_count` — integer (currently `1`).
+- `sensor.sonos_alarm_bedroom_display` / `_bath_display` — HH:MM + recurrence attribute per alarm.
+- `sensor.sonos_edit_recurrence_display` — human-readable recurrence from edit buffer.
+- `sensor.sonos_edit_alarm_display` — full edit-buffer state (alarm_id, time, volume, recurrence).
+
+Dead display sensors `sensor.sonos_alarm_{kitchen,living_room}_display` removed in SA0-D4.
+
+## Historical Bubble Card Example (retired at SA4)
+
+The original document described an alarm tile + popup + edit flow using Bubble Card and Mushroom. That reference is retained below for design-pattern lookup only. The YAMLs at `Dashboard/cards/sonos_alarms_popup.yaml`, `Dashboard/cards/sonos_alarm_edit_popup.yaml`, `Dashboard/sonos_alarm_edit_popup.yaml`, and `Dashboard/sonos_alarm_popup.yaml` are scheduled for retirement at SA4 once the new subview + BrowserMod popup are proven.
+
+## Architecture (historical)
 
 - **Alarm tiles**: Bubble Card button/switch per alarm entity, grouped by room in horizontal-stack pairs
 - **Alarm list popup**: `#sonos-alarms` — room-grouped alarm tiles with colored separators (Bedroom=orange, Bathroom=blue, Kitchen=purple)
@@ -12,14 +53,14 @@ This is the design target for the alarm settings page (see visual_defect_ledger.
 - **Helper entities**: `input_datetime.sonos_alarm_edit_time`, `input_number.sonos_alarm_edit_volume`, `input_boolean.sonos_alarm_edit_linked_zones`
 - **Scripts**: `script.sonos_load_alarm_for_edit`, `script.sonos_adjust_edit_time`, `script.sonos_save_alarm_changes`
 
-## Known Alarm Entities
+## Known Alarm Entities (historical — numeric references)
 
 | Entity | Room | Notes |
 |--------|------|-------|
-| `switch.sonos_alarm_182` | Bedroom | |
+| `switch.sonos_alarm_182` | Bedroom | Parallel to canonical `_bedroom` (alarm_id 182, 05:44 WEEKDAYS) |
 | `switch.sonos_alarm_234` | Bedroom | |
-| `switch.sonos_alarm_37` | Bathroom | |
-| `switch.sonos_alarm_823` | Bathroom | |
+| `switch.sonos_alarm_37` | Bathroom | Now renamed to `switch.sonos_alarm_bath` |
+| `switch.sonos_alarm_823` | Bathroom | Now renamed to `switch.sonos_alarm_bath_weekend` |
 | `switch.sonos_alarm_15` | Kitchen | |
 | `switch.sonos_alarm_1` | Kitchen | |
 | `switch.sonos_alarm_1381` | (tile example) | |

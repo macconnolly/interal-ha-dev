@@ -20,6 +20,7 @@ const ENTRY_POINTS = [
   'tunet_speaker_grid_card.js',
   'tunet_nav_card.js',
   'tunet_status_card.js',
+  'tunet_alarm_card.js',
 ];
 
 export function readDotEnv(filePath = '.env') {
@@ -223,7 +224,19 @@ export async function updateTunetV3Resources({
     for (const desired of desiredResources) {
       const resource = byBasePath.get(`${RESOURCE_ROOT}${desired.fileName}`);
       if (!resource) {
-        results.push({ ...desired, status: 'missing' });
+        if (dryRun) {
+          results.push({ ...desired, status: 'dry-run-create' });
+          continue;
+        }
+        const created = await call('lovelace/resources/create', {
+          url: desired.expectedUrl,
+          res_type: 'module',
+        });
+        results.push({
+          ...desired,
+          status: 'created',
+          id: created?.id,
+        });
         continue;
       }
 
@@ -269,10 +282,14 @@ function printSummary(summary) {
   for (const result of summary.results) {
     if (result.status === 'updated') {
       console.log(`  ✓ ${result.fileName} -> ${result.expectedUrl}`);
+    } else if (result.status === 'created') {
+      console.log(`  + ${result.fileName} created -> ${result.expectedUrl}`);
     } else if (result.status === 'unchanged') {
       console.log(`  = ${result.fileName} already at ${result.expectedUrl}`);
     } else if (result.status === 'dry-run') {
       console.log(`  ~ ${result.fileName} would update ${result.previousUrl} -> ${result.expectedUrl}`);
+    } else if (result.status === 'dry-run-create') {
+      console.log(`  ~ ${result.fileName} would create -> ${result.expectedUrl}`);
     } else {
       console.log(`  ! missing Lovelace resource for ${result.fileName}`);
     }

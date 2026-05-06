@@ -2161,6 +2161,165 @@ views:
               columns: 24
               rows: auto
 
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: 14. Alarm Card (SA2)
+            heading_style: subtitle
+          - type: custom:tunet-alarm-card
+            title: Alarms (default)
+            show_quick_actions: true
+            alarms:
+              - entity: switch.sonos_alarm_bedroom
+                label: Bedroom Weekdays
+                room: bedroom
+              - entity: switch.sonos_alarm_bath
+                label: Bath Weekdays
+                room: bath
+            grid_options:
+              columns: 24
+              rows: auto
+          - type: custom:tunet-alarm-card
+            title: Alarms (incl. weekend variants)
+            show_quick_actions: true
+            alarms:
+              - entity: switch.sonos_alarm_bedroom
+                label: Bedroom Weekdays
+                room: bedroom
+              - entity: switch.sonos_alarm_bedroom_weekend
+                label: Bedroom Weekend
+                room: bedroom
+              - entity: switch.sonos_alarm_bath
+                label: Bath Weekdays
+                room: bath
+              - entity: switch.sonos_alarm_bath_weekend
+                label: Bath Weekend
+                room: bath
+            grid_options:
+              columns: 24
+              rows: auto
+          - type: custom:tunet-alarm-card
+            title: Alarms (no quick actions)
+            show_quick_actions: false
+            alarms:
+              - entity: switch.sonos_alarm_bedroom
+                label: Bedroom Weekdays
+                room: bedroom
+              - entity: switch.sonos_alarm_bath
+                label: Bath Weekdays
+                room: bath
+            grid_options:
+              columns: 12
+              rows: auto
+
+      # SA3 — Alarm edit popup REGISTRATION SECTION (its own grid, column_span: 12).
+      # Sections-view grids filter out cards with no grid_options/visible content, so the
+      # popup-card needs to live in its own section to actually register with Browser Mod.
+      # popup_card_all_views: true makes it reachable from any view in this dashboard.
+      # Universal popup rules (Dashboard/Tunet/Docs/nav_popup_ux_direction.md):
+      #   • iOS-style sheet feel — Tunet-styled cards only, no stock entities/mushroom defaults
+      #   • Quick action value in under one interaction
+      #   • Polished spacing/radius/depth/typography
+      - type: grid
+        column_span: 12
+        cards:
+          - type: custom:popup-card
+            popup_card_id: tunet-alarm-edit
+            popup_card_all_views: true
+            title: Edit Alarm
+            initial_style: normal
+            dismissable: true
+            card:
+              type: custom:layout-card
+              layout_type: custom:grid-layout
+              layout:
+                grid-template-columns: 1fr
+                grid-template-rows: min-content
+                grid-gap: 8px
+              cards:
+                # Headline: alarm name + big time + recurrence (Tunet markdown styling
+                # picks up the popup chrome's font tokens; centered hero block).
+                - type: markdown
+                  content: |
+                    <div style="text-align:center; padding:12px 8px 6px;">
+                      <div style="font-size:0.78em; opacity:0.66; letter-spacing:0.04em; text-transform:uppercase; font-weight:600;">
+                        {{ states('input_text.sonos_alarm_edit_name') or 'Alarm' }}
+                      </div>
+                      <div style="font-size:2.6em; font-weight:700; letter-spacing:-0.02em; font-variant-numeric: tabular-nums; line-height:1.05; margin-top:4px;">
+                        {% set t = states('input_datetime.sonos_alarm_edit_time') %}
+                        {{ t[:5] if t and ':' in t else '--:--' }}
+                      </div>
+                      <div style="font-size:0.86em; opacity:0.78; margin-top:2px;">
+                        {{ states('sensor.sonos_edit_recurrence_display') or '—' }}
+                      </div>
+                    </div>
+
+                # Time-adjust chips (Tunet pill chips, accent blue/amber)
+                - type: custom:tunet-actions-card
+                  compact: true
+                  actions:
+                    - name: "−15"
+                      icon: remove
+                      accent: blue
+                      service: script.sonos_adjust_edit_time
+                      service_data: { minutes: -15 }
+                    - name: "−5"
+                      icon: remove
+                      accent: blue
+                      service: script.sonos_adjust_edit_time
+                      service_data: { minutes: -5 }
+                    - name: "+5"
+                      icon: add
+                      accent: amber
+                      service: script.sonos_adjust_edit_time
+                      service_data: { minutes: 5 }
+                    - name: "+15"
+                      icon: add
+                      accent: amber
+                      service: script.sonos_adjust_edit_time
+                      service_data: { minutes: 15 }
+
+                # Volume chips (no slider — chip-driven discrete steps; matches Tunet rest)
+                - type: custom:tunet-actions-card
+                  compact: true
+                  actions:
+                    - name: "Vol −"
+                      icon: volume_down
+                      accent: muted
+                      service: input_number.decrement
+                      service_data: { entity_id: input_number.sonos_alarm_edit_volume }
+                    - name: "{{ states('input_number.sonos_alarm_edit_volume') | int }}%"
+                      icon: volume_up
+                      accent: muted
+                      service: input_number.set_value
+                      service_data: { entity_id: input_number.sonos_alarm_edit_volume, value: 50 }
+                    - name: "Vol +"
+                      icon: volume_up
+                      accent: amber
+                      service: input_number.increment
+                      service_data: { entity_id: input_number.sonos_alarm_edit_volume }
+
+                # Linked-zones toggle + Save / Close
+                - type: custom:tunet-actions-card
+                  compact: true
+                  actions:
+                    - name: Linked Zones
+                      icon: speaker_group
+                      accent: blue
+                      service: input_boolean.toggle
+                      service_data: { entity_id: input_boolean.sonos_alarm_edit_linked_zones }
+                      state_entity: input_boolean.sonos_alarm_edit_linked_zones
+                      active_when: "on"
+                    - name: Close
+                      icon: close
+                      accent: muted
+                      service: browser_mod.close_popup
+                    - name: Save
+                      icon: check
+                      accent: green
+                      service: script.sonos_save_alarm_changes
+
   - type: sections
     title: States Lab
     path: states

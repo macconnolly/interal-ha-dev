@@ -139,17 +139,26 @@ const CARD_STYLES = `
     color: var(--text-sub);
   }
 
+  /* overflow-x: auto silently forces overflow-y to auto per CSS spec,
+     which clips the scene-chip hover-lift shadow vertically. padding-block
+     extends the clip-box; margin-block keeps layout neutral. Wrap
+     variant resets both to 0 because its overflow-x visible keeps
+     overflow-y visible natively. */
   .scene-row {
     display: flex;
     gap: 6px;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    padding-block: 0.5em;
+    margin-block: -0.5em;
   }
 
   .scene-row.wrap {
     overflow-x: visible;
     flex-wrap: wrap;
+    padding-block: 0;
+    margin-block: 0;
   }
 
   .scene-row::-webkit-scrollbar {

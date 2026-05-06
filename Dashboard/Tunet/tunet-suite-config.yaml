@@ -22,8 +22,20 @@ views:
               - /tunet-suite/kitchen
               - /tunet-suite/dining-room
               - /tunet-suite/bedroom
+              - /tunet-suite/alarms
             desktop_breakpoint: 1024
             show_settings: false
+          # SA4 — next-alarm chip (navigates to the /alarms subview).
+          - type: tile
+            entity: sensor.sonos_next_alarm
+            name: Next alarm
+            icon: mdi:alarm
+            tap_action:
+              action: navigate
+              navigation_path: /tunet-suite/alarms
+            grid_options:
+              columns: 3
+              rows: auto
 
   # ======================================================================
   # CARD GALLERY (ALL VARIANTS)
@@ -1077,6 +1089,90 @@ views:
                       name: Under-cab
                       icon: kitchen
 
+          # SA3 — Alarm edit popup (Browser Mod, opened via script.sonos_load_alarm_for_edit)
+          - type: custom:popup-card
+            popup_card_id: tunet-alarm-edit
+            popup_card_all_views: true
+            title: Edit Alarm
+            initial_style: normal
+            dismissable: true
+            card:
+              type: vertical-stack
+              cards:
+                - type: markdown
+                  content: >
+                    ## {{ states('input_text.sonos_alarm_edit_name') or 'Alarm' }}
+                - type: entities
+                  title: Time
+                  entities:
+                    - entity: input_datetime.sonos_alarm_edit_time
+                      name: Alarm Time
+                    - entity: sensor.sonos_edit_recurrence_display
+                      name: Recurrence
+                - type: horizontal-stack
+                  cards:
+                    - type: button
+                      name: "−15"
+                      icon: mdi:minus
+                      show_state: false
+                      tap_action:
+                        action: call-service
+                        service: script.sonos_adjust_edit_time
+                        data:
+                          minutes: -15
+                    - type: button
+                      name: "−5"
+                      icon: mdi:minus
+                      show_state: false
+                      tap_action:
+                        action: call-service
+                        service: script.sonos_adjust_edit_time
+                        data:
+                          minutes: -5
+                    - type: button
+                      name: "+5"
+                      icon: mdi:plus
+                      show_state: false
+                      tap_action:
+                        action: call-service
+                        service: script.sonos_adjust_edit_time
+                        data:
+                          minutes: 5
+                    - type: button
+                      name: "+15"
+                      icon: mdi:plus
+                      show_state: false
+                      tap_action:
+                        action: call-service
+                        service: script.sonos_adjust_edit_time
+                        data:
+                          minutes: 15
+                - type: custom:mushroom-number-card
+                  entity: input_number.sonos_alarm_edit_volume
+                  display_mode: slider
+                  name: Volume
+                - type: custom:mushroom-entity-card
+                  entity: input_boolean.sonos_alarm_edit_linked_zones
+                  name: Include linked zones
+                  tap_action:
+                    action: toggle
+                - type: horizontal-stack
+                  cards:
+                    - type: button
+                      name: Close
+                      icon: mdi:close
+                      show_state: false
+                      tap_action:
+                        action: call-service
+                        service: browser_mod.close_popup
+                    - type: button
+                      name: Save
+                      icon: mdi:content-save
+                      show_state: false
+                      tap_action:
+                        action: call-service
+                        service: script.sonos_save_alarm_changes
+
       - type: grid
         cards:
           - type: custom:tunet-lighting-card
@@ -2086,5 +2182,70 @@ views:
               - /tunet-suite/kitchen
               - /tunet-suite/dining-room
               - /tunet-suite/bedroom
+            desktop_breakpoint: 1024
+            show_settings: false
+
+  # ======================================================================
+  # ALARMS SUBVIEW (SA4)
+  # Mirror of the storage-config /alarms subview per CD12 parity rule.
+  # ======================================================================
+  - type: sections
+    title: Alarms
+    path: alarms
+    icon: mdi:alarm
+    subview: true
+    back_path: /tunet-suite/overview
+    max_columns: 4
+    dense_section_placement: false
+    sections:
+      - type: grid
+        column_span: 3
+        cards:
+          - type: custom:tunet-alarm-card
+            title: Alarms
+            show_quick_actions: true
+            alarms:
+              - entity: switch.sonos_alarm_bedroom
+                label: Bedroom Weekdays
+                room: bedroom
+              - entity: switch.sonos_alarm_bath
+                label: Bath Weekdays
+                room: bath
+              - entity: switch.sonos_alarm_bedroom_weekend
+                label: Bedroom Weekend
+                room: bedroom
+              - entity: switch.sonos_alarm_bath_weekend
+                label: Bath Weekend
+                room: bath
+      - type: grid
+        column_span: 1
+        cards:
+          - type: tile
+            entity: sensor.sonos_next_alarm
+            name: Next alarm
+            icon: mdi:alarm
+          - type: tile
+            entity: sensor.sonos_enabled_alarm_count
+            name: Enabled
+            icon: mdi:alarm-check
+          - type: markdown
+            content: |
+              Nightly alarm-check runs at **21:30** — you'll get a push asking
+              whether to disable tomorrow's alarms.
+
+              Hold any alarm tile to edit time, volume, and linked zones.
+      - type: grid
+        column_span: 12
+        cards:
+          - type: custom:tunet-nav-card
+            home_path: /tunet-suite/overview
+            rooms_path: /tunet-suite/rooms
+            media_path: /tunet-suite/media
+            subview_paths:
+              - /tunet-suite/living-room
+              - /tunet-suite/kitchen
+              - /tunet-suite/dining-room
+              - /tunet-suite/bedroom
+              - /tunet-suite/alarms
             desktop_breakpoint: 1024
             show_settings: false

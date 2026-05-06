@@ -186,19 +186,29 @@ const CARD_OVERRIDES = `
 // ═══════════════════════════════════════════════════════════
 
 const CARD_STYLES = `
-  /* Action chip row — default is horizontal scroll */
+  /* Action chip row — default is horizontal scroll.
+     Vertical padding + counter-margin gives chip hover lift room to paint:
+     overflow-x:auto forces overflow-y to compute as auto per CSS spec, which
+     would clip the lift shadow vertically. The padding extends the clip-box
+     (padding-box) so the shadow stays visible; the counter-margin keeps the
+     row layout-neutral. */
   .actions-row {
     display: flex;
     gap: 0.42em;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    padding-block: 0.5em;
+    margin-block: -0.5em;
   }
   .actions-row::-webkit-scrollbar { display: none; }
-  /* Wrap mode: chips wrap and fill rows */
+  /* Wrap mode: chips wrap and fill rows; no padding hack needed since
+     overflow-x:visible lets overflow-y stay visible too. */
   .actions-row.wrap {
     overflow-x: visible;
     flex-wrap: wrap;
+    padding-block: 0;
+    margin-block: 0;
   }
   .actions-row.mode-strip .action-chip {
     min-height: 2.52em;

@@ -34,6 +34,7 @@ All 13 cards use `rows: 'auto'`. No card forces fixed row height in the Sections
 | Card | columns | min_columns | rows | min_rows | max_rows | Profile System | Notes |
 |------|:---:|:---:|:---:|:---:|:---:|:---:|---|
 | actions | 12 | 6/9 | auto | 1/2 | 4 | No | CD5: compact default=6/1; mode_strip or relaxed=9/2 |
+| alarm | 12 | 6 | auto | 2 | 12 | No | SA2: list-of-rows + quick-action strip; canonical Sonos alarms (bedroom/bath/_weekend) |
 | climate | 6 | 3 | auto | 3 | — | No | Gold standard, verify-only |
 | light_tile | 3 | 3 | auto | 1 | 4 | Yes (lighting/grid) | Cosmetic profile (spacing/fonts) |
 | lighting | 12 | 6 | auto | 2 | 12 | Yes (lighting/grid\|scroll) | grid-auto-rows profile-controlled; overflow-y visible for drag pill |

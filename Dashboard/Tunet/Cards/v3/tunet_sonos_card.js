@@ -28,9 +28,10 @@ import {
   registerCard, logCardVersion, clamp,
   renderConfigPlaceholder, compactSpeakerName,
   resolveMediaArtUrl, shouldAttemptMediaArtUrl, markMediaArtUrlFailed, clearMediaArtUrlFailure,
+  runCardAction,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '1.0.0';
+const CARD_VERSION = '1.1.0';
 
 /* ===============================================================
    CSS - Card-specific overrides
@@ -739,6 +740,13 @@ class TunetSonosCard extends HTMLElement {
       coordinator_sensor: config.coordinator_sensor || 'sensor.sonos_smart_coordinator',
       active_group_sensor: config.active_group_sensor || 'sensor.sonos_active_group_coordinator',
       playing_status_sensor: config.playing_status_sensor || 'sensor.sonos_playing_status',
+      // v1.1.0: tap action overrides for popup-embedded usage. Defaults preserve
+      // historical more-info behavior; authors can set { action: 'navigate', ...}
+      // to open another popup, or { action: 'none' } to disable a tap target
+      // (useful for the speaker scroll icons whose tap area is small enough that
+      // accidental triggers outweigh the more-info utility).
+      title_tap_action: config.title_tap_action || null,
+      speaker_icon_tap_action: config.speaker_icon_tap_action || null,
     };
     // _activeEntity is set lazily in hass setter once coordinator is known
     this._cachedSpeakers = null;
@@ -1053,13 +1061,19 @@ class TunetSonosCard extends HTMLElement {
   _setupListeners() {
     const $ = this.$;
 
-    // Album art -> more-info (opens the entity currently being controlled)
+    // Album art tap is configurable via title_tap_action. Default behavior preserved
+    // (more-info on the currently-targeted transport entity); popup-embedded usage
+    // can override with { action: 'navigate', navigation_path: '#sonos-rich' } to
+    // jump to a richer surface instead of opening a duplicate inspector dialog.
     $.albumArt.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.dispatchEvent(new CustomEvent('hass-more-info', {
-        bubbles: true, composed: true,
-        detail: { entityId: this._transportTarget },
-      }));
+      const action = this._config.title_tap_action || { action: 'more-info' };
+      runCardAction({
+        element: this,
+        hass: this._hass,
+        actionConfig: action,
+        defaultEntityId: this._transportTarget,
+      });
     });
     $.albumArt.style.cursor = 'pointer';
 
@@ -1362,13 +1376,25 @@ class TunetSonosCard extends HTMLElement {
         iconHoldTimer = null;
         if (resetFired) iconHoldFired = false;
       };
+      // v1.1.0: speaker_icon_tap_action override. Defaults to historical more-info
+      // dispatch on the speaker entity; popup-embedded usage can disable it with
+      // { action: 'none' } when the icon's tap area is too small to be useful.
+      const fireSpeakerAction = () => {
+        const action = this._config.speaker_icon_tap_action || { action: 'more-info' };
+        runCardAction({
+          element: this,
+          hass: this._hass,
+          actionConfig: action,
+          defaultEntityId: spk.entity,
+        });
+      };
       iconWrap.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
         if (e.button !== undefined && e.button !== 0) return;
         clearIconHold(true);
         iconHoldTimer = setTimeout(() => {
           iconHoldFired = true;
-          this._openSpeakerMoreInfo(spk.entity);
+          fireSpeakerAction();
         }, LONG_PRESS_MS);
       });
       iconWrap.addEventListener('pointerup', (e) => {
@@ -1389,7 +1415,7 @@ class TunetSonosCard extends HTMLElement {
           iconHoldFired = false;
           return;
         }
-        this._openSpeakerMoreInfo(spk.entity);
+        fireSpeakerAction();
       });
       tile.appendChild(iconWrap);
 

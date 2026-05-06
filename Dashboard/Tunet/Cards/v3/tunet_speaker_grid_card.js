@@ -33,9 +33,10 @@ import {
   logCardVersion,
   renderConfigPlaceholder,
   bindButtonActivation,
+  runCardAction,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.2.0';
+const CARD_VERSION = '3.3.0';
 const DRAG_THRESHOLD = 6;
 const DRAG_SCALE = 2;
 const LONG_PRESS_MS = 400;
@@ -699,6 +700,19 @@ class TunetSpeakerGridCard extends HTMLElement {
       tile_size: tileSize,
       use_profiles: useProfiles,
       show_group_actions: config.show_group_actions !== false,
+      // v3.3.0: header suppression for popup-embedded usage. The card's own title
+      // row + speaker count is wasted vertical space when the surrounding popup
+      // already provides chrome; hide it without removing the underlying DOM so
+      // class-toggle is reversible.
+      show_header: config.show_header !== false,
+      // v3.3.0: per-card tap action overrides. Both default to the card's
+      // historical more-info dispatch on the bound entity / speaker, but authors
+      // can override with any HA Lovelace action object — including
+      // { action: 'none' } to fully disable a tap target. Used by the Sonos
+      // popup to disable the speaker-icon more-info (tap area too small) and
+      // by future surfaces that want navigation instead of inspection.
+      header_tap_action: config.header_tap_action || null,
+      icon_tap_action: config.icon_tap_action || null,
       custom_css: config.custom_css || '',
     };
 
@@ -991,10 +1005,15 @@ class TunetSpeakerGridCard extends HTMLElement {
     bindButtonActivation($.infoTile, { label: 'Show speaker details' });
     $.infoTile.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.dispatchEvent(new CustomEvent('hass-more-info', {
-        bubbles: true, composed: true,
-        detail: { entityId: this._config.entity },
-      }));
+      // v3.3.0: header_tap_action overrides the historical more-info dispatch.
+      // Default behavior preserved when the knob isn't authored.
+      const action = this._config.header_tap_action || { action: 'more-info' };
+      runCardAction({
+        element: this,
+        hass: this._hass,
+        actionConfig: action,
+        defaultEntityId: this._config.entity,
+      });
     });
 
     $.groupAllBtn.addEventListener('click', (e) => {
@@ -1017,6 +1036,12 @@ class TunetSpeakerGridCard extends HTMLElement {
     this._tileRefs.clear();
 
     if (this._customStyleEl) this._customStyleEl.textContent = this._config.custom_css || '';
+
+    // v3.3.0: header visibility toggle. When show_header: false the entire
+    // grid-hdr (info-tile + spacer) collapses to zero height — useful for
+    // popup-embedded usage where the popup chrome already provides the title.
+    const hdrEl = this.shadowRoot?.querySelector('.grid-hdr');
+    if (hdrEl) hdrEl.style.display = this._config.show_header === false ? 'none' : '';
 
     const speakers = this._cachedSpeakers || [];
     const cols = this._config.columns;
@@ -1065,13 +1090,28 @@ class TunetSpeakerGridCard extends HTMLElement {
         iconHoldTimer = null;
         if (resetFired) iconHoldFired = false;
       };
+      // v3.3.0: speaker icon tap is configurable. Default preserves the historical
+      // long-press-or-click → more-info on the speaker entity. icon_tap_action
+      // override applies to BOTH the long-press and the click handlers so that
+      // setting { action: 'none' } disables both. The pointer-tracking dance is
+      // retained because long-press detection is still useful for {action:'more-info'}
+      // configurations on touch devices.
+      const fireIconAction = () => {
+        const action = this._config.icon_tap_action || { action: 'more-info' };
+        runCardAction({
+          element: this,
+          hass: this._hass,
+          actionConfig: action,
+          defaultEntityId: spk.entity,
+        });
+      };
       iconWrap.addEventListener('pointerdown', (event) => {
         event.stopPropagation();
         if (event.button !== undefined && event.button !== 0) return;
         clearIconHold(true);
         iconHoldTimer = setTimeout(() => {
           iconHoldFired = true;
-          this._openSpeakerMoreInfo(spk.entity);
+          fireIconAction();
         }, LONG_PRESS_MS);
       });
       iconWrap.addEventListener('pointerup', (event) => {
@@ -1092,7 +1132,7 @@ class TunetSpeakerGridCard extends HTMLElement {
           iconHoldFired = false;
           return;
         }
-        this._openSpeakerMoreInfo(spk.entity);
+        fireIconAction();
       });
       tile.appendChild(iconWrap);
 

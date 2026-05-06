@@ -3666,6 +3666,12 @@ views:
             show_header: true
             show_close_button: true
             buttons_position: right
+            # Desktop sizing: the default popup width (~520px) feels cramped for
+            # a media card + speaker scroll. Widen via width_desktop and use a
+            # slim margin_top_desktop to reclaim vertical space. Mobile sizing is
+            # untouched — adaptive-dialog mode keeps the bottom-anchored phone UX.
+            width_desktop: 720px
+            margin_top_desktop: 4vh
             bg_opacity: 92
             bg_blur: 24
             close_by_clicking_outside: true
@@ -3712,10 +3718,14 @@ views:
                       font-size: 0.875em;
                     }
 
-              # Mobile combo (visible at ≤ 47.9375em). Full + autodiscovery media
-              # card + Large 3-col Explicit speaker grid — per user's selected
-              # combination. Stacked in a vertical-stack so a single card_mod
-              # @media rule toggles the whole stack.
+              # Mobile combo (visible at ≤ 47.9375em). tunet-media-card "Full +
+              # autodiscovery" + tunet-speaker-grid-card "Compact 2-col (profiles
+              # + groups)" — per user's mobile spec. The speaker grid is the
+              # COMPACT variant (not Large 3-col): 2 columns, compact tile size,
+              # use_profiles: true (volume bars + group toggles per tile),
+              # show_group_actions: true (Group All / Ungroup All footer).
+              # show_header: false suppresses the redundant title row — pixels
+              # earned not given.
               - type: vertical-stack
                 cards:
                   - type: custom:tunet-media-card
@@ -3726,13 +3736,16 @@ views:
                     playing_status_sensor: sensor.sonos_playing_status
                     show_progress: true
                   - type: custom:tunet-speaker-grid-card
-                    entity: media_player.bedroom
+                    entity: media_player.living_room
                     name: ''
                     coordinator_sensor: sensor.sonos_smart_coordinator
-                    columns: 3
-                    tile_size: large
+                    columns: 2
+                    tile_size: compact
                     use_profiles: true
                     show_group_actions: true
+                    show_header: false
+                    icon_tap_action:
+                      action: none
                     speakers:
                       - entity: media_player.living_room
                         name: Living Room
@@ -3746,56 +3759,55 @@ views:
                       - entity: media_player.bedroom
                         name: Bedroom
                         icon: speaker
-                      - entity: media_player.bath
-                        name: Bath
-                        icon: speaker
                 card_mod:
                   style: |
-                    :host { display: block; }
+                    :host { display: block !important; }
                     @media (min-width: 48em) {
                       :host { display: none !important; }
                     }
 
-              # Desktop combo (visible at > 47.9375em). Sonos HACS card with
-              # the four primary sections — no media browser (that's popup B).
-              - type: custom:sonos-card
-                title: ''
-                entities:
-                  - media_player.living_room
-                  - media_player.kitchen
-                  - media_player.dining_room
-                  - media_player.bedroom
-                  - media_player.bath
-                showNonSonosPlayers: false
-                sections:
-                  - player
-                  - groups
-                  - grouping
-                  - volumes
-                startSection: player
-                heightPercentage: auto
-                widthPercentage: 100
-                storePlayerInSessionStorage: true
-                dynamicVolumeSlider: true
-                player:
-                  artworkAsBackground: true
-                  artworkAsBackgroundBlur: 12
-                  controlsAndHeaderBackgroundOpacity: 0.7
-                  showVolumeUpAndDownButtons: true
+              # Desktop combo (visible at > 47.9375em). tunet-sonos-card configured
+              # per /lab section 11 fourth example, repurposed for production. The
+              # vertical-stack wrapper exists solely so the @media toggle has a
+              # stable :host selector — applying card_mod display:none directly
+              # to the tunet-sonos-card doesn't suppress its rendered shadow DOM
+              # because the card owns its own shadow root. Wrapping in a stack
+              # gives card_mod a host-level container to hide.
+              # title_tap_action navigates to #sonos-rich (replaces default
+              # more-info with a richer destination). speaker_icon_tap_action is
+              # `none` because the speaker scroll icons are too small to be a
+              # reliable tap target for inspection — pixels earned not given.
+              - type: vertical-stack
+                cards:
+                  - type: custom:tunet-sonos-card
+                    entity: media_player.bedroom
+                    name: ''
+                    coordinator_sensor: sensor.sonos_smart_coordinator
+                    active_group_sensor: sensor.sonos_active_group_coordinator
+                    playing_status_sensor: sensor.sonos_playing_status
+                    title_tap_action:
+                      action: navigate
+                      navigation_path: '#sonos-rich'
+                    speaker_icon_tap_action:
+                      action: none
+                    speakers:
+                      - entity: media_player.living_room
+                        name: Living Room TV Sonos Soundbar
+                        icon: speaker
+                      - entity: media_player.dining_room
+                        name: Dining Room Credenza Speaker
+                        icon: speaker
+                      - entity: media_player.kitchen
+                        name: Kitchen Sonos
+                        icon: speaker
+                      - entity: media_player.bedroom
+                        name: Bedroom Sonos
+                        icon: speaker
                 card_mod:
                   style: |
-                    :host { display: none; }
+                    :host { display: none !important; }
                     @media (min-width: 48em) {
                       :host { display: block !important; }
-                    }
-                    ha-card {
-                      background: transparent !important;
-                      border: none !important;
-                      color: #e2e8f0 !important;
-                      --accent-color: var(--blue, #0A84FF);
-                      --primary-color: var(--blue, #0A84FF);
-                      --secondary-text-color: #94a3b8;
-                      --secondary-background-color: rgba(15, 23, 42, 0.85);
                     }
 
       # ─────────────────────────────────────────────────────────────
@@ -3813,6 +3825,11 @@ views:
             show_header: true
             show_previous_button: true
             show_close_button: true
+            # The rich Sonos card needs more space for the media browser + queue
+            # sections. 800px desktop width + 3vh margin gives more vertical room
+            # without overwhelming the viewport.
+            width_desktop: 800px
+            margin_top_desktop: 3vh
             bg_opacity: 92
             bg_blur: 14
             card_mod:

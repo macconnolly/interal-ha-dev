@@ -3463,7 +3463,7 @@ views:
               - recipe: outside_weather
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
-              - recipe: speakers_playing
+              - recipe: now_playing
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm
                 compact_label: Bedroom
@@ -3499,7 +3499,7 @@ views:
               - recipe: inside_humidity
                 entity: sensor.kitchen_humidity
               - recipe: next_sun_event
-              - recipe: speakers_playing
+              - recipe: now_playing
               - recipe: mode_ttl
               - recipe: next_alarm
                 entity: sensor.sonos_next_alarm
@@ -3583,3 +3583,367 @@ views:
             grid_options:
               columns: 24
               rows: auto
+
+  - title: Sonos Popups
+    path: sonos-popups
+    icon: mdi:speaker-multiple
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: markdown
+            content: |
+              ## Sonos Popup Surfaces — Bubble Card 3.2-beta.1
+              Tap any launcher button below to open one of the candidate popup
+              configurations. Hash navigation works across the whole dashboard, so
+              the `now_playing` status tile (when added to your home dashboard) opens
+              `#sonos-now-playing` and from there the header button or "Open Full
+              Player" navigates to `#sonos-rich`.
+
+      # ─────────────────────────────────────────────────────────────
+      # Popup launcher buttons (visual review entry points)
+      # ─────────────────────────────────────────────────────────────
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Popup Launchers
+            heading_style: subtitle
+          - type: custom:bubble-card
+            card_type: button
+            button_type: name
+            name: Open "Now Playing" (popup A)
+            icon: mdi:speaker-multiple
+            tap_action:
+              action: navigate
+              navigation_path: '#sonos-now-playing'
+          - type: custom:bubble-card
+            card_type: button
+            button_type: name
+            name: Open Full Sonos Card (popup B)
+            icon: mdi:music-box-multiple
+            tap_action:
+              action: navigate
+              navigation_path: '#sonos-rich'
+          - type: custom:bubble-card
+            card_type: button
+            button_type: name
+            name: Variant — Compact 2-col (mobile preview)
+            icon: mdi:cellphone
+            tap_action:
+              action: navigate
+              navigation_path: '#sonos-now-playing-v1'
+          - type: custom:bubble-card
+            card_type: button
+            button_type: name
+            name: Variant — Standard 4-col (mobile preview)
+            icon: mdi:tablet
+            tap_action:
+              action: navigate
+              navigation_path: '#sonos-now-playing-v2'
+
+      # ─────────────────────────────────────────────────────────────
+      # POPUP A — production "Now Playing" (viewport-aware)
+      #
+      # Mobile (≤ 47.9375em): tunet-media-card "Grouped transport" + tunet-speaker-grid-card
+      # "Compact 2-col" stacked vertically. Desktop (> 47.9375em): custom:sonos-card (HACS).
+      # The two card sets are toggled via card_mod display: none rules so the popup
+      # naturally adapts without separate hashes.
+      # ─────────────────────────────────────────────────────────────
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:bubble-card
+            card_type: pop-up
+            hash: '#sonos-now-playing'
+            name: Now Playing
+            icon: mdi:speaker-multiple
+            popup_mode: adaptive-dialog
+            popup_style: bubble
+            show_header: true
+            show_close_button: true
+            buttons_position: right
+            bg_opacity: 92
+            bg_blur: 24
+            close_by_clicking_outside: true
+            card_mod:
+              style: |
+                ha-card {
+                  --bubble-pop-up-main-background-color: rgba(30, 41, 59, 0.72);
+                  --bubble-pop-up-background-color: rgba(30, 41, 59, 0.72);
+                  --bubble-backdrop-background-color: rgba(15, 23, 42, 0.65);
+                  --bubble-icon-color: var(--blue, #0A84FF);
+                  --bubble-accent-color: var(--blue, #0A84FF);
+                  backdrop-filter: blur(24px);
+                  -webkit-backdrop-filter: blur(24px);
+                }
+            cards:
+              # Mobile combo (visible at <= 47.9375em)
+              - type: vertical-stack
+                cards:
+                  - type: custom:tunet-media-card
+                    entity: media_player.living_room
+                    name: ''
+                    coordinator_sensor: sensor.sonos_smart_coordinator
+                    active_group_sensor: sensor.sonos_active_group_coordinator
+                    playing_status_sensor: sensor.sonos_playing_status
+                    show_progress: true
+                    speakers:
+                      - { entity: media_player.living_room, name: Living Room, icon: speaker }
+                      - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
+                      - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
+                      - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
+                      - { entity: media_player.bath, name: Bath, icon: speaker }
+                  - type: custom:tunet-speaker-grid-card
+                    entity: media_player.living_room
+                    name: ''
+                    coordinator_sensor: sensor.sonos_smart_coordinator
+                    columns: 2
+                    tile_size: compact
+                    use_profiles: true
+                    show_group_actions: true
+                    speakers:
+                      - { entity: media_player.living_room, name: Living Room, icon: speaker }
+                      - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
+                      - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
+                      - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
+                card_mod:
+                  style: |
+                    :host {
+                      display: block;
+                    }
+                    @media (min-width: 48em) {
+                      :host {
+                        display: none !important;
+                      }
+                    }
+
+              # Desktop combo (visible at > 47.9375em)
+              - type: custom:sonos-card
+                title: ''
+                entities:
+                  - media_player.living_room
+                  - media_player.kitchen
+                  - media_player.dining_room
+                  - media_player.bedroom
+                  - media_player.bath
+                showNonSonosPlayers: false
+                sections:
+                  - player
+                  - groups
+                  - grouping
+                  - volumes
+                startSection: player
+                heightPercentage: auto
+                widthPercentage: 100
+                storePlayerInSessionStorage: true
+                dynamicVolumeSlider: true
+                player:
+                  artworkAsBackground: true
+                  artworkAsBackgroundBlur: 12
+                  controlsAndHeaderBackgroundOpacity: 0.7
+                  showVolumeUpAndDownButtons: true
+                card_mod:
+                  style: |
+                    :host {
+                      display: none;
+                    }
+                    @media (min-width: 48em) {
+                      :host {
+                        display: block !important;
+                      }
+                    }
+                    ha-card {
+                      background: transparent !important;
+                      border: none !important;
+                      color: #e2e8f0 !important;
+                      --accent-color: var(--blue, #0A84FF);
+                      --primary-color: var(--blue, #0A84FF);
+                      --secondary-text-color: #94a3b8;
+                      --secondary-background-color: rgba(15, 23, 42, 0.85);
+                    }
+
+              # Open-Full-Player navigation button (always visible, in body)
+              - type: custom:bubble-card
+                card_type: button
+                button_type: name
+                name: Open Full Player
+                icon: mdi:music-box-multiple
+                tap_action:
+                  action: navigate
+                  navigation_path: '#sonos-rich'
+
+      # ─────────────────────────────────────────────────────────────
+      # POPUP A — Variant 1: mobile-only Compact 2-col (preview)
+      # ─────────────────────────────────────────────────────────────
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:bubble-card
+            card_type: pop-up
+            hash: '#sonos-now-playing-v1'
+            name: Now Playing — Compact 2-col
+            icon: mdi:speaker-multiple
+            popup_mode: fit-content
+            show_header: true
+            show_close_button: true
+            bg_opacity: 92
+            bg_blur: 24
+            card_mod:
+              style: |
+                ha-card {
+                  --bubble-pop-up-main-background-color: rgba(30, 41, 59, 0.72);
+                  --bubble-icon-color: var(--blue, #0A84FF);
+                  --bubble-accent-color: var(--blue, #0A84FF);
+                }
+            cards:
+              - type: custom:tunet-media-card
+                entity: media_player.living_room
+                name: ''
+                coordinator_sensor: sensor.sonos_smart_coordinator
+                active_group_sensor: sensor.sonos_active_group_coordinator
+                playing_status_sensor: sensor.sonos_playing_status
+                show_progress: true
+                speakers:
+                  - { entity: media_player.living_room, name: Living Room, icon: speaker }
+                  - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
+                  - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
+                  - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
+              - type: custom:tunet-speaker-grid-card
+                entity: media_player.living_room
+                name: ''
+                coordinator_sensor: sensor.sonos_smart_coordinator
+                columns: 2
+                tile_size: compact
+                use_profiles: true
+                show_group_actions: true
+                speakers:
+                  - { entity: media_player.living_room, name: Living Room, icon: speaker }
+                  - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
+                  - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
+                  - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
+
+      # ─────────────────────────────────────────────────────────────
+      # POPUP A — Variant 2: mobile-only Standard 4-col (preview)
+      # ─────────────────────────────────────────────────────────────
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:bubble-card
+            card_type: pop-up
+            hash: '#sonos-now-playing-v2'
+            name: Now Playing — Standard 4-col
+            icon: mdi:speaker-multiple
+            popup_mode: fit-content
+            show_header: true
+            show_close_button: true
+            bg_opacity: 92
+            bg_blur: 24
+            card_mod:
+              style: |
+                ha-card {
+                  --bubble-pop-up-main-background-color: rgba(30, 41, 59, 0.72);
+                  --bubble-icon-color: var(--blue, #0A84FF);
+                  --bubble-accent-color: var(--blue, #0A84FF);
+                }
+            cards:
+              - type: custom:tunet-media-card
+                entity: media_player.living_room
+                name: ''
+                coordinator_sensor: sensor.sonos_smart_coordinator
+                active_group_sensor: sensor.sonos_active_group_coordinator
+                playing_status_sensor: sensor.sonos_playing_status
+                show_progress: true
+                speakers:
+                  - { entity: media_player.living_room, name: Living Room, icon: speaker }
+                  - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
+                  - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
+                  - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
+              - type: custom:tunet-speaker-grid-card
+                entity: media_player.living_room
+                name: ''
+                coordinator_sensor: sensor.sonos_smart_coordinator
+                columns: 4
+                tile_size: standard
+                use_profiles: false
+                show_group_actions: false
+                speakers:
+                  - { entity: media_player.living_room, name: Living Room, icon: speaker }
+                  - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
+                  - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
+                  - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
+
+      # ─────────────────────────────────────────────────────────────
+      # POPUP B — full HACS Sonos card (rich power-user view)
+      # show_previous_button: true gives the back-arrow to popup A.
+      # ─────────────────────────────────────────────────────────────
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:bubble-card
+            card_type: pop-up
+            hash: '#sonos-rich'
+            name: Sonos
+            icon: mdi:music-box-multiple
+            popup_mode: adaptive-dialog
+            show_header: true
+            show_previous_button: true
+            show_close_button: true
+            bg_opacity: 92
+            bg_blur: 14
+            card_mod:
+              style: |
+                ha-card {
+                  --bubble-pop-up-main-background-color: rgba(30, 41, 59, 0.72);
+                  --bubble-icon-color: var(--blue, #0A84FF);
+                  --bubble-accent-color: var(--blue, #0A84FF);
+                  backdrop-filter: blur(24px);
+                  -webkit-backdrop-filter: blur(24px);
+                }
+            cards:
+              - type: custom:sonos-card
+                title: ''
+                entities:
+                  - media_player.living_room
+                  - media_player.kitchen
+                  - media_player.dining_room
+                  - media_player.bedroom
+                  - media_player.bath
+                showNonSonosPlayers: false
+                sections:
+                  - player
+                  - groups
+                  - grouping
+                  - volumes
+                  - media browser
+                startSection: player
+                heightPercentage: auto
+                widthPercentage: 100
+                storePlayerInSessionStorage: true
+                dynamicVolumeSlider: true
+                player:
+                  artworkAsBackground: true
+                  artworkAsBackgroundBlur: 12
+                  controlsAndHeaderBackgroundOpacity: 0.7
+                  showVolumeUpAndDownButtons: true
+                grouping:
+                  dontSortMembersOnTop: false
+                  hideUngroupAllButtons: false
+                volumes:
+                  hideCogwheel: false
+                mediaBrowser:
+                  itemsPerRow: 4
+                  favorites:
+                    title: Favorites
+                    numberToShow: 12
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: transparent !important;
+                      border: none !important;
+                      color: #e2e8f0 !important;
+                      --accent-color: var(--blue, #0A84FF);
+                      --primary-color: var(--blue, #0A84FF);
+                      --secondary-text-color: #94a3b8;
+                      --secondary-background-color: rgba(15, 23, 42, 0.85);
+                    }

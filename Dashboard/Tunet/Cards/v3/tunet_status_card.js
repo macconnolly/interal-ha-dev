@@ -14,7 +14,7 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.11.0';
+const CARD_VERSION = '3.12.0';
 
 // Weather states that intrinsically imply high cloud coverage. The outside_weather
 // composite uses this set to suppress redundant "Mostly Cloudy" callouts when the
@@ -104,7 +104,7 @@ const STATUS_RECIPE_PRIORITY = {
   next_sun_event: 9,
   inside_humidity: 10,
   mode_selector: 12,
-  speakers_playing: 13,
+  now_playing: 13,
   mode_ttl: 15,
   enabled_alarms: 16,
 };
@@ -123,7 +123,7 @@ const STATUS_RECIPE_ENTITY_BINDING = {
   next_alarm: 'user',
   enabled_alarms: 'user',
   mode_ttl: 'fixed',
-  speakers_playing: 'fixed',
+  now_playing: 'fixed',
 };
 
 const STATUS_VARIANT_GRID_OPTIONS = {
@@ -365,12 +365,17 @@ const STATUS_RECIPES = {
     },
     defaultAction: 'entity',
   },
-  // speakers_playing: shows the active Sonos coordinator's room name when at least one
-  // speaker is playing. The display entity (sensor.sonos_current_playing_group_coordinator)
-  // resolves to a short room label like "Living Room"; the visibility guard reads from
-  // a separate binary_sensor so the tile collapses cleanly when nothing is playing
-  // rather than rendering "none" in the value cell.
-  speakers_playing: {
+  // now_playing: shows the COUNT of speakers currently playing. Reads
+  // sensor.sonos_current_playing_group_coordinator's group_members attribute (an
+  // array of media_player entity_ids belonging to the active group) and renders its
+  // length via the array_length format primitive — a count is more glanceable than
+  // a coordinator name and avoids the long-text problem of room labels in narrow tiles.
+  // The display sensor and visibility guard are intentionally split: the binary_sensor
+  // owns "is anything playing?", the coordinator sensor owns "what's the group?". When
+  // nothing plays, the binary is off and the tile collapses; when playing, the
+  // coordinator's group_members array drives the count. Default tap navigates to a
+  // Bubble Card 3.2 popup at hash #sonos-now-playing for quick speaker control.
+  now_playing: {
     defaults: {
       type: 'value',
       entity: 'sensor.sonos_current_playing_group_coordinator',
@@ -378,7 +383,8 @@ const STATUS_RECIPES = {
       label: 'Playing',
       compact_label: 'Playing',
       accent: 'blue',
-      format: 'state',
+      attribute: 'group_members',
+      format: 'array_length',
       show_when: {
         entity: 'binary_sensor.sonos_playing_status',
         operator: 'equals',
@@ -542,7 +548,7 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
         { recipe: 'outside_weather' },
         { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
         { recipe: 'next_sun_event' },
-        { recipe: 'speakers_playing' },
+        { recipe: 'now_playing' },
         { recipe: 'mode_ttl' },
         {
           recipe: 'next_alarm',
@@ -652,8 +658,8 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
   }
 
   // Default: home_summary stub. Tiles with show_when guards (manual_overrides,
-  // speakers_playing) only render when their condition is true, so the visible
-  // count fluctuates between ~7-9 in practice within the 4-col grid.
+  // now_playing) only render when their condition is true, so the visible count
+  // fluctuates between ~7-9 in practice within the 4-col grid.
   return {
     ...base,
     columns: 4,
@@ -670,7 +676,7 @@ function buildStatusStubConfig(layoutVariant = 'home_summary') {
       { recipe: 'outside_temperature' },
       { recipe: 'outside_weather' },
       { recipe: 'inside_humidity', entity: 'sensor.kitchen_humidity' },
-      { recipe: 'speakers_playing' },
+      { recipe: 'now_playing' },
       {
         recipe: 'next_alarm',
         entity: 'sensor.sonos_next_alarm',
@@ -2032,6 +2038,18 @@ class TunetStatusCard extends HTMLElement {
           config: { action: 'more-info', entity: target },
         };
       }
+      // now_playing: tap navigates to the Bubble Card 3.2 popup hash that hosts the
+      // quick speaker control surface (#sonos-now-playing). The popup itself is defined
+      // in the dashboard YAML; this recipe only owns the tap intent contract.
+      case 'now_playing': {
+        return {
+          kind: 'action',
+          config: {
+            action: 'navigate',
+            navigation_path: '#sonos-now-playing',
+          },
+        };
+      }
       // Next alarm — stopgap until SA3 retargets to Bubble Card 3.2 Adaptive popup.
       // Reads the alarm switch entity from the sensor's `next_alarm_entity` attribute
       // and passes it into the existing script that loads the editor buffers. If hass
@@ -3066,6 +3084,12 @@ class TunetStatusCard extends HTMLElement {
     if (format === 'time_short_hm') return this._formatShortTime(value).replace(/\s*[AP]M$/i, '');
     if (format === 'alarm_room') return this._extractAlarmRoom(value);
     if (format === 'state') return humanizeStateValue(value);
+    if (format === 'array_length') {
+      // The bound attribute is expected to be an array (e.g. group_members on the Sonos
+      // coordinator sensor). Render its length as an integer count. Used by now_playing.
+      if (Array.isArray(value)) return value.length;
+      return 0;
+    }
     if (format === 'signed_percent') {
       // Self-contained format: an offset value rendered with explicit sign.
       // 21 -> "+21%", -10 -> "−10%" (Unicode minus U+2212), 0 -> "0%", non-finite -> "—".

@@ -126,7 +126,16 @@ function makeStatusHass(overrides = {}) {
       'sensor.sonos_current_playing_group_coordinator': {
         entity_id: 'sensor.sonos_current_playing_group_coordinator',
         state: 'Living Room',
-        attributes: { friendly_name: 'Sonos Current Playing Group Coordinator' },
+        attributes: {
+          friendly_name: 'Sonos Current Playing Group Coordinator',
+          playing_state: 'playing',
+          media_title: 'Test Track',
+          media_artist: 'Test Artist',
+          source: 'Spotify',
+          room: 'Living Room',
+          volume: 35,
+          group_members: ['media_player.living_room', 'media_player.kitchen'],
+        },
       },
       'input_select.oal_active_configuration': {
         entity_id: 'input_select.oal_active_configuration',
@@ -328,7 +337,7 @@ const CD11_STATUS_RECIPES = [
   'next_alarm',
   'enabled_alarms',
   'mode_ttl',
-  'speakers_playing',
+  'now_playing',
 ];
 
 const STATUS_PRIMARY_LAB_RECIPES = [
@@ -1545,23 +1554,26 @@ describe('Status: recipe and action precedence', () => {
         },
       }),
     ],
-    // speakers_playing: appears only when something is playing (show_when guard on
-    // binary_sensor.sonos_playing_status == 'on'). Value renders the coordinator room
-    // name from sensor.sonos_current_playing_group_coordinator. Default action navigates
-    // to the media surface; users who want a different target author tap_action.
+    // now_playing: shows the COUNT of speakers currently playing, read inline from
+    // sensor.sonos_current_playing_group_coordinator's `group_members` attribute (which
+    // is an array of media_player entity_ids). The new `array_length` format primitive
+    // turns the array into an integer count without needing a dedicated count sensor.
+    // Visibility guard rides binary_sensor.sonos_playing_status. Default tap navigates
+    // to the Bubble Card 3.2 popup hash for quick speaker control.
     [
-      'speakers_playing',
+      'now_playing',
       'home_summary',
-      { recipe: 'speakers_playing' },
+      { recipe: 'now_playing' },
       expectedRuntimeTile({
         type: 'value',
-        recipe: 'speakers_playing',
+        recipe: 'now_playing',
         entity: 'sensor.sonos_current_playing_group_coordinator',
         icon: 'speaker',
         label: 'Playing',
         compact_label: 'Playing',
         accent: 'blue',
-        format: 'state',
+        attribute: 'group_members',
+        format: 'array_length',
         show_when: {
           entity: 'binary_sensor.sonos_playing_status',
           operator: 'equals',
@@ -1569,7 +1581,7 @@ describe('Status: recipe and action precedence', () => {
         },
         primary_action: {
           kind: 'action',
-          config: { action: 'more-info', entity: 'sensor.sonos_current_playing_group_coordinator' },
+          config: { action: 'navigate', navigation_path: '#sonos-now-playing' },
         },
       }),
     ],
@@ -1905,6 +1917,67 @@ describe('Status: typography uniformity contract', () => {
     // The base .tile-val.is-long rule must also not declare a font-size override —
     // long-value auto-shrink is no longer a typography hierarchy strategy.
     expect(css).not.toMatch(/^\s*\.tile-val\.is-long\s*\{[^}]*font-size:/m);
+  });
+});
+
+// now_playing recipe behavioral contract (T21).
+describe('Status: now_playing recipe contract', () => {
+  it('renders the count from group_members.length, not the coordinator name', () => {
+    const el = createStatus({
+      layout_variant: 'home_detail',
+      tiles: [{ recipe: 'now_playing' }],
+    });
+    const valEl = el.shadowRoot.querySelector('.tile-val');
+    // mock has group_members of length 2 -> count "2" (NOT "Living Room").
+    expect(valEl.textContent.trim()).toBe('2');
+  });
+
+  it('hides the tile when binary_sensor.sonos_playing_status is off (show_when guard)', () => {
+    const el = createStatus(
+      {
+        layout_variant: 'home_detail',
+        tiles: [{ recipe: 'now_playing' }],
+      },
+      {
+        'binary_sensor.sonos_playing_status': {
+          entity_id: 'binary_sensor.sonos_playing_status',
+          state: 'off',
+          attributes: { friendly_name: 'Sonos Playing Status' },
+        },
+      }
+    );
+    const tile = el.shadowRoot.querySelector('.tile');
+    // show_when fires; the renderer marks the tile with .tile-collapsed or .tile-hidden.
+    expect(
+      tile?.classList.contains('tile-collapsed') ||
+      tile?.classList.contains('tile-hidden') ||
+      tile === null
+    ).toBe(true);
+  });
+
+  it('tap navigates to #sonos-now-playing hash', () => {
+    const pushSpy = vi.spyOn(window.history, 'pushState');
+    const el = createStatus({
+      layout_variant: 'home_detail',
+      tiles: [{ recipe: 'now_playing' }],
+    });
+    el.shadowRoot.querySelector('.tile').click();
+    const lastCall = pushSpy.mock.calls[pushSpy.mock.calls.length - 1];
+    // pushState(state, title, url) — url is the hash navigation target.
+    expect(lastCall?.[2] || '').toContain('#sonos-now-playing');
+    pushSpy.mockRestore();
+  });
+
+  it('user-authored navigate_path overrides the default popup hash', () => {
+    const pushSpy = vi.spyOn(window.history, 'pushState');
+    const el = createStatus({
+      layout_variant: 'home_detail',
+      tiles: [{ recipe: 'now_playing', navigate_path: '/custom/media' }],
+    });
+    el.shadowRoot.querySelector('.tile').click();
+    const lastCall = pushSpy.mock.calls[pushSpy.mock.calls.length - 1];
+    expect(lastCall?.[2] || '').toContain('/custom/media');
+    pushSpy.mockRestore();
   });
 });
 

@@ -1301,7 +1301,7 @@ Implemented recipes:
 - `next_alarm`
 - `enabled_alarms`
 - `mode_ttl`
-- `speakers_playing`
+- `now_playing`
 
 Canonical recipe defaults (v3.6.0 — CD11 Polish X1 — recipe consolidation + signed_percent, 2026-05-05):
 
@@ -1320,7 +1320,7 @@ Canonical recipe defaults (v3.6.0 — CD11 Polish X1 — recipe consolidation + 
 | `next_alarm` | `alarms`, `home_detail` | `value`; promoted to `alarm` in `alarms` unless `type` is authored | `icon: alarm`, `label/compact_label: Alarm`, `accent: blue`, `format: time_short`, default action prefers `action_entity` then entity more-info | User supplies `entity` |
 | `enabled_alarms` | `alarms`, optional `home_detail` | `value` | `icon: alarm_on`, `label/compact_label: Enabled`, `accent: blue`, `format: integer`, default action prefers `action_entity` then entity more-info | User supplies `entity` |
 | `mode_ttl` | `alarms`, optional `home_detail` | `value` | `entity: sensor.oal_system_status`, `attribute: mode_timeout_remaining`, `icon: timer`, `label: Mode Timer`, `compact_label: Timer`, `accent: amber`, `format: state`, `show_when.mode_timeout_state == 'active'`, default action opens entity more-info | Fixed source |
-| `speakers_playing` | `home_summary`, `home_detail`, optional info surface | `value` | `entity: sensor.sonos_current_playing_group_coordinator`, `icon: speaker`, `label/compact_label: Playing`, `accent: blue`, `format: state` (renders the coordinator room name like "Living Room"), `show_when.binary_sensor.sonos_playing_status == 'on'`, default action opens entity more-info | Fixed source |
+| `now_playing` | `home_summary`, `home_detail`, optional info surface | `value` | `entity: sensor.sonos_current_playing_group_coordinator`, `icon: speaker`, `label/compact_label: Playing`, `accent: blue`, `attribute: group_members`, `format: array_length` (renders the count of speakers in the active group, not the coordinator name), `show_when.binary_sensor.sonos_playing_status == 'on'`, default tap navigates to `#sonos-now-playing` Bubble Card 3.2 popup | Fixed source |
 
 This table is the canonical CD11 recipe surface. The `status_bespoke.test.js` recipe-default self-containment block asserts the synthesized runtime tile for each shorthand recipe, so `{ recipe: 'mode_ttl' }` and the equivalent expanded runtime tile stay aligned.
 

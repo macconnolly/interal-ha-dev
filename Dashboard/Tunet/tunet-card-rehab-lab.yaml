@@ -3593,26 +3593,50 @@ views:
         cards:
           - type: markdown
             content: |
-              ## Sonos Popup Surfaces — Bubble Card 3.2-beta.1
-              Tap any launcher button below to open one of the candidate popup
-              configurations. Hash navigation works across the whole dashboard, so
-              the `now_playing` status tile (when added to your home dashboard) opens
-              `#sonos-now-playing` and from there the header button or "Open Full
-              Player" navigates to `#sonos-rich`.
+              ## Sonos Popups — production architecture
+
+              **Tile flow**: status `now_playing` tile tap → popup A → popup B
+              (rich Sonos card). Popup B's back-arrow returns to popup A via
+              `show_previous_button: true` and browser hash history.
+
+              **Popup A** (`#sonos-now-playing`) is the quick-control surface.
+              Viewport-aware:
+              - Mobile (≤ 47.9375em): tunet-media-card *Full + autodiscovery* +
+                tunet-speaker-grid-card *Large 3-col Explicit*. The combo gives
+                transport, source, per-speaker volume, group toggles, and
+                Group All / Ungroup All in one popup without scrolling a
+                horizontal speaker list.
+              - Desktop (> 47.9375em): custom:sonos-card with sections
+                `player, groups, grouping, volumes` (no media browser — that
+                lives in popup B).
+
+              **Popup B** (`#sonos-rich`) is the rich Sonos card with all
+              sections including `media browser` for picking favorites/queue.
+
+              **Bubble Card 3.2-beta.1 limitation**: the popup `card_type: pop-up`
+              does NOT expose a `sub_button:` array — only `show_previous_button`,
+              `show_close_button`, and `buttons_position` knobs control the header
+              button strip. Verified against the v3.2.0-beta.1 source
+              (`src/cards/pop-up/create.js` and `editor.js`). Custom icons in
+              the header strip require either a future Bubble Card release or a
+              fragile card_mod ::after injection. The "Open Full Player"
+              navigation lives at the top of popup A's body, styled to feel
+              header-adjacent. Revisit when 3.2 ships stable header sub_button
+              support.
 
       # ─────────────────────────────────────────────────────────────
-      # Popup launcher buttons (visual review entry points)
+      # Popup launchers (review entry points)
       # ─────────────────────────────────────────────────────────────
       - type: grid
         column_span: 4
         cards:
           - type: heading
-            heading: Popup Launchers
+            heading: Launchers
             heading_style: subtitle
           - type: custom:bubble-card
             card_type: button
             button_type: name
-            name: Open "Now Playing" (popup A)
+            name: Open Now Playing (popup A)
             icon: mdi:speaker-multiple
             tap_action:
               action: navigate
@@ -3620,35 +3644,14 @@ views:
           - type: custom:bubble-card
             card_type: button
             button_type: name
-            name: Open Full Sonos Card (popup B)
+            name: Open Full Sonos (popup B)
             icon: mdi:music-box-multiple
             tap_action:
               action: navigate
               navigation_path: '#sonos-rich'
-          - type: custom:bubble-card
-            card_type: button
-            button_type: name
-            name: Variant — Compact 2-col (mobile preview)
-            icon: mdi:cellphone
-            tap_action:
-              action: navigate
-              navigation_path: '#sonos-now-playing-v1'
-          - type: custom:bubble-card
-            card_type: button
-            button_type: name
-            name: Variant — Standard 4-col (mobile preview)
-            icon: mdi:tablet
-            tap_action:
-              action: navigate
-              navigation_path: '#sonos-now-playing-v2'
 
       # ─────────────────────────────────────────────────────────────
-      # POPUP A — production "Now Playing" (viewport-aware)
-      #
-      # Mobile (≤ 47.9375em): tunet-media-card "Grouped transport" + tunet-speaker-grid-card
-      # "Compact 2-col" stacked vertically. Desktop (> 47.9375em): custom:sonos-card (HACS).
-      # The two card sets are toggled via card_mod display: none rules so the popup
-      # naturally adapts without separate hashes.
+      # POPUP A — Now Playing (production, viewport-aware)
       # ─────────────────────────────────────────────────────────────
       - type: grid
         column_span: 4
@@ -3678,7 +3681,41 @@ views:
                   -webkit-backdrop-filter: blur(24px);
                 }
             cards:
-              # Mobile combo (visible at <= 47.9375em)
+              # Open Full Player — header-adjacent navigation button at the very
+              # top of the body. Bubble Card 3.2-beta.1 doesn't expose sub_button
+              # arrays on popup cards (verified against pop-up/create.js source),
+              # so this is the closest architectural fit. card_mod styles trim
+              # vertical padding so it visually attaches to the header strip.
+              - type: custom:bubble-card
+                card_type: button
+                button_type: name
+                name: Open Full Player
+                icon: mdi:music-box-multiple
+                show_state: false
+                tap_action:
+                  action: navigate
+                  navigation_path: '#sonos-rich'
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(10, 132, 255, 0.10) !important;
+                      border: 1px solid rgba(10, 132, 255, 0.32) !important;
+                      box-shadow: none !important;
+                      min-height: 2.5em !important;
+                      margin-top: -0.25em !important;
+                    }
+                    .bubble-button-card-container { min-height: 2.5em !important; }
+                    .bubble-icon { color: var(--blue, #0A84FF) !important; }
+                    .bubble-name {
+                      color: var(--blue, #0A84FF) !important;
+                      font-weight: 600;
+                      font-size: 0.875em;
+                    }
+
+              # Mobile combo (visible at ≤ 47.9375em). Full + autodiscovery media
+              # card + Large 3-col Explicit speaker grid — per user's selected
+              # combination. Stacked in a vertical-stack so a single card_mod
+              # @media rule toggles the whole stack.
               - type: vertical-stack
                 cards:
                   - type: custom:tunet-media-card
@@ -3688,37 +3725,39 @@ views:
                     active_group_sensor: sensor.sonos_active_group_coordinator
                     playing_status_sensor: sensor.sonos_playing_status
                     show_progress: true
-                    speakers:
-                      - { entity: media_player.living_room, name: Living Room, icon: speaker }
-                      - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
-                      - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
-                      - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
-                      - { entity: media_player.bath, name: Bath, icon: speaker }
                   - type: custom:tunet-speaker-grid-card
-                    entity: media_player.living_room
+                    entity: media_player.bedroom
                     name: ''
                     coordinator_sensor: sensor.sonos_smart_coordinator
-                    columns: 2
-                    tile_size: compact
+                    columns: 3
+                    tile_size: large
                     use_profiles: true
                     show_group_actions: true
                     speakers:
-                      - { entity: media_player.living_room, name: Living Room, icon: speaker }
-                      - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
-                      - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
-                      - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
+                      - entity: media_player.living_room
+                        name: Living Room
+                        icon: speaker
+                      - entity: media_player.dining_room
+                        name: Dining Room
+                        icon: speaker
+                      - entity: media_player.kitchen
+                        name: Kitchen
+                        icon: speaker
+                      - entity: media_player.bedroom
+                        name: Bedroom
+                        icon: speaker
+                      - entity: media_player.bath
+                        name: Bath
+                        icon: speaker
                 card_mod:
                   style: |
-                    :host {
-                      display: block;
-                    }
+                    :host { display: block; }
                     @media (min-width: 48em) {
-                      :host {
-                        display: none !important;
-                      }
+                      :host { display: none !important; }
                     }
 
-              # Desktop combo (visible at > 47.9375em)
+              # Desktop combo (visible at > 47.9375em). Sonos HACS card with
+              # the four primary sections — no media browser (that's popup B).
               - type: custom:sonos-card
                 title: ''
                 entities:
@@ -3745,13 +3784,9 @@ views:
                   showVolumeUpAndDownButtons: true
                 card_mod:
                   style: |
-                    :host {
-                      display: none;
-                    }
+                    :host { display: none; }
                     @media (min-width: 48em) {
-                      :host {
-                        display: block !important;
-                      }
+                      :host { display: block !important; }
                     }
                     ha-card {
                       background: transparent !important;
@@ -3763,119 +3798,8 @@ views:
                       --secondary-background-color: rgba(15, 23, 42, 0.85);
                     }
 
-              # Open-Full-Player navigation button (always visible, in body)
-              - type: custom:bubble-card
-                card_type: button
-                button_type: name
-                name: Open Full Player
-                icon: mdi:music-box-multiple
-                tap_action:
-                  action: navigate
-                  navigation_path: '#sonos-rich'
-
       # ─────────────────────────────────────────────────────────────
-      # POPUP A — Variant 1: mobile-only Compact 2-col (preview)
-      # ─────────────────────────────────────────────────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:bubble-card
-            card_type: pop-up
-            hash: '#sonos-now-playing-v1'
-            name: Now Playing — Compact 2-col
-            icon: mdi:speaker-multiple
-            popup_mode: fit-content
-            show_header: true
-            show_close_button: true
-            bg_opacity: 92
-            bg_blur: 24
-            card_mod:
-              style: |
-                ha-card {
-                  --bubble-pop-up-main-background-color: rgba(30, 41, 59, 0.72);
-                  --bubble-icon-color: var(--blue, #0A84FF);
-                  --bubble-accent-color: var(--blue, #0A84FF);
-                }
-            cards:
-              - type: custom:tunet-media-card
-                entity: media_player.living_room
-                name: ''
-                coordinator_sensor: sensor.sonos_smart_coordinator
-                active_group_sensor: sensor.sonos_active_group_coordinator
-                playing_status_sensor: sensor.sonos_playing_status
-                show_progress: true
-                speakers:
-                  - { entity: media_player.living_room, name: Living Room, icon: speaker }
-                  - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
-                  - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
-                  - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
-              - type: custom:tunet-speaker-grid-card
-                entity: media_player.living_room
-                name: ''
-                coordinator_sensor: sensor.sonos_smart_coordinator
-                columns: 2
-                tile_size: compact
-                use_profiles: true
-                show_group_actions: true
-                speakers:
-                  - { entity: media_player.living_room, name: Living Room, icon: speaker }
-                  - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
-                  - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
-                  - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
-
-      # ─────────────────────────────────────────────────────────────
-      # POPUP A — Variant 2: mobile-only Standard 4-col (preview)
-      # ─────────────────────────────────────────────────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:bubble-card
-            card_type: pop-up
-            hash: '#sonos-now-playing-v2'
-            name: Now Playing — Standard 4-col
-            icon: mdi:speaker-multiple
-            popup_mode: fit-content
-            show_header: true
-            show_close_button: true
-            bg_opacity: 92
-            bg_blur: 24
-            card_mod:
-              style: |
-                ha-card {
-                  --bubble-pop-up-main-background-color: rgba(30, 41, 59, 0.72);
-                  --bubble-icon-color: var(--blue, #0A84FF);
-                  --bubble-accent-color: var(--blue, #0A84FF);
-                }
-            cards:
-              - type: custom:tunet-media-card
-                entity: media_player.living_room
-                name: ''
-                coordinator_sensor: sensor.sonos_smart_coordinator
-                active_group_sensor: sensor.sonos_active_group_coordinator
-                playing_status_sensor: sensor.sonos_playing_status
-                show_progress: true
-                speakers:
-                  - { entity: media_player.living_room, name: Living Room, icon: speaker }
-                  - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
-                  - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
-                  - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
-              - type: custom:tunet-speaker-grid-card
-                entity: media_player.living_room
-                name: ''
-                coordinator_sensor: sensor.sonos_smart_coordinator
-                columns: 4
-                tile_size: standard
-                use_profiles: false
-                show_group_actions: false
-                speakers:
-                  - { entity: media_player.living_room, name: Living Room, icon: speaker }
-                  - { entity: media_player.dining_room, name: Dining Room, icon: speaker }
-                  - { entity: media_player.kitchen, name: Kitchen, icon: speaker }
-                  - { entity: media_player.bedroom, name: Bedroom, icon: speaker }
-
-      # ─────────────────────────────────────────────────────────────
-      # POPUP B — full HACS Sonos card (rich power-user view)
-      # show_previous_button: true gives the back-arrow to popup A.
+      # POPUP B — Sonos rich (full HACS card incl. media browser)
       # ─────────────────────────────────────────────────────────────
       - type: grid
         column_span: 4

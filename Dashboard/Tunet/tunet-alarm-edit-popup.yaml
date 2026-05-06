@@ -1,0 +1,107 @@
+# Tunet Alarm Edit Popup (SA3)
+#
+# Browser Mod popup card registered via popup_card_id: tunet-alarm-edit.
+# Invoked from script.sonos_load_alarm_for_edit (AGENTS.md §3 alarm-edit-popup exception).
+# Retired by SA4 when the subview composition is locked — until then this is the live
+# edit surface.
+#
+# Pattern verified at:
+#   - popup-fix.md:191-193
+#   - tunet-suite-config.yaml:882-887
+#   - tunet-suite-storage-config.yaml:422-424
+#
+# Content uses vanilla HA cards only (no bespoke Tunet popup card).
+
+type: custom:popup-card
+popup_card_id: tunet-alarm-edit
+popup_card_all_views: true
+title: Edit Alarm
+initial_style: normal
+dismissable: true
+card:
+  type: vertical-stack
+  cards:
+    # ── Header (dynamic name) ──────────────────────────────────
+    - type: markdown
+      content: >
+        ## {{ states('input_text.sonos_alarm_edit_name') or 'Alarm' }}
+
+    # ── Time + recurrence (time is editable; recurrence is LD3 read-only) ──
+    - type: entities
+      title: Time
+      entities:
+        - entity: input_datetime.sonos_alarm_edit_time
+          name: Alarm Time
+        - entity: sensor.sonos_edit_recurrence_display
+          name: Recurrence
+
+    # ── ±5 / ±15 minute adjustment row ─────────────────────────
+    - type: horizontal-stack
+      cards:
+        - type: button
+          name: "−15"
+          icon: mdi:minus
+          show_state: false
+          tap_action:
+            action: call-service
+            service: script.sonos_adjust_edit_time
+            data:
+              minutes: -15
+        - type: button
+          name: "−5"
+          icon: mdi:minus
+          show_state: false
+          tap_action:
+            action: call-service
+            service: script.sonos_adjust_edit_time
+            data:
+              minutes: -5
+        - type: button
+          name: "+5"
+          icon: mdi:plus
+          show_state: false
+          tap_action:
+            action: call-service
+            service: script.sonos_adjust_edit_time
+            data:
+              minutes: 5
+        - type: button
+          name: "+15"
+          icon: mdi:plus
+          show_state: false
+          tap_action:
+            action: call-service
+            service: script.sonos_adjust_edit_time
+            data:
+              minutes: 15
+
+    # ── Volume slider ──────────────────────────────────────────
+    - type: custom:mushroom-number-card
+      entity: input_number.sonos_alarm_edit_volume
+      display_mode: slider
+      name: Volume
+
+    # ── Linked-zones toggle ────────────────────────────────────
+    - type: custom:mushroom-entity-card
+      entity: input_boolean.sonos_alarm_edit_linked_zones
+      name: Include linked zones
+      tap_action:
+        action: toggle
+
+    # ── Footer: Close + Save ───────────────────────────────────
+    - type: horizontal-stack
+      cards:
+        - type: button
+          name: Close
+          icon: mdi:close
+          show_state: false
+          tap_action:
+            action: call-service
+            service: browser_mod.close_popup
+        - type: button
+          name: Save
+          icon: mdi:content-save
+          show_state: false
+          tap_action:
+            action: call-service
+            service: script.sonos_save_alarm_changes

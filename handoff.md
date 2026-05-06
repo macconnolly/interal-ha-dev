@@ -1,17 +1,58 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-04-30 (America/Denver)
+> ### Last Updated 2026-05-04 ~17:00Z (America/Denver)
+> **Diff vs. previous handoff state** (3-bullet summary — required at top per D3 protocol):
+> - **Documentation restructured**: plan.md sprawl (2,446 lines, 60 session deltas in chronological-disorder) split into 8 per-tranche archive files at `Dashboard/Tunet/Docs/plans/archive/`. New plan.md is ~200 lines: Tranche Queue (single source of truth) + Architecture Decisions Log + 2026-05-04 session delta. Pre-restructure rollback marker at git tag `tunet-docs-pre-restructure-2026-05-04`.
+> - **Architecture decisions locked**: popup direction reverses Browser Mod → Bubble Card 3.2-beta.1; room composition uses dedicated subview pages (cards_reference.md §3 Option A); custom-card direction reaffirmed (9 cards stay custom on interaction-layer grounds, remaining stay on visual identity grounds; Tunet HA theme deferred).
+> - **Reopen tranches captured**: CD6 (P0 lighting hold-then-drag JS bug + padding regression + missing all-on/off), CD7 (rooms orb sizing oversized + room subview composition shift), CD8 (weather forecast tile px → em conversion), CD9 (split into CD9a transport bug + CD9b popup composition redesign), CD11 (status broad rehab — escalated). New tranche CC1 — Cross-Card Consistency proposed. New CD12 backlog item: house overview header card. Ghost horizontal scroll defect added to ledger. Governance overhaul: File Authority Map + Sync Protocol + Tranche Queue Rule + Plan Creation/Closure Protocols + Archive Read-Only Convention now live in `Dashboard/Tunet/CLAUDE.md`.
+
+Last updated: 2026-05-04 (America/Denver)
 Intended reader: next Claude Code session
-Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
+Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior. **For governance rules** (where to read, where to edit, sync protocol), see `Dashboard/Tunet/CLAUDE.md` File Authority Map + Sync Protocol — that file is the single authoritative governance home.
 
 > **Out-of-spec side task — SA-series (recorded 2026-04-30):**
-> The Sonos alarm edit/manage work (SA0–SA4 + the All On/All Off optimistic-UI fix and Tunet-styled BrowserMod edit popup) was completed and deployed live, but it was **an isolated side task outside the active CD program**. Root Tunet authority and tranche order are unchanged — the active tranche advanced to **CD10 — Navigation Verify Pass** as of 2026-04-30 CD9 closeout. The SA-series was driven by an immediate user need (alarm UX defects on the live dashboard) and is not a precedent for further out-of-tranche work. Future Tunet sessions resume CD10 / CD11 / CD12 per `~/.claude/plans/flickering-herding-wolf.md`; the SA-series is complete and parked.
+> The Sonos alarm edit/manage work was deployed live outside the active CD program. SA3 retargets from Browser Mod to Bubble Card 3.2-beta.1 popup per 2026-05-04 architecture decision. Future SA-series work uses Bubble popups.
 
 Active execution plans:
 - `~/.claude/plans/flickering-herding-wolf.md` (root CD0–CD12 authority; current CD is CD10)
-- `~/.claude/plans/tunet-sonos-alarm-manage.md` (SA-series sibling to CD12 surface assembly — out-of-spec, complete + deployed)
-Current tranche: **CD10 — Navigation Verify Pass** (root) + **SA0–SA4 complete + deployed live** (sibling SA-series, out-of-spec)
-Previous tranches: CD9 (completed 2026-04-30; selected-target audio routing, media/sonos dropdown convergence, visible speaker-tile semantics, speaker-grid phone column fallback, dropdown-render bug fixes, keyboard a11y recorded as suite-wide deferred-by-policy), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026); SA0 (completed Apr 23, 2026); SA2/SA3/SA4 + alarm UX fixes (completed out-of-spec Apr 28–30, 2026)
+- `~/.claude/plans/tunet-sonos-alarm-manage.md` (SA-series sibling; out-of-spec, complete + deployed; SA3 retargeting pending)
+
+Current tranche: **CD10 — Navigation Verify Pass** (held while 2026-05-04 reopens are processed)
+
+Reopened (2026-05-04) — pending fix work (full code-grounded entries in `Dashboard/Tunet/Docs/visual_defect_ledger.md` and `FIX_LEDGER.md` Session Delta 2026-05-04):
+- **CD6 reopened** — P0 lighting hold-then-drag contract violation; phone padding regression; missing all-on/off
+- **CD7 reopened** — rooms row variant orb sizing oversized; room composition shifts to dedicated subviews
+- **CD8 reopened** — weather forecast tiles use hardcoded px
+- **CD9 reopened** — media transport FF/RW track buttons silent no-op; media-card popup composition redesign
+- **CD11 escalated** — status summary matrix broadly visually broken (font fragmentation, density, dropdown quality)
+- **CC1 proposed** — cross-card consistency tranche (corners, icons, fonts, spacing); ghost-h-scroll likely owned here
+
+Previous tranches: CD9 (completed 2026-04-30; reopened 2026-05-04), CD8 (Apr 6; reopened 2026-05-04), CD7 (Apr 6; reopened 2026-05-04), CD6 (Apr 4; reopened 2026-05-04), CD5 (Apr 4), CD4 (Apr 4), CD3 (Apr 3), CD2 (Apr 3), CD1 (Apr 3), CD0 (Apr 3); SA0 (Apr 23), SA2/SA3/SA4 + alarm UX fixes (out-of-spec Apr 28–30; SA3 retargeting pending).
+
+## Session Delta (2026-05-04, custom-direction reaffirmation + comprehensive defect capture + popup-direction reversal)
+
+- `CURRENT STATE`
+  - 2026-05-04 was a **documentation-only** session — no code shipped. Goal was to capture user-reported defects in coherent, code-grounded form, and to reverse the popup direction lock from Browser Mod to Bubble Card 3.2-beta.1.
+  - Custom-card direction is **reaffirmed**: 9 cards stay custom on interaction-layer grounds (climate, light_tile, lighting, rooms, media, sonos, speaker_grid, alarm, inbox); remaining cards stay custom on visual identity grounds. May 3 hybrid-vs-custom evaluation closes here. Tunet HA theme idea was discussed but **deferred** — not pursued at this time.
+  - **P0 next** — lighting card hold-then-drag regression. Code-grounded as `tunet_lighting_card.js:1451-1534` calling `createAxisLockedDrag()` without `longPressMs` or `onLongPress`. Correct shape proven in `tunet_light_tile.js:783-823`. Apply fix when CD6 reopened becomes the active tranche.
+- `ARCHITECTURE DECISIONS LOCKED`
+  - **popup direction**: Browser Mod superseded by Bubble Card 3.2-beta.1 (`card_type: pop-up` standalone with `hash` activation). Three Bubble display modes: Adaptive (preferred default for in-card composition), Dialog (centered/modal), Adaptive dialog (hybrid). Adoption sequence in plan.md.
+  - **room composition**: rooms-card §3 Room Tiles updated to Option A — tap = toggle, hold = navigate to dedicated room subview page. "One-popup-per-room" lock superseded.
+- `DOCS UPDATED`
+  - `Dashboard/Tunet/Docs/visual_defect_ledger.md` (primary — Canonical Decision Matrix, 6+ Global cross-cutting bullets, per-card §4/§5/§7/§9/§10 additions, ghost-h-scroll captured)
+  - `Dashboard/Tunet/CLAUDE.md` (popup direction lock + room subview lock)
+  - `Dashboard/Tunet/Docs/cards_reference.md` §3 Room Tiles → Option A
+  - `plan.md` (this delta + reopen list + reaffirmed direction)
+  - `FIX_LEDGER.md` (top-of-file append rule added; defects queued)
+  - `handoff.md` (this section)
+- `PENDING FOR NEXT SESSION`
+  - plan.md / FIX_LEDGER.md / handoff.md restructure proposal awaiting user signoff (today's deltas are tight to avoid worsening sprawl until restructure is approved)
+  - governance updates: archive structure for historical session deltas; "Claude planning mode → plan.md" sync protocol; one-place tranche queue rule; documentation-routing audit
+- `READING ORDER FOR NEXT SESSION`
+  - this file (handoff.md) for current state
+  - `Dashboard/Tunet/Docs/visual_defect_ledger.md` Tranche-Owned Open Backlog (top of file) for queued work
+  - `~/.claude/plans/flickering-herding-wolf.md` for canonical CD0–CD12 program authority
+  - `Dashboard/Tunet/Docs/cards_reference.md` for per-card config + interaction contract
 
 ## Session Delta (2026-04-30, CD9 closeout — Media Bespoke Pass complete; CD10 next)
 

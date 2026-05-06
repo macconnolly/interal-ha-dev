@@ -42,6 +42,7 @@ const ENTRY_POINTS = [
   'tunet_speaker_grid_card.js',
   'tunet_nav_card.js',
   'tunet_status_card.js',
+  'tunet_alarm_card.js',
 ];
 
 // ─── Query string stripping plugin ──────────────────────────────────────

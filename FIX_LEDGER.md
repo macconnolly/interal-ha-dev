@@ -1,14 +1,38 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `tunet/inbox-integration`
-Last updated: 2026-04-30
+Last updated: 2026-05-04
 Scope: `/home/mac/HA/implementation_10`
 
-> **Out-of-spec side task — SA-series (recorded 2026-04-30):** SA0–SA4 + the alarm UX fixes (All On/All Off context-aware toggle, optimistic UI flip, Tunet-styled BrowserMod edit popup, parallel + verify-and-retry scripts) were deployed live but were completed **outside the active CD program**. The SA-series did not consume any CD-tranche slot. It was a one-off concession for an immediate user need (live alarm UX defects) and is not a precedent for further out-of-tranche work.
+> **Append rule (2026-05-04):** new fix entries go at the **TOP** of this file (immediately below this header block, above the most recent existing Session Delta). Reverse-chronological order is the contract — newest first, oldest last. Do not append to the bottom; do not interleave by date elsewhere. When a tranche closes, summarize its fixes in the corresponding plan-archive entry but leave the per-fix detail here.
+
+> **Out-of-spec side task — SA-series (recorded 2026-04-30):** SA0–SA4 + the alarm UX fixes were deployed live outside the active CD program. SA3 retargets to Bubble Card 3.2-beta.1 popup per 2026-05-04 architecture decision (see plan.md Session Delta 2026-05-04).
 
 Active execution plans:
 - `~/.claude/plans/flickering-herding-wolf.md` (root CD0–CD12 authority; current CD is CD10)
-- `~/.claude/plans/tunet-sonos-alarm-manage.md` (SA-series, sibling to CD12 surface assembly; out-of-spec, complete + deployed 2026-04-30)
+- `~/.claude/plans/tunet-sonos-alarm-manage.md` (SA-series, sibling to CD12 surface assembly; out-of-spec, complete + deployed 2026-04-30; SA3 retargeting pending)
+
+## Session Delta (2026-05-04, defect capture session — no code fixes shipped this session)
+
+This delta is documentation-only. No code was modified. The user's reported defects from prior sessions were captured into `Dashboard/Tunet/Docs/visual_defect_ledger.md` with code-grounded file:line evidence. Architecture decisions (popup-direction reversal, room-subview composition) were recorded in governance docs.
+
+- `DOCUMENTATION CHANGES (no fixes shipped)`
+  - `Dashboard/Tunet/Docs/visual_defect_ledger.md` — Canonical Decision Matrix updated; new tranche-owned entries for CD6/CD7/CD8/CD9 reopens, CD11 escalation, CC1 proposed; ghost-horizontal-scroll defect added; popup-direction architecture decision recorded; per-card additions §4 lighting / §5 rooms / §7 weather / §9 status / §10 media
+  - `Dashboard/Tunet/CLAUDE.md` Locked Direction Rules — popup direction → Bubble Card 3.2-beta.1; room composition → dedicated subviews; old language explicitly marked superseded
+  - `Dashboard/Tunet/Docs/cards_reference.md` §Interaction Model Contract §3 Room Tiles — updated to Option A (hold = navigate to subview)
+- `DEFECTS QUEUED FOR FIX (P0 + reopens)`
+  - **P0** — `tunet_lighting_card.js:1451-1534` `_initTileDrag()` missing `longPressMs`/`onLongPress` in `createAxisLockedDrag()` call. Fix shape proven in `tunet_light_tile.js:783-823`. Owner: CD6 reopened
+  - lighting phone-stress horizontal padding regression at `390x844`. Owner: CD6 reopened
+  - lighting all-on/off control missing — `tunet_lighting_card.js:1886` only computes `data-allOff` styling attribute. Owner: CD6 reopened
+  - rooms-card row variant orb sizing tokens (`tunet_rooms_card.js:69-70`: `--rooms-row-btn-size: 3.16em`, `--rooms-row-btn-icon-size: 1.62em`). Owner: CD7 reopened
+  - weather forecast tiles use hardcoded px (`tunet_weather_card.js:204,207-208`). Owner: CD8 reopened
+  - media transport buttons (FF/RW track) silent no-op — `tunet_media_card.js:792-795` wiring correct; investigate `_transportTarget` resolution + Sonos source-specific limits. Owner: CD9 reopened
+  - status summary matrix font fragmentation — 8+ bespoke font sizes across `tunet_status_card.js:262-643`. Owner: CD11 escalated
+  - ghost horizontal scroll at phone width (root cause TBD; likely nav-card phone bottom-dock pill or shared base CSS). Owner: CC1 or CD10
+- `STRATEGIC DECISION RECORDED`
+  - May 3 hybrid-vs-custom evaluation closed: 9 cards stay custom on interaction-layer grounds; remaining cards stay custom on visual identity grounds; Tunet HA theme idea deferred (not pursued); card_mod recognized as styling-only (does not substitute for interaction-layer work)
+- `NEXT IMMEDIATE FIX`
+  - **P0 lighting hold-then-drag regression** — anchor for CD6 reopened. Investigation order: git blame on `_initTileDrag` to identify when the hold gate was lost; reapply the `longPressMs: 500` + `onLongPress` callback shape from `tunet_light_tile.js:783-823`; live verify at locked breakpoints
 
 ## Session Delta (2026-04-30, CD9 closeout — Media Bespoke Pass complete; CD10 next)
 

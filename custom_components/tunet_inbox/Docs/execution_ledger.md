@@ -79,7 +79,8 @@ No issue is considered fully closed if the required evidence layer for its tranc
 | `TI4` | Sonos alarm-playing authoritative pilot | `Closed` | closed by authoritative writer/action/resolver proof, duplicate rejection proof, queue cleanup, and recorded live user feedback |
 | `TI4A` | Sonos evening alarm authoritative extraction | `Closed` | closed by authoritative writer/action proof, queue cleanup, restored alarm state, and recorded live user feedback |
 | `TI5A` | Sonos Apple TV auto-off authoritative extraction | `Closed` | closed by package-only authoritative cutover, script+automation reload, real phone and dashboard action proof, natural context-clear proof, duplicate replay rejection, and recorded live user feedback |
-| `TI5B` | OAL TV-family compare-mode retirement | `Ready to start` | intentionally sequenced after the Apple TV auto-off extraction because the current TI5 bucket has been split by mechanism |
+| `TI5A1` | Sonos Apple TV no-response timeout ownership | `Active` | package-only follow-on is in progress to turn the governed Apple TV flow off automatically after 15 minutes of no response |
+| `TI5B` | OAL TV-family compare-mode retirement | `Deferred by policy` | intentionally sequenced after the Apple TV timeout follow-on because the current TI5 bucket has been split by mechanism |
 | `TI5C` | OAL unified timer authoritative cutover | `Deferred by policy` | intentionally sequenced after the TV-family retirement because unified timer is a separate mechanism |
 | `TI6` | diagnostics, repairs, corruption handling | `Deferred by policy` | intentionally postponed until functional migration path is proven |
 
@@ -105,7 +106,8 @@ No issue is considered fully closed if the required evidence layer for its tranc
 | `TI4` | `TI4A` | hard | the evening-alarm extraction follows the alarm-playing pilot because the flows are structurally different |
 | `TI3` | `TI5A` | hard | Apple TV auto-off extraction waits on the OAL pilot proof and closed Sonos pilots |
 | `TI4A` | `TI5A` | hard | Apple TV auto-off extraction waits until the separate evening-alarm extraction closes |
-| `TI5A` | `TI5B` | policy | the next OAL tranche is sequenced after the known-broken Apple TV auto-off path is fixed |
+| `TI5A` | `TI5A1` | policy | the timeout ownership follow-on starts only after the governed Apple TV cutover closes |
+| `TI5A1` | `TI5B` | policy | the next OAL tranche is sequenced after the Apple TV timeout follow-on closes |
 | `TI5B` | `TI5C` | policy | unified timer cutover follows the TV-family compare-mode retirement |
 | `TI5C` | `TI6` | policy | hardening follows the main functional rollout |
 
@@ -132,6 +134,7 @@ No issue is considered fully closed if the required evidence layer for its tranc
 | Sonos alarm-playing authoritative pilot | first Sonos domain cutover | complete and live-proven | `TI4` | none |
 | Sonos evening alarm authoritative extraction | nightly Sonos prompt extraction from inline legacy mobile waits | complete and live-proven; the governed nightly prompt now owns phone and dashboard actions | `TI4A` | none |
 | Sonos Apple TV auto-off authoritative extraction | remove the legacy confirmable-notification bridge from the Apple TV inactivity flow | complete; the Apple TV inactivity flow now closes through governed post/respond/resolve behavior and final live user feedback is recorded | `TI5A` | none |
+| Sonos Apple TV no-response timeout ownership | add explicit 15-minute automatic turn-off ownership to the governed Apple TV inactivity flow | active follow-on after TI5A closeout | `TI5A1` | close `TINBOX-SONOS-4` |
 | OAL TV-family compare-mode retirement | retire compare-mode writers and raw mobile handlers for remaining TV-family flows | next ready tranche after TI5A closure | `TI5B` | close `TINBOX-OAL-3` |
 | OAL unified timer authoritative cutover | convert the unified timer arbiter from compare mode to authoritative ownership | intentionally sequenced after `TI5B` | `TI5C` | close `TINBOX-OAL-4` |
 | Diagnostics / repairs | supportability hardening | known future need, intentionally deferred | `TI6` | `TI5C` closes |
@@ -178,6 +181,7 @@ No issue is considered fully closed if the required evidence layer for its tranc
 | `TINBOX-SONOS-1` | `sonos_alarm_playing` still uses the current direct mobile path and has not been migrated to inbox-authoritative ownership | `Open implementation blocker` | `P2` | `Closed / superseded` | `TI4` | `TI3` | HA/live evidence | closed by removing the direct package-owned writer, proving real `tunet_inbox.post(send_mobile=true)` ownership, confirming phone and dashboard actions, confirming body tap opens the inbox, and returning the queue to `total: 0` after the second live test |
 | `TINBOX-SONOS-2` | `sonos_evening_alarm_check` still needed live proof after the package extraction away from direct `notify.notify`, dynamic raw mobile action ids, and inline `wait_for_trigger` into a governed inbox action path | `In-flight tranche work` | `P2` | `Closed / superseded` | `TI4A` | `TI4` | HA/live evidence | closed by governed phone/dash action proof, restored alarm state, queue cleanup to `meta.total: 0`, and recorded live user feedback |
 | `TINBOX-SONOS-3` | `sonos_apple_tv_auto_off` still needed HA/live proof after the package extraction away from `script.confirmable_notification` into an authoritative inbox lifecycle | `In-flight tranche work` | `P2` | `Closed / superseded` | `TI5A` | `TI4A` | HA/live evidence | closed by package deploy/reload, real phone keep/confirm proofs, dashboard-card `respond` proof, natural context-clear proof, duplicate replay rejection, and recorded live user feedback |
+| `TINBOX-SONOS-4` | `sonos_apple_tv_auto_off` still lacks an owned no-response timeout action, so ignored prompts do not auto-turn the Apple TV and eligible display off after 15 minutes | `Open implementation blocker` | `P2` | `In-flight tranche work` | `TI5A1` | `TI5A` | HA/live evidence | keep the timeout owner package-only, visible in the prompt copy, and governed by the existing Apple TV lifecycle |
 | `TINBOX-OAL-3` | Remaining OAL TV-family flows still dual-run compare-mode phone writers and shared raw mobile handlers after TI3's bounded synthetic TV proof | `Open implementation blocker` | `P2` | `Ready to start` | `TI5B` | `TI5A` | HA/live evidence | retire compare mode across the shared TV-family state machine with domain-real playback proof |
 | `TINBOX-OAL-4` | Unified timer expiry still dual-runs compare-mode phone writers and raw mobile handlers | `Open implementation blocker` | `P2` | `Deferred by policy` | `TI5C` | `TI5B` | HA/live evidence | convert unified timer expiry to authoritative ownership after TV-family retirement |
 | `TINBOX-HARDEN-1` | Diagnostics, repairs, and corruption handling are absent | `Deferred by policy` | `P3` | `Deferred by policy` | `TI6` | `TI5C` | docs + static + HA/live evidence | implement hardening tranche |
@@ -185,6 +189,12 @@ No issue is considered fully closed if the required evidence layer for its tranc
 | `TINBOX-TRACK-1` | Enhancement tracker did not match the new inbox question set | `Open contract gap` | `P1` | `Closed / superseded` | `TI0` | none | docs evidence | closed by `HA-References/tunet_inbox_enhancement_matrix.md` and deprecating the old dashboard tracker |
 
 ## Tranche-Owned Open Backlog
+
+### `TI5A1`
+
+- close `TINBOX-SONOS-4`
+- keep scope at `sonos_apple_tv_auto_off`
+- do not close the follow-on without recorded live user feedback and end-of-tranche live testing
 
 ### `TI5B`
 
@@ -226,7 +236,8 @@ No issue is considered fully closed if the required evidence layer for its tranc
 - `TI4` is closed
 - `TI4A` is closed
 - `TI5A` is closed
-- `TI5B` is now ready to start
+- `TI5A1` is now active
+- `TI5B` is frozen behind `TI5A1`
 - `TI5C` remains frozen behind `TI5B`
 - every `TI5*` closeout requires recorded final live user feedback and end-of-tranche testing
 

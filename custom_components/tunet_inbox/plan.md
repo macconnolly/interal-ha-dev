@@ -108,9 +108,10 @@ The `tunet_inbox` workstream executes in this order:
 13. `TI4` Sonos alarm-playing authoritative pilot
 14. `TI4A` Sonos evening alarm authoritative extraction
 15. `TI5A` Sonos Apple TV auto-off authoritative extraction
-16. `TI5B` OAL TV-family compare-mode retirement
-17. `TI5C` OAL unified timer authoritative cutover
-18. `TI6` diagnostics, repairs, corruption handling, rollout hardening
+16. `TI5A1` Sonos Apple TV no-response timeout ownership
+17. `TI5B` OAL TV-family compare-mode retirement
+18. `TI5C` OAL unified timer authoritative cutover
+19. `TI6` diagnostics, repairs, corruption handling, rollout hardening
 
 Do not skip ahead. The backend contract must be stable before migrating package logic or widening UI scope.
 The intentional exceptions are:
@@ -133,7 +134,8 @@ The intentional exceptions are:
 - `TI4` cannot start until `TI3` is closed.
 - `TI4A` cannot start until `TI4` is closed.
 - `TI5A` cannot start until `TI3`, `TI4`, and `TI4A` are closed.
-- `TI5B` cannot start until `TI5A` is closed.
+- `TI5A1` cannot start until `TI5A` is closed.
+- `TI5B` cannot start until `TI5A1` is closed.
 - `TI5C` cannot start until `TI5B` is closed.
 - `TI6` cannot start until `TI5C` is closed unless an emergency supportability blocker forces an exception.
 
@@ -168,9 +170,9 @@ Promotion requires the prior tranche to be explicitly closed against its exit cr
 ## Current Tranche
 
 - active tranche:
-  - none
+  - `TI5A1 — Sonos Apple TV No-Response Timeout Ownership`
 - current tranche state:
-  - no tranche is currently active
+  - `ACTIVE`
   - `TI3` is closed on:
     - removal of caller-supplied `mobile.url` route literals from the frozen OAL cutover set
     - live override-reminder writer proof plus dashboard action proof
@@ -206,8 +208,9 @@ Promotion requires the prior tranche to be explicitly closed against its exit cr
   - `TI5A — Sonos Apple TV Auto-Off Authoritative Extraction`
   - the last live Sonos dependency on `script.confirmable_notification` is removed from production use, and the Apple TV inactivity flow now closes end to end through governed inbox post/respond/resolve behavior
 - next promotion target:
-  - `TI5B — OAL TV-Family Compare-Mode Retirement`
-  - `TI5B` is now `READY TO START`
+  - none
+  - `TI5A1` is active
+  - `TI5B` remains frozen behind `TI5A1`
   - `TI5C` remains frozen behind `TI5B`
   - conclude each of the `TI5*` tranches with final live user feedback and end-of-tranche live testing recorded in governance
 - no `Dashboard/Tunet/**` tranche is active now
@@ -508,16 +511,36 @@ Promotion requires the prior tranche to be explicitly closed against its exit cr
 - deploy impact:
   - `HA PACKAGE RELOAD`
 
+### TI5A1 — Sonos Apple TV No-Response Timeout Ownership
+
+- status:
+  - `ACTIVE`
+- tranche doc:
+  - `custom_components/tunet_inbox/Docs/tranches/TI5A1_sonos_apple_tv_no_response_timeout.md`
+- purpose:
+  - add an explicit 15-minute no-response timeout owner to the governed Apple TV inactivity flow
+- cannot start until:
+  - `TI5A` closes
+- readiness note:
+  - the user explicitly requested automatic turn-off after 15 minutes of no response
+  - the clean implementation stays inside the package-owned Apple TV flow rather than reopening backend scope
+  - the timeout path must remain governed and must not reintroduce raw mobile waits
+- exit gate:
+  - `TINBOX-SONOS-4` is closed
+  - final live user feedback and end-of-tranche live testing are recorded in governance
+- deploy impact:
+  - `HA PACKAGE RELOAD`
+
 ### TI5B — OAL TV-Family Compare-Mode Retirement
 
 - status:
-  - `READY TO START`
+  - `PLANNED`
 - tranche doc:
   - `custom_components/tunet_inbox/Docs/tranches/TI5B_oal_tv_family_compare_mode_retirement.md`
 - purpose:
   - retire compare-mode writers and raw mobile handlers for the remaining OAL TV-family flows with domain-real playback proof
 - cannot start until:
-  - `TI5A` closes
+  - `TI5A1` closes
 - readiness note:
   - TI3 closed the TV prompt on bounded synthetic proof only
   - `oal_tv_mode_activated`, `oal_bridge_expiring`, and `oal_tv_presence_prompt` still dual-run compare mode inside one shared TV-family handler/resolver state machine

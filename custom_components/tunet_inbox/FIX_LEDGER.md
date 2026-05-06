@@ -3,6 +3,32 @@
 Working branch: `tunet/inbox-integration`  
 Last updated: 2026-04-20
 
+## Session Delta (2026-04-20, TI5A1 planning freeze — 15-minute no-response timeout)
+
+Change marker: add one narrow follow-on slice after TI5A closure so the Apple TV inactivity flow auto-turns off after 15 minutes of no governed response without reopening backend scope
+
+- `CHOSEN INTERPRETATION`
+  - this is not OAL TV-family work and should not pull `TI5B` forward
+  - it is also not a backend contract change:
+    - the integration already emits governed queue updates on post/respond/resolve/expire
+    - the Apple TV flow can own its timeout entirely inside the existing package script
+  - the clean behavior is explicit:
+    - tell the user in the prompt that no response for 15 minutes will auto-turn the devices off
+    - use governed queue state to wait for a response or resolver outcome
+    - if nothing happens, perform the same domain action and resolve the item cleanly
+- `CHOSEN IMPLEMENTATION`
+  - create `TI5A1` as a package-only follow-on between `TI5A` and `TI5B`
+  - keep the change inside `packages/sonos_package.yaml`
+  - extend `script.apple_tv_auto_off_notification` to:
+    - capture the posted item id
+    - wait for governed item movement
+    - on 15-minute timeout, turn off the Apple TV and eligible display and resolve the item
+  - preserve existing `SONOS_ATV_CONFIRM_OFF` / `SONOS_ATV_KEEP_ON` action ids
+- `RESULT`
+  - `TI5A1` is now the active tranche
+  - `TINBOX-SONOS-4` is now the owned blocker for this follow-on
+  - `TI5B` is pushed back behind `TI5A1`
+
 ## Session Delta (2026-04-20, TI5A closeout — Apple TV authoritative cutover live-proven)
 
 Change marker: close the split Apple TV tranche against real phone, dashboard, and resolver proof without reopening backend scope or widening into OAL TV-family work

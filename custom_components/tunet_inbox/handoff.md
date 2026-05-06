@@ -22,15 +22,19 @@ Working branch: `tunet/inbox-integration`
   - `TI4`
   - `TI4A`
 - Active tranche:
-  - none
-  - no tranche is currently active
+  - `TI5A1`
+  - status: `ACTIVE`
   - `TI5A` is closed:
     - `script.apple_tv_auto_off_notification` now posts via `tunet_inbox.post(send_mobile=true)`
     - the legacy `script.confirmable_notification` bridge is removed from the Apple TV auto-off path
     - a dedicated `tunet_inbox_action` handler owns `SONOS_ATV_CONFIRM_OFF` and `SONOS_ATV_KEEP_ON`
     - live proof passed for phone body tap, phone keep-on, phone confirm-off, dashboard-card `respond`, duplicate replay rejection, and natural context clear
     - final queue cleanup returned `tunet_inbox.list_items` to `meta.total: 0`
-  - `TI5B` is now `READY TO START` for the remaining OAL TV-family compare-mode retirement
+  - `TI5A1` now owns the Apple TV no-response timeout follow-on:
+    - add explicit 15-minute auto-turn-off ownership to the existing governed Apple TV flow
+    - keep the implementation package-only
+    - keep confirm and keep-on behavior intact
+  - `TI5B` remains queued behind `TI5A1` for the remaining OAL TV-family compare-mode retirement
   - `TI5C` remains queued behind `TI5B` for the unified timer authoritative cutover
   - each `TI5*` tranche must close with final live user feedback and end-of-tranche live testing recorded in governance
 - Latest closed tranche:
@@ -255,9 +259,9 @@ Working branch: `tunet/inbox-integration`
 
 ## Next Highest-Value Work
 
-1. start `TI5B` to retire compare-mode writers and raw mobile handlers across the remaining OAL TV-family flows
+1. execute `TI5A1` to add explicit 15-minute no-response auto-turn-off ownership to the governed Apple TV flow
 2. keep `TI4`, `TI4A`, and `TI5A` closed unless contradictory evidence appears
-3. promote `TI5B` when the next OAL TV-family tranche actually begins
+3. promote `TI5B` when `TI5A1` closes
 4. keep `TI5C` frozen behind `TI5B` instead of widening the next slice
 5. keep backend-owned inbox tap behavior as the authority for all new cutovers
 
@@ -291,6 +295,7 @@ Working branch: `tunet/inbox-integration`
 - TI3's TV prompt proof was bounded synthetic; later TV-family tranches still need domain-real playback proof before deleting adjacent compare-mode paths
 - do not broaden `TI4` to absorb `sonos_evening_alarm_check`; that flow is now explicitly owned by `TI4A`
 - do not reopen `TI5A` unless contradictory Apple TV evidence appears after closure
+- do not widen `TI5A1` into OAL TV-family or backend Python work
 - do not widen `TI5B` into unified-timer work
 - do not close any `TI5*` tranche on backend/package proof alone; record final live user feedback and end-of-tranche live testing before marking the tranche done
 - keep receipts and clears explicit; do not overload the queue with informational notifications
@@ -299,5 +304,6 @@ Working branch: `tunet/inbox-integration`
   - `TI4` = alarm-playing pilot
   - `TI4A` = evening alarm extraction
   - `TI5A` = Apple TV auto-off extraction
+  - `TI5A1` = Apple TV no-response timeout ownership
   - `TI5B` = OAL TV-family compare-mode retirement
   - `TI5C` = OAL unified timer authoritative cutover

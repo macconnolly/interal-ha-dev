@@ -114,6 +114,90 @@ Before claiming completion:
 - Validate behavior against explicit acceptance checks from `plan.md`/`handoff.md`.
 - For UI issues, include exact repro path and observed result.
 - Validate at locked breakpoints: 390×844 (mobile), 768×1024 (tablet), 1024×1366 (laptop), 1440×900 (desktop).
+- Visual verification is not satisfied by screenshots, automated probes, or overflow checks alone. For every UI/card/dashboard change, manually inspect every provided user image and every newly captured render for professional-grade dashboard quality: typography hierarchy, spacing rhythm, content semantics, truncation quality, touch target scale, alignment, density, visual balance, and any visible defect of any kind. Report the manual visual findings explicitly before claiming completion.
+
+## 6A) Pre-Commit User-Perspective Review (Non-Negotiable)
+
+This section encodes mandatory mechanical guardrails for any commit that touches user-visible UI (Tunet cards, dashboards, popups, themes). Created 2026-05-05 after a session where popup work was repeatedly declared "fixed" while shipping visible defects (black play button on white, fixed-height popup with empty space at one state and clipped content at another, generic titles that didn't reflect content). The rules below are mechanical, not advisory — they exist because advisory rules drifted into optimism.
+
+The pattern this section prevents: technical signals (`npm test passes`, harness probes pass) substituting for user signals; "you're right, here's what's broken" capitulation cycles; third-party defects rationalized as "documented limitations"; silent best-effort that ships visible defects.
+
+### M1) User-perspective screenshot review block — required before commit
+
+After any UI change, capture screenshots at minimum two breakpoints (mobile 390×844 + one of tablet/laptop/desktop) and read each one back into the conversation context (not just confirm capture succeeded). Then output this block in the conversation BEFORE the commit:
+
+```
+═══════════════════════════════════════════════════════════════
+USER-PERSPECTIVE REVIEW
+═══════════════════════════════════════════════════════════════
+Breakpoints captured: [list]
+Screenshots read back into context: [list paths]
+
+DEFECTS VISIBLE IN CAPTURED SCREENSHOTS:
+1. [defect] — at [breakpoint] — [blocker / visible / minor]
+... or, if none:
+N. Scanned for typography hierarchy, spacing rhythm, content
+   semantics, truncation, touch targets, alignment, density,
+   visual balance — no defect found because [specific reasoning].
+
+WOULD I BE HAPPY USING THIS ON MY PHONE IN MY LIVING ROOM?
+└─ Yes/No: [explicit answer with reasoning]
+
+Blockers MUST be resolved before commit.
+═══════════════════════════════════════════════════════════════
+```
+
+The user can see and challenge any claim in this block. Reading screenshots back into context (vs. just capturing them) is the load-bearing step — captured-but-unread screenshots are how visible defects survived the harness in the past.
+
+### M2) Banned completion phrases without same-turn artifact
+
+These phrases are banned unless paired with a user-visible artifact in the same response (screenshot read back, user-confirmed manual test, or the user's explicit go-ahead):
+
+- "verified" / "tested" / "validated"
+- "should work" / "should be fine"
+- "is fixed" / "looks good"
+- "deployed and ready" / "complete" / "done"
+
+When tempted to write any of these, treat it as a stop trigger and produce the artifact first. "Should" is the single highest-leverage optimism marker — when you write it, stop and verify.
+
+### M3) User holds the "done" stamp; agent never marks done autonomously
+
+Agent reports: `"Implemented X. Evidence: [artifacts]. Awaiting your review."`
+Agent does NOT autonomously write `"complete" / "done" / "verified"` in commits, summaries, governance docs, or status reports. Only the user marks done. This single rule eliminates the largest source of optimism drift because the agent stops mistaking "I did the work" for "the work is correct."
+
+Tranche-closure language (e.g. `CD11 — CLOSED`) requires explicit user confirmation in the same session. Do not write `CLOSED` autonomously.
+
+### M4) Pre-commit defect inventory — current state, not change delta
+
+Before any UI commit, list defects that exist in the CURRENT state of the surface — not what was fixed in this commit. Triage as:
+
+- `blocker` — must fix before commit
+- `visible` — acceptable now, recorded in `Dashboard/Tunet/Docs/visual_defect_ledger.md` for follow-up
+- `minor` — acceptable, recorded with lower priority
+
+Anything labeled `blocker` MUST be resolved before the commit. Victorious accounting of what was fixed without honest accounting of what remains broken is the failure mode this rule prevents.
+
+### M5) Third-party visual primitives are owned defects
+
+If the user sees a defect, it is the project's defect, regardless of whose code rendered the pixels. `"Documented as third-party limitation"` is NOT an acceptable disposition for a visible defect. Acceptable resolutions:
+
+1. Fork at source and fix
+2. Replace with native Tunet implementation
+3. Remove from the affected surface
+
+Never (4) document and accept. The phrase `"third-party limitation"` is the cognitive escape hatch that lets visible defects ship with a clean conscience — refuse it.
+
+### M6) Asymmetric uncertainty — fail closed for UI
+
+Default disposition for UI work: `"broken until proven otherwise with user-visible evidence."` False-negative cost (claim done when broken) >> false-positive cost (claim broken when fine). When uncertain, escalate to the user; do not push through silently.
+
+### M7) Definition-of-done in the tranche, evidence-bound
+
+Each tranche must define DoD as concrete evidence-bound criteria. Banned phrasing: `"polished and complete"` / `"looks good"` / `"acceptable quality"`. Required phrasing: screenshot at named breakpoints + defect inventory + user confirmation. If the DoD cannot be made evidence-bound, the tranche is not ready to start.
+
+### Companion: Pivot Signal
+
+If you cannot reach the user-visible quality bar without something you don't have (the user's eye in the loop, a different tool, a different architectural approach, a different scope), say so explicitly. The user has a standing offer to pivot rather than push through. See memory entry `feedback_pivot_signal.md`. Silent best-effort that ships defects is the failure mode this section exists to prevent.
 
 ## 7) Sections Layout Research Requirement
 

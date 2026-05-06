@@ -162,6 +162,7 @@ When the normalized section and the appendix differ, the normalized section wins
 - `Closed [CD9 subpass]`: volume routing now follows the selected target; grouped coordinator selection becomes the proportional group-volume target instead of forcing selected-speaker-only behavior.
 - `Closed [CD9 closeout]`: dropdown-first group-membership actions are the accepted interaction model for the media dropdown path and are no longer tracked as an open runtime blocker.
 - `Closed [CD9 closeout]`: album-art handling now prefers better HA image attributes and suppresses repeated retries of the same failed proxy URL.
+- `Closed [CD9 2026-04-30]`: latent rendering bugs fixed — `_getGroupedCount()` no longer recurses on its own return (dead `const groupedCount = this._getGroupedCount();` line removed); `_buildSpeakerMenu()` now declares `const groupedCount = this._getGroupedCount();` once at the top so the coordinator-row `speaker_group` icon swap and "{N} grouped" subtitle actually render when 2+ speakers are grouped (was silently broken — `undefined > 1` is always false). Live verification via fetched bundle at `?v=build_20260430_161421Z`.
 - `Non-blocking note`: a remaining single `media_player_proxy` `500` is backend-side first-failure behavior, not a Tunet-owned runtime defect.
 
 **11. `tunet-sonos-card`**

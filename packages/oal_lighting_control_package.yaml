@@ -573,6 +573,12 @@ input_datetime:
     has_time: true
     icon: mdi:message-clock-outline
 
+  oal_last_tv_mode_prompt_notification:
+    name: "OAL Last TV Mode Prompt Notification"
+    has_date: true
+    has_time: true
+    icon: mdi:television-guide
+
   oal_last_manual_control_at:
     name: "OAL Last Manual Control At"
     has_date: true
@@ -3632,6 +3638,8 @@ automation:
           session_active: "{{ is_state('input_boolean.oal_tv_follow_session_active', 'on') }}"
           prompt_pending: "{{ is_state('input_boolean.oal_tv_mode_prompt_pending', 'on') }}"
           prompt_declined: "{{ is_state('input_boolean.oal_tv_mode_prompt_declined', 'on') }}"
+          tv_prompt_last_notification_ts: "{{ as_timestamp(states('input_datetime.oal_last_tv_mode_prompt_notification'), 0) }}"
+          tv_prompt_debounce_passed: "{{ (now().timestamp() - tv_prompt_last_notification_ts) > 300 }}"
           sun_below: "{{ state_attr('sun.sun', 'elevation') | float(0) < -3 }}"
           presence_detected: >
             {{ expand('group.oal_tv_presence_sensors')
@@ -3663,6 +3671,8 @@ automation:
               session_active: "{{ is_state('input_boolean.oal_tv_follow_session_active', 'on') }}"
               prompt_pending: "{{ is_state('input_boolean.oal_tv_mode_prompt_pending', 'on') }}"
               prompt_declined: "{{ is_state('input_boolean.oal_tv_mode_prompt_declined', 'on') }}"
+              tv_prompt_last_notification_ts: "{{ as_timestamp(states('input_datetime.oal_last_tv_mode_prompt_notification'), 0) }}"
+              tv_prompt_debounce_passed: "{{ (now().timestamp() - tv_prompt_last_notification_ts) > 300 }}"
           - choose:
               - conditions: >
                   {{ player_state == 'playing'
@@ -3704,9 +3714,29 @@ automation:
                       message: "Lights adjusted for TV viewing."
                       data:
                         tag: "oal_tv_mode_activated"
+                        url: "/tunet-inbox-yaml/inbox"
                         actions:
                           - action: "OAL_TV_CANCEL_AUTOFOLLOW"
                             title: "Cancel"
+                  - service: tunet_inbox.post
+                    data:
+                      key: "oal_tv_mode_activated:living_room"
+                      title: "TV Mode Activated"
+                      message: "Lights adjusted for TV viewing."
+                      family: "oal"
+                      priority: 40
+                      severity: "notice"
+                      send_mobile: false
+                      actions:
+                        - id: "OAL_TV_CANCEL_AUTOFOLLOW"
+                          title: "Cancel"
+                      context:
+                        zone_id: "living_room"
+                        player_entity_id: "media_player.living_room_apple_tv"
+                        source_path: "startup_reconcile"
+                      mobile:
+                        tag: "oal_tv_mode_activated"
+                        url: "/tunet-inbox-yaml/inbox"
               - conditions: >
                   {{ player_state == 'playing'
                      and autofollow_enabled
@@ -3714,7 +3744,8 @@ automation:
                      and gate_setting == 'Ask First'
                      and config != 'TV Mode'
                      and not prompt_pending
-                     and not prompt_declined }}
+                     and not prompt_declined
+                     and tv_prompt_debounce_passed }}
                 sequence:
                   - service: input_boolean.turn_on
                     target:
@@ -3724,17 +3755,34 @@ automation:
                       entity_id: timer.oal_tv_mode_prompt
                     data:
                       duration: 600
-                  - service: notify.notify
+                  # TI3 only closed this prompt on bounded synthetic queue proof.
+                  # Keep adjacent TV-family compare-mode paths until a later tranche
+                  # proves the real playback path end-to-end.
+                  - service: tunet_inbox.post
                     data:
+                      key: "oal_tv_mode_prompt:living_room"
                       title: "TV Mode?"
                       message: "Apple TV is playing. Switch to TV lighting?"
-                      data:
+                      family: "oal"
+                      priority: 60
+                      severity: "warning"
+                      send_mobile: true
+                      actions:
+                        - id: "OAL_TV_ENTER"
+                          title: "Enter TV Mode"
+                        - id: "OAL_TV_DISMISS"
+                          title: "Not Now"
+                      context:
+                        zone_id: "living_room"
+                        player_entity_id: "media_player.living_room_apple_tv"
+                        source_path: "startup_reconcile"
+                      mobile:
                         tag: "oal_tv_mode_prompt"
-                        actions:
-                          - action: "OAL_TV_ENTER"
-                            title: "Enter TV Mode"
-                          - action: "OAL_TV_DISMISS"
-                            title: "Not Now"
+                  - service: input_datetime.set_datetime
+                    target:
+                      entity_id: input_datetime.oal_last_tv_mode_prompt_notification
+                    data:
+                      datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
               - conditions: "{{ player_state != 'playing' and session_active }}"
                 sequence:
                   - service: input_boolean.turn_off
@@ -3801,9 +3849,29 @@ automation:
               message: "Lights adjusted for TV viewing."
               data:
                 tag: "oal_tv_mode_activated"
+                url: "/tunet-inbox-yaml/inbox"
                 actions:
                   - action: "OAL_TV_CANCEL_AUTOFOLLOW"
                     title: "Cancel"
+          - service: tunet_inbox.post
+            data:
+              key: "oal_tv_mode_activated:living_room"
+              title: "TV Mode Activated"
+              message: "Lights adjusted for TV viewing."
+              family: "oal"
+              priority: 40
+              severity: "notice"
+              send_mobile: false
+              actions:
+                - id: "OAL_TV_CANCEL_AUTOFOLLOW"
+                  title: "Cancel"
+              context:
+                zone_id: "living_room"
+                player_entity_id: "media_player.living_room_apple_tv"
+                source_path: "tv_start"
+              mobile:
+                tag: "oal_tv_mode_activated"
+                url: "/tunet-inbox-yaml/inbox"
           - stop: "TV Mode activated via auto-follow"
 
       # --- ASK FIRST ---
@@ -3816,7 +3884,8 @@ automation:
                  and gate_passes
                  and config != 'TV Mode'
                  and not prompt_pending
-                 and not prompt_declined }}
+                 and not prompt_declined
+                 and tv_prompt_debounce_passed }}
         then:
           - service: input_boolean.turn_on
             target:
@@ -3826,17 +3895,34 @@ automation:
               entity_id: timer.oal_tv_mode_prompt
             data:
               duration: 600
-          - service: notify.notify
+          # TI3 only closed this prompt on bounded synthetic queue proof.
+          # Keep adjacent TV-family compare-mode paths until a later tranche
+          # proves the real playback path end-to-end.
+          - service: tunet_inbox.post
             data:
+              key: "oal_tv_mode_prompt:living_room"
               title: "TV Mode?"
               message: "Apple TV is playing. Switch to TV lighting?"
-              data:
+              family: "oal"
+              priority: 60
+              severity: "warning"
+              send_mobile: true
+              actions:
+                - id: "OAL_TV_ENTER"
+                  title: "Enter TV Mode"
+                - id: "OAL_TV_DISMISS"
+                  title: "Not Now"
+              context:
+                zone_id: "living_room"
+                player_entity_id: "media_player.living_room_apple_tv"
+                source_path: "tv_start_prompt"
+              mobile:
                 tag: "oal_tv_mode_prompt"
-                actions:
-                  - action: "OAL_TV_ENTER"
-                    title: "Enter TV Mode"
-                  - action: "OAL_TV_DISMISS"
-                    title: "Not Now"
+          - service: input_datetime.set_datetime
+            target:
+              entity_id: input_datetime.oal_last_tv_mode_prompt_notification
+            data:
+              datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
           - stop: "Ask First prompt sent"
 
       # --- TV STOP (single trigger, computed path) ---
@@ -3881,6 +3967,7 @@ automation:
                     Holding TV Bridge for {{ states('input_number.oal_tv_bridge_minutes') | int(10) }} minutes.
                   data:
                     tag: "oal_bridge_expiring"
+                    url: "/tunet-inbox-yaml/inbox"
                     actions:
                       - action: "OAL_BRIDGE_EXTEND"
                         title: "Extend Bridge"
@@ -3888,6 +3975,30 @@ automation:
                         title: "Return Adaptive"
                       - action: "OAL_BRIDGE_KEEP"
                         title: "Keep Current"
+              - service: tunet_inbox.post
+                data:
+                  key: "oal_bridge_expiring:living_room"
+                  title: "TV Bridge Started"
+                  message: >
+                    Holding TV Bridge for {{ states('input_number.oal_tv_bridge_minutes') | int(10) }} minutes.
+                  family: "oal"
+                  priority: 70
+                  severity: "warning"
+                  send_mobile: false
+                  actions:
+                    - id: "OAL_BRIDGE_EXTEND"
+                      title: "Extend Bridge"
+                    - id: "OAL_BRIDGE_RETURN"
+                      title: "Return Adaptive"
+                    - id: "OAL_BRIDGE_KEEP"
+                      title: "Keep Current"
+                  context:
+                    zone_id: "living_room"
+                    bridge_minutes: "{{ states('input_number.oal_tv_bridge_minutes') | int(10) }}"
+                    source_path: "tv_stop_bridge"
+                  mobile:
+                    tag: "oal_bridge_expiring"
+                    url: "/tunet-inbox-yaml/inbox"
               - stop: "TV Bridge started"
           - if: "{{ session_active }}"
             then:
@@ -3947,7 +4058,7 @@ automation:
                   entity_id: timer.oal_tv_presence_prompt
               - service: notify.notify
                 data:
-                  message: "Presence restored."
+                  message: "clear_notification"
                   data:
                     tag: "oal_tv_presence_prompt"
           - conditions: >
@@ -3978,7 +4089,7 @@ automation:
                           option: "Adaptive"
                       - service: notify.notify
                         data:
-                          message: "TV Mode exited due to presence loss."
+                          message: "clear_notification"
                           data:
                             tag: "oal_tv_presence_prompt"
                   - conditions: "{{ behavior == 'Prompt' and not presence_prompt_pending }}"
@@ -3997,11 +4108,33 @@ automation:
                           message: "Keep TV lighting active?"
                           data:
                             tag: "oal_tv_presence_prompt"
+                            url: "/tunet-inbox-yaml/inbox"
                             actions:
                               - action: "OAL_TV_PRESENCE_KEEP"
                                 title: "Keep TV Mode"
                               - action: "OAL_TV_PRESENCE_EXIT"
                                 title: "Return Adaptive"
+                      - service: tunet_inbox.post
+                        data:
+                          key: "oal_tv_presence_prompt:living_room"
+                          title: "No Presence Detected"
+                          message: "Keep TV lighting active?"
+                          family: "oal"
+                          priority: 65
+                          severity: "warning"
+                          send_mobile: false
+                          actions:
+                            - id: "OAL_TV_PRESENCE_KEEP"
+                              title: "Keep TV Mode"
+                            - id: "OAL_TV_PRESENCE_EXIT"
+                              title: "Return Adaptive"
+                          context:
+                            zone_id: "living_room"
+                            behavior: "{{ behavior }}"
+                            source_path: "presence_prompt"
+                          mobile:
+                            tag: "oal_tv_presence_prompt"
+                            url: "/tunet-inbox-yaml/inbox"
 
   # ---------------------------------------------------------------------------
   # 4.10 Sleep-mode schedule (sets input_select → Config Manager → Core Engine)
@@ -4355,40 +4488,94 @@ automation:
         entity_id: input_boolean.oal_system_paused
         state: "off"
     action:
-      - service: notify.notify
-        data:
-          title: "Lights Still Manual"
-          message: >
+      - variables:
+          oal_override_zones_csv: >
+            {{ state_attr('sensor.oal_system_status', 'overridden_zones') | default([], true) }}
+          oal_override_count: >
+            {{ state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0) }}
+          oal_override_message: >
             {{ state_attr('sensor.oal_system_status', 'overridden_zones') | join(', ') }}
             {{ 'is' if state_attr('sensor.oal_system_status', 'overridden_zones') | length == 1 else 'are' }}
             still manually controlled. Reset to adaptive?
-          data:
+          oal_override_expires_at: >
+            {{ (utcnow() + timedelta(hours=1)).isoformat() }}
+      - service: tunet_inbox.post
+        data:
+          key: "oal_override_reminder"
+          title: "Lights Still Manual"
+          message: "{{ oal_override_message }}"
+          family: "oal"
+          priority: 55
+          severity: "warning"
+          expires_at: "{{ oal_override_expires_at }}"
+          send_mobile: true
+          actions:
+            - id: "OAL_RESET_LIGHTS"
+              title: "Reset to Adaptive"
+            - id: "OAL_KEEP_MANUAL"
+              title: "Keep Manual"
+          context:
+            overridden_zones_csv: "{{ oal_override_zones_csv }}"
+            override_count: "{{ oal_override_count }}"
+          mobile:
             tag: "oal_override_reminder"
-            actions:
-              - action: "OAL_RESET_LIGHTS"
-                title: "Reset to Adaptive"
-              - action: "OAL_KEEP_MANUAL"
-                title: "Keep Manual"
-      - wait_for_trigger:
-          - platform: event
-            event_type: mobile_app_notification_action
-            event_data:
-              action: "OAL_RESET_LIGHTS"
-          - platform: event
-            event_type: mobile_app_notification_action
-            event_data:
-              action: "OAL_KEEP_MANUAL"
-        timeout: "01:00:00"
-        continue_on_timeout: true
+
+  - id: oal_v13_override_reminder_inbox_action_handler
+    alias: "OAL v13 - Override Reminder Inbox Action Handler"
+    mode: queued
+    max: 4
+    trigger:
+      - platform: event
+        event_type: tunet_inbox_action
+    condition:
+      - condition: template
+        value_template: >
+          {% set oal_override_action_id = trigger.event.data.action_id | default('', true) %}
+          {% set oal_override_key = trigger.event.data.key | default('', true) %}
+          {{ oal_override_key == 'oal_override_reminder'
+             and oal_override_action_id in ['OAL_RESET_LIGHTS', 'OAL_KEEP_MANUAL'] }}
+    action:
+      - variables:
+          oal_override_item_id: "{{ trigger.event.data.item_id | default('', true) }}"
+          oal_override_action_id: "{{ trigger.event.data.action_id | default('', true) }}"
       - choose:
-          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == 'OAL_RESET_LIGHTS' }}"
+          - conditions: >
+              {{ oal_override_action_id == 'OAL_RESET_LIGHTS'
+                 and (state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0)) > 0 }}
             sequence:
               - service: script.oal_reset_soft
-              - service: notify.notify
+              - service: tunet_inbox.resolve
                 data:
-                  message: "Lights reset to adaptive control."
-                  data:
-                    tag: "oal_override_reminder"
+                  item_id: "{{ oal_override_item_id }}"
+                  key: "{{ '' if oal_override_item_id != '' else 'oal_override_reminder' }}"
+                  reason: "oal_reset_soft_completed"
+          - conditions: "{{ oal_override_action_id == 'OAL_RESET_LIGHTS' }}"
+            sequence:
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ oal_override_item_id }}"
+                  key: "{{ '' if oal_override_item_id != '' else 'oal_override_reminder' }}"
+                  reason: "oal_overrides_already_cleared"
+          - conditions: "{{ oal_override_action_id == 'OAL_KEEP_MANUAL' }}"
+            sequence:
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ oal_override_item_id }}"
+                  key: "{{ '' if oal_override_item_id != '' else 'oal_override_reminder' }}"
+                  reason: "user_kept_manual"
+
+  - id: oal_v13_override_reminder_inbox_resolver
+    alias: "OAL v13 - Override Reminder Inbox Resolver"
+    mode: single
+    trigger:
+      - platform: template
+        value_template: >
+          {{ state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0) == 0 }}
+    action:
+      - service: tunet_inbox.resolve
+        data:
+          key: "oal_override_reminder"
+          reason: "oal_overrides_cleared"
 
   - id: oal_v13_override_expiring_notification
     alias: "OAL v13 - Override Expiring Soon Warning"
@@ -4408,44 +4595,113 @@ automation:
         entity_id: sun.sun
         state: "below_horizon"
     action:
-      - service: notify.notify
+      - variables:
+          oal_override_zone_id: "{{ state_attr('sensor.oal_soonest_override', 'zone_id') | default('unknown', true) }}"
+          oal_override_zone_name: "{{ state_attr('sensor.oal_soonest_override', 'zone_friendly') | default('Unknown', true) }}"
+          oal_override_remaining_label: "{{ states('sensor.oal_soonest_override') }}"
+          oal_override_remaining_secs: "{{ state_attr('sensor.oal_soonest_override', 'seconds_remaining') | int(0) }}"
+          oal_override_expires_at: "{{ (utcnow() + timedelta(minutes=5)).isoformat() }}"
+      - service: tunet_inbox.post
         data:
+          key: "oal_override_expiring:{{ oal_override_zone_id }}"
           title: "OAL Override Expiring"
-          message: >
-            {{ state_attr('sensor.oal_soonest_override', 'zone_friendly') }}
-            returning to adaptive in {{ states('sensor.oal_soonest_override') }}.
-          data:
+          message: "{{ oal_override_zone_name }} returning to adaptive in {{ oal_override_remaining_label }}."
+          family: "oal"
+          priority: 75
+          severity: "warning"
+          expires_at: "{{ oal_override_expires_at }}"
+          send_mobile: true
+          actions:
+            - id: "OAL_EXTEND_OVERRIDE"
+              title: "Extend 1 Hour"
+            - id: "OAL_LET_EXPIRE"
+              title: "Let Expire"
+          context:
+            zone_id: "{{ oal_override_zone_id }}"
+            zone_name: "{{ oal_override_zone_name }}"
+            seconds_remaining: "{{ oal_override_remaining_secs }}"
+          mobile:
             tag: "oal_override_expiring"
-            actions:
-              - action: "OAL_EXTEND_OVERRIDE"
-                title: "Extend 1 Hour"
-              - action: "OAL_LET_EXPIRE"
-                title: "Let Expire"
-      - wait_for_trigger:
-          - platform: event
-            event_type: mobile_app_notification_action
-            event_data:
-              action: "OAL_EXTEND_OVERRIDE"
-          - platform: event
-            event_type: mobile_app_notification_action
-            event_data:
-              action: "OAL_LET_EXPIRE"
-        timeout: "00:05:00"
-        continue_on_timeout: true
+
+  - id: oal_v13_override_expiring_inbox_action_handler
+    alias: "OAL v13 - Override Expiring Inbox Action Handler"
+    mode: queued
+    max: 4
+    trigger:
+      - platform: event
+        event_type: tunet_inbox_action
+    condition:
+      - condition: template
+        value_template: >
+          {% set oal_override_action_id = trigger.event.data.action_id | default('', true) %}
+          {% set oal_override_key = trigger.event.data.key | default('', true) %}
+          {{ oal_override_action_id in ['OAL_EXTEND_OVERRIDE', 'OAL_LET_EXPIRE']
+             and (oal_override_key.startswith('oal_override_expiring:') or oal_override_key == '') }}
+    action:
+      - variables:
+          oal_override_item_id: "{{ trigger.event.data.item_id | default('', true) }}"
+          oal_override_action_id: "{{ trigger.event.data.action_id | default('', true) }}"
+          oal_override_zone_id: "{{ trigger.event.data.context.zone_id | default(state_attr('sensor.oal_soonest_override', 'zone_id') | default('', true), true) }}"
+          oal_override_current_zone_id: "{{ state_attr('sensor.oal_soonest_override', 'zone_id') | default('', true) }}"
+          oal_override_current_secs: "{{ state_attr('sensor.oal_soonest_override', 'seconds_remaining') | int(0) }}"
+          oal_override_zone_switch: "{{ 'switch.adaptive_lighting_' ~ oal_override_zone_id }}"
+          oal_override_resolve_key: "{{ 'oal_override_expiring:' ~ oal_override_zone_id if oal_override_zone_id not in ['', 'unknown', 'unavailable', 'None'] else '' }}"
+          oal_override_zone_valid: >
+            {{ oal_override_zone_id not in ['', 'unknown', 'unavailable', 'None']
+               and oal_override_zone_id == oal_override_current_zone_id
+               and oal_override_current_secs > 0
+               and states(oal_override_zone_switch) not in ['unknown', 'unavailable'] }}
       - choose:
-          - conditions: "{{ wait.trigger and wait.trigger.event.data.action == 'OAL_EXTEND_OVERRIDE' }}"
+          - conditions: "{{ oal_override_action_id == 'OAL_EXTEND_OVERRIDE' and oal_override_zone_valid }}"
             sequence:
               - service: adaptive_lighting.set_manual_control
                 target:
-                  entity_id: >
-                    switch.adaptive_lighting_{{ state_attr('sensor.oal_soonest_override', 'zone_id') }}
+                  entity_id: "{{ oal_override_zone_switch }}"
                 data:
                   manual_control: true
-              - service: notify.notify
+              - service: tunet_inbox.resolve
                 data:
-                  message: "Override extended for 1 hour."
-                  data:
-                    tag: "oal_override_expiring"
+                  item_id: "{{ oal_override_item_id }}"
+                  key: "{{ '' if oal_override_item_id != '' else oal_override_resolve_key }}"
+                  reason: "override_extended"
+          - conditions: "{{ oal_override_action_id == 'OAL_EXTEND_OVERRIDE' }}"
+            sequence:
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ oal_override_item_id }}"
+                  key: "{{ '' if oal_override_item_id != '' else oal_override_resolve_key }}"
+                  reason: "override_already_cleared_or_rotated"
+          - conditions: "{{ oal_override_action_id == 'OAL_LET_EXPIRE' }}"
+            sequence:
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ oal_override_item_id }}"
+                  key: "{{ '' if oal_override_item_id != '' else oal_override_resolve_key }}"
+                  reason: "user_let_override_expire"
+
+  - id: oal_v13_override_expiring_inbox_resolver
+    alias: "OAL v13 - Override Expiring Inbox Resolver"
+    mode: queued
+    max: 10
+    trigger:
+      - platform: state
+        entity_id: sensor.oal_soonest_override
+    action:
+      - variables:
+          oal_override_previous_zone_id: "{{ trigger.from_state.attributes.zone_id | default('', true) if trigger.from_state else '' }}"
+          oal_override_current_zone_id: "{{ trigger.to_state.attributes.zone_id | default('', true) if trigger.to_state else '' }}"
+          oal_override_current_secs: "{{ trigger.to_state.attributes.seconds_remaining | default(0, true) | int(0) if trigger.to_state else 0 }}"
+      - condition: template
+        value_template: >
+          {{ oal_override_previous_zone_id not in ['', 'unknown', 'unavailable', 'None']
+             and (oal_override_current_zone_id != oal_override_previous_zone_id or oal_override_current_secs <= 0) }}
+      - service: tunet_inbox.resolve
+        data:
+          key: "oal_override_expiring:{{ oal_override_previous_zone_id }}"
+          reason: >
+            {{ 'override_expired'
+               if oal_override_current_zone_id == oal_override_previous_zone_id and oal_override_current_secs <= 0
+               else 'override_rotated_or_cleared' }}
 
   # -------------------------------------------------------------------------
   # Auto-switch to "Manual" config when lights are manually controlled
@@ -4767,6 +5023,7 @@ automation:
           message: "Returning to {{ return_mode }} in 5 minutes unless extended."
           data:
             tag: "oal_bridge_expiring"
+            url: "/tunet-inbox-yaml/inbox"
             actions:
               - action: "OAL_BRIDGE_EXTEND"
                 title: "Extend Bridge"
@@ -4774,6 +5031,29 @@ automation:
                 title: "Return Adaptive"
               - action: "OAL_BRIDGE_KEEP"
                 title: "Keep Current"
+      - service: tunet_inbox.post
+        data:
+          key: "oal_bridge_expiring:living_room"
+          title: "TV Bridge Ending"
+          message: "Returning to {{ return_mode }} in 5 minutes unless extended."
+          family: "oal"
+          priority: 70
+          severity: "warning"
+          send_mobile: false
+          actions:
+            - id: "OAL_BRIDGE_EXTEND"
+              title: "Extend Bridge"
+            - id: "OAL_BRIDGE_RETURN"
+              title: "Return Adaptive"
+            - id: "OAL_BRIDGE_KEEP"
+              title: "Keep Current"
+          context:
+            zone_id: "living_room"
+            return_mode: "{{ return_mode }}"
+            source_path: "bridge_ending"
+          mobile:
+            tag: "oal_bridge_expiring"
+            url: "/tunet-inbox-yaml/inbox"
       - delay: "00:05:00"
       - if:
           - condition: state
@@ -4798,7 +5078,7 @@ automation:
               option: "{{ return_mode }}"
           - service: notify.notify
             data:
-              message: "TV Bridge expired - returned to {{ return_mode }}."
+              message: "clear_notification"
               data:
                 tag: "oal_bridge_expiring"
 
@@ -4845,14 +5125,19 @@ automation:
           action: "OAL_TV_CANCEL_AUTOFOLLOW"
         id: "cancel_tv"
       - platform: event
-        event_type: mobile_app_notification_action
+        event_type: tunet_inbox_action
         event_data:
-          action: "OAL_TV_ENTER"
+          action_id: "OAL_TV_CANCEL_AUTOFOLLOW"
+        id: "cancel_tv"
+      - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "OAL_TV_ENTER"
         id: "enter_tv"
       - platform: event
-        event_type: mobile_app_notification_action
+        event_type: tunet_inbox_action
         event_data:
-          action: "OAL_TV_DISMISS"
+          action_id: "OAL_TV_DISMISS"
         id: "dismiss_tv"
       - platform: event
         event_type: mobile_app_notification_action
@@ -4860,9 +5145,19 @@ automation:
           action: "OAL_BRIDGE_EXTEND"
         id: "bridge_extend"
       - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "OAL_BRIDGE_EXTEND"
+        id: "bridge_extend"
+      - platform: event
         event_type: mobile_app_notification_action
         event_data:
           action: "OAL_BRIDGE_RETURN"
+        id: "bridge_return"
+      - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "OAL_BRIDGE_RETURN"
         id: "bridge_return"
       - platform: event
         event_type: mobile_app_notification_action
@@ -4870,14 +5165,29 @@ automation:
           action: "OAL_BRIDGE_KEEP"
         id: "bridge_keep"
       - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "OAL_BRIDGE_KEEP"
+        id: "bridge_keep"
+      - platform: event
         event_type: mobile_app_notification_action
         event_data:
           action: "OAL_TV_PRESENCE_KEEP"
         id: "presence_keep"
       - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "OAL_TV_PRESENCE_KEEP"
+        id: "presence_keep"
+      - platform: event
         event_type: mobile_app_notification_action
         event_data:
           action: "OAL_TV_PRESENCE_EXIT"
+        id: "presence_exit"
+      - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "OAL_TV_PRESENCE_EXIT"
         id: "presence_exit"
       - platform: event
         event_type: timer.finished
@@ -4896,6 +5206,7 @@ automation:
           bridge_active: "{{ is_state('input_boolean.oal_tv_bridge_active', 'on') }}"
           bridge_timer_state: "{{ states('timer.oal_tv_bridge_timer') }}"
           presence_still_off: "{{ is_state('group.oal_tv_presence_sensors', 'off') }}"
+          inbox_item_id: "{{ trigger.event.data.item_id | default('', true) }}"
           tv_session_owned: >
             {{ is_state('input_boolean.oal_tv_follow_session_active', 'on')
                or is_state('input_boolean.oal_tv_bridge_active', 'on') }}
@@ -4926,9 +5237,14 @@ automation:
                       option: "Adaptive"
               - service: notify.notify
                 data:
-                  message: "Returned to Adaptive."
+                  message: "clear_notification"
                   data:
                     tag: "oal_tv_mode_activated"
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_tv_mode_activated:living_room' }}"
+                  reason: "tv_cancelled"
 
           - conditions: "{{ trigger.id == 'enter_tv' }}"
             sequence:
@@ -4976,11 +5292,11 @@ automation:
                   entity_id:
                     - timer.oal_tv_mode_prompt
                     - timer.oal_tv_presence_prompt
-              - service: notify.notify
+              - service: tunet_inbox.resolve
                 data:
-                  message: "TV Mode activated."
-                  data:
-                    tag: "oal_tv_mode_prompt"
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_tv_mode_prompt:living_room' }}"
+                  reason: "tv_prompt_accepted"
 
           - conditions: "{{ trigger.id == 'dismiss_tv' }}"
             sequence:
@@ -4993,17 +5309,21 @@ automation:
               - service: timer.cancel
                 target:
                   entity_id: timer.oal_tv_mode_prompt
-              - service: notify.notify
+              - service: tunet_inbox.resolve
                 data:
-                  message: "TV prompt dismissed."
-                  data:
-                    tag: "oal_tv_mode_prompt"
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_tv_mode_prompt:living_room' }}"
+                  reason: "tv_prompt_dismissed"
 
           - conditions: "{{ trigger.id == 'prompt_timeout' }}"
             sequence:
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_tv_mode_prompt_pending
+              - service: tunet_inbox.resolve
+                data:
+                  key: "oal_tv_mode_prompt:living_room"
+                  reason: "tv_prompt_timed_out"
 
           - conditions: "{{ trigger.id == 'bridge_extend' }}"
             sequence:
@@ -5016,9 +5336,14 @@ automation:
                       duration: "{{ (states('input_number.oal_tv_bridge_minutes') | float(10) * 60) | int }}"
                   - service: notify.notify
                     data:
-                      message: "Bridge extended."
+                      message: "clear_notification"
                       data:
                         tag: "oal_bridge_expiring"
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_bridge_expiring:living_room' }}"
+                  reason: "bridge_extend_processed"
 
           - conditions: "{{ trigger.id == 'bridge_return' }}"
             sequence:
@@ -5039,9 +5364,14 @@ automation:
                       option: "Adaptive"
                   - service: notify.notify
                     data:
-                      message: "Returned to Adaptive."
+                      message: "clear_notification"
                       data:
                         tag: "oal_bridge_expiring"
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_bridge_expiring:living_room' }}"
+                  reason: "bridge_return_processed"
 
           - conditions: "{{ trigger.id == 'bridge_keep' }}"
             sequence:
@@ -5053,7 +5383,7 @@ automation:
                         sequence:
                           - service: notify.notify
                             data:
-                              message: "Keeping TV Bridge active with timer."
+                              message: "clear_notification"
                               data:
                                 tag: "oal_bridge_expiring"
                     # If no active bridge timer exists, fail safe back to Adaptive.
@@ -5073,9 +5403,14 @@ automation:
                           option: "Adaptive"
                       - service: notify.notify
                         data:
-                          message: "No bridge timer active. Returned to Adaptive."
+                          message: "clear_notification"
                           data:
                             tag: "oal_bridge_expiring"
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_bridge_expiring:living_room' }}"
+                  reason: "bridge_keep_processed"
 
           - conditions: "{{ trigger.id == 'presence_keep' }}"
             sequence:
@@ -5087,9 +5422,14 @@ automation:
                   entity_id: timer.oal_tv_presence_prompt
               - service: notify.notify
                 data:
-                  message: "Keeping TV mode active."
+                  message: "clear_notification"
                   data:
                     tag: "oal_tv_presence_prompt"
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_tv_presence_prompt:living_room' }}"
+                  reason: "presence_prompt_kept"
 
           - conditions: "{{ trigger.id == 'presence_exit' }}"
             sequence:
@@ -5111,9 +5451,14 @@ automation:
                   option: "Adaptive"
               - service: notify.notify
                 data:
-                  message: "Returned to Adaptive."
+                  message: "clear_notification"
                   data:
                     tag: "oal_tv_presence_prompt"
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_tv_presence_prompt:living_room' }}"
+                  reason: "presence_prompt_exited"
 
           - conditions: "{{ trigger.id == 'presence_prompt_timeout' }}"
             sequence:
@@ -5137,13 +5482,66 @@ automation:
                       option: "Adaptive"
                   - service: notify.notify
                     data:
-                      message: "No response to presence prompt. Returned to Adaptive."
+                      message: "clear_notification"
                       data:
                         tag: "oal_tv_presence_prompt"
                 else:
                   - service: input_boolean.turn_off
                     target:
                       entity_id: input_boolean.oal_tv_presence_prompt_pending
+                  - service: notify.notify
+                    data:
+                      message: "clear_notification"
+                      data:
+                        tag: "oal_tv_presence_prompt"
+              - service: tunet_inbox.resolve
+                data:
+                  key: "oal_tv_presence_prompt:living_room"
+                  reason: "presence_prompt_timed_out"
+
+  - id: oal_v14_tv_inbox_shadow_resolver
+    alias: "OAL v14 - TV Inbox Shadow Resolver"
+    mode: queued
+    max: 10
+    trigger:
+      - platform: state
+        entity_id:
+          - input_select.oal_active_configuration
+          - input_boolean.oal_tv_mode_prompt_pending
+          - input_boolean.oal_tv_presence_prompt_pending
+          - input_boolean.oal_tv_bridge_active
+          - media_player.living_room_apple_tv
+    action:
+      - variables:
+          active_config: "{{ states('input_select.oal_active_configuration') }}"
+          player_state: "{{ states('media_player.living_room_apple_tv') | lower }}"
+          mode_prompt_pending: "{{ is_state('input_boolean.oal_tv_mode_prompt_pending', 'on') }}"
+          presence_prompt_pending: "{{ is_state('input_boolean.oal_tv_presence_prompt_pending', 'on') }}"
+          bridge_active: "{{ is_state('input_boolean.oal_tv_bridge_active', 'on') }}"
+      - if: "{{ active_config != 'TV Mode' }}"
+        then:
+          - service: tunet_inbox.resolve
+            data:
+              key: "oal_tv_mode_activated:living_room"
+              reason: "tv_mode_context_cleared"
+      - if: "{{ not mode_prompt_pending or player_state != 'playing' or active_config == 'TV Mode' }}"
+        then:
+          - service: tunet_inbox.resolve
+            data:
+              key: "oal_tv_mode_prompt:living_room"
+              reason: "tv_prompt_context_cleared"
+      - if: "{{ not bridge_active or active_config != 'TV Bridge' }}"
+        then:
+          - service: tunet_inbox.resolve
+            data:
+              key: "oal_bridge_expiring:living_room"
+              reason: "tv_bridge_context_cleared"
+      - if: "{{ not presence_prompt_pending or active_config not in ['TV Mode', 'TV Bridge'] or player_state not in ['playing', 'paused', 'idle'] }}"
+        then:
+          - service: tunet_inbox.resolve
+            data:
+              key: "oal_tv_presence_prompt:living_room"
+              reason: "tv_presence_prompt_context_cleared"
 
   # -------------------------------------------------------------------------
   # 4.19 Unified Timer Notification Arbiter
@@ -5216,6 +5614,7 @@ automation:
             {% endif %}
           data:
             tag: "oal_timer_expiring"
+            url: "/tunet-inbox-yaml/inbox"
             actions:
               - action: "OAL_EXTEND_MODE"
                 title: "Extend Mode"
@@ -5227,6 +5626,51 @@ automation:
                 title: "Return Adaptive"
               - action: "OAL_LET_EXPIRE"
                 title: "Let Expire"
+      - service: tunet_inbox.post
+        data:
+          key: "oal_timer_expiring"
+          title: >
+            {% if both_expiring %}
+              OAL Timers Expiring
+            {% elif mode_expiring %}
+              OAL Mode Expiring
+            {% else %}
+              OAL Zone Expiring
+            {% endif %}
+          message: >
+            {% if both_expiring %}
+              Mode: {{ (mode_remaining / 60) | round(0) }}min ({{ mode_name }}). Zone: {{ (zone_remaining / 60) | round(0) }}min ({{ zone_name }}).
+            {% elif mode_expiring %}
+              {{ mode_name }}: {{ (mode_remaining / 60) | round(0) }}min remaining.
+            {% else %}
+              {{ zone_name }}: {{ (zone_remaining / 60) }}min remaining.
+            {% endif %}
+          family: "oal"
+          priority: 80
+          severity: "warning"
+          dedupe_policy: "refresh"
+          send_mobile: false
+          actions:
+            - id: "OAL_EXTEND_MODE"
+              title: "Extend Mode"
+            - id: "OAL_EXTEND_ZONE"
+              title: "Extend Zone"
+            - id: "OAL_EXTEND_BOTH"
+              title: "Extend Both"
+            - id: "OAL_RETURN_ADAPTIVE"
+              title: "Return Adaptive"
+            - id: "OAL_LET_EXPIRE"
+              title: "Let Expire"
+          context:
+            mode_expiring: "{{ mode_expiring }}"
+            mode_name: "{{ mode_name }}"
+            mode_remaining_seconds: "{{ mode_remaining }}"
+            zone_expiring: "{{ zone_expiring }}"
+            zone_name: "{{ zone_name }}"
+            zone_remaining_seconds: "{{ zone_remaining }}"
+          mobile:
+            tag: "oal_timer_expiring"
+            url: "/tunet-inbox-yaml/inbox"
       - service: input_datetime.set_datetime
         target:
           entity_id: input_datetime.oal_last_timeout_notification
@@ -5246,9 +5690,19 @@ automation:
           action: "OAL_EXTEND_MODE"
         id: "extend_mode"
       - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "OAL_EXTEND_MODE"
+        id: "extend_mode"
+      - platform: event
         event_type: mobile_app_notification_action
         event_data:
           action: "OAL_EXTEND_ZONE"
+        id: "extend_zone"
+      - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "OAL_EXTEND_ZONE"
         id: "extend_zone"
       - platform: event
         event_type: mobile_app_notification_action
@@ -5256,17 +5710,33 @@ automation:
           action: "OAL_EXTEND_BOTH"
         id: "extend_both"
       - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "OAL_EXTEND_BOTH"
+        id: "extend_both"
+      - platform: event
         event_type: mobile_app_notification_action
         event_data:
           action: "OAL_RETURN_ADAPTIVE"
+        id: "return_adaptive"
+      - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "OAL_RETURN_ADAPTIVE"
         id: "return_adaptive"
       - platform: event
         event_type: mobile_app_notification_action
         event_data:
           action: "OAL_LET_EXPIRE"
         id: "let_expire"
+      - platform: event
+        event_type: tunet_inbox_action
+        event_data:
+          action_id: "OAL_LET_EXPIRE"
+        id: "let_expire"
     action:
       - variables:
+          inbox_item_id: "{{ trigger.event.data.item_id | default('', true) }}"
           mode_timeout_enabled: "{{ is_state('input_boolean.oal_mode_timeout_enabled', 'on') }}"
           mode_timeout_secs: "{{ (states('input_number.oal_control_mode_timeout_hours') | float(4) * 3600) | int }}"
           mode_eligible: >
@@ -5297,15 +5767,20 @@ automation:
                           option: "armed"
                       - service: notify.notify
                         data:
-                          message: "Mode timeout extended."
+                          message: "clear_notification"
                           data:
                             tag: "oal_timer_expiring"
                 default:
                   - service: notify.notify
                     data:
-                      message: "Mode extension unavailable in current mode."
+                      message: "clear_notification"
                       data:
                         tag: "oal_timer_expiring"
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_timer_expiring' }}"
+                  reason: "mode_extension_processed"
 
           - conditions: "{{ trigger.id == 'extend_zone' }}"
             sequence:
@@ -5319,15 +5794,20 @@ automation:
                           manual_control: true
                       - service: notify.notify
                         data:
-                          message: "Zone override extended: {{ zone_name }}."
+                          message: "clear_notification"
                           data:
                             tag: "oal_timer_expiring"
                 default:
                   - service: notify.notify
                     data:
-                      message: "Zone extension unavailable."
+                      message: "clear_notification"
                       data:
                         tag: "oal_timer_expiring"
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_timer_expiring' }}"
+                  reason: "zone_extension_processed"
 
           - conditions: "{{ trigger.id == 'extend_both' }}"
             sequence:
@@ -5355,29 +5835,34 @@ automation:
                     sequence:
                       - service: notify.notify
                         data:
-                          message: "Mode and zone timers extended."
+                          message: "clear_notification"
                           data:
                             tag: "oal_timer_expiring"
                   - conditions: "{{ mode_eligible and not zone_eligible }}"
                     sequence:
                       - service: notify.notify
                         data:
-                          message: "Mode timeout extended; zone extension unavailable."
+                          message: "clear_notification"
                           data:
                             tag: "oal_timer_expiring"
                   - conditions: "{{ not mode_eligible and zone_eligible }}"
                     sequence:
                       - service: notify.notify
                         data:
-                          message: "Zone override extended; mode extension unavailable."
+                          message: "clear_notification"
                           data:
                             tag: "oal_timer_expiring"
                 default:
                   - service: notify.notify
                     data:
-                      message: "Mode and zone extensions unavailable."
+                      message: "clear_notification"
                       data:
                         tag: "oal_timer_expiring"
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_timer_expiring' }}"
+                  reason: "mode_and_zone_extension_processed"
 
           - conditions: "{{ trigger.id == 'return_adaptive' }}"
             sequence:
@@ -5388,17 +5873,68 @@ automation:
                   option: "Adaptive"
               - service: notify.notify
                 data:
-                  message: "Returned to Adaptive."
+                  message: "clear_notification"
                   data:
                     tag: "oal_timer_expiring"
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_timer_expiring' }}"
+                  reason: "returned_to_adaptive"
 
           - conditions: "{{ trigger.id == 'let_expire' }}"
             sequence:
               - service: notify.notify
                 data:
-                  message: "Timers will expire naturally."
+                  message: "clear_notification"
                   data:
                     tag: "oal_timer_expiring"
+              - service: tunet_inbox.resolve
+                data:
+                  item_id: "{{ inbox_item_id }}"
+                  key: "{{ '' if inbox_item_id != '' else 'oal_timer_expiring' }}"
+                  reason: "timers_left_to_expire"
+
+  - id: oal_v14_timer_notification_shadow_resolver
+    alias: "OAL v14 - Timer Notification Shadow Resolver"
+    mode: queued
+    max: 10
+    trigger:
+      - platform: state
+        entity_id:
+          - input_select.oal_active_configuration
+          - timer.oal_mode_timeout
+          - sensor.oal_soonest_override
+          - sun.sun
+    action:
+      - variables:
+          active_config: "{{ states('input_select.oal_active_configuration') }}"
+          mode_timer_state: "{{ states('timer.oal_mode_timeout') }}"
+          mode_remaining_raw: "{{ state_attr('timer.oal_mode_timeout', 'remaining') | default('0:00:00') }}"
+          mode_remaining: >
+            {% if mode_timer_state == 'active' %}
+              {% set parts = mode_remaining_raw.split(':') %}
+              {% if parts | length == 3 %}
+                {{ (parts[0] | int(0)) * 3600 + (parts[1] | int(0)) * 60 + (parts[2] | int(0)) }}
+              {% else %}
+                0
+              {% endif %}
+            {% else %}
+              0
+            {% endif %}
+          mode_expiring: >
+            {{ active_config in ['Full Bright', 'Dim Ambient', 'Warm Ambient']
+               and mode_remaining > 0
+               and mode_remaining < 300 }}
+          zone_remaining: "{{ state_attr('sensor.oal_soonest_override', 'seconds_remaining') | int(0) }}"
+          zone_expiring: "{{ zone_remaining > 0 and zone_remaining < 300 }}"
+          timer_notice_still_valid: "{{ mode_expiring or (zone_expiring and is_state('sun.sun', 'below_horizon')) }}"
+      - condition: template
+        value_template: "{{ not timer_notice_still_valid }}"
+      - service: tunet_inbox.resolve
+        data:
+          key: "oal_timer_expiring"
+          reason: "timer_context_cleared"
 
   # -------------------------------------------------------------------------
   # 4.20 Manual Control Provenance

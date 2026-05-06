@@ -120,7 +120,15 @@
       "Bash(npx playwright:*)",
       "Bash(pip show:*)",
       "WebFetch(domain:chrisirwin.ca)",
-      "WebFetch(domain:companion.home-assistant.io)"
+      "WebFetch(domain:companion.home-assistant.io)",
+      "mcp__plugin_claude-mem_mcp-search__build_corpus",
+      "Bash(npm ls *)",
+      "Bash(npm root *)",
+      "Bash(command -v tree-sitter)",
+      "Bash(claude mcp *)",
+      "Bash(ln -sf /home/mac/HA/implementation_10/.env .env)",
+      "Bash(sed -n '/Required popup qualities/,/Styling direction/p' Dashboard/Tunet/Docs/nav_popup_ux_direction.md)",
+      "Bash(sed -n '/Styling direction/,/####\\\\|## /p' Dashboard/Tunet/Docs/nav_popup_ux_direction.md)"
     ],
     "deny": [],
     "ask": []

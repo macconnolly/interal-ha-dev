@@ -6,6 +6,31 @@ homeassistant:
     - /config/www/bubble
     - /config/
 
+tunet_inbox:
+  # Accepts either:
+  # - a helper entity whose state is a mobile_app device id
+  # - a direct notify.* service such as notify.tunet_inbox_all_devices
+  notify_device_helper: notify.tunet_inbox_all_devices
+  max_pending_items: 64
+  response_timeout_seconds: 30
+  archive_retention_days: 3
+  privacy_mode_default: false
+  debug_events: false
+
+notify:
+  - platform: group
+    name: tunet_inbox_all_devices
+    services:
+      - action: mobile_app_ipad
+      - action: mobile_app_iphone
+      - action: mobile_app_iphone_4
+      - action: mobile_app_iphone_deloitte
+      - action: mobile_app_iphone_mc
+      - action: mobile_app_mac_s_iphone
+      - action: mobile_app_macs_iphone_personal
+      - action: mobile_app_macs_work_phone
+      - action: mobile_app_old_iphone
+
 # Setup the custom dashboard
 lovelace:
   mode: yaml
@@ -40,6 +65,20 @@ lovelace:
       type: module     
 
   dashboards:
+    tunet-card-rehab-yaml:
+      mode: yaml
+      title: Tunet Card Rehab Lab (YAML)
+      icon: mdi:flask-outline
+      show_in_sidebar: true
+      filename: dashboards/tunet-card-rehab-lab.yaml
+
+    tunet-inbox-yaml:
+      mode: yaml
+      title: Tunet Inbox
+      icon: mdi:inbox-multiple-outline
+      show_in_sidebar: true
+      filename: dashboards/tunet-inbox-dashboard.yaml
+
     adaptive-living:
       mode: yaml
       title: Adaptive Living
@@ -74,6 +113,8 @@ logger:
     homeassistant.setup: info
     custom_components.oal_learning: debug
     custom_components.lighting_manager: debug
+    custom_components.tunet_inbox: debug
+    custom_components.tunet_inbox.mobile: info
 
 
 # Enable History and Recorder

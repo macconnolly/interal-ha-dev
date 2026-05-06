@@ -575,3 +575,58 @@ describe('CD9 visible speaker tile semantics', () => {
     expect(css).toMatch(/:host\(\[tile-size="compact"\]\)\s+\.group-badge\s+\.icon\s*\{\s*font-size:\s*12px;/);
   });
 });
+
+describe('CD9 media-card dropdown bug fixes (2026-04-30)', () => {
+  it('_getGroupedCount returns active member count from sensor without recursing', () => {
+    const el = createMediaCard();
+    expect(el._getGroupedCount()).toBe(2);
+    cleanup(el);
+  });
+
+  it('_getGroupedCount falls back to speakers filter when sensor reports no members (regression: infinite recursion)', () => {
+    const el = createMediaCard({}, {
+      'sensor.sonos_active_group_coordinator': {
+        entity_id: 'sensor.sonos_active_group_coordinator',
+        state: 'media_player.living_room',
+        attributes: { group_members: [] },
+      },
+    });
+    el._cachedSpeakers = [
+      { entity: 'media_player.living_room', name: 'Living Room', icon: 'speaker' },
+      { entity: 'media_player.dining_room', name: 'Dining Room', icon: 'speaker' },
+      { entity: 'media_player.kitchen', name: 'Kitchen', icon: 'speaker' },
+    ];
+    // Before the fix, this call infinite-looped. The assertion only completes
+    // if the method terminates and returns the speakers-filter result.
+    expect(el._getGroupedCount()).toBe(2);
+    cleanup(el);
+  });
+
+  it('_buildSpeakerMenu shows speaker_group icon on coordinator row when groupedCount > 1 (regression: undeclared groupedCount)', () => {
+    const el = createMediaCard();
+    el._cachedSpeakers = el._getEffectiveSpeakers();
+    el._buildSpeakerMenu();
+    const menu = el.shadowRoot.getElementById('spkMenu');
+    const rows = menu.querySelectorAll('.dd-option');
+    const coordinatorRow = Array.from(rows).find(
+      (r) => r.querySelector('.spk-name')?.textContent === 'Living'
+    );
+    expect(coordinatorRow).toBeTruthy();
+    const iconText = coordinatorRow.querySelector('.spk-icon').textContent;
+    expect(iconText).toBe('speaker_group');
+    cleanup(el);
+  });
+
+  it('_buildSpeakerMenu shows "{N} grouped" subtitle on coordinator row when grouped (regression: undeclared groupedCount)', () => {
+    const el = createMediaCard();
+    el._cachedSpeakers = el._getEffectiveSpeakers();
+    el._buildSpeakerMenu();
+    const menu = el.shadowRoot.getElementById('spkMenu');
+    const rows = menu.querySelectorAll('.dd-option');
+    const coordinatorRow = Array.from(rows).find(
+      (r) => r.querySelector('.spk-name')?.textContent === 'Living'
+    );
+    expect(coordinatorRow.querySelector('.spk-now-playing').textContent).toBe('2 grouped');
+    cleanup(el);
+  });
+});

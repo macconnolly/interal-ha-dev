@@ -1,0 +1,115 @@
+"""Constants for Tunet Inbox."""
+
+from __future__ import annotations
+
+DOMAIN = "tunet_inbox"
+INTEGRATION_TITLE = "Tunet Inbox"
+
+STORAGE_VERSION = 1
+STORAGE_KEY = "tunet_inbox"
+STORAGE_QUARANTINED_ITEMS = "quarantined_items"
+
+DATA_MANAGER = "manager"
+DATA_ENTRY_ID = "entry_id"
+DATA_SERVICES_REGISTERED = "services_registered"
+DATA_UNSUB_STARTED = "unsub_started"
+DATA_UNSUB_MOBILE = "unsub_mobile"
+DATA_UNSUB_SWEEP = "unsub_sweep"
+
+EVENT_ACTION = "tunet_inbox_action"
+EVENT_UPDATED = "tunet_inbox_updated"
+
+SERVICE_POST = "post"
+SERVICE_RESPOND = "respond"
+SERVICE_RESOLVE = "resolve"
+SERVICE_FAIL = "fail"
+SERVICE_DISMISS = "dismiss"
+SERVICE_LIST_ITEMS = "list_items"
+
+CONF_NOTIFY_DEVICE_HELPER = "notify_device_helper"
+CONF_MOBILE_TAP_URL = "mobile_tap_url"
+CONF_MAX_PENDING_ITEMS = "max_pending_items"
+CONF_RESPONSE_TIMEOUT_SECONDS = "response_timeout_seconds"
+CONF_ARCHIVE_RETENTION_DAYS = "archive_retention_days"
+CONF_PRIVACY_MODE_DEFAULT = "privacy_mode_default"
+CONF_DEBUG_EVENTS = "debug_events"
+
+DEFAULT_MAX_PENDING_ITEMS = 64
+DEFAULT_RESPONSE_TIMEOUT_SECONDS = 30
+DEFAULT_ARCHIVE_RETENTION_DAYS = 3
+DEFAULT_PRIVACY_MODE_DEFAULT = False
+DEFAULT_DEBUG_EVENTS = False
+
+SCHEMA_VERSION = 1
+
+STATUS_PENDING = "pending"
+STATUS_RESPONDING = "responding"
+STATUS_RESOLVED = "resolved"
+STATUS_EXPIRED = "expired"
+STATUS_FAILED = "failed"
+STATUS_DISMISSED = "dismissed"
+STATUS_REPLACED = "replaced"
+
+ACTIVE_STATUSES = {STATUS_PENDING, STATUS_RESPONDING}
+TERMINAL_STATUSES = {
+    STATUS_RESOLVED,
+    STATUS_EXPIRED,
+    STATUS_FAILED,
+    STATUS_DISMISSED,
+    STATUS_REPLACED,
+}
+ALL_STATUSES = ACTIVE_STATUSES | TERMINAL_STATUSES
+
+DEDUPE_REPLACE = "replace"
+DEDUPE_REFRESH = "refresh"
+DEDUPE_IGNORE = "ignore"
+DEDUPE_APPEND = "append"
+ALL_DEDUPE_POLICIES = {
+    DEDUPE_REPLACE,
+    DEDUPE_REFRESH,
+    DEDUPE_IGNORE,
+    DEDUPE_APPEND,
+}
+
+SEVERITY_INFO = "info"
+SEVERITY_NOTICE = "notice"
+SEVERITY_WARNING = "warning"
+SEVERITY_CRITICAL = "critical"
+SEVERITY_ORDER = {
+    SEVERITY_CRITICAL: 4,
+    SEVERITY_WARNING: 3,
+    SEVERITY_NOTICE: 2,
+    SEVERITY_INFO: 1,
+}
+
+PRIVACY_PUBLIC = "public"
+PRIVACY_SENSITIVE = "sensitive"
+ALL_PRIVACY_VALUES = {PRIVACY_PUBLIC, PRIVACY_SENSITIVE}
+
+SOURCE_DASHBOARD_CARD = "dashboard_card"
+SOURCE_DASHBOARD_POPUP = "dashboard_popup"
+ALL_RESPONSE_SOURCES = {SOURCE_DASHBOARD_CARD, SOURCE_DASHBOARD_POPUP}
+
+RAW_ACTION_PREFIX = "TINBOX"
+INBOX_TAP_URL = "/tunet-inbox-yaml/inbox"
+
+ISSUE_ID_RESTORE_QUARANTINE = "restore_quarantine_present"
+QUARANTINE_COLLECTION_ACTIVE = "active_items"
+QUARANTINE_COLLECTION_ARCHIVE = "archive_items"
+
+FAILURE_QUEUE_FULL = "queue_full"
+FAILURE_INVALID_PAYLOAD = "invalid_payload"
+FAILURE_ITEM_NOT_FOUND = "item_not_found"
+FAILURE_NOT_PENDING = "not_pending"
+FAILURE_EXPIRED = "expired"
+FAILURE_INVALID_ACTION = "invalid_action"
+FAILURE_LOCK_CONFLICT = "lock_conflict"
+FAILURE_STALE_ACTION = "stale_action"
+FAILURE_INVALID_MOBILE_MAPPING = "invalid_mobile_mapping"
+FAILURE_MOBILE_SEND_FAILED = "mobile_send_failed"
+FAILURE_MOBILE_CLEAR_FAILED = "mobile_clear_failed"
+FAILURE_DOMAIN_STATE_INVALID = "domain_state_invalid"
+FAILURE_HANDLER_TIMEOUT = "handler_timeout"
+FAILURE_DUPLICATE_APPEND_KEY = "duplicate_key_for_append"
+
+DEFAULT_LIST_STATUSES = [STATUS_PENDING, STATUS_RESPONDING]

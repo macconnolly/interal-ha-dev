@@ -3,7 +3,7 @@
 # Comprehensive YAML dashboard harness for Tunet v3 cards.
 #
 # Design intent:
-# - cover all 13 card families
+# - cover all 14 card families
 # - represent meaningful authoring/runtime branches from cards_reference.md
 # - include real composition surfaces used by a whole-home dashboard
 # - keep a dedicated phone-stress view and a dedicated nav-only view
@@ -30,6 +30,46 @@ views:
               Use `states`, `surfaces`, `phone-stress`, and `nav-lab` for focused review.
 
       - &rehab_actions type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: 0. Inbox Card
+            heading_style: subtitle
+          - type: custom:tunet-inbox-card
+            title: Attention needed
+            families:
+              - oal
+              - sonos
+            max_items: 8
+            show_room: true
+            show_family_badge: true
+            grid_options:
+              columns: 24
+              rows: auto
+          - type: custom:tunet-inbox-card
+            title: OAL only · Privacy mode
+            families:
+              - oal
+            max_items: 6
+            privacy_mode: true
+            show_room: true
+            show_family_badge: true
+            grid_options:
+              columns: 24
+              rows: auto
+          - type: custom:tunet-inbox-card
+            title: Sonos only · Manual dismiss
+            families:
+              - sonos
+            max_items: 6
+            show_room: true
+            show_family_badge: true
+            show_manual_dismiss: true
+            grid_options:
+              columns: 24
+              rows: auto
+
+      - type: grid
         column_span: 4
         cards:
           - type: heading

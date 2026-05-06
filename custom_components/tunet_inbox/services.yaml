@@ -1,0 +1,122 @@
+post:
+  name: Post inbox item
+  description: Create or upsert a governed actionable notification item.
+  fields:
+    key:
+      required: true
+      selector:
+        text:
+    title:
+      required: true
+      selector:
+        text:
+    message:
+      required: true
+      selector:
+        text:
+    actions:
+      required: true
+      example:
+        - id: OAL_RESET_LIGHTS
+          title: Reset to Adaptive
+    family:
+      selector:
+        text:
+    mobile:
+      description: Optional mobile delivery metadata. Supported keys are `tag`, `notify_service`, `url`, and `clear_on_resolve`. `tunet_inbox` now owns the notification-body tap target and defaults it to `/tunet-inbox-yaml/inbox`; legacy `url` remains compatible only when it equals that governed inbox route.
+      example:
+        tag: ti2b_probe_tag
+      selector:
+        object:
+respond:
+  name: Respond to inbox item
+  description: Accept a dashboard response and emit the canonical tunet_inbox_action event.
+  fields:
+    item_id:
+      required: false
+      selector:
+        text:
+    key:
+      required: false
+      selector:
+        text:
+    action_id:
+      required: true
+      selector:
+        text:
+    source:
+      required: true
+      selector:
+        select:
+          options:
+            - dashboard_card
+            - dashboard_popup
+resolve:
+  name: Resolve inbox item
+  description: Resolve a pending or responding inbox item and clear its matching mobile notification.
+  fields:
+    item_id:
+      required: false
+      selector:
+        text:
+    key:
+      required: false
+      selector:
+        text:
+    reason:
+      required: true
+      selector:
+        text:
+fail:
+  name: Fail inbox item
+  description: Mark an in-flight inbox item as failed or return it to pending.
+  fields:
+    item_id:
+      required: false
+      selector:
+        text:
+    key:
+      required: false
+      selector:
+        text:
+    reason:
+      required: true
+      selector:
+        text:
+dismiss:
+  name: Dismiss inbox item
+  description: Remove an inbox item without performing a domain action.
+  fields:
+    item_id:
+      required: false
+      selector:
+        text:
+    key:
+      required: false
+      selector:
+        text:
+    reason:
+      required: true
+      selector:
+        text:
+list_items:
+  name: List inbox items
+  description: Return render-normalized queue items for the dashboard card.
+  fields:
+    statuses:
+      selector:
+        object:
+    families:
+      selector:
+        object:
+    rooms:
+      selector:
+        object:
+    privacy_mode:
+      selector:
+        boolean:
+    limit:
+      selector:
+        number:
+          min: 1
+          max: 100

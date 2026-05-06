@@ -1,0 +1,46 @@
+{
+  "title": "Tunet Inbox",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Tunet Inbox",
+        "description": "Configure the shared notification inbox runtime. The default notify target may be either a helper entity that holds a mobile_app device id or a direct notify.* service such as a notify group.",
+        "data": {
+          "notify_device_helper": "Default notify target (helper entity or notify.* service)",
+          "mobile_tap_url": "Default mobile tap URL (blank uses /tunet-inbox-yaml/inbox)",
+          "max_pending_items": "Maximum pending items",
+          "response_timeout_seconds": "Response timeout (seconds)",
+          "archive_retention_days": "Archive retention (days)",
+          "privacy_mode_default": "Enable privacy mode by default",
+          "debug_events": "Enable debug event logging"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Tunet Inbox is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Tunet Inbox options",
+        "description": "Update the live Tunet Inbox runtime settings. The default notify target may be either a helper entity that holds a mobile_app device id or a direct notify.* service such as a notify group.",
+        "data": {
+          "notify_device_helper": "Default notify target (helper entity or notify.* service)",
+          "mobile_tap_url": "Default mobile tap URL (blank uses /tunet-inbox-yaml/inbox)",
+          "max_pending_items": "Maximum pending items",
+          "response_timeout_seconds": "Response timeout (seconds)",
+          "archive_retention_days": "Archive retention (days)",
+          "privacy_mode_default": "Enable privacy mode by default",
+          "debug_events": "Enable debug event logging"
+        }
+      }
+    }
+  },
+  "issues": {
+    "restore_quarantine_present": {
+      "title": "Tunet Inbox quarantined malformed stored items",
+      "description": "Tunet Inbox found {count} malformed stored item(s) while restoring its queue. The malformed payloads were removed from the active runtime and copied into quarantine. Review integration diagnostics before manually cleaning the stored quarantine records."
+    }
+  }
+}

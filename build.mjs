@@ -28,6 +28,7 @@ const HA_USER_DEFAULT = 'root';
 const HA_PASSWORD_DEFAULT = 'password';
 
 const ENTRY_POINTS = [
+  'tunet_inbox_card.js',
   'tunet_actions_card.js',
   'tunet_scenes_card.js',
   'tunet_light_tile.js',
@@ -41,6 +42,7 @@ const ENTRY_POINTS = [
   'tunet_speaker_grid_card.js',
   'tunet_nav_card.js',
   'tunet_status_card.js',
+  'tunet_alarm_card.js',
 ];
 
 // ─── Query string stripping plugin ──────────────────────────────────────

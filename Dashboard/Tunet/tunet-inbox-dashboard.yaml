@@ -1,0 +1,58 @@
+title: Tunet Inbox
+icon: mdi:inbox-multiple-outline
+
+views:
+  - type: sections
+    title: Inbox
+    path: inbox
+    icon: mdi:inbox-multiple-outline
+    max_columns: 3
+    sections:
+      - type: grid
+        column_span: 3
+        cards:
+          - type: markdown
+            content: |
+              ## Tunet Inbox
+              Persistent, governed notification recovery surface for `tunet_inbox`.
+              This page is intentionally backend-driven: it mirrors whatever OAL and Sonos currently have pending.
+
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-inbox-card
+            title: Attention needed
+            families:
+              - oal
+              - sonos
+            max_items: 12
+            show_room: true
+            show_family_badge: true
+            show_manual_dismiss: true
+
+      - type: grid
+        column_span: 1
+        cards:
+          - type: custom:tunet-inbox-card
+            title: OAL
+            families:
+              - oal
+            max_items: 6
+            show_room: true
+            show_family_badge: true
+          - type: custom:tunet-inbox-card
+            title: Sonos
+            families:
+              - sonos
+            max_items: 6
+            show_room: true
+            show_family_badge: true
+          - type: custom:tunet-inbox-card
+            title: Privacy mode
+            families:
+              - oal
+              - sonos
+            max_items: 4
+            privacy_mode: true
+            show_room: true
+            show_family_badge: true

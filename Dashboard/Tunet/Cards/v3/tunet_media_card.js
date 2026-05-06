@@ -868,7 +868,6 @@ class TunetMediaCard extends HTMLElement {
     const members = this._activeGroupMembers();
     if (members.length > 0) return members.length;
     const speakers = this._cachedSpeakers || [];
-    const groupedCount = this._getGroupedCount();
     return speakers.filter((spk) => this._isSpeakerInActiveGroup(spk.entity)).length;
   }
 

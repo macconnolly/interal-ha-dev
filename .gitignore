@@ -7,6 +7,9 @@ __pycache__/
 *$py.class
 .Python
 *.so
+.pytest_cache/
+.venv-tinbox/
+.uv-cache/
 
 # IDE
 .idea/
@@ -45,3 +48,25 @@ Dashboard/Tunet/Cards/v3/dist/
 # See docs/oal_inbox_merge_to_main_plan_2026_05_05.md §3.2.1 for context.
 /home/
 
+# Repo-root screenshot debris (M1 evidence, kept on disk, not tracked)
+/actions-*.png
+/alarm_*.png
+/popup_*.png
+/scenes-*.png
+/sonos_*.png
+/sonos-*.png
+/lighting-*.png
+/lab-*.png
+/cd9-*.png
+/cd11_*.png
+/livingroom_popup_for_reference.png
+/polish_review_post_push.png
+/alarm_card_post_redesign.png
+/alarm_edit_popup_redesign.png
+
+# Backup snapshots (timestamped folders written by §6.2 deploy step;
+# kept on disk during rollback window, not tracked)
+/Backups/
+
+# Stray scratch files
+/snap-actions.yml

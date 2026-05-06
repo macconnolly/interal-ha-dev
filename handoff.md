@@ -9,6 +9,38 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next by root-plan order is `CD12` surface assembly, still parked pending user acceptance and explicit pointer update)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-05-05, post-CD11 — Sonos popup chain + per-card tap action overrides)
+
+- `CURRENT STATE`
+  - CD11 remains closed; CD10/nav and CD12/surface assembly remain parked
+  - this delta is post-CD11 lab feature work: a Sonos popup chain at `/sonos-popups` plus per-card tap-action knobs that the chain depends on
+  - all six commits are on `main` (`9a9b5a6` → `57e20e4`); pushed: confirm with `git log origin/main..main`
+  - rehab lab YAML is the only dashboard file touched; production `tunet-suite-config.yaml` is unchanged
+- `WHAT THIS LANDED`
+  - status card `now_playing` recipe (replaces `speakers_playing`) and `outside_weather` composite — tap intent contract for `now_playing` navigates to `#sonos-now-playing`
+  - `tunet-sonos-card` v1.1.0: `title_tap_action` + `speaker_icon_tap_action` knobs (default more-info)
+  - `tunet-speaker-grid-card` v3.3.0: `show_header` + `header_tap_action` + `icon_tap_action` knobs (default more-info)
+  - rehab lab `/sonos-popups` view contains three popup hashes:
+    - `#sonos-now-playing` — popup A (Compact 2-col speaker grid + tunet-media-card full + Open Full Player nav)
+    - `#sonos-now-playing-v2` — popup A v2 (Large 3-col speaker grid for comparison)
+    - `#sonos-rich` — popup B (HACS `custom:sonos-card` v10.6.8 wrapped in Tunet card surface; theme tokens, max-width 720px, min-height 600px, popup_mode: centered)
+  - card_mod overrides on popup A force the first card cell to `grid-row: span 1` so HA core button card doesn't reserve phantom span-2 height
+  - popup B `mediaBrowser.itemsPerRow: 4 → 2` for mobile favorites readability
+- `OPEN CARRY-OVERS` (intentionally deferred, not blockers)
+  - Bubble Card 3.2 back-arrow on popup B does not return to popup A — uninvestigated, possibly chain registration issue
+  - HACS `sonos-card` play-button + slider-knob render via internal SVG fills that don't honor theme tokens; visible as black-on-white in popup B at light mode (third-party library limitation; documented in commit `7c71c80`)
+  - per-card test backfill for the new tap-action knobs is deferred
+  - dark-mode visual review of the popup chain is deferred (Playwright defaults to light mode)
+- `NEXT AGENT GUARDRAILS`
+  - if you touch the popup chain, work in `Dashboard/Tunet/tunet-card-rehab-lab.yaml` only — do NOT promote to `tunet-suite-config.yaml` without explicit user direction
+  - if you investigate the back-arrow regression: start with Bubble Card 3.2 source (`pop-up/create.js` and `editor.js`); the chain registration is via `hash:` field, and the back-arrow is a Bubble Card-rendered chrome element
+  - the now_playing recipe binding to `#sonos-now-playing` is hard-coded in `_recipeSpecificAction` in `tunet_status_card.js`; if the popup hash naming changes, that handler must change too
+- `VALIDATION`
+  - full `npm test` → `694/694` (CD11 closure baseline unchanged; popup chain has no test backfill yet)
+  - `node --check` on three changed cards
+  - `npm run tunet:build` + `npm run tunet:deploy:lab`
+  - live verification at `390x844` (Playwright) + iOS Companion: popup A gap eliminated, variant 2 renders correctly, popup B height stable across favorites/queue/groups tabs
+
 ## Session Delta (2026-05-05, CD11 post-closure status polish)
 
 - `CURRENT STATE`

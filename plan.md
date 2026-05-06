@@ -7,6 +7,64 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next tranche by root-plan order is `CD12` surface assembly, but it remains parked pending user acceptance and explicit pointer update)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-05-05, post-CD11 — Sonos popup chain + per-card tap action overrides)
+
+Tranche marker: post-CD11 closure work only. CD11 remains closed; CD10/nav and CD12/surface assembly remain parked. Net effect is a NEW lab-resident dashboard feature (Sonos popup chain) and three card-source surfaces gaining per-instance tap-action knobs that the chain depends on. No production `tunet-suite-config.yaml` integration yet.
+
+- `AUTHORITY NOTE`
+  - This work is layered on top of CD11 closure rather than reopening it
+  - The `now_playing` recipe completes the post-CD11 status surface; it replaces the earlier `speakers_playing` framing and binds the recipe's default tap target to `#sonos-now-playing`
+  - Per-card tap-action knobs are the contract that lets the popup chain reuse the existing speaker/sonos cards without forking them
+- `IMPLEMENTATION`
+  - `Dashboard/Tunet/Cards/v3/tunet_status_card.js` (`v3.4.0` → `v3.12.0`)
+    - `outside_weather` composite recipe + `now_playing` recipe (replaces `speakers_playing`)
+    - format primitives: `signed_percent`, `array_length`
+    - dynamic label resolvers: `_resolveBoostCause`, `_resolveWeatherCallout`
+    - `_recipeSpecificAction` helper with cases for `lights_on`, `next_sun_event`, `next_alarm`, `now_playing` (tap intent contract)
+    - `humanizeStateValue` map (`home`/`not_home` → `Home`/`Away`)
+    - `STATES_IMPLYING_OVERCAST` constant for the weather composite
+    - T18 typography uniformity (removed `.tile-val.is-text` per-variant font-size overrides)
+    - T15 `room_row` `.grid` hover-clip recipe (`padding-block: 0.5em` + `margin-block: -0.5em`)
+    - T19 `room_row` mobile font parity (`@media (max-width: 47.9375em)` `.tile-val: 1.15625em`)
+    - `home_summary --_tunet-status-icon-box` 2em → 2.5em (icon centering fix)
+  - `Dashboard/Tunet/Cards/v3/tunet_sonos_card.js` (`v1.0.0` → `v1.1.0`)
+    - new config knobs: `title_tap_action`, `speaker_icon_tap_action`
+    - replaced hardcoded more-info dispatch on album-art and speaker-scroll-icon clicks (both pointerdown/long-press and click handlers) with `runCardAction` calls
+  - `Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js` (`v3.2.0` → `v3.3.0`)
+    - new config knobs: `show_header`, `header_tap_action`, `icon_tap_action`
+    - replaced hardcoded more-info dispatch on info-tile header and speaker icon clicks with `runCardAction`
+    - `show_header: false` hides info-tile header chrome (used inside popup chain)
+  - `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
+    - new view `/sonos-popups` with three popup hashes:
+      - `#sonos-now-playing` (popup A — Compact 2-col speaker grid + `tunet-media-card` full + Open Full Player nav button)
+      - `#sonos-now-playing-v2` (popup A v2 — Large 3-col speaker grid for comparison)
+      - `#sonos-rich` (popup B — embedded HACS `custom:sonos-card` v10.6.8 wrapped with Tunet card surface; theme tokens, `max-width: 720px`, `min-height: 600px`, `popup_mode: centered`)
+    - popup A `card_mod` overrides HA core button card's default `grid-row: span 2` to `span 1` on the first cell so the Open Full Player button doesn't reserve phantom 100-150px below itself
+    - popup B `mediaBrowser.itemsPerRow: 4` → `2` for mobile favorites readability (~165px tiles at 360px popup width)
+  - `Dashboard/Tunet/Cards/v3/tests/status_bespoke.test.js`
+    - typography uniformity (T18), hover-clip CSS (T15), mobile font parity (T19)
+    - `outside_weather` composite scenarios + `now_playing` recipe assertions
+    - recipe shorthand expectations updated for the consolidated registry
+- `VALIDATION`
+  - `node --check` on all three changed cards
+  - `npm test` → `694/694` (unchanged from CD11 closure baseline; popup chain has no test backfill yet — see open carry-overs)
+  - `npm run tunet:build` + `npm run tunet:deploy:lab`
+  - rehab YAML re-pushed to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - live verification on iOS Companion + Playwright at `390x844` (`/sonos-popups`):
+    - popup A: header chrome + Open Full Player (single line, full-width, blue, no outline) immediately above tunet-media-card with no phantom gap; Compact 2-col speaker grid below; Group All / Ungroup All footer
+    - popup A v2: same chrome + Large 3-col speaker grid (responsively drops to 1-col at narrow widths)
+    - popup B: centered popup with stable height across favorites/queue/groups tabs; favorites in 2-col mobile grid
+- `OPEN CARRY-OVERS` (intentional, not blockers for this delta)
+  - Bubble Card 3.2 back-arrow on popup B does not return to popup A — uninvestigated
+  - HACS `sonos-card` play-button + slider-knob render via internal SVG fills that don't honor CSS variables; visible as black-on-white in popup B at light mode despite theme-token wiring on the wrapping ha-card
+  - Per-card test backfill for the new tap-action knobs (`tunet_sonos_card`, `tunet_speaker_grid_card`) is deferred
+  - Dark mode visual review of the popup chain is deferred
+- `RESULT`
+  - Post-CD11 status surface is complete with `now_playing` and `outside_weather` recipes
+  - Sonos popup chain is functional in lab and demonstrates the per-card tap-action contract
+  - No production `tunet-suite-config.yaml` change; promotion remains a separate decision
+  - CD11 status remains `CLOSED`; root-plan order continues to point at CD12 surface assembly (still parked pending user direction)
+
 ## Session Delta (2026-05-05, CD11 post-closure status polish + visual guardrails)
 
 Tranche marker: post-closure status visual polish only; no CD10/nav or CD12/surface assembly files were changed

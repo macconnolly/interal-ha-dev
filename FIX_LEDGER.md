@@ -7,6 +7,36 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole author
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (`CD10` nav verify deferred until room/surface composition is more settled; `CD12` surface assembly remains parked pending user acceptance)
 
+## Session Delta (2026-05-05, post-CD11 — Sonos popup chain + per-card tap action overrides)
+
+Change marker: post-CD11 lab feature batch. CD11 closure remains intact. Six commits on `main` (`9a9b5a6` → `57e20e4`) introduced the `now_playing` recipe, per-card tap-action knobs on `tunet-sonos-card` + `tunet-speaker-grid-card`, and a three-popup Sonos chain at `/sonos-popups` in the rehab lab.
+
+- `CHOSEN INTERPRETATION`
+  - The Sonos popup chain is a NEW dashboard feature, not a CD11 reopen
+  - Per-card tap-action knobs are the architectural contract that lets the chain reuse existing cards instead of forking them
+  - Production integration is intentionally deferred — this delta lands only the lab demonstration
+- `FIXES`
+  - status card now exposes `now_playing` (replaces earlier `speakers_playing`) and `outside_weather` recipes; tap intent contract routes `now_playing` to `#sonos-now-playing`
+  - `tunet-sonos-card` v1.1.0 lets authors override album-art and speaker-scroll-icon tap behavior via `title_tap_action` / `speaker_icon_tap_action`
+  - `tunet-speaker-grid-card` v3.3.0 lets authors hide the info-tile header (`show_header: false`) and override info-tile / speaker-icon tap behavior via `header_tap_action` / `icon_tap_action`
+  - rehab lab `/sonos-popups` view now demonstrates two popup A variants (Compact 2-col + Large 3-col) and a popup B (HACS `sonos-card` wrapped in Tunet card surface) chained via `Open Full Player` navigation
+  - popup A `grid-row: span 2 → span 1` override eliminates the ~120px phantom gap below the HA core button card's first cell
+  - popup B `mediaBrowser.itemsPerRow: 4 → 2` makes mobile favorites readable instead of compressing to ~80px micro-thumbnails
+- `GUARDRAIL`
+  - new tap-action knobs route through the shared `runCardAction` helper, so all standard HA action types (`more-info`, `navigate`, `call-service`, `none`, `url`) are supported uniformly
+  - knobs default to `more-info` on the bound entity, preserving prior behavior for non-overriding instances
+- `OPEN`
+  - back-arrow chain regression: Bubble Card 3.2 back-arrow on popup B does not return to popup A (uninvestigated)
+  - third-party limitation: HACS `sonos-card` play-button + slider-knob render via SVG fills that ignore CSS variables; visible as black-on-white in popup B at light mode despite theme-token wiring on the wrapping ha-card
+  - test backfill: per-card tests for new tap-action knobs deferred
+  - dark mode visual review of the popup chain deferred
+- `VALIDATION`
+  - `node --check` on three changed cards
+  - full `npm test` → `694/694` (unchanged from CD11 closure baseline)
+  - `npm run tunet:build` + `npm run tunet:deploy:lab`
+  - rehab YAML re-pushed to `/config/dashboards/tunet-card-rehab-lab.yaml`
+  - live verification at `390x844` and desktop on `/sonos-popups`: popup A gap eliminated, variant 2 renders, popup B favorites readable, popup B height stable across tabs
+
 ## Session Delta (2026-05-05, CD11 post-closure status polish + probe guardrail)
 
 Change marker: status visual polish fixes landed after live review; screenshot-only validation weakness closed with changed-card probes

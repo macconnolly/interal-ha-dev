@@ -1205,9 +1205,19 @@ Fixture/contract note: use `label` consistently for display-name overrides unles
 
 ## 9. tunet-status-card
 
-**Version**: v3.4.0
+**Version**: v3.12.0
 **Tier**: editor-lite (Level 2 narrow)
 **File**: `Dashboard/Tunet/Cards/v3/tunet_status_card.js`
+
+Version progression beyond CD11 closure (post-CD11 polish, all on `main` 2026-05-05):
+- `v3.5.0` — outside_weather composite recipe
+- `v3.6.0` — X1: recipe consolidation + signed_percent format primitive
+- `v3.7.0` — X2: tap intent contract + variant-aware reset + home icon centering fix
+- `v3.8.0` — X3: room_row mobile wrap + vertical-stack tile layout
+- `v3.9.0` — T18 typography uniformity + T15 row .grid hover-clip recipe
+- `v3.10.0` — T19 row variant mobile font parity
+- `v3.11.0` — now_playing recipe + Bubble Card 3.2 Sonos popup chain integration
+- `v3.12.0` — array_length format primitive + outside_weather conditional callout label resolver
 
 ### Purpose
 
@@ -1619,8 +1629,8 @@ Best-in-class naming rule: compact speaker naming must not erase room identity.
 
 ## 11. tunet-sonos-card
 
-**Version**: v1.0.0  
-**Tier**: editor-lite  
+**Version**: v1.1.0
+**Tier**: editor-lite
 **File**: `Dashboard/Tunet/Cards/v3/tunet_sonos_card.js`
 
 ### Purpose
@@ -1637,6 +1647,22 @@ Alternative Sonos player with inline speaker tiles (always visible, not hidden i
 | `active_group_sensor` | string | `'sensor.sonos_active_group_coordinator'` | any sensor | Y | editor |
 | `playing_status_sensor` | string | `'sensor.sonos_playing_status'` | any sensor | Y | editor |
 | `speakers` | array | `[]` | speaker objects `[{entity, name, icon}]` | Y | editor (object+fields+multiple) |
+| `title_tap_action` | object | `{ action: 'more-info' }` | any HA action object (`more-info`, `navigate`, `call-service`, `none`, `url`) | N | yaml-only |
+| `speaker_icon_tap_action` | object | `{ action: 'more-info' }` | any HA action object | N | yaml-only |
+
+### Tap Action Overrides (v1.1.0)
+
+Both knobs default to opening more-info on the bound entity, preserving prior behavior. They route through the shared `runCardAction` helper from `tunet_base.js`, so authored `tap_action` arrays support every standard HA action type. Used by the Sonos popup chain in `/sonos-popups` to point title/album-art at `#sonos-rich` and to suppress speaker-scroll-icon tap targets (icons too small for reliable tap):
+
+```yaml
+type: custom:tunet-sonos-card
+entity: media_player.living_room
+title_tap_action:
+  action: navigate
+  navigation_path: "#sonos-rich"
+speaker_icon_tap_action:
+  action: none
+```
 
 ### Differences from Media Card
 
@@ -1710,8 +1736,8 @@ Each tile shows icon, name, volume %, volume bar fill. States: `.grouped` (blue 
 
 ## 12. tunet-speaker-grid-card
 
-**Version**: v3.2.0  
-**Tier**: editor-lite  
+**Version**: v3.3.0
+**Tier**: editor-lite
 **File**: `Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js`
 
 ### Purpose
@@ -1729,8 +1755,25 @@ Dedicated speaker management grid. Each speaker tile shows volume level, playing
 | `tile_size` | string | `'standard'` | `'compact'`, `'standard'`, `'large'` | Y | editor |
 | `use_profiles` | boolean | `true` | true/false | Y | editor |
 | `show_group_actions` | boolean | `true` | true/false | Y | editor |
+| `show_header` | boolean | `true` | true/false | N | yaml-only |
+| `header_tap_action` | object | `{ action: 'more-info' }` | any HA action object | N | yaml-only |
+| `icon_tap_action` | object | `{ action: 'more-info' }` | any HA action object | N | yaml-only |
 | `custom_css` | string | `''` | CSS text | Y (advanced) | editor |
 | `speakers` | array | `[]` | speaker objects `[{entity, name, icon}]` | Y | editor (object+fields+multiple) |
+
+### Tap Action Overrides (v3.3.0)
+
+`header_tap_action` and `icon_tap_action` default to opening more-info on the bound speaker entity, preserving prior behavior. Both route through the shared `runCardAction` helper. `show_header: false` hides the info-tile header chrome entirely (used inside the Sonos popup chain so the embedded grid does not duplicate the popup's own title bar). Lab usage:
+
+```yaml
+type: custom:tunet-speaker-grid-card
+entity: media_player.living_room
+columns: 2
+tile_size: compact
+show_header: false
+icon_tap_action:
+  action: none
+```
 
 ### Speaker Auto-Discovery
 

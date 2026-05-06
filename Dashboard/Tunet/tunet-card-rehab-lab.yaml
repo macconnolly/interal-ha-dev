@@ -3879,12 +3879,27 @@ views:
                     numberToShow: 12
                 card_mod:
                   style: |
+                    /* Match Tunet's canonical card-primary surface (CARD_SURFACE
+                       token in tunet_base.js) so the embedded HACS sonos-card
+                       reads as a peer of every other Tunet card. The earlier
+                       `background: transparent` removed all visual definition
+                       and let the card content float on the popup chrome —
+                       a defect at light mode where there's no contrast between
+                       card body and popup backdrop. HA theme tokens
+                       (--ha-card-background, --divider-color) make the surface
+                       theme-adaptive (light + dark). max-width + margin auto
+                       center the card horizontally so it doesn't stretch to
+                       the full 800px popup width on wide-screen. */
                     ha-card {
-                      background: transparent !important;
-                      border: none !important;
-                      color: #e2e8f0 !important;
+                      background: var(--ha-card-background, var(--card-background-color, rgba(255, 255, 255, 0.92))) !important;
+                      backdrop-filter: blur(18px) !important;
+                      -webkit-backdrop-filter: blur(18px) !important;
+                      border: 1px solid var(--divider-color, rgba(148, 163, 184, 0.18)) !important;
+                      border-radius: 18px !important;
+                      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+                      max-width: 720px !important;
+                      margin: 0 auto !important;
+                      color: var(--primary-text-color) !important;
                       --accent-color: var(--blue, #0A84FF);
                       --primary-color: var(--blue, #0A84FF);
-                      --secondary-text-color: #94a3b8;
-                      --secondary-background-color: rgba(15, 23, 42, 0.85);
                     }

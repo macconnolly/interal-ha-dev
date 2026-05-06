@@ -1028,41 +1028,32 @@ npm run tinbox:smoke
 
 **At this point, OAL and Sonos packages still reference an unloaded service surface.** The integration is loaded but the YAML on `/config/packages/` is the pre-merge version. Stage 2 lands the YAML.
 
-### 6.2 Stage 2 — YAML packages with explicit per-tranche backup
+### 6.2 Stage 2 — YAML packages via the governed `deploy_packages.sh` script
 
-Per `deploy_and_test.md` §"Configuration patch rule" and the package-deploy scope note: package-only deploys are separate from `tinbox:deploy:integration`, and **must back up the touched files explicitly per tranche** before mutation.
+**v3 update (corrected 2026-05-06)**: This section originally used manual `scp` + ad-hoc backups in `Backups/pre_inbox_merge_*/`. That was wrong for the project's actual conventions. The repo has a dedicated package deploy script at `skills/ha-safe-package-deploy/scripts/deploy_packages.sh` that does:
+
+- Phase 1: discover local + remote `*.yaml` in `packages/`, find matches
+- Phase 2: SCP each remote → `Backups/<pkg>_<YYYY-MM-DD_HH-MM-SS>.yaml`, verify non-empty
+- Phase 3: `git add` + `git commit` each backup as `"Backup: <pkg> before deployment <ts>"` for audit trail
+- Phase 4: SCP local → remote, verify by `wc -c` size match
+
+This is auditable, idempotent, and matches the established project pattern. The earlier `/Backups/` gitignore entry was reverted so the script's commit phase works.
 
 ```bash
-# 1. Capture local timestamped backups of the EXISTING remote packages
-TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
-mkdir -p Backups/pre_inbox_merge_${TIMESTAMP}
-ssh root@10.0.0.21 "cat /config/packages/oal_lighting_control_package.yaml" \
-    > Backups/pre_inbox_merge_${TIMESTAMP}/oal_lighting_control_package.yaml.remote
-ssh root@10.0.0.21 "cat /config/packages/sonos_package.yaml" \
-    > Backups/pre_inbox_merge_${TIMESTAMP}/sonos_package.yaml.remote
-echo "Backups captured at Backups/pre_inbox_merge_${TIMESTAMP}/"
-echo "$TIMESTAMP" > /tmp/inbox_merge_backup_timestamp
+# Optional: dry-run first to inspect
+bash skills/ha-safe-package-deploy/scripts/deploy_packages.sh --dry-run
 
-# 2. Verify backups are non-empty
-[ -s Backups/pre_inbox_merge_${TIMESTAMP}/oal_lighting_control_package.yaml.remote ] || \
-    { echo "OAL backup empty - aborting"; exit 1; }
-[ -s Backups/pre_inbox_merge_${TIMESTAMP}/sonos_package.yaml.remote ] || \
-    { echo "Sonos backup empty - aborting"; exit 1; }
+# Real deploy
+bash skills/ha-safe-package-deploy/scripts/deploy_packages.sh
 
-# 3. SCP merged YAML packages
-scp packages/oal_lighting_control_package.yaml \
-    root@10.0.0.21:/config/packages/
-scp packages/sonos_package.yaml \
-    root@10.0.0.21:/config/packages/
-
-# 4. Reload — both automation and script reloads needed
-#    (per deploy_and_test.md: "mixed package script/automation edits should
-#     run both reloads; TI4A proved automation.reload alone leaves stale
-#     script bodies loaded")
+# After SCP succeeds, dual reload — both automation and script
+# (per deploy_and_test.md: "mixed package script/automation edits should
+#  run both reloads; TI4A proved automation.reload alone leaves stale
+#  script bodies loaded")
 mcp__home-assistant__ha_call_service domain="automation" service="reload"
 mcp__home-assistant__ha_call_service domain="script" service="reload"
 
-# 5. Verify automations loaded
+# Verify automations loaded
 mcp__home-assistant__ha_get_state entity_id="automation.oal_v13_override_reminder_inbox_action_handler"
 # Expect: state "on"
 mcp__home-assistant__ha_get_state entity_id="automation.oal_v14_tv_inbox_shadow_resolver"

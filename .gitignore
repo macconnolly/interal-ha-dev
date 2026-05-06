@@ -64,9 +64,5 @@ Dashboard/Tunet/Cards/v3/dist/
 /alarm_card_post_redesign.png
 /alarm_edit_popup_redesign.png
 
-# Backup snapshots (timestamped folders written by §6.2 deploy step;
-# kept on disk during rollback window, not tracked)
-/Backups/
-
 # Stray scratch files
 /snap-actions.yml

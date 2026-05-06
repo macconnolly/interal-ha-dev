@@ -1907,3 +1907,119 @@ describe('Status: typography uniformity contract', () => {
     expect(css).not.toMatch(/^\s*\.tile-val\.is-long\s*\{[^}]*font-size:/m);
   });
 });
+
+// outside_weather composite contract (T20).
+// The recipe surfaces the weather state as the primary value and dynamically resolves
+// a secondary callout into the LABEL when conditions diverge from what the state already
+// implies. Architecturally identical to boost_offset's composite cause label, scoped to
+// weather attributes. Priority order:
+//   1. Wind speed     >= 20 mph                       -> "Windy <N>mph"
+//   2. UV index       >  6  AND sun above horizon     -> "UV <N> High"
+//   3. Cloud coverage >  85 AND state isn't already
+//                            cloudy/rainy/snowy/etc.  -> "Mostly Cloudy"
+//   4. Cloud coverage <  5  AND state == 'partlycloudy' -> "Clearing"
+//   5. Visibility     <  1                            -> "Low Visibility"
+//   6. else                                            -> "" (label stays "Weather")
+describe('Status: outside_weather composite callout contract', () => {
+  // Returns the OVERRIDE OBJECT (states map) — createStatus passes it into makeStatusHass.
+  function weatherOverrides(weatherAttrs, sunState = 'above_horizon') {
+    return {
+      'weather.home': {
+        entity_id: 'weather.home',
+        state: weatherAttrs.state ?? 'sunny',
+        attributes: {
+          friendly_name: 'Forecast Home',
+          temperature: weatherAttrs.temperature ?? 65,
+          temperature_unit: '°F',
+          humidity: weatherAttrs.humidity ?? 50,
+          wind_speed: weatherAttrs.wind_speed ?? 0,
+          uv_index: weatherAttrs.uv_index ?? 0,
+          cloud_coverage: weatherAttrs.cloud_coverage ?? 30,
+          visibility: weatherAttrs.visibility ?? 10,
+        },
+      },
+      'sun.sun': {
+        entity_id: 'sun.sun',
+        state: sunState,
+        attributes: { friendly_name: 'Sun' },
+      },
+    };
+  }
+
+  function renderWeatherTile(overrides) {
+    const el = createStatus({
+      layout_variant: 'home_detail',
+      tiles: [{ recipe: 'outside_weather' }],
+    }, overrides);
+    return el.shadowRoot.querySelector('.tile-label')?.textContent?.trim();
+  }
+
+  it('snowy with 32mph wind -> "Windy 32mph"', () => {
+    const hass = weatherOverrides({ state: 'snowy', wind_speed: 32, cloud_coverage: 100 });
+    expect(renderWeatherTile(hass)).toBe('Windy 32mph');
+  });
+
+  it('sunny with UV index 8 -> "UV 8 High"', () => {
+    const hass = weatherOverrides({ state: 'sunny', uv_index: 8, cloud_coverage: 5 });
+    expect(renderWeatherTile(hass)).toBe('UV 8 High');
+  });
+
+  it('UV index 8 ignored when sun is below horizon (no sunscreen at night)', () => {
+    const hass = weatherOverrides({ state: 'clear-night', uv_index: 8 }, 'below_horizon');
+    expect(renderWeatherTile(hass)).toBe('Weather');
+  });
+
+  it('partlycloudy with 90% coverage -> "Mostly Cloudy" (state under-reports)', () => {
+    const hass = weatherOverrides({ state: 'partlycloudy', cloud_coverage: 90 });
+    expect(renderWeatherTile(hass)).toBe('Mostly Cloudy');
+  });
+
+  it('cloudy with 90% coverage -> "Weather" (state already implies high coverage)', () => {
+    const hass = weatherOverrides({ state: 'cloudy', cloud_coverage: 90 });
+    expect(renderWeatherTile(hass)).toBe('Weather');
+  });
+
+  it('rainy with 95% coverage -> "Weather" (rain implies overcast)', () => {
+    const hass = weatherOverrides({ state: 'rainy', cloud_coverage: 95 });
+    expect(renderWeatherTile(hass)).toBe('Weather');
+  });
+
+  it('partlycloudy with 3% coverage -> "Clearing" (state over-reports)', () => {
+    const hass = weatherOverrides({ state: 'partlycloudy', cloud_coverage: 3 });
+    expect(renderWeatherTile(hass)).toBe('Clearing');
+  });
+
+  it('sunny with 3% coverage -> "Weather" (clear sky is the expected condition for sunny)', () => {
+    const hass = weatherOverrides({ state: 'sunny', cloud_coverage: 3 });
+    expect(renderWeatherTile(hass)).toBe('Weather');
+  });
+
+  it('low visibility -> "Low Visibility"', () => {
+    const hass = weatherOverrides({ state: 'fog', visibility: 0.4 });
+    expect(renderWeatherTile(hass)).toBe('Low Visibility');
+  });
+
+  it('boring spring day with no notable conditions -> "Weather" (default static label)', () => {
+    const hass = weatherOverrides({
+      state: 'sunny', wind_speed: 6, uv_index: 4, cloud_coverage: 20, visibility: 10,
+    });
+    expect(renderWeatherTile(hass)).toBe('Weather');
+  });
+
+  it('multiple triggers: 32mph wind + 90% cloud + UV 8 -> "Windy 32mph" (priority 1 wins)', () => {
+    const hass = weatherOverrides({
+      state: 'partlycloudy', wind_speed: 32, uv_index: 8, cloud_coverage: 90,
+    });
+    expect(renderWeatherTile(hass)).toBe('Windy 32mph');
+  });
+
+  it('user-authored compact_label suppresses the dynamic callout', () => {
+    const hass = weatherOverrides({ state: 'snowy', wind_speed: 32 });
+    const el = createStatus({
+      layout_variant: 'home_summary',
+      tiles: [{ recipe: 'outside_weather', compact_label: 'Outside' }],
+    }, hass);
+    // home_summary uses compact_label; authored override blocks the dynamic resolver.
+    expect(el.shadowRoot.querySelector('.tile-label')?.textContent?.trim()).toBe('Outside');
+  });
+});

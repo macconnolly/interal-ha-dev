@@ -14,7 +14,15 @@ import {
   registerCard, logCardVersion,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.10.0';
+const CARD_VERSION = '3.11.0';
+
+// Weather states that intrinsically imply high cloud coverage. The outside_weather
+// composite uses this set to suppress redundant "Mostly Cloudy" callouts when the
+// state already conveys the cloud condition (e.g., 'rainy' + 95% coverage adds nothing).
+const STATES_IMPLYING_OVERCAST = new Set([
+  'cloudy', 'rainy', 'pouring', 'snowy', 'snowy_rainy', 'snowy-rainy',
+  'lightning', 'lightningrainy', 'lightning-rainy', 'fog', 'hail',
+]);
 
 const STATUS_ICON_ALIASES = {
   shelf_auto: 'shelves',
@@ -2452,6 +2460,71 @@ class TunetStatusCard extends HTMLElement {
       const cause = this._resolveBoostCause(tile);
       if (cause) return cause;
     }
+    // outside_weather composite: value = humanized state, label = dynamically resolved
+    // condition modifier when something diverges from what the state implies. Surfaces
+    // wind, UV, cloud-divergence, and visibility callouts via _resolveWeatherCallout.
+    if (
+      tile.recipe === 'outside_weather' &&
+      !tile._authoredLabel &&
+      !tile._authoredCompactLabel &&
+      this._hass
+    ) {
+      const callout = this._resolveWeatherCallout(tile);
+      if (callout) return callout;
+    }
+    return '';
+  }
+
+  // outside_weather composite callout. The architectural intent: surface the modifier
+  // that adds value beyond the headline state — never a redundant repetition of what
+  // the state already implies. Single most-urgent modifier wins; the user sees the
+  // headline (value) plus the most decision-relevant context (label).
+  //
+  // Priority (single dispatch — only the first matching rule fires):
+  //   1. wind_speed     >= 20 mph          -> "Windy <N>mph"      (coat decision)
+  //   2. uv_index       >  6  + sun above  -> "UV <N> High"        (sunscreen decision)
+  //   3. cloud_coverage >  85 + state not  -> "Mostly Cloudy"      (state under-reports)
+  //                          already cloudy
+  //   4. cloud_coverage <  5  + state ==   -> "Clearing"           (state over-reports)
+  //                          partlycloudy
+  //   5. visibility     <  1  mi           -> "Low Visibility"     (driving/walking)
+  //
+  // States that intrinsically imply high cloud coverage (skip rule 3): cloudy, rainy,
+  // pouring, snowy, snowy_rainy, lightning, lightningrainy, fog, hail.
+  _resolveWeatherCallout(tile) {
+    const entityId = tile.entity || 'weather.home';
+    const entity = this._hass.states[entityId];
+    if (!entity) return '';
+    const state = String(entity.state || '').toLowerCase();
+    const a = entity.attributes || {};
+
+    const windMph = Number(a.wind_speed);
+    if (Number.isFinite(windMph) && windMph >= 20) {
+      return `Windy ${Math.round(windMph)}mph`;
+    }
+
+    const uvIndex = Number(a.uv_index);
+    const sunEntity = this._hass.states['sun.sun'];
+    const sunUp = sunEntity?.state === 'above_horizon';
+    if (Number.isFinite(uvIndex) && uvIndex > 6 && sunUp) {
+      return `UV ${Math.round(uvIndex)} High`;
+    }
+
+    const cloudPct = Number(a.cloud_coverage);
+    if (Number.isFinite(cloudPct)) {
+      if (cloudPct > 85 && !STATES_IMPLYING_OVERCAST.has(state)) {
+        return 'Mostly Cloudy';
+      }
+      if (cloudPct < 5 && state === 'partlycloudy') {
+        return 'Clearing';
+      }
+    }
+
+    const visibility = Number(a.visibility);
+    if (Number.isFinite(visibility) && visibility < 1) {
+      return 'Low Visibility';
+    }
+
     return '';
   }
 

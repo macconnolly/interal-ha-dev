@@ -714,6 +714,13 @@ describe('Status: room_row mode contract', () => {
     // resets the hover-clip padding-block/margin-block to 0 because overflow-x: visible
     // means overflow-y is also visible — no vertical clip to compensate for.
     expect(css).toMatch(/@media \(max-width:\s*47\.9375em\)\s*\{[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.grid\s*\{[^}]*flex-wrap:\s*wrap;[^}]*overflow-x:\s*visible;[^}]*padding-block:\s*0;[^}]*margin-block:\s*0;[^}]*\}[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.tile\s*\{[^}]*flex:\s*1 1 6em;[^}]*min-width:\s*6em;[^}]*flex-direction:\s*column;[^}]*align-items:\s*center;/s);
+    // T19 mobile typography parity: when room_row drops into the vertical-stack tile
+    // layout below 768px it visually mimics home_summary, so the typography tokens
+    // should match home_summary's value/label sizes (1.15625em / 0.8125em). Without
+    // these overrides the tile inherits room_row's smaller --_tunet-row-* fonts and
+    // reads visibly smaller than every other variant at the same viewport.
+    expect(css).toMatch(/@media \(max-width:\s*47\.9375em\)\s*\{[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.tile-val\s*\{[^}]*font-size:\s*1\.15625em;/s);
+    expect(css).toMatch(/@media \(max-width:\s*47\.9375em\)\s*\{[\s\S]*:host\(\[layout-variant="room_row"\]\)\s+\.tile-label\s*\{[^}]*font-size:\s*0\.8125em;/s);
   });
 
   it('uses compact labels, suppresses secondary and aux content, keeps actions, and collapses hidden tiles', () => {

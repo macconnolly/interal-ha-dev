@@ -1411,14 +1411,22 @@ ${CARD_SURFACE_GLASS_STROKE}
       order: 1;
       margin-bottom: 0.125em;
     }
+    /* T19 mobile typography parity: when room_row collapses to a vertical-stack tile
+       layout, it visually mimics home_summary — so its typography should match. The
+       desktop row variant uses smaller --_tunet-row-* fonts because its horizontal
+       icon|label|value arrangement competes for inline width; in the wrapped vertical
+       stack each token gets its own row, so we restore home_summary's proportions
+       (1.15625em value / 0.8125em label). */
     :host([layout-variant="room_row"]) .tile-val {
       order: 2;
       margin-left: 0;
       text-align: center;
+      font-size: 1.15625em;
     }
     :host([layout-variant="room_row"]) .tile-label {
       order: 3;
       text-align: center;
+      font-size: 0.8125em;
     }
   }
 

@@ -3636,11 +3636,19 @@ views:
           - type: custom:bubble-card
             card_type: button
             button_type: name
-            name: Open Now Playing (popup A)
+            name: Open Now Playing (popup A — Compact 2-col)
             icon: mdi:speaker-multiple
             tap_action:
               action: navigate
               navigation_path: '#sonos-now-playing'
+          - type: custom:bubble-card
+            card_type: button
+            button_type: name
+            name: Open Now Playing v2 (popup A — Large 3-col)
+            icon: mdi:speaker-multiple-outline
+            tap_action:
+              action: navigate
+              navigation_path: '#sonos-now-playing-v2'
           - type: custom:bubble-card
             card_type: button
             button_type: name
@@ -3686,6 +3694,19 @@ views:
                   backdrop-filter: blur(24px);
                   -webkit-backdrop-filter: blur(24px);
                 }
+                /* Compress the first card cell inside the popup body. HA core
+                   button cards default to grid-row: span 2 (~120px) regardless
+                   of grid_options.rows. The Open Full Player button only needs
+                   ~50px; without this override the cell reserves 70px+ of
+                   phantom space below the button — visible to the user as a
+                   gap between the button and the media card. The wrapper div
+                   class is .card.fit-rows.full-width; targeting span 1 + auto
+                   height collapses the cell to its content height. */
+                .bubble-cards-container > .card.fit-rows.full-width:first-child {
+                  grid-row: span 1 !important;
+                  min-height: 0 !important;
+                  height: auto !important;
+                }
             cards:
               # Open Full Player — header-adjacent navigation. HA core `type: button`
               # is used here instead of custom:bubble-card because Bubble Card's
@@ -3694,6 +3715,13 @@ views:
               # surface — so only the icon area was firing the navigation in the
               # prior implementation. The HA core button makes the entire ha-card
               # the tap target with one explicit tap_action.
+              #
+              # grid_options.rows: 1 prevents the button's hui-card host from
+              # claiming ~120px of vertical real estate (2 default Sections grid
+              # rows) when the actual button content is ~50px tall. Without this
+              # the button left a 56-68px phantom gap below itself before the
+              # next card — the same gap visible in the user's iOS Companion
+              # screenshot.
               - type: button
                 name: Open Full Player
                 icon: mdi:music-box-multiple
@@ -3701,6 +3729,9 @@ views:
                 tap_action:
                   action: navigate
                   navigation_path: '#sonos-rich'
+                grid_options:
+                  rows: 1
+                  columns: full
                 card_mod:
                   style: |
                     /* HA core button card defaults to icon-on-top + name-below
@@ -3743,97 +3774,164 @@ views:
                       text-align: left !important;
                     }
 
-              # Mobile combo (visible at ≤ 47.9375em). tunet-media-card "Full +
-              # autodiscovery" + tunet-speaker-grid-card "Compact 2-col (profiles
-              # + groups)" — per user's mobile spec. The speaker grid is the
-              # COMPACT variant (not Large 3-col): 2 columns, compact tile size,
-              # use_profiles: true (volume bars + group toggles per tile),
-              # show_group_actions: true (Group All / Ungroup All footer).
-              # show_header: false suppresses the redundant title row — pixels
-              # earned not given.
-              - type: vertical-stack
-                cards:
-                  - type: custom:tunet-media-card
-                    entity: media_player.living_room
-                    name: ''
-                    coordinator_sensor: sensor.sonos_smart_coordinator
-                    active_group_sensor: sensor.sonos_active_group_coordinator
-                    playing_status_sensor: sensor.sonos_playing_status
-                    show_progress: true
-                  - type: custom:tunet-speaker-grid-card
-                    entity: media_player.living_room
-                    name: ''
-                    coordinator_sensor: sensor.sonos_smart_coordinator
-                    columns: 2
-                    tile_size: compact
-                    use_profiles: true
-                    show_group_actions: true
-                    show_header: false
-                    icon_tap_action:
-                      action: none
-                    speakers:
-                      - entity: media_player.living_room
-                        name: Living Room
-                        icon: speaker
-                      - entity: media_player.dining_room
-                        name: Dining Room
-                        icon: speaker
-                      - entity: media_player.kitchen
-                        name: Kitchen
-                        icon: speaker
-                      - entity: media_player.bedroom
-                        name: Bedroom
-                        icon: speaker
-                card_mod:
-                  style: |
-                    :host { display: block !important; }
-                    @media (min-width: 48em) {
-                      :host { display: none !important; }
-                    }
+              # ONE consistent body at all viewports. The previous viewport-toggle
+              # via `card_mod @media + display: none` on two stacked combos was
+              # unreliable across HA Companion app rendering contexts: the iOS
+              # app left the desktop combo's hui-vertical-stack-card host taking
+              # layout space at mobile, creating a phantom 200-400px gap between
+              # the Open Full Player button and the actual mobile content. The
+              # display:none host was REMOVED from layout in desktop browsers
+              # but RESERVED layout space in iOS Companion — a third-party
+              # rendering inconsistency we shouldn't depend on.
+              #
+              # Removing the toggle gives one stable body that works everywhere:
+              # tunet-media-card "Full + autodiscovery" + tunet-speaker-grid-card
+              # "Compact 2-col (profiles + groups)". Users who want the rich
+              # Sonos card with media browser tap "Open Full Player" → popup B.
+              # The desktop-only tunet-sonos-card combo survives as a separate
+              # preview popup (#sonos-now-playing-v2) for visual comparison.
+              - type: custom:tunet-media-card
+                entity: media_player.living_room
+                name: ''
+                coordinator_sensor: sensor.sonos_smart_coordinator
+                active_group_sensor: sensor.sonos_active_group_coordinator
+                playing_status_sensor: sensor.sonos_playing_status
+                show_progress: true
+              - type: custom:tunet-speaker-grid-card
+                entity: media_player.living_room
+                name: ''
+                coordinator_sensor: sensor.sonos_smart_coordinator
+                columns: 2
+                tile_size: compact
+                use_profiles: true
+                show_group_actions: true
+                show_header: false
+                icon_tap_action:
+                  action: none
+                speakers:
+                  - entity: media_player.living_room
+                    name: Living Room
+                    icon: speaker
+                  - entity: media_player.dining_room
+                    name: Dining Room
+                    icon: speaker
+                  - entity: media_player.kitchen
+                    name: Kitchen
+                    icon: speaker
+                  - entity: media_player.bedroom
+                    name: Bedroom
+                    icon: speaker
 
-              # Desktop combo (visible at > 47.9375em). tunet-sonos-card configured
-              # per /lab section 11 fourth example, repurposed for production. The
-              # vertical-stack wrapper exists solely so the @media toggle has a
-              # stable :host selector — applying card_mod display:none directly
-              # to the tunet-sonos-card doesn't suppress its rendered shadow DOM
-              # because the card owns its own shadow root. Wrapping in a stack
-              # gives card_mod a host-level container to hide.
-              # title_tap_action navigates to #sonos-rich (replaces default
-              # more-info with a richer destination). speaker_icon_tap_action is
-              # `none` because the speaker scroll icons are too small to be a
-              # reliable tap target for inspection — pixels earned not given.
-              - type: vertical-stack
-                cards:
-                  - type: custom:tunet-sonos-card
-                    entity: media_player.bedroom
-                    name: ''
-                    coordinator_sensor: sensor.sonos_smart_coordinator
-                    active_group_sensor: sensor.sonos_active_group_coordinator
-                    playing_status_sensor: sensor.sonos_playing_status
-                    title_tap_action:
-                      action: navigate
-                      navigation_path: '#sonos-rich'
-                    speaker_icon_tap_action:
-                      action: none
-                    speakers:
-                      - entity: media_player.living_room
-                        name: Living Room TV Sonos Soundbar
-                        icon: speaker
-                      - entity: media_player.dining_room
-                        name: Dining Room Credenza Speaker
-                        icon: speaker
-                      - entity: media_player.kitchen
-                        name: Kitchen Sonos
-                        icon: speaker
-                      - entity: media_player.bedroom
-                        name: Bedroom Sonos
-                        icon: speaker
+      # ─────────────────────────────────────────────────────────────
+      # POPUP A v2 — Now Playing variant (Large 3-col speaker grid)
+      # Preview comparison popup. Uses the alternative speaker grid
+      # variant the user discussed (Large 3-col Explicit) so the user
+      # can A/B compare against the production popup A. Same media
+      # card + same tap action conventions; only the speaker grid
+      # tile size + columns differ.
+      # ─────────────────────────────────────────────────────────────
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:bubble-card
+            card_type: pop-up
+            hash: '#sonos-now-playing-v2'
+            name: Now Playing v2
+            icon: mdi:speaker-multiple-outline
+            popup_mode: adaptive-dialog
+            popup_style: bubble
+            show_header: true
+            show_close_button: true
+            buttons_position: right
+            width_desktop: 720px
+            margin_top_desktop: 4vh
+            bg_opacity: 92
+            bg_blur: 24
+            close_by_clicking_outside: true
+            card_mod:
+              style: |
+                ha-card {
+                  --bubble-pop-up-main-background-color: rgba(30, 41, 59, 0.72);
+                  --bubble-pop-up-background-color: rgba(30, 41, 59, 0.72);
+                  --bubble-backdrop-background-color: rgba(15, 23, 42, 0.65);
+                  --bubble-icon-color: var(--blue, #0A84FF);
+                  --bubble-accent-color: var(--blue, #0A84FF);
+                  backdrop-filter: blur(24px);
+                  -webkit-backdrop-filter: blur(24px);
+                }
+            cards:
+              - type: button
+                name: Open Full Player
+                icon: mdi:music-box-multiple
+                show_state: false
+                tap_action:
+                  action: navigate
+                  navigation_path: '#sonos-rich'
+                grid_options:
+                  rows: 1
+                  columns: full
                 card_mod:
                   style: |
-                    :host { display: none !important; }
-                    @media (min-width: 48em) {
-                      :host { display: block !important; }
+                    ha-card {
+                      background: rgba(10, 132, 255, 0.06) !important;
+                      border: none !important;
+                      box-shadow: none !important;
+                      flex-direction: row !important;
+                      align-items: center !important;
+                      justify-content: flex-start !important;
+                      gap: 10px !important;
+                      padding: 10px 16px !important;
+                      min-height: 2.75em !important;
+                      height: auto !important;
+                      cursor: pointer !important;
+                      --primary-color: var(--blue, #0A84FF);
                     }
+                    ha-state-icon {
+                      --mdc-icon-size: 20px !important;
+                      color: var(--blue, #0A84FF) !important;
+                      flex: 0 0 auto !important;
+                    }
+                    span {
+                      color: var(--blue, #0A84FF) !important;
+                      font-weight: 600 !important;
+                      font-size: 0.9375em !important;
+                      flex: 1 1 auto !important;
+                      text-align: left !important;
+                    }
+              - type: custom:tunet-media-card
+                entity: media_player.living_room
+                name: ''
+                coordinator_sensor: sensor.sonos_smart_coordinator
+                active_group_sensor: sensor.sonos_active_group_coordinator
+                playing_status_sensor: sensor.sonos_playing_status
+                show_progress: true
+              - type: custom:tunet-speaker-grid-card
+                entity: media_player.bedroom
+                name: ''
+                coordinator_sensor: sensor.sonos_smart_coordinator
+                columns: 3
+                tile_size: large
+                use_profiles: true
+                show_group_actions: true
+                show_header: false
+                icon_tap_action:
+                  action: none
+                speakers:
+                  - entity: media_player.living_room
+                    name: Living Room
+                    icon: speaker
+                  - entity: media_player.dining_room
+                    name: Dining Room
+                    icon: speaker
+                  - entity: media_player.kitchen
+                    name: Kitchen
+                    icon: speaker
+                  - entity: media_player.bedroom
+                    name: Bedroom
+                    icon: speaker
+                  - entity: media_player.bath
+                    name: Bath
+                    icon: speaker
 
       # ─────────────────────────────────────────────────────────────
       # POPUP B — Sonos rich (full HACS card incl. media browser)
@@ -3902,7 +4000,11 @@ views:
                 volumes:
                   hideCogwheel: false
                 mediaBrowser:
-                  itemsPerRow: 4
+                  # itemsPerRow: 2 instead of 4 because 4 favorites tiles at the
+                  # 720px max-width inner card means ~165px each, which compresses
+                  # to ~80px tall narrow strips at mobile (~360px popup width).
+                  # 2-per-row gives readable square-ish tiles at both viewports.
+                  itemsPerRow: 2
                   favorites:
                     title: Favorites
                     numberToShow: 12

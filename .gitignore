@@ -39,3 +39,26 @@ Dashboard/Tunet/Cards/v3/dist/
 
 # Claude worktrees (managed by Claude Code, not repo content)
 .claude/worktrees/
+
+# Repo-root screenshot debris (M1 evidence, kept on disk, not tracked)
+/actions-*.png
+/alarm_*.png
+/popup_*.png
+/scenes-*.png
+/sonos_*.png
+/sonos-*.png
+/lighting-*.png
+/lab-*.png
+/cd9-*.png
+/cd11_*.png
+/livingroom_popup_for_reference.png
+/polish_review_post_push.png
+/alarm_card_post_redesign.png
+/alarm_edit_popup_redesign.png
+
+# Backup snapshots (timestamped folders written by §6.2 deploy step;
+# kept on disk during rollback window, not tracked)
+/Backups/
+
+# Stray scratch files
+/snap-actions.yml

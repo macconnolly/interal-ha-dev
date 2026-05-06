@@ -29,6 +29,7 @@ const ALL_CARD_TAGS = [
   'tunet-sonos-card',
   'tunet-speaker-grid-card',
   'tunet-nav-card',
+  'tunet-alarm-card',
 ];
 
 const CARD_ALIASES = {
@@ -47,6 +48,7 @@ const CARD_ALIASES = {
   speaker_grid: 'tunet-speaker-grid-card',
   speakergrid: 'tunet-speaker-grid-card',
   nav: 'tunet-nav-card',
+  alarm: 'tunet-alarm-card',
 };
 
 const CD_CARD_MAP = {

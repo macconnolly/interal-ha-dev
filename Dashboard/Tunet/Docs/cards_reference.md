@@ -26,7 +26,7 @@ This section is the target contract; per-card entries call out current divergenc
 
 ### 3. Room Tiles (rooms tile variant)
 - **Tap** = toggle all room lights (on/off); `tap_action` override if configured
-- **Hold** (400ms + haptic) = navigate to room page or popup (Browser Mod via `hold_action`)
+- **Hold** (400ms + haptic) = navigate to dedicated room subview page (**Option A, locked 2026-05-04**). Old wording "navigate to room page or popup (Browser Mod via `hold_action`)" is superseded — popup-fallback model retired by the 2026-05-04 popup-direction reversal + room-subview architecture decision. See `Dashboard/Tunet/Docs/visual_defect_ledger.md` Global cross-cutting bullets 2026-05-04 and `Dashboard/Tunet/CLAUDE.md` Locked Direction Rules.
 - **No drag** — rooms are not sliders
 
 ### 4. Navigation Rows (rooms row variant)

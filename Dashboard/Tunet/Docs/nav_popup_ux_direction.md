@@ -143,6 +143,17 @@ Primary actions should usually require one touch from the current surface:
 
 Secondary and deeper actions may take two touches, but only after the primary action is obvious.
 
+## 2026-04-23 — Sonos Alarm Surface (SA-series) Migration Note
+
+The Sonos alarm edit/manage surface migrates from Bubble Card hash popups (`#sonos-alarms`, `#edit-alarm`) to Browser Mod per the SA-series plan (`~/.claude/plans/tunet-sonos-alarm-manage.md`).
+
+- LD1: alarm entities locked to the four canonical HA-renamed switches (`switch.sonos_alarm_{bedroom,bath,bedroom_weekend,bath_weekend}`). Numeric-ID siblings remain in HA but are not surfaced.
+- LD2: popups migrate to Browser Mod using the stock `custom:popup-card` wrapper + `popup_card_id` + `popup_card_all_views: true` pattern. No bespoke Tunet popup card is built; the popup content is vanilla HA cards (entities, mushroom, button).
+- LD3: recurrence editing is deferred (edit popup covers time, volume, linked-zones only).
+- LD4: surface placement is a dedicated `/alarms` subview + optional compact chip on overview.
+
+Related AGENTS.md §3 exception (recorded 2026-04-23): the alarm-edit popup opens via an internal `browser_mod.popup` service call from `script.sonos_load_alarm_for_edit`, not via `fire-dom-event`. Scope: alarm-edit popup only. See the bullet at the end of AGENTS.md §3 for rationale.
+
 ## Immediate Implication For Tranche Order
 
 The next four major product decisions remain:

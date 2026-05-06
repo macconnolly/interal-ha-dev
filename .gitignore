@@ -37,3 +37,11 @@ Dashboard/Tunet/Cards/v3/dist/
 # Claude worktrees (managed by Claude Code, not repo content)
 .claude/worktrees/
 
+# Anomalous nested-path pollution guard
+# Prior sessions occasionally resolved absolute paths like
+# /home/mac/HA/implementation_10/X against the repo root rather than
+# filesystem root, producing /home/mac/HA/implementation_10/home/mac/HA/...
+# This guard prevents that pollution from being re-tracked.
+# See docs/oal_inbox_merge_to_main_plan_2026_05_05.md §3.2.1 for context.
+/home/
+

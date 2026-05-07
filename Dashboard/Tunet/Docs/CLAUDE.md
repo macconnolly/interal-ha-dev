@@ -8,6 +8,7 @@
 - Documentation structure index: `Dashboard/Tunet/design.md`
 - Sections model contract: `Dashboard/Tunet/Docs/sections_layout_matrix.md`
 - Per-card config + editor architecture: `Dashboard/Tunet/Docs/cards_reference.md`
+- Visual hierarchy contract (4-layer cross-card consistency model): `Dashboard/Tunet/Docs/visual_hierarchy.md`
 - Legacy key precedence rules: `Dashboard/Tunet/Docs/legacy_key_precedence.md`
 - Build and deploy runbook: `Dashboard/Tunet/Docs/tunet_build_and_deploy.md`
 - Defect record + cross-cutting architecture decisions: `Dashboard/Tunet/Docs/visual_defect_ledger.md`

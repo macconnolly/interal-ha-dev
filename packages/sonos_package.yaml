@@ -3025,6 +3025,11 @@ automation:
       # Small delay to ensure alarm has fully stopped
       - delay:
           seconds: 5
+      # Skip if snooze script just ran (its media_stop caused this transition); midnight reset is backstop
+      - condition: template
+        value_template: >
+          {% set last_snooze = state_attr('script.sonos_snooze_next_alarm', 'last_triggered') %}
+          {{ last_snooze is none or (now() - last_snooze).total_seconds() > 60 }}
       # Reset the snoozed alarm for this room
       - action: script.sonos_reset_snoozed_alarm
         data:

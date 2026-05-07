@@ -4,19 +4,14 @@ homeassistant:
   packages: !include_dir_named packages
   allowlist_external_dirs:
     - /config/www/bubble
-    - /config/
 
 tunet_inbox:
-  # Accepts either:
-  # - a helper entity whose state is a mobile_app device id
-  # - a direct notify.* service such as notify.tunet_inbox_all_devices
   notify_device_helper: notify.tunet_inbox_all_devices
   max_pending_items: 64
   response_timeout_seconds: 30
   archive_retention_days: 3
   privacy_mode_default: false
   debug_events: false
-
 notify:
   - platform: group
     name: tunet_inbox_all_devices
@@ -33,9 +28,8 @@ notify:
 
 # Setup the custom dashboard
 lovelace:
-  mode: yaml
   resources:
-    - url: /hacsfiles/Bubble-Card/bubble-card.js
+    - url: /hacsfiles/Bubble-Card/bubble-card.js?v=3.1.1
       type: module
     - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
       type: module
@@ -49,8 +43,6 @@ lovelace:
       type: js
     - url: /hacsfiles/community/stack-in-card/stack-in-card.js
       type: module
-    - url: /hacsfiles/lovelace-card-mod/card-mod.js
-      type: module
     - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
       type: module
     - url: /hacsfiles/streamline-card/streamline-card.js
@@ -62,23 +54,23 @@ lovelace:
     - url: /local/custom_fonts.css
       type: css
     - url: /hacsfiles/spotifyplus_card/spotifyplus_card.js
-      type: module     
+      type: module
+    - url: /hacsfiles/lovelace-plotly-graph-card/plotly-graph-card.js
+      type: module  
+    - url: /hacsfiles/mass-player-card/mass-player-card.js
+      type: module 
+    - url: /hacsfiles/lovelace-multiple-entity-row/multiple-entity-row.js
+      type: module
+    - url: /hacsfiles/Bubble-Card/bubble-pop-up-fix.js
+      type: module      
+    - url: /hacsfiles/lovelace-card-mod/card-mod.js?v=4.2.1
+      type: module       
+      
+      
+      
+
 
   dashboards:
-    tunet-card-rehab-yaml:
-      mode: yaml
-      title: Tunet Card Rehab Lab (YAML)
-      icon: mdi:flask-outline
-      show_in_sidebar: true
-      filename: dashboards/tunet-card-rehab-lab.yaml
-
-    tunet-inbox-yaml:
-      mode: yaml
-      title: Tunet Inbox
-      icon: mdi:inbox-multiple-outline
-      show_in_sidebar: true
-      filename: dashboards/tunet-inbox-dashboard.yaml
-
     adaptive-living:
       mode: yaml
       title: Adaptive Living
@@ -101,9 +93,41 @@ lovelace:
       filename: dashboards/lighting_manager_dashboard.yaml
       
 
+
+    tunet-suite:
+      mode: yaml
+      title: Tunet Suite (POC)
+      icon: mdi:view-dashboard
+      show_in_sidebar: true
+      filename: dashboards/tunet-suite.yaml
+
+
+    tunet-g2-lab-v3:
+      mode: yaml
+      title: Tunet G2 Lab (v3)
+      icon: mdi:test-tube
+      show_in_sidebar: true
+      filename: dashboards/tunet-g2-lab-v3.yaml
+
+
+    tunet-card-rehab-yaml:
+      mode: yaml
+      title: Tunet Card Rehab Lab (YAML)
+      icon: mdi:flask-outline
+      show_in_sidebar: true
+      filename: dashboards/tunet-card-rehab-lab.yaml
+
+
+    tunet-inbox-yaml:
+      mode: yaml
+      title: Tunet Inbox
+      icon: mdi:inbox-multiple-outline
+      show_in_sidebar: true
+      filename: dashboards/tunet-inbox-dashboard.yaml
+
 # Logger Configuration - Updated for Lighting Manager
 logger:
-  default: warn
+  default: info
   logs:
     homeassistant.components.core: info
     homeassistant.components.script: info
@@ -111,15 +135,10 @@ logger:
     homeassistant.components.blueprint: info
     homeassistant.loader: info
     homeassistant.setup: info
-    custom_components.oal_learning: debug
-    custom_components.lighting_manager: debug
+    custom_components.oal_learning: info
+    custom_components.lighting_manager: info
     custom_components.tunet_inbox: debug
     custom_components.tunet_inbox.mobile: info
-
-
-# Enable History and Recorder
-history:
-recorder:
 
 # Scenes
 scene: !include_dir_merge_list scenes/
@@ -142,3 +161,4 @@ api:
 
 frontend:
   themes: !include_dir_merge_named themes
+    

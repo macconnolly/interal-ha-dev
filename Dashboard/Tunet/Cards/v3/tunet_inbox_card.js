@@ -375,6 +375,25 @@ ${REDUCED_MOTION}
       justify-content: flex-start;
     }
   }
+
+  /* Dark mode overrides for hardcoded white-tinted surfaces */
+  :host(.dark) .empty {
+    background: rgba(255,255,255, 0.04);
+    border-color: rgba(255,255,255, 0.08);
+  }
+  :host(.dark) .item {
+    background: rgba(255,255,255, 0.06);
+    border-color: rgba(255,255,255, 0.10);
+    box-shadow: 0 0.35em 1.2em rgba(0,0,0, 0.30);
+  }
+  :host(.dark) .action-btn.secondary {
+    background: rgba(255,255,255, 0.06);
+    border-color: rgba(255,255,255, 0.10);
+  }
+  :host(.dark) .action-btn.dismiss {
+    background: rgba(255,255,255, 0.04);
+    border-color: rgba(255,255,255, 0.08);
+  }
 `;
 
 function escapeHtml(value) {

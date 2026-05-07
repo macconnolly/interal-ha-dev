@@ -96,7 +96,6 @@ const CARD_OVERRIDES = `
   }
 
   .card {
-    width: 100%;
     gap: 0;
     overflow: visible;
   }

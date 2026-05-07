@@ -41,7 +41,6 @@ ${REDUCED_MOTION}
   }
 
   .card {
-    width: 100%;
     gap: 0.9em;
     overflow: hidden;
   }
@@ -357,8 +356,8 @@ ${REDUCED_MOTION}
 
   @media (max-width: 440px) {
     .card {
-      padding: 1em;
-      border-radius: 1.15em;
+      padding: var(--card-pad, 1em);
+      border-radius: var(--r-card);
     }
 
     .item {

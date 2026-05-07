@@ -68,8 +68,7 @@ const CARD_OVERRIDES = `
   }
 
   .card {
-    width: 100%;
-    padding: 16px;
+    padding: var(--card-pad, 16px);
     gap: 12px;
     overflow: visible;
   }
@@ -509,7 +508,7 @@ const VOLUME_OVERLAY_STYLES = `
 
 const RESPONSIVE_STYLES = `
   @media (max-width: 440px) {
-    .card { padding: 14px; gap: 10px; }
+    .card { padding: var(--card-pad, 14px); gap: 10px; }
     .player-header { gap: 10px; }
     .album-art { width: 32px; height: 32px; border-radius: 8px; }
     .album-art .icon { font-size: 18px; }

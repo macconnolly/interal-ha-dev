@@ -35,10 +35,8 @@ const CARD_OVERRIDES = `
     display: block;
   }
   .card {
-    width: 100%;
     gap: 0;
     overflow: visible;
-    transition: background .3s, border-color .3s;
   }
 `;
 

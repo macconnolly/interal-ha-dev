@@ -129,8 +129,6 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Card surface overrides ─────────────────── */
   .card {
-    width: 100%;
-    max-width: 100%;
     overflow: visible;
     padding: var(--_tunet-card-pad, var(--card-pad, 20px));
   }

@@ -1102,6 +1102,7 @@ export const ICON_BASE = `
 export const CARD_SURFACE = `
   .card {
     position: relative;
+    width: 100%;
     border-radius: var(--r-card);
     background: var(--glass);
     backdrop-filter: blur(var(--blur-card));

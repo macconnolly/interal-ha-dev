@@ -33,7 +33,6 @@ const CARD_OVERRIDES = `
 
   /* -- Card shell overrides -- */
   .card {
-    width: 100%;
     gap: 0;
     overflow: visible;
   }

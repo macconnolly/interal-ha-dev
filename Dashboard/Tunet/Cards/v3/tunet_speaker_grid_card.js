@@ -78,11 +78,9 @@ const CARD_OVERRIDES = `
   }
 
   .card {
-    width: 100%;
     gap: 0;
     overflow: visible;
     padding: var(--_tunet-card-pad, var(--card-pad, 20px));
-    transition: background .3s, border-color .3s, box-shadow .3s, opacity .3s;
   }
 `;
 

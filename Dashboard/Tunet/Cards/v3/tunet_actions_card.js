@@ -173,12 +173,10 @@ const CARD_OVERRIDES = `
     font-size: 16px; /* em anchor - everything below scales from this */
   }
   .card {
-    width: 100%;
     gap: 0;
     overflow: visible;
-    transition: background .3s, border-color .3s;
   }
-  .card.compact { padding: 0.625em; border-radius: 1.25em; }
+  .card.compact { padding: var(--card-pad, 0.625em); border-radius: 1.25em; }
 `;
 
 // ═══════════════════════════════════════════════════════════

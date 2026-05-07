@@ -771,7 +771,6 @@ ${CARD_SURFACE_GLASS_STROKE}
 
   /* ── Card surface overrides ─────────────────── */
   .card {
-    width: 100%;
     gap: var(--_tunet-section-gap, 0.75em);
     overflow: visible;
     isolation: isolate;

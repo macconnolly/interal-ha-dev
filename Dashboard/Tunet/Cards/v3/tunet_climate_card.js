@@ -36,7 +36,6 @@ ${CARD_SURFACE_GLASS_STROKE}
   .card {
     padding: 20px 20px 14px;
     gap: 0;
-    width: 100%;
     overflow: visible;
   }
   .card[data-mode="off"] { opacity: .55; }

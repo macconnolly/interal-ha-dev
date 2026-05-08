@@ -1,13 +1,52 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-05-05 (America/Denver)
+Last updated: 2026-05-08 (America/Denver)
 Intended reader: next Claude Code session
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
-Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next by root-plan order is `CD12` surface assembly, still parked pending user acceptance and explicit pointer update)
+**Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α foundation / β plumbing / γ surfaces / δ polish); page-architecture sub-plan explicitly deferred to a focused future agent. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` for the principle.
+Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next by root-plan order is `CD12` surface assembly, still parked pending the page-architecture sub-plan approval)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-08, post-merge soak + chrome consistency + architecture-first reset)
+
+Tranche marker: post-CD11 closure + post-OAL+inbox-merge soak. Net effect: chrome consistency landed across the card suite; multiple bugs fixed; new Tunet Home dashboard scaffolded; architecture-first planning principle established with explicit page-architecture sub-plan deferred to a focused future agent. CD11 remains closed; CD10/nav and CD12/surface assembly remain parked.
+
+- `CURRENT STATE`
+  - OAL+tunet_inbox merge soaked successfully; SA5 snooze fix landed and verified live
+  - Active session plan: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α/β/γ/δ); has DoD + discovery questions for the page-architecture sub-plan
+  - Live cards at `?v=build_20260508_021754Z`
+  - `lovelace.tunet_home` storage dashboard exists at `/tunet-home` (5-section starter); pending Mac's eyes-on review and the page-architecture sub-plan to determine final composition
+- `WHAT THIS LANDED` (commits this session, on `main`)
+  - `28069d4` — SA5 Sonos snooze re-trigger fix: 60s discriminator on `automation.sonos_reset_snoozed_alarm_after_play`. Live runtime trace identified the race with `media_player.media_stop` causing alarm_playing True→False; merge plan §10.2a's "consumed-today" hypothesis was disconfirmed. End-to-end live test verified.
+  - `06a6c53` — Visual hierarchy contract: new `Dashboard/Tunet/Docs/visual_hierarchy.md` defining 4-layer cross-card consistency model (chrome / scaffold / tile internals / atoms).
+  - `7488198` — Step 1 chrome drift fixes: `width: 100%` promoted into `CARD_SURFACE` template; hardcoded `transition: .3s` replaced with `var(--motion-surface)` on weather/actions/speaker_grid; raw padding values tokenized on sonos; inbox phone radius normalized to `var(--r-card)`.
+  - `1b6eb36` — Inbox card dark mode: `:host(.dark)` overrides for 4 hardcoded white-tinted surfaces (`.empty`, `.item`, `.action-btn.secondary`, `.action-btn.dismiss`).
+  - `d18b99e` — Lighting card hold gate + pill position: `_initTileDrag` now passes `longPressMs: 500` + `onLongPress` (more-info dispatch); `.l-tile.sliding .zone-val` centered dead inside tile (closes corpus #11176 P0 from 2026-05-04).
+  - `6afcceb` — `Configuration/configuration.yaml` synced live→repo (adopts live as authoritative baseline; fixes empty-block recorder/history regression).
+  - Tunet Home dashboard scaffolded via WebSocket (`lovelace/dashboards/create` + `lovelace/config/save`): storage-mode dashboard at `/tunet-home`, UI-editable. Push mechanism for future config edits is `node /tmp/push_tunet_home_starter.mjs`-style scripts (templates kept in `/tmp` this session).
+- `OPEN CARRY-OVERS` (intentionally deferred, not blockers)
+  - **Bug A (double corners on rooms section + actions pills)**: root cause hypothesis logged in `purrfect-baking-ember.md` — `.card { border }` + `.card::before { mask xor }` rendering as two visible outlines; recommended fix: remove `.card { border }` from `CARD_SURFACE` template (cascades to all 10 consuming cards). Verify in light AND dark at all 4 breakpoints before commit.
+  - **Page-architecture sub-plan**: explicitly deferred to a focused future agent per Mac's directive 2026-05-08; mandate + DoD + discovery questions live in `purrfect-baking-ember.md`. Until approved, do NOT touch `/tunet-home` composition or build subviews.
+  - **CD11b/CD11c modes** (`home_detail`, `alarms`, `room_row`, `info_only`) still unbuilt; defects E1/E2 (room_row label clip, weather wrap) live in CD11c scope.
+  - Doc reconciliation: Path A (strengthen `Dashboard/Tunet/design.md` routing index) proposed; not yet executed.
+  - 16 unpushed commits on local main (popup B chain) remain decoupled per `session_arc_popup_b_to_frame.md` letter — Mac's standalone decision.
+- `NEXT AGENT GUARDRAILS`
+  - **Architecture-first** (NEW principle): page-level structural planning takes precedence over implementation tweaks. Don't touch `/tunet-home` composition until the page-architecture sub-plan is approved by Mac. See `feedback_architecture_first.md` memory.
+  - **Locked decisions** (don't re-litigate): rooms tile **tap = toggle, hold (400ms) = navigate to subview** (corpus #11178, #11192); sonos popup mobile = media_card + speaker_grid, desktop = sonos_card (corpus #11442); visual hierarchy 4-layer; all custom cards KEPT.
+  - **Corpus-query first**: before any architectural design work, query `tunet-architecture` corpus (500 obs through 2026-05-06). Use `mcp__plugin_claude-mem_mcp-search__search` for keyword search; priming + `query_corpus` may time out.
+  - Bug A fix touches `CARD_SURFACE` template — cascades to all 10 consuming cards in one edit; verify in light AND dark at all 4 breakpoints before committing.
+  - When new bugs/decisions/architectural insights surface, log them IMMEDIATELY into `Dashboard/Tunet/Docs/visual_defect_ledger.md`, `plan.md`, or `cards_reference.md`. Don't pile findings in chat.
+- `VALIDATION`
+  - Build clean across all commits (`npm run tunet:build` — 15 cards, no errors)
+  - Deploy via `npm run tunet:deploy:lab` ran multiple times this session; resources at `?v=build_20260508_021754Z`
+  - HA config check passed (`ha_check_config`) on package edits
+  - Live runtime trace of SA5 snooze (with time-resolved attribute history via `ha_get_history`) confirmed the fix end-to-end
+  - Mac's eyes-on confirmed: cross-card chrome consistency improved, inbox dark mode fixed, hold-to-adjust restored to dead-center pill
+
+---
 
 ## Session Delta (2026-05-05, post-CD11 — Sonos popup chain + per-card tap action overrides)
 

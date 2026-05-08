@@ -26,7 +26,9 @@ Before implementing any Tunet change, read:
 6. `Dashboard/Tunet/Docs/sections_layout_matrix.md`
 7. `Dashboard/Tunet/design.md`
 8. `Dashboard/Tunet/Docs/cards_reference.md` (per-card config contract + editor architecture)
-9. `Dashboard/Tunet/Docs/legacy_key_precedence.md` (setConfig overlap/fallback rules)
+9. `Dashboard/Tunet/Docs/visual_hierarchy.md` (4-layer cross-card consistency contract — chrome / scaffold / tile internals / atoms)
+10. `Dashboard/Tunet/Docs/legacy_key_precedence.md` (setConfig overlap/fallback rules)
+11. `~/.claude/plans/purrfect-baking-ember.md` for the active session-level plan (2026-05-08+) including the four-arcs framing (α/β/γ/δ) and the page-architecture sub-plan mandate
 
 Important:
 - Treat `sections_layout_matrix.md` as provisional until sections research + live tuning loop is completed and documented.
@@ -67,8 +69,9 @@ Do not silently resolve contradictions. Record the conflict and chosen interpret
   4. HOME LAYOUT
 - Popup direction remains locked to Browser Mod.
 - Popup triggers on card interactions should be browser-scoped (`fire-dom-event`) unless an explicit exception is requested.
-- One-popup-per-room model remains active.
+- ~~One-popup-per-room model remains active.~~ **SUPERSEDED 2026-05-04** (corpus #11178, #11192): each room now gets a **dedicated subview page**; rooms-card **hold (400ms)** navigates to that subview instead of opening a popup. Tile **tap = toggle** room lights.
 - Interaction supersession lock: room-card global `tap-toggle / hold-popup` language is historical. Active contract is card-body primary route action with explicit controls owning toggles.
+- **Architecture-First and Corpus-Query (added 2026-05-08)**: Page-level structural planning takes precedence over implementation tweaks. Before any architectural design work, query the `tunet-architecture` claude-mem corpus (500+ obs through 2026-05-06) for prior decisions. Use the four-arcs sequencing model: **α foundation** (page architecture, gating) / **β plumbing** (bug fixes, parallel) / **γ surfaces** (composition, gated on α) / **δ polish** (long tail). Locked decisions surfaced from corpus must NOT be re-litigated without Mac's explicit re-authorization: rooms = dedicated subviews; sonos popup mobile/desktop variants; all custom cards KEPT (no hybrid pivot); visual hierarchy 4-layer model. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` and `~/.claude/plans/purrfect-baking-ember.md` for full guidance and the page-architecture sub-plan mandate.
 - `layout-card` is allowed and encouraged for breakpoint-specific compositions (example: desktop rooms tiles vs mobile rooms row).
 - Prefer Home Assistant `2026.3` UI configuration capabilities wherever practical before YAML-only solutions.
 - Status card scope is explicitly reopened for the narrow `CD11` multi-mode redesign/runtime pass in `~/.claude/plans/synthetic-dazzling-oasis.md`; keep it status-only and yaml-first, with no full editor/synthesis expansion.

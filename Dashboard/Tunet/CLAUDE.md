@@ -34,9 +34,11 @@ Use the same review order as `Dashboard/Tunet/AGENTS.md`:
 6. `Dashboard/Tunet/Docs/sections_layout_matrix.md`
 7. `Dashboard/Tunet/design.md`
 8. `Dashboard/Tunet/Docs/cards_reference.md`
-9. `Dashboard/Tunet/Docs/legacy_key_precedence.md`
-10. `~/.claude/plans/flickering-herding-wolf.md`
-11. `~/.claude/plans/synthetic-dazzling-oasis.md` for active `CD11` status work
+9. `Dashboard/Tunet/Docs/visual_hierarchy.md` (4-layer cross-card consistency contract; chrome / scaffold / tile internals / atoms)
+10. `Dashboard/Tunet/Docs/legacy_key_precedence.md`
+11. `~/.claude/plans/flickering-herding-wolf.md`
+12. `~/.claude/plans/synthetic-dazzling-oasis.md` for active `CD11` status work
+13. `~/.claude/plans/purrfect-baking-ember.md` for the active session-level plan (2026-05-08+) including the four-arcs framing and page-architecture sub-plan mandate
 
 ## Design / Execution Precedence
 
@@ -55,6 +57,30 @@ Use this precedence when Tunet docs disagree:
 
 Do not silently resolve contradictions. Make the conflict and chosen interpretation explicit.
 
+## Architecture-First / Corpus-Query Rule (added 2026-05-08)
+
+**For Tunet dashboard architecture work, page-level structural planning takes precedence over implementation tweaks.** Don't bolt architectural design onto plans focused on bug fixes or card tweaks. Non-trivial architecture work gets its own focused sub-plan at `~/.claude/plans/<descriptive-name>.md`. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` for the principle.
+
+**Before any architectural design work, query the `tunet-architecture` claude-mem corpus** (500+ observations through 2026-05-06). Locked decisions surfaced from corpus must NOT be re-litigated without Mac's explicit re-authorization:
+- Rooms tile **tap = toggle, hold (400ms) = navigate to dedicated subview** (corpus #11178, #11192 — May 4 2026)
+- Sonos popup chain: **mobile** = `tunet-media-card` + `tunet-speaker-grid-card`; **desktop** = `tunet-sonos-card`. Bubble Card 3.2 popup mechanism (corpus #11442, #11488 — May 5/6 2026)
+- All custom cards KEPT (Mar 5 2026 lock — no hybrid/native pivot)
+- Visual hierarchy 4-layer model: chrome / scaffold / tile internals / atoms (`visual_hierarchy.md`)
+
+**How to query** (in priority order):
+- `mcp__plugin_claude-mem_mcp-search__search` for keyword + temporal scoring
+- `mcp__plugin_claude-mem_mcp-search__get_observations` for full content of specific IDs
+- `mcp__plugin_claude-mem_mcp-search__prime_corpus` + `query_corpus` for AI-powered Q&A — **may time out on 230k+ token corpora; fall back to direct search**
+- Look specifically for ⚖️ (decision), 🎯 (session) and 🟣 (feature) types when researching prior architectural choices.
+
+**Use the four-arcs sequencing model** when planning Tunet work:
+- α Foundation — page architecture decisions (gating)
+- β Plumbing — bug fixes (parallel, daily wins)
+- γ Surfaces — composition (gated on α)
+- δ Polish — long tail (defects, doc cleanup)
+
+**Continuous logging discipline**: when new bugs, decisions, or architectural insights surface, log IMMEDIATELY into `Dashboard/Tunet/Docs/visual_defect_ledger.md`, `plan.md`, or `Dashboard/Tunet/Docs/cards_reference.md`. Don't pile findings in chat history; the ledger and plan are the running record.
+
 ## Documentation Authority
 
 Follow the precedence order in `Dashboard/Tunet/AGENTS.md` section 2.
@@ -64,7 +90,7 @@ Follow the precedence order in `Dashboard/Tunet/AGENTS.md` section 2.
 Keep these direction locks explicit:
 
 - popup direction remains Browser Mod
-- one-popup-per-room model remains active
+- ~~one-popup-per-room model remains active~~ **SUPERSEDED 2026-05-04** (corpus #11178, #11192): each room now gets a **dedicated subview page**; rooms-card **hold (400ms)** navigates to that subview. Tile **tap = toggle** room lights.
 - nav is dashboard chrome, not ordinary content composition
 - status is explicitly reopened for the narrow `CD11` multi-mode redesign/runtime pass described in `~/.claude/plans/synthetic-dazzling-oasis.md`; full editor/synthesis expansion remains out of scope
 - actions remains `yaml-first`

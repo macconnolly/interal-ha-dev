@@ -1,11 +1,49 @@
 # Tunet Suite Dashboard - Implementation Plan
 
 Working branch: `main`
-Last updated: 2026-05-05
+Last updated: 2026-05-08
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
-Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next tranche by root-plan order is `CD12` surface assembly, but it remains parked pending user acceptance and explicit pointer update)
+**Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α foundation / β plumbing / γ surfaces / δ polish); page-architecture sub-plan explicitly deferred to a focused future agent. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` for the principle.
+Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next tranche by root-plan order is `CD12` surface assembly, but it remains parked pending the page-architecture sub-plan approval)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-08, post-merge soak + chrome consistency + architecture-first reset)
+
+Tranche marker: post-CD11 closure + post-OAL+tunet_inbox-merge soak. Net effect: chrome consistency landed across all cards; multiple bugs fixed; new Tunet Home dashboard scaffolded; architecture-first planning principle established with the page-architecture sub-plan explicitly deferred to a focused future agent. CD11 remains closed; CD10/nav and CD12/surface assembly remain parked.
+
+- `AUTHORITY NOTE`
+  - This work is layered on top of CD11 closure + the OAL+tunet_inbox merge that soaked through 2026-05-07
+  - Active session plan: `~/.claude/plans/purrfect-baking-ember.md` (2026-05-08) is the current session-level execution authority. Sub-plans and tranches still refer to flickering-herding-wolf.md.
+  - The architecture-first principle (memory: `feedback_architecture_first.md`) reorders this plan's CD12 thinking: structural page-architecture sub-plan precedes any composition tranche execution.
+- `IMPLEMENTATION` (commits this session, on `main`)
+  - `28069d4` — SA5 Sonos snooze re-trigger fix in `packages/sonos_package.yaml`: added 60s discriminator (`script.sonos_snooze_next_alarm.last_triggered`) on `automation.sonos_reset_snoozed_alarm_after_play` to skip reset when the snooze itself caused True→False transition. Validated live with time-resolved `ha_get_history` trace.
+  - `06a6c53` — `Dashboard/Tunet/Docs/visual_hierarchy.md` (NEW): 4-layer cross-card consistency model (chrome / scaffold / tile internals / atoms); routing entry added to `Dashboard/Tunet/Docs/CLAUDE.md`.
+  - `7488198` — Step 1 chrome drift fixes: `tunet_base.js` `CARD_SURFACE` gains `width: 100%` (previously repeated 10x in consumers, now removed); transition drift on weather/actions/speaker_grid replaced with template default; sonos padding tokenized; inbox phone radius normalized.
+  - `1b6eb36` — `tunet_inbox_card.js`: `:host(.dark)` overrides for `.empty`, `.item`, `.action-btn.secondary`, `.action-btn.dismiss` (4 hardcoded white-tinted surfaces).
+  - `d18b99e` — `tunet_lighting_card.js`: `_initTileDrag` gains `longPressMs: 500` + `onLongPress` (more-info dispatch); `.l-tile.sliding .zone-val` repositioned dead-center inside tile (`top: 50%; transform: translate(-50%, -50%)`).
+  - `6afcceb` — `Configuration/configuration.yaml` synced live→repo (live correctly omits empty `recorder:`/`history:` blocks; repo had regression).
+- `LAB / DASHBOARD STATE`
+  - New storage-mode dashboard `lovelace.tunet_home` at `/tunet-home` — created via WebSocket `lovelace/dashboards/create`; populated with 5-section starter via `lovelace/config/save` (status, mode_strip, rooms, climate, weather companions). Pending Mac's eyes-on + page-architecture sub-plan determination of final composition.
+  - Lab YAML untouched
+  - Polish-review YAML untouched
+- `DOCS`
+  - `Dashboard/Tunet/Docs/visual_hierarchy.md` (NEW) — 4-layer model
+  - `Dashboard/Tunet/Docs/CLAUDE.md` — routing entry for visual_hierarchy.md
+  - `~/.claude/plans/purrfect-baking-ember.md` (NEW) — session plan with DoD for sub-plan
+  - `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` (NEW) — architecture-first principle
+  - `~/.claude/projects/-home-mac-HA-implementation-10/memory/MEMORY.md` — index entry for the above
+- `OPEN CARRY-OVERS`
+  - Bug A (double corners on rooms section + actions pills) — recommended fix: remove `.card { border }` from `CARD_SURFACE` template; cascades to all 10 consuming cards. See `purrfect-baking-ember.md` for full root cause hypothesis.
+  - Page-architecture sub-plan — deferred to focused future agent; do not start /tunet-home composition iterations until approved.
+  - CD11b (`home_detail`, `alarms`) and CD11c (`room_row`, `info_only` + final visual polish) remain unbuilt under `synthetic-dazzling-oasis.md`.
+  - Defects E1 (room_row label clip), E2 (weather Partly Cloudy wrap) — both Layer 3 (tile internals); enter CD11c scope.
+- `NEXT-AGENT GUARDRAILS`
+  - **Architecture-first**: structural planning before tactical composition; sub-plan is gating for `/tunet-home` work. See `feedback_architecture_first.md` memory.
+  - **Corpus-query first**: query `tunet-architecture` corpus before designing anything; locked decisions (rooms = subviews, sonos popup variants, all-cards-KEPT, visual hierarchy 4-layer) must not be re-litigated.
+  - **Continuous logging discipline**: any new bug/decision/insight goes IMMEDIATELY to `visual_defect_ledger.md`, `plan.md`, or `cards_reference.md` — not chat.
+
+---
 
 ## Session Delta (2026-05-05, post-CD11 — Sonos popup chain + per-card tap action overrides)
 

@@ -601,12 +601,12 @@ ${CARD_SURFACE_GLASS_STROKE}
     transition: none;
   }
 
-  /* Floating pill – .zone-val repositions during slide */
+  /* Pill – .zone-val centered inside tile during slide */
   .l-tile.sliding .zone-val {
     position: absolute;
-    top: 0.48em;
+    top: 50%;
     left: 50%;
-    transform: translate(-50%, -72%);
+    transform: translate(-50%, -50%);
     color: var(--amber);
     font-weight: 700;
     font-size: 15px;
@@ -1450,8 +1450,18 @@ class TunetLightingCard extends HTMLElement {
       element: this.$.lightGrid,
       deadzone: 8,
       axisBias: 1.3,
+      longPressMs: 500,
       pointerCapture: false,
       shouldStart: (event) => !!event.target.closest('.l-tile'),
+      onLongPress: (_event, payload) => {
+        const ctx = payload && payload.context;
+        if (!ctx || !ctx.entity) return;
+        this.dispatchEvent(new CustomEvent('hass-more-info', {
+          bubbles: true,
+          composed: true,
+          detail: { entityId: ctx.entity },
+        }));
+      },
       getContext: (event) => {
         const tileEl = event.target.closest('.l-tile');
         if (!tileEl) return false;

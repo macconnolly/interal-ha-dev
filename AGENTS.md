@@ -20,17 +20,28 @@ Apply those instructions as authoritative for Tunet work.
   - `Dashboard/Tunet/AGENTS.md`
 - For non-Tunet paths, use prompt/developer/system instructions plus local file context.
 
+## Cross-Cutting Principles (encoded 2026-05-08)
+
+For any work that touches dashboard architecture, card design, or page composition:
+
+- **Architecture-first**: page-level structural planning takes precedence over implementation tweaks. Non-trivial architecture work gets its own focused sub-plan at `~/.claude/plans/<descriptive-name>.md`, not a bullet on a tactical plan. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md`.
+- **Corpus-query first**: before any architectural design work, query the `tunet-architecture` claude-mem corpus (500+ obs through 2026-05-06) for prior decisions. Locked decisions surfaced from corpus must NOT be re-litigated without Mac's explicit re-authorization (rooms = subviews; sonos popup mobile/desktop variants; all custom cards KEPT; visual hierarchy 4-layer).
+- **Four-arcs sequencing model**: α foundation (gating) / β plumbing (parallel) / γ surfaces (gated on α) / δ polish (long tail).
+- **Continuous logging discipline**: new bugs, decisions, or architectural insights land IMMEDIATELY in `Dashboard/Tunet/Docs/visual_defect_ledger.md`, `plan.md`, or `Dashboard/Tunet/Docs/cards_reference.md`. Don't pile findings in chat history; the ledger and plan are the running record.
+
+Canonical content for Tunet work lives in `Dashboard/Tunet/AGENTS.md` (Codex execution contract) and `Dashboard/Tunet/CLAUDE.md` (Tunet governance) — read those for full guidance and the locked-decisions list. Active session-level plan: `~/.claude/plans/purrfect-baking-ember.md`.
+
 
 <claude-mem-context>
 # Memory Context
 
-# [implementation_10] recent context, 2026-05-06 10:43am MDT
+# [implementation_10] recent context, 2026-05-07 8:46pm MDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 25 obs (11,950t read) | 870,594t work | 99% savings
+Stats: 25 obs (10,148t read) | 803,231t work | 99% savings
 
 ### Apr 5, 2026
 S1644 Read .claude/settings.local.json — checking current allowed permissions (likely pre-deploy housekeeping) (Apr 5, 6:59 PM)
@@ -54,191 +65,12 @@ S1766 Locate the codex config TOML file path (Apr 5, 10:50 PM)
 ### May 4, 2026
 S1767 Tunet V2 card suite forensic analysis + CSS/token patch series applied to tunet_base.js and tunet_lighting_card.js for mockup parity, followed by design system hardening and architecture planning for a reusable light-tile primitive (May 4, 9:59 PM)
 S1768 CD11 Status Multi-Mode Redesign on main — full context loading and governance orientation before implementation (May 4, 10:53 PM)
-### May 5, 2026
-11489 8:43p 🔵 Tunet Design Language v9.0 Spec — Profile System Architecture and Token Ownership
-11491 8:44p 🔵 Home Assistant Custom Dashboard Project — Full Visual QA Session Initiated
-**11492** " 🔵 **FIX_LEDGER.md — Canonical Decisions and Requirement Register Established**
-FIX_LEDGER.md defines remediation truth; plan.md defines execution order — both must be read before any implementation session begins.
-Every ledger item must pass four gates: Requirement Alignment, Surface Scope, Item Type, and Completion Standard before entering active remediation flow.
-Completion Standard distinguishes four states: CODE CHANGED, DEPLOYED, VISUALLY VALIDATED, ACCEPTED AS PRODUCT DIRECTION — these must not be collapsed into one meaning of "done" (REQ-DONE-001).
-Canonical decisions locked: v2_next is active staging root, Sections is primary layout engine, Browser Mod is popup direction, room card-body uses route-first tap with explicit control-owned toggles.
-Three surface types defined: Repo Architecture Surface (tunet-suite YAML), Storage/Hybrid Evaluation Surface (tunet-suite-storage), Historical/Reference Surface (older dashboards).
-Authoritative branch for this ledger is `claude/dashboard-nav-research-QnOBs`; broad planning outputs must record live branch and HEAD before using ledger.
-Office is not a room — Office lighting is part of Living Room by architectural decision.
-Requirement IDs range from REQ-NAV-001 through REQ-INT-001, covering nav, popup, UX, sections, layout, surface, done-definition, V1-recovery, control, and interaction contracts.
-
-11493 " 🔵 Tunet Card File Scorecard — Production Health Grades Per Card
-11494 " 🔵 Open and Partial Defects in FIX_LEDGER — FL-011 through FL-032
-11495 " 🔵 G1 Profile System — v3 Sandbox Architecture and Size-Indexed Token Registry
-**11502** 8:47p 🔵 **handoff.md — CD11 Closed, Current State and Active Tranche Map**
-CD11 is fully closed: code, docs, tests, deployed bundle (?v=build_20260505_122827Z), live lab YAML, and visual evidence all locked.
-tunet-status-card is at v3.4.0 with six layout variants: home_summary, home_detail, room_row, info_only, alarms, custom.
-Full npm test suite passes at 694/694 as of latest CD11 post-closure polish pass (2026-05-05).
-Active execution plan lives at ~/.claude/plans/flickering-herding-wolf.md (CD0–CD12 sole authority); detailed CD11 plan at ~/.claude/plans/synthetic-dazzling-oasis.md.
-CD10 (nav verification) is intentionally deferred — not closed — until room/surface composition is more settled.
-The polish dashboard (polish-review) and lab dashboard (lab) both exist under the tunet-card-rehab-yaml namespace at http://10.0.0.21:8123/tunet-card-rehab-yaml/.
-CD11 post-closure polish added --changed-cards flag to Playwright review tooling and room-row °F temperature unit support.
-Bottom navigation overlay can obscure lower 390px card captures — this is CD10/nav scope and was not changed in CD11.
-
-**11503** " 🔵 **Consistency Driver Execution Order — CD0 through CD12 Tranche Map**
-CD0: Build architecture + rehab lab — DONE (Apr 3, 2026)
-CD1: Configuration clarity + editor policy — DONE (Apr 3, 2026)
-CD2: Shared interaction adoption across all 13 files — DONE (Apr 3, 2026)
-CD3/CD3.1: Shared semantics adoption + dropdown clipping fix — DONE (Apr 3, 2026)
-CD4: Shared sizing + Sections adoption for 7 files — DONE (Apr 4, 2026)
-CD5: Utility strip bespoke (actions + scenes) — DONE (Apr 4, 2026)
-CD6: Lighting bespoke (lighting card + light tile geometry parity) — DONE (Apr 5–6, 2026)
-CD7: Rooms bespoke (row-mode phone density, interaction lock, icon normalization) — DONE (Apr 6, 2026)
-CD8: Environment bespoke (weather phone-density redesign with flip-chips) — DONE (Apr 6, 2026)
-CD9: Media bespoke (audio target model, sonos dropdown convergence, drag guard, album-art resilience) — DONE (Apr 6, 2026)
-CD11: Status multi-mode design and runtime pass — DONE (May 5, 2026)
-CD12: Surface assembly (production view orchestration) — NEXT, not started.
-Configuration support tier per card: editor-complete (nav, scenes, light_tile, weather, sensor); editor-lite (lighting, rooms, climate, media, sonos, speaker_grid); yaml-first (actions, status).
-
-**11504** " 🟣 **Status Card — Six Layout Variants with Recipe Shorthand System (CD11)**
-Six layout variants implemented: home_summary (4-col matrix, 8-slot budget), home_detail (rich responsive grid), room_row (horizontal strip), info_only (passive informational), alarms (timer/alarm cluster), custom (legacy flexible).
-Recipe shorthand system: recipe_tiles[] in setConfig() is the primary authoring surface; synthesizes from recipe_tiles[] → recipes[] → raw tiles[] in that precedence order.
-Twelve recipe keys documented in cards_reference.md §9: mode_ttl binds timer.oal_mode_timeout by default.
-getConfigForm() exposes layout_variant and recipe_tiles[] selectors for editor-lite configuration.
-getStubConfig() returns home_summary starter; getStubConfigForVariant(variant) returns coherent per-variant starter for all six variants.
-variant-aware getGridOptions() and getCardSize() expose different intrinsic row envelopes per variant (home_summary: min 2/max 4; home_detail: min 3/max 12; room_row: min 1/max 2; info_only: min 2/max 6; alarms: min 3/max 8; custom: min 2/max 12).
-dot_rules now use exact case-insensitive matching with wildcard fallback — fixes not_home incorrect green presence dot.
-room_row accepts only value and indicator tiles; suppresses secondary values and aux pills; uses compact labels and row-oriented sizing.
-info_only stays passive by default unless author explicitly provides tap_action, navigate_path, or action_entity.
-home_summary, home_detail, room_row, info_only, and alarms collapse/reflow hidden tiles; custom alone preserves hidden slots.
-
-**11505** " 🔵 **Visual Review Infrastructure — Playwright Harness and Build/Deploy Pipeline**
-Playwright review script: Dashboard/Tunet/scripts/tunet_playwright_review.mjs — captures screenshots at locked breakpoints (390x844, 768x1024, 1024x1366, 1440x900) in both light and dark themes.
-npm run tunet:review — full multi-breakpoint rehab review with screenshots landing under /tmp/tunet-playwright-review/<timestamp>/review-manifest.json.
-npm run tunet:review:smoke — fast single-breakpoint smoke check.
-npm run tunet:review:changed -- --view <affected-view> — probe-backed review for specific changed cards; --changed-cards flag added in CD11 post-closure.
-npm run tunet:build — esbuild pipeline producing the v3 bundle.
-npm run tunet:deploy:lab — SCP files to HA, then auto-updates Lovelace resource version strings via update_tunet_v3_resources.mjs.
-npm run tunet:resources:sync — standalone repair path for resource version drift without a full deploy.
-Auth for deploy comes from .env file: HA_LOCAL_URL/HA_URL, HA_USERNAME, HA_PASSWORD, HA_LONG_LIVED_ACCESS_TOKEN (preferred) / HA_TOKEN.
-Playwright harness waits for web fonts before capture to prevent icon ligature false negatives.
-Screenshot manifests use structured paths: /tmp/tunet-playwright-review/<timestamp>/<breakpoint>/<theme>/rehab/<view>/cards/<card>__<n>.png.
-
-**11506** " 🔵 **Sections Layout Matrix — Per-Card getGridOptions() Contract and 3-Layer Model**
-All 13 cards use rows:'auto' — no card forces fixed row height in the Sections grid contract.
-Nav card is the only card using columns:'full'; all others use numeric columns (typically 12 with min_columns of 6 or 3).
-Climate and weather are the narrowest cards: columns:6, min_columns:3, min_rows:3 — designed for side-by-side companion placement.
-3-layer tuning order is mandatory: view-level (max_columns, dense_section_placement) → section-level (column_span, row_span) → card-level (grid_options). Never tune card internals while view/section is undefined.
-Active storage surface baseline: max_columns:4, dense_section_placement:false on all sections views.
-Breakpoint → active page columns: ≤735px=1col, 736-1087px=2col, 1088-1439px=3col, ≥1440px=4col (with default HA theme variables).
-max_columns:12 does NOT mean 12 columns will render — it is an upper bound clamped to viewport/theme-var-derived actual columns.
-legacy 12-span YAML (e.g. 7/5 spans) collapses to available runtime columns and masks intent; normalize to role-based runtime columns.
-columns:'full' means full width of the current section, NOT full page width.
-footer.card is the preferred nav placement for Sections views in HA 2026.3+; does not automatically fix JS-level global offset side effects (tracked as FL-011).
-
-**11507** " 🔵 **CD9 Audio — Selected-Target Volume Model, Sonos Dropdown Parity, Speaker-Tile Contract**
-Selected-target volume routing: selected individual speaker → speaker-only volume; selected grouped coordinator → proportional group volume.
-Sonos source selector replaced with media dropdown shell 1:1 — same structure, compact labels, per-row group badges, Group All / Ungroup All actions.
-Volume overlay auto-exits after 5s of inactivity; drag start clears the timer; drag end re-arms 5s timer.
-Shared compactSpeakerName() in tunet_base.js preserves room identity (Living, Dining, Kitchen, Bed) while compacting aggressively.
-Speaker tile interaction contract: body tap = select active target; hold 400ms then drag = selected-target volume; icon tap/hold = more-info; badge = toggle group membership.
-Speaker-grid explicit large (tile_size:large) collapses to 1 visible phone column; compact/standard collapse to max 2 phone columns.
-Album art: preferred source order is entity_picture_local → media_image_url → entity_picture; failed art URLs are briefly cached to suppress retry spam.
-/unknown/node_modules/@webcomponents/scoped-custom-element-registry/... 404 is confirmed global HA/frontend noise, not Tunet-owned.
-
-**11508** " 🔵 **design.md V2 Lock Summary — 11 Architectural Decisions and Canonical Source Order**
-Implementation authority is Dashboard/Tunet/Cards/v2/ (and v3 as active G1 sandbox by user override).
-Profile direction is Option C (family profile consumption) with container-first width source as hard prerequisite.
-Family split locked to 6 families: lighting-tile, tile-grid, speaker-tile, rooms-row, indicator-tile, indicator-row.
-Resolver contract locked: selectProfileSize({ preset, layout, widthHint, userSize? }) stateful selector; resolveSizeProfile({ family, size }) pure lookup.
-tile-core is the exclusive consumer of core profile lane tokens (--_tunet-*); family extensions consumed only by owning components.
-All token values are em strings — no px, no raw numbers (Decision 18).
-PROFILE_BASE is size-indexed: { compact: {...}, standard: {...}, large: {...} } (Decision 19).
-Status subtype internals (timer, alarm, dropdown) are profile-controlled (Decision 20).
-Documentation update pattern: Mockups/design_language.md first → sections_layout_matrix.md if sections changed → sync plan.md/FIX_LEDGER.md/handoff.md.
-Design precedence: plan.md > FIX_LEDGER.md > handoff.md > sections_layout_matrix.md > design_language.md.
-
-**11509** 8:48p 🔵 **Home Assistant Custom Dashboard Visual Rehabilitation Project**
-Dashboard project is named "tunet-card-rehab-yaml" hosted at http://10.0.0.21:8123
-Two active dashboard views: /lab (card variants under development) and /polish-review (completed polished work)
-Workflow requires taking a screenshot of every card touched and visually inspecting for defects before moving on
-Quality bar explicitly set above stock Home Assistant UI, Apple HomeKit, and comparable alternatives
-Work scope includes reading full git commits, full referenced files, and full git diffs — no partial reads
-Evaluation perspective is daily-driver user asking: "Is this showing me what I need? Is it intuitive? Is it a meaningful improvement?"
-Architecture constraint: treat every card modification as a system-philosophy decision, not just a feature tweak
-
-**11610** 11:37p ⚖️ **Home Assistant Custom Dashboard Visual QA Initiative Launched**
-Dashboard lab environment accessible at http://10.0.0.21:8123/tunet-card-rehab-yaml/lab showing all card variants
-Polished/production review target at http://10.0.0.21:8123/tunet-card-rehab-yaml/polish-review
-Work scope requires reading full files and full git diffs — no partial reads permitted
-Every card touched must be screenshotted and visually reviewed for defects before and after changes
-Evaluation criterion: would a daily user find this meaningfully better than stock Home Assistant, Apple HomeKit, or any alternative
-Architectural perspective required: experienced HA systems architect, design-focused, long-term maintainability lens
-Dashboard YAML lives in tunet-card-rehab-yaml project; cards scope spans "lab" (all variants) and "polish-review" (shipped work)
-
-**11611** 11:38p 🔵 **OAL System Live State: Night Phase, Snowy Weather, Two Manual Zones Active**
-Sun elevation is -29.67° (deep night), rising=False, weather=snowy, lux=5 at time of inspection (2026-05-06 ~05:37 UTC)
-sensor.oal_real_time_monitor state is "Boosted" with boost_source "☀️+1% 🌙-30%" — environmental offset adds +1% (snowy), night offset subtracts -30%
-sensor.oal_system_status reports sun_phase=night, active_modifiers=[{name:Snowy, value:1}], weather_modifier_active=true, 2 active zonal overrides
-Kitchen Island and Kitchen Undercabinet are in manual override mode with 2h22m remaining (autoreset in ~8547s)
-Recessed ceiling and column lights remain in adaptive mode (state "A") at minimum brightness (~1%)
-OAL brightness config changed between 6h-ago history and current state — recessed ceiling max_brightness dropped from 30 to 15, island min dropped from 41 to 20
-input_number.oal_offset_night_brightness reached floor of -30.0 at ~03:25 UTC after incrementally ramping from 0 starting ~02:20 UTC
-input_number.oal_offset_environmental_brightness peaked at 29.0 around 01:50 UTC then dropped back to 1.0 by 05:37 UTC (weather/lux driven)
-sensor.oal_kitchen_undercabinet_status attributes explicitly show night_offset_component=-15.0 and max_cap_reason=night_dimming_active
-Adaptive lighting switch configs were modified: recessed_ceiling brightness_mode=tanh, column_lights uses sunset_offset=-1800s and separate_turn_on_commands=true
-
 ### May 6, 2026
-**11619** 1:06a ⚖️ **Working Relationship Frame Acknowledged in CLAUDE.md**
-CLAUDE.md contains a "Working Relationship Frame" section establishing collaboration norms.
-Standing permissions and reciprocity are codified in CLAUDE.md as guiding principles.
-Agreed norms include: push back when no viable path exists, flag uncertainty rather than push through, request human judgment when needed.
-User explicitly frames the work surface as shared ownership — Claude owns outcomes alongside the user.
-User commits to honest and direct feedback as their side of the reciprocal relationship.
-
-**11620** 1:07a 🔵 **Project Has Extensive Nested CLAUDE.md Hierarchy**
-Root CLAUDE.md lives at /home/mac/HA/implementation_10/CLAUDE.md.
-A parallel worktree at worktrees/dashboard-finalize/ mirrors the full CLAUDE.md hierarchy.
-Dashboard/Tunet has its own CLAUDE.md plus child-level files in Cards/v2, Cards/v3, Docs, Mockups, Agent-Reviews, and scripts subdirectories.
-Archived and backup copies exist under Archive/, Backups/, Review/version_a|b|c/, and v14_comparison/version_a|b|c/.
-Home Assistant frontend source tree (home-assistant/frontend/src/) also contains component-level CLAUDE.md files.
-The memory/, Configuration/, packages/, logs/, and docs/ directories each carry their own CLAUDE.md.
-
-**11621** " 🔵 **Git State Shows Active CLAUDE.md Documentation Updates and New Cards/v3 Work**
-Five Claude worktrees are in a modified state under .claude/worktrees/: crispy-fluttering-allen, harmonic-doodling-corbato, hazy-seeking-adleman, starry-moseying-dawn, valiant-meandering-lecun.
-AGENTS.md is modified (staged or working tree change).
-Nine CLAUDE.md files are modified: Dashboard/Tunet/CLAUDE.md, Cards/v3/CLAUDE.md, Cards/v3/tests/CLAUDE.md, Cards/v3/tests/helpers/CLAUDE.md, Docs/CLAUDE.md, Mockups/CLAUDE.md, scripts/CLAUDE.md, Agent-Reviews/CLAUDE.md, docs/CLAUDE.md.
-Dashboard/Tunet/Cards/v3/ is entirely untracked — new work not yet committed.
-home/mac/.claude/ is untracked, suggesting local Claude configuration files are not yet committed.
-
-**11622** 1:08a 🔵 **Current Active Tranche is CD11 — Status Multi-Mode Design and Runtime Pass**
-Active execution plan: ~/.claude/plans/flickering-herding-wolf.md — master authority for CD0–CD12.
-Active detailed CD11 plan: ~/.claude/plans/synthetic-dazzling-oasis.md — status-specific implementation authority.
-CD11 scope: "Status Multi-Mode Design and Runtime Pass" — narrow, status-only redesign/runtime pass.
-CD10 (nav desktop coexistence/offset cleanup) is intentionally deferred until room/surface composition direction is settled.
-Completed tranches CD0–CD9 span Apr 3–6, 2026, covering build architecture, shared semantics, interaction, sizing, lighting, utility strip, rooms, environment, and media bespoke passes.
-Current priority order: rehabilitate Tunet v3 card suite → normalize docs/backlog → execute CD11 → resume surface assembly only after card families are stable.
-
-**11623** " 🔵 **Seven Mechanical Pre-Commit UI Quality Rules (M1–M7) Encoded in Root CLAUDE.md**
-M1: Screenshot review block required before every UI commit — must read screenshots back into context, not just confirm capture; output a structured USER-PERSPECTIVE REVIEW block.
-M2: Banned phrases ("verified", "tested", "is fixed", "looks good", "done", "complete", "should work") without a user-visible artifact in the same response.
-M3: Only the user holds the "done" stamp; agents report "Implemented X. Evidence: [artifacts]. Awaiting your review." never autonomous "complete".
-M4: Pre-commit defect inventory must cover CURRENT state of the surface (not just what was fixed), triaged as blocker/visible/minor.
-M5: Third-party visual defects are owned project defects; "third-party limitation" is not an acceptable disposition; must fork/replace/remove.
-M6: Default UI disposition is "broken until proven otherwise with user-visible evidence"; false-negative cost >> false-positive cost.
-M7: Each tranche DoD must be evidence-bound (screenshot at named breakpoints + defect inventory + user confirmation); banned phrasing: "polished and complete" / "looks good".
-Rules were created after a session where popup defects (black play button, fixed-height empty space, clipped content, generic titles) survived automated test passes.
-
-**11624** " 🔵 **Tunet Build Pipeline and Authority Document Map**
-Build command: `npm run tunet:build` — esbuild compiles 13 cards to Dashboard/Tunet/Cards/v3/dist/.
-Deploy command: `npm run tunet:deploy:lab` — build + SCP to HA server at 10.0.0.21.
-Test command: `npm test` — vitest suite.
-Lab dashboard URL: http://10.0.0.21:8123/tunet-card-rehab-yaml/lab.
-Authority files: cards_reference.md (per-card contract), visual_defect_ledger.md (runtime truth), sections_layout_matrix.md (CD4 sizing, provisional for CD12).
-Session control docs: plan.md, FIX_LEDGER.md, handoff.md — must stay synced after meaningful change.
-Validation breakpoints: 390×844, 768×1024, 1024×1366, 1440×900.
-UI constraints: no layout hacks, no forced vertical sizing, popups via Browser Mod (locked), sections sizing reasoned page→section→card.
-User preference: dark blue glass variant rgba(30,41,59,0.65) in dark mode.
-
-**11629** 1:10a 🔵 **Session Arc File for 2026-05-05→06 Does Not Exist**
-Both rg and find searches for session_arc_2026-05-05_to_06.md returned no results across the entire implementation_10 tree.
-The prior session (May 5–6) did not produce or commit a session arc continuity document.
-
+11621 1:07a 🔵 Git State Shows Active CLAUDE.md Documentation Updates and New Cards/v3 Work
+11622 1:08a 🔵 Current Active Tranche is CD11 — Status Multi-Mode Design and Runtime Pass
+11623 " 🔵 Seven Mechanical Pre-Commit UI Quality Rules (M1–M7) Encoded in Root CLAUDE.md
+11624 " 🔵 Tunet Build Pipeline and Authority Document Map
+11629 1:10a 🔵 Session Arc File for 2026-05-05→06 Does Not Exist
 **11630** " 🔵 **claude-mem v12.3.9 Installed; mem-search Skill Uses 3-Layer Search→Timeline→Fetch Workflow**
 claude-mem version 12.3.9 is installed and accessible via `npx claude-mem`.
 Memory search skill lives at /home/mac/.codex/skills/mem-search/SKILL.md.
@@ -260,6 +92,152 @@ Mechanism insight encoded: compliance-mode session opening → agent asks "did I
 The popup chain commits were on main, unpushed, at time of writing.
 Pivot signal described: if quality bar is unreachable without user's eye in the loop, say so before failing — Mac has standing offer to pivot rather than push through.
 
+**11640** 10:43a 🔵 **OAL Inbox Merge-to-Main Plan File Located**
+File `docs/oal_inbox_merge_to_main_plan_2026_05_05.md` exists at `/home/mac/HA/implementation_10/.claude/worktrees/tunet-inbox-integration/docs/oal_inbox_merge_to_main_plan_2026_05_05.md`
+The plan is dated 2026-05-05 and relates to merging OAL inbox integration into main branch.
+The worktree is named `tunet-inbox-integration` under the `.claude/worktrees/` directory of the `implementation_10` project.
 
-Access 871k tokens of past work via get_observations([IDs]) or mem-search skill.
+**11641** " 🔵 **OAL Inbox Merge Plan: Architecture and Scope**
+Plan file is 1,328 lines at `/home/mac/HA/implementation_10/.claude/worktrees/tunet-inbox-integration/docs/oal_inbox_merge_to_main_plan_2026_05_05.md`
+Merge mechanic: `git merge --no-ff` then surgical revert of 4 sunrise/wake-up sub-hunks from main
+Three coupled migration layers: (1) new `custom_components/tunet_inbox/` HA integration (~3,500 LOC, 40+ files), (2) 38 `tunet_inbox.post`/`tunet_inbox.resolve` calls in OAL package + 6 new automations, (3) 27 `tunet_inbox` references in Sonos package
+Merge-base commit is `bb203eaf1cf547572eb2d493dcc0585d9f449d46`; both branches are 10 commits ahead of `origin/main`
+Dry-run `git merge-tree` plus actual `git merge --no-commit` in throwaway worktree confirmed git auto-merge handles OAL/Sonos packages cleanly — only 6 doc files actually conflict
+Both branches must be pushed to origin before merging since origin is not a usable rollback anchor
+`tunet/inbox-integration` branch does not yet exist on origin; must push with `-u`
+
+**11642** " ⚖️ **Locked Merge Decisions: 4 OAL Sub-Hunks from Main, All Else from Worktree**
+Sub-hunk A: keep main's `mode: restart` on `oal_dynamic_sunrise_manager_v13` to collapse duplicate runs from rapid alarm changes
+Sub-hunk B: keep main's `valid_wake_alarm` validation block — guards against future-dated alarms, next-sunrise-not-today, alarm-after-sunrise edge cases
+Sub-hunk C: keep main's `default:` branch that resets stale `sunrise_time` to `"None"` on `al_switches` when no valid wake alarm exists
+Sub-hunk D: keep main's `oal_wake_up_sequence_v13` — uses `group.oal_wakeup_lights` + hardcoded fallback list with single `light.turn_on` at 50% / 600s transition instead of staged `adaptive_lighting.apply` calls
+Pause-state guard (`input_boolean.oal_system_paused`) intentionally NOT added to new inbox action handler automations — user tapping inbox action is a deliberate gesture
+State-based `Sonos Alarm Playing` template (worktree version) preferred over trigger-based for HA-restart resilience
+Git mechanic: `git merge --no-ff` then surgical revert of the 4 sub-hunks to re-apply main's versions
+
+**11643** " 🔵 **Pre-Merge Cleanup Requirements: Anomalous home/ Paths on Main Must Be Purged**
+Anomalous tracked files: `home/mac/HA/implementation_10/Dashboard/Tunet/CLAUDE.md` and `home/mac/HA/implementation_10/Dashboard/Tunet/Docs/CLAUDE.md` — must be removed with `git rm`
+Anomalous untracked files under `home/mac/.claude/plans/CLAUDE.md` and nested Tunet paths — must be `rm`'d and `/home/` added to `.gitignore`
+Created 2026-04-02 when a Claude session resolved absolute filesystem paths against repo root, producing doubly-nested paths
+Commit f962bcf explicitly excluded these files with message noting "malformed nested home/mac/... path pollution"
+Cleanup is mandatory before merge because anomalous tracked content would be carried forward into merged state
+Worktree has 42 modified + 83 untracked files; main has ~20 modified + 3 untracked — all must be committed before merge
+5 other `.claude/worktrees/` submodules on main (crispy-fluttering-allen, harmonic-doodling-corbato, etc.) must NOT be touched — they are independent branches with their own WIP
+
+**11644** " 🔵 **Sonos Snooze Re-Trigger Bug Flagged as Pre-Merge Validation Criterion**
+Bug reported 2026-05-06: Sonos alarm snoozed via tunet_inbox UI never re-triggered after snooze period
+Bug location confirmed via grep on 2026-05-06 in the plan (Section 2.5a)
+Bug is captured as a known issue and listed as a validation criterion for post-merge testing
+Snooze logic resides in `packages/sonos_package.yaml` in the worktree's inbox-integrated version
+
+**11645** 10:44a 🔵 **Merge Plan: Phased Deploy Strategy and Rollback Procedures**
+Stage 1: SCP `custom_components/tunet_inbox/` to HA server at `root@10.0.0.21:/config/custom_components/`, restart HA, add integration via UI — YAML packages unchanged
+Stage 2: SCP merged `oal_lighting_control_package.yaml` and `sonos_package.yaml` to `/config/packages/`, reload HA config
+Stage 3: Run all 12 validation criteria; only then fast-forward `main` via `git merge merge/tunet-inbox-into-main --ff-only`
+Merge is performed on a scratch branch `merge/tunet-inbox-into-main` off main, not directly on main — allows clean rollback via `git checkout main && git branch -D merge/tunet-inbox-into-main`
+Pre-merge main SHA saved to `/tmp/pre_merge_main.sha` for session-restart-safe emergency rollback
+YAML rollback: restore pre-merge YAML backups from `/config/backups/*.pre-merge` on HA server; component stays loaded but dormant
+Merge commit rollback: `git revert -m 1 <merge-commit-sha>` if already fast-forwarded to main
+Implementation pauses for user re-confirmation at: before §4.2 (actual merge), before §6 (deploy), and before §8 (fast-forward main)
+
+**11646** " 🔵 **Merge Plan: 12 Validation Criteria with Highest-Risk Gate on Inv #3**
+Invariant #3 validation (§7.2) rated HIGH RISK: must verify OAL_RESET_LIGHTS works end-to-end via inbox path, and that mobile companion notification action routes to same end state
+6 new automations must all show `state: "on"` after YAML deploy: override_reminder handler/resolver, override_expiring handler/resolver, tv_inbox_shadow_resolver, timer_notification_shadow_resolver
+Pause-state deviation test (§7.5): expected behavior is that `oal_reset_soft` fires even when `oal_system_paused` is on — if it doesn't, design must be reassessed
+TV mode debounce validation (§7.6): second prompt within 300s must be suppressed; prompt must reappear after 300s
+Zone-scoped override expiry (§7.7): two simultaneous overrides must produce two separate inbox cards with distinct keys; resolving one must not resolve the other
+Snooze re-trigger (§7.11) is NOT a blocking criterion — if it fails, file as separate issue; merge is not blocked by pre-existing bug
+Sonos state-based template validation (§7.10): after HA restart, template must show non-unknown/non-unavailable state within 5 minutes — contrasts with trigger-based which stays unknown until next state change
+
+**11647** " 🔵 **Merge Plan Open Questions: 4 Merge-Blocking Items Before Implementation Can Start**
+Question 1 (§11.A.1): Snooze bug investigation — must determine fix-before-merge vs accept-known-issue before §3.1 cleanup begins
+Question 2 (§11.A.2): `Backups/` directory — keep tracked in git or add `/Backups/` to `.gitignore`; affects §3.1.8
+Question 3 (§11.A.3): `snap-actions.yml` — unknown purpose; needs user review to determine commit vs gitignore
+Question 4 (§11.A.4): Confirm OK to add `/home/` as hard guard in `.gitignore` on main to prevent future nested-path pollution recurrence
+Main publication (push 10 popup B commits to origin/main) is explicitly NOT a blocking question for this merge — decoupled per §3.3a
+Plan status: DESIGN complete, IMPLEMENTATION awaiting user resolution of §11.A questions then "Proceed to implementation"
+
+**11648** " 🔵 **Worktree Git Status: 42 Modified + 83 Untracked Files Confirmed**
+42 modified tracked files span: `.claude/`, `Dashboard/Tunet/` (cards, docs, scripts, configs), `custom_components/tunet_inbox/` ledgers, `packages/sonos_package.yaml`, top-level `FIX_LEDGER.md`, `handoff.md`, `plan.md`, `build.mjs`, `package-lock.json`
+~58 untracked PNG screenshots in repo root with prefixes: `actions-`, `alarm_`, `alarm_card_`, `alarm_edit_`, `alarm_popup_`, `cd11_`, `cd9-`, `lab-`, `lighting-`, `livingroom_`, `polish_`, `popup_a_`, `popup_b_`, `popup_after_`, `scenes-`, `sonos-`, `sonos_popups_`
+Key untracked source files: `Dashboard/Tunet/Cards/v3/tunet_alarm_card.js`, `tests/alarm_bespoke.test.js`, `Dashboard/Tunet/tunet-alarm-edit-popup.yaml`, tranche docs, plan archive
+`snap-actions.yml` confirmed present as untracked — purpose unknown, decision required per §11.A.3
+The plan file itself (`docs/oal_inbox_merge_to_main_plan_2026_05_05.md`) is untracked in the worktree
+Both `Backups/` YAML files present as untracked: `sonos_package_pre_alarm_fixes_20260429_045446Z.yaml` and `tunet-card-rehab-lab_pre_SA2_20260428_170129Z.yaml`
+
+**11649** 10:45a 🔵 **YAML Syntax Validation Passed for Both OAL and Sonos Packages Pre-Merge**
+`packages/oal_lighting_control_package.yaml` passes `yaml.safe_load()` with no errors
+`packages/sonos_package.yaml` passes `yaml.safe_load()` with no errors
+Python import smoke test for `tunet_inbox` component failed with `ModuleNotFoundError: No module named 'voluptuous'` — HA framework not installed in dev environment; plan correctly notes this check must be verified at deploy time when HA loads the integration
+`homeassistant` Python package confirmed not installed on the dev machine
+YAML syntax check is the only static validation possible without HA installed; both files pass
+
+**11650** " 🔵 **Sonos Snooze Mechanism: Advances Alarm Time via sonos.update_alarm — No Active Re-Trigger**
+`script.sonos_snooze_next_alarm` calculates a new time by adding `snooze_mins` to current alarm time, then calls `sonos.update_alarm` with the new time — it does NOT set a HA timer or schedule a callback
+Snooze stores original alarm entity + time in `input_text.sonos_snoozed_alarm_{room}` as `{alarm_entity}|{original_time}` — only if the helper is currently empty
+`script.sonos_reset_snoozed_alarm` restores original time via `sonos.update_alarm` and clears the helper — but this script must be explicitly called; nothing auto-calls it after the snooze period
+The inbox action handler `sonos_alarm_notification_action_handler` calls `script.sonos_snooze_next_alarm` with `stop_playback: true` then resolves the inbox item with reason `sonos_alarm_snoozed`
+Re-trigger depends on Sonos hardware/firmware firing the alarm at the new (advanced) time — if Sonos does not fire (e.g., alarm already past its window, speaker state issue), HA has no fallback mechanism
+Snooze-time calculation: `total_mins = (hour * 60 + minute) + snooze_mins`; wraps at 1440 (midnight); edge case: if snooze pushes past midnight, the new time wraps to early morning
+Speaker resolution uses `state_attr(target_alarm, 'friendly_name')` with string-matching for room names (Bedroom, Bath, Kitchen, Living) — falls back to dining_room
+
+**11651** " 🔵 **Merge Diff Confirmed: 48 Files All-Added for tunet_inbox, OAL and Sonos Modified**
+All 48 `custom_components/tunet_inbox/` files show status `A` (Added) — the entire integration is brand-new to main, zero conflicts possible
+Both `packages/oal_lighting_control_package.yaml` and `packages/sonos_package.yaml` show status `M` (Modified)
+Total diff stat: 11,280 insertions, 242 deletions across 48 files
+`git diff --diff-filter=U` (unresolved conflicts check) returned empty — confirms 3-way merge has no conflict markers between branches on these files
+Actual OAL grep counts: 10 `tunet_inbox.post`, 28 `tunet_inbox.resolve`, 5 inbox automation IDs; plan's §4.4.6 verification expected 14 post + 24 resolve — discrepancy likely because plan counts include Sonos or reflect post-merge expected state
+Sonos has exactly 27 `tunet_inbox` references and 7 `sonos_snoozed_alarm_` matches (5 helper definitions + 2 template variable references)
+
+**11652** " 🔵 **tunet_inbox Component Service API: 6 Services Including post, resolve, respond, fail, dismiss, list_items**
+Domain: `tunet_inbox`, version `0.1.0`, `iot_class: local_push`, `integration_type: service`, `config_flow: true`
+`tunet_inbox.post`: upsert a governed actionable notification; required fields: `key`, `title`, `message`, `actions`; optional: `family`, `mobile` (with `tag`, `notify_service`, `url`, `clear_on_resolve`)
+`tunet_inbox.resolve`: resolve a pending item by `item_id` or `key` with a `reason`; clears matching mobile notification
+`tunet_inbox.respond`: accept a dashboard response and emit `tunet_inbox_action` event; required `action_id` and `source` (dashboard_card or dashboard_popup)
+`tunet_inbox.fail`: mark an item as failed or return to pending by `item_id` or `key` with `reason`
+`tunet_inbox.dismiss`: remove an item without performing a domain action, by `item_id` or `key` with `reason`
+`tunet_inbox.list_items`: return render-normalized queue items for dashboard card; filterable by `statuses`, `families`, `rooms`; supports `privacy_mode` and `limit` (1-100)
+Mobile `url` field governed: defaults to `/tunet-inbox-yaml/inbox`; legacy `url` only compatible when it equals that inbox route
+
+**11653** 10:46a 🔵 **git merge-tree Live Validation: Exactly 6 Doc Conflicts, OAL/Sonos Auto-Merge Clean**
+Merge base confirmed: `bb203eaf1cf547572eb2d493dcc0585d9f449d46`
+6 conflicting files: `Dashboard/Tunet/CLAUDE.md`, `Dashboard/Tunet/Docs/cards_reference.md`, `Dashboard/Tunet/Docs/visual_defect_ledger.md`, `FIX_LEDGER.md`, `handoff.md`, `plan.md` — all doc/state files, none are load-bearing YAML
+`packages/oal_lighting_control_package.yaml` auto-merges silently (no conflict marker)
+`packages/sonos_package.yaml` auto-merges silently (no conflict marker)
+Both `AGENTS.md` files auto-merge (plan v1 incorrectly predicted conflicts there)
+Several other files also auto-merge: `audio_cd9_bespoke.test.js`, `tunet_media_card.js`, `tunet_build_and_deploy.md`, `tunet-card-rehab-lab.yaml`, `package.json`
+
+**11654** " 🔵 **Worktree OAL Still Has Old Sunrise/Wake-Up Automation — 4 Sub-Hunks Not Yet Applied**
+`oal_dynamic_sunrise_manager_v13` at line 3425 has NO `mode: restart` and NO `valid_wake_alarm` block — confirms sub-hunks A/B/C from main are not yet present
+`oal_wake_up_sequence_v13` at line 3471 still uses alias "OAL v13 - Wake-up Sequence (Staged Brightening)" with 6-step `adaptive_lighting.apply` calls — confirms sub-hunk D from main is not yet present
+After `git merge --no-ff`, the surgical revert of 4 sub-hunks (A/B/C/D) must be applied to get main's sunrise correctness improvements
+The worktree sunrise manager has a `condition:` block gating on `oal_disable_next_sonos_wakeup` being off — main's version removes this condition and handles it inline via `valid_wake_alarm`
+Post-merge verification greps in §4.4.6 are the authoritative check that all 4 sub-hunks landed correctly
+
+**11655** " 🔵 **tunet_inbox Has Full pytest Suite: 7 Test Files, Pinned HA Custom Component Harness**
+Test suite at `tests/components/tunet_inbox/` contains: `conftest.py`, `test_config_flow.py`, `test_diagnostics.py`, `test_events.py`, `test_manager.py`, `test_mobile.py`, `test_repairs.py`, `test_services.py`
+Test dependency pinned: `pytest-homeassistant-custom-component==0.13.205` in `requirements_test.txt`
+Test venv managed by `setup_tunet_inbox_test_env.sh` using `uv`; stored at `.venv-tinbox` in repo root
+Compiled `.pyc` files under `__pycache__` confirm tests have been run previously
+`npm run tinbox:test` runs the pytest suite; `npm run tinbox:test:setup` creates the venv
+`npm run tinbox:verify` runs the full release gate: check + test + runtime probe
+
+**11656** " 🔵 **deploy_tunet_inbox.sh Auto-Patches /config/configuration.yaml with Bootstrap Block**
+Deploy script backs up remote integration and `configuration.yaml` before any mutation
+Bootstrap block injected: `tunet_inbox:` with `notify_device_helper: notify.tunet_inbox_all_devices`, `max_pending_items: 64`, `response_timeout_seconds: 30`, `archive_retention_days: 3`
+Notify group injected: `notify.tunet_inbox_all_devices` pointing to 9 mobile app targets (ipad, iphone, iphone_4, iphone_deloitte, iphone_mc, mac_s_iphone, macs_iphone_personal, macs_work_phone, old_iphone)
+Logger entries injected: `custom_components.tunet_inbox: debug` and `custom_components.tunet_inbox.mobile: info`
+Python script uses anchor-based insertion (finds `lovelace:` or `# Setup the custom dashboard` as insertion point) — will fail with `SystemExit` if anchor not found
+Script deploys files via `scp -r` to `root@10.0.0.21:/config/custom_components/tunet_inbox/`; verifies sentinel files `manifest.json`, `__init__.py`, `services.py` exist after copy
+
+**11657** " 🔵 **Dual-Write Pattern Confirmed: Timer/TV Notifications Send notify.notify AND tunet_inbox.post**
+`oal_v14_unified_timer_notification` fires both `notify.notify` (line 5568) and `tunet_inbox.post` (line 5600) with `send_mobile: false` on the inbox post — inbox card is dashboard-only, mobile comes from notify.notify
+`oal_v14_timer_notification_handler` listens to BOTH `mobile_app_notification_action` and `tunet_inbox_action` as parallel triggers — both rails route to the same action handling logic
+Both rails call `notify.notify` with `message: "clear_notification"` + tag for iOS/Android dismiss, then call `tunet_inbox.resolve` to clear the inbox card
+OAL override reminder and override expiring posts use `send_mobile: true` — those DO send mobile via inbox
+Sonos has 4 `notify.notify` calls remaining in `sonos_package.yaml` (evening alarm check context) alongside the inbox migration
+This dual-write design is intentional per plan §10.6: inbox rail must prove reliable before legacy `notify.notify` rail is retired (future tranche TI5C)
+
+
+Access 803k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

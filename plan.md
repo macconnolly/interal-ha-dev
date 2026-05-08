@@ -10,10 +10,10 @@ Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, me
 
 ## Session Delta (2026-05-08 evening, page-architecture sub-plan locked + nav refinement)
 
-Tranche marker: continuation of 2026-05-08 morning architecture-first reset. Page-architecture sub-plan synchronously developed with Mac; 11 new tranches enumerated (T019-T029) that refine the previously parked CD12 work into specific page-composition tasks.
+Tranche marker: continuation of 2026-05-08 morning architecture-first reset. Page-architecture sub-plan synchronously developed with Mac; 11 new tranches enumerated (PA01-PA11) that refine the previously parked CD12 work into specific page-composition tasks.
 
 - `AUTHORITY NOTE`
-  - **CD12 ("surface assembly")** is no longer treated as one monolithic tranche. It is refined into T019-T029 per the page-architecture sub-plan. CD0-CD11 program remains as-is; T019+ are parallel-numbered architecture-driven tranches.
+  - **CD12 ("surface assembly")** is no longer treated as one monolithic tranche. It is refined into PA01-PA11 per the page-architecture sub-plan. CD0-CD11 program remains as-is; PA01+ are parallel-numbered architecture-driven tranches.
   - The page-architecture sub-plan at `~/.claude/plans/tunet-page-architecture.md` is the architectural source of truth for /tunet-home and its sub-pages from this point forward.
 - `KEY DECISIONS LOCKED (sub-plan)`
   - Primary device: iPhone 390×844 (drives all design)
@@ -24,23 +24,23 @@ Tranche marker: continuation of 2026-05-08 morning architecture-first reset. Pag
   - Bedroom alarm controls in BOTH subview AND popup; Skip Tomorrow needs new automation
   - Scenes on Home: All On / All Off / Full Bright / Ready for Bed + trial Brighter/Dimmer
   - Nav: `tunet-nav-card` with 6 top-level entries; Rooms entry opens reverse-dropdown popup above bottom nav
-  - Cleanup last (T028); cruft dashboards stay as reference until then
+  - Cleanup last (PA10); cruft dashboards stay as reference until then
   - Migration: parallel-run `/tunet-overview` + `/tunet-home` until parity, then cutover
 - `TRANCHE ENUMERATION`
-  - T019: Bug A double-corner fix (β-arc, parallel to architecture work) — root-cause hypothesis logged; CARD_SURFACE template change recommended
-  - T020: Home page composition refinement (validates iPhone layout)
-  - T021: Living Room subview (TEMPLATE for other rooms)
-  - T022: Bedroom subview + alarm extras
-  - T023: Kitchen + Office subviews (apply template)
-  - T024: Climate popup + Sonos popup production wiring
-  - T025: Media subview
-  - T026: Settings page
-  - T027: Info page (uses `home_summary` mode for top tiles, plotly drill-down)
-  - T028: Cleanup tranche (LAST)
-  - T029: CD11c (info_only + room_row modes for status_card; closes E1/E4)
+  - PA01: Bug A double-corner fix (β-arc, parallel to architecture work) — root-cause hypothesis logged; CARD_SURFACE template change recommended
+  - PA02: Home page composition refinement (validates iPhone layout)
+  - PA03: Living Room subview (TEMPLATE for other rooms)
+  - PA04: Bedroom subview + alarm extras
+  - PA05: Kitchen + Office subviews (apply template)
+  - PA06: Climate popup + Sonos popup production wiring
+  - PA07: Media subview
+  - PA08: Settings page
+  - PA09: Info page (uses `home_summary` mode for top tiles, plotly drill-down)
+  - PA10: Cleanup tranche (LAST)
+  - PA11: CD11c (info_only + room_row modes for status_card; closes E1/E4)
 - `OPEN CARRY-OVERS`
   - Q-NAMING (parent dashboard URL), Q-OVERVIEW (cutover timing), Q-O2 (office light IDs), Q-LR3 / Q-S1 (script existence verifications) — all tranche-time resolutions, not gating
-  - Bug A (T019) recommended fix: remove `.card { border }` from `CARD_SURFACE` template; cascades to 10 cards; verify in light + dark at all 4 breakpoints
+  - Bug A (PA01) recommended fix: remove `.card { border }` from `CARD_SURFACE` template; cascades to 10 cards; verify in light + dark at all 4 breakpoints
 
 ---
 

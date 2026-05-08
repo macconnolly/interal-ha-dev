@@ -6,12 +6,12 @@ Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 **Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α/β/γ/δ).
-**Active page-architecture sub-plan (2026-05-08)**: `~/.claude/plans/tunet-page-architecture.md` — defines page taxonomy, RoomSubview pattern, T019-T029 tranche enumeration.
-Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (`CD10` nav verify deferred; `CD12` surface assembly refined into T019-T029 per the page-architecture sub-plan)
+**Active page-architecture sub-plan (2026-05-08)**: `~/.claude/plans/tunet-page-architecture.md` — defines page taxonomy, RoomSubview pattern, PA01-PA11 tranche enumeration.
+Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (`CD10` nav verify deferred; `CD12` surface assembly refined into PA01-PA11 per the page-architecture sub-plan)
 
 ## Session Delta (2026-05-08, page-architecture sub-plan + chrome consistency arc)
 
-Change marker: significant architectural reset. The CD12 "surface assembly" tranche (previously parked) has been refined into 11 specific page-composition tranches (T019-T029) per the new page-architecture sub-plan. Plus 7 commits this session adding chrome consistency, hold-gate restoration, dark mode fix, and SA5 snooze fix.
+Change marker: significant architectural reset. The CD12 "surface assembly" tranche (previously parked) has been refined into 11 specific page-composition tranches (PA01-PA11) per the new page-architecture sub-plan. Plus 7 commits this session adding chrome consistency, hold-gate restoration, dark mode fix, and SA5 snooze fix.
 
 - `COMMITS LANDED` (newest first)
   - `1b6eb36` fix(tunet-inbox): dark mode `:host(.dark)` overrides for hardcoded white-tinted surfaces
@@ -28,9 +28,9 @@ Change marker: significant architectural reset. The CD12 "surface assembly" tran
   - `Dashboard/Tunet/Docs/visual_hierarchy.md` — 4-layer cross-card consistency contract
   - `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` — architecture-first principle
 - `OPEN DEFECTS / KNOWN ISSUES`
-  - **Bug A (double corners)**: rooms section + actions pills show concentric rounded outlines. Root cause hypothesis: `CARD_SURFACE` template has `.card { border: 1px }` AND `.card::before` glass-stroke ring at 1px geometric offset. Recommended fix: remove `.card { border }` (cascade to all 10 cards). T019 work, β-arc parallel.
+  - **Bug A (double corners)**: rooms section + actions pills show concentric rounded outlines. Root cause hypothesis: `CARD_SURFACE` template has `.card { border: 1px }` AND `.card::before` glass-stroke ring at 1px geometric offset. Recommended fix: remove `.card { border }` (cascade to all 10 cards). PA01 work, β-arc parallel.
   - **Office light entities**: only `light.office_desk_lamp` confirmed; Mac said 4 lights exist, will share IDs.
-  - **Q-NAMING**: parent dashboard URL — keep `/tunet-home` or rename per Mac's "overall-home" wording? Defer to T020 setup.
+  - **Q-NAMING**: parent dashboard URL — keep `/tunet-home` or rename per Mac's "overall-home" wording? Defer to PA02 setup.
   - **Q-OVERVIEW**: `/tunet-overview` migration timing (parallel-run + cutover when /tunet-home reaches parity).
 - `RESOLVED THIS SESSION`
   - SA5 Sonos snooze fixed and verified live
@@ -41,10 +41,10 @@ Change marker: significant architectural reset. The CD12 "surface assembly" tran
   - Configuration/configuration.yaml adopted from live (fixes empty-block recorder regression)
   - `lovelace.tunet_home` storage dashboard scaffolded at `/tunet-home`
 - `NEXT EXECUTION` (per the page-architecture sub-plan)
-  - T019 (Bug A double-corner fix) — β-arc, can run parallel; small daily-life win
-  - T020 (Home page polish) — first composition tranche; validates iPhone-primary layout
-  - T021 (Living Room subview) — TEMPLATE for other rooms
-  - T022-T029 follow per the sub-plan's critical path
+  - PA01 (Bug A double-corner fix) — β-arc, can run parallel; small daily-life win
+  - PA02 (Home page polish) — first composition tranche; validates iPhone-primary layout
+  - PA03 (Living Room subview) — TEMPLATE for other rooms
+  - PA04-PA11 follow per the sub-plan's critical path
 
 ---
 

@@ -12,13 +12,13 @@ Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dr
 
 ## Session Delta (2026-05-08 evening, page-architecture sub-plan + nav refinement)
 
-Tranche marker: continuation of 2026-05-08 morning architecture-first reset. Page-architecture sub-plan was created synchronously with Mac and is substantively complete (~95% DoD). New tranches **T019-T029** enumerated to replace/refine the previously parked CD12 surface assembly work.
+Tranche marker: continuation of 2026-05-08 morning architecture-first reset. Page-architecture sub-plan was created synchronously with Mac and is substantively complete (~95% DoD). New tranches **PA01-PA11** enumerated to replace/refine the previously parked CD12 surface assembly work.
 
 - `CURRENT STATE`
-  - Active page-architecture sub-plan: `~/.claude/plans/tunet-page-architecture.md` — synchronously developed with Mac, awaiting final approval signal (one open Q-NAMING + Q-OVERVIEW remain; both deferable to T020 setup).
+  - Active page-architecture sub-plan: `~/.claude/plans/tunet-page-architecture.md` — synchronously developed with Mac, awaiting final approval signal (one open Q-NAMING + Q-OVERVIEW remain; both deferable to PA02 setup).
   - All but ~5 architectural decisions resolved this session (most in iPhone-primary lens). Remaining open Qs are tranche-time decisions (room-specific compositions, script existence verifications) not gating sub-plan approval.
 - `WHAT THIS LANDED` (in addition to morning's 7 commits)
-  - **Page-architecture sub-plan file** at `~/.claude/plans/tunet-page-architecture.md` (NEW, uncommitted at write — to be batched into next sync commit). Contains: page taxonomy (Home, per-room subviews, Media, Inbox, Settings, Info), iPhone-primary constraint section, RoomSubview generic pattern, popup-vs-subpage-vs-inline rule, climate popup spec, Info page strategy, Settings strategy, migration strategy, 11-tranche enumeration (T019-T029).
+  - **Page-architecture sub-plan file** at `~/.claude/plans/tunet-page-architecture.md` (NEW, uncommitted at write — to be batched into next sync commit). Contains: page taxonomy (Home, per-room subviews, Media, Inbox, Settings, Info), iPhone-primary constraint section, RoomSubview generic pattern, popup-vs-subpage-vs-inline rule, climate popup spec, Info page strategy, Settings strategy, migration strategy, 11-tranche enumeration (PA01-PA11).
 - `KEY ARCHITECTURAL DECISIONS RESOLVED (Mac confirmed 2026-05-08 evening)`
   - **Primary device = iPhone (390×844)** drives all downstream design
   - **Pages**: Home / Living / Kitchen / Bedroom / Office / Media / Inbox / Settings / Info (NEW — aggregated data page Mac added)
@@ -32,14 +32,14 @@ Tranche marker: continuation of 2026-05-08 morning architecture-first reset. Pag
   - **Office subview**: justified (4 lights, IDs pending Mac)
   - **Living Room URL/title**: "Living Room" + `/living` (Dining merged invisibly)
 - `OPEN CARRY-OVERS`
-  - **Q-NAMING**: parent dashboard URL keep `/tunet-home` or rename per Mac's "overall-home" wording? Defer to T020 setup.
+  - **Q-NAMING**: parent dashboard URL keep `/tunet-home` or rename per Mac's "overall-home" wording? Defer to PA02 setup.
   - **Q-OVERVIEW**: `/tunet-overview` migration timing — parallel-run + cutover when /tunet-home reaches parity (confirmed approach; specific cutover date TBD).
   - **Q-O2**: 4 office light entity IDs — Mac to share when convenient.
-  - **Q-LR3 / Q-S1**: confirm whether existing OAL scripts accept room-scoped `lights:` parameter (per MEMORY they should, but verify at T021 / T026).
-  - **Bug A** (double corners on rooms section + actions pills): root-cause hypothesis logged in sub-plan; recommended fix is the `CARD_SURFACE` template change (remove `.card { border }`); cascades to all 10 cards. T019 work, β-arc, can run independently of sub-plan.
+  - **Q-LR3 / Q-S1**: confirm whether existing OAL scripts accept room-scoped `lights:` parameter (per MEMORY they should, but verify at PA03 / PA08).
+  - **Bug A** (double corners on rooms section + actions pills): root-cause hypothesis logged in sub-plan; recommended fix is the `CARD_SURFACE` template change (remove `.card { border }`); cascades to all 10 cards. PA01 work, β-arc, can run independently of sub-plan.
 - `NEXT-AGENT GUARDRAILS` (in addition to morning's)
   - Read `~/.claude/plans/tunet-page-architecture.md` BEFORE doing any /tunet-home composition work. It is now the architectural source of truth.
-  - Tranche numbering: T019-T029 are the page-architecture tranches. Critical path: T019 (Bug A, parallel) → T020 (Home polish) → T021 (Living Room template) → T022 (Bedroom + alarm) → T023 (Kitchen + Office) → T024 (Climate + Sonos popup wiring) → T025 (Media) → T026 (Settings) → T027 (Info) → T028 (Cleanup last).
+  - Tranche numbering: PA01-PA11 are the page-architecture tranches. Critical path: PA01 (Bug A, parallel) → PA02 (Home polish) → PA03 (Living Room template) → PA04 (Bedroom + alarm) → PA05 (Kitchen + Office) → PA06 (Climate + Sonos popup wiring) → PA07 (Media) → PA08 (Settings) → PA09 (Info) → PA10 (Cleanup last).
   - Locked decisions from sub-plan must NOT be re-litigated without Mac's explicit re-authorization.
 
 ---

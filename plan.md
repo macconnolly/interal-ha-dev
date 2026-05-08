@@ -8,6 +8,42 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next tranche by root-plan order is `CD12` surface assembly, but it remains parked pending the page-architecture sub-plan approval)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-05-08 evening, page-architecture sub-plan locked + nav refinement)
+
+Tranche marker: continuation of 2026-05-08 morning architecture-first reset. Page-architecture sub-plan synchronously developed with Mac; 11 new tranches enumerated (T019-T029) that refine the previously parked CD12 work into specific page-composition tasks.
+
+- `AUTHORITY NOTE`
+  - **CD12 ("surface assembly")** is no longer treated as one monolithic tranche. It is refined into T019-T029 per the page-architecture sub-plan. CD0-CD11 program remains as-is; T019+ are parallel-numbered architecture-driven tranches.
+  - The page-architecture sub-plan at `~/.claude/plans/tunet-page-architecture.md` is the architectural source of truth for /tunet-home and its sub-pages from this point forward.
+- `KEY DECISIONS LOCKED (sub-plan)`
+  - Primary device: iPhone 390×844 (drives all design)
+  - 9 distinct pages: Home / Living / Kitchen / Bedroom / Office / Media / Inbox / Settings / Info (Info is NEW)
+  - RoomSubview generic pattern: 5 sections (Media / Light groups / Sensors / Actions / optional Inbox preview); applied to all room subviews
+  - Popup vs Sub-page vs Inline rule: explicit decision tree
+  - Climate via popup (Home status tile trigger); per-light via popup OR inline grid (try both)
+  - Bedroom alarm controls in BOTH subview AND popup; Skip Tomorrow needs new automation
+  - Scenes on Home: All On / All Off / Full Bright / Ready for Bed + trial Brighter/Dimmer
+  - Nav: `tunet-nav-card` with 6 top-level entries; Rooms entry opens reverse-dropdown popup above bottom nav
+  - Cleanup last (T028); cruft dashboards stay as reference until then
+  - Migration: parallel-run `/tunet-overview` + `/tunet-home` until parity, then cutover
+- `TRANCHE ENUMERATION`
+  - T019: Bug A double-corner fix (β-arc, parallel to architecture work) — root-cause hypothesis logged; CARD_SURFACE template change recommended
+  - T020: Home page composition refinement (validates iPhone layout)
+  - T021: Living Room subview (TEMPLATE for other rooms)
+  - T022: Bedroom subview + alarm extras
+  - T023: Kitchen + Office subviews (apply template)
+  - T024: Climate popup + Sonos popup production wiring
+  - T025: Media subview
+  - T026: Settings page
+  - T027: Info page (uses `home_summary` mode for top tiles, plotly drill-down)
+  - T028: Cleanup tranche (LAST)
+  - T029: CD11c (info_only + room_row modes for status_card; closes E1/E4)
+- `OPEN CARRY-OVERS`
+  - Q-NAMING (parent dashboard URL), Q-OVERVIEW (cutover timing), Q-O2 (office light IDs), Q-LR3 / Q-S1 (script existence verifications) — all tranche-time resolutions, not gating
+  - Bug A (T019) recommended fix: remove `.card { border }` from `CARD_SURFACE` template; cascades to 10 cards; verify in light + dark at all 4 breakpoints
+
+---
+
 ## Session Delta (2026-05-08, post-merge soak + chrome consistency + architecture-first reset)
 
 Tranche marker: post-CD11 closure + post-OAL+tunet_inbox-merge soak. Net effect: chrome consistency landed across all cards; multiple bugs fixed; new Tunet Home dashboard scaffolded; architecture-first planning principle established with the page-architecture sub-plan explicitly deferred to a focused future agent. CD11 remains closed; CD10/nav and CD12/surface assembly remain parked.

@@ -14,6 +14,32 @@ When the normalized section and the appendix differ, the normalized section wins
 - `Closed / stale`: earlier issue framing is superseded by newer coherent-build evidence.
 - `Implementation backlog`: decision-complete owning tranche and concrete follow-up scope for still-relevant work.
 
+## Active Architecture Authority (2026-05-08)
+
+The page-architecture sub-plan at `~/.claude/plans/tunet-page-architecture.md` is now the architectural source of truth for `/tunet-home` and its sub-pages. CD12 "surface assembly" is refined into tranches T019-T029 (Bug A fix, Home polish, per-room subviews via the RoomSubview generic pattern, Media/Settings/Info subviews, cleanup). Read the sub-plan before any `/tunet-home`-touching work.
+
+## 2026-05-08 Defect / Status Updates
+
+### Open runtime defect (NEW): Bug A — Double-corner outlines on rooms section + actions pills
+
+- **Surfaces**: visible on rooms-card section header (concentric rounded outlines ~10-15px apart) and actions-card pill buttons (Sleep Mode, Media); confirmed by Mac via screenshots 2026-05-08
+- **Root cause hypothesis**: `CARD_SURFACE` template (`tunet_base.js`) has `.card { border: 1px solid var(--ctrl-border) }` AND `.card::before { position: absolute; inset: 0; ... mask-composite: xor }` rendering as two visible outlines at slightly different positions. Dark mode amplifies via `TOKENS_MIDNIGHT` higher alpha on the ::before gradient.
+- **Recommended fix**: remove `.card { border: ... }` from `CARD_SURFACE` template; let the `::before` glass-stroke be the only edge. Cascades to all 10 consuming cards in one edit. Verify in light AND dark at all 4 breakpoints before committing.
+- **Owning tranche**: T019 (β-arc, parallel to architecture work).
+
+### Resolved this session
+
+- ✅ **Lighting card hold gate** (commit `d18b99e` — closes corpus #11176 P0 from 2026-05-04). `_initTileDrag` now passes `longPressMs: 500` + `onLongPress` (more-info dispatch); matches `tunet_light_tile.js` shape.
+- ✅ **Lighting card pill position** (same commit). `.l-tile.sliding .zone-val` repositioned dead-center inside tile (`top: 50%; transform: translate(-50%, -50%)`); reverts the `bec0839` regression that pushed pill above tile bounds.
+- ✅ **Inbox card dark mode** (commit `1b6eb36`). `:host(.dark)` overrides for `.empty`, `.item`, `.action-btn.secondary`, `.action-btn.dismiss`.
+- ✅ **Chrome drift across 11 cards** (commit `7488198`). `width: 100%` promoted into CARD_SURFACE; `transition: .3s` drift on weather/actions/speaker_grid replaced with `var(--motion-surface)`; sonos padding tokenized; inbox phone radius normalized.
+- ✅ **SA5 Sonos snooze re-trigger** (commit `28069d4`). 60s discriminator on `automation.sonos_reset_snoozed_alarm_after_play`; verified live via time-resolved attribute trace.
+
+### CD11c gating notes (deferred defects)
+
+- **E1** (status_card `room_row` label clipping — "Stat", "Humidi" at 5-tile width) and **E2** (home_summary weather "Partly Cloudy" wraps badly) remain Layer 3 (tile internals) defects, owned by **T029 (CD11c modes)**.
+- **T027 (Info page)** is partially gated on T029's `info_only` mode, but `home_summary` mode is acceptable substitute for the Info page top tiles in the interim.
+
 ### Canonical Decision Matrix
 
 | Card | Whole-home role | Normalized runtime position | Owning tranche |

@@ -1,11 +1,52 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `main`
-Last updated: 2026-05-05
+Last updated: 2026-05-08
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
-Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (`CD10` nav verify deferred until room/surface composition is more settled; `CD12` surface assembly remains parked pending user acceptance)
+**Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α/β/γ/δ).
+**Active page-architecture sub-plan (2026-05-08)**: `~/.claude/plans/tunet-page-architecture.md` — defines page taxonomy, RoomSubview pattern, T019-T029 tranche enumeration.
+Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (`CD10` nav verify deferred; `CD12` surface assembly refined into T019-T029 per the page-architecture sub-plan)
+
+## Session Delta (2026-05-08, page-architecture sub-plan + chrome consistency arc)
+
+Change marker: significant architectural reset. The CD12 "surface assembly" tranche (previously parked) has been refined into 11 specific page-composition tranches (T019-T029) per the new page-architecture sub-plan. Plus 7 commits this session adding chrome consistency, hold-gate restoration, dark mode fix, and SA5 snooze fix.
+
+- `COMMITS LANDED` (newest first)
+  - `1b6eb36` fix(tunet-inbox): dark mode `:host(.dark)` overrides for hardcoded white-tinted surfaces
+  - `7488198` refactor(tunet): chrome drift fixes (Step 1 of visual hierarchy arc) — `width: 100%` promoted into CARD_SURFACE; transition drift on weather/actions/speaker_grid replaced with template default; sonos padding tokenized; inbox phone radius normalized
+  - `06a6c53` docs(tunet): visual hierarchy contract — 4-layer cross-card consistency model (`Dashboard/Tunet/Docs/visual_hierarchy.md`)
+  - `6afcceb` chore(config): adopt live as authoritative baseline for `Configuration/configuration.yaml` (fixes empty-block recorder/history regression)
+  - `28069d4` fix(sonos): SA5 snooze re-trigger fix — 60s discriminator on reset-after-play; merge plan §10.2a's "consumed-today" hypothesis disconfirmed by live runtime trace
+  - `d18b99e` fix(tunet-lighting-card): restore hold-gate (longPressMs:500 + onLongPress) + reposition `.l-tile.sliding .zone-val` dead-center (closes corpus #11176 P0 from 2026-05-04)
+  - `fc02c6f` docs(governance): sync handoff + plan + Tunet CLAUDE/AGENTS for 2026-05-08 morning
+  - `98b74ef` docs(governance): sync root AGENTS.md (Cross-Cutting Principles + mem-context auto-rotation)
+- `NEW PLAN ARTIFACTS`
+  - `~/.claude/plans/purrfect-baking-ember.md` — session-level four-arcs plan
+  - `~/.claude/plans/tunet-page-architecture.md` — page-architecture sub-plan (synchronously developed with Mac)
+  - `Dashboard/Tunet/Docs/visual_hierarchy.md` — 4-layer cross-card consistency contract
+  - `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` — architecture-first principle
+- `OPEN DEFECTS / KNOWN ISSUES`
+  - **Bug A (double corners)**: rooms section + actions pills show concentric rounded outlines. Root cause hypothesis: `CARD_SURFACE` template has `.card { border: 1px }` AND `.card::before` glass-stroke ring at 1px geometric offset. Recommended fix: remove `.card { border }` (cascade to all 10 cards). T019 work, β-arc parallel.
+  - **Office light entities**: only `light.office_desk_lamp` confirmed; Mac said 4 lights exist, will share IDs.
+  - **Q-NAMING**: parent dashboard URL — keep `/tunet-home` or rename per Mac's "overall-home" wording? Defer to T020 setup.
+  - **Q-OVERVIEW**: `/tunet-overview` migration timing (parallel-run + cutover when /tunet-home reaches parity).
+- `RESOLVED THIS SESSION`
+  - SA5 Sonos snooze fixed and verified live
+  - Inbox card dark mode rendering correctly
+  - Lighting card hold-gate restored; pill repositioned dead-center
+  - Chrome drift across 11 cards converged onto shared CARD_SURFACE template
+  - Visual hierarchy 4-layer contract documented
+  - Configuration/configuration.yaml adopted from live (fixes empty-block recorder regression)
+  - `lovelace.tunet_home` storage dashboard scaffolded at `/tunet-home`
+- `NEXT EXECUTION` (per the page-architecture sub-plan)
+  - T019 (Bug A double-corner fix) — β-arc, can run parallel; small daily-life win
+  - T020 (Home page polish) — first composition tranche; validates iPhone-primary layout
+  - T021 (Living Room subview) — TEMPLATE for other rooms
+  - T022-T029 follow per the sub-plan's critical path
+
+---
 
 ## Session Delta (2026-05-05, post-CD11 — Sonos popup chain + per-card tap action overrides)
 

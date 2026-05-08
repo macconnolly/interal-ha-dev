@@ -10,6 +10,40 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next by root-plan order is `CD12` surface assembly, still parked pending the page-architecture sub-plan approval)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-05-08 evening, page-architecture sub-plan + nav refinement)
+
+Tranche marker: continuation of 2026-05-08 morning architecture-first reset. Page-architecture sub-plan was created synchronously with Mac and is substantively complete (~95% DoD). New tranches **T019-T029** enumerated to replace/refine the previously parked CD12 surface assembly work.
+
+- `CURRENT STATE`
+  - Active page-architecture sub-plan: `~/.claude/plans/tunet-page-architecture.md` — synchronously developed with Mac, awaiting final approval signal (one open Q-NAMING + Q-OVERVIEW remain; both deferable to T020 setup).
+  - All but ~5 architectural decisions resolved this session (most in iPhone-primary lens). Remaining open Qs are tranche-time decisions (room-specific compositions, script existence verifications) not gating sub-plan approval.
+- `WHAT THIS LANDED` (in addition to morning's 7 commits)
+  - **Page-architecture sub-plan file** at `~/.claude/plans/tunet-page-architecture.md` (NEW, uncommitted at write — to be batched into next sync commit). Contains: page taxonomy (Home, per-room subviews, Media, Inbox, Settings, Info), iPhone-primary constraint section, RoomSubview generic pattern, popup-vs-subpage-vs-inline rule, climate popup spec, Info page strategy, Settings strategy, migration strategy, 11-tranche enumeration (T019-T029).
+- `KEY ARCHITECTURAL DECISIONS RESOLVED (Mac confirmed 2026-05-08 evening)`
+  - **Primary device = iPhone (390×844)** drives all downstream design
+  - **Pages**: Home / Living / Kitchen / Bedroom / Office / Media / Inbox / Settings / Info (NEW — aggregated data page Mac added)
+  - **Per-light fine-control on Living Room**: try BOTH inline scroll grid + hold-to-popup; daily use picks winner
+  - **Climate**: accessed via popup (NOT inline section); trigger via Home `inside_temperature` status tile tap (lean)
+  - **Bedroom alarm controls (toggle + Skip Tomorrow)**: live in BOTH bedroom subview AND alarm-edit popup. Toggle = existing switch; Skip Tomorrow = new automation needed.
+  - **Scenes on Home**: All On, All Off, Full Bright, Ready for Bed (definite); global Brighter/Dimmer increment chips (trial)
+  - **Cleanup**: keep cruft dashboards as reference; retire LAST after `/tunet-home` is complete
+  - **Nav chrome**: `tunet-nav-card` (custom, not HACS); 6 top-level entries (Home / Rooms popup / Media / Inbox / Info / Settings)
+  - **Rooms popup from nav**: reverse-dropdown anchored above bottom nav (Option B locked, mobile-native ergonomics)
+  - **Office subview**: justified (4 lights, IDs pending Mac)
+  - **Living Room URL/title**: "Living Room" + `/living` (Dining merged invisibly)
+- `OPEN CARRY-OVERS`
+  - **Q-NAMING**: parent dashboard URL keep `/tunet-home` or rename per Mac's "overall-home" wording? Defer to T020 setup.
+  - **Q-OVERVIEW**: `/tunet-overview` migration timing — parallel-run + cutover when /tunet-home reaches parity (confirmed approach; specific cutover date TBD).
+  - **Q-O2**: 4 office light entity IDs — Mac to share when convenient.
+  - **Q-LR3 / Q-S1**: confirm whether existing OAL scripts accept room-scoped `lights:` parameter (per MEMORY they should, but verify at T021 / T026).
+  - **Bug A** (double corners on rooms section + actions pills): root-cause hypothesis logged in sub-plan; recommended fix is the `CARD_SURFACE` template change (remove `.card { border }`); cascades to all 10 cards. T019 work, β-arc, can run independently of sub-plan.
+- `NEXT-AGENT GUARDRAILS` (in addition to morning's)
+  - Read `~/.claude/plans/tunet-page-architecture.md` BEFORE doing any /tunet-home composition work. It is now the architectural source of truth.
+  - Tranche numbering: T019-T029 are the page-architecture tranches. Critical path: T019 (Bug A, parallel) → T020 (Home polish) → T021 (Living Room template) → T022 (Bedroom + alarm) → T023 (Kitchen + Office) → T024 (Climate + Sonos popup wiring) → T025 (Media) → T026 (Settings) → T027 (Info) → T028 (Cleanup last).
+  - Locked decisions from sub-plan must NOT be re-litigated without Mac's explicit re-authorization.
+
+---
+
 ## Session Delta (2026-05-08, post-merge soak + chrome consistency + architecture-first reset)
 
 Tranche marker: post-CD11 closure + post-OAL+inbox-merge soak. Net effect: chrome consistency landed across the card suite; multiple bugs fixed; new Tunet Home dashboard scaffolded; architecture-first planning principle established with explicit page-architecture sub-plan deferred to a focused future agent. CD11 remains closed; CD10/nav and CD12/surface assembly remain parked.

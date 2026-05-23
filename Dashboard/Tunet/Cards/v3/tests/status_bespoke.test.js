@@ -1795,7 +1795,7 @@ describe('Status: CD11 cross-contract coverage anchors', () => {
   it('cards_reference §9 documents every implemented variant, recipe, and authoring layer', () => {
     const section = getStatusReferenceSection();
 
-    expect(section).toContain('**Version**: v3.4.0');
+    expect(section).toContain('**Version**: v3.12.0');
     expect(section).toContain('**Tier**: editor-lite (Level 2 narrow)');
     for (const variant of CD11_STATUS_VARIANTS) {
       expect(section).toContain(`\`${variant}\``);

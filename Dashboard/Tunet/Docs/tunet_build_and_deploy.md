@@ -102,6 +102,16 @@ Requires:
   - `HA_LONG_LIVED_ACCESS_TOKEN` preferred
   - `HA_TOKEN` accepted as fallback
 
+## Known Pipeline Gaps (Recorded 2026-05-22)
+
+Implementation is deferred by user direction. These are planning items, not shipped fixes — owned by β-plumbing (root) + TI6/deploy hardening (Tinbox).
+
+- The basic root `CLAUDE.md` Tunet shortcut list does not include `tinbox:deploy:integration`, so the frontend `tunet-inbox-card` release path and backend `custom_components/tunet_inbox` release path can drift. Full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` row `TINBOX-DEPLOY-1`.
+- `build.mjs` includes the current bundled cards, but older shell deploy/resource fallback paths keep separate hardcoded card lists that omit `tunet_inbox_card.js` and/or `tunet_alarm_card.js`.
+- The build/deploy path needs one canonical card registry shared by build, deploy, resource sync, docs, and tests.
+- Deploy credential handling needs hardening before scripted deploys are treated as routine release infrastructure: no literal password fallback and no SSH password exposure through command argv. Full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` row `TINBOX-DEPLOY-2`.
+- Current tests should be treated as smoke until failure-first coverage exists for registry drift and deploy pipeline behavior. Full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` row `TINBOX-TEST-4`.
+
 ## Watch Mode
 
 ```bash

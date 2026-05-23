@@ -643,7 +643,14 @@ input_text:
   # user-actionable expiry notifications.
   oal_system_managed_lights:
     name: "OAL System-Managed Lights (JSON array)"
-    max: 1024
+    # HA input_text caps `max` at 255 (constants.MAX_VALUE). Higher values
+    # silently fail validation and crash the entire input_text component
+    # (all input_text entities show as restored:true / unavailable post-load).
+    # 255 chars holds ~6-7 light entity_ids when JSON-encoded, sufficient for
+    # current bed pair + columns + desk + future column_accent (~5 lights).
+    # If registry needs to exceed this, split into multiple text helpers by
+    # actor class (e.g. _augmentation, _lifecycle, _mode).
+    max: 255
     initial: "[]"
     icon: mdi:robot-outline
 

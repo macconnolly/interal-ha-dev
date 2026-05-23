@@ -1,12 +1,27 @@
 # Tunet Suite Dashboard - Implementation Plan
 
 Working branch: `main`
-Last updated: 2026-05-22
+Last updated: 2026-05-23
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 **Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α foundation / β plumbing / γ surfaces / δ polish); page-architecture sub-plan explicitly deferred to a focused future agent. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` for the principle.
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next tranche by root-plan order is `CD12` surface assembly, but it remains parked pending the page-architecture sub-plan approval)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-23, Tunet build/deploy registry drift fixed + markup/test debt filed)
+
+Tranche marker: β-plumbing fix, not PA surface composition. This pass fixes the highest-confidence build/deploy card-registry drift and records the broader cross-card markup/test debt for a later bounded tranche.
+
+- `FIXED NOW`
+  - Added `Dashboard/Tunet/scripts/tunet_card_registry.mjs` as the single v3 card inventory for build, deploy, resource sync, and visual-review changed-card selection.
+  - Updated `build.mjs`, `Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs`, `Dashboard/Tunet/scripts/deploy_tunet_v3_lab.sh`, and `Dashboard/Tunet/scripts/tunet_playwright_review.mjs` to consume the registry.
+  - The registry covers all 15 current cards, including `tunet_inbox_card.js` and `tunet_alarm_card.js`; source rollback deploy now includes both instead of silently omitting them.
+  - Added `Dashboard/Tunet/Cards/v3/tests/card_registry_contract.test.js` so future card additions fail tests if the registry or consuming toolchain drifts.
+- `BACKLOG FILED, NOT FIXED IN THIS PASS`
+  - Cross-card markup/test hardening remains open: several cards still interpolate config/entity strings through `innerHTML` paths. A later tranche should add a shared escaping/text-node policy, failure-first tests, and then migrate cards in small batches.
+  - Required future test coverage: unescaped config/entity text, async subscription teardown, alarm pointer slide-off/capture, debounce flush/cancel, selected-target/coordinator divergence, and build/resource registry drift.
+- `WHY NOT FIX MARKUP NOW`
+  - A safe sanitizer migration touches many user-visible render paths across card families. It should be a bounded δ-polish/β-hardening tranche with screenshots and failure-first tests, not an incidental sweep inside the registry patch.
 
 ## Session Delta (2026-05-22, ultra review backlog capture; no code fixes — implementation deferred by user)
 

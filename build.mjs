@@ -16,6 +16,7 @@ import * as esbuild from 'esbuild';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { TUNET_CARD_FILES } from './Dashboard/Tunet/scripts/tunet_card_registry.mjs';
 import { updateTunetV3Resources } from './Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs';
 
 // ─── Configuration ──────────────────────────────────────────────────────
@@ -27,23 +28,7 @@ const HA_HOST_DEFAULT = '10.0.0.21';
 const HA_USER_DEFAULT = 'root';
 const HA_PASSWORD_DEFAULT = 'password';
 
-const ENTRY_POINTS = [
-  'tunet_inbox_card.js',
-  'tunet_actions_card.js',
-  'tunet_scenes_card.js',
-  'tunet_light_tile.js',
-  'tunet_lighting_card.js',
-  'tunet_rooms_card.js',
-  'tunet_climate_card.js',
-  'tunet_sensor_card.js',
-  'tunet_weather_card.js',
-  'tunet_media_card.js',
-  'tunet_sonos_card.js',
-  'tunet_speaker_grid_card.js',
-  'tunet_nav_card.js',
-  'tunet_status_card.js',
-  'tunet_alarm_card.js',
-];
+const ENTRY_POINTS = TUNET_CARD_FILES;
 
 // ─── Query string stripping plugin ──────────────────────────────────────
 // Cards import tunet_base.js?v=20260309g7 — esbuild can't resolve the ?v=

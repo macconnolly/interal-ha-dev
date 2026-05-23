@@ -7,6 +7,11 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import {
+  TUNET_CARD_ALIASES,
+  TUNET_CARD_SOURCE_PATHS,
+  TUNET_CARD_TAGS,
+} from './tunet_card_registry.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,66 +21,20 @@ const DEFAULT_BASE_URL = 'http://10.0.0.21:8123';
 const DEFAULT_OUTPUT_ROOT = path.join(os.tmpdir(), 'tunet-playwright-review');
 const DEFAULT_STATE_FILE = path.join(DEFAULT_OUTPUT_ROOT, 'ha-storage-state.json');
 
-const ALL_CARD_TAGS = [
-  'tunet-actions-card',
-  'tunet-scenes-card',
-  'tunet-light-tile',
-  'tunet-lighting-card',
-  'tunet-rooms-card',
-  'tunet-climate-card',
-  'tunet-weather-card',
-  'tunet-sensor-card',
-  'tunet-status-card',
-  'tunet-media-card',
-  'tunet-sonos-card',
-  'tunet-speaker-grid-card',
-  'tunet-nav-card',
-  'tunet-alarm-card',
-];
-
-const CARD_ALIASES = {
-  actions: 'tunet-actions-card',
-  scenes: 'tunet-scenes-card',
-  light_tile: 'tunet-light-tile',
-  lighttile: 'tunet-light-tile',
-  lighting: 'tunet-lighting-card',
-  rooms: 'tunet-rooms-card',
-  climate: 'tunet-climate-card',
-  weather: 'tunet-weather-card',
-  sensor: 'tunet-sensor-card',
-  status: 'tunet-status-card',
-  media: 'tunet-media-card',
-  sonos: 'tunet-sonos-card',
-  speaker_grid: 'tunet-speaker-grid-card',
-  speakergrid: 'tunet-speaker-grid-card',
-  nav: 'tunet-nav-card',
-  alarm: 'tunet-alarm-card',
-};
-
-const CARD_SOURCE_PATHS = {
-  'tunet-actions-card': 'Dashboard/Tunet/Cards/v3/tunet_actions_card.js',
-  'tunet-scenes-card': 'Dashboard/Tunet/Cards/v3/tunet_scenes_card.js',
-  'tunet-light-tile': 'Dashboard/Tunet/Cards/v3/tunet_light_tile.js',
-  'tunet-lighting-card': 'Dashboard/Tunet/Cards/v3/tunet_lighting_card.js',
-  'tunet-rooms-card': 'Dashboard/Tunet/Cards/v3/tunet_rooms_card.js',
-  'tunet-climate-card': 'Dashboard/Tunet/Cards/v3/tunet_climate_card.js',
-  'tunet-weather-card': 'Dashboard/Tunet/Cards/v3/tunet_weather_card.js',
-  'tunet-sensor-card': 'Dashboard/Tunet/Cards/v3/tunet_sensor_card.js',
-  'tunet-status-card': 'Dashboard/Tunet/Cards/v3/tunet_status_card.js',
-  'tunet-media-card': 'Dashboard/Tunet/Cards/v3/tunet_media_card.js',
-  'tunet-sonos-card': 'Dashboard/Tunet/Cards/v3/tunet_sonos_card.js',
-  'tunet-speaker-grid-card': 'Dashboard/Tunet/Cards/v3/tunet_speaker_grid_card.js',
-  'tunet-nav-card': 'Dashboard/Tunet/Cards/v3/tunet_nav_card.js',
-};
+const ALL_CARD_TAGS = TUNET_CARD_TAGS;
+const CARD_ALIASES = TUNET_CARD_ALIASES;
+const CARD_SOURCE_PATHS = TUNET_CARD_SOURCE_PATHS;
 
 const CARD_FILE_BASENAMES = Object.fromEntries(
   Object.entries(CARD_SOURCE_PATHS).map(([tag, filePath]) => [path.basename(filePath), tag])
 );
 
 const CARD_TEST_HINTS = {
+  alarm_bespoke: ['tunet-alarm-card'],
   audio_cd9_bespoke: ['tunet-media-card', 'tunet-sonos-card', 'tunet-speaker-grid-card'],
   config_contract: ALL_CARD_TAGS,
   editor_array_schema: ALL_CARD_TAGS,
+  inbox_bespoke: ['tunet-inbox-card'],
   interaction_dom_contract: ALL_CARD_TAGS,
   interaction_keyboard_contract: ALL_CARD_TAGS,
   interaction_source_contract: ALL_CARD_TAGS,

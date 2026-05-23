@@ -2,26 +2,12 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { TUNET_CARD_FILES } from './tunet_card_registry.mjs';
 
 const DEFAULT_MANIFEST = 'Dashboard/Tunet/Cards/v3/dist/manifest.json';
 const RESOURCE_ROOT = '/local/tunet/v3/';
 const DEFAULT_BASE_URL = 'http://10.0.0.21:8123';
-const ENTRY_POINTS = [
-  'tunet_actions_card.js',
-  'tunet_scenes_card.js',
-  'tunet_light_tile.js',
-  'tunet_lighting_card.js',
-  'tunet_rooms_card.js',
-  'tunet_climate_card.js',
-  'tunet_sensor_card.js',
-  'tunet_weather_card.js',
-  'tunet_media_card.js',
-  'tunet_sonos_card.js',
-  'tunet_speaker_grid_card.js',
-  'tunet_nav_card.js',
-  'tunet_status_card.js',
-  'tunet_alarm_card.js',
-];
+const ENTRY_POINTS = TUNET_CARD_FILES;
 
 export function readDotEnv(filePath = '.env') {
   const vars = {};

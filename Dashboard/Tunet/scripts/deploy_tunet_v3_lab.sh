@@ -66,21 +66,7 @@ else
   fi
 fi
 
-CARDS=(
-  tunet_actions_card.js
-  tunet_scenes_card.js
-  tunet_light_tile.js
-  tunet_lighting_card.js
-  tunet_rooms_card.js
-  tunet_climate_card.js
-  tunet_sensor_card.js
-  tunet_weather_card.js
-  tunet_media_card.js
-  tunet_sonos_card.js
-  tunet_speaker_grid_card.js
-  tunet_nav_card.js
-  tunet_status_card.js
-)
+mapfile -t CARDS < <(node "$REPO_ROOT/Dashboard/Tunet/scripts/tunet_card_registry.mjs" --files)
 
 # Also deploy tunet_base.js if deploying source (unbundled mode needs it)
 if [[ "${1:-}" == "--source" ]]; then

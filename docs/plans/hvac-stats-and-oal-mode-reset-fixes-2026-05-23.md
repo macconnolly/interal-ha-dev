@@ -1,8 +1,14 @@
 # HVAC Stats + OAL Mode-Reset Fixes — Detailed Plan
 
 **Created:** 2026-05-23
-**Source investigations:** two parallel subagent audits (HVAC stats sensors at 0; OAL mode-reset mechanisms audit)
-**Status:** awaiting Mac's stamp on sequencing + tranche acceptance before any edits
+**Source investigations:** two parallel subagent audits (HVAC stats sensors at 0; OAL mode-reset mechanisms audit) + adversarial review of F2 (in flight)
+**Status:** Mac stamped decisions 2026-05-23 4:05pm:
+- B1 (last_cycle_started fix): INCLUDED in #1
+- B2 (Dim Ambient → Evening rename): RETRACTED (was a subagent false alarm — "Dim Ambient" is still a valid mode in the live input_select.oal_active_configuration options list)
+- Sequencing: SEQUENTIAL (#1 → OAL Tranche A → B → C → D)
+- F2 watchdog design: ADVERSARIAL REVIEW IN FLIGHT (subagent launched 4:05pm — Mac wants more context before approving)
+- Sleep transition default: 2.0s ACCEPTED
+- Tranche D decisions: PENDING (status alias labels, HomeKit additions, Full Bright chip)
 
 ## 0. Executive summary
 
@@ -603,9 +609,130 @@ These reads happen during Phase 1 of each tranche; not done now (Mac may revise 
 
 ---
 
+---
+
+## 6. Mode dropdown / display name sync — added 2026-05-23 4:03pm
+
+Mac directive: "we need to make sure the mode dropdowns in the dashboard also reflect the new modes."
+
+**B2 retraction**: the earlier subagent claim that `tunet_oal_enhancements.yaml:36-43` had a stale `"Dim Ambient"` reference is WRONG. Live `input_select.oal_active_configuration.options` confirms 9 valid modes — "Dim Ambient" is still a real mode (different from "Evening"). The 6caad51 rename was specifically "Dim Ambient Plus" → "Evening", leaving "Dim Ambient" intact. Remove B2 from #1's scope.
+
+**Canonical mode list from live state** (`input_select.oal_active_configuration`):
+1. Adaptive
+2. Full Bright
+3. Evening *(renamed from "Dim Ambient Plus" per 6caad51)*
+4. Dim Ambient *(separate older mode, still valid)*
+5. Warm Ambient
+6. TV Mode
+7. TV Bridge
+8. Sleep
+9. Manual *(auto-set during manual overrides, not user-selectable directly)*
+
+### 6.1 Actual gaps to fix
+
+**Gap M1: `tunet_status_card.js` MODE_SELECTOR_SUMMARY_ALIASES is incomplete**
+
+Lines 85-89 currently:
+```js
+const MODE_SELECTOR_SUMMARY_ALIASES = {
+  Adaptive: 'Adaptive',
+  'TV Mode': 'TV',
+  'Sleep Mode': 'Sleep',     // ← BROKEN: input_select option is 'Sleep' not 'Sleep Mode'
+};
+```
+
+Update to:
+```js
+const MODE_SELECTOR_SUMMARY_ALIASES = {
+  'Adaptive': 'Adaptive',
+  'Full Bright': 'Full',
+  'Evening': 'Evening',
+  'Dim Ambient': 'Dim',
+  'Warm Ambient': 'Warm',
+  'TV Mode': 'TV',
+  'TV Bridge': 'TV+',
+  'Sleep': 'Sleep',
+  'Manual': 'Manual',
+};
+```
+
+Notes:
+- "Sleep Mode" entry is dead — no input_select option matches it. Remove.
+- Compact aliases (Dim/Warm/Full) for narrow tile widths.
+- Spelling-out longer modes (Evening/Manual) since they fit even in compact.
+
+**Gap M2: `tunet_scenes.yaml:10` header comment legacy**
+
+Line 9-12 mentions:
+```yaml
+#   scene.tunet_oal_dim_ambient_plus → Dim Ambient Plus (NEW mode)
+```
+Update to remove the legacy "Dim Ambient Plus" terminology — it was renamed to "Evening" but the comment was missed. Doesn't affect functionality (the actual scene definitions use "Evening" correctly per line 29-34), but causes confusion.
+
+**Gap M3: `tunet_homekit.yaml:71-75` only exposes 3 scenes**
+
+Currently exposes:
+- Adaptive Mode
+- Evening
+- Dim Ambient
+
+Missing potential additions:
+- Warm Ambient
+- TV Mode
+- Sleep
+- Full Bright
+
+Decision needed: which modes should be HomeKit-accessible? Recommendation: add Warm Ambient + TV Mode + Sleep (the daily-use modes). Full Bright is rare. TV Bridge is internal-use.
+
+**Gap M4: Home page actions card chips missing 2 modes**
+
+Currently 9 visible action chips (`tunet-home-preview-config.yaml:90-176`):
+- All On / All Off / Brighter / Dimmer (utility)
+- Adaptive / Evening / Dim / Warm / TV / Sleep / Reset (modes)
+
+Missing: Full Bright, TV Bridge.
+
+Decision needed: include either as chips?
+- **Full Bright** = max-bright override; useful for cleaning / finding-something-in-the-dark. Probably yes.
+- **TV Bridge** = niche internal mode for TV scene transitions. Probably no — Mac never uses directly.
+
+### 6.2 Edits — Tranche D (Mode display sync)
+
+**File: `Dashboard/Tunet/Cards/v3/tunet_status_card.js`** — update MODE_SELECTOR_SUMMARY_ALIASES (lines 85-89)
+
+**File: `packages/tunet_scenes.yaml`** — fix header comment line 9-12
+
+**File: `packages/tunet_homekit.yaml`** — add Warm Ambient + TV Mode + Sleep (and Full Bright?) scenes to HomeKit exposure
+
+**File: `Dashboard/Tunet/tunet-home-preview-config.yaml`** — add Full Bright chip if Mac wants it (lines 90-176 actions card)
+
+### 6.3 Where Tranche D fits in the sequence
+
+Tranche D is independent of #1 (HVAC stats) and OAL Tranches A/B/C. Touches different files:
+- Status card JS (rebuild lab cards)
+- Dashboard yaml (deploy dashboards)
+- tunet_homekit.yaml (deploy packages — HomeKit integration reload needed)
+
+Could ship Tranche D:
+- Before #1: standalone, low-risk
+- After OAL Tranche A: bundled with whatever Mac is testing
+- As its own checkpoint
+
+Recommendation: **ship Tranche D first as a quick standalone deploy** (the easiest, smallest-risk fix). Then proceed with #1 + OAL tranches.
+
+### 6.4 Decisions for Mac on Tranche D
+
+1. **Status card alias map**: my proposed labels — `Dim Ambient → "Dim"`, `Warm Ambient → "Warm"`, `Full Bright → "Full"`, `TV Bridge → "TV+"`. Adjust labels?
+2. **HomeKit exposure**: add Warm Ambient + TV Mode + Sleep? Add Full Bright too? Or none?
+3. **Home actions chips**: add Full Bright chip? TV Bridge skipped?
+
+---
+
 **End of plan. Awaiting Mac's stamp on:**
-- B1 + B2 inclusion in #1
+- B1 inclusion in #1
+- ~~B2 inclusion in #1~~ — RETRACTED (Dim Ambient is a valid mode, not stale)
 - Sequencing (sequential recommended)
 - OAL watchdog included in F2
 - Sleep transition default value
+- Tranche D decisions (status alias labels, HomeKit additions, Full Bright chip)
 - Any other adjustments

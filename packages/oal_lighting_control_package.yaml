@@ -48,6 +48,20 @@ light:
       - light.kitchen_main_lights
       - light.living_room_hallway_lights
   - platform: group
+    name: "office_lights"
+    unique_id: "oal_office_lights_group_v13"
+    entities:
+      - light.office_desk_lamp
+      - light.office_bed_light_left
+      - light.office_bed_light_right
+      - light.master_bedroom_corner_accent_govee
+  - platform: group
+    name: "Office Bed Lights"
+    unique_id: office_bed_lights
+    entities:
+      - light.office_bed_light_left
+      - light.office_bed_light_right
+  - platform: group
     name: "all_adaptive_lights"
     unique_id: "oal_all_adaptive_lights_group_v13"
     entities:
@@ -108,6 +122,12 @@ light:
       - light.dining_room_spot_lights
       - light.dining_column_strip_light_matter
       - light.living_room_corner_accent
+  - platform: group
+    name: "All Master Bedroom Lights"
+    unique_id: all_master_bedroom_lights
+    entities:
+      - light.master_presence
+      - light.master_bedroom_column_accent
   - platform: group
     name: "Hue Lamps Only"
     unique_id: hue_lamps_only_group

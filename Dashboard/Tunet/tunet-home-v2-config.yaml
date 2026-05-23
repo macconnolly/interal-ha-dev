@@ -40,7 +40,7 @@ views:
   path: home
   icon: mdi:home
   type: sections
-  max_columns: 4
+  max_columns: 6
   dense_section_placement: true
   sections:
   - type: grid
@@ -182,7 +182,8 @@ views:
       layout_variant: row
       tile_size: compact
       grid_options:
-        columns: full
+        columns: 12
+        rows: auto
       rooms:
       - name: Living
         icon: weekend
@@ -259,17 +260,15 @@ views:
         - entity: light.office_bed_lights
           name: Office Bed
           icon: bed
-  - type: grid
-    column_span: 2
-    cards:
     - type: custom:tunet-climate-card
       entity: climate.dining_room
       name: Climate
       humidity_entity: sensor.kitchen_humidity
       grid_options:
-        columns: full
+        columns: 12
+        rows: auto
   - type: grid
-    column_span: 2
+    column_span: 4
     cards:
     - type: custom:tunet-weather-card
       entity: weather.home
@@ -283,16 +282,15 @@ views:
       forecast_days: 5
       forecast_hours: 6
       grid_options:
-        columns: full
-  - type: grid
-    column_span: 2
-    cards:
+        columns: 12
+        rows: auto
     - type: custom:tunet-media-card
       entity: media_player.living_room
       name: Sonos
       show_progress: true
       grid_options:
-        columns: full
+        columns: 12
+        rows: auto
       tap_action:
         action: navigate
         navigation_path: '#media-living-room'

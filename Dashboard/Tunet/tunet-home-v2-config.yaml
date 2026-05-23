@@ -327,6 +327,27 @@ views:
           label: Occupancy
           icon: sensor_occupied
           accent: green
+      - type: custom:tunet-actions-card
+        variant: compact
+        actions:
+        - name: Open Room
+          icon: open_in_new
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-v2/living-room
+        - name: All Off
+          icon: power_settings_new
+          accent: amber
+          service: light.turn_off
+          service_data:
+            entity_id: light.main_living_lights
+        - name: All On
+          icon: lightbulb
+          accent: amber
+          service: light.turn_on
+          service_data:
+            entity_id: light.main_living_lights
   - type: grid
     column_span: 4
     cards:
@@ -856,3 +877,98 @@ views:
         icon: bed
         accent: blue
         unit: h
+
+# ────────────────────────────────────────────────────────────────────
+# VIEW: LIVING ROOM SUBVIEW (deep per-room control surface)
+# Reached from rooms-card row tap → popup → "Open Room" button.
+# ────────────────────────────────────────────────────────────────────
+- title: Living Room
+  path: living-room
+  icon: mdi:sofa
+  subview: true
+  type: sections
+  max_columns: 4
+  back_path: /tunet-home-v2/home
+  sections:
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-lighting-card
+          name: Living Room Lights
+          surface: section
+          layout: grid
+          columns: 2
+          tile_size: large
+          zones:
+            - entity: light.living_room_couch_lamp
+              name: Couch
+              icon: lamp
+            - entity: light.living_room_floor_lamp
+              name: Floor
+              icon: floor_lamp
+            - entity: light.living_room_spot_lights
+              name: Spots
+              icon: flashlight_on
+            - entity: light.living_room_credenza_light
+              name: Credenza
+              icon: light
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-actions-card
+          variant: compact
+          actions:
+            - name: All On
+              icon: lightbulb
+              accent: amber
+              service: light.turn_on
+              service_data:
+                entity_id: light.main_living_lights
+            - name: All Off
+              icon: power_settings_new
+              accent: amber
+              service: light.turn_off
+              service_data:
+                entity_id: light.main_living_lights
+            - name: Brighter
+              icon: add
+              accent: amber
+              service: script.oal_global_manual_brighter
+              service_data:
+                lights:
+                  - light.main_living_lights
+            - name: Dimmer
+              icon: remove
+              accent: amber
+              service: script.oal_global_manual_dimmer
+              service_data:
+                lights:
+                  - light.main_living_lights
+            - name: Reset
+              icon: restart_alt
+              accent: amber
+              service: script.oal_reset_soft
+    - type: grid
+      column_span: 2
+      cards:
+        - type: custom:tunet-sensor-card
+          title: Living Room Sensors
+          show_sparkline: true
+          show_trend: true
+          sensors:
+            - entity: sensor.dining_room_temperature
+              label: Temperature
+              icon: device_thermostat
+              accent: amber
+              unit: °F
+            - entity: binary_sensor.occupancy_living_room
+              label: Occupancy
+              icon: sensor_occupied
+              accent: green
+    - type: grid
+      column_span: 2
+      cards:
+        - type: custom:tunet-media-card
+          entity: media_player.living_room
+          name: Living Room Media
+          show_progress: true

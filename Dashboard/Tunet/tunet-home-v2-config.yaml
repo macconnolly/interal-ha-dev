@@ -1374,7 +1374,15 @@ views:
       column_span: 4
       cards:
         - type: custom:tunet-alarm-card
-          name: Sonos Alarms
+          title: Sonos Alarms
+          show_quick_actions: true
+          alarms:
+            - entity: switch.sonos_alarm_bedroom
+              label: Bedroom Weekdays
+              room: bedroom
+            - entity: switch.sonos_alarm_bedroom_weekend
+              label: Bedroom Weekend
+              room: bedroom
     - type: grid
       column_span: 4
       cards:

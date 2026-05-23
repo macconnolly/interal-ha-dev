@@ -1098,7 +1098,14 @@ export const ICON_BASE = `
   .icon-14 { font-size: 14px; width: 14px; height: 14px; }
 `;
 
-/** Universal glass card shell. Spec §3.1 */
+/** Universal glass card shell. Spec §3.1
+ *
+ * PA01 invariant: .card intentionally has no border.
+ * CARD_SURFACE_GLASS_STROKE owns the visible outer edge through the ::before
+ * XOR-mask rim. Re-adding a .card border creates the Bug A double-corner
+ * artifact because the solid border and masked rim render at slightly
+ * different positions.
+ */
 export const CARD_SURFACE = `
   .card {
     position: relative;
@@ -1107,14 +1114,12 @@ export const CARD_SURFACE = `
     background: var(--glass);
     backdrop-filter: blur(var(--blur-card));
     -webkit-backdrop-filter: blur(var(--blur-card));
-    border: 1px solid var(--ctrl-border);
     box-shadow: var(--shadow), var(--inset);
     padding: var(--card-pad, 20px);
     display: flex;
     flex-direction: column;
     transition:
       background var(--motion-surface) var(--ease-standard),
-      border-color var(--motion-surface) var(--ease-standard),
       box-shadow var(--motion-surface) var(--ease-standard),
       opacity var(--motion-surface) var(--ease-standard),
       transform var(--motion-ui) var(--ease-standard);

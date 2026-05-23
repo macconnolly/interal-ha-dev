@@ -35,12 +35,13 @@ The page-architecture sub-plan at `~/.claude/plans/tunet-page-architecture.md` i
 
 ## 2026-05-08 Defect / Status Updates
 
-### Open runtime defect (NEW): Bug A — Double-corner outlines on rooms section + actions pills
+### PA01 RESOLVED 2026-05-23: Bug A — Double-corner outlines on rooms section + actions pills
 
-- **Surfaces**: visible on rooms-card section header (concentric rounded outlines ~10-15px apart) and actions-card pill buttons (Sleep Mode, Media); confirmed by Mac via screenshots 2026-05-08
-- **Root cause hypothesis**: `CARD_SURFACE` template (`tunet_base.js`) has `.card { border: 1px solid var(--ctrl-border) }` AND `.card::before { position: absolute; inset: 0; ... mask-composite: xor }` rendering as two visible outlines at slightly different positions. Dark mode amplifies via `TOKENS_MIDNIGHT` higher alpha on the ::before gradient.
-- **Recommended fix**: remove `.card { border: ... }` from `CARD_SURFACE` template; let the `::before` glass-stroke be the only edge. Cascades to all 10 consuming cards in one edit. Verify in light AND dark at all 4 breakpoints before committing.
-- **Owning tranche**: PA01 (β-arc, parallel to architecture work).
+- **Surfaces (historical)**: visible on rooms-card section header (concentric rounded outlines ~10-15px apart) and actions-card pill buttons (Sleep Mode, Media); confirmed by Mac via screenshots 2026-05-08.
+- **Root cause**: `CARD_SURFACE` template (`tunet_base.js`) had both `.card { border: 1px solid var(--ctrl-border) }` AND `.card::before { mask-composite: xor }` rendering two visible outlines at slightly different positions. Dark mode amplified via `TOKENS_MIDNIGHT` higher alpha on the ::before gradient.
+- **Fix**: removed `.card { border: ... }` from `CARD_SURFACE`; `::before` glass-stroke is now sole edge. Comment block in `tunet_base.js:1100-1133` documents the WHY so a future agent does not re-add a border.
+- **Verification**: all 11 CARD_SURFACE consumers grep'd 2026-05-23 — no `.card { border }` re-introductions. Production-mirror capture deferred to Plan E Phase 1's M1 evidence step.
+- **Owning tranche**: PA01 (β-arc, parallel to architecture work). Closed by commit pending.
 
 ### Resolved this session
 

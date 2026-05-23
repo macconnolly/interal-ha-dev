@@ -81,6 +81,7 @@ light:
       - light.living_room_hallway_lights
       - light.living_column_strip_light_matter
       - light.dining_column_strip_light_matter
+      - light.master_bedroom_column_accent
   - platform: group
     name: Living Room Lights
     unique_id: living_room_lights_group
@@ -149,6 +150,7 @@ light:
     entities:
       - light.living_column_strip_light_matter
       - light.dining_column_strip_light_matter
+      - light.master_bedroom_column_accent
 group:
   oal_control_switches:
     name: "OAL Control Switches"
@@ -811,6 +813,7 @@ adaptive_lighting:
     lights:
       - light.living_column_strip_light_matter
       - light.dining_column_strip_light_matter
+      - light.master_bedroom_column_accent
     interval: 90
     transition: 0
     initial_transition: 1
@@ -2073,6 +2076,7 @@ automation:
       column_light_entities:
         - light.living_column_strip_light_matter
         - light.dining_column_strip_light_matter
+        - light.master_bedroom_column_accent
       sun_elevation: "{{ states('sensor.oal_effective_sun_elevation') | float(999) }}"
       sun_rising: "{{ is_state('binary_sensor.oal_effective_sun_rising', 'on') }}"
       column_rgb_green: "{{ states('input_number.oal_offset_column_rgb_green') | int(150) }}"
@@ -2223,6 +2227,7 @@ automation:
                       entity_id:
                         - light.living_column_strip_light_matter
                         - light.dining_column_strip_light_matter
+                        - light.master_bedroom_column_accent
                     data:
                       rgb_color: [255, "{{ column_rgb_green }}", 0]
                       transition: 0
@@ -2233,6 +2238,7 @@ automation:
                       entity_id:
                         - light.living_column_strip_light_matter
                         - light.dining_column_strip_light_matter
+                        - light.master_bedroom_column_accent
                     data:
                       brightness_pct: 5
                       transition: 0
@@ -2244,6 +2250,7 @@ automation:
                       lights:
                         - light.living_column_strip_light_matter
                         - light.dining_column_strip_light_matter
+                        - light.master_bedroom_column_accent
                       manual_control: true
                   - if:
                       - condition: state
@@ -2707,12 +2714,14 @@ automation:
           dbg_live_sun_rising: "{{ state_attr('sun.sun', 'rising') | default(true) }}"
           dbg_columns_on: >
             {{ is_state('light.living_column_strip_light_matter', 'on')
-               or is_state('light.dining_column_strip_light_matter', 'on') }}
+               or is_state('light.dining_column_strip_light_matter', 'on')
+             or is_state('light.master_bedroom_column_accent', 'on') }}
           dbg_sleep_on: "{{ is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on') }}"
           dbg_manual_list: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) }}"
           dbg_manual_empty: >
             {{ 'light.living_column_strip_light_matter' not in dbg_manual_list
-               and 'light.dining_column_strip_light_matter' not in dbg_manual_list }}
+               and 'light.dining_column_strip_light_matter' not in dbg_manual_list
+               and 'light.master_bedroom_column_accent' not in dbg_manual_list }}
           green_value: "{{ states('input_number.oal_offset_column_rgb_green') | int(150) }}"
           dbg_in_window: "{{ (dbg_sun_rising == false) and (dbg_sun_elevation >= -5 and dbg_sun_elevation < 3) }}"
           dbg_startup_eligible: "{{ dbg_in_window and dbg_columns_on and (not dbg_sleep_on) and dbg_manual_empty }}"
@@ -2758,7 +2767,8 @@ automation:
       - condition: template
         value_template: >
           {{ is_state('light.living_column_strip_light_matter', 'on')
-             or is_state('light.dining_column_strip_light_matter', 'on') }}
+             or is_state('light.dining_column_strip_light_matter', 'on')
+             or is_state('light.master_bedroom_column_accent', 'on') }}
       - condition: state
         entity_id: switch.adaptive_lighting_sleep_mode_column_lights
         state: "off"
@@ -2766,7 +2776,8 @@ automation:
         value_template: >
           {% set manual = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
           {{ 'light.living_column_strip_light_matter' not in manual
-             and 'light.dining_column_strip_light_matter' not in manual }}
+             and 'light.dining_column_strip_light_matter' not in manual
+               and 'light.master_bedroom_column_accent' not in manual }}
 
       # Step 1: Raise brightness to safe level (above 33%)
       - service: light.turn_on
@@ -2775,6 +2786,7 @@ automation:
           entity_id:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
+            - light.master_bedroom_column_accent
         data:
           brightness_pct: 35
           transition: 0
@@ -2787,6 +2799,7 @@ automation:
           entity_id:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
+            - light.master_bedroom_column_accent
         data:
           rgb_color: [255, "{{ green_value }}", 0]
           transition: 0
@@ -2801,6 +2814,7 @@ automation:
           lights:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
+            - light.master_bedroom_column_accent
           manual_control: true
       - wait_template: >
           {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) > 0 }}
@@ -2833,6 +2847,7 @@ automation:
           entity_id:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
+            - light.master_bedroom_column_accent
         data:
           brightness_pct: 5
           transition: 0
@@ -2868,6 +2883,7 @@ automation:
           entity_id:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
+            - light.master_bedroom_column_accent
         data:
           rgb_color: [255, "{{ green_value }}", 0]
           transition: 0
@@ -2901,7 +2917,8 @@ automation:
       - condition: template
         value_template: >
           {{ is_state('light.living_column_strip_light_matter', 'on')
-             or is_state('light.dining_column_strip_light_matter', 'on') }}
+             or is_state('light.dining_column_strip_light_matter', 'on')
+             or is_state('light.master_bedroom_column_accent', 'on') }}
     action:
       # Test trigger is valid only when test mode is enabled.
       - condition: template
@@ -2915,6 +2932,7 @@ automation:
           entity_id:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
+            - light.master_bedroom_column_accent
         data:
           brightness_pct: 40
           transition: 0
@@ -2927,6 +2945,7 @@ automation:
           entity_id:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
+            - light.master_bedroom_column_accent
         data:
           color_temp_kelvin: 2750
           transition: 0
@@ -2941,6 +2960,7 @@ automation:
           lights:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
+            - light.master_bedroom_column_accent
           manual_control: false
       - wait_template: >
           {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) == 0 }}
@@ -3010,7 +3030,8 @@ automation:
       - condition: template
         value_template: >
           {{ is_state('light.living_column_strip_light_matter', 'on')
-             or is_state('light.dining_column_strip_light_matter', 'on') }}
+             or is_state('light.dining_column_strip_light_matter', 'on')
+             or is_state('light.master_bedroom_column_accent', 'on') }}
       - condition: template
         value_template: >
           {% set manual_count = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length %}
@@ -3052,6 +3073,7 @@ automation:
                   entity_id:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
                 data:
                   brightness_pct: 35
                   transition: 0
@@ -3062,6 +3084,7 @@ automation:
                   entity_id:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
                 data:
                   rgb_color: [255, "{{ green_value }}", 0]
                   transition: 0
@@ -3074,6 +3097,7 @@ automation:
                   lights:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
                   manual_control: true
               - wait_template: >
                   {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) > 0 }}
@@ -3085,6 +3109,7 @@ automation:
                   entity_id:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
                 data:
                   brightness_pct: 5
                   transition: 0
@@ -3119,6 +3144,7 @@ automation:
                   entity_id:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
                 data:
                   rgb_color: [255, "{{ green_value }}", 0]
                   transition: 0
@@ -3130,6 +3156,7 @@ automation:
                   lights:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
                   manual_control: true
               - wait_template: >
                   {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) > 0 }}
@@ -3206,6 +3233,7 @@ automation:
                   lights:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
                   manual_control: false
               - service: switch.turn_on
                 target:
@@ -3221,6 +3249,7 @@ automation:
                   lights:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
                   adapt_brightness: true
                   adapt_color: true
                   turn_on_lights: false
@@ -3257,6 +3286,7 @@ automation:
                   lights:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
                   manual_control: false
               - service: switch.turn_off
                 target:
@@ -3272,6 +3302,7 @@ automation:
                   lights:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
                   adapt_brightness: true
                   adapt_color: true
                   turn_on_lights: false
@@ -3305,6 +3336,7 @@ automation:
                       lights:
                         - light.living_column_strip_light_matter
                         - light.dining_column_strip_light_matter
+                        - light.master_bedroom_column_accent
                       manual_control: false
                   - service: switch.turn_on
                     target:
@@ -3320,6 +3352,7 @@ automation:
                       lights:
                         - light.living_column_strip_light_matter
                         - light.dining_column_strip_light_matter
+                        - light.master_bedroom_column_accent
                       adapt_brightness: true
                       adapt_color: true
                       turn_on_lights: false
@@ -3352,6 +3385,7 @@ automation:
                       lights:
                         - light.living_column_strip_light_matter
                         - light.dining_column_strip_light_matter
+                        - light.master_bedroom_column_accent
                       manual_control: false
                   - service: switch.turn_off
                     target:
@@ -3364,6 +3398,7 @@ automation:
                       lights:
                         - light.living_column_strip_light_matter
                         - light.dining_column_strip_light_matter
+                        - light.master_bedroom_column_accent
                       adapt_brightness: true
                       adapt_color: true
                       turn_on_lights: false
@@ -3790,6 +3825,7 @@ automation:
                   lights:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
           - conditions:
               - condition: trigger
                 id: session_ended
@@ -3801,6 +3837,7 @@ automation:
                   lights:
                     - light.living_column_strip_light_matter
                     - light.dining_column_strip_light_matter
+                    - light.master_bedroom_column_accent
 
   # ---------------------------------------------------------------------------
   # 4.6 Zen32 Modal Controller Integration
@@ -4649,7 +4686,8 @@ automation:
           sun_source: "{{ state_attr('sensor.oal_effective_sun_elevation', 'source') | default('live') }}"
           columns_on: >
             {{ is_state('light.living_column_strip_light_matter', 'on')
-               or is_state('light.dining_column_strip_light_matter', 'on') }}
+               or is_state('light.dining_column_strip_light_matter', 'on')
+             or is_state('light.master_bedroom_column_accent', 'on') }}
           column_sleep_on: "{{ is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on') }}"
           startup_valid_window: "{{ (sun_rising == false) and (sun_elevation >= -5 and sun_elevation < 3) }}"
           startup_can_recover: "{{ startup_valid_window and (not column_sleep_on) and columns_on }}"
@@ -5144,6 +5182,7 @@ automation:
           - light.living_room_hallway_lights
           - light.living_column_strip_light_matter
           - light.dining_column_strip_light_matter
+          - light.master_bedroom_column_accent
         from: "on"
         to: "off"
     condition:
@@ -6735,6 +6774,7 @@ automation:
         entity_id:
           - light.living_column_strip_light_matter
           - light.dining_column_strip_light_matter
+          - light.master_bedroom_column_accent
         attribute: brightness
         id: column_lights
       - platform: state
@@ -7894,6 +7934,7 @@ script:
           column_light_entities:
             - light.living_column_strip_light_matter
             - light.dining_column_strip_light_matter
+            - light.master_bedroom_column_accent
 
           # Check if any target zones include columns
           targets_include_columns: "{{ 'column_lights' in target_zones }}"

@@ -53,6 +53,7 @@ light:
       - light.office_bed_light_left
       - light.office_bed_light_right
       - light.master_bedroom_corner_accent_govee
+      - light.office_table_lamp
   - platform: group
     name: "Office Bed Lights"
     unique_id: office_bed_lights

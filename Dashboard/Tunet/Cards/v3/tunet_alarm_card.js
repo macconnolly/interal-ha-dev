@@ -679,7 +679,15 @@ class TunetAlarmCard extends HTMLElement {
 
   _openEdit(entity) {
     if (!entity || !this._hass) return;
+    // Populate edit buffers via script, then navigate to Bubble Card popup hash.
+    // Browser Mod path retired 2026-05-23 in favor of native Bubble 3.2.1 popup.
     this._hass.callService('script', 'sonos_load_alarm_for_edit', { alarm_entity: entity });
+    // Delay briefly so the script's input_* writes commit before popup mounts.
+    setTimeout(() => {
+      const target = `${window.location.pathname}#alarm-edit`;
+      window.history.pushState(null, '', target);
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    }, 80);
   }
 
   _callScript(scriptId) {

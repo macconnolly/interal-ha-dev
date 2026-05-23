@@ -28,7 +28,7 @@ import {
   escapeHtml,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.0.0';
+const CARD_VERSION = '3.1.0';
 
 // ═══════════════════════════════════════════════════════════
 // Icon helpers (card-specific)
@@ -905,6 +905,7 @@ class TunetRoomsCard extends HTMLElement {
           temperature_entity: room.temperature_entity || '',
           humidity_entity: room.humidity_entity || '',
           navigate_path: room.navigate_path || '',
+          subview_path: room.subview_path || '',
           tap_action: room.tap_action || null,
           hold_action: room.hold_action || null,
           lights,
@@ -1240,51 +1241,42 @@ class TunetRoomsCard extends HTMLElement {
         });
       }
 
-      // Row mode lock:
-      // card-body tap always navigates to room page.
-      // sub-buttons own all toggle behavior.
-      // Tile mode keeps legacy tap/hold behavior.
+      // D1 Alt II gesture lock (2026-05-23):
+      //   Body tap   = toggle all room lights
+      //   Body hold (400ms) = navigate to navigate_path (popup hash)
+      //   Chevron tap = navigate to subview_path (full room page)
+      //   Orb / power / sub-buttons own their own actions via stopPropagation
+      // Tile mode also follows Alt II for consistency.
       let pressTimer = null;
       let didLongPress = false;
 
       const onPointerDown = () => {
-        if (isRowVariant) return;
         didLongPress = false;
         pressTimer = setTimeout(() => {
           didLongPress = true;
-          if (isRowVariant && (roomCfg.lights || []).length) {
-            this._toggleRoomGroup(roomCfg);
-          } else {
-            if (roomCfg.hold_action) {
-              this._handleRoomAction(roomCfg.hold_action, roomCfg);
-            } else if (roomCfg.navigate_path) {
-              navigatePath(roomCfg.navigate_path);
-            }
+          // Hold = open popup via navigate_path
+          if (roomCfg.hold_action) {
+            this._handleRoomAction(roomCfg.hold_action, roomCfg);
+          } else if (roomCfg.navigate_path) {
+            navigatePath(roomCfg.navigate_path);
           }
-
           // Brief haptic feedback via scale.
-          tile.style.transform = 'scale(0.9)';
-          setTimeout(() => { tile.style.transform = ''; }, 120);
+          tile.style.transform = 'scale(0.95)';
+          setTimeout(() => { tile.style.transform = ''; }, 150);
         }, 400);
       };
 
       const onPointerUp = (ev) => {
         clearTimeout(pressTimer);
+        if (didLongPress) return; // hold action already fired
+
+        // Don't fire body tap when click originated on row controls (orbs/power/chevron).
         if (isRowVariant) {
           const target = ev && ev.target instanceof Element ? ev.target : null;
           if (target && target.closest('.room-row-controls')) return;
-          if (roomCfg.navigate_path) {
-            navigatePath(roomCfg.navigate_path);
-          } else if (roomCfg.tap_action) {
-            this._handleRoomAction(roomCfg.tap_action, roomCfg);
-          } else if (roomCfg.hold_action) {
-            this._handleRoomAction(roomCfg.hold_action, roomCfg);
-          }
-          return;
         }
-        if (didLongPress) return;
 
-        // Tile mode: tap toggles lights, hold navigates.
+        // Tap = toggle all room lights (D1 Alt II).
         if (roomCfg.tap_action) {
           this._handleRoomAction(roomCfg.tap_action, roomCfg);
         } else if ((roomCfg.lights || []).length) {
@@ -1319,6 +1311,22 @@ class TunetRoomsCard extends HTMLElement {
 
       // Prevent context menu on long press
       tile.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      // D1 Alt II — chevron tap navigates to subview_path (full room page).
+      // Falls back to navigate_path if no subview_path is configured (legacy).
+      const chevronEl = tile.querySelector('.room-chevron');
+      if (chevronEl) {
+        chevronEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          clearTimeout(pressTimer);
+          if (roomCfg.subview_path) {
+            navigatePath(roomCfg.subview_path);
+          } else if (roomCfg.navigate_path) {
+            navigatePath(roomCfg.navigate_path);
+          }
+        });
+        chevronEl.style.cursor = 'pointer';
+      }
 
       grid.appendChild(tile);
       this._tileRefs.push({

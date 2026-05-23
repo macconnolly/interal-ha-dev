@@ -187,9 +187,8 @@ views:
       rooms:
       - name: Living
         icon: weekend
-        tap_action:
-          action: navigate
-          navigation_path: '#room-living-room'
+        navigate_path: '#room-living-room'
+        subview_path: /tunet-home-cosmos/living-room
         lights:
         - entity: light.living_room_couch_lamp
           name: Couch
@@ -208,9 +207,8 @@ views:
           icon: view_column
       - name: Kitchen
         icon: kitchen
-        tap_action:
-          action: navigate
-          navigation_path: '#room-kitchen'
+        navigate_path: '#room-kitchen'
+        subview_path: /tunet-home-cosmos/kitchen
         lights:
         - entity: light.kitchen_island_pendants
           name: Island
@@ -223,9 +221,8 @@ views:
           icon: linear_scale
       - name: Dining
         icon: restaurant
-        tap_action:
-          action: navigate
-          navigation_path: '#room-dining-room'
+        navigate_path: '#room-dining-room'
+        subview_path: /tunet-home-cosmos/dining-room
         lights:
         - entity: light.dining_room_spot_lights
           name: Spots
@@ -235,9 +232,8 @@ views:
           icon: view_column
       - name: Bedroom
         icon: bed
-        tap_action:
-          action: navigate
-          navigation_path: '#room-bedroom'
+        navigate_path: '#room-bedroom'
+        subview_path: /tunet-home-cosmos/bedroom
         lights:
         - entity: light.master_presence
           name: Main
@@ -247,9 +243,8 @@ views:
           icon: lamp
       - name: Office
         icon: desktop_windows
-        tap_action:
-          action: navigate
-          navigation_path: '#room-office'
+        navigate_path: '#room-office'
+        subview_path: /tunet-home-cosmos/office
         lights:
         - entity: light.office_desk_lamp
           name: Desk
@@ -430,6 +425,7 @@ views:
               - light.living_room_floor_lamp
               - light.living_room_spot_lights
               - light.living_room_credenza_light
+              - light.living_column_strip_light_matter
         - name: All On
           icon: lightbulb
           accent: amber
@@ -440,6 +436,7 @@ views:
               - light.living_room_floor_lamp
               - light.living_room_spot_lights
               - light.living_room_credenza_light
+              - light.living_column_strip_light_matter
   - type: grid
     column_span: 4
     cards:

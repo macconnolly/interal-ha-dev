@@ -365,6 +365,7 @@ class TunetWeatherCard extends HTMLElement {
     this._forecastDaily = [];
     this._forecastHourly = [];
     this._forecastUnsub = { daily: null, hourly: null };
+    this._forecastGeneration = 0;
     this._viewMode = 'daily';
     this._metricMode = 'temperature';
     this._viewPinned = false;
@@ -552,13 +553,16 @@ class TunetWeatherCard extends HTMLElement {
   }
 
   _unsubForecast() {
+    // Bump the generation counter so any in-flight subscribe call
+    // becomes stale and discards its result. (Plan E Phase 3.)
+    this._forecastGeneration = (this._forecastGeneration || 0) + 1;
     if (!this._forecastUnsub) return;
     if (typeof this._forecastUnsub.daily === 'function') {
-      this._forecastUnsub.daily();
+      try { this._forecastUnsub.daily(); } catch (_) {}
       this._forecastUnsub.daily = null;
     }
     if (typeof this._forecastUnsub.hourly === 'function') {
-      this._forecastUnsub.hourly();
+      try { this._forecastUnsub.hourly(); } catch (_) {}
       this._forecastUnsub.hourly = null;
     }
   }
@@ -566,18 +570,31 @@ class TunetWeatherCard extends HTMLElement {
   async _subscribeForecast() {
     if (!this._hass || !this._config.entity) return;
 
+    // Generation guard (Plan E Phase 3 / weather subscription race):
+    // bumping the counter BEFORE awaiting any subscribe call invalidates
+    // any in-flight subscribes from a prior call. _subscribeForecastType
+    // and the message callback both check the captured gen against
+    // this._forecastGeneration before applying state or storing the
+    // returned unsub. This closes the disconnect-during-await stale
+    // subscription window.
     this._unsubForecast();
+    const gen = ++this._forecastGeneration;
+    const entityAtStart = this._config.entity;
     await Promise.all([
-      this._subscribeForecastType('daily'),
-      this._subscribeForecastType('hourly'),
+      this._subscribeForecastType('daily', gen, entityAtStart),
+      this._subscribeForecastType('hourly', gen, entityAtStart),
     ]);
+    if (gen !== this._forecastGeneration) return;
     this._renderForecast();
   }
 
-  async _subscribeForecastType(type) {
+  async _subscribeForecastType(type, gen, entityAtStart) {
     try {
       const unsub = await this._hass.connection.subscribeMessage(
         (msg) => {
+          // Drop late callbacks from a stale generation OR a different entity.
+          if (gen !== this._forecastGeneration) return;
+          if (entityAtStart !== this._config.entity) return;
           if (msg.forecast && Array.isArray(msg.forecast)) {
             if (type === 'hourly') this._forecastHourly = msg.forecast;
             else this._forecastDaily = msg.forecast;
@@ -588,15 +605,24 @@ class TunetWeatherCard extends HTMLElement {
         {
           type: 'weather/subscribe_forecast',
           forecast_type: type,
-          entity_id: this._config.entity,
+          entity_id: entityAtStart,
         }
       );
+      // If a new subscribe call started while we were awaiting, this
+      // unsub belongs to a stale generation. Discard it immediately
+      // rather than storing — otherwise the next call's _unsubForecast
+      // would tear down the WRONG one (or this one would leak).
+      if (gen !== this._forecastGeneration) {
+        try { unsub(); } catch (_) {}
+        return;
+      }
       this._forecastUnsub[type] = unsub;
       return;
     } catch (_) {
       // Fallback to one-shot fetch below
     }
 
+    if (gen !== this._forecastGeneration) return;
     await this._fetchForecastType(type);
   }
 

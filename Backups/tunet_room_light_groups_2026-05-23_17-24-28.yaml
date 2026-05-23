@@ -1,0 +1,78 @@
+# =============================================================================
+# TUNET ROOM-SCOPED LIGHT GROUPS (Path A per LIVE-3 fix, 2026-05-23)
+# =============================================================================
+# OAL groups (in packages/oal_lighting_control_package.yaml) are intentionally
+# ZONE-scoped for adaptive-lighting purposes:
+#   - light.main_living_lights        zones: couch + floor + ENTRYWAY + credenza + corner_accent
+#   - light.kitchen_island_lights     zones: island_pendants ONLY
+#   - light.bedroom_primary_lights    zones: master_presence ONLY
+#   - light.accent_spots_lights       zones: LR spots + Dining spots
+#   - light.recessed_ceiling_lights   zones: kitchen mains + LR hallway
+#
+# These groups SHOULD NOT be confused with room-scoped "All On / All Off"
+# semantics. This file defines NEW room-scoped groups for that purpose.
+#
+# Naming convention: `light.room_<name>_all` — distinct from OAL's zone groups.
+# Each room group includes EVERY light physically in that room, regardless of
+# OAL zone assignment.
+#
+# Required AFTER deploy: HA restart OR `homeassistant.reload_core_config` to
+# register new platform-light entries. These groups will not appear in HA
+# state until reload.
+#
+# Usage: replace tunet-home-v2-config.yaml action service_data entity_id
+# lists with these group entity_ids for cleaner YAML + single-point-of-truth
+# membership tracking.
+# =============================================================================
+
+light:
+  # Living Room: 4 lights physically in living room (no entryway, no corner accent)
+  - platform: group
+    name: "Room Living Room All"
+    unique_id: "tunet_room_living_room_all_v1"
+    entities:
+      - light.living_room_couch_lamp
+      - light.living_room_floor_lamp
+      - light.living_room_spot_lights
+      - light.living_room_credenza_light
+
+  # Kitchen: 3 lights physically in kitchen
+  - platform: group
+    name: "Room Kitchen All"
+    unique_id: "tunet_room_kitchen_all_v1"
+    entities:
+      - light.kitchen_island_pendants
+      - light.kitchen_main_lights
+      - light.kitchen_counter_cabinet_underlights
+
+  # Dining Room: 2 lights
+  - platform: group
+    name: "Room Dining Room All"
+    unique_id: "tunet_room_dining_room_all_v1"
+    entities:
+      - light.dining_room_spot_lights
+      - light.dining_column_strip_light_matter
+
+  # Bedroom: 3 lights (per FINAL spec)
+  - platform: group
+    name: "Room Bedroom All"
+    unique_id: "tunet_room_bedroom_all_v1"
+    entities:
+      - light.master_presence
+      - light.master_bedroom_corner_accent_govee
+      - light.master_bedroom_table_lamps
+
+  # Office: 2 lights (desk + bed pair group)
+  - platform: group
+    name: "Room Office All"
+    unique_id: "tunet_room_office_all_v1"
+    entities:
+      - light.office_desk_lamp
+      - light.office_bed_lights
+
+  # Entryway: standalone (not in any other room)
+  - platform: group
+    name: "Room Entryway All"
+    unique_id: "tunet_room_entryway_all_v1"
+    entities:
+      - light.entryway_lamp

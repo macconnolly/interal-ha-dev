@@ -731,6 +731,91 @@ views:
         - entity: scene.tunet_oal_full_bright
           name: Full Bright
           icon: lightbulb
+  # ── Alarm-edit popup (Bubble 3.2.1; FINAL §F.2 migration from Browser Mod) ──
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:bubble-card
+      card_type: pop-up
+      hash: '#alarm-edit'
+      popup_mode: fit-content
+      name: Edit Alarm
+      icon: mdi:alarm
+      bottom_offset: true
+      cards:
+      - type: markdown
+        content: >
+          ## {{ states('input_text.sonos_alarm_edit_name') or 'Alarm' }}
+      - type: entities
+        title: Time
+        entities:
+        - entity: input_datetime.sonos_alarm_edit_time
+          name: Alarm Time
+        - entity: sensor.sonos_edit_recurrence_display
+          name: Recurrence
+      - type: horizontal-stack
+        cards:
+        - type: button
+          name: '−15'
+          icon: mdi:minus
+          show_state: false
+          tap_action:
+            action: call-service
+            service: script.sonos_adjust_edit_time
+            data:
+              minutes: -15
+        - type: button
+          name: '−5'
+          icon: mdi:minus
+          show_state: false
+          tap_action:
+            action: call-service
+            service: script.sonos_adjust_edit_time
+            data:
+              minutes: -5
+        - type: button
+          name: '+5'
+          icon: mdi:plus
+          show_state: false
+          tap_action:
+            action: call-service
+            service: script.sonos_adjust_edit_time
+            data:
+              minutes: 5
+        - type: button
+          name: '+15'
+          icon: mdi:plus
+          show_state: false
+          tap_action:
+            action: call-service
+            service: script.sonos_adjust_edit_time
+            data:
+              minutes: 15
+      - type: custom:mushroom-number-card
+        entity: input_number.sonos_alarm_edit_volume
+        display_mode: slider
+        name: Volume
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.sonos_alarm_edit_linked_zones
+        name: Include linked zones
+        tap_action:
+          action: toggle
+      - type: horizontal-stack
+        cards:
+        - type: button
+          name: Close
+          icon: mdi:close
+          show_state: false
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-v2/home
+        - type: button
+          name: Save
+          icon: mdi:content-save
+          show_state: false
+          tap_action:
+            action: call-service
+            service: script.sonos_save_alarm_changes
 - title: Stats
   path: stats
   icon: mdi:chart-line

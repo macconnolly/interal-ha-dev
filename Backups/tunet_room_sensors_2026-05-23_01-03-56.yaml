@@ -1,0 +1,147 @@
+# =============================================================================
+# TUNET ROOM SENSORS — Per-room aggregations for dashboard surfaces
+# =============================================================================
+# Provides:
+#   - sensor.lights_on_<room>        — count of lights with state=on in the room
+#   - sensor.occupancy_<room>        — derived from presence sensor(s)
+#
+# These template sensors require NO new hardware. They aggregate existing
+# light groups + presence binary sensors into per-room metrics suitable
+# for the new production dashboard's per-room subviews and status surfaces.
+#
+# Coverage as of 2026-05-23: Living Room, Kitchen, Dining Room, Master
+# Bedroom, Office. Entryway has 0 entities and is intentionally skipped
+# (its area is a ghost; see Plan A2).
+#
+# Owning portfolio item: Plan B Phase B1 of tunet-portfolio-roadmap-2026-05-23.md.
+# =============================================================================
+
+template:
+  - sensor:
+      # ───── Lights-on counts per room ────────────────────────────────
+      - name: "Lights on Living Room"
+        unique_id: "tunet_lights_on_living_room"
+        icon: mdi:lightbulb-on
+        state: >
+          {{ expand('light.all_living_room_lights')
+             | selectattr('state', 'eq', 'on')
+             | list | count }}
+        attributes:
+          total: >
+            {{ expand('light.all_living_room_lights') | list | count }}
+          on_list: >
+            {{ expand('light.all_living_room_lights')
+               | selectattr('state', 'eq', 'on')
+               | map(attribute='name') | list }}
+
+      - name: "Lights on Kitchen"
+        unique_id: "tunet_lights_on_kitchen"
+        icon: mdi:lightbulb-on
+        state: >
+          {{ expand('light.all_kitchen_lights')
+             | selectattr('state', 'eq', 'on')
+             | list | count }}
+        attributes:
+          total: >
+            {{ expand('light.all_kitchen_lights') | list | count }}
+          on_list: >
+            {{ expand('light.all_kitchen_lights')
+               | selectattr('state', 'eq', 'on')
+               | map(attribute='name') | list }}
+
+      - name: "Lights on Dining Room"
+        unique_id: "tunet_lights_on_dining_room"
+        icon: mdi:lightbulb-on
+        state: >
+          {{ expand('light.all_dining_room_lights')
+             | selectattr('state', 'eq', 'on')
+             | list | count }}
+        attributes:
+          total: >
+            {{ expand('light.all_dining_room_lights') | list | count }}
+          on_list: >
+            {{ expand('light.all_dining_room_lights')
+               | selectattr('state', 'eq', 'on')
+               | map(attribute='name') | list }}
+
+      - name: "Lights on Master Bedroom"
+        unique_id: "tunet_lights_on_master_bedroom"
+        icon: mdi:lightbulb-on
+        state: >
+          {{ expand('light.all_master_bedroom_lights')
+             | selectattr('state', 'eq', 'on')
+             | list | count }}
+        attributes:
+          total: >
+            {{ expand('light.all_master_bedroom_lights') | list | count }}
+          on_list: >
+            {{ expand('light.all_master_bedroom_lights')
+               | selectattr('state', 'eq', 'on')
+               | map(attribute='name') | list }}
+
+      - name: "Lights on Office"
+        unique_id: "tunet_lights_on_office"
+        icon: mdi:lightbulb-on
+        state: >
+          {{ expand('light.office_lights')
+             | selectattr('state', 'eq', 'on')
+             | list | count }}
+        attributes:
+          total: >
+            {{ expand('light.office_lights') | list | count }}
+          on_list: >
+            {{ expand('light.office_lights')
+               | selectattr('state', 'eq', 'on')
+               | map(attribute='name') | list }}
+
+      # ───── Total lights-on (across all rooms) ────────────────────────
+      - name: "Lights on Total"
+        unique_id: "tunet_lights_on_total"
+        icon: mdi:lightbulb-multiple
+        state: >
+          {{ states('sensor.lights_on_living_room') | int(0)
+             + states('sensor.lights_on_kitchen') | int(0)
+             + states('sensor.lights_on_dining_room') | int(0)
+             + states('sensor.lights_on_master_bedroom') | int(0)
+             + states('sensor.lights_on_office') | int(0) }}
+        attributes:
+          total_fixtures: >
+            {{ state_attr('sensor.lights_on_living_room', 'total') | int(0)
+               + state_attr('sensor.lights_on_kitchen', 'total') | int(0)
+               + state_attr('sensor.lights_on_dining_room', 'total') | int(0)
+               + state_attr('sensor.lights_on_master_bedroom', 'total') | int(0)
+               + state_attr('sensor.lights_on_office', 'total') | int(0) }}
+
+  # ───── Occupancy per room (derived from presence binary sensors) ────
+  # device_class: occupancy so HomeKit (Plan D) presents these as
+  # Occupancy Sensors, not generic.
+  - binary_sensor:
+      - name: "Occupancy Living Room"
+        unique_id: "tunet_occupancy_living_room"
+        device_class: occupancy
+        state: >
+          {{ is_state('binary_sensor.living_room_presence', 'on') }}
+
+      - name: "Occupancy Kitchen"
+        unique_id: "tunet_occupancy_kitchen"
+        device_class: occupancy
+        state: >
+          {{ is_state('binary_sensor.kitchen_presence', 'on') }}
+
+      - name: "Occupancy Dining Room"
+        unique_id: "tunet_occupancy_dining_room"
+        device_class: occupancy
+        state: >
+          {{ is_state('binary_sensor.dining_room_presence', 'on') }}
+
+      - name: "Occupancy Master Bedroom"
+        unique_id: "tunet_occupancy_master_bedroom"
+        device_class: occupancy
+        state: >
+          {{ is_state('binary_sensor.master_presence_occupancy', 'on') }}
+
+      - name: "Occupancy Office"
+        unique_id: "tunet_occupancy_office"
+        device_class: occupancy
+        state: >
+          {{ is_state('binary_sensor.office_presence_sensor_presence', 'on') }}

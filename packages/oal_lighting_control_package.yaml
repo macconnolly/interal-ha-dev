@@ -6889,41 +6889,35 @@ script:
               entity_id: "{{ all_manual_switches }}"
 
       # =========================================================================
-      # Column Lights Reset - Gaussian Curve Aware (only if columns are manual)
+      # Column Lights Reset - Gaussian Curve Aware (RGB-Session-Aware)
       # =========================================================================
+      # Design intent: never break the column RGB pipeline mid-session.
+      # The original "in_column_rgb_mode" protect window [-5° ≤ elev < 3°] was
+      # too narrow — at sun elevations BEFORE that window (e.g., +5° descending,
+      # session already engaged via prepare_rgb_mode_v13) the script used to
+      # release manual_control AND kill oal_column_rgb_session_active, breaking
+      # the curve with no path back until next-day prepare_rgb_mode.
+      #
+      # ENHANCEMENT 2026-05-22: Broaden the protect criterion from in_window to
+      # `oal_column_rgb_session_active`. The session flag is the LIVENESS signal
+      # for the entire Gaussian RGB pipeline (engaged by prepare_rgb_mode_v13,
+      # cleared by morning_exit_rgb_v13). While session is live, soft reset
+      # must NOT touch columns; column_rgb_transition_v13 continues to drive
+      # rgb_color from input_number.oal_offset_column_rgb_green naturally.
+      # Cleanup-of-orphaned-session paths (when no session is active) are
+      # preserved below.
       - if:
           - condition: template
             value_template: "{{ columns_manual }}"
         then:
           - choose:
+              # Branch A: RGB session is live → preserve curve, leave columns alone.
+              # (Was: protect only during [-5°, 3°); now: protect through whole session.)
               - conditions:
-                  - condition: template
-                    value_template: "{{ in_column_rgb_mode }}"
+                  - condition: state
+                    entity_id: input_boolean.oal_column_rgb_session_active
+                    state: "on"
                 sequence:
-                  # During Gaussian window: Apply correct RGB color directly
-                  - service: light.turn_on
-                    continue_on_error: true
-                    target:
-                      entity_id:
-                        - light.living_column_strip_light_matter
-                        - light.dining_column_strip_light_matter
-                    data:
-                      rgb_color: [255, "{{ column_rgb_green }}", 0]
-                      transition: 0
-                  # Keep manual control set so AL doesn't interfere with RGB mode
-                  - service: adaptive_lighting.set_manual_control
-                    continue_on_error: true
-                    target:
-                      entity_id: switch.adaptive_lighting_column_lights
-                    data:
-                      lights:
-                        - light.living_column_strip_light_matter
-                        - light.dining_column_strip_light_matter
-                      manual_control: true
-                  - wait_template: >
-                      {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) > 0 }}
-                    timeout: "00:00:05"
-                    continue_on_timeout: true
                   - if:
                       - condition: state
                         entity_id: input_boolean.oal_column_rgb_debug_events
@@ -6931,15 +6925,17 @@ script:
                     then:
                       - event: oal_column_rgb_debug
                         event_data:
-                          decision: "protect_engage"
+                          decision: "preserve_rgb_session"
                           source: "oal_reset_soft"
-                          result: "manual_preserved"
-                          reason: "protected_window"
+                          result: "columns_untouched"
+                          reason: "session_active_let_pipeline_continue"
                           sun_elevation: "{{ sun_elevation }}"
                           sun_rising: "{{ sun_rising }}"
+                          in_window: "{{ in_column_rgb_mode }}"
                           manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
             default:
-              # Outside protected window: release columns to AL ownership.
+              # Branch B: Columns manual but NO RGB session → orphaned manual_control.
+              # Release columns to AL ownership (cleanup behavior preserved).
               - service: adaptive_lighting.set_manual_control
                 target:
                   entity_id: switch.adaptive_lighting_column_lights
@@ -6949,9 +6945,6 @@ script:
                   {{ (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length) == 0 }}
                 timeout: "00:00:05"
                 continue_on_timeout: true
-              - service: input_boolean.turn_off
-                target:
-                  entity_id: input_boolean.oal_column_rgb_session_active
               - if:
                   - condition: state
                     entity_id: input_boolean.oal_column_rgb_debug_events
@@ -6959,14 +6952,18 @@ script:
                 then:
                   - event: oal_column_rgb_debug
                     event_data:
-                      decision: "release_forced"
+                      decision: "release_no_session"
                       source: "oal_reset_soft"
                       result: "manual_cleared"
-                      reason: "outside_protect_window"
+                      reason: "no_active_rgb_session"
                       sun_elevation: "{{ sun_elevation }}"
                       sun_rising: "{{ sun_rising }}"
                       manual_count: "{{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length }}"
         else:
+          # Columns NOT manual: defensive cleanup of stale/orphaned RGB session
+          # (e.g., session flag stuck on after manual_control was cleared
+          # externally). PRESERVED from prior version — this is meaningful
+          # defensive code that prevents stuck-flag desync.
           - if:
               - condition: template
                 value_template: "{{ is_state('input_boolean.oal_column_rgb_session_active', 'on') }}"
@@ -6981,10 +6978,10 @@ script:
                 then:
                   - event: oal_column_rgb_debug
                     event_data:
-                      decision: "protect_skip"
+                      decision: "cleanup_orphan_session"
                       source: "oal_reset_soft"
                       result: "session_cleared"
-                      reason: "columns_not_manual"
+                      reason: "columns_not_manual_but_session_was_on"
 
       # =========================================================================
       # Non-Column Zones Reset - Only Target Manual-Controlled
@@ -7050,6 +7047,14 @@ script:
 
       # Overwrite stale snapshot so Config Manager baseline restore is a no-op.
       # Without this, scene.oal_before_config_mode may re-apply outdated brightness.
+      #
+      # ENHANCEMENT 2026-05-22: Expand light.all_adaptive_lights GROUP into
+      # individual member entity_ids before snapshotting. Snapshotting the
+      # group entity captures the GROUP's state (on if any member is on);
+      # restoring the group via scene.turn_on propagates the group's `state: on`
+      # to all members — turning ON lights that were individually OFF at
+      # snapshot time. Expanding to member lights makes the snapshot
+      # per-light, preserving each light's off-state through the restore.
       - if:
           - condition: template
             value_template: "{{ was_non_adaptive }}"
@@ -7057,8 +7062,9 @@ script:
           - service: scene.create
             data:
               scene_id: oal_before_config_mode
-              snapshot_entities:
-                - light.all_adaptive_lights
+              snapshot_entities: >
+                {{ expand('light.all_adaptive_lights')
+                   | map(attribute='entity_id') | list }}
 
       # Pre-acquire transition lock before config select so all recalc triggers
       # land inside the transition window in both Adaptive and non-Adaptive starts.
@@ -7105,8 +7111,17 @@ script:
                 continue_on_error: true
                 target:
                   entity_id: automation.oal_v13_night_behavior_manager
+              # ENHANCEMENT 2026-05-22: 500ms → 1000ms.
+              # The bright→dim flash at deep night happens when the watchdog
+              # fires the engine before night_behavior_manager has written the
+              # updated input_number.oal_offset_night_brightness value. Engine
+              # then applies a stale (lighter) target with transition:0, and
+              # the subsequent normal recalc drops to the dim floor — visible
+              # as a flash. 1000ms gives the recalc automations comfortably
+              # enough time to propagate their input_number writes before the
+              # engine reads them.
               - delay:
-                  milliseconds: 500
+                  milliseconds: 1000
               - service: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.oal_config_transition_active

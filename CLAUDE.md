@@ -49,13 +49,16 @@ These rules are mechanical, not advisory — advisory rules drift into optimism.
 
 ### M1) User-perspective screenshot review block — required before commit
 
-After any UI change, capture screenshots at minimum two breakpoints (mobile 390×844 + one of tablet/laptop/desktop) and read each one back into the conversation context (not just confirm capture succeeded). Then output this block in the conversation BEFORE the commit:
+After any UI change, capture screenshots at minimum two breakpoints (mobile 390×844 + one of tablet/laptop/desktop) and **read each captured PNG into your conversation context as inline image content** — not just confirm capture succeeded, not just reference the file path. The inline image content is the load-bearing artifact. File paths alone do NOT satisfy M1.
+
+Then output this block in the conversation BEFORE the commit:
 
 ```
 ═══════════════════════════════════════════════════════════════
 USER-PERSPECTIVE REVIEW
 ═══════════════════════════════════════════════════════════════
 Breakpoints captured: [list]
+Capture target(s): [lab / production / both]
 Screenshots read back into context: [list paths]
 
 DEFECTS VISIBLE IN CAPTURED SCREENSHOTS:
@@ -73,6 +76,17 @@ Blockers MUST be resolved before commit.
 ```
 
 The user can see and challenge any claim. Reading screenshots back into context (vs. just capturing them) is the load-bearing step — captured-but-unread screenshots are how visible defects survived past harnesses.
+
+**Banned as evidence of M1 satisfaction** (closing harness-grading loopholes from session_arc_popup_b_to_frame.md and Phase 4 of the deploy + visual review rationalization, 2026-05-22):
+
+- The `tunet_playwright_review.mjs` harness no longer issues pass/fail verdicts. Its `"Captured N screenshots..."` line is a capture report, not a verdict. Quoting it as evidence does NOT satisfy M1.
+- `review-manifest.json` paths or counts without inline image read-back do NOT satisfy M1.
+- Probe observations (overflow / blank-render / clipping) being "all clean" do NOT satisfy M1. Probes are diagnostic notes, not verdicts; they cannot ask `"would Mac be happy."`
+- Lab-only captures (`--target lab` or `--surface rehab`) do NOT satisfy M1 when the touched card appears in any dashboard registered with `production: true` in `Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs`. Production-mirror capture (`--target production` or `--target both`) is required for production-facing changes. An "approved" lab capture is no evidence of production-context correctness.
+
+**Iterative UI work — `--share-with-user` mandate**: When iterating with the user in real time on a UI change, run `npm run tunet:review:share` (passes `--share-with-user`). The harness emits `SEND_TO_USER:` markers and the orchestrating agent calls `SendUserFile(status='proactive')` for each so Mac receives them on his actual device. For iterative review, screenshot-paths-without-inline-content are explicitly NOT a substitute for either inline read-back OR iPhone delivery.
+
+**When Mac flags a defect — capitulation guard**: If Mac responds to a `--share-with-user` capture (or any review artifact) with a defect callout, the next agent response asks **what specifically** — typography, spacing, color, semantics, density, touch target, truncation, alignment. Not an apology. Not "you're right, here's what's broken." Not a re-capture loop. The capitulation pattern is the failure mode named in `~/.claude/projects/-home-mac-HA-implementation-10/memory/session_arc_popup_b_to_frame.md`; this rule structurally forecloses it. Mac's defect callout is information about the work, not a verdict on the agent — receive it as input, return to ownership-mode, look at the artifact with Mac's eyes, ask the clarifying question.
 
 ### M2) Banned completion phrases without same-turn artifact
 

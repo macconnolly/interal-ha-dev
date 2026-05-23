@@ -1,0 +1,163 @@
+# =============================================================================
+# TUNET OAL ENHANCEMENTS — Meaningful sensor aggregations
+# =============================================================================
+# Extends the OAL system with sensors Mac asked for: "enhance the OAL
+# sensors to be more meaningful." This package adds two universally-useful
+# aggregations that don't depend on Mac's specific "not meaningful" callout:
+#
+#   - sensor.oal_mode_time_share_today       — minutes per mode today
+#   - sensor.oal_override_rate_today         — manual overrides count today
+#   - sensor.oal_mode_current                 — current mode + age (human-friendly)
+#   - binary_sensor.oal_in_default_cycle      — true if mode is Adaptive /
+#                                                 Dim Ambient / Dim Ambient Plus
+#                                                 (the 3 ZEN32 cycle scenes)
+#
+# These can be graphed (mode_time_share) or surfaced as status tiles
+# (current mode age, in-default-cycle).
+#
+# Owning portfolio item: Plan B Phase B6 of tunet-portfolio-roadmap-2026-05-23.md.
+# Independent of the Plan B3 new-mode-naming decision — references
+# input_select.oal_active_configuration generically.
+# =============================================================================
+
+# ───── History stats — minutes per OAL mode today ────────────────────
+# One history_stats per mode; total minutes over the day, suitable for
+# stacked bar graphs in the new dashboard.
+sensor:
+  - platform: history_stats
+    name: "OAL Adaptive Minutes Today"
+    unique_id: "tunet_oal_minutes_adaptive_today"
+    entity_id: input_select.oal_active_configuration
+    state: "Adaptive"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: "OAL Dim Ambient Minutes Today"
+    unique_id: "tunet_oal_minutes_dim_ambient_today"
+    entity_id: input_select.oal_active_configuration
+    state: "Dim Ambient"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: "OAL Warm Ambient Minutes Today"
+    unique_id: "tunet_oal_minutes_warm_ambient_today"
+    entity_id: input_select.oal_active_configuration
+    state: "Warm Ambient"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: "OAL Full Bright Minutes Today"
+    unique_id: "tunet_oal_minutes_full_bright_today"
+    entity_id: input_select.oal_active_configuration
+    state: "Full Bright"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: "OAL Sleep Minutes Today"
+    unique_id: "tunet_oal_minutes_sleep_today"
+    entity_id: input_select.oal_active_configuration
+    state: "Sleep"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: "OAL Manual Minutes Today"
+    unique_id: "tunet_oal_minutes_manual_today"
+    entity_id: input_select.oal_active_configuration
+    state: "Manual"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: "OAL TV Mode Minutes Today"
+    unique_id: "tunet_oal_minutes_tv_mode_today"
+    entity_id: input_select.oal_active_configuration
+    state: "TV Mode"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+template:
+  - sensor:
+      # ───── Current mode + age ──────────────────────────────────────
+      # Friendly label for the status card: "Adaptive (2h 14m)"
+      - name: "OAL Mode Current"
+        unique_id: "tunet_oal_mode_current"
+        icon: mdi:tune-variant
+        state: >
+          {{ states('input_select.oal_active_configuration') }}
+        attributes:
+          since: >
+            {% set s = states.input_select.oal_active_configuration %}
+            {{ s.last_changed.isoformat() if s else 'unknown' }}
+          age_minutes: >
+            {% set s = states.input_select.oal_active_configuration %}
+            {% if s %}{{ ((now() - s.last_changed).total_seconds() / 60) | round(0) }}{% else %}0{% endif %}
+          age_human: >
+            {% set s = states.input_select.oal_active_configuration %}
+            {% if not s %}
+              unknown
+            {% else %}
+              {% set secs = (now() - s.last_changed).total_seconds() | int %}
+              {% if secs < 60 %}
+                {{ secs }}s
+              {% elif secs < 3600 %}
+                {{ (secs / 60) | int }}m
+              {% else %}
+                {{ (secs / 3600) | int }}h {{ ((secs % 3600) / 60) | int }}m
+              {% endif %}
+            {% endif %}
+
+      # ───── Override rate — current count + today ───────────────────
+      # Active overrides right now, plus zone-list summary.
+      - name: "OAL Override Count Active"
+        unique_id: "tunet_oal_override_count_active"
+        icon: mdi:hand-back-right
+        state: >
+          {{ state_attr('sensor.oal_system_status', 'active_zonal_overrides') | int(0) }}
+        attributes:
+          zones: >
+            {{ state_attr('sensor.oal_system_status', 'overridden_zones') | default([], true) }}
+          soonest_reset: >
+            {{ state_attr('sensor.oal_system_status', 'soonest_reset_formatted') | default('none') }}
+
+      # ───── Total mode-share minutes (sum) ──────────────────────────
+      # Useful for ratio calculations in dashboard
+      - name: "OAL Mode Total Minutes Today"
+        unique_id: "tunet_oal_mode_total_minutes_today"
+        icon: mdi:timer-outline
+        unit_of_measurement: "min"
+        state: >
+          {{ ((states('sensor.oal_adaptive_minutes_today') | float(0)
+              + states('sensor.oal_dim_ambient_minutes_today') | float(0)
+              + states('sensor.oal_warm_ambient_minutes_today') | float(0)
+              + states('sensor.oal_full_bright_minutes_today') | float(0)
+              + states('sensor.oal_sleep_minutes_today') | float(0)
+              + states('sensor.oal_manual_minutes_today') | float(0)
+              + states('sensor.oal_tv_mode_minutes_today') | float(0)) * 60) | round(0) }}
+
+  - binary_sensor:
+      # ───── In default cycle? ───────────────────────────────────────
+      # True when current mode is one of the 3 ZEN32 cycle scenes.
+      # NOTE: "Dim Ambient Plus" added here pre-emptively for when Plan B3 lands.
+      # Until then, this sensor is true for Adaptive + Dim Ambient.
+      - name: "OAL In Default Cycle"
+        unique_id: "tunet_oal_in_default_cycle"
+        icon: mdi:autorenew
+        state: >
+          {{ states('input_select.oal_active_configuration')
+             in ['Adaptive', 'Dim Ambient', 'Evening'] }}
+        attributes:
+          current_mode: >
+            {{ states('input_select.oal_active_configuration') }}
+          cycle_members: "['Adaptive', 'Dim Ambient', 'Evening']"

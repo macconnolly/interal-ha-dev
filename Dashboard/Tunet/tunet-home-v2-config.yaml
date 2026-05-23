@@ -143,9 +143,8 @@ views:
       grid_options:
         columns: full
       rooms:
-      - name: Living Room
+      - name: Living
         icon: weekend
-        temperature_entity: sensor.dining_room_temperature
         tap_action:
           action: navigate
           navigation_path: '#room-living-room'
@@ -177,9 +176,8 @@ views:
         - entity: light.kitchen_counter_cabinet_underlights
           name: Under
           icon: linear_scale
-      - name: Dining Room
+      - name: Dining
         icon: restaurant
-        temperature_entity: sensor.dining_room_temperature
         tap_action:
           action: navigate
           navigation_path: '#room-dining-room'
@@ -192,7 +190,6 @@ views:
           icon: view_column
       - name: Bedroom
         icon: bed
-        temperature_entity: sensor.bedroom_temp_humidity_sensor_temperature
         tap_action:
           action: navigate
           navigation_path: '#room-bedroom'

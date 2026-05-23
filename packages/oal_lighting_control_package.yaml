@@ -190,7 +190,7 @@ input_select:
     options:
       - "Adaptive"
       - "Full Bright"
-      - "Dim Ambient Plus"
+      - "Evening"
       - "Dim Ambient"
       - "Warm Ambient"
       - "TV Mode"
@@ -1915,24 +1915,27 @@ automation:
           is_baseline: false
           is_force_on: true
         
-        # Mac's 2026-05-23 expansion: NEW preset for the ZEN32 3-scene cycle.
-        # "Slightly dimmer with kitchen main + entry main off." Sits between
-        # Adaptive and Dim Ambient in the cycle: kitchen_main and entryway_lamp
-        # turn OFF (not just dimmed), other zones match Dim Ambient values.
-        # Plan B3 of tunet-portfolio-roadmap-2026-05-23.md. Owning portfolio: B.
-        "Dim Ambient Plus":
+        # "Evening" mode — Mac's 2026-05-23 refined per-zone spec from the
+        # interaction-spec plan §2 (commit 2ce7e22). Renamed from
+        # "Dim Ambient Plus" after Mac picked "Evening" as the everyday name.
+        # Sits between Adaptive and Late Night (Dim Ambient) in ZEN32 B5 2x
+        # cycle. Kitchen mains + entryway lamp OFF; kitchen pendants and
+        # bedroom primary reduced; counter undercabinet at safety minimum.
+        "Evening":
           b: -30
           k: -500
           lights_off:
-            - light.kitchen_main_lights         # Off — Mac's "kitchen main lights off"
-            - light.entryway_lamp               # Off — Mac's "entry main lights off"
+            - light.kitchen_main_lights         # OFF — kitchen overhead
+            - light.entryway_lamp               # OFF — entry main light
           lights_dimmed:
-            light.main_living_lights: 40        # Soft ambient (same as Dim Ambient)
-            light.kitchen_island_pendants: 30   # Lower than normal
-            light.kitchen_counter_cabinet_underlights: 8  # Lower than Dim Ambient (was 20→10→8)
+            light.main_living_lights: 40        # Soft ambient
+            light.kitchen_island_pendants: 20   # Reduced from prior 30 per Mac's "reduce a little bit"
+            light.kitchen_counter_cabinet_underlights: 8  # Safety minimum
+            light.bedroom_primary_lights: 25    # Reduced per Mac's "same with the bedroom"
             light.column_lights: 30             # Accent glow
             light.accent_spots_lights: 20       # Subtle spots
             light.recessed_ceiling_lights: 1    # Minimal glow
+            light.office_lights: 30             # Office reduced
           is_baseline: false
           is_force_on: false
 

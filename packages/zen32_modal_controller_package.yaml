@@ -714,7 +714,7 @@ script:
     # If current mode is OUTSIDE the cycle (e.g. Manual after a reset),
     # next press re-enters at the head ("Adaptive").
     variables:
-      allowed_configs: ["Adaptive", "Dim Ambient Plus", "Dim Ambient"]
+      allowed_configs: ["Adaptive", "Evening", "Dim Ambient"]
       current: "{{ states('input_select.oal_active_configuration') }}"
       current_idx: "{{ allowed_configs.index(current) if current in allowed_configs else -1 }}"
       next_idx: "{{ 0 if current_idx == -1 else (current_idx + 1) % (allowed_configs | length) }}"

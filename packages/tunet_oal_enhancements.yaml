@@ -156,8 +156,8 @@ template:
         icon: mdi:autorenew
         state: >
           {{ states('input_select.oal_active_configuration')
-             in ['Adaptive', 'Dim Ambient', 'Dim Ambient Plus'] }}
+             in ['Adaptive', 'Dim Ambient', 'Evening'] }}
         attributes:
           current_mode: >
             {{ states('input_select.oal_active_configuration') }}
-          cycle_members: "['Adaptive', 'Dim Ambient', 'Dim Ambient Plus']"
+          cycle_members: "['Adaptive', 'Dim Ambient', 'Evening']"

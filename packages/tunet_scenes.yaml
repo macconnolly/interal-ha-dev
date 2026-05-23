@@ -26,12 +26,12 @@ scene:
       input_select.oal_active_configuration:
         state: "Adaptive"
 
-  - name: "Tunet OAL Dim Ambient Plus"
-    id: tunet_oal_dim_ambient_plus
+  - name: "Tunet OAL Evening"
+    id: tunet_oal_evening
     icon: mdi:lightbulb-night-outline
     entities:
       input_select.oal_active_configuration:
-        state: "Dim Ambient Plus"
+        state: "Evening"
 
   - name: "Tunet OAL Dim Ambient"
     id: tunet_oal_dim_ambient

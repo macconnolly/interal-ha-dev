@@ -69,8 +69,8 @@ homekit:
       # ───── 3-scene ZEN32 cycle for Apple Home ─────
       scene.tunet_oal_adaptive:
         name: "Adaptive Mode"
-      scene.tunet_oal_dim_ambient_plus:
-        name: "Dim Ambient Plus"
+      scene.tunet_oal_evening:
+        name: "Evening"
       scene.tunet_oal_dim_ambient:
         name: "Dim Ambient"
       scene.tunet_oal_sleep:

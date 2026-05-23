@@ -728,11 +728,140 @@ Recommendation: **ship Tranche D first as a quick standalone deploy** (the easie
 
 ---
 
-**End of plan. Awaiting Mac's stamp on:**
-- B1 inclusion in #1
-- ~~B2 inclusion in #1~~ — RETRACTED (Dim Ambient is a valid mode, not stale)
-- Sequencing (sequential recommended)
-- OAL watchdog included in F2
-- Sleep transition default value
-- Tranche D decisions (status alias labels, HomeKit additions, Full Bright chip)
-- Any other adjustments
+---
+
+## 7. Final stamped decisions + spec updates — 2026-05-23 4:15pm
+
+### 7.1 F2 redesign per adversarial review
+
+The original F2 unlock+watchdog had a HIGH-risk issue (watchdog feedback loop) and a MEDIUM-risk threshold issue. Adopted modifications:
+
+**Part 1 — Unlock at top**: clear BOTH `oal_config_transition_active` AND `oal_config_power_handoff_active` at top of action sequence (not just the first one). Single extra line, eliminates stale-state cascades.
+
+**Part 2 — Watchdog** (redesigned for safety):
+- Threshold: 60 seconds (was 30s — too tight for legit slow Matter/Govee runs)
+- Action sequence (ORDER MATTERS):
+  1. `automation.turn_off` on `automation.oal_configuration_manager_v13` to abort any in-flight write
+  2. Clear both flags (`oal_config_transition_active` + `oal_config_power_handoff_active`)
+  3. `automation.turn_on` to re-enable the manager
+  4. Fire `oal_watchdog_trigger force: true` event to reconverge engine
+  5. Log to logbook
+
+Optional sentinel `input_boolean.oal_watchdog_fired` pulse for diagnostic visibility (5s ON, then auto-clear). Cheap to add, useful for "did the watchdog fire today" queries.
+
+### 7.2 Tranche D (mode display sync) — stamped
+
+- ✓ Status-card aliases: accept proposed labels (`Dim Ambient → "Dim"`, `Warm Ambient → "Warm"` [will be dropped per Tranche F], `Full Bright → "Full"`, `TV Bridge → "TV+"`, etc.). Update `Dashboard/Tunet/Cards/v3/tunet_status_card.js:85-89` MODE_SELECTOR_SUMMARY_ALIASES.
+- ✓ Full Bright chip: ADD to home actions strip.
+- `tunet_scenes.yaml:10-12` legacy "Dim Ambient Plus" comment: clean up since we're touching the file anyway.
+
+### 7.3 Tranche E (HomeKit cleanup) — stamped + extended
+
+**REMOVE from current HomeKit exposure (`packages/tunet_homekit.yaml`):**
+
+| Entity / Scene | Reason |
+|---|---|
+| `scene.tunet_oal_full_bright` | Mac never uses; clutter |
+| `scene.tunet_oal_warm_ambient` (if exists) | Being dropped from OAL mode list per Tranche F |
+| `binary_sensor.oal_tv_mode_active` | Mac never uses TV mode via HomeKit |
+| `sensor.oal_average_active_color_temperature` | Has `device_class: temperature`, shows as bogus temp accessory in HomeKit (line 8622 of oal_lighting_control_package.yaml) — add to `exclude_entities` |
+| `light.kitchen_undercabinet_lights` (the AL-internal group with snake_case friendly name) | Duplicate of the OAL-canonical `light.kitchen_counter_cabinet_underlights`. Add to `exclude_entities` |
+| `light.kitchen_island_lights` (AL group) | Same duplicate pattern as undercabinet |
+| `light.room_kitchen_all` | Room-aggregate group; duplicates per-zone lights |
+| `light.all_kitchen_lights` | Yet another aggregate; duplicates |
+
+**ADD to HomeKit (`packages/tunet_homekit.yaml`):**
+
+- New `scene.tunet_all_on` activates `light.turn_on` on `light.all_adaptive_lights`
+- New `scene.tunet_all_off` activates `light.turn_off` on `light.all_adaptive_lights`
+- Both renamed in HomeKit `entity_config`: "All On" / "All Off"
+
+**Recommendation for additional excludes**: audit the full live light registry post-deploy to find more duplicate groups (`light.living_room_lights`, `light.room_living_room_all`, etc.) and add them. Out of scope for first deploy; flag as follow-up.
+
+### 7.4 Tranche F (OAL mode consolidation) — stamped
+
+**Drop Warm Ambient everywhere:**
+- Remove from `input_select.oal_active_configuration.options` (will need HA restart since input_select is a helper)
+- Remove from `oal_configuration_manager_v13` config_profiles map (lines ~2049-2179)
+- Remove `scene.tunet_oal_warm_ambient` from `tunet_scenes.yaml`
+- Remove Warm chip from home actions strip (`tunet-home-preview-config.yaml:139-147` area)
+- Remove Warm Ambient from status_card alias map (entry dropped, not just renamed)
+
+**New Evening mode values** (lighter dim per Mac directive):
+
+```yaml
+"Evening":
+  b: -20         # was -30 (lighter overall)
+  k: -500        # unchanged
+  lights_off:
+    - light.kitchen_main_lights
+    - light.entryway_lamp
+  lights_dimmed:
+    light.main_living_lights: 60                       # was 40
+    light.kitchen_island_pendants: 40                  # was 20
+    light.kitchen_counter_cabinet_underlights: 20      # was 8
+    light.bedroom_primary_lights: 40                   # was 25
+    light.column_lights: 40                            # was 30
+    light.accent_spots_lights: 30                      # was 20
+    light.recessed_ceiling_lights: 5                   # was 1
+    light.office_lights: 40                            # was 30
+```
+
+**New Dim Ambient mode values** (heavier dim per Mac directive — "all lights on but heavier dim, turn off hallway, heavily dim kitchen main"):
+
+```yaml
+"Dim Ambient":
+  b: -40                                                # was -30 (heavier)
+  k: -500                                               # unchanged
+  lights_off:
+    - light.living_room_hallway_lights                  # NEW (Mac confirmed entity exists; live state on, brightness 76)
+  lights_dimmed:
+    light.kitchen_main_lights: 5                       # NEW — heavily dimmed instead of OFF (Mac: "heavily dim the kitchen main lights")
+    light.main_living_lights: 30                       # was 40 (heavier)
+    light.kitchen_island_pendants: 20                  # was 30 (heavier)
+    light.kitchen_counter_cabinet_underlights: 5       # was 10 (heavier)
+    light.bedroom_primary_lights: 20                   # NEW
+    light.column_lights: 20                            # was 30 (heavier)
+    light.accent_spots_lights: 15                      # was 20 (heavier)
+    light.recessed_ceiling_lights: 1                   # unchanged
+    light.office_lights: 25                            # NEW
+```
+
+These are starting values for review. Mac tunes after seeing the result.
+
+### 7.5 Final tranche execution order
+
+| Order | Tranche | Risk | Restart? | Time |
+|---|---|---|---|---|
+| 1 | #1 HVAC stats + B1 | Low | YES | 30 min |
+| 2 | OAL Tranche A (F1+F2+F3) — REDESIGNED per §7.1 | Low-Med | No (automation.reload) | 30 min |
+| 3 | OAL Tranche B (F4) | Med | No | 20 min |
+| 4 | OAL Tranche C (F5) | Low | YES (new input_helper) | 15 min |
+| 5 | Tranche D (mode display sync) | Low | No (card rebuild + dashboard push) | 15 min |
+| 6 | Tranche E (HomeKit cleanup + new scenes) | Med | YES (HomeKit integration reload) | 30 min |
+| 7 | Tranche F (mode consolidation) | Med-High (semantic OAL change) | YES (input_select option list change) | 45 min + Mac live testing |
+
+Total: ~3 hours focused work + Mac's review gates. Suggest spread over 2-3 sittings.
+
+### 7.6 What's NOT shipping in this plan
+
+- Coalescing per-light service calls into batched calls (perf, subagent fix #3)
+- Telemetry events at every mode transition (subagent fix #8)
+- `prev_controlled_lights` fallback when handoff flag missing (subagent G4 — risky)
+- Configuration_manager refactor to fully atomic operations (separate plan)
+- Light registry audit for ALL duplicate groups exposed to HomeKit (in-scope: only kitchen + the ones called out)
+
+---
+
+## 8. Pre-flight verification before execution
+
+Before starting Tranche 1 (#1 HVAC):
+
+- [ ] Confirm no name conflicts: `binary_sensor.hvac_heating_active`, `binary_sensor.hvac_cooling_active`, `scene.tunet_all_on`, `scene.tunet_all_off`, `input_boolean.oal_watchdog_fired` don't exist yet
+- [ ] Snapshot pre-deploy state of all 11 broken sensors (for before/after comparison)
+- [ ] Snapshot pre-deploy state of input_select.oal_active_configuration (verify 9 options including Warm Ambient that will be removed)
+- [ ] Verify `light.living_room_hallway_lights` is the right entity for new Dim Ambient lights_off (Mac confirms by physically observing which hallway turns off)
+
+---
+
+**End of plan. Ready for execution stamp.**

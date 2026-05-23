@@ -65,10 +65,10 @@ views:
           navigation_path: '#oal-detail'
       - type: value
         entity: binary_sensor.hvac_running
+        attribute: hvac_action
         icon: hvac
         label: HVAC
         accent: blue
-        format: state
         tap_action:
           action: more-info
           entity: climate.dining_room
@@ -117,22 +117,66 @@ views:
   - type: grid
     column_span: 4
     cards:
-    - type: custom:tunet-scenes-card
-      variant: strip
-      name: Scenes
-      allow_wrap: false
+    - type: custom:tunet-actions-card
+      name: OAL Mode
+      compact: true
       grid_options:
         columns: full
-      scenes:
-      - entity: scene.tunet_oal_adaptive
-        name: Adaptive
-        icon: wb_sunny
-      - entity: scene.tunet_oal_evening
-        name: Evening
+      actions:
+      - name: Adaptive
+        icon: sunny
+        accent: green
+        service: input_select.select_option
+        service_data:
+          entity_id: input_select.oal_active_configuration
+          option: Adaptive
+        state_entity: input_select.oal_active_configuration
+        active_when: Adaptive
+      - name: Evening
         icon: bedtime
-      - entity: scene.tunet_oal_dim_ambient
-        name: Dim Ambient
+        accent: amber
+        service: input_select.select_option
+        service_data:
+          entity_id: input_select.oal_active_configuration
+          option: Evening
+        state_entity: input_select.oal_active_configuration
+        active_when: Evening
+      - name: Dim
         icon: nightlight
+        accent: purple
+        service: input_select.select_option
+        service_data:
+          entity_id: input_select.oal_active_configuration
+          option: Dim Ambient
+        state_entity: input_select.oal_active_configuration
+        active_when: Dim Ambient
+      - name: Warm
+        icon: local_fire_department
+        accent: amber
+        service: input_select.select_option
+        service_data:
+          entity_id: input_select.oal_active_configuration
+          option: Warm Ambient
+        state_entity: input_select.oal_active_configuration
+        active_when: Warm Ambient
+      - name: TV
+        icon: tv
+        accent: blue
+        service: input_select.select_option
+        service_data:
+          entity_id: input_select.oal_active_configuration
+          option: TV Mode
+        state_entity: input_select.oal_active_configuration
+        active_when: TV Mode
+      - name: Sleep
+        icon: hotel
+        accent: purple
+        service: input_select.select_option
+        service_data:
+          entity_id: input_select.oal_active_configuration
+          option: Sleep
+        state_entity: input_select.oal_active_configuration
+        active_when: Sleep
   - type: grid
     column_span: 4
     cards:
@@ -151,7 +195,7 @@ views:
         lights:
         - entity: light.living_room_couch_lamp
           name: Couch
-          icon: lamp
+          icon: table_lamp
         - entity: light.living_room_floor_lamp
           name: Floor
           icon: floor_lamp
@@ -160,7 +204,7 @@ views:
           icon: flashlight_on
         - entity: light.living_room_credenza_light
           name: Credenza
-          icon: light
+          icon: wb_incandescent
       - name: Kitchen
         icon: kitchen
         tap_action:
@@ -228,52 +272,61 @@ views:
         action: navigate
         navigation_path: '#media-living-room'
   - type: grid
-    column_span: 2
-    cards:
-    - type: custom:tunet-light-tile
-      entity: light.kitchen_counter_cabinet_underlights
-      name: Counter
-      orientation: horizontal
-      tile_size: standard
-      grid_options:
-        columns: full
-  - type: grid
-    column_span: 2
-    cards:
-    - type: custom:tunet-light-tile
-      entity: light.entryway_lamp
-      name: Entry Lamp
-      orientation: horizontal
-      tile_size: standard
-      grid_options:
-        columns: full
-  - type: grid
     column_span: 4
     cards:
     - type: custom:tunet-actions-card
-      variant: compact
+      name: Quick Actions
       compact: true
       grid_options:
         columns: full
       actions:
+      - name: All On
+        icon: lightbulb
+        accent: amber
+        service: light.turn_on
+        service_data:
+          entity_id: light.all_adaptive_lights
+        state_entity: light.all_adaptive_lights
+        active_when: "on"
       - name: All Off
         icon: power_settings_new
         accent: amber
         service: light.turn_off
         service_data:
           entity_id: light.all_adaptive_lights
+        state_entity: light.all_adaptive_lights
+        active_when: "off"
+      - name: Brighter
+        icon: add
+        accent: green
+        service: script.oal_global_manual_brighter
+      - name: Dimmer
+        icon: remove
+        accent: green
+        service: script.oal_global_manual_dimmer
       - name: Sleep
-        icon: bed
-        accent: amber
+        icon: bedtime
+        accent: purple
         service: scene.turn_on
         service_data:
           entity_id: scene.tunet_oal_sleep
       - name: Full Bright
-        icon: lightbulb
+        icon: light_mode
         accent: amber
         service: scene.turn_on
         service_data:
           entity_id: scene.tunet_oal_full_bright
+      - name: Reset
+        icon: restart_alt
+        accent: red
+        service: script.turn_on
+        service_data:
+          entity_id: script.oal_reset_soft
+        show_when:
+          entity: sensor.oal_system_status
+          attribute: active_zonal_overrides
+          operator: gt
+          state: 0
   - type: grid
     column_span: 4
     cards:

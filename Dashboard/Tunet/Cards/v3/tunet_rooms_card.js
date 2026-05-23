@@ -39,10 +39,9 @@ const ICON_ALIASES = {
   couch: 'weekend',
   shelf_auto: 'shelves',
   countertops: 'kitchen',
-  desk_lamp: 'desk',
-  lamp: 'table_lamp',
-  floor_lamp: 'table_lamp',
   light_group: 'lightbulb',
+  lamp: 'table_lamp',
+  desk_lamp: 'desk',
 };
 
 function normalizeIcon(icon) {

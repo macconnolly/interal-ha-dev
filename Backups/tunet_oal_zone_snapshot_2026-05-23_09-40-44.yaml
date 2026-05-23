@@ -1,0 +1,97 @@
+# =============================================================================
+# TUNET OAL ZONE SNAPSHOT — Per-zone brightness as graphable sensors
+# =============================================================================
+# Plan §10 of docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md.
+#
+# Extracts per-zone baseline_brightness_pct from sensor.oal_real_time_monitor
+# attribute bag as 8 numeric sensors. The values are already computed by OAL
+# every cycle; we just surface them as their own sensor entities so the
+# Adaptive Lighting Stats page can graph + display them per-zone.
+#
+# Attribute path on sensor.oal_real_time_monitor:
+#   <zone>_baseline_brightness_pct  (8 zones)
+#
+# Sensors:
+#   sensor.oal_zone_main_living_brightness
+#   sensor.oal_zone_kitchen_island_brightness
+#   sensor.oal_zone_kitchen_undercabinet_brightness
+#   sensor.oal_zone_bedroom_primary_brightness
+#   sensor.oal_zone_accent_spots_brightness
+#   sensor.oal_zone_recessed_ceiling_brightness
+#   sensor.oal_zone_column_lights_brightness
+#   sensor.oal_zone_office_brightness
+# =============================================================================
+
+template:
+  - sensor:
+      - name: "OAL Zone Main Living Brightness"
+        unique_id: "tunet_oal_zone_main_living_brightness"
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:sofa
+        state: >
+          {% set v = state_attr('sensor.oal_real_time_monitor', 'main_living_baseline_brightness_pct') %}
+          {% if v is none %}unknown{% else %}{{ v | float(0) | round(0) }}{% endif %}
+
+      - name: "OAL Zone Kitchen Island Brightness"
+        unique_id: "tunet_oal_zone_kitchen_island_brightness"
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:silverware-fork-knife
+        state: >
+          {% set v = state_attr('sensor.oal_real_time_monitor', 'kitchen_island_baseline_brightness_pct') %}
+          {% if v is none %}unknown{% else %}{{ v | float(0) | round(0) }}{% endif %}
+
+      - name: "OAL Zone Kitchen Undercabinet Brightness"
+        unique_id: "tunet_oal_zone_kitchen_undercabinet_brightness"
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:led-strip-variant
+        state: >
+          {% set v = state_attr('sensor.oal_real_time_monitor', 'kitchen_undercabinet_baseline_brightness_pct') %}
+          {% if v is none %}unknown{% else %}{{ v | float(0) | round(0) }}{% endif %}
+
+      - name: "OAL Zone Bedroom Primary Brightness"
+        unique_id: "tunet_oal_zone_bedroom_primary_brightness"
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:bed
+        state: >
+          {% set v = state_attr('sensor.oal_real_time_monitor', 'bedroom_primary_baseline_brightness_pct') %}
+          {% if v is none %}unknown{% else %}{{ v | float(0) | round(0) }}{% endif %}
+
+      - name: "OAL Zone Accent Spots Brightness"
+        unique_id: "tunet_oal_zone_accent_spots_brightness"
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:spotlight-beam
+        state: >
+          {% set v = state_attr('sensor.oal_real_time_monitor', 'accent_spots_baseline_brightness_pct') %}
+          {% if v is none %}unknown{% else %}{{ v | float(0) | round(0) }}{% endif %}
+
+      - name: "OAL Zone Recessed Ceiling Brightness"
+        unique_id: "tunet_oal_zone_recessed_ceiling_brightness"
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:ceiling-light
+        state: >
+          {% set v = state_attr('sensor.oal_real_time_monitor', 'recessed_ceiling_baseline_brightness_pct') %}
+          {% if v is none %}unknown{% else %}{{ v | float(0) | round(0) }}{% endif %}
+
+      - name: "OAL Zone Column Lights Brightness"
+        unique_id: "tunet_oal_zone_column_lights_brightness"
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:pillar
+        state: >
+          {% set v = state_attr('sensor.oal_real_time_monitor', 'column_lights_baseline_brightness_pct') %}
+          {% if v is none %}unknown{% else %}{{ v | float(0) | round(0) }}{% endif %}
+
+      - name: "OAL Zone Office Brightness"
+        unique_id: "tunet_oal_zone_office_brightness"
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:desk-lamp
+        state: >
+          {% set v = state_attr('sensor.oal_real_time_monitor', 'office_baseline_brightness_pct') %}
+          {% if v is none %}unknown{% else %}{{ v | float(0) | round(0) }}{% endif %}

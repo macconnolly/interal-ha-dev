@@ -96,8 +96,8 @@ sensor:
   - platform: history_stats
     name: "HVAC Heating Yesterday Hours"
     unique_id: "tunet_hvac_heating_yesterday_hours"
-    entity_id: climate.dining_room
-    state: "heating"
+    entity_id: binary_sensor.hvac_heating_active
+    state: "on"
     type: time
     end: "{{ today_at('00:00') }}"
     duration:
@@ -106,8 +106,8 @@ sensor:
   - platform: history_stats
     name: "HVAC Cooling Yesterday Hours"
     unique_id: "tunet_hvac_cooling_yesterday_hours"
-    entity_id: climate.dining_room
-    state: "cooling"
+    entity_id: binary_sensor.hvac_cooling_active
+    state: "on"
     type: time
     end: "{{ today_at('00:00') }}"
     duration:

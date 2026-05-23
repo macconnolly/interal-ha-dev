@@ -25,8 +25,8 @@ sensor:
   - platform: history_stats
     name: "HVAC Heating Today Minutes"
     unique_id: "tunet_hvac_today_minutes_heating"
-    entity_id: climate.dining_room
-    state: "heating"
+    entity_id: binary_sensor.hvac_heating_active
+    state: "on"
     type: time
     start: "{{ today_at('00:00') }}"
     end: "{{ now() }}"
@@ -34,8 +34,8 @@ sensor:
   - platform: history_stats
     name: "HVAC Cooling Today Minutes"
     unique_id: "tunet_hvac_today_minutes_cooling"
-    entity_id: climate.dining_room
-    state: "cooling"
+    entity_id: binary_sensor.hvac_cooling_active
+    state: "on"
     type: time
     start: "{{ today_at('00:00') }}"
     end: "{{ now() }}"
@@ -43,8 +43,8 @@ sensor:
   - platform: history_stats
     name: "HVAC Idle Today Minutes"
     unique_id: "tunet_hvac_today_minutes_idle"
-    entity_id: climate.dining_room
-    state: "idle"
+    entity_id: binary_sensor.hvac_running
+    state: "off"
     type: time
     start: "{{ today_at('00:00') }}"
     end: "{{ now() }}"
@@ -123,20 +123,6 @@ template:
           hvac_action: >
             {{ state_attr('climate.dining_room', 'hvac_action') }}
 
-      # ───── Cycle tracking ──────────────────────────────────────────
-      # Captures the timestamp of the most recent state change of hvac_action.
-      # Use with `time_since` filter in dashboards: "Heating started 12m ago".
-      - name: "HVAC Last Cycle Started"
-        unique_id: "tunet_hvac_last_cycle_started"
-        device_class: timestamp
-        state: >
-          {% set st = states.climate.dining_room %}
-          {% if st is not none and st.attributes.hvac_action not in ['idle', 'off'] %}
-            {{ st.last_changed.isoformat() }}
-          {% else %}
-            unknown
-          {% endif %}
-
   - binary_sensor:
       - name: "HVAC Running"
         unique_id: "tunet_hvac_running"
@@ -149,3 +135,39 @@ template:
             {{ state_attr('climate.dining_room', 'hvac_action') }}
           current_temperature: >
             {{ state_attr('climate.dining_room', 'current_temperature') }}
+
+      # Surfaces climate.dining_room.attributes.hvac_action as its own
+      # state so history_stats can match against state: "on". The state
+      # field on climate.dining_room is always the HVAC mode ("heat_cool"),
+      # never the action — that's the root of the stuck-at-zero bug.
+      - name: "HVAC Heating Active"
+        unique_id: "tunet_hvac_heating_active"
+        device_class: heat
+        state: >
+          {{ state_attr('climate.dining_room', 'hvac_action') == 'heating' }}
+        attributes:
+          hvac_action: >
+            {{ state_attr('climate.dining_room', 'hvac_action') }}
+
+      - name: "HVAC Cooling Active"
+        unique_id: "tunet_hvac_cooling_active"
+        device_class: cold
+        state: >
+          {{ state_attr('climate.dining_room', 'hvac_action') == 'cooling' }}
+        attributes:
+          hvac_action: >
+            {{ state_attr('climate.dining_room', 'hvac_action') }}
+
+  # Trigger-template: captures each HVAC cycle start via the off→on edge
+  # on binary_sensor.hvac_running. Persists across restarts via recorder
+  # and holds the last cycle's start through idle periods. Replaces
+  # state-based logic that returned "unknown" once a cycle ended.
+  - trigger:
+      - platform: state
+        entity_id: binary_sensor.hvac_running
+        to: "on"
+    sensor:
+      - name: "HVAC Last Cycle Started"
+        unique_id: "tunet_hvac_last_cycle_started"
+        device_class: timestamp
+        state: "{{ trigger.to_state.last_changed.isoformat() }}"

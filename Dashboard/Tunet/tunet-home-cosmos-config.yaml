@@ -174,9 +174,94 @@ views:
           attribute: active_zonal_overrides
           operator: gt
           state: 0
-  # Lighting functional zones grid (T0.5 add — matches Mac's image 2 reference)
-  # Each tile = a functional zone with direct brightness control; tap = toggle,
-  # long-press / drag = brightness. Zones map to OAL zone groups.
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-rooms-card
+      name: Rooms
+      layout_variant: row
+      tile_size: compact
+      grid_options:
+        columns: full
+        rows: auto
+      rooms:
+      - name: Living
+        icon: weekend
+        tap_action:
+          action: navigate
+          navigation_path: '#room-living-room'
+        lights:
+        - entity: light.living_room_couch_lamp
+          name: Couch
+          icon: table_lamp
+        - entity: light.living_room_floor_lamp
+          name: Floor
+          icon: floor_lamp
+        - entity: light.living_room_spot_lights
+          name: Spots
+          icon: flashlight_on
+        - entity: light.living_room_credenza_light
+          name: Credenza
+          icon: wb_incandescent
+        - entity: light.living_column_strip_light_matter
+          name: Column
+          icon: view_column
+      - name: Kitchen
+        icon: kitchen
+        tap_action:
+          action: navigate
+          navigation_path: '#room-kitchen'
+        lights:
+        - entity: light.kitchen_island_pendants
+          name: Island
+          icon: light
+        - entity: light.kitchen_main_lights
+          name: Main
+          icon: light_group
+        - entity: light.kitchen_counter_cabinet_underlights
+          name: Under
+          icon: linear_scale
+      - name: Dining
+        icon: restaurant
+        tap_action:
+          action: navigate
+          navigation_path: '#room-dining-room'
+        lights:
+        - entity: light.dining_room_spot_lights
+          name: Spots
+          icon: flashlight_on
+        - entity: light.dining_column_strip_light_matter
+          name: Column
+          icon: view_column
+      - name: Bedroom
+        icon: bed
+        tap_action:
+          action: navigate
+          navigation_path: '#room-bedroom'
+        lights:
+        - entity: light.master_presence
+          name: Main
+          icon: light
+        - entity: light.master_bedroom_table_lamps
+          name: Lamps
+          icon: lamp
+      - name: Office
+        icon: desktop_windows
+        tap_action:
+          action: navigate
+          navigation_path: '#room-office'
+        lights:
+        - entity: light.office_desk_lamp
+          name: Desk
+          icon: lamp
+        - entity: light.office_bed_lights
+          name: Office Bed
+          icon: bed
+        - entity: light.master_bedroom_corner_accent_govee
+          name: Accent
+          icon: nightlight
+  # Lighting functional zones grid (A.2 — 6 OAL zones for direct brightness
+  # control without entering rooms). Tap = toggle; long-press / drag = brightness.
   - type: grid
     column_span: 4
     cards:
@@ -212,93 +297,21 @@ views:
       grid_options:
         columns: full
         rows: auto
-  # Rooms slim rows (T0.5 swap — matches Mac's image 1 "Overview Slim" reference)
-  # Each row = one physical room with state + 3 light chips + power + chevron.
-  # Tap on row body = open #room-<name> Bubble popup; chevron drills into subview.
+  # Climate + Weather — side-by-side on desktop (column_span: 2 each), auto-
+  # stacks on phone (HA Sections collapses when 2x column_span: 2 don't fit).
   - type: grid
-    column_span: 4
-    cards:
-    - type: custom:tunet-rooms-card
-      name: Rooms
-      layout_variant: slim
-      tile_size: compact
-      use_profiles: true
-      grid_options:
-        columns: full
-        rows: auto
-      rooms:
-      - name: Living Room
-        icon: sofa
-        temperature_entity: sensor.dining_room_temperature
-        tap_action:
-          action: navigate
-          navigation_path: '#room-living-room'
-        lights:
-        - entity: light.living_room_couch_lamp
-          icon: table_lamp
-        - entity: light.living_room_floor_lamp
-          icon: floor_lamp
-        - entity: light.living_room_spot_lights
-          icon: highlight
-      - name: Kitchen
-        icon: kitchen
-        humidity_entity: sensor.kitchen_humidity
-        tap_action:
-          action: navigate
-          navigation_path: '#room-kitchen'
-        lights:
-        - entity: light.kitchen_island_pendants
-          icon: light
-        - entity: light.kitchen_counter_cabinet_underlights
-          icon: linear_scale
-      - name: Dining
-        icon: restaurant
-        tap_action:
-          action: navigate
-          navigation_path: '#room-dining-room'
-        lights:
-        - entity: light.dining_room_spot_lights
-          icon: highlight
-        - entity: light.dining_column_strip_light_matter
-          icon: view_column
-      - name: Bedroom
-        icon: bed
-        tap_action:
-          action: navigate
-          navigation_path: '#room-bedroom'
-        lights:
-        - entity: light.master_presence
-          icon: light
-        - entity: light.master_bedroom_corner_accent_govee
-          icon: nightlight
-      - name: Office
-        icon: desktop_windows
-        tap_action:
-          action: navigate
-          navigation_path: '#room-office'
-        lights:
-        - entity: light.office_desk_lamp
-          icon: lamp
-        - entity: light.office_bed_lights
-          icon: bed
-  # Climate — own section (T0.5 unbundle — was sharing section with rooms which
-  # caused phone-width crowding per Mac feedback "climate only half width on mobile")
-  - type: grid
-    column_span: 4
+    column_span: 2
     cards:
     - type: custom:tunet-climate-card
       entity: climate.dining_room
       name: Climate
-      variant: thin
       humidity_entity: sensor.kitchen_humidity
+      variant: thin
       grid_options:
         columns: full
         rows: auto
-  # Weather — own section, forecast_hours: 4 (T0.6 — was 6, reduced to widen
-  # each hour tile and reduce UV+hour-label collision per Mac feedback
-  # "UV label overlap")
   - type: grid
-    column_span: 4
+    column_span: 2
     cards:
     - type: custom:tunet-weather-card
       entity: weather.home
@@ -315,9 +328,17 @@ views:
       grid_options:
         columns: full
         rows: auto
-  # Now Playing — own section, renamed from "Sonos" for discoverability
-  # (T0.5 — Mac: "no obvious Now Playing entry tile to tap"). Tap = open
-  # #media-living-room Bubble Card popup.
+  # Inbox positioned above mini-player (last persistent surface).
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-inbox-card
+      name: Inbox
+      grid_options:
+        columns: full
+  # Now Playing mini-player — pinned to bottom (last visible section before
+  # the nav-card dock). Apple Music pattern: transport always within
+  # thumb-reach when phone is held. Tap body → #media-living-room Bubble popup.
   - type: grid
     column_span: 4
     cards:
@@ -331,16 +352,12 @@ views:
       tap_action:
         action: navigate
         navigation_path: '#media-living-room'
-# Quick Actions strip merged into top section (per Mac feedback 2026-05-23):
-# "below the media there were another set of scenes or action tiles, we don't need
-# that and it should be combined with the ones at the top please."
-  - type: grid
-    column_span: 4
-    cards:
-    - type: custom:tunet-inbox-card
-      name: Inbox
-      grid_options:
-        columns: full
+  # Nav dock (C.2) — DEFERRED 2026-05-23. tunet-nav-card uses position:fixed
+  # which is clipped by HA Sections grid's parent overflow:hidden. Inline
+  # rendering overlaps content. Needs card-level CSS escape pattern (z-index
+  # escape, document.body portal, or fundamentally different mounting).
+  # Until then, HA's native top tab bar (Home/Rooms/Media/Stats) provides
+  # adequate routing.
   - type: grid
     column_span: 4
     cards:
@@ -402,7 +419,7 @@ views:
           accent: blue
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-preview/living-room
+            navigation_path: /tunet-home-cosmos/living-room
         - name: All Off
           icon: power_settings_new
           accent: amber
@@ -481,7 +498,7 @@ views:
           accent: blue
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-preview/kitchen
+            navigation_path: /tunet-home-cosmos/kitchen
         - name: All Off
           icon: power_settings_new
           accent: amber
@@ -546,7 +563,7 @@ views:
           accent: blue
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-preview/dining-room
+            navigation_path: /tunet-home-cosmos/dining-room
         - name: All Off
           icon: power_settings_new
           accent: amber
@@ -595,9 +612,6 @@ views:
         - entity: light.master_presence
           name: Main
           icon: light
-        - entity: light.master_bedroom_corner_accent_govee
-          name: Accent
-          icon: nightlight
         - entity: light.master_bedroom_table_lamps
           name: Lamps
           icon: lamp
@@ -640,7 +654,7 @@ views:
           accent: blue
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-preview/bedroom
+            navigation_path: /tunet-home-cosmos/bedroom
         - name: All Off
           icon: power_settings_new
           accent: amber
@@ -648,7 +662,6 @@ views:
           service_data:
             entity_id:
               - light.master_presence
-              - light.master_bedroom_corner_accent_govee
               - light.master_bedroom_table_lamps
         - name: Sleep
           icon: bed
@@ -682,7 +695,7 @@ views:
         name: Office Lights
         surface: section
         layout: grid
-        columns: 2
+        columns: 3
         tile_size: standard
         zones:
         - entity: light.office_desk_lamp
@@ -691,6 +704,9 @@ views:
         - entity: light.office_bed_lights
           name: Office Bed
           icon: bed
+        - entity: light.master_bedroom_corner_accent_govee
+          name: Accent
+          icon: nightlight
       - type: custom:tunet-sensor-card
         title: Office
         sensors:
@@ -706,7 +722,7 @@ views:
           accent: blue
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-preview/office
+            navigation_path: /tunet-home-cosmos/office
         - name: All Off
           icon: power_settings_new
           accent: amber
@@ -715,6 +731,7 @@ views:
             entity_id:
               - light.office_desk_lamp
               - light.office_bed_lights
+              - light.master_bedroom_corner_accent_govee
         - name: All On
           icon: lightbulb
           accent: amber
@@ -723,6 +740,7 @@ views:
             entity_id:
               - light.office_desk_lamp
               - light.office_bed_lights
+              - light.master_bedroom_corner_accent_govee
   - type: grid
     column_span: 4
     cards:
@@ -903,7 +921,7 @@ views:
           show_state: false
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-preview/home
+            navigation_path: /tunet-home-cosmos/home
         - type: button
           name: Save
           icon: mdi:content-save
@@ -911,6 +929,105 @@ views:
           tap_action:
             action: call-service
             service: script.sonos_save_alarm_changes
+# ════════════════════════════════════════════════════════════════════════════
+# ROOMS LIST PAGE (B.1) — /tunet-home-cosmos/rooms
+# Tiles variant 2x3 grid; tap tile = navigate to room subview.
+# Nav-intent surface (vs Home's row variant which is overview-intent).
+# ════════════════════════════════════════════════════════════════════════════
+- title: Rooms
+  path: rooms
+  icon: mdi:floor-plan
+  type: sections
+  max_columns: 4
+  sections:
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-rooms-card
+      name: Rooms
+      layout_variant: tiles
+      tile_size: standard
+      grid_options:
+        columns: full
+        rows: auto
+      rooms:
+      - name: Living
+        icon: weekend
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/living-room
+        lights:
+        - entity: light.living_room_couch_lamp
+        - entity: light.living_room_floor_lamp
+        - entity: light.living_room_spot_lights
+        - entity: light.living_room_credenza_light
+        - entity: light.living_column_strip_light_matter
+      - name: Kitchen
+        icon: kitchen
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/kitchen
+        lights:
+        - entity: light.kitchen_island_pendants
+        - entity: light.kitchen_main_lights
+        - entity: light.kitchen_counter_cabinet_underlights
+      - name: Dining
+        icon: restaurant
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/dining-room
+        lights:
+        - entity: light.dining_room_spot_lights
+        - entity: light.dining_column_strip_light_matter
+      - name: Bedroom
+        icon: bed
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/bedroom
+        lights:
+        - entity: light.master_presence
+        - entity: light.master_bedroom_table_lamps
+      - name: Office
+        icon: desktop_windows
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/office
+        lights:
+        - entity: light.office_desk_lamp
+        - entity: light.office_bed_lights
+        - entity: light.master_bedroom_corner_accent_govee
+# ════════════════════════════════════════════════════════════════════════════
+# MEDIA FULL PAGE (B.2) — /tunet-home-cosmos/media
+# Sonos hero + speaker grid + source switcher.
+# Provides destination for #media-living-room popup's Open Media button.
+# ════════════════════════════════════════════════════════════════════════════
+- title: Media
+  path: media
+  icon: mdi:speaker
+  type: sections
+  max_columns: 4
+  sections:
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-sonos-card
+      entity: media_player.living_room
+      name: Now Playing
+      grid_options:
+        columns: full
+        rows: auto
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-speaker-grid-card
+      entity: media_player.living_room
+      name: Speakers
+      columns: 5
+      group_actions: true
+      tile_size: standard
+      grid_options:
+        columns: full
+        rows: auto
 - title: Stats
   path: stats
   icon: mdi:chart-line
@@ -968,11 +1085,17 @@ views:
         accent: red
         format: integer
       - type: value
-        entity: sensor.hvac_setpoint_band
-        icon: thermostat
-        label: Setpoint
-        accent: amber
-        format: state
+        entity: sensor.hvac_setpoint_drift_high
+        icon: trending_up
+        label: Above SP
+        accent: red
+        unit: °F
+      - type: value
+        entity: sensor.hvac_setpoint_drift_low
+        icon: trending_down
+        label: Below SP
+        accent: blue
+        unit: °F
   - type: grid
     column_span: 4
     cards:
@@ -995,10 +1118,16 @@ views:
         icon: cloud
         accent: blue
         unit: °F
-      - entity: sensor.hvac_setpoint_band
-        label: Setpoint
-        icon: thermostat
-        accent: amber
+      - entity: sensor.hvac_setpoint_drift_high
+        label: ΔAbove
+        icon: trending_up
+        accent: red
+        unit: °F
+      - entity: sensor.hvac_setpoint_drift_low
+        label: ΔBelow
+        icon: trending_down
+        accent: blue
+        unit: °F
   - type: grid
     column_span: 4
     cards:
@@ -1064,9 +1193,9 @@ views:
         accent: green
         unit: kWh
   # ── DA-3 LOCK (FINAL spec §0): Adaptive collapsed into Stats as sub-sections ──
-  # The standalone /tunet-home-preview/adaptive view was removed 2026-05-23 per DA-3.
+  # The standalone /tunet-home-cosmos/adaptive view was removed 2026-05-23 per DA-3.
   # Its 3 sections (OAL System + Zone Baselines + Mode Time Today) now live
-  # at the bottom of /tunet-home-preview/stats. Single 4-item nav (Home/Rooms/Media/
+  # at the bottom of /tunet-home-cosmos/stats. Single 4-item nav (Home/Rooms/Media/
   # Stats) — Adaptive accessible via Stats anchored sub-section.
   - type: grid
     column_span: 4
@@ -1170,7 +1299,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-preview/home
+  back_path: /tunet-home-cosmos/home
   sections:
     - type: grid
       column_span: 4
@@ -1235,6 +1364,7 @@ views:
                   - light.living_room_floor_lamp
                   - light.living_room_spot_lights
                   - light.living_room_credenza_light
+                  - light.living_column_strip_light_matter
             - name: Dimmer
               icon: remove
               accent: amber
@@ -1245,6 +1375,7 @@ views:
                   - light.living_room_floor_lamp
                   - light.living_room_spot_lights
                   - light.living_room_credenza_light
+                  - light.living_column_strip_light_matter
             - name: Reset
               icon: restart_alt
               accent: amber
@@ -1283,7 +1414,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-preview/home
+  back_path: /tunet-home-cosmos/home
   sections:
     - type: grid
       column_span: 4
@@ -1341,7 +1472,7 @@ views:
               service: script.oal_global_manual_dimmer
               service_data:
                 lights:
-                  - light.kitchen_island_lights
+                  - light.kitchen_island_pendants
             - name: Reset
               icon: restart_alt
               accent: amber
@@ -1373,7 +1504,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-preview/home
+  back_path: /tunet-home-cosmos/home
   sections:
     - type: grid
       column_span: 4
@@ -1463,7 +1594,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-preview/home
+  back_path: /tunet-home-cosmos/home
   sections:
     - type: grid
       column_span: 4
@@ -1472,15 +1603,12 @@ views:
           name: Bedroom Lights
           surface: section
           layout: grid
-          columns: 3
+          columns: 2
           tile_size: standard
           zones:
             - entity: light.master_presence
               name: Main
               icon: light
-            - entity: light.master_bedroom_corner_accent_govee
-              name: Accent
-              icon: nightlight
             - entity: light.master_bedroom_table_lamps
               name: Lamps
               icon: lamp
@@ -1497,7 +1625,6 @@ views:
               service_data:
                 entity_id:
                   - light.master_presence
-                  - light.master_bedroom_corner_accent_govee
                   - light.master_bedroom_table_lamps
             - name: All Off
               icon: power_settings_new
@@ -1506,7 +1633,6 @@ views:
               service_data:
                 entity_id:
                   - light.master_presence
-                  - light.master_bedroom_corner_accent_govee
                   - light.master_bedroom_table_lamps
             - name: Sleep
               icon: bed
@@ -1577,7 +1703,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-preview/home
+  back_path: /tunet-home-cosmos/home
   sections:
     - type: grid
       column_span: 4
@@ -1586,7 +1712,7 @@ views:
           name: Office Lights
           surface: section
           layout: grid
-          columns: 2
+          columns: 3
           tile_size: standard
           zones:
             - entity: light.office_desk_lamp
@@ -1595,6 +1721,9 @@ views:
             - entity: light.office_bed_lights
               name: Office Bed
               icon: bed
+            - entity: light.master_bedroom_corner_accent_govee
+              name: Accent
+              icon: nightlight
     - type: grid
       column_span: 4
       cards:
@@ -1609,6 +1738,7 @@ views:
                 entity_id:
                   - light.office_desk_lamp
                   - light.office_bed_lights
+                  - light.master_bedroom_corner_accent_govee
             - name: All Off
               icon: power_settings_new
               accent: amber
@@ -1617,6 +1747,7 @@ views:
                 entity_id:
                   - light.office_desk_lamp
                   - light.office_bed_lights
+                  - light.master_bedroom_corner_accent_govee
             - name: Brighter
               icon: add
               accent: amber
@@ -1625,6 +1756,7 @@ views:
                 lights:
                   - light.office_desk_lamp
                   - light.office_bed_lights
+                  - light.master_bedroom_corner_accent_govee
             - name: Dimmer
               icon: remove
               accent: amber
@@ -1633,6 +1765,7 @@ views:
                 lights:
                   - light.office_desk_lamp
                   - light.office_bed_lights
+                  - light.master_bedroom_corner_accent_govee
             - name: Reset
               icon: restart_alt
               accent: amber
@@ -1650,7 +1783,7 @@ views:
 
 # ────────────────────────────────────────────────────────────────────
 # VIEW: SETTINGS (FINAL spec §10 — OAL config + alarms + system actions)
-# Reached via header gear icon OR direct URL /tunet-home-preview/settings.
+# Reached via header gear icon OR direct URL /tunet-home-cosmos/settings.
 # ────────────────────────────────────────────────────────────────────
 - title: Settings
   path: settings
@@ -1658,7 +1791,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-preview/home
+  back_path: /tunet-home-cosmos/home
   sections:
     - type: grid
       column_span: 4
@@ -1769,7 +1902,7 @@ views:
             ## System Reference
 
             **Production**: `/tunet-overview/overview` (storage mode)
-            **Candidate**: `/tunet-home-preview/home` (this dashboard)
+            **Candidate**: `/tunet-home-cosmos/home` (this dashboard)
             **Lab**: `/tunet-card-rehab-yaml/lab`
 
             **OAL package**: `packages/oal_lighting_control_package.yaml`

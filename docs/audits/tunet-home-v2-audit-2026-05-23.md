@@ -25,6 +25,7 @@ Mac reviewed §0/§9 of the initial audit and locked the following — these ove
 - **LOCK 3: Desktop home gets a "main life groups" controls section below the rooms-tiles.** Pattern reference: `Dashboard/living_room_card.yaml` (the v6/v7 bubble-card pattern Mac uses — separator with brightness slider + bottom quick-controls + 3x2 light grid + 3-col media grid). The desktop home should compose an analogous controls strip: a small section per "life group" (lighting, climate, media, alarms?) with the top-level controls for that group inline. **Permutations to think through** before building (see §6.5).
 - **LOCK 4: No dedicated Adaptive top-section in Stats.** Current Stats sections (OAL System + Zone Baselines) satisfy DA-3's "collapse Adaptive into Stats." Do not add another top-section.
 - **LOCK 5: Variant utilization is a thinking exercise, not a coverage exercise.** "We don't need to use every single one of the variants from rehab, but we should really think through and add to our plan a much more well thought out … utilization." The 34-of-50 gap is not a backlog to close — it is a catalog to pick from deliberately. Each adoption must answer *why this variant here* before it ships.
+- **LOCK 6: Permutation A picked** for the desktop "main life groups" controls strip — function groups (Lighting / Climate / Media as 3 horizontal cards under rooms-tiles).
 
 ---
 
@@ -412,4 +413,86 @@ Still open:
 
 ---
 
-**End of audit. Mac reviews § 6 (priority table) + § 9 (open questions), picks line items, individual tranches proceed per § 8 with M1 evidence.**
+---
+
+## 11. Stats page — confirmed defects with root cause (Mac flagged 2026-05-23)
+
+### 11.1 D-STX1 — Heating/Cooling Yesterday Hours stuck at 0.0 (root cause confirmed)
+
+**Symptom**: `sensor.hvac_heating_yesterday_hours = 0.0` and `sensor.hvac_cooling_yesterday_hours = 0.0` on Stats page, even though HVAC has been running.
+
+**Root cause** (verified via `ha_get_state climate.dining_room` 2026-05-23 11:20am MDT):
+- `climate.dining_room.state = "heat_cool"` (the HVAC *mode*)
+- `climate.dining_room.attributes.hvac_action = "cooling"` (the actual *activity* right now)
+- The history_stats sensors at `packages/tunet_stats_sensors.yaml:96-114` match `state: "heating"` and `state: "cooling"` against the entity's state field — which is `"heat_cool"`, never `"heating"` or `"cooling"`.
+
+**Same root cause affects today's tracking**: `sensor.hvac_heating_minutes_today = 0` and `sensor.hvac_cooling_minutes_today = 0` right now while `binary_sensor.hvac_running.state = "on"` with `hvac_action = "cooling"`. Both today + yesterday measurements are broken by the same misconfiguration.
+
+**Fix (proposed; needs Mac stamp before code change)**: introduce two `binary_sensor` templates that fire on the *attribute* hvac_action, then point history_stats at them.
+
+```yaml
+# packages/tunet_hvac_sensors.yaml addition
+binary_sensor:
+  - platform: template
+    sensors:
+      hvac_heating_active:
+        friendly_name: "HVAC Heating Active"
+        value_template: >
+          {{ state_attr('climate.dining_room', 'hvac_action') == 'heating' }}
+
+      hvac_cooling_active:
+        friendly_name: "HVAC Cooling Active"
+        value_template: >
+          {{ state_attr('climate.dining_room', 'hvac_action') == 'cooling' }}
+```
+
+Then rewire `packages/tunet_stats_sensors.yaml:96-114` to use these new entities with `state: "on"`.
+
+**Important constraint**: history_stats only sees *recorded* state. Once the fix lands, going-forward data works correctly. The "yesterday" value won't backfill to a real number until 24h after the fix is live. Mac should know this — fixing the sensor does NOT retroactively populate yesterday.
+
+**Severity**: blocker for the Stats page being trustworthy. Currently the rollups present false "no usage" data which is misleading.
+
+### 11.2 D-STX2 — Drift labels ambiguous
+
+**Symptom**: Stats page shows labels "Above SP" / "Below SP" (Right Now block, lines 936/942) and "ΔAbove" / "ΔBelow" (Inside vs Outside block, lines 968/973). Mac: "I need you to help me more clearly label the stats for the drift above and below, I'm not sure what that is recording."
+
+**What the sensors actually measure** (from `packages/tunet_hvac_sensors.yaml:75-96` + live state):
+- `sensor.hvac_setpoint_drift_high = current_temperature − target_temp_high`
+  - Positive → inside is ABOVE the cooling setpoint → cooling demand exists
+  - Current live: `66°F − 64°F = +2.0°F` (cooling needed; AC currently on per `hvac_action='cooling'`)
+- `sensor.hvac_setpoint_drift_low = target_temp_low − current_temperature`
+  - Positive → inside is BELOW the heating setpoint → heating demand exists
+  - Current live: `58°F − 66°F = −8.0°F` (no heating need; 8°F above heat trigger)
+
+**Why current labels are unclear**:
+- "Above SP" / "ΔAbove" doesn't say WHICH setpoint (heat or cool)
+- Positive vs negative semantic isn't stated — Mac can't tell whether positive = good or bad
+- The icon (red trending-up) suggests "bad" but neutral-physically a +2°F drift just means AC is engaged, which is the right behavior on a warm day
+
+**Proposed label changes** (yaml-only, no sensor math change):
+
+| Current label | Proposed | Subtitle / glossary entry |
+|---------------|----------|---------------------------|
+| "Above SP" | "Cool Δ" | "+ = AC engaged · cool SP: 64°F" |
+| "Below SP" | "Heat Δ" | "+ = heat engaged · heat SP: 58°F" |
+| "ΔAbove" (Inside vs Outside) | "Above cool SP" | same |
+| "ΔBelow" (Inside vs Outside) | "Below heat SP" | same |
+
+Alternatively, a single "Setpoint band" tile showing "58–64°F (current 66°F)" might be more legible than two separate drift tiles. Mac picks.
+
+**Severity**: clarity defect. The data is correct; the label vocabulary doesn't translate to user intent. The Setpoint Drift HomeKit exposure (packages/tunet_homekit.yaml:49-50) inherits the same naming gap.
+
+---
+
+## 12. P0 update — stats defects promoted
+
+| # | Item | File | Effort | Blast |
+|---|------|------|--------|-------|
+| P0-F | Yesterday/today HVAC hour-counter wiring bug (§11.1) | `packages/tunet_hvac_sensors.yaml` (add 2 binary_sensors) + `packages/tunet_stats_sensors.yaml:96-114` (rewire history_stats) | S | both packages, requires HA restart for history_stats |
+| P0-G | Drift label clarity (§11.2) | `Dashboard/Tunet/tunet-home-v2-config.yaml:934-944, 967-976` | XS | dashboard yaml only |
+
+P0-F is the higher-impact one (false 0.0 data is worse than confusing labels) but P0-G is the cheapest (yaml-only, no restart).
+
+---
+
+**End of audit. Mac reviews § 6, § 9, § 11, § 12, picks line items, individual tranches proceed per § 8 with M1 evidence.**

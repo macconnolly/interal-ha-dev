@@ -1,0 +1,96 @@
+# =============================================================================
+# TUNET HOMEKIT BRIDGE — Apple Home exposure
+# =============================================================================
+# Mac's 2026-05-23 ask: "expose those scenes in the homekit integration".
+# Discovery found ZERO homekit: block in configuration.yaml; HomeKit is
+# being created from scratch by this file.
+#
+# Strategy: ONE bridge named "Tunet Home" exposing a curated entity list.
+# Default port 21063 (unused; HomeKit bridges typically pick 21063+).
+# auto_start true so the bridge comes up at HA boot.
+#
+# CURATED ENTITY LIST RATIONALE:
+# - lights: include all light-domain entities (HomeKit's strong suit)
+# - climate: include the thermostat
+# - scene: include the 5 Tunet OAL scenes (Plan C cycle + bonus)
+# - sensor: temperature + humidity sensors for Apple Home environment
+# - binary_sensor: occupancy sensors (per-room) — device_class makes
+#   them present as Occupancy in Apple Home, not generic
+# - excluded: noisy diagnostics, internal OAL helpers, group-of-groups
+#   that would duplicate
+#
+# Owning portfolio item: Plan D of tunet-portfolio-roadmap-2026-05-23.md.
+# Mac corrects exposure list as needed; the include_entities pattern is
+# easy to amend later.
+# =============================================================================
+
+homekit:
+  - name: "Tunet Home"
+    port: 21063
+    auto_start: true
+    filter:
+      include_domains:
+        - light
+        - climate
+        - scene
+      include_entities:
+        # ───── Per-room sensors (from tunet_room_sensors.yaml) ─────
+        - sensor.lights_on_living_room
+        - sensor.lights_on_kitchen
+        - sensor.lights_on_dining_room
+        - sensor.lights_on_master_bedroom
+        - sensor.lights_on_office
+        - binary_sensor.occupancy_living_room
+        - binary_sensor.occupancy_kitchen
+        - binary_sensor.occupancy_dining_room
+        - binary_sensor.occupancy_master_bedroom
+        - binary_sensor.occupancy_office
+        # ───── HVAC (from tunet_hvac_sensors.yaml) ─────
+        - sensor.hvac_setpoint_drift_high
+        - sensor.hvac_setpoint_drift_low
+        - binary_sensor.hvac_running
+        # ───── Environment ─────
+        - sensor.dining_room_temperature
+        - sensor.bedroom_temp_humidity_sensor_temperature
+        - sensor.bedroom_temp_humidity_sensor_humidity
+        - sensor.kitchen_humidity
+        - sensor.aqi
+        # ───── OAL state proxies (binary visibility sensors) ─────
+        - binary_sensor.oal_tv_mode_active
+        - binary_sensor.oal_movie_mode_active
+        - binary_sensor.oal_in_default_cycle
+      exclude_entities:
+        # Noise to keep out of Apple Home
+        - light.living_room_main_group_disabled
+        - light.master_presence            # presence-indicator light, not user-facing
+        - light.all_lights                 # group-of-everything; would duplicate per-room
+        - light.all_adaptive_lights        # OAL-internal group
+    entity_config:
+      # ───── 3-scene ZEN32 cycle for Apple Home ─────
+      scene.tunet_oal_adaptive:
+        name: "Adaptive Mode"
+      scene.tunet_oal_evening:
+        name: "Evening"
+      scene.tunet_oal_dim_ambient:
+        name: "Dim Ambient"
+      scene.tunet_oal_sleep:
+        name: "Sleep Mode"
+      scene.tunet_oal_full_bright:
+        name: "Full Bright"
+      # ───── Thermostat ─────
+      climate.dining_room:
+        name: Thermostat
+      # ───── Per-room occupancy (device_class already set in tunet_room_sensors.yaml) ─────
+      binary_sensor.occupancy_living_room:
+        name: "Living Room Occupancy"
+      binary_sensor.occupancy_kitchen:
+        name: "Kitchen Occupancy"
+      binary_sensor.occupancy_dining_room:
+        name: "Dining Room Occupancy"
+      binary_sensor.occupancy_master_bedroom:
+        name: "Bedroom Occupancy"
+      binary_sensor.occupancy_office:
+        name: "Office Occupancy"
+      # ───── HVAC binary as running-type ─────
+      binary_sensor.hvac_running:
+        name: "HVAC Running"

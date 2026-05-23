@@ -266,6 +266,9 @@ ${CARD_SURFACE_GLASS_STROKE}
     font-weight: 600;
     color: var(--text-sub);
     cursor: pointer;
+    /* T1.0: "Heat / Cool" was wrapping to 2 lines per Mac feedback. Force
+     * single-line; the button auto-sizes to label width. */
+    white-space: nowrap;
     transition:
       transform var(--motion-fast) var(--ease-emphasized),
       box-shadow var(--motion-ui) var(--ease-standard),
@@ -278,9 +281,14 @@ ${CARD_SURFACE_GLASS_STROKE}
     .mode-btn:hover { box-shadow: var(--shadow); }
   }
   .mode-btn:active { transform: scale(var(--press-scale)); }
-  .mode-btn .mode-icon { font-size: 16px; width: 16px; height: 16px; }
-  .mode-btn .chevron { transition: transform .2s ease; font-size: 14px; width: 14px; height: 14px; }
+  .mode-btn .mode-icon { font-size: 16px; width: 16px; height: 16px; flex-shrink: 0; }
+  .mode-btn .chevron { transition: transform .2s ease; font-size: 14px; width: 14px; height: 14px; flex-shrink: 0; }
   .mode-btn[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+  /* T1.0: ensure modeLbl text never wraps (parent .mode-btn already has
+   * white-space: nowrap but be explicit on the child span to defeat any
+   * cascade override). flex-shrink: 0 on icons keeps the text from being
+   * the only collapsible item. */
+  .mode-btn #modeLbl { white-space: nowrap; flex-shrink: 0; }
 
   /* Mode accent states - driven by hvac_action, not mode */
   .mode-btn[data-action="heating"] {
@@ -1185,13 +1193,10 @@ class TunetClimateCard extends HTMLElement {
 
     let parts = [];
 
-    if (this._config.variant === 'thin') {
-      // T0.8: H/C setpoints moved to thumb labels on the slider per Mac
-      // feedback "add the current set point temp for heat and cool somewhere
-      // in the slider, and remove it from the title". Header now shows just
-      // current indoor temp + humidity + action.
-      if (s.cur != null) parts.push(`${s.cur}° in`);
-    }
+    // T1.0: removed inside temp from thin variant header per Mac feedback
+    // ("we don't need the inside temp in the title after humidity since it's
+    // shown below the slider"). Header is now humidity + hvac_action only.
+    // The 69° indoor reading lives below the slider via .cur-marker.
 
     // Humidity
     if (s.humidity != null) {
@@ -1504,7 +1509,16 @@ class TunetClimateCard extends HTMLElement {
     const menu = this.$.modeMenu;
     const btn = this.$.modeBtn;
     menu.classList.toggle('open');
-    btn.setAttribute('aria-expanded', menu.classList.contains('open'));
+    const isOpen = menu.classList.contains('open');
+    btn.setAttribute('aria-expanded', isOpen);
+    // T1.0: when dropdown opens, bump the host's z-index so the menu paints
+    // above subsequent sections (Weather card was clipping the dropdown per
+    // Mac feedback). Sections in HA grid each create stacking contexts; the
+    // menu's z-index: 10 only wins within its own shadow root. Host-level
+    // z-index escapes that boundary. Mirrors the pattern Sonos card uses for
+    // its source dropdown.
+    this.style.position = 'relative';
+    this.style.zIndex = isOpen ? '100' : '';
   }
 
   _onDocClick(e) {
@@ -1514,6 +1528,8 @@ class TunetClimateCard extends HTMLElement {
     if (!path.includes(this.shadowRoot.querySelector('.mode-wrap'))) {
       this.$.modeMenu.classList.remove('open');
       this.$.modeBtn.setAttribute('aria-expanded', 'false');
+      // T1.0: reset host z-index when dropdown closes via outside-click
+      this.style.zIndex = '';
     }
   }
 }

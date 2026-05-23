@@ -692,10 +692,14 @@ function humanizeStateValue(value) {
   if (!text) return '—';
 
   const known = {
-    // T0.7: "Partly Cloudy" was clipping in home_summary 4×2 tile (wraps to
-    // 2 lines with second line clipped behind icon). "P. Cloudy" is the
-    // recognized compact form (matches iOS Control Center weather widget).
-    partlycloudy: 'P. Cloudy',
+    // T1.0: "P. Cloudy" worked in compact tiles (stats page) but standard
+    // tiles (home_summary) text-align: center + max-width: 100% caused
+    // centering to cut "P. " from the LEFT visually, leaving only "Cloudy"
+    // visible to Mac. Going to plain "Cloudy" — the cloud icon glyph already
+    // distinguishes partly-cloudy (sun-behind-cloud) from fully-cloudy
+    // (solid cloud) visually, so the textual distinction is redundant at
+    // tile glance density.
+    partlycloudy: 'Cloudy',
     clearnight: 'Clear Night',
     sunny: 'Sunny',
     cloudy: 'Cloudy',

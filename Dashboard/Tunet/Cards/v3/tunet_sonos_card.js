@@ -1149,17 +1149,13 @@ class TunetSonosCard extends HTMLElement {
       this.$.volThumb.style.left = pct + '%';
       this.$.volPct.textContent = pct + '%';
 
+      // Volume overlay debounce flush defect: previously the pending
+      // setTimeout could fire AFTER pointerup released the slider. Track
+      // the latest pct on the instance so pointerup can flush immediately.
+      this._volOverlayPendingPct = pct;
       clearTimeout(this._volOverlayDebounce);
       this._volOverlayDebounce = setTimeout(() => {
-        const volumeTarget = this._volumeTarget;
-        this._callService('media_player', 'volume_set', {
-          entity_id: volumeTarget,
-          volume_level: pct / 100,
-        });
-        if (!this._volDragging) this._resetVolumeAutoExit();
-        this._serviceCooldown = true;
-        clearTimeout(this._cooldownTimer);
-        this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
+        this._flushVolumeOverlayDebounce();
       }, 200);
     };
 
@@ -1174,13 +1170,37 @@ class TunetSonosCard extends HTMLElement {
     track.addEventListener('pointerup', () => {
       dragging = false;
       this._volDragging = false;
+      this._flushVolumeOverlayDebounce();
       this._resetVolumeAutoExit();
     });
     track.addEventListener('pointercancel', () => {
       dragging = false;
       this._volDragging = false;
+      this._flushVolumeOverlayDebounce();
       this._resetVolumeAutoExit();
     });
+  }
+
+  // Flush the pending volume-overlay service call immediately. Called from
+  // the debounce timeout AND from pointerup/pointercancel so release means
+  // release — no stragglers fire after the user lifted their finger.
+  _flushVolumeOverlayDebounce() {
+    if (this._volOverlayDebounce) {
+      clearTimeout(this._volOverlayDebounce);
+      this._volOverlayDebounce = null;
+    }
+    if (this._volOverlayPendingPct == null) return;
+    const pct = this._volOverlayPendingPct;
+    this._volOverlayPendingPct = null;
+    const volumeTarget = this._volumeTarget;
+    if (!volumeTarget) return;
+    this._callService('media_player', 'volume_set', {
+      entity_id: volumeTarget,
+      volume_level: pct / 100,
+    });
+    this._serviceCooldown = true;
+    clearTimeout(this._cooldownTimer);
+    this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
   }
 
   /* ── Source Dropdown ──────────────────────────────── */

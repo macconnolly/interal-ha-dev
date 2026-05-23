@@ -706,11 +706,18 @@ script:
     alias: "ZEN32 - Cycle OAL Config"
     icon: mdi:cog-refresh
     mode: single
+    # Mac's 2026-05-23 ZEN32 redesign: cycle ONLY through the 3 actually-used
+    # scenes (Plan C of tunet-portfolio-roadmap-2026-05-23.md). The other
+    # 6 OAL modes (Full Bright, Warm Ambient, TV Mode, TV Bridge, Sleep,
+    # Manual) remain available via dashboard / voice / HomeKit, but NOT
+    # via B5 2x.
+    # If current mode is OUTSIDE the cycle (e.g. Manual after a reset),
+    # next press re-enters at the head ("Adaptive").
     variables:
-      allowed_configs: ["Adaptive", "Full Bright", "Dim Ambient", "Warm Ambient", "TV Mode"]
+      allowed_configs: ["Adaptive", "Dim Ambient Plus", "Dim Ambient"]
       current: "{{ states('input_select.oal_active_configuration') }}"
       current_idx: "{{ allowed_configs.index(current) if current in allowed_configs else -1 }}"
-      next_idx: "{{ (current_idx + 1) % (allowed_configs | length) }}"
+      next_idx: "{{ 0 if current_idx == -1 else (current_idx + 1) % (allowed_configs | length) }}"
     sequence:
       - service: input_select.select_option
         target:

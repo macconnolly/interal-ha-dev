@@ -995,17 +995,14 @@ class TunetMediaCard extends HTMLElement {
       const volIcon = pct === 0 ? 'volume_off' : pct < 40 ? 'volume_down' : 'volume_up';
       this.$.volMuteIcon.textContent = volIcon;
 
+      // Volume debounce flush defect: previously the pending setTimeout
+      // could fire AFTER pointerup released the slider, producing latency
+      // perception ("released, but volume kept changing"). Track the
+      // latest pct on the instance so pointerup can flush immediately.
+      this._volPendingPct = pct;
       clearTimeout(this._volDebounce);
       this._volDebounce = setTimeout(() => {
-        const volumeTarget = this._volumeTarget;
-        this._callService('volume_set', {
-          entity_id: volumeTarget,
-          volume_level: pct / 100,
-        });
-        if (!this._volDragging) this._resetVolumeAutoExit();
-        this._serviceCooldown = true;
-        clearTimeout(this._cooldownTimer);
-        this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
+        this._flushVolumeDebounce();
       }, 200);
     };
 
@@ -1024,14 +1021,38 @@ class TunetMediaCard extends HTMLElement {
       dragging = false;
       this._volDragging = false;
       track.classList.remove('dragging');
+      this._flushVolumeDebounce();
       this._resetVolumeAutoExit();
     });
     track.addEventListener('pointercancel', () => {
       dragging = false;
       this._volDragging = false;
       track.classList.remove('dragging');
+      this._flushVolumeDebounce();
       this._resetVolumeAutoExit();
     });
+  }
+
+  // Flush the pending volume-set service call immediately. Called from the
+  // debounce timeout AND from pointerup/pointercancel so release means
+  // release — no stragglers fire after the user lifted their finger.
+  _flushVolumeDebounce() {
+    if (this._volDebounce) {
+      clearTimeout(this._volDebounce);
+      this._volDebounce = null;
+    }
+    if (this._volPendingPct == null) return;
+    const pct = this._volPendingPct;
+    this._volPendingPct = null;
+    const volumeTarget = this._volumeTarget;
+    if (!volumeTarget) return;
+    this._callService('volume_set', {
+      entity_id: volumeTarget,
+      volume_level: pct / 100,
+    });
+    this._serviceCooldown = true;
+    clearTimeout(this._cooldownTimer);
+    this._cooldownTimer = setTimeout(() => { this._serviceCooldown = false; }, 1500);
   }
 
   _setView(v) {

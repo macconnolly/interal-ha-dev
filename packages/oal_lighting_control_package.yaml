@@ -190,6 +190,7 @@ input_select:
     options:
       - "Adaptive"
       - "Full Bright"
+      - "Dim Ambient Plus"
       - "Dim Ambient"
       - "Warm Ambient"
       - "TV Mode"
@@ -1914,6 +1915,27 @@ automation:
           is_baseline: false
           is_force_on: true
         
+        # Mac's 2026-05-23 expansion: NEW preset for the ZEN32 3-scene cycle.
+        # "Slightly dimmer with kitchen main + entry main off." Sits between
+        # Adaptive and Dim Ambient in the cycle: kitchen_main and entryway_lamp
+        # turn OFF (not just dimmed), other zones match Dim Ambient values.
+        # Plan B3 of tunet-portfolio-roadmap-2026-05-23.md. Owning portfolio: B.
+        "Dim Ambient Plus":
+          b: -30
+          k: -500
+          lights_off:
+            - light.kitchen_main_lights         # Off — Mac's "kitchen main lights off"
+            - light.entryway_lamp               # Off — Mac's "entry main lights off"
+          lights_dimmed:
+            light.main_living_lights: 40        # Soft ambient (same as Dim Ambient)
+            light.kitchen_island_pendants: 30   # Lower than normal
+            light.kitchen_counter_cabinet_underlights: 8  # Lower than Dim Ambient (was 20→10→8)
+            light.column_lights: 30             # Accent glow
+            light.accent_spots_lights: 20       # Subtle spots
+            light.recessed_ceiling_lights: 1    # Minimal glow
+          is_baseline: false
+          is_force_on: false
+
         "Dim Ambient":
           b: -30
           k: -500
@@ -1921,7 +1943,7 @@ automation:
           lights_dimmed:
             light.main_living_lights: 40      # Soft ambient
             light.kitchen_island_pendants: 30 # Lower than normal
-            light.kitchen_counter_cabinet_underlights: 20  # Subtle counter glow
+            light.kitchen_counter_cabinet_underlights: 10  # B4: lowered from 20→10 (Mac 2026-05-23 "lower the lower bound by default for kitchen counter lights at night")
             light.column_lights: 30           # Accent glow
             light.accent_spots_lights: 20     # Subtle spots
             light.recessed_ceiling_lights: 1  # Minimal glow

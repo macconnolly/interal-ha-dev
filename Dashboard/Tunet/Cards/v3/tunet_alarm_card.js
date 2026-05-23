@@ -444,7 +444,11 @@ class TunetAlarmCard extends HTMLElement {
   set hass(hass) {
     const oldHass = this._hass;
     this._hass = hass;
-    if (!this._rendered) {
+    // PA04c defect: if HA called the hass setter before a valid setConfig()
+    // path completed (or with the _needsConfig placeholder), _buildRows()
+    // would read this._config.alarms without guards. Skip the rendered-once
+    // path entirely when no valid alarms config is present.
+    if (!this._rendered && this._config && !this._config._needsConfig && Array.isArray(this._config.alarms)) {
       this._render();
       this._buildRows();
       this._buildQAStrip();
@@ -532,7 +536,14 @@ class TunetAlarmCard extends HTMLElement {
     if (this._optimisticAllFlip) {
       const expired = Date.now() > this._optimisticAllFlip.expiresAt;
       const predictedOn = this._optimisticAllFlip.predictedOn;
-      const matched = (predictedOn && enabled === 4) || (!predictedOn && enabled === 0);
+      // PA04b defect: previously hardcoded `enabled === 4` assumed exactly
+      // 4 alarms; cards configured with 2, 6, or any other count would wait
+      // for the 8s timeout instead of clearing optimistically when the live
+      // count reached the actual configured total. Fix: derive target from
+      // this._config.alarms.length so the clear condition scales with the
+      // configured alarm count.
+      const targetCount = Array.isArray(this._config?.alarms) ? this._config.alarms.length : 0;
+      const matched = (predictedOn && enabled === targetCount) || (!predictedOn && enabled === 0);
       if (expired || matched) {
         this._optimisticAllFlip = null;
       } else {
@@ -563,6 +574,7 @@ class TunetAlarmCard extends HTMLElement {
   _setupListeners() {
     this.$.alarmList.addEventListener('pointerdown', (e) => this._onRowPointerDown(e));
     this.$.alarmList.addEventListener('pointerup',   (e) => this._onRowPointerUp(e));
+    this.$.alarmList.addEventListener('pointermove', (e) => this._onRowPointerMove(e));
     this.$.alarmList.addEventListener('pointercancel', () => this._cancelHold());
     this.$.alarmList.addEventListener('pointerleave',  () => this._cancelHold());
 
@@ -608,22 +620,45 @@ class TunetAlarmCard extends HTMLElement {
   _onRowPointerDown(e) {
     const row = e.target.closest('.alarm-row');
     if (!row) return;
+    // PA04a defect: previously _pendingEntity stuck to the down-row even
+    // if the pointer slid to a different row before pointerup; pointerup
+    // would then toggle the wrong alarm AND leave dataset.held='true' on
+    // the original row. Fix: clear ALL rows' held state on pointerdown,
+    // set held only on the target, capture the pointer so pointerup fires
+    // on the same element, and rely on _onRowPointerMove to cancel hold
+    // if the pointer slides off the original row.
+    this._cancelHold();
     this._holdFired = false;
     this._pendingEntity = row.dataset.entity;
     row.dataset.held = 'true';
+    try { row.setPointerCapture(e.pointerId); } catch (_) {}
     this._holdTimer = setTimeout(() => {
       this._holdFired = true;
       this._openEdit(this._pendingEntity);
-      // Haptic, if available
       if (navigator.vibrate) try { navigator.vibrate(10); } catch (_) {}
     }, HOLD_MS);
   }
 
+  _onRowPointerMove(e) {
+    // PA04a (continued): if the pointer slides off the original held row
+    // (or onto a different row), cancel the gesture — neither toggle nor
+    // hold should fire when the user changed intent mid-press.
+    if (!this._pendingEntity) return;
+    const row = e.target.closest('.alarm-row');
+    if (!row || row.dataset.entity !== this._pendingEntity) {
+      this._cancelHold();
+    }
+  }
+
   _onRowPointerUp(e) {
     const row = e.target.closest('.alarm-row');
+    // PA04a (continued): only fire toggle when pointerup lands on the
+    // SAME row pointerdown set as pending. Sliding off cancelled via
+    // _onRowPointerMove already; this is the belt-and-suspenders.
+    const sameRow = row && row.dataset.entity === this._pendingEntity;
     if (row) row.dataset.held = 'false';
     if (this._holdTimer) { clearTimeout(this._holdTimer); this._holdTimer = null; }
-    if (!this._holdFired && this._pendingEntity) {
+    if (!this._holdFired && this._pendingEntity && sameRow) {
       this._toggleAlarm(this._pendingEntity);
     }
     this._pendingEntity = null;

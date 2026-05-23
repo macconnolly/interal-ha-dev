@@ -486,8 +486,17 @@ function iconForItem(item) {
 }
 
 function iconForAction(action) {
+  // TI2c defect: MDI icon names are hyphenated (mdi:lightbulb-alert) but
+  // the alias map below used underscore keys (lightbulb_alert). The raw
+  // value from `String(action.icon).replace(/^mdi:/, '')` preserves
+  // hyphens, so aliases were missing for any hyphenated MDI name and
+  // the final fallback `raw.replace(/-/g, '_')` returned the raw
+  // Material Symbol name instead of the mapped glyph. Fix: normalize
+  // hyphens to underscores BEFORE lookup so both forms hit the alias map.
+  // Mirrors the robust-fallback pattern in iconForItem() above.
   if (!action?.icon) return '';
   const raw = String(action.icon).replace(/^mdi:/, '').trim();
+  const normalized = raw.replace(/-/g, '_');
   const aliases = {
     alarm: 'alarm',
     lightbulb_auto: 'lightbulb',
@@ -512,7 +521,7 @@ function iconForAction(action) {
     replay: 'replay',
     check: 'check',
   };
-  return aliases[raw] || raw.replace(/-/g, '_');
+  return aliases[normalized] || normalized;
 }
 
 export class TunetInboxCard extends HTMLElement {
@@ -616,10 +625,21 @@ export class TunetInboxCard extends HTMLElement {
   }
 
   async _ensureData() {
-    if (!this._hass || this._dataReady) return;
-    this._dataReady = true;
-    await this._subscribeUpdated();
-    await this._loadItems();
+    // TI2a defect: previously set _dataReady=true BEFORE awaiting
+    // _subscribeUpdated(). A fast disconnect/reconnect could leave a
+    // stale subscription callback live while _ensureData() short-circuits
+    // on the reconnect because _dataReady was already true. Fix: gate
+    // the flag on completion of both subscribe + load, AND guard against
+    // re-entry while in-flight via _ensureDataInFlight.
+    if (!this._hass || this._dataReady || this._ensureDataInFlight) return;
+    this._ensureDataInFlight = true;
+    try {
+      await this._subscribeUpdated();
+      await this._loadItems();
+      this._dataReady = true;
+    } finally {
+      this._ensureDataInFlight = false;
+    }
   }
 
   async _subscribeUpdated() {
@@ -685,6 +705,12 @@ export class TunetInboxCard extends HTMLElement {
 
   async _respond(itemId, actionId) {
     if (!this._hass?.callService || !itemId || !actionId) return;
+    // TI2b defect: rapid double-click before the render disabled the
+    // button could fire duplicate tunet_inbox.respond calls. Fix: check
+    // _rowPending at handler entry — if already pending for this item,
+    // early-return. Disable-at-render-time was insufficient; this gates
+    // before any service round-trip.
+    if (this._rowPending.has(itemId)) return;
     this._rowPending.set(itemId, actionId);
     this._rowFeedback.delete(itemId);
     this._render();

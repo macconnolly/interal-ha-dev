@@ -1478,3 +1478,138 @@ views:
               label: Occupancy
               icon: sensor_occupied
               accent: green
+
+# ────────────────────────────────────────────────────────────────────
+# VIEW: SETTINGS (FINAL spec §10 — OAL config + alarms + system actions)
+# Reached via header gear icon OR direct URL /tunet-home-v2/settings.
+# ────────────────────────────────────────────────────────────────────
+- title: Settings
+  path: settings
+  icon: mdi:cog
+  subview: true
+  type: sections
+  max_columns: 4
+  back_path: /tunet-home-v2/home
+  sections:
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-status-card
+          layout_variant: home_detail
+          name: OAL Configuration
+          columns: 2
+          tile_size: standard
+          tiles:
+            - type: dropdown
+              entity: input_select.oal_active_configuration
+              label: Active Mode
+              icon: tune
+              accent: green
+            - type: value
+              entity: sensor.oal_mode_current
+              label: Active For
+              icon: timer
+              accent: blue
+              attribute: age_human
+            - type: value
+              entity: sensor.oal_override_count_active
+              label: Active Overrides
+              icon: pan_tool
+              accent: red
+              format: integer
+            - type: value
+              entity: sensor.oal_global_brightness_offset
+              label: Boost
+              icon: tune
+              accent: amber
+              attribute: total_offset
+              format: integer
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-actions-card
+          variant: compact
+          actions:
+            - name: Reset Soft
+              icon: restart_alt
+              accent: amber
+              service: script.oal_reset_soft
+            - name: Pause OAL
+              icon: pause_circle
+              accent: amber
+              service: input_boolean.toggle
+              service_data:
+                entity_id: input_boolean.oal_system_paused
+              state_entity: input_boolean.oal_system_paused
+              active_when: 'on'
+            - name: Reload Pkgs
+              icon: refresh
+              accent: blue
+              service: homeassistant.reload_config_entry
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-alarm-card
+          title: All Sonos Alarms
+          show_quick_actions: true
+          alarms:
+            - entity: switch.sonos_alarm_bedroom
+              label: Bedroom Weekdays
+              room: bedroom
+            - entity: switch.sonos_alarm_bedroom_weekend
+              label: Bedroom Weekend
+              room: bedroom
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-status-card
+          layout_variant: info_only
+          name: Notifications
+          columns: 4
+          tile_size: compact
+          tiles:
+            - type: value
+              entity: input_boolean.tv_mode_notifications_enabled
+              icon: notifications
+              label: TV Notifs
+              accent: blue
+              format: state
+            - type: value
+              entity: sensor.tunet_inbox_pending_count
+              icon: inbox
+              label: Inbox
+              accent: amber
+              format: integer
+            - type: value
+              entity: binary_sensor.bedroom_sonos_healthy
+              icon: speaker
+              label: BR Speaker
+              accent: green
+              format: state
+            - type: value
+              entity: binary_sensor.hvac_running
+              icon: hvac
+              label: HVAC
+              accent: blue
+              format: state
+    - type: grid
+      column_span: 4
+      cards:
+        - type: markdown
+          content: |
+            ## System Reference
+
+            **Production**: `/tunet-overview/overview` (storage mode)
+            **Candidate**: `/tunet-home-v2/home` (this dashboard)
+            **Lab**: `/tunet-card-rehab-yaml/lab`
+
+            **OAL package**: `packages/oal_lighting_control_package.yaml`
+            **Sonos package**: `packages/sonos_package.yaml`
+            **Stats sensors**: `packages/tunet_stats_sensors.yaml`
+
+            **Deploy scripts**:
+            - `npm run tunet:deploy:dashboards:storage` (v2 dashboard)
+            - `npm run tunet:deploy:lab` (card JS)
+            - `bash skills/ha-safe-package-deploy/scripts/deploy_packages.sh` (packages)
+
+            **Active plan**: `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md`

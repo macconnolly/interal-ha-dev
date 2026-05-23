@@ -18,6 +18,36 @@ When the normalized section and the appendix differ, the normalized section wins
 
 The page-architecture sub-plan at `~/.claude/plans/tunet-page-architecture.md` is now the architectural source of truth for `/tunet-home` and its sub-pages. CD12 "surface assembly" is refined into tranches PA01-PA11 (Bug A fix, Home polish, per-room subviews via the RoomSubview generic pattern, Media/Settings/Info subviews, cleanup). Read the sub-plan before any `/tunet-home`-touching work.
 
+## 2026-05-23 Updates — Ultrathink + Tunet Home v2 Build Begun
+
+### Approved plan
+- **Plan**: `docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md` (commit `2ce7e22`)
+- **Approval**: Mac via ExitPlanMode 2026-05-23 after deep adversarial review (20 scenarios, 8 user-flow walkthroughs, multi-modal control matrix, Apple HIG citations)
+- **Scope**: interaction model + wireframe for every page + every card variant + every interaction, NOT immediate dashboard build. Build executes per plan §15 with M3 review gates.
+
+### Backend shipped (commit `6caad51`)
+- OAL mode "Dim Ambient Plus" **renamed to "Evening"** with refined per-zone values per Mac's vocabulary ("brighter for most of the time / dimmer with kitchen + entry off / everything slightly dimmer"). Refinements: kitchen_island_pendants 30→20, bedroom_primary added at 25, office added at 30, kitchen mains + entryway lamp OFF.
+- ZEN32 B5 2x cycle restricted to 3 actually-used scenes: Adaptive → Evening → Dim Ambient.
+- 19 new sensors live (plan §9 + §10):
+  - 11 stats sensors: `outside_temperature`, `hvac_cycle_count_today`, `bedroom_sonos_healthy`, `hvac_heating_yesterday_hours`, `hvac_cooling_yesterday_hours`, plus 8 utility_meter rollups (lights daily/monthly, HVAC weekly/monthly).
+  - 8 OAL zone snapshot brightness sensors extracting per-zone baseline from `sensor.oal_real_time_monitor` attributes.
+- New automations: `tunet_increment_hvac_cycle_counter`, `tunet_reset_hvac_cycle_counter_at_midnight`.
+- All 19 entities + templates verified live post-restart (no template errors).
+
+### In progress
+- Dashboard YAML rewrite per plan §4 + §11 (status pills row, scenes strip, rooms row variant, mini-player, quick light tiles, Stats view, Adaptive view, 7 Bubble Card popups).
+- Card code changes (status pills variant, media transport Sonos+Spotify routing, rooms-card chevron) **deferred** to a follow-up tranche for M1 review.
+- Bubble Card popup "Apple-sheet styling" (Mac's suggestion: card_mod CSS to make popups feel more like iOS sheets) folded into the dashboard YAML, not a card-code change.
+
+### Other resolved this session
+- Bug A double-corner outline (PA01) — closed by commit `bf17a8d`.
+- Cross-card markup safety sweep — escapeHtml promoted to base + 3 cards migrated (commit `523cafa`).
+- Inbox lifecycle race + double-submit + icon alias (TI2a/b/c) — closed by commit `b718980`.
+- Alarm pointer slide + count-aware optimistic + lifecycle (PA04 a/b/c) — closed by commit `b718980`.
+- Media + Sonos volume debounce flush on release — closed by commit `b718980`.
+- Weather forecast subscription generation guard — closed by commit `7903be2`.
+- Weather production defects (AAAAAA + compressed temps) defensive fix — commit `523cafa`.
+
 ## 2026-05-23 Build/Markup Status Updates
 
 ### Resolved: build/deploy card-registry drift

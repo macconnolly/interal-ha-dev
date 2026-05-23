@@ -3253,3 +3253,25 @@ Two corrections to the 8-phase rationalization landed in `f75813f` + a second co
 - iPhone delivery primitive corrected: original Phase 5 used `SendUserFile(proactive)` which does not push to iPhone in WSL Claude Code sessions. New primitive is HA `notify.tunet_inbox_all_devices` with `data.url` deep-link, verified live with Mac on phone.
 
 Scoped contract: `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` § Known Pipeline Gaps + `Dashboard/Tunet/Docs/deploy_workflow_canary.md`. M1 in `/home/mac/HA/implementation_10/CLAUDE.md` + `Dashboard/Tunet/AGENTS.md` §6A updated to reflect the corrected primitive.
+
+## Session Delta (2026-05-23 ultrathink — Tunet Home v2 interaction spec approved)
+
+Plan: `docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md` (commit `2ce7e22`).
+Mac's `/plan` directive with ultrathink. Approved via ExitPlanMode.
+
+Backend work shipped commit `6caad51`:
+- OAL mode renamed: "Dim Ambient Plus" → "Evening" with refined per-zone
+  values (kitchen_island_pendants 30→20, bedroom_primary 25, office 30,
+  kitchen mains + entryway lamp OFF).
+- ZEN32 B5 2x cycle now: Adaptive → Evening → Dim Ambient.
+- 19 new entities live: 11 stats sensors (outside_temp, hvac yesterday + cycle
+  counter + utility_meter rollups, bedroom_sonos_healthy), 8 OAL zone snapshot
+  brightness sensors.
+- HA restart confirmed all templates evaluating clean.
+
+Build continuation per plan §15 (steps 7-14): dashboard YAML rewrite with new
+composition + Bubble Card 3.2.1 popups + 6 popups + Stats view + Adaptive view.
+Card code changes (status pills variant, media transport routing, rooms chevron)
+intentionally deferred to a follow-up tranche for proper M1 review.
+
+Scoped contract: `docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md`.

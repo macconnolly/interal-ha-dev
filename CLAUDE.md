@@ -220,6 +220,11 @@ Test + live dashboards:
 - Lab dashboard: `http://10.0.0.21:8123/tunet-card-rehab-yaml/lab`
 - Production: `http://10.0.0.21:8123/tunet-overview/overview` (storage-mode; backed up to `Dashboard/Tunet/tunet-overview-storage-config.yaml`)
 
+**New production target candidate** (Plan F build in progress 2026-05-23):
+`http://10.0.0.21:8123/tunet-home-v2/home` — runs parallel to tunet-overview until Mac approves cutover. Plan: `docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md` (approved `2ce7e22`). Backend shipped `6caad51`.
+
+**OAL mode naming** (refined 2026-05-23): the 3-scene ZEN32 cycle is now `Adaptive → Evening → Dim Ambient`. The mode formerly known as "Dim Ambient Plus" is now **Evening**. Per-zone values refined per the plan §2 table (kitchen mains + entryway lamp OFF; kitchen pendants + bedroom + office reduced).
+
 If this root file and the Tunet-scoped file differ on Tunet behavior, follow the scoped file and the scoped `AGENTS.md`.
 
 ### Tunet Multi-Agent Driver

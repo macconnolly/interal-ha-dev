@@ -3045,3 +3045,11 @@ Use:
 ## Session Delta Correction (2026-05-22, same day)
 
 If a sub-agent runs `npm run tunet:review:share`, the harness now fires an HA push notification (via `notify.tunet_inbox_all_devices`) with a `data.url` deep-link to the production target — NOT SendUserFile. Production target is `tunet-overview` (storage-mode `/tunet-overview/overview`), backed up to repo at `Dashboard/Tunet/tunet-overview-storage-config.yaml`. M1 in CLAUDE.md + AGENTS.md updated accordingly. See `Dashboard/Tunet/Docs/deploy_workflow_canary.md` "Pipeline gotchas surfaced" for the WHY.
+
+## Session Delta (2026-05-23 ultrathink)
+
+New OAL mode name is **"Evening"** (was "Dim Ambient Plus"). ZEN32 B5 2x cycle:
+Adaptive → Evening → Dim Ambient. All scripts/automations referencing the old
+"Dim Ambient Plus" string have been updated. 19 new sensors live (stats +
+HVAC + OAL zone snapshot). Plan F dashboard build in progress; canonical plan
+at `docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md`.

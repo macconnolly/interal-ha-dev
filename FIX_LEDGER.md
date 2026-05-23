@@ -3349,3 +3349,9 @@ Change marker: media/sonos semantics + dropdown convergence landed; `CD9` remain
 ## Session Delta Correction (2026-05-22, same day)
 
 Production target corrected `tunet-suite` → `tunet-overview` (canonical storage dashboard at `/tunet-overview/overview`). iPhone delivery corrected from `SendUserFile(proactive)` to HA `notify.tunet_inbox_all_devices` with `data.url` deep-link — verified live with Mac. Scoped contract: see deploy_workflow_canary.md "Pipeline gotchas surfaced" rows 5 and 6.
+
+## Session Delta (2026-05-23 ultrathink — Tunet Home v2 interaction spec approved)
+
+`docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md` approved (commit `2ce7e22`).
+Backend ship: OAL Evening rename + 19 new sensors (commit `6caad51`). Dashboard
+build in progress. Scoped: see plan + visual_defect_ledger.

@@ -787,47 +787,63 @@ Optional sentinel `input_boolean.oal_watchdog_fired` pulse for diagnostic visibi
 - Remove Warm chip from home actions strip (`tunet-home-preview-config.yaml:139-147` area)
 - Remove Warm Ambient from status_card alias map (entry dropped, not just renamed)
 
-**New Evening mode values** (lighter dim per Mac directive):
+**Evening mode values** (REVISED 2026-05-23 4:18pm — Mac: "existing values for evening are too dim slightly" — modest bump, NOT aggressive):
 
 ```yaml
 "Evening":
-  b: -20         # was -30 (lighter overall)
+  b: -25         # was -30 (slight bump, not -20)
   k: -500        # unchanged
   lights_off:
     - light.kitchen_main_lights
     - light.entryway_lamp
   lights_dimmed:
-    light.main_living_lights: 60                       # was 40
-    light.kitchen_island_pendants: 40                  # was 20
-    light.kitchen_counter_cabinet_underlights: 20      # was 8
-    light.bedroom_primary_lights: 40                   # was 25
-    light.column_lights: 40                            # was 30
-    light.accent_spots_lights: 30                      # was 20
-    light.recessed_ceiling_lights: 5                   # was 1
-    light.office_lights: 40                            # was 30
+    light.main_living_lights: 50                       # was 40 (+10)
+    light.kitchen_island_pendants: 30                  # was 20 (+10)
+    light.kitchen_counter_cabinet_underlights: 15      # was 8  (+7)
+    light.bedroom_primary_lights: 35                   # was 25 (+10)
+    light.column_lights: 35                            # was 30 (+5)
+    light.accent_spots_lights: 25                      # was 20 (+5)
+    light.recessed_ceiling_lights: 3                   # was 1  (+2)
+    light.office_lights: 35                            # was 30 (+5)
 ```
 
-**New Dim Ambient mode values** (heavier dim per Mac directive — "all lights on but heavier dim, turn off hallway, heavily dim kitchen main"):
+**Dim Ambient mode values** (REVISED 2026-05-23 4:18pm — Mac: "new dim ambient will also be a bit too dim doesn't need to be that extreme" — heavier than Evening but not aggressive):
 
 ```yaml
 "Dim Ambient":
-  b: -40                                                # was -30 (heavier)
+  b: -35                                                # was -30 → revised to -35 (was previously proposed -40, too aggressive)
   k: -500                                               # unchanged
   lights_off:
     - light.living_room_hallway_lights                  # NEW (Mac confirmed entity exists; live state on, brightness 76)
   lights_dimmed:
-    light.kitchen_main_lights: 5                       # NEW — heavily dimmed instead of OFF (Mac: "heavily dim the kitchen main lights")
-    light.main_living_lights: 30                       # was 40 (heavier)
-    light.kitchen_island_pendants: 20                  # was 30 (heavier)
-    light.kitchen_counter_cabinet_underlights: 5       # was 10 (heavier)
-    light.bedroom_primary_lights: 20                   # NEW
-    light.column_lights: 20                            # was 30 (heavier)
-    light.accent_spots_lights: 15                      # was 20 (heavier)
-    light.recessed_ceiling_lights: 1                   # unchanged
-    light.office_lights: 25                            # NEW
+    light.kitchen_main_lights: 15                      # NEW (Mac: "heavily dim" — 15 is heavily dim without being extreme)
+    light.main_living_lights: 35                       # was 40
+    light.kitchen_island_pendants: 20                  # was 30
+    light.kitchen_counter_cabinet_underlights: 10      # was 10 (unchanged)
+    light.bedroom_primary_lights: 25                   # NEW (was not in Dim before)
+    light.column_lights: 25                            # was 30
+    light.accent_spots_lights: 20                      # was 20 (unchanged)
+    light.recessed_ceiling_lights: 2                   # was 1 (+1)
+    light.office_lights: 30                            # NEW
 ```
 
-These are starting values for review. Mac tunes after seeing the result.
+**Spread check** (Evening vs Dim Ambient by zone — Evening should be brighter):
+
+| Zone | Evening | Dim Ambient | Δ |
+|---|---|---|---|
+| main_living | 50 | 35 | -15 |
+| kitchen_island | 30 | 20 | -10 |
+| counter | 15 | 10 | -5 |
+| bedroom | 35 | 25 | -10 |
+| column | 35 | 25 | -10 |
+| accent | 25 | 20 | -5 |
+| ceiling | 3 | 2 | -1 |
+| office | 35 | 30 | -5 |
+| kitchen_main | OFF | 15 (heavily dim) | different mechanism |
+| entryway_lamp | OFF | (AL adaptive) | Evening more aggressive |
+| hallway | (AL adaptive) | OFF | Dim more aggressive |
+
+These remain tunable post-deploy via direct yaml edit + automation.reload (no restart for value changes).
 
 ### 7.5 Final tranche execution order
 

@@ -289,11 +289,14 @@ views:
     - type: custom:tunet-climate-card
       entity: climate.dining_room
       name: Climate
+      variant: thin
       humidity_entity: sensor.kitchen_humidity
       grid_options:
         columns: full
         rows: auto
-  # Weather — own section
+  # Weather — own section, forecast_hours: 4 (T0.6 — was 6, reduced to widen
+  # each hour tile and reduce UV+hour-label collision per Mac feedback
+  # "UV label overlap")
   - type: grid
     column_span: 4
     cards:
@@ -307,7 +310,7 @@ views:
       show_view_toggle: false
       show_last_updated: false
       forecast_days: 5
-      forecast_hours: 6
+      forecast_hours: 4
       grid_options:
         columns: full
         rows: auto

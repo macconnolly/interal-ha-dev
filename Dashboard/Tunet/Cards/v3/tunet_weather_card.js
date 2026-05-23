@@ -182,9 +182,10 @@ const CARD_STYLES = `
     color: var(--text-muted);
   }
   .forecast-aux {
-    position: absolute;
-    top: 6px;
-    right: 6px;
+    /* T0.6 fix: was position:absolute top:6px right:6px which overlapped the
+     * hour label (.forecast-day) at narrow tile widths. Now flows naturally
+     * after the temperature inside the flex column, so no collision regardless
+     * of tile width. */
     display: inline-flex;
     align-items: center;
     gap: 2px;
@@ -194,6 +195,7 @@ const CARD_STYLES = `
     letter-spacing: 0.15px;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
+    margin-top: 1px;
   }
   .forecast-aux .tag {
     color: var(--blue);
@@ -248,8 +250,7 @@ const CARD_STYLES = `
     .forecast-hi { font-size: 13.2px; }
     .forecast-lo { font-size: 12px; }
     .forecast-aux {
-      top: 5px;
-      right: 5px;
+      /* T0.6: position-related rules removed; UV now flows in flex column */
       font-size: 9.5px;
     }
   }
@@ -756,10 +757,6 @@ class TunetWeatherCard extends HTMLElement {
 
       return `
         <div class="forecast-tile">
-          ${Number.isFinite(hourlyUv)
-            ? `<span class="forecast-aux"><span class="tag">UV</span><span class="val">${hourlyUv}</span></span>`
-            : ''
-          }
           <span class="forecast-day">${dayName}</span>
           <span class="icon forecast-icon">${icon}</span>
           ${isPrecip
@@ -771,6 +768,10 @@ class TunetWeatherCard extends HTMLElement {
                 <span class="forecast-hi">${hi}&deg;</span>
                 ${lo != null ? `<span class="forecast-lo">${lo}&deg;</span>` : ''}
               </div>`
+          }
+          ${Number.isFinite(hourlyUv)
+            ? `<span class="forecast-aux"><span class="tag">UV</span><span class="val">${hourlyUv}</span></span>`
+            : ''
           }
         </div>`;
     }).join('');

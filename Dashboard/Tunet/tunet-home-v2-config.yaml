@@ -725,7 +725,7 @@ views:
       tiles:
       - type: value
         entity: sensor.hvac_heating_minutes_today
-        icon: fire
+        icon: local_fire_department
         label: Heating
         accent: red
         unit: min
@@ -772,12 +772,12 @@ views:
         accent: blue
         unit: °F
       - entity: sensor.hvac_setpoint_drift_high
-        label: Above Setpoint
+        label: ΔAbove
         icon: trending_up
         accent: red
         unit: °F
       - entity: sensor.hvac_setpoint_drift_low
-        label: Below Setpoint
+        label: ΔBelow
         icon: trending_down
         accent: blue
         unit: °F
@@ -794,22 +794,22 @@ views:
         columns: full
       sensors:
       - entity: sensor.hvac_heating_yesterday_hours
-        label: Heating Yesterday
-        icon: fire
+        label: Heat Yest
+        icon: local_fire_department
         accent: red
         unit: h
       - entity: sensor.hvac_cooling_yesterday_hours
-        label: Cooling Yesterday
+        label: Cool Yest
         icon: ac_unit
         accent: blue
         unit: h
       - entity: sensor.hvac_heating_minutes_weekly
-        label: Heating This Week
-        icon: fire
+        label: Heat Week
+        icon: local_fire_department
         accent: red
         unit: min
       - entity: sensor.hvac_cooling_minutes_weekly
-        label: Cooling This Week
+        label: Cool Week
         icon: ac_unit
         accent: blue
         unit: min
@@ -826,22 +826,22 @@ views:
         columns: full
       sensors:
       - entity: sensor.living_room_presence_dimmer_power
-        label: LR Lights (Now)
+        label: LR Now
         icon: electric_bolt
         accent: green
         unit: W
       - entity: sensor.master_presence_power
-        label: Master Lights (Now)
+        label: Bdrm Now
         icon: electric_bolt
         accent: green
         unit: W
       - entity: sensor.living_room_presence_dimmer_energy
-        label: LR Energy
+        label: LR kWh
         icon: bolt
         accent: green
         unit: kWh
       - entity: sensor.master_presence_energy
-        label: Master Energy
+        label: Bdrm kWh
         icon: bolt
         accent: green
         unit: kWh

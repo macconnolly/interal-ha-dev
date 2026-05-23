@@ -115,37 +115,51 @@ Implementation is deferred by user direction. These are planning items, not ship
 - Deploy credential handling needs hardening before scripted deploys are treated as routine release infrastructure: no literal password fallback and no SSH password exposure through command argv. Full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` row `TINBOX-DEPLOY-2`.
 - Current tests should be treated as smoke until failure-first coverage exists for registry drift and deploy pipeline behavior. Full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` row `TINBOX-TEST-4`.
 
-### Dashboard deploy gap (added 2026-05-22): yaml + storage mode pipeline missing
+### Dashboard deploy gap (added 2026-05-22, RESOLVED 2026-05-22)
 
-Card JS deploys automatically (`tunet:deploy:lab` → SCP to `/config/www/tunet/v3/`). Dashboard YAML files do NOT deploy — there is no script that SCPs `Dashboard/Tunet/*.yaml` to `/config/dashboards/*.yaml` or pushes to HA's storage layer. Result: repo dashboard composition can diverge silently from live HA, and Playwright visual review of the live `/tunet-card-rehab-yaml/lab` or `/tunet-suite/overview` can show stale composition that doesn't match repo edits.
+**Status: RESOLVED** by Phase 1, 2, and 7 of the deploy + visual review
+rationalization (commits `4eae3ac`, `7484481`, `cd3d261`).
 
-User direction (2026-05-22): both yaml-mode and storage-mode dashboards should be available paths, picked per dashboard. Current native yaml-mode is reliable and stays for `tunet-suite`, `tunet-card-rehab-yaml`, `tunet-inbox-yaml`. Storage-mode is the future path for the eventual `/tunet-home` dashboard (page-architecture sub-plan) so HA's UI editor remains functional. Trade-off for storage mode: UI edits between deploys are overwritten on next push; source-of-truth contract must be documented before the storage-mode dashboard is built.
+Closed by:
 
-The next bounded β-plumbing tranche should:
+1. `Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs` (commit `4eae3ac`) — single source of truth for 5 dashboards (4 yaml + 1 storage). Per-entry declares mode, source, target (yaml) or url_path (storage), production flag, description.
+2. `Dashboard/Tunet/scripts/deploy_tunet_dashboards.mjs` (commit `7484481`) — yaml-mode SCP + storage-mode WS `lovelace/config/save` dispatch with create-if-missing via `lovelace/dashboards/create`. Pre-flight validates ALL sources before any push; partial-failure surfacing with `--from <n>` resumability. Credentials: `sshpass -e` (no argv exposure) for SSH; `HA_LONG_LIVED_ACCESS_TOKEN` for WS.
+3. npm scripts: `tunet:deploy:dashboards`, `tunet:deploy:dashboards:yaml`, `tunet:deploy:dashboards:storage`. Kept independent of `tunet:deploy:lab` per user direction.
+4. `Dashboard/Tunet/Cards/v3/tests/dashboard_registry_contract.test.js` (commit `cd3d261`) — 11 failure-first assertions. Verified negative-case manually (removing the registry import from a consumer correctly fails the drift-guard).
+5. Live verification (2026-05-22): yaml-mode SCP of `tunet-suite` confirmed; storage-mode WS push of `tunet-suite-storage` round-trip EXACT match between repo source and live config.
 
-1. Add `Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs` analogous to `tunet_card_registry.mjs`, declaring each dashboard's source file, mode (`yaml`/`storage`), target path (yaml-mode) or url_path (storage-mode).
-2. Add `Dashboard/Tunet/scripts/deploy_tunet_dashboards.mjs` that reads the registry and dispatches: `yaml` mode → SCP to target, `storage` mode → HA WebSocket `lovelace/config/save` call using the same auth pattern as `update_tunet_v3_resources.mjs` (`HA_LONG_LIVED_ACCESS_TOKEN` from `.env`).
-3. Wire `npm run tunet:deploy:dashboards` and keep it separate from `tunet:deploy:lab` (independent scopes, easier partial-failure recovery; dashboards change less often than cards).
-4. Add `Dashboard/Tunet/Cards/v3/tests/dashboard_registry_contract.test.js` as failure-first regression guard (analogous to `card_registry_contract.test.js`): every source file exists, every YAML parses, every url_path matches HA's expected dashboard registration, both consumers (yaml SCP path + storage WS push path) are wired.
+Original direction kept: yaml-mode reliable for current dashboards; storage-mode reserved for the eventual `/tunet-home` dashboard (sub-agent #3 page-architecture sub-plan). Storage UI-edits-overwritten-on-push trade-off documented and accepted.
 
-### Visual review page-vs-production gap (added 2026-05-22)
+### Visual review page-vs-production gap (added 2026-05-22, RESOLVED 2026-05-22)
 
-Playwright currently reviews `/tunet-card-rehab-yaml/lab` (the rehab lab dashboard). Mac uses the production view (`/tunet-suite/overview` today, eventually `/tunet-home` per the page-architecture sub-plan). Different composition, different state. An "approved" lab capture is no evidence the card behaves correctly in production composition.
+**Status: RESOLVED** by Phase 3 of the deploy + visual review rationalization (commit `bccc43c`).
 
-Coupled to the dashboard registry above: the visual review harness must add a production-mirror capture mode that runs against the live user-facing dashboard, not just the lab. The dashboard registry's `url_path` field provides the production view targets to capture.
+Closed by:
 
-### Visual review harness grading authority (added 2026-05-22)
+- `tunet_playwright_review.mjs` gains `--target lab|production|both`. Production target routes are derived at runtime from `TUNET_DASHBOARD_PRODUCTION_URL_PATHS` by parsing each production-flagged dashboard's YAML and enumerating views[].path. Adding a new view to `tunet-suite-config.yaml` (or flipping a new dashboard to production:true) gets captured automatically.
+- Manifest groups captures as `<runRoot>/<target>/<surface>/<route>/` for direct same-card-different-context comparison. Each route entry carries `target` and `dashboard` fields.
+- npm scripts: `tunet:review:production`, `tunet:review:both`.
+- Live verification (2026-05-22): production routes resolved (11 views from `tunet-suite-config.yaml`); lab + storage routes regression-checked clean after the wait-selector change excluded `tunet-nav-card` (chrome).
+- Latent defect surfaced (worth tracking separately): the live `/tunet-suite/overview` view did not render content cards in headless Chrome after the Phase 2 SCP, because the live dashboard references HACS deps that were missing from `/config/hacsfiles/`. Mac reinstalled `mini-graph-card` mid-session 2026-05-22; remaining missing-HACS investigation deferred to a follow-up cleanup. THIS IS THE KIND OF DEFECT THIS PHASE WAS BUILT TO SURFACE.
 
-Separate from the dashboard gap, the existing `tunet_playwright_review.mjs` grades its own captures with mechanical probe rules (no overflow, no blank, no clipping). The harness can pass on visibly broken cards (black play button on white, fixed-height popup with empty space, generic titles) because the probe rules don't ask "would Mac be happy." This is the failure mode named in `~/.claude/projects/-home-mac-HA-implementation-10/memory/session_arc_popup_b_to_frame.md`.
+M1 contract update (commit `0318db2`): lab-only captures explicitly do NOT satisfy M1 for production-facing cards. `--target production` or `--target both` is required when the touched card appears in any `production: true` dashboard registry entry.
 
-Fix scope (bounded β-plumbing tranche, separate from but ordered before any UI tranche):
+### Visual review harness grading authority (added 2026-05-22, RESOLVED 2026-05-22)
 
-1. Strip pass/fail verdicts from the harness. Output is "captured N screenshots at M breakpoints, manifest at X" — no judgment.
-2. Add `--share-with-user` mode that calls `SendUserFile(proactive)` for each capture so screenshots reach Mac's iPhone for actual-device review.
-3. Use MCP browser tools (`browser_take_screenshot`) as the agent-iteration path so screenshots return as inline image content the agent must see.
-4. Patch M1 in root `CLAUDE.md` and `Dashboard/Tunet/AGENTS.md` §6A to forbid "harness passed" evidence; only inline images + user confirmation count.
+**Status: RESOLVED** by Phases 4, 5, 6 of the deploy + visual review rationalization (commits `4acfe9f`, `8cee3b0`, `0318db2`).
 
-Required reading before touching this work: `~/.claude/projects/-home-mac-HA-implementation-10/memory/session_arc_popup_b_to_frame.md` (the WHY).
+Closed by:
+
+1. Phase 4 (commit `4acfe9f`) — four surgical changes that strip the harness's grading authority:
+   - `routeResult.failures` / `routeResult.warnings` renamed to `routeResult.observations` (`[{ severity, name, note }]`). Data preserved, semantics downgraded from verdict to diagnostic.
+   - Exit-code-1 policy removed for probe observations. Exit 1 reserved for capture-layer errors only (login broken, browser crashed, dashboard 404, unhandled exception).
+   - Final-message language replaced: `"Captured N screenshot(s) across M (breakpoint, theme, route) combinations. Recorded K probe observation(s) — diagnostic notes only, not pass/fail. See manifest."` No more "Review completed with/without failures."
+   - End-of-run M1 reminder block (Item 4 beyond original plan) prints procedural contract every run: agents must Read each PNG into conversation context before commit; Mac grades; harness captures.
+2. Phase 5 (commit `8cee3b0`) — `--share-with-user` mode emits stable-format `SEND_TO_USER:` markers (one per capture) for the orchestrating agent to call `SendUserFile(status='proactive')`. npm script: `tunet:review:share`. Full-page first, then per-card captures.
+3. Phase 6 (commit `0318db2`) — M1 in `CLAUDE.md` and `AGENTS.md` §6A tightened. New M1 banned-evidence list: harness "Captured N" lines, manifest paths without inline read-back, probe observations being "clean," lab-only captures for production-facing cards. M1 capitulation guard (Item E beyond plan) forecloses the "you're right, here's what's broken" cycle named in session_arc_popup_b_to_frame.md: when Mac flags a defect, agent asks WHAT SPECIFICALLY (typography/spacing/color/semantics/density/touch-target/truncation/alignment).
+4. The MCP `browser_take_screenshot` path from the original plan-step list is intentionally NOT used here; the inline image content requirement now flows through the Read tool on captured PNGs (which returns inline image content), which is more reliable across agent sessions than the MCP tool.
+
+Required reading before touching the review harness or M1: `~/.claude/projects/-home-mac-HA-implementation-10/memory/session_arc_popup_b_to_frame.md` (the WHY).
 
 ## Watch Mode
 

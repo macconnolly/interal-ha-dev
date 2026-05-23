@@ -3327,3 +3327,7 @@ Change marker: media/sonos semantics + dropdown convergence landed; `CD9` remain
   - sonos default/autodiscovered source/dropdown width handling is no longer the broad runtime failure previously recorded
   - remaining `CD9` runtime backlog narrows to visible speaker-tile semantics and speaker-grid dense/default layouts
   - explicit long-name sonos variants now compact in the displayed label lane instead of overflowing the header
+
+## Session Delta (2026-05-22, Deploy + Visual Review Rationalization)
+
+β-plumbing tranche shipped. Dashboard deploy + storage WS + production-mirror review + harness-verdict strip + M1 tightening + registry contract test, 8 commits on `main`: `4eae3ac` `7484481` `bccc43c` `4acfe9f` `8cee3b0` `0318db2` `cd3d261` plus this commit. Scoped contract owns the mechanical detail; root keeps narrative. See `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` § Known Pipeline Gaps (RESOLVED rows) and `Dashboard/Tunet/Docs/deploy_workflow_canary.md`.

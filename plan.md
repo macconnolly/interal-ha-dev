@@ -3224,3 +3224,7 @@ If any one of those artifacts is missing, the interaction change is considered d
 - TODO DIAG.05: Try adding `custom:tunet-nav-card` via "Add card"; Outcome: simplest config surface; Verify: form appears (or not) consistently after cache bust.
 - TODO DIAG.06: If schema UI never appears, implement a `getConfigElement()` spike for ONE card; Outcome: prove editor pipeline; Verify: visual editor appears for that card.
 - TODO DIAG.07: If even `getConfigElement()` does not work, investigate broader frontend issues (failed module loads, CSP, JS errors); Outcome: root cause identified; Verify: underlying errors resolved before continuing.
+
+## Session Delta (2026-05-22, Deploy + Visual Review Rationalization)
+
+β-plumbing tranche shipped. Closes 3 named gaps in Dashboard/Tunet/Docs/tunet_build_and_deploy.md § Known Pipeline Gaps (dashboard deploy, page-vs-production, harness grading). 8 commits on `main`: `4eae3ac` `7484481` `bccc43c` `4acfe9f` `8cee3b0` `0318db2` `cd3d261` plus the governance/canary commit that introduces this delta. Scoped contract carries the full mechanical narrative; see `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` § Known Pipeline Gaps (RESOLVED entries) and `Dashboard/Tunet/Docs/deploy_workflow_canary.md` for the last-known-good chain.

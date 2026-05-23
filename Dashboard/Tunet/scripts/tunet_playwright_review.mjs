@@ -229,7 +229,10 @@ Options:
   --headful                       Show the browser while running
   --fresh-auth                    Ignore cached auth state and log in again
   --smoke                         Fast pass: first route only, 390x844, light theme
-  --with-probes                   Run optional card-specific visual probes in addition to screenshots
+  --with-probes                   Run optional card-specific visual probes
+                                  Probes emit OBSERVATIONS in the manifest,
+                                  not pass/fail verdicts. Only Mac grades
+                                  (see CLAUDE.md M1-M7).
   --help                          Show this message
 `);
 }
@@ -516,14 +519,20 @@ function isIdentityTransform(transform) {
   return transform === 'matrix(1, 0, 0, 1, 0, 0)';
 }
 
+// Probe rules emit OBSERVATIONS, not verdicts. The harness captures and
+// surfaces what it sees; only Mac grades. See Phase 4 of the deploy +
+// visual review rationalization (commit history) and CLAUDE.md M1 for
+// the WHY — harness verdicts on lenient probe rules were the failure
+// mode named in session_arc_popup_b_to_frame.md.
 function addProbeAssertions(routeResult, assertions) {
-  routeResult.warnings = routeResult.warnings || [];
+  routeResult.observations = routeResult.observations || [];
   for (const assertion of assertions) {
-    if (!assertion.pass && assertion.severity === 'error') {
-      routeResult.failures.push(`Probe failed: ${assertion.name}${assertion.note ? ` (${assertion.note})` : ''}`);
-    } else if (!assertion.pass) {
-      routeResult.warnings.push(`Probe warning: ${assertion.name}${assertion.note ? ` (${assertion.note})` : ''}`);
-    }
+    if (assertion.pass) continue;
+    routeResult.observations.push({
+      severity: assertion.severity === 'error' ? 'error' : 'warning',
+      name: assertion.name,
+      note: assertion.note || null,
+    });
   }
 }
 
@@ -1159,13 +1168,20 @@ async function captureRoute(page, route, selectedCards, reviewRoot, options = {}
     pageErrors: [],
     ignoredPageErrors: [],
     errorCards: 0,
-    failures: [],
-    warnings: [],
+    // observations: diagnostic notes from probes. NOT verdicts. Each entry
+    // has { severity: 'error'|'warning', name, note }. The harness does
+    // NOT grade; only Mac grades. Captures-but-no-verdicts is the Phase 4
+    // contract; see CLAUDE.md M1 for the WHY.
+    observations: [],
   };
 
   routeResult.errorCards = await page.locator('hui-error-card').count();
   if (routeResult.errorCards > 0) {
-    routeResult.warnings.push(`Found ${routeResult.errorCards} hui-error-card element(s).`);
+    routeResult.observations.push({
+      severity: 'warning',
+      name: 'hui_error_cards_present',
+      note: `Found ${routeResult.errorCards} hui-error-card element(s).`,
+    });
   }
 
   await page.screenshot({ path: routeResult.fullPageScreenshot, fullPage: true, animations: 'disabled' });
@@ -1214,7 +1230,10 @@ async function main() {
     outputRoot: runRoot,
     storageState: options.storageState,
     results: [],
-    failures: [],
+    // observations: aggregated per-route diagnostic notes from probes.
+    // Each entry: { breakpoint, theme, route, observations: [{ severity,
+    // name, note }] }. NOT pass/fail. Mac grades; harness captures.
+    observations: [],
   };
 
   console.log(`Tunet review output: ${runRoot}`);
@@ -1266,19 +1285,23 @@ async function main() {
           routeResult.pageErrors = pageErrors.filter(isRelevantTunetError);
           routeResult.ignoredPageErrors = pageErrors.filter((message) => !isRelevantTunetError(message));
           if (routeResult.pageErrors.length) {
-            routeResult.warnings.push(`Tunet-relevant page errors observed: ${routeResult.pageErrors.length}`);
+            routeResult.observations.push({
+              severity: 'warning',
+              name: 'tunet_page_errors',
+              note: `${routeResult.pageErrors.length} Tunet-relevant page error(s); see pageErrors in manifest`,
+            });
           }
           reviewManifest.results.push({
             breakpoint: breakpoint.id,
             theme,
             ...routeResult,
           });
-          if (routeResult.failures.length || routeResult.warnings.length) {
-            reviewManifest.failures.push({
+          if (routeResult.observations.length) {
+            reviewManifest.observations.push({
               breakpoint: breakpoint.id,
               theme,
               route: `${route.target}/${route.surface}/${route.id}`,
-              failures: [...routeResult.failures, ...routeResult.warnings],
+              observations: [...routeResult.observations],
             });
           }
           pageErrors.length = 0;
@@ -1293,27 +1316,74 @@ async function main() {
 
   const manifestPath = path.join(runRoot, 'review-manifest.json');
   fs.writeFileSync(manifestPath, JSON.stringify(reviewManifest, null, 2));
+
+  // ── Capture report (NOT a verdict) ────────────────────────────────────
+  // The harness does not grade. It captures and surfaces observations;
+  // Mac grades. See CLAUDE.md M1 and Dashboard/Tunet/AGENTS.md §6A for
+  // the contract. session_arc_popup_b_to_frame.md holds the WHY: when
+  // the harness graded itself with lenient probe rules, visibly broken
+  // cards (black play button on white, fixed-height popup with empty
+  // space, generic titles) shipped through "verified" commits.
+  //
+  // Exit code policy: this script exits 0 even when probe observations
+  // are present, because probes are diagnostics not verdicts. Exit 1
+  // is reserved for capture-layer errors (login broken, browser crashed,
+  // 404 on the dashboard, unhandled exception) — those bubble up from
+  // the surrounding try/catch in the CLI entry point.
+  const totalCaptures = reviewManifest.results.reduce(
+    (sum, r) => sum + (r.cardCaptures?.length || 0) + 1 /* full page */,
+    0
+  );
+  const observationCount = reviewManifest.observations.reduce(
+    (sum, o) => sum + o.observations.length,
+    0
+  );
+
+  console.log('');
   console.log(`Manifest written: ${manifestPath}`);
+  console.log(
+    `Captured ${totalCaptures} screenshot(s) across ${reviewManifest.results.length} (breakpoint, theme, route) combinations.`
+  );
+  console.log(
+    `Recorded ${observationCount} probe observation(s) — diagnostic notes only, not pass/fail. See manifest.`
+  );
+  console.log('');
+  printM1Reminder(reviewManifest, manifestPath);
+}
 
-  const hardFailures = reviewManifest.results.filter((result) => result.failures?.length);
-  if (hardFailures.length) {
-    console.log('Review completed with probe failures:');
-    for (const result of hardFailures) {
-      console.log(`- ${result.breakpoint} ${result.theme} ${result.surface}/${result.routeId}: ${result.failures.join('; ')}`);
-    }
-    process.exitCode = 1;
-    return;
-  }
-
-  if (reviewManifest.failures.length) {
-    console.log('Review completed with warnings:');
-    for (const failure of reviewManifest.failures) {
-      console.log(`- ${failure.breakpoint} ${failure.theme} ${failure.route}: ${failure.failures.join('; ')}`);
-    }
-    return;
-  }
-
-  console.log('Review completed without harness-detected failures.');
+// ── M1 reminder block ─────────────────────────────────────────────────
+// Printed at the end of every review run. CLAUDE.md M1 + AGENTS.md §6A
+// require that agents READ each captured PNG into conversation context
+// before any UI-touching commit. The reminder is a procedural backstop:
+// the script cannot enforce M1, but it can make forgetting harder by
+// stating the contract explicitly in the same stdout the agent reads.
+function printM1Reminder(reviewManifest, manifestPath) {
+  const sample = reviewManifest.results.slice(0, 6).map((r) => {
+    return r.fullPageScreenshot;
+  });
+  const remaining = Math.max(0, reviewManifest.results.length - sample.length);
+  console.log('═══════════════════════════════════════════════════════════════');
+  console.log('M1 REMINDER — agent procedural contract');
+  console.log('═══════════════════════════════════════════════════════════════');
+  console.log('Before any UI-touching commit, you MUST Read each captured PNG');
+  console.log('into your conversation context (the inline image content is');
+  console.log('the load-bearing artifact, not the file path).');
+  console.log('');
+  console.log('Captured paths (sample):');
+  for (const p of sample) console.log(`  ${p}`);
+  if (remaining > 0) console.log(`  ...and ${remaining} more — see manifest for full list.`);
+  console.log('');
+  console.log(`Manifest with all routes + observations: ${manifestPath}`);
+  console.log('');
+  console.log('Harness does NOT grade. The "captured N" line above is a');
+  console.log('capture report, not a verdict. Mac grades via inline image');
+  console.log('review (or via --share-with-user iPhone push when set).');
+  console.log('');
+  console.log('See CLAUDE.md "Pre-Commit User-Perspective Review" M1-M7.');
+  console.log('Failure mode this reminder prevents:');
+  console.log('  ~/.claude/projects/-home-mac-HA-implementation-10/memory/');
+  console.log('  session_arc_popup_b_to_frame.md');
+  console.log('═══════════════════════════════════════════════════════════════');
 }
 
 const isCli =

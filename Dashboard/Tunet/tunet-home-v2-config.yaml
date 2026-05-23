@@ -365,7 +365,7 @@ views:
           accent: blue
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-v2/living-room
+            navigation_path: /tunet-home-preview/living-room
         - name: All Off
           icon: power_settings_new
           accent: amber
@@ -444,7 +444,7 @@ views:
           accent: blue
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-v2/kitchen
+            navigation_path: /tunet-home-preview/kitchen
         - name: All Off
           icon: power_settings_new
           accent: amber
@@ -509,7 +509,7 @@ views:
           accent: blue
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-v2/dining-room
+            navigation_path: /tunet-home-preview/dining-room
         - name: All Off
           icon: power_settings_new
           accent: amber
@@ -603,7 +603,7 @@ views:
           accent: blue
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-v2/bedroom
+            navigation_path: /tunet-home-preview/bedroom
         - name: All Off
           icon: power_settings_new
           accent: amber
@@ -669,7 +669,7 @@ views:
           accent: blue
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-v2/office
+            navigation_path: /tunet-home-preview/office
         - name: All Off
           icon: power_settings_new
           accent: amber
@@ -866,7 +866,7 @@ views:
           show_state: false
           tap_action:
             action: navigate
-            navigation_path: /tunet-home-v2/home
+            navigation_path: /tunet-home-preview/home
         - type: button
           name: Save
           icon: mdi:content-save
@@ -931,17 +931,11 @@ views:
         accent: red
         format: integer
       - type: value
-        entity: sensor.hvac_setpoint_drift_high
-        icon: trending_up
-        label: Above SP
-        accent: red
-        unit: °F
-      - type: value
-        entity: sensor.hvac_setpoint_drift_low
-        icon: trending_down
-        label: Below SP
-        accent: blue
-        unit: °F
+        entity: sensor.hvac_setpoint_band
+        icon: thermostat
+        label: Setpoint
+        accent: amber
+        format: state
   - type: grid
     column_span: 4
     cards:
@@ -964,16 +958,10 @@ views:
         icon: cloud
         accent: blue
         unit: °F
-      - entity: sensor.hvac_setpoint_drift_high
-        label: ΔAbove
-        icon: trending_up
-        accent: red
-        unit: °F
-      - entity: sensor.hvac_setpoint_drift_low
-        label: ΔBelow
-        icon: trending_down
-        accent: blue
-        unit: °F
+      - entity: sensor.hvac_setpoint_band
+        label: Setpoint
+        icon: thermostat
+        accent: amber
   - type: grid
     column_span: 4
     cards:
@@ -1039,9 +1027,9 @@ views:
         accent: green
         unit: kWh
   # ── DA-3 LOCK (FINAL spec §0): Adaptive collapsed into Stats as sub-sections ──
-  # The standalone /tunet-home-v2/adaptive view was removed 2026-05-23 per DA-3.
+  # The standalone /tunet-home-preview/adaptive view was removed 2026-05-23 per DA-3.
   # Its 3 sections (OAL System + Zone Baselines + Mode Time Today) now live
-  # at the bottom of /tunet-home-v2/stats. Single 4-item nav (Home/Rooms/Media/
+  # at the bottom of /tunet-home-preview/stats. Single 4-item nav (Home/Rooms/Media/
   # Stats) — Adaptive accessible via Stats anchored sub-section.
   - type: grid
     column_span: 4
@@ -1145,7 +1133,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-v2/home
+  back_path: /tunet-home-preview/home
   sections:
     - type: grid
       column_span: 4
@@ -1258,7 +1246,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-v2/home
+  back_path: /tunet-home-preview/home
   sections:
     - type: grid
       column_span: 4
@@ -1348,7 +1336,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-v2/home
+  back_path: /tunet-home-preview/home
   sections:
     - type: grid
       column_span: 4
@@ -1438,7 +1426,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-v2/home
+  back_path: /tunet-home-preview/home
   sections:
     - type: grid
       column_span: 4
@@ -1552,7 +1540,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-v2/home
+  back_path: /tunet-home-preview/home
   sections:
     - type: grid
       column_span: 4
@@ -1625,7 +1613,7 @@ views:
 
 # ────────────────────────────────────────────────────────────────────
 # VIEW: SETTINGS (FINAL spec §10 — OAL config + alarms + system actions)
-# Reached via header gear icon OR direct URL /tunet-home-v2/settings.
+# Reached via header gear icon OR direct URL /tunet-home-preview/settings.
 # ────────────────────────────────────────────────────────────────────
 - title: Settings
   path: settings
@@ -1633,7 +1621,7 @@ views:
   subview: true
   type: sections
   max_columns: 4
-  back_path: /tunet-home-v2/home
+  back_path: /tunet-home-preview/home
   sections:
     - type: grid
       column_span: 4
@@ -1744,7 +1732,7 @@ views:
             ## System Reference
 
             **Production**: `/tunet-overview/overview` (storage mode)
-            **Candidate**: `/tunet-home-v2/home` (this dashboard)
+            **Candidate**: `/tunet-home-preview/home` (this dashboard)
             **Lab**: `/tunet-card-rehab-yaml/lab`
 
             **OAL package**: `packages/oal_lighting_control_package.yaml`

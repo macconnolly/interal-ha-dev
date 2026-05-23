@@ -95,34 +95,6 @@ template:
           {% set low = state_attr('climate.dining_room', 'target_temp_low') | float(none) %}
           {% if t is none or low is none %}unknown{% else %}{{ (low - t) | round(1) }}{% endif %}
 
-      # ───── Setpoint band display sensor ───────────────────────────
-      # Collapses the two drift sensors into a single legible "58–64°F"
-      # display + current-vs-band annotation. State is a string so the
-      # dashboard tile uses `format: state` to render it verbatim.
-      # The drift_high / drift_low sensors above remain available for
-      # any consumer that needs the raw numeric drift (e.g., automations,
-      # HomeKit exposure in packages/tunet_homekit.yaml).
-      - name: "HVAC Setpoint Band"
-        unique_id: "tunet_hvac_setpoint_band"
-        icon: mdi:thermostat-box
-        state: >
-          {% set low = state_attr('climate.dining_room', 'target_temp_low') %}
-          {% set high = state_attr('climate.dining_room', 'target_temp_high') %}
-          {% if low is none or high is none %}
-            —
-          {% else %}
-            {{ low | int }}–{{ high | int }}°F
-          {% endif %}
-        attributes:
-          current_temperature: >
-            {{ state_attr('climate.dining_room', 'current_temperature') }}
-          target_temp_low: >
-            {{ state_attr('climate.dining_room', 'target_temp_low') }}
-          target_temp_high: >
-            {{ state_attr('climate.dining_room', 'target_temp_high') }}
-          hvac_action: >
-            {{ state_attr('climate.dining_room', 'hvac_action') }}
-
       # ───── Cycle tracking ──────────────────────────────────────────
       # Captures the timestamp of the most recent state change of hvac_action.
       # Use with `time_since` filter in dashboards: "Heating started 12m ago".

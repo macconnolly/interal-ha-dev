@@ -460,6 +460,15 @@ input_number:
     unit_of_measurement: "%"
     icon: mdi:desk-lamp
 
+  oal_manual_offset_office_bed_brightness:
+    name: "OAL Manual Offset - Office Bed B"
+    min: -100
+    max: 100
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+    icon: mdi:bed
+
 input_boolean:
   oal_system_paused:
     name: "OAL System Paused"
@@ -1126,17 +1135,30 @@ automation:
           hard_min_b: 1
           hard_max_b: 100
 
-        # SYNC: Keep in sync with AL office config (warm pin 2700/2700)
+        # SYNC: Keep in sync with AL office config (warm pin 2700/2700, max_b 100 post-2026-05-23)
         - entity_id: switch.adaptive_lighting_office
           id: office
           comfort_min_b: 30               # SYNC: AL min_brightness
-          comfort_max_b: 80               # SYNC: AL max_brightness
+          comfort_max_b: 100              # SYNC: AL max_brightness (was 80 — Mac pref 2026-05-23)
           min_k: 2700                     # SYNC: AL min_color_temp (warm pin)
           max_k: 2700                     # SYNC: AL max_color_temp (warm pin)
           env_sensitivity: 0.5
           night_sensitivity: 0.0          # NO night dim (uses sleep mode)
           hard_min_b: 1
-          hard_max_b: 80
+          hard_max_b: 100                 # was 80, raised with comfort_max_b
+
+        # SYNC: Keep in sync with AL office_bed config (CCT 2000 fallback; adapt_color is OFF)
+        # Color owned by oal_office_bed_color_window_v13 — engine handles brightness only here.
+        - entity_id: switch.adaptive_lighting_office_bed
+          id: office_bed
+          comfort_min_b: 30               # SYNC: AL min_brightness
+          comfort_max_b: 100              # SYNC: AL max_brightness (Mac pref 100% daytime ceiling)
+          min_k: 2000                     # SYNC: AL min_color_temp (warmest Tuya CCT)
+          max_k: 2000                     # SYNC: AL max_color_temp (same)
+          env_sensitivity: 0.5
+          night_sensitivity: 0.0          # NO night dim (uses sleep mode)
+          hard_min_b: 1
+          hard_max_b: 100
 
     action:
       - action: input_datetime.set_datetime
@@ -1648,8 +1670,8 @@ automation:
                   global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
                   global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
 
-                  clamped_min_b: "{{ [1, [80, global_min_b] | min] | max }}"
-                  clamped_max_b: "{{ [1, [80, global_max_b] | min] | max }}"
+                  clamped_min_b: "{{ [1, [100, global_min_b] | min] | max }}"
+                  clamped_max_b: "{{ [1, [100, global_max_b] | min] | max }}"
 
                   final_min_b: "{{ clamped_min_b }}"
                   final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
@@ -1667,6 +1689,64 @@ automation:
                 continue_on_error: true
                 target:
                   entity_id: switch.adaptive_lighting_office
+                data:
+                  min_brightness: "{{ final_min_b | round(0) }}"
+                  max_brightness: "{{ final_max_b | round(0) }}"
+                  min_color_temp: "{{ final_min_k | round(0) }}"
+                  max_color_temp: "{{ final_max_k | round(0) }}"
+                  transition: "{{ transition_speed }}"
+
+          # ========== OFFICE BED (Brightness only; color owned by sun-aware automation) ==========
+          - sequence:
+              - variables:
+                  comfort_min_b: 30
+                  comfort_max_b: 100              # SYNC: AL office_bed max_brightness
+                  env_sensitivity: 0.5
+                  night_sensitivity: 0.0
+                  hard_min_b: 1
+                  hard_max_b: 100
+                  min_k: 2000
+                  max_k: 2000
+
+                  # No night dimming for office_bed (uses sleep mode + automation owns color)
+                  night_with_sensitivity: 0
+                  night_warmth_with_sensitivity: 0
+
+                  auto_offset_b: >
+                    {{ base_config_b + (env_with_sunset_capped * 0.5) + night_with_sensitivity }}
+
+                  auto_min_raw: "{{ 30 + auto_offset_b }}"
+                  auto_max_raw: "{{ 100 + auto_offset_b }}"
+
+                  auto_min_clamped: >
+                    {{ [30, [100, auto_min_raw] | min] | max }}
+                  auto_max_clamped: >
+                    {{ [30, [100, auto_max_raw] | min] | max }}
+
+                  manual_offset_b: >
+                    {{ states('input_number.oal_manual_offset_office_bed_brightness') | float(0) }}
+
+                  min_with_manual: "{{ auto_min_clamped + manual_offset_b }}"
+                  max_with_manual: "{{ auto_max_clamped + manual_offset_b }}"
+
+                  global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
+                  global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
+
+                  clamped_min_b: "{{ [1, [100, global_min_b] | min] | max }}"
+                  clamped_max_b: "{{ [1, [100, global_max_b] | min] | max }}"
+
+                  final_min_b: "{{ clamped_min_b }}"
+                  final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
+
+                  # CCT pinned 2000K — adapt_color is OFF, AL never pushes color, this is
+                  # fallback only (e.g. sleep mode AL exit via standard CCT path)
+                  final_min_k: 2000
+                  final_max_k: 2000
+
+              - service: adaptive_lighting.change_switch_settings
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_office_bed
                 data:
                   min_brightness: "{{ final_min_b | round(0) }}"
                   max_brightness: "{{ final_max_b | round(0) }}"
@@ -1916,6 +1996,27 @@ automation:
                   - service: adaptive_lighting.apply
                     target:
                       entity_id: switch.adaptive_lighting_office
+                    data:
+                      lights: "{{ on_lights }}"
+                      turn_on_lights: false
+                      transition: "{{ 0 if is_force_apply else transition_speed }}"
+                    continue_on_error: true
+
+          # Office Bed (no special protect logic — adapt_color is OFF on this AL so
+          # AL will only push brightness; color flow owned by oal_office_bed_color_window_v13)
+          - sequence:
+              - variables:
+                  all_lights: "{{ (state_attr('switch.adaptive_lighting_office_bed', 'configuration') or {}).get('lights', []) }}"
+                  all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
+                  manual_lights: "{{ state_attr('switch.adaptive_lighting_office_bed', 'manual_control') | default([]) }}"
+                  on_lights: "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ on_lights | length > 0 }}"
+                then:
+                  - service: adaptive_lighting.apply
+                    target:
+                      entity_id: switch.adaptive_lighting_office_bed
                     data:
                       lights: "{{ on_lights }}"
                       turn_on_lights: false
@@ -5321,8 +5422,8 @@ automation:
             light.living_room_credenza_light: switch.adaptive_lighting_main_living
             light.living_room_corner_accent: switch.adaptive_lighting_main_living
             light.office_desk_lamp: switch.adaptive_lighting_office
-            light.office_bed_light_left: switch.adaptive_lighting_office
-            light.office_bed_light_right: switch.adaptive_lighting_office
+            light.office_bed_light_left: switch.adaptive_lighting_office_bed
+            light.office_bed_light_right: switch.adaptive_lighting_office_bed
             light.kitchen_island_pendants: switch.adaptive_lighting_kitchen_island
             light.kitchen_counter_cabinet_underlights: switch.adaptive_lighting_kitchen_undercabinet
             light.master_presence: switch.adaptive_lighting_bedroom_primary
@@ -5369,7 +5470,8 @@ automation:
             'switch.adaptive_lighting_bedroom_primary',
             'switch.adaptive_lighting_accent_spots',
             'switch.adaptive_lighting_recessed_ceiling',
-            'switch.adaptive_lighting_office'
+            'switch.adaptive_lighting_office',
+            'switch.adaptive_lighting_office_bed'
           ] %}
           {% set ns = namespace(count=0) %}
           {% for z in zones %}
@@ -5424,7 +5526,8 @@ automation:
             'switch.adaptive_lighting_bedroom_primary',
             'switch.adaptive_lighting_accent_spots',
             'switch.adaptive_lighting_recessed_ceiling',
-            'switch.adaptive_lighting_office'
+            'switch.adaptive_lighting_office',
+            'switch.adaptive_lighting_office_bed'
           ] %}
           {% set ns = namespace(count=0) %}
           {% for z in zones %}
@@ -6744,6 +6847,9 @@ automation:
         office:
           switch: switch.adaptive_lighting_office
           friendly: "Office"
+        office_bed:
+          switch: switch.adaptive_lighting_office_bed
+          friendly: "Office Bed"
 
       zone_id: "{{ trigger.id }}"
       zone_info: "{{ zone_map[zone_id] }}"
@@ -6879,11 +6985,15 @@ automation:
       - platform: state
         entity_id:
           - light.office_desk_lamp
-          - light.office_bed_light_left
-          - light.office_bed_light_right
           - light.master_bedroom_corner_accent_govee
         attribute: brightness
         id: office
+      - platform: state
+        entity_id:
+          - light.office_bed_light_left
+          - light.office_bed_light_right
+        attribute: brightness
+        id: office_bed
 
     variables:
       zone_config:
@@ -6911,6 +7021,9 @@ automation:
         office:
           switch: switch.adaptive_lighting_office
           friendly: "Office"
+        office_bed:
+          switch: switch.adaptive_lighting_office_bed
+          friendly: "Office Bed"
       zone_id: "{{ trigger.id }}"
       zone_friendly: "{{ zone_config[zone_id].friendly }}"
       switch_entity: "{{ zone_config[zone_id].switch }}"
@@ -7000,6 +7113,7 @@ automation:
           - switch.adaptive_lighting_recessed_ceiling
           - switch.adaptive_lighting_column_lights
           - switch.adaptive_lighting_office
+          - switch.adaptive_lighting_office_bed
         attribute: manual_control
 
     variables:
@@ -7012,6 +7126,7 @@ automation:
         switch.adaptive_lighting_recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
         switch.adaptive_lighting_column_lights: input_number.oal_manual_offset_column_lights_brightness
         switch.adaptive_lighting_office: input_number.oal_manual_offset_office_brightness
+        switch.adaptive_lighting_office_bed: input_number.oal_manual_offset_office_bed_brightness
 
       switch_entity: "{{ trigger.entity_id }}"
       helper_entity: "{{ switch_to_helper[switch_entity] }}"
@@ -7489,6 +7604,36 @@ script:
                 data:
                   value: "{{ new_value }}"
 
+          # Office Bed
+          - if:
+              - condition: template
+                value_template: "{{ 'office_bed' in target_zones }}"
+            then:
+              - variables:
+                  b_base: >
+                    {{ state_attr('switch.adaptive_lighting_office_bed', 'brightness_pct') | float(50) }}
+                  base_step: >
+                    {% if dir == 1 %}
+                      {% if b_base < 30 %} 10
+                      {% elif b_base < 60 %} 15
+                      {% else %} 20
+                      {% endif %}
+                    {% else %}
+                      {% if b_base < 40 %} 10
+                      {% elif b_base < 70 %} 15
+                      {% else %} 20
+                      {% endif %}
+                    {% endif %}
+                  step: "{{ base_step * 0.7 }}"
+                  current_offset: "{{ states('input_number.oal_manual_offset_office_bed_brightness') | float(0) }}"
+                  raw_new: "{{ current_offset + (step * dir) }}"
+                  new_value: "{{ [-100, [100, raw_new] | min] | max }}"
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.oal_manual_offset_office_bed_brightness
+                data:
+                  value: "{{ new_value }}"
+
   oal_global_manual_brighter:
     alias: "OAL v13 Global Brighter (CARB, unified pipeline)"
     description: "Increases brightness using context-aware stepped adjustments. Optionally filter to specific lights/zones."
@@ -7615,6 +7760,7 @@ script:
         switch.adaptive_lighting_recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
         switch.adaptive_lighting_column_lights: input_number.oal_manual_offset_column_lights_brightness
         switch.adaptive_lighting_office: input_number.oal_manual_offset_office_brightness
+        switch.adaptive_lighting_office_bed: input_number.oal_manual_offset_office_bed_brightness
 
       # Non-column manual zones from direct AL switch state.
       manual_non_column_switches: >
@@ -7626,7 +7772,8 @@ script:
           'switch.adaptive_lighting_bedroom_primary',
           'switch.adaptive_lighting_accent_spots',
           'switch.adaptive_lighting_recessed_ceiling',
-          'switch.adaptive_lighting_office'
+          'switch.adaptive_lighting_office',
+          'switch.adaptive_lighting_office_bed'
         ] %}
         {% for sw in non_column %}
           {% if (state_attr(sw, 'manual_control') | default([])) | length > 0 %}
@@ -7970,6 +8117,7 @@ script:
             recessed_ceiling: light.recessed_ceiling_lights
             column_lights: light.column_lights
             office: light.office_lights
+            office_bed: light.office_bed_lights
 
           zone_switches:
             main_living: switch.adaptive_lighting_main_living
@@ -7980,6 +8128,7 @@ script:
             recessed_ceiling: switch.adaptive_lighting_recessed_ceiling
             column_lights: switch.adaptive_lighting_column_lights
             office: switch.adaptive_lighting_office
+            office_bed: switch.adaptive_lighting_office_bed
 
           zone_offsets:
             main_living: input_number.oal_manual_offset_main_living_brightness
@@ -7990,6 +8139,7 @@ script:
             recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
             column_lights: input_number.oal_manual_offset_column_lights_brightness
             office: input_number.oal_manual_offset_office_brightness
+            office_bed: input_number.oal_manual_offset_office_bed_brightness
 
           all_zone_ids:
             - main_living
@@ -8000,6 +8150,7 @@ script:
             - recessed_ceiling
             - column_lights
             - office
+            - office_bed
 
           target_zones: >
             {% set ns = namespace(zones=[]) %}
@@ -8325,7 +8476,8 @@ template:
             states('input_number.oal_manual_offset_accent_spots_brightness') | float(0),
             states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0),
             states('input_number.oal_manual_offset_column_lights_brightness') | float(0),
-            states('input_number.oal_manual_offset_office_brightness') | float(0)
+            states('input_number.oal_manual_offset_office_brightness') | float(0),
+            states('input_number.oal_manual_offset_office_bed_brightness') | float(0)
           ] %}
           {% set max_zone = (zones | map('abs') | max) if zones | length > 0 else 0 %}
           {% if force_sleep %}
@@ -8427,6 +8579,16 @@ template:
             {{ (state_attr('switch.adaptive_lighting_office', 'configuration') or {}).get('max_brightness', 0) }}
           office_manual_offset_brightness_pct: >
             {{ states('input_number.oal_manual_offset_office_brightness') | float(0) }}
+
+          # Office Bed
+          office_bed_baseline_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_office_bed', 'brightness_pct') | float(0) }}
+          office_bed_effective_min_brightness_pct: >
+            {{ (state_attr('switch.adaptive_lighting_office_bed', 'configuration') or {}).get('min_brightness', 0) }}
+          office_bed_effective_max_brightness_pct: >
+            {{ (state_attr('switch.adaptive_lighting_office_bed', 'configuration') or {}).get('max_brightness', 0) }}
+          office_bed_manual_offset_brightness_pct: >
+            {{ states('input_number.oal_manual_offset_office_bed_brightness') | float(0) }}
           boost_source: >
             {% set sources = [] %}
             {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
@@ -8512,7 +8674,8 @@ template:
               ('switch.adaptive_lighting_accent_spots', false),
               ('switch.adaptive_lighting_recessed_ceiling', false),
               ('switch.adaptive_lighting_column_lights', true),
-              ('switch.adaptive_lighting_office', false)
+              ('switch.adaptive_lighting_office', false),
+              ('switch.adaptive_lighting_office_bed', false)
             ] %}
             {% set sun_elev = states('sensor.oal_effective_sun_elevation') | float(999) %}
             {% set sun_rising = is_state('binary_sensor.oal_effective_sun_rising', 'on') %}
@@ -8539,7 +8702,8 @@ template:
               ('switch.adaptive_lighting_accent_spots', false),
               ('switch.adaptive_lighting_recessed_ceiling', false),
               ('switch.adaptive_lighting_column_lights', true),
-              ('switch.adaptive_lighting_office', false)
+              ('switch.adaptive_lighting_office', false),
+              ('switch.adaptive_lighting_office_bed', false)
             ] %}
             {% set sun_elev = states('sensor.oal_effective_sun_elevation') | float(999) %}
             {% set sun_rising = is_state('binary_sensor.oal_effective_sun_rising', 'on') %}
@@ -8555,7 +8719,7 @@ template:
                 {% set ns.count = ns.count + 1 %}
               {% endif %}
             {% endfor %}
-            {{ 8 - ns.count }}
+            {{ 9 - ns.count }}
           overridden_zones: >
             {% set ns = namespace(zones=[]) %}
             {% set zone_map = [
@@ -8566,7 +8730,8 @@ template:
               ('Spots', 'switch.adaptive_lighting_accent_spots', false),
               ('Ceiling', 'switch.adaptive_lighting_recessed_ceiling', false),
               ('Columns', 'switch.adaptive_lighting_column_lights', true),
-              ('Office', 'switch.adaptive_lighting_office', false)
+              ('Office', 'switch.adaptive_lighting_office', false),
+              ('Office Bed', 'switch.adaptive_lighting_office_bed', false)
             ] %}
             {% set sun_elev = states('sensor.oal_effective_sun_elevation') | float(999) %}
             {% set sun_rising = is_state('binary_sensor.oal_effective_sun_rising', 'on') %}
@@ -9125,11 +9290,75 @@ template:
             {% else %}{{ mins }}m{% endif %}
           lights_overridden: >
             {{ state_attr('switch.adaptive_lighting_office', 'manual_control') | default([]) | length }}
-          lights_total: 4
+          lights_total: 2
           color_temp_kelvin: >
             {{ state_attr('switch.adaptive_lighting_office', 'color_temp_kelvin') | int(0) }}
           zone_id: "office"
           friendly_name: "Office"
+
+      - name: "OAL Office Bed Status"
+        unique_id: oal_office_bed_status_v13
+        icon: mdi:bed
+        availability: >
+          {{ states('switch.adaptive_lighting_office_bed') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set manual_list = state_attr('switch.adaptive_lighting_office_bed', 'manual_control') | default([]) %}
+          {% if manual_list | length == 0 %}
+            A
+          {% else %}
+            {% set timer_dict = state_attr('switch.adaptive_lighting_office_bed', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
+          {% endif %}
+        attributes:
+          mode: >
+            {% set manual_list = state_attr('switch.adaptive_lighting_office_bed', 'manual_control') | default([]) %}
+            {{ 'manual' if manual_list | length > 0 else 'adaptive' }}
+          brightness_target: >
+            {{ state_attr('switch.adaptive_lighting_office_bed', 'brightness_pct') | int(0) }}
+          brightness_base: >
+            {{ state_attr('sensor.oal_real_time_monitor', 'office_bed_baseline_brightness_pct') | int(0) }}
+          zone_manual_offset: >
+            {{ states('input_number.oal_manual_offset_office_bed_brightness') | int(0) }}
+          total_offset: >
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set sens = 0.5 %}
+            {% set manual = states('input_number.oal_manual_offset_office_bed_brightness') | float(0) %}
+            {{ (cfg + sun + (env * sens) + manual) | round(1) }}
+          env_sensitivity: 0.5
+          override_remaining_seconds: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_office_bed', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {{ (timer_values | min | default(0)) | int }}
+          override_remaining_formatted: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_office_bed', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            {% if secs <= 0 %}N/A
+            {% elif hours > 0 %}{{ hours }}h {{ mins }}m
+            {% else %}{{ mins }}m{% endif %}
+          lights_overridden: >
+            {{ state_attr('switch.adaptive_lighting_office_bed', 'manual_control') | default([]) | length }}
+          lights_total: 2
+          color_temp_kelvin: >
+            {{ state_attr('switch.adaptive_lighting_office_bed', 'color_temp_kelvin') | int(0) }}
+          color_mode: >
+            {{ state_attr('light.office_bed_light_left', 'color_mode') | default('unknown') }}
+          hs_color: >
+            {{ state_attr('light.office_bed_light_left', 'hs_color') | default([]) }}
+          adapt_color_enabled: >
+            {{ is_state('switch.adaptive_lighting_adapt_color_office_bed', 'on') }}
+          adapt_brightness_enabled: >
+            {{ is_state('switch.adaptive_lighting_adapt_brightness_office_bed', 'on') }}
+          zone_id: "office_bed"
+          friendly_name: "Office Bed"
 
       # -----------------------------------------------------------------------
       # 6.5 Global Brightness Offset (aggregated from all sources)
@@ -9168,7 +9397,8 @@ template:
               state_attr('switch.adaptive_lighting_accent_spots', 'brightness_pct') | float(0),
               state_attr('switch.adaptive_lighting_recessed_ceiling', 'brightness_pct') | float(0),
               state_attr('switch.adaptive_lighting_column_lights', 'brightness_pct') | float(0),
-              state_attr('switch.adaptive_lighting_office', 'brightness_pct') | float(0)
+              state_attr('switch.adaptive_lighting_office', 'brightness_pct') | float(0),
+              state_attr('switch.adaptive_lighting_office_bed', 'brightness_pct') | float(0)
             ] %}
             {{ (zones | sum / zones | length) | round(0) | int }}
           current_config: >
@@ -9191,7 +9421,8 @@ template:
             ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
             ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
             ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
-            ('office', 'Office', 'switch.adaptive_lighting_office')
+            ('office', 'Office', 'switch.adaptive_lighting_office'),
+            ('office_bed', 'Office Bed', 'switch.adaptive_lighting_office_bed')
           ] %}
           {% set ns = namespace(times=[]) %}
           {% for zone_id, zone_friendly, switch_id in switches %}
@@ -9220,7 +9451,7 @@ template:
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
             ] %}
-            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office')] %}
+            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office'), ('office_bed', 'Office Bed', 'switch.adaptive_lighting_office_bed')] %}
             {% set ns = namespace(times=[]) %}
             {% for zone_id, zone_friendly, switch_id in switches %}
               {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
@@ -9243,7 +9474,7 @@ template:
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
             ] %}
-            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office')] %}
+            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office'), ('office_bed', 'Office Bed', 'switch.adaptive_lighting_office_bed')] %}
             {% set ns = namespace(times=[]) %}
             {% for zone_id, zone_friendly, switch_id in switches %}
               {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
@@ -9266,7 +9497,7 @@ template:
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
             ] %}
-            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office')] %}
+            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office'), ('office_bed', 'Office Bed', 'switch.adaptive_lighting_office_bed')] %}
             {% set ns = namespace(times=[]) %}
             {% for zone_id, zone_friendly, switch_id in switches %}
               {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
@@ -9290,7 +9521,7 @@ template:
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
             ] %}
-            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office')] %}
+            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office'), ('office_bed', 'Office Bed', 'switch.adaptive_lighting_office_bed')] %}
             {% set ns = namespace(times=[]) %}
             {% for zone_id, zone_friendly, switch_id in switches %}
               {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
@@ -9327,7 +9558,8 @@ template:
             ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
             ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
             ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
-            ('office', 'Office', 'switch.adaptive_lighting_office')
+            ('office', 'Office', 'switch.adaptive_lighting_office'),
+            ('office_bed', 'Office Bed', 'switch.adaptive_lighting_office_bed')
           ] %}
           {% set raw = states('input_text.oal_system_managed_lights') %}
           {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}
@@ -9359,7 +9591,8 @@ template:
               ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
-              ('office', 'Office', 'switch.adaptive_lighting_office')
+              ('office', 'Office', 'switch.adaptive_lighting_office'),
+              ('office_bed', 'Office Bed', 'switch.adaptive_lighting_office_bed')
             ] %}
             {% set raw = states('input_text.oal_system_managed_lights') %}
             {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}
@@ -9386,7 +9619,8 @@ template:
               ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
-              ('office', 'Office', 'switch.adaptive_lighting_office')
+              ('office', 'Office', 'switch.adaptive_lighting_office'),
+              ('office_bed', 'Office Bed', 'switch.adaptive_lighting_office_bed')
             ] %}
             {% set raw = states('input_text.oal_system_managed_lights') %}
             {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}
@@ -9413,7 +9647,8 @@ template:
               ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
-              ('office', 'Office', 'switch.adaptive_lighting_office')
+              ('office', 'Office', 'switch.adaptive_lighting_office'),
+              ('office_bed', 'Office Bed', 'switch.adaptive_lighting_office_bed')
             ] %}
             {% set raw = states('input_text.oal_system_managed_lights') %}
             {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}
@@ -9440,7 +9675,8 @@ template:
               ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
-              ('office', 'Office', 'switch.adaptive_lighting_office')
+              ('office', 'Office', 'switch.adaptive_lighting_office'),
+              ('office_bed', 'Office Bed', 'switch.adaptive_lighting_office_bed')
             ] %}
             {% set raw = states('input_text.oal_system_managed_lights') %}
             {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}
@@ -9468,7 +9704,8 @@ template:
               ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
-              ('office', 'Office', 'switch.adaptive_lighting_office')
+              ('office', 'Office', 'switch.adaptive_lighting_office'),
+              ('office_bed', 'Office Bed', 'switch.adaptive_lighting_office_bed')
             ] %}
             {% set raw = states('input_text.oal_system_managed_lights') %}
             {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}

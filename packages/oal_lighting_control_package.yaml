@@ -2470,15 +2470,26 @@ automation:
         value_template: >
           {{ trigger.id != 'test_evening_cross'
              or is_state('input_boolean.oal_test_mode', 'on') }}
-      # Test-mode race guard: ensure effective sun sensor has caught up to test input
-      # before evaluating the evening window condition.
+      # Sun-sensor race guard: ensure sensor.oal_effective_sun_elevation has
+      # converged with the trigger source before evaluating the window condition.
+      #
+      # ENHANCEMENT 2026-05-22: extended from test-only to BOTH triggers. The
+      # template sensor `sensor.oal_effective_sun_elevation` can lag the raw
+      # `sun.sun.elevation` value by 100-2000ms at the exact threshold-crossing
+      # moment when the numeric_state trigger fires. Today (2026-05-22) the
+      # automation fired at 01:55:26 UTC with live sun=2.68° (in window) but
+      # effective_sun read 3.01° (outside window) → script aborted as
+      # "outside_window" and the RGB session never engaged. Same race exists
+      # for the test trigger and was already guarded; now guards both.
       - if:
           - condition: template
-            value_template: "{{ trigger.id == 'test_evening_cross' }}"
+            value_template: "{{ trigger.id in ['evening_cross', 'test_evening_cross'] }}"
         then:
           - wait_template: >
-              {{ ((states('sensor.oal_effective_sun_elevation') | float(999))
-                   - (states('input_number.oal_test_sun_elevation') | float(0))) | abs < 0.2 }}
+              {% set target = (states('input_number.oal_test_sun_elevation') | float(0))
+                 if trigger.id == 'test_evening_cross'
+                 else (state_attr('sun.sun', 'elevation') | float(999)) %}
+              {{ ((states('sensor.oal_effective_sun_elevation') | float(999)) - target) | abs < 0.2 }}
             timeout: "00:00:03"
             continue_on_timeout: true
       - variables:

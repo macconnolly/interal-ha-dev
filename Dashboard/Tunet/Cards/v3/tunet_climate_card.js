@@ -88,7 +88,21 @@ ${CARD_SURFACE_GLASS_STROKE}
     font-size: 10px;
   }
   :host([variant="thin"]) .cur-marker {
-    bottom: -12px;
+    /* T0.9: cur-marker moved down past the scale row per Mac feedback
+     * "move the current temperature down to the bottom or figure out a
+     * better place ... doesn't look right with alignment overall".
+     * Vertical hierarchy is now: track → setpoint chips (below thumbs)
+     * → scale row → current-temp arrow + label. */
+    bottom: -40px;
+  }
+  :host([variant="thin"]) .cur-arrow {
+    /* Flip the arrow to point UP at the scale row (was pointing up at
+     * track when marker was just below track). Visually it now points
+     * back UP at the slider area which feels right at the new position. */
+    border-bottom: 5px solid var(--text-muted);
+  }
+  :host([variant="thin"]) .cur-label {
+    font-size: 11px;
   }
 
   /* -- Header -- */
@@ -475,21 +489,18 @@ ${CARD_SURFACE_GLASS_STROKE}
     z-index: 2; position: relative;
     transition: box-shadow .15s;
   }
-  /* T0.8: setpoint label floats above the thumb (Mac feedback: move H/C out
-   * of the header pill onto the slider). Color-matches the thumb stroke. */
+  /* T0.9: setpoint label moved below thumb per Mac feedback ("put the setpoint
+   * below or inside of the slider itself"). Sits between the slider track and
+   * the scale marks (50°/65°/80°), color-matched to thumb stroke. */
   .thumb-label {
     position: absolute;
-    bottom: calc(100% + 2px);
+    top: calc(100% + 4px);
     left: 50%;
     transform: translateX(-50%);
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
-    color: var(--text);
-    background: var(--card-bg, var(--ctrl-bg));
-    padding: 2px 5px;
-    border-radius: 6px;
     pointer-events: none;
     white-space: nowrap;
     z-index: 4;

@@ -86,12 +86,20 @@ export const TUNET_DASHBOARD_REGISTRY = Object.freeze([
       'Storage-mode mirror of tunet-suite. Original Phase 2 verification target for the WebSocket lovelace/config/save dispatch path. Retained as a known-good storage-mode reference dashboard.',
   },
   {
+    source: 'Dashboard/Tunet/tunet-home-cosmos-config.yaml',
+    mode: 'storage',
+    url_path: 'tunet-home-cosmos',
+    production: true,
+    description:
+      "Tunet Home cosmos — OWNED by the harmonic-bouncing-cosmos Plan F design session. URL slug references the plan slug for provenance. Created 2026-05-23 12:50pm after a brief ownership collision over /tunet-home-preview was resolved by Mac: the other concurrent session owns /tunet-home-preview, this session moved to /tunet-home-cosmos. Initial content is a snapshot of v2 at commit 8b010e4 (this session's T7 final designed state); diverges from there forward. production:true enables visual review production-mirror coverage. Do NOT edit tunet-home-v2-config.yaml or tunet-home-preview-config.yaml from this session — those belong to other agents.",
+  },
+  {
     source: 'Dashboard/Tunet/tunet-home-preview-config.yaml',
     mode: 'storage',
     url_path: 'tunet-home-preview',
     production: true,
     description:
-      "Tunet Home preview — OWNED by THIS session (audit/restructure session). 2026-05-23 12:42pm Mac assigned ownership split: this session owns /tunet-home-preview/home + tunet-home-preview-config.yaml. The other concurrent session owns a separate URL (TBD by Mac and that session). Do not edit tunet-home-v2-config.yaml or its URL from this session — the other agent uses that. Mac's phone bookmarks /tunet-home-preview/home as the active production-mirror URL during the audit work. Cutover from tunet-overview requires Mac's explicit M3 stamp.",
+      "Tunet Home preview — OWNED by the audit/restructure session (the one running this T0.x tranche series with Mac iterating live). 2026-05-23 12:42pm Mac assigned this URL to this session; the harmonic-bouncing-cosmos session moved to /tunet-home-cosmos. This entry was removed at 12:50pm by the other session as part of its cosmos rename; restored 12:54pm because this session was still actively deploying to it. Source yaml: tunet-home-preview-config.yaml.",
   },
 ]);
 

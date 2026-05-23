@@ -46,70 +46,36 @@ views:
   - type: grid
     column_span: 4
     cards:
+    # Status card matches polish-review home_summary (Mac validation 2026-05-23):
+    # switched from manual tiles[] to recipe_tiles[] with use_profiles: true to
+    # match /tunet-card-rehab-yaml/polish-review "Status Summary (Polish)".
     - type: custom:tunet-status-card
-      layout_variant: home_summary
       name: Home Status
+      layout_variant: home_summary
+      show_header: true
       columns: 4
-      tile_size: compact
+      tile_size: standard
+      use_profiles: true
       grid_options:
         columns: full
-      tiles:
-      - type: value
-        entity: sensor.oal_mode_current
-        icon: tune
-        label: Mode
-        accent: green
-        attribute: age_human
-        tap_action:
-          action: navigate
-          navigation_path: '#oal-detail'
-      - type: value
-        entity: sensor.lights_on_total
-        icon: lightbulb
-        label: Lights On
-        accent: amber
-        format: integer
-      - type: value
-        entity: binary_sensor.hvac_running
-        attribute: hvac_action
-        icon: hvac
-        label: HVAC
-        accent: blue
-        tap_action:
-          action: more-info
-          entity: climate.dining_room
-      - type: value
-        entity: weather.home
-        icon: wb_sunny
-        label: Weather
-        accent: blue
-        format: state
-      - type: value
+      recipe_tiles:
+      - recipe: home_presence
+        entity: person.mac_connolly
+      - recipe: lights_on
+      - recipe: mode_selector
+      - recipe: manual_overrides
+        entity: sensor.oal_system_status
+      - recipe: inside_temperature
         entity: sensor.dining_room_temperature
-        icon: device_thermostat
-        label: Inside
-        accent: amber
-        unit: °F
-        format: integer
-      - type: value
-        entity: sensor.outside_temperature
-        icon: cloud
-        label: Outside
-        accent: blue
-        unit: °F
-        format: integer
-      - type: value
-        entity: sensor.sun_next_setting
-        icon: nights_stay
-        label: Sunset
-        accent: amber
-        format: time
-      - type: value
-        entity: sensor.sonos_alarm_bedroom_display
-        icon: alarm
-        label: Alarm
-        accent: blue
-        format: state
+        action_entity: climate.dining_room
+      - recipe: outside_temperature
+      - recipe: outside_weather
+      - recipe: inside_humidity
+        entity: sensor.kitchen_humidity
+      - recipe: now_playing
+      - recipe: next_alarm
+        entity: sensor.sonos_next_alarm
+        compact_label: Bedroom
   - type: grid
     column_span: 4
     cards:
@@ -347,11 +313,15 @@ views:
       card_type: pop-up
       hash: '#room-living-room'
       popup_mode: fit-content
+      width_desktop: 720px
+      margin_top_desktop: 3vh
+      bg_opacity: 92
+      bg_blur: 14
       name: Living Room
       icon: mdi:sofa
       bottom_offset: true
       card_mod:
-        style: "ha-card {\n  border-radius: 24px 24px 0 0 !important;\n  padding-bottom: env(safe-area-inset-bottom) !important;\n  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;\n\
+        style: "ha-card {\n  border-radius: 24px 24px 0 0 !important;\n  padding-bottom: env(safe-area-inset-bottom) !important;\n  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;\n min-height: 85vh !important;\n\
           }\nha-card::before {\n  content: '';\n  position: absolute;\n  top: 8px; left: 50%;\n  transform: translateX(-50%);\n  width: 36px; height: 5px;\n  border-radius: 3px;\n  background: rgba(255,255,255,0.4);\n\
           \  pointer-events: none;\n}\n"
       cards:
@@ -360,20 +330,23 @@ views:
         surface: section
         layout: grid
         columns: 2
-        tile_size: large
+        tile_size: standard
         zones:
         - entity: light.living_room_couch_lamp
           name: Couch
-          icon: lamp
+          icon: table_lamp
         - entity: light.living_room_floor_lamp
           name: Floor
-          icon: lamp
+          icon: floor_lamp
         - entity: light.living_room_spot_lights
           name: Spots
           icon: flashlight_on
         - entity: light.living_room_credenza_light
           name: Credenza
-          icon: light
+          icon: wb_incandescent
+        - entity: light.living_column_strip_light_matter
+          name: Column
+          icon: view_column
       - type: custom:tunet-sensor-card
         title: Living Room
         sensors:
@@ -422,11 +395,15 @@ views:
       card_type: pop-up
       hash: '#room-kitchen'
       popup_mode: fit-content
+      width_desktop: 720px
+      margin_top_desktop: 3vh
+      bg_opacity: 92
+      bg_blur: 14
       name: Kitchen
       icon: mdi:silverware
       bottom_offset: true
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
 
           ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
           }
@@ -438,7 +415,7 @@ views:
         surface: section
         layout: grid
         columns: 3
-        tile_size: large
+        tile_size: standard
         zones:
         - entity: light.kitchen_island_pendants
           name: Island
@@ -495,11 +472,15 @@ views:
       card_type: pop-up
       hash: '#room-dining-room'
       popup_mode: fit-content
+      width_desktop: 720px
+      margin_top_desktop: 3vh
+      bg_opacity: 92
+      bg_blur: 14
       name: Dining Room
       icon: mdi:silverware-clean
       bottom_offset: true
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
 
           ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
           }
@@ -514,7 +495,7 @@ views:
         surface: section
         layout: grid
         columns: 2
-        tile_size: large
+        tile_size: standard
         zones:
         - entity: light.dining_room_spot_lights
           name: Spots
@@ -554,11 +535,15 @@ views:
       card_type: pop-up
       hash: '#room-bedroom'
       popup_mode: fit-content
+      width_desktop: 720px
+      margin_top_desktop: 3vh
+      bg_opacity: 92
+      bg_blur: 14
       name: Bedroom
       icon: mdi:bed
       bottom_offset: true
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
 
           ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
           }
@@ -570,7 +555,7 @@ views:
         surface: section
         layout: grid
         columns: 2
-        tile_size: large
+        tile_size: standard
         zones:
         - entity: light.master_presence
           name: Main
@@ -643,11 +628,15 @@ views:
       card_type: pop-up
       hash: '#room-office'
       popup_mode: fit-content
+      width_desktop: 720px
+      margin_top_desktop: 3vh
+      bg_opacity: 92
+      bg_blur: 14
       name: Office
       icon: mdi:desktop-tower
       bottom_offset: true
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
 
           ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
           }
@@ -659,7 +648,7 @@ views:
         surface: section
         layout: grid
         columns: 2
-        tile_size: large
+        tile_size: standard
         zones:
         - entity: light.office_desk_lamp
           name: Desk
@@ -706,11 +695,15 @@ views:
       card_type: pop-up
       hash: '#media-living-room'
       popup_mode: fit-content
+      width_desktop: 720px
+      margin_top_desktop: 3vh
+      bg_opacity: 92
+      bg_blur: 14
       name: Media
       icon: mdi:speaker
       bottom_offset: true
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
 
           ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
           }
@@ -743,11 +736,15 @@ views:
       card_type: pop-up
       hash: '#oal-detail'
       popup_mode: fit-content
+      width_desktop: 720px
+      margin_top_desktop: 3vh
+      bg_opacity: 92
+      bg_blur: 14
       name: Adaptive Lighting
       icon: mdi:tune
       bottom_offset: true
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
 
           ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
           }
@@ -798,6 +795,10 @@ views:
       card_type: pop-up
       hash: '#alarm-edit'
       popup_mode: fit-content
+      width_desktop: 720px
+      margin_top_desktop: 3vh
+      bg_opacity: 92
+      bg_blur: 14
       name: Edit Alarm
       icon: mdi:alarm
       bottom_offset: true

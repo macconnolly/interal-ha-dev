@@ -880,4 +880,124 @@ Before starting Tranche 1 (#1 HVAC):
 
 ---
 
-**End of plan. Ready for execution stamp.**
+## 9. Corrections + clarifications — 2026-05-23 4:36pm post-handoff review
+
+**AUTHORITATIVE — these corrections override any earlier instructions in §§1-8.** Mac's review of the handoff prompt surfaced 9 issues. Resolutions below.
+
+### 9.1 [P0] F2 watchdog target automation entity_id
+
+The plan's earlier text references `automation.oal_configuration_manager_v13`. The actual live entity_id is **`automation.oal_v13_configuration_manager_power_handoff`** (slugified from the YAML alias, NOT the `id:` field per `MEMORY.md` "HA YAML Package Entity_ID Generation"). The configuration_manager automation lives at `packages/oal_lighting_control_package.yaml:2049-2050`:
+
+```yaml
+- id: oal_configuration_manager_v13           # YAML id (used for traces, not entity_id)
+  alias: "OAL v13 - Configuration Manager (Transition-Locked)"
+```
+
+The slugified alias would yield `automation.oal_v13_configuration_manager_transition_locked`, BUT Mac's live HA empirically reports the entity_id as `automation.oal_v13_configuration_manager_power_handoff` (probably an artifact of an earlier alias that HA preserved when renamed).
+
+**Executor instruction**: before writing the watchdog YAML, run `ha_search_entities query="configuration_manager" domain_filter="automation"` to get the LIVE entity_id. Use the actual live entity in the watchdog's `automation.turn_off` / `automation.turn_on` targets. Do NOT trust either the YAML `id:` or this plan's text — both can drift from the live state.
+
+### 9.2 [P0] Dashboard deploy command must be scoped
+
+`npm run tunet:deploy:dashboards:storage` (unscoped) pushes ALL storage dashboards, including `tunet-overview` (Mac's daily-use production), `tunet-home-cosmos` (owned by another session), and `tunet-home-preview` (this work). The deploy script accepts `-- --dashboard <slug>` to scope to one.
+
+**Executor instruction**: in all tranche steps that deploy dashboards, use:
+```bash
+npm run tunet:deploy:dashboards:storage -- --dashboard tunet-home-preview
+```
+
+NEVER run the unscoped form during T1.6 execution. If a different dashboard genuinely needs to deploy (e.g., Tranche 7 also touches `tunet-home-cosmos` per §9.5), scope to that dashboard explicitly.
+
+### 9.3 [P0] Dashboard/Tunet/AGENTS.md must be in required reading
+
+Tranches 5 and 7 edit `Dashboard/Tunet/**` files. The scoped governance contract at `/home/mac/HA/implementation_10/Dashboard/Tunet/AGENTS.md` is canonical for Tunet work (review pack, production-mirror capture, four-breakpoint validation, M1-M7 mirror).
+
+**Executor instruction**: BEFORE starting any Tunet-touching tranche, read `Dashboard/Tunet/AGENTS.md` and the review pack it mandates. Add to the required-reading list.
+
+### 9.4 [P1] Tranche 3 — column RGB lifecycle automations need a different guard pattern
+
+The plan's blanket "add `condition: state oal_config_transition_active state: off`" would break threshold-triggered (one-shot) automations:
+- `oal_column_lights_prepare_rgb_mode_v13` — fires once on a sun elevation crossing
+- `oal_column_lights_morning_exit_rgb_v13` (line 3034) — same
+
+If the sun crosses the threshold during a config transition, a hard skip means the RGB never engages or exits until next reload.
+
+**Executor instruction**: for these threshold-triggered automations, use `wait_template` to DEFER rather than SKIP:
+
+```yaml
+action:
+  # T1.6 F4: defer execution while a mode transition is in flight, but DO NOT
+  # skip — sun-elevation-triggered automations have one chance to fire.
+  - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
+    timeout: "00:00:30"
+    continue_on_timeout: true
+  # ... existing actions ...
+```
+
+Periodic / state-triggered companion automations (warm_pin if periodic, bed_color_window) can use the hard skip guard since they have multiple fires.
+
+### 9.5 [P1] Tranche 7 — Warm Ambient removal must also touch tunet-home-cosmos
+
+`Dashboard/Tunet/tunet-home-cosmos-config.yaml` is also `production: true` (per registry line 92) AND contains the Warm chip at lines 139-147. Removing the `Warm Ambient` option from `input_select.oal_active_configuration` while leaving a chip that selects it = a live broken control.
+
+**Executor instruction**: in Tranche 7, edit BOTH `tunet-home-preview-config.yaml` AND `tunet-home-cosmos-config.yaml` to remove the Warm chip. Deploy both via separate scoped commands:
+
+```bash
+npm run tunet:deploy:dashboards:storage -- --dashboard tunet-home-preview
+npm run tunet:deploy:dashboards:storage -- --dashboard tunet-home-cosmos
+```
+
+Note: `tunet-home-cosmos` is "owned by another session" per the registry description. Coordinate with Mac before pushing to cosmos. If the other session is actively editing, Mac may want to defer the cosmos edit.
+
+### 9.6 [P1] HomeKit `include_domains: scene` requires explicit `exclude_entities`
+
+`packages/tunet_homekit.yaml:31-35` uses `include_domains: light, climate, scene`. This means ALL scenes are exposed to HomeKit regardless of `entity_config`. Removing `scene.tunet_oal_full_bright` from `entity_config` does NOT unexpose it.
+
+**Executor instruction**: in Tranche 6, add to `exclude_entities`:
+- `scene.tunet_oal_full_bright`
+- `scene.tunet_oal_warm_ambient` (after Tranche 7 deletes the scene definition, this is belt-and-suspenders)
+- `scene.tunet_oal_tv_mode` (if exists)
+
+Editing `entity_config` is insufficient — `exclude_entities` is the load-bearing filter.
+
+### 9.7 [P0/P1] Stale B2 instructions in §§1-6 supersede by §6 retraction
+
+`docs/plans/hvac-stats-and-oal-mode-reset-fixes-2026-05-23.md` §§1.4, 1.5 ("File C"), 1.6 phase 1.5, 1.10 risks, 3.3, 4 (open decisions) all reference B2 as an action to take. §6 retracts B2.
+
+**Authoritative supersession**: §6 and §7 retract B2. **DO NOT make any B2-related edit** (no change to `packages/tunet_oal_enhancements.yaml:36-43`'s `state: "Dim Ambient"`). The "Dim Ambient" mode is still valid; the history_stats reference is correct.
+
+If you (executor) encounter B2 instructions in §§1-6, ignore them.
+
+### 9.8 [P2] Tranche 5 alias count
+
+The plan says "8 entries" for the new `MODE_SELECTOR_SUMMARY_ALIASES`. Correct count depends on tranche order:
+- **Tranche 5 (executed BEFORE Tranche F)**: 9 entries (Adaptive, Full Bright, Evening, Dim Ambient, Warm Ambient, TV Mode, TV Bridge, Sleep, Manual)
+- **Tranche 5 after Tranche F has run**: 8 entries (Warm Ambient removed)
+
+Since the plan executes Tranche 5 BEFORE Tranche 7, **start with 9 entries** in the alias map. Tranche 7 then removes the Warm Ambient entry as part of its consolidation.
+
+### 9.9 [P2] `input_boolean.oal_watchdog_fired` is optional — make explicit
+
+The plan §7.1 mentions it as "Optional sentinel" but the preflight checks for its non-existence. To resolve ambiguity:
+
+**Decision**: SKIP the `oal_watchdog_fired` sentinel for the first deploy. The watchdog's `logbook.log` call provides the same diagnostic visibility. If Mac later wants the sentinel for dashboarding the "watchdog fired today" state, add as a small follow-up.
+
+**Executor instruction**: do NOT add `input_boolean.oal_watchdog_fired` in Tranche 2. Remove the preflight check for it. The watchdog automation logs to logbook only.
+
+---
+
+## 10. Effective execution order — post-correction
+
+Same 7-tranche sequence as §7.5, but with these per-tranche overlay corrections:
+
+- **Pre-flight** (before T1): drop the `oal_watchdog_fired` name-conflict check (§9.9); empirically resolve the configuration_manager live entity_id via `ha_search_entities` (§9.1)
+- **Tranche 1**: do NOT edit `tunet_oal_enhancements.yaml` (B2 is retracted per §9.7)
+- **Tranche 2**: watchdog target uses the live-confirmed entity_id from §9.1, not the plan's earlier text; sentinel input_boolean is OUT of scope (§9.9)
+- **Tranche 3**: column RGB lifecycle automations use `wait_template` deferral, not hard skip (§9.4)
+- **Tranche 5**: alias map has 9 entries pre-Tranche-F (§9.8); dashboard deploy command must be scoped (§9.2); read `Dashboard/Tunet/AGENTS.md` first (§9.3)
+- **Tranche 6**: scenes need EXPLICIT `exclude_entities` (§9.6); dashboard deploy scoped (§9.2)
+- **Tranche 7**: edit BOTH `tunet-home-preview-config.yaml` AND `tunet-home-cosmos-config.yaml` (§9.5); deploy both with separate scoped commands; coordinate with Mac on cosmos timing
+
+---
+
+**End of plan. §§9-10 are AUTHORITATIVE corrections. Ready for execution.**

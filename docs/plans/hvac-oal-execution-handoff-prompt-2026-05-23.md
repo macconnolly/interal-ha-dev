@@ -34,9 +34,14 @@ Required reading at session start, IN THIS ORDER:
 4. `/home/mac/HA/implementation_10/CLAUDE.md` (project operating contract,
    especially the "Pre-Commit User-Perspective Review (Non-Negotiable)"
    block and the OAL section's invariants + reload-sequence guidance)
-5. `/home/mac/HA/implementation_10/docs/plans/hvac-stats-and-oal-mode-reset-fixes-2026-05-23.md`
-   (THE MASTER PLAN for this work — stamped, sequenced, with all spec
-   details + tranche order + risks + verification matrices)
+5. `/home/mac/HA/implementation_10/Dashboard/Tunet/AGENTS.md` — the scoped
+   Tunet contract. MUST be read before any Tranche 5 or 7 work (they
+   edit `Dashboard/Tunet/**`). Review pack, production-mirror capture
+   mandate, four-breakpoint validation.
+6. `/home/mac/HA/implementation_10/docs/plans/hvac-stats-and-oal-mode-reset-fixes-2026-05-23.md`
+   (THE MASTER PLAN — stamped, sequenced, with §9-10 corrections that
+   AUTHORITATIVELY OVERRIDE any earlier instructions in §§1-8 where they
+   conflict. Read §§9-10 LAST so they're the freshest in context.)
 
 This is my home. I live with the result every day. Treat it as if you're
 the engineer responsible — because for the duration of this session,
@@ -64,6 +69,62 @@ recalc dance in the watchdog, 60s threshold not 30s, clear BOTH flags).
 
 Plus: mode display sync (Tranche 5), HomeKit cleanup (Tranche 6), and
 OAL mode consolidation dropping Warm Ambient (Tranche 7).
+
+### AUTHORITATIVE corrections — supersede any tranche text below
+
+These corrections came from a post-handoff review (2026-05-23 4:36pm). They override the per-tranche instructions later in this prompt where they conflict. The master plan's §9-10 has the long-form rationale; this is the operational summary.
+
+**C1 [P0] — F2 watchdog target entity_id (Tranche 2)**
+The watchdog's `automation.turn_off` / `automation.turn_on` must target the LIVE entity_id of the configuration_manager. Mac confirmed it's `automation.oal_v13_configuration_manager_power_handoff` (NOT `automation.oal_configuration_manager_v13` — that's the YAML `id:` field, not the entity_id). BEFORE writing the watchdog YAML, run `ha_search_entities query="configuration_manager" domain_filter="automation"` and use the live value.
+
+**C2 [P0] — All dashboard deploys MUST be scoped (Tranches 5, 6, 7)**
+NEVER run `npm run tunet:deploy:dashboards:storage` unscoped — it pushes ALL storage dashboards including `tunet-overview` (Mac's daily prod) and `tunet-home-cosmos` (other session). Use:
+```bash
+npm run tunet:deploy:dashboards:storage -- --dashboard tunet-home-preview
+```
+For Tranche 7's cosmos edit (see C5), scope to `tunet-home-cosmos` in a separate deploy command.
+
+**C3 [P0] — Dashboard/Tunet/AGENTS.md added to required reading**
+Before any Tranche 5 or 7 work, you MUST have read `/home/mac/HA/implementation_10/Dashboard/Tunet/AGENTS.md` (already in the required-reading list above).
+
+**C4 [P1] — Tranche 3 column lifecycle uses `wait_template`, NOT hard skip**
+Threshold-triggered (one-shot) automations like `oal_column_lights_prepare_rgb_mode_v13` and `oal_column_lights_morning_exit_rgb_v13` (line 3034) fire on sun-elevation crossings — they get ONE chance. A `condition: state oal_config_transition_active state: off` skip would make them silently miss the crossing.
+
+For threshold-triggered automations use this pattern instead:
+```yaml
+action:
+  # T1.6 F4: defer (don't skip) — sun crossings are one-shot
+  - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
+    timeout: "00:00:30"
+    continue_on_timeout: true
+  # ... existing actions ...
+```
+
+For periodic / state-triggered companion automations (warm_pin, bed_color_window) the hard skip guard is fine since they re-fire.
+
+**C5 [P1] — Tranche 7 edits BOTH preview AND cosmos dashboards**
+`Dashboard/Tunet/tunet-home-cosmos-config.yaml` is also `production: true` and currently has a Warm chip at lines 139-147. Removing the `Warm Ambient` option from `input_select.oal_active_configuration` while leaving a chip that selects it = live broken control. Edit both:
+- `Dashboard/Tunet/tunet-home-preview-config.yaml` — remove Warm chip
+- `Dashboard/Tunet/tunet-home-cosmos-config.yaml` — remove Warm chip
+
+Cosmos is "owned by another session" per the registry. Coordinate with Mac before pushing — he may want to defer cosmos until the other session is idle. Deploy with two separate scoped commands.
+
+**C6 [P1] — Tranche 6 HomeKit scenes must be added to `exclude_entities`**
+`packages/tunet_homekit.yaml:31-35` has `include_domains: light, climate, scene` — ALL scenes are exposed by domain. Removing `scene.tunet_oal_full_bright` from `entity_config` does NOT unexpose it. Must add to `exclude_entities`:
+- `scene.tunet_oal_full_bright`
+- `scene.tunet_oal_warm_ambient` (belt-and-suspenders after Tranche 7 deletes the scene)
+- `scene.tunet_oal_tv_mode` (if exists)
+
+**C7 [P0/P1] — B2 is RETRACTED**
+Master plan §§1-6 contain stale instructions referencing B2 (changing `state: "Dim Ambient"` → `state: "Evening"` in `tunet_oal_enhancements.yaml`). §6 retracts B2 because "Dim Ambient" is still a valid distinct mode. **DO NOT make ANY B2-related edit.** If you encounter B2 instructions in §§1-6, ignore them. The retraction in §6 + §9.7 is authoritative.
+
+**C8 [P2] — Tranche 5 alias map starts with 9 entries, becomes 8 after Tranche 7**
+Pre-Tranche-F (when Tranche 5 runs): 9 entries (Adaptive, Full Bright, Evening, Dim Ambient, Warm Ambient, TV Mode, TV Bridge, Sleep, Manual). Tranche 7 then removes the Warm Ambient entry. Don't try to anticipate the post-Tranche-F state during Tranche 5.
+
+**C9 [P2] — `input_boolean.oal_watchdog_fired` is OUT of scope**
+Master plan §7.1 mentions it as "Optional sentinel". Decision: SKIP this sentinel for the first deploy. The watchdog's `logbook.log` provides equivalent visibility. Do NOT add the input_boolean. Do NOT check for its non-existence in pre-flight.
+
+### End of corrections — resume normal contract
 
 ### Execution contract — non-negotiable
 
@@ -112,24 +173,39 @@ durable (commit pushed, captures saved) and you WAIT. Do not proceed.
 
 - [ ] Verify no name conflicts: `binary_sensor.hvac_heating_active`,
   `binary_sensor.hvac_cooling_active`, `scene.tunet_all_on`,
-  `scene.tunet_all_off`, `input_boolean.oal_watchdog_fired`,
+  `scene.tunet_all_off`,
   `input_number.oal_sleep_transition_seconds` don't exist yet (use
-  `ha_search_entities`)
+  `ha_search_entities`). DO NOT check `input_boolean.oal_watchdog_fired`
+  — that sentinel is OUT of scope per master plan §9.9.
 - [ ] Snapshot pre-deploy live state of all 11 broken HVAC sensors
   (paste into the conversation as the "before" baseline)
 - [ ] Snapshot `input_select.oal_active_configuration.options` to
   confirm Warm Ambient is still present (will be removed in Tranche 7)
 - [ ] Snapshot `climate.dining_room` state + attributes (for regression
   check after restart)
+- [ ] **Resolve the live entity_id of the configuration_manager
+  automation** via `ha_search_entities query="configuration_manager"
+  domain_filter="automation"`. Mac empirically confirmed it's
+  `automation.oal_v13_configuration_manager_power_handoff` — verify
+  and use the LIVE value for F2 watchdog targets. Do NOT use the YAML
+  `id:` field (per MEMORY.md HA YAML entity_id rules).
 - [ ] Verify `light.living_room_hallway_lights` is the right entity for
   Tranche 7's Dim Ambient lights_off (Mac may want to physically
   confirm by toggling it ON/OFF and watching the hallway)
-- [ ] Read `packages/tunet_hvac_sensors.yaml`, `packages/tunet_stats_sensors.yaml`,
-  `packages/tunet_oal_enhancements.yaml`, and the relevant sections of
+- [ ] Snapshot Warm Ambient chip references in BOTH
+  `Dashboard/Tunet/tunet-home-preview-config.yaml` AND
+  `Dashboard/Tunet/tunet-home-cosmos-config.yaml` (Tranche 7 edits
+  both — cosmos is `production: true` and currently has a Warm chip
+  at lines 139-147)
+- [ ] Read `packages/tunet_hvac_sensors.yaml`,
+  `packages/tunet_stats_sensors.yaml`, and the relevant sections of
   `packages/oal_lighting_control_package.yaml` (lines 489-497 for
   helpers; 2049-2712 for configuration_manager_v13; 8615-8650 for the
-  color temp sensor that needs HomeKit filtering). Capture current
-  line numbers — they may have drifted from what the plan cites.
+  color temp sensor that needs HomeKit filtering). DO NOT read
+  `tunet_oal_enhancements.yaml` for a B2 edit — B2 is RETRACTED per
+  master plan §9.7 ("Dim Ambient" is a valid live mode, not stale).
+  Capture current line numbers — they may have drifted from what the
+  plan cites.
 
 ### Tranche-by-tranche checklist
 

@@ -35,13 +35,13 @@ The page-architecture sub-plan at `~/.claude/plans/tunet-page-architecture.md` i
 
 ## 2026-05-08 Defect / Status Updates
 
-### PA01 RESOLVED 2026-05-23: Bug A — Double-corner outlines on rooms section + actions pills
+### PA01 review pending 2026-05-23: Bug A — Double-corner outlines on rooms section + actions pills
 
 - **Surfaces (historical)**: visible on rooms-card section header (concentric rounded outlines ~10-15px apart) and actions-card pill buttons (Sleep Mode, Media); confirmed by Mac via screenshots 2026-05-08.
 - **Root cause**: `CARD_SURFACE` template (`tunet_base.js`) had both `.card { border: 1px solid var(--ctrl-border) }` AND `.card::before { mask-composite: xor }` rendering two visible outlines at slightly different positions. Dark mode amplified via `TOKENS_MIDNIGHT` higher alpha on the ::before gradient.
 - **Fix**: removed `.card { border: ... }` from `CARD_SURFACE`; `::before` glass-stroke is now sole edge. Comment block in `tunet_base.js:1100-1133` documents the WHY so a future agent does not re-add a border.
-- **Verification**: all 11 CARD_SURFACE consumers grep'd 2026-05-23 — no `.card { border }` re-introductions. Production-mirror capture deferred to Plan E Phase 1's M1 evidence step.
-- **Owning tranche**: PA01 (β-arc, parallel to architecture work). Closed by commit pending.
+- **Verification**: 2026-05-23 static/build/test passed (`node --check`, `npm run tunet:build`, `npm test` 19 files / 772 tests). Tunet v3 bundles deployed with resource token `build_20260523_064433Z`. M1 capture at `/tmp/tunet-playwright-review/2026-05-23T06-44-47-002Z` recorded 1168 screenshots / 72 route-theme-breakpoint combinations via `npm run tunet:review:both -- --changed-cards`. Agent read-back inspected production overview full pages plus rooms/actions card clips across `390x844`, `768x1024`, `1024x1366`, and `1440x900` in light/dark; no PA01 double-corner recurrence was seen in inspected captures.
+- **Owning tranche**: PA01 (β-arc, parallel to architecture work). Mac review remains the closure gate.
 
 ### Resolved this session
 

@@ -6,8 +6,25 @@ Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole author
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 **Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α foundation / β plumbing / γ surfaces / δ polish); page-architecture sub-plan explicitly deferred to a focused future agent. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` for the principle.
 **Active OAL sub-plan (2026-05-22)**: `~/.claude/plans/office-corner-accent-relocation.md` — 8-phase executable plan covering (a) corner-accent physical relocation master→office, (b) corner-accent adoption into `column_lights` AL for sunrise/sunset/curve behavior, (c) new office AL switch (`light.office_desk_lamp` + `light.office_bed_light_left` + `light.office_bed_light_right`), (d) bed-pair warm-pin, (e) master-side swap (`light.master_bedroom_corner_accent_govee` → `light.master_bedroom_column_accent` across group + AL + presence_pause + brightness-watch + 3 template-light scripts). Run phase by phase via `/claude-mem:do ~/.claude/plans/office-corner-accent-relocation.md` (Phase 0 already complete; start at Phase 1). Resolves Q-O2 from 2026-05-08 evening delta and `FIX_LEDGER.md:46` open note.
-Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next tranche by root-plan order is `CD12` surface assembly, but it remains parked pending the page-architecture sub-plan approval)
+Current tranche: **PA01 — Bug A shared card-edge fix — implemented/deployed 2026-05-23; Mac review pending before closure**. CD11 remains closed; CD10 nav verify remains deferred; the rest of CD12 surface assembly is refined into PA02+ per the page-architecture sub-plan.
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-23, PA01 shared card edge implemented/deployed; Mac review pending)
+
+Tranche marker: PA01 / β-arc. This pass removes the duplicated Layer 1 edge from the shared v3 card primitive. Closure still depends on Mac's live review; the evidence below is implementation + inspection evidence, not the user-held done stamp.
+
+- `CHANGED`
+  - `Dashboard/Tunet/Cards/v3/tunet_base.js`: `CARD_SURFACE` no longer declares `.card { border: 1px solid var(--ctrl-border) }` or transitions `border-color`.
+  - `CARD_SURFACE_GLASS_STROKE` remains the sole card-edge primitive via the masked `::before` rim.
+  - `Dashboard/Tunet/Docs/visual_hierarchy.md` now records the no-`.card`-border invariant.
+  - `Dashboard/Tunet/Docs/visual_defect_ledger.md` now records PA01 as review-pending rather than open-unimplemented.
+- `VALIDATION`
+  - `node --check Dashboard/Tunet/Cards/v3/tunet_base.js` passed.
+  - `npm run tunet:build` passed for all 15 v3 cards.
+  - `npm test` passed: 19 files / 772 tests.
+  - `npm run tunet:deploy:lab` deployed all 15 bundled cards and synced Lovelace resources to `?v=build_20260523_064433Z`.
+  - `npm run tunet:review:both -- --changed-cards` captured 1168 screenshots across 72 lab+production route/theme/breakpoint combinations at `/tmp/tunet-playwright-review/2026-05-23T06-44-47-002Z`.
+  - Agent read-back inspected production overview full pages plus rooms/actions clips at `390x844`, `768x1024`, `1024x1366`, and `1440x900` in light/dark. No PA01 double-corner recurrence was seen in inspected captures; existing non-PA visual debts are not widened by this tranche.
 
 ## Session Delta (2026-05-23, Tunet build/deploy registry drift fixed + markup/test debt filed)
 

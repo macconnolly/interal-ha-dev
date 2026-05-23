@@ -7,8 +7,19 @@ Primary instruction: treat this file as session continuity + execution map, then
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 **Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α foundation / β plumbing / γ surfaces / δ polish); page-architecture sub-plan explicitly deferred to a focused future agent. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` for the principle.
-Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next by root-plan order is `CD12` surface assembly, still parked pending the page-architecture sub-plan approval)
+Current tranche: **PA01 — Bug A shared card-edge fix — implemented/deployed 2026-05-23; Mac review pending before closure**. CD11 remains closed; CD10 nav verify remains deferred; remaining surface assembly is PA02+ per the page-architecture sub-plan.
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-23, PA01 shared card edge implemented/deployed)
+
+- `CURRENT STATE`
+  - `Dashboard/Tunet/Cards/v3/tunet_base.js` removes the duplicate `.card` border and card-level `border-color` transition from `CARD_SURFACE`.
+  - `CARD_SURFACE_GLASS_STROKE` is now the only outer card-edge primitive; inner control/tile outlines remain owned by their local components.
+  - Tunet v3 bundles were deployed live with resource token `build_20260523_064433Z`.
+  - Validation passed: `node --check`, `npm run tunet:build`, `npm test` (19 files / 772 tests), and `npm run tunet:review:both -- --changed-cards`.
+  - M1 evidence run: `/tmp/tunet-playwright-review/2026-05-23T06-44-47-002Z` (1168 screenshots / 72 combinations). Agent inspected production overview full pages plus rooms/actions clips at all four locked breakpoints in light/dark and did not see the PA01 double-corner artifact recur.
+- `OPEN FOLLOW-UP`
+  - Mac review is still required before marking Bug A/PA01 closed.
 
 ## Session Delta (2026-05-23, build/deploy registry drift fixed)
 

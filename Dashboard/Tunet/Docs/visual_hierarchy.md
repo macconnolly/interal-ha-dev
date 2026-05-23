@@ -48,10 +48,10 @@ The right tool differs per layer. Tokens are *only* the right answer for layer 4
 **Owns**:
 - `border-radius: var(--r-card)` (24px)
 - `background: var(--glass)` + `backdrop-filter: blur(var(--blur-card))`
-- `border: 1px solid var(--ctrl-border)`
 - `box-shadow: var(--shadow), var(--inset)`
-- Card-level transition tokens (`--motion-surface` for surface, `--motion-ui` for transform)
-- The XOR-mask glass-rim `::before` pseudo-element
+- Card-level transition tokens (`--motion-surface` for surface/shadow/opacity, `--motion-ui` for transform)
+- The XOR-mask glass-rim `::before` pseudo-element, which is the only visible card edge
+- No `.card` border; re-adding one creates the PA01/Bug A double-corner artifact
 
 **Mandate**: any card whose outer container is a "card" (the standalone Tunet glass shell at view level) MUST consume `${CARD_SURFACE}${CARD_SURFACE_GLASS_STROKE}` in its style block. Divergence is allowed only with a written reason in the card's header comment, naming the role-based justification (e.g., "nav is dashboard chrome, not a content card; intentionally has no card surface").
 

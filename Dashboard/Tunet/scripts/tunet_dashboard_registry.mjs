@@ -86,12 +86,12 @@ export const TUNET_DASHBOARD_REGISTRY = Object.freeze([
       'Storage-mode mirror of tunet-suite. Original Phase 2 verification target for the WebSocket lovelace/config/save dispatch path. Retained as a known-good storage-mode reference dashboard.',
   },
   {
-    source: 'Dashboard/Tunet/tunet-home-v2-config.yaml',
+    source: 'Dashboard/Tunet/tunet-home-preview-config.yaml',
     mode: 'storage',
     url_path: 'tunet-home-preview',
     production: true,
     description:
-      "Tunet Home preview — moved from /tunet-home-v2 to /tunet-home-preview on 2026-05-23 to free the v2 URL for the harmonic-bouncing-cosmos Plan F rebuild. Same underlying YAML (tunet-home-v2-config.yaml) — only the public URL changed. Sections grid + Bubble Card 3.2.1 popups for rooms + media + OAL. Per-card interaction contract locked in the YAML header. production:true keeps visual review production-mirror coverage active. Cutover from tunet-overview still requires Mac's explicit M3 stamp + Mac-awake-to-grade window.",
+      "Tunet Home preview — OWNED by THIS session (audit/restructure session). 2026-05-23 12:42pm Mac assigned ownership split: this session owns /tunet-home-preview/home + tunet-home-preview-config.yaml. The other concurrent session owns a separate URL (TBD by Mac and that session). Do not edit tunet-home-v2-config.yaml or its URL from this session — the other agent uses that. Mac's phone bookmarks /tunet-home-preview/home as the active production-mirror URL during the audit work. Cutover from tunet-overview requires Mac's explicit M3 stamp.",
   },
 ]);
 

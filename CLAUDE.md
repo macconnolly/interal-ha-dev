@@ -37,6 +37,8 @@ When Mac signals drift, the recovery path is to return to ownership-mode: look a
 
 The mechanical form of this dynamic is encoded in "Pre-Commit User-Perspective Review (Non-Negotiable)" below. Those rules grow out of this frame — they are not the frame itself. If you find yourself in compliance-mode running rules without ownership underneath, re-read this section first.
 
+Paste-ready session-opening prompts that activate this frame from Mac's side are at `docs/session_kickoff_template.md` — long form for new tasks (with reading order, M1-M7 anchors, sync discipline checklist, and a current-state checkpoint), short form for follow-ups within an active task. The template is how the frame gets switched from passive boilerplate to working contract at session start.
+
 ## Pre-Commit User-Perspective Review (Non-Negotiable)
 
 Mandatory mechanical guardrails for any commit that touches user-visible UI (Tunet cards, dashboards, popups, themes, OAL-affecting visual surfaces). These rules apply project-wide. Created 2026-05-05 after a session where popup work was repeatedly declared "fixed" while shipping visible defects (black play button on white, fixed-height popup with empty space at one state and clipped content at another, generic titles that didn't reflect content).

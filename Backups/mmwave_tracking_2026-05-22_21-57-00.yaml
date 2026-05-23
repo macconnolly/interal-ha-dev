@@ -1,0 +1,89 @@
+# Inovelli VZM31-SN mmWave Presence Package
+#
+# Prerequisites:
+#   - mmWaveTargetInfoReport must be set to "Enable" on the device
+#   - manuSpecificInovelliMMWave cluster must be bound to EP1
+#   - Visualizer add-on handles target tracking display
+
+# ==============================================================================
+# Automations
+# ==============================================================================
+automation:
+  - alias: "Master Presence: Dynamic mmWave Tuning"
+    id: master_presence_dynamic_mmwave_tuning
+    description: "Adjusts Stay Life and Hold Time for sleep vs daytime use. Runs at scheduled times and on HA startup."
+    trigger:
+      - platform: time
+        at: "23:00:00"
+      - platform: time
+        at: "10:00:00"
+      - platform: homeassistant
+        event: start
+    action:
+      - variables:
+          is_night: "{{ now().hour >= 23 or now().hour < 10 }}"
+      - if: "{{ is_night }}"
+        then:
+          # NIGHT MODE: High sensitivity, long stay life
+          - action: number.set_value
+            target:
+              entity_id: number.master_presence_mmwavestaylife
+            data:
+              value: 36000
+          - action: number.set_value
+            target:
+              entity_id: number.master_presence_mmwaveholdtime
+            data:
+              value: 300
+          - action: select.select_option
+            target:
+              entity_id: select.master_presence_mmwavedetectsensitivity
+            data:
+              option: "High (default)"
+        else:
+          # DAY MODE: Standard sensitivity, fast turn-off
+          - action: number.set_value
+            target:
+              entity_id: number.master_presence_mmwavestaylife
+            data:
+              value: 600
+          - action: number.set_value
+            target:
+              entity_id: number.master_presence_mmwaveholdtime
+            data:
+              value: 30
+          - action: select.select_option
+            target:
+              entity_id: select.master_presence_mmwavedetectsensitivity
+            data:
+              option: "Medium"
+    mode: restart
+
+  # ---------------------------------------------------------------------------
+  # Config Button: Toggle All Adaptive Lights
+  # ---------------------------------------------------------------------------
+  - alias: "Master Presence: Config Button Toggle All Lights"
+    id: master_presence_config_toggle_lights
+    description: "Toggle all adaptive lights on/off via config button"
+    trigger:
+      - platform: device
+        domain: mqtt
+        device_id: 73df96f7362fcc1c190293c15970b548
+        type: action
+        subtype: config_single
+    action:
+      - variables:
+          on_lights: >
+            {{ expand('light.all_adaptive_lights')
+               | selectattr('state', 'eq', 'on')
+               | map(attribute='entity_id') | list }}
+      - if: "{{ on_lights | length > 0 }}"
+        then:
+          - action: light.turn_off
+            target:
+              entity_id: "{{ on_lights }}"
+        else:
+          - action: light.turn_on
+            target:
+              entity_id: light.all_adaptive_lights
+    mode: single

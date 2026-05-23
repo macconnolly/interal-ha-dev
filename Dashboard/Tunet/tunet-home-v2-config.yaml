@@ -341,13 +341,21 @@ views:
           accent: amber
           service: light.turn_off
           service_data:
-            entity_id: light.main_living_lights
+            entity_id:
+              - light.living_room_couch_lamp
+              - light.living_room_floor_lamp
+              - light.living_room_spot_lights
+              - light.living_room_credenza_light
         - name: All On
           icon: lightbulb
           accent: amber
           service: light.turn_on
           service_data:
-            entity_id: light.main_living_lights
+            entity_id:
+              - light.living_room_couch_lamp
+              - light.living_room_floor_lamp
+              - light.living_room_spot_lights
+              - light.living_room_credenza_light
   - type: grid
     column_span: 4
     cards:
@@ -408,13 +416,19 @@ views:
           accent: amber
           service: light.turn_off
           service_data:
-            entity_id: light.kitchen_island_lights
+            entity_id:
+              - light.kitchen_island_pendants
+              - light.kitchen_main_lights
+              - light.kitchen_counter_cabinet_underlights
         - name: All On
           icon: lightbulb
           accent: amber
           service: light.turn_on
           service_data:
-            entity_id: light.kitchen_island_lights
+            entity_id:
+              - light.kitchen_island_pendants
+              - light.kitchen_main_lights
+              - light.kitchen_counter_cabinet_underlights
   - type: grid
     column_span: 4
     cards:
@@ -545,7 +559,10 @@ views:
           accent: amber
           service: light.turn_off
           service_data:
-            entity_id: light.bedroom_primary_lights
+            entity_id:
+              - light.master_presence
+              - light.master_bedroom_corner_accent_govee
+              - light.master_bedroom_table_lamps
         - name: Sleep
           icon: bed
           accent: amber
@@ -1016,27 +1033,41 @@ views:
               accent: amber
               service: light.turn_on
               service_data:
-                entity_id: light.main_living_lights
+                entity_id:
+              - light.living_room_couch_lamp
+              - light.living_room_floor_lamp
+              - light.living_room_spot_lights
+              - light.living_room_credenza_light
             - name: All Off
               icon: power_settings_new
               accent: amber
               service: light.turn_off
               service_data:
-                entity_id: light.main_living_lights
+                entity_id:
+              - light.living_room_couch_lamp
+              - light.living_room_floor_lamp
+              - light.living_room_spot_lights
+              - light.living_room_credenza_light
             - name: Brighter
               icon: add
               accent: amber
               service: script.oal_global_manual_brighter
               service_data:
                 lights:
-                  - light.main_living_lights
+                  - light.living_room_couch_lamp
+                  - light.living_room_floor_lamp
+                  - light.living_room_spot_lights
+                  - light.living_room_credenza_light
             - name: Dimmer
               icon: remove
               accent: amber
               service: script.oal_global_manual_dimmer
               service_data:
                 lights:
-                  - light.main_living_lights
+                  - light.living_room_couch_lamp
+                  - light.living_room_floor_lamp
+                  - light.living_room_spot_lights
+                  - light.living_room_credenza_light
             - name: Reset
               icon: restart_alt
               accent: amber
@@ -1107,13 +1138,19 @@ views:
               accent: amber
               service: light.turn_on
               service_data:
-                entity_id: light.kitchen_island_lights
+                entity_id:
+                  - light.kitchen_island_pendants
+                  - light.kitchen_main_lights
+                  - light.kitchen_counter_cabinet_underlights
             - name: All Off
               icon: power_settings_new
               accent: amber
               service: light.turn_off
               service_data:
-                entity_id: light.kitchen_island_lights
+                entity_id:
+                  - light.kitchen_island_pendants
+                  - light.kitchen_main_lights
+                  - light.kitchen_counter_cabinet_underlights
             - name: Cook
               icon: restaurant
               accent: amber
@@ -1281,13 +1318,19 @@ views:
               accent: amber
               service: light.turn_on
               service_data:
-                entity_id: light.bedroom_primary_lights
+                entity_id:
+              - light.master_presence
+              - light.master_bedroom_corner_accent_govee
+              - light.master_bedroom_table_lamps
             - name: All Off
               icon: power_settings_new
               accent: amber
               service: light.turn_off
               service_data:
-                entity_id: light.bedroom_primary_lights
+                entity_id:
+              - light.master_presence
+              - light.master_bedroom_corner_accent_govee
+              - light.master_bedroom_table_lamps
             - name: Sleep
               icon: bed
               accent: amber

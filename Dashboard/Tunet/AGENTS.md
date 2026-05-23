@@ -119,6 +119,8 @@ Before claiming completion:
 - For UI issues, include exact repro path and observed result.
 - Validate at locked breakpoints: 390×844 (mobile), 768×1024 (tablet), 1024×1366 (laptop), 1440×900 (desktop).
 - Visual verification is not satisfied by screenshots, automated probes, or overflow checks alone. For every UI/card/dashboard change, manually inspect every provided user image and every newly captured render for professional-grade dashboard quality: typography hierarchy, spacing rhythm, content semantics, truncation quality, touch target scale, alignment, density, visual balance, and any visible defect of any kind. Report the manual visual findings explicitly before claiming completion.
+- For changes touching any card flagged on the production dashboard (`tunet-overview/overview` — see `Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs` `production: true`), run production-mirror capture: `npm run tunet:review:production` or `npm run tunet:review:both`. Lab-only captures are M1-banned for production-facing cards (see § 6A).
+- For iterative review with Mac in real time, run `npm run tunet:review:share` — fires an HA push notification (`notify.tunet_inbox_all_devices`) with `data.url` deep-link to the production target. Mac taps and lands on the live dashboard to grade.
 
 ## 6A) Pre-Commit User-Perspective Review (Non-Negotiable)
 

@@ -11,6 +11,7 @@
 - Visual hierarchy contract (4-layer cross-card consistency model): `Dashboard/Tunet/Docs/visual_hierarchy.md`
 - Legacy key precedence rules: `Dashboard/Tunet/Docs/legacy_key_precedence.md`
 - Build and deploy runbook: `Dashboard/Tunet/Docs/tunet_build_and_deploy.md`
+- Deploy workflow canary (last-known-good evidence): `Dashboard/Tunet/Docs/deploy_workflow_canary.md`
 - Defect record + cross-cutting architecture decisions: `Dashboard/Tunet/Docs/visual_defect_ledger.md`
 - Operational control docs (project root, NOT this folder): `plan.md`, `FIX_LEDGER.md`, `handoff.md`
 - Per-tranche historical archive: `Dashboard/Tunet/Docs/plans/archive/INDEX.md` → linked archive files (read-only after creation)

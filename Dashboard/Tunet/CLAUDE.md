@@ -142,11 +142,27 @@ Current card-level divergences from that target must be documented in `cards_ref
 
 ## Build / Deploy
 
-- `npm run tunet:build`
-- `npm run tunet:deploy:lab`
-- `npm test`
-- Lab dashboard:
-  - `http://10.0.0.21:8123/tunet-card-rehab-yaml/lab`
+Build + cards:
+- `npm run tunet:build` — esbuild 15 cards → `Dashboard/Tunet/Cards/v3/dist/`
+- `npm run tunet:deploy:lab` — SCP card JS + Lovelace resource cache-bust
+
+Dashboards (added 2026-05-22):
+- `npm run tunet:deploy:dashboards` — yaml + storage modes, driven by `Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs`. Pre-flight validates all sources before any push. Recommended ordering: `tunet:deploy:lab` BEFORE `tunet:deploy:dashboards` so dashboards never reference an undeployed card tag.
+- `npm run tunet:deploy:dashboards:yaml` / `:storage` — single-mode invocations
+
+Visual review:
+- `npm run tunet:review:production` — captures the canonical production view (`/tunet-overview/overview`)
+- `npm run tunet:review:both` — lab + production
+- `npm run tunet:review:share` — capture + fire HA push notification (`notify.tunet_inbox_all_devices`, `data.url` deep-link). The notification is the cue; grade by opening the live dashboard on phone.
+
+Test:
+- `npm test` — vitest suite
+
+Live dashboards:
+- Lab: `http://10.0.0.21:8123/tunet-card-rehab-yaml/lab`
+- Production: `http://10.0.0.21:8123/tunet-overview/overview` (storage-mode; backed up to `Dashboard/Tunet/tunet-overview-storage-config.yaml`)
+
+Authoritative scoped contract: `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` (npm scripts table, deploy + visual review chain, known pipeline gaps, canary doc reference).
 
 ## Profile Contract Status
 

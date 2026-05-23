@@ -33,6 +33,8 @@ Legacy key precedence rules: `Dashboard/Tunet/Docs/legacy_key_precedence.md`
 - `object` + `fields` + `multiple: true` WORKS in getConfigForm (verified HA 2026.4.0)
 - Font injection uses `window.__tunetFontsInjected` (not module-scoped) for bundle safety
 - `renderConfigPlaceholder()` in tunet_base.js for graceful missing-config states
+- Cards are deployed by `tunet:deploy:lab`; **dashboard composition** is deployed separately by `tunet:deploy:dashboards` (added 2026-05-22). Recommended ordering: cards first, then dashboards, so a dashboard never references an undeployed card tag. Dashboard registry source-of-truth: `Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs`.
+- For production-facing card changes: production-mirror capture is M1-required. Use `npm run tunet:review:production` or `npm run tunet:review:both`. Production target is `tunet-overview/overview` (storage-mode). See root CLAUDE.md M1 + `Dashboard/Tunet/Docs/deploy_workflow_canary.md`.
 
 ## Required Practices
 

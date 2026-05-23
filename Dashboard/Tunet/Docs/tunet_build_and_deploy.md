@@ -38,7 +38,13 @@ Result: a normal deploy automatically cache-busts the frontend. Manual resource 
 | `tunet:review:smoke` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --smoke` | Fast authenticated screenshot smoke pass (`390x844`, light, first rehab view) |
 | `tunet:review:changed` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --changed-cards --with-probes` | Authenticated screenshot + probe pass for Tunet card implementations touched in the current git working context |
 | `tunet:lab:screenshot` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab` | Authenticated rehab-dashboard screenshot review |
-| `test` | `vitest run` | Run all tests (profile resolver, sizing, bundle safety, config contract) |
+| `tunet:deploy:dashboards` | `node Dashboard/Tunet/scripts/deploy_tunet_dashboards.mjs` | Pre-flights every dashboard, then yaml-mode SCP + storage-mode WS `lovelace/config/save` driven by `tunet_dashboard_registry.mjs`. Independent of `tunet:deploy:lab`. Supports `--mode`, `--dashboard`, `--from <n>`, `--dry-run`. Added 2026-05-22. |
+| `tunet:deploy:dashboards:yaml` | same script `--mode yaml` | yaml-mode entries only (SCP path). |
+| `tunet:deploy:dashboards:storage` | same script `--mode storage` | storage-mode entries only (WS `lovelace/config/save`). |
+| `tunet:review:production` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --target production` | Production-mirror capture only — routes derived from `production: true` registry entries (currently `tunet-overview`). |
+| `tunet:review:both` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --target both` | Lab AND production captures, manifest groups by target. |
+| `tunet:review:share` | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --share-with-user` | Capture + fire HA push notification (`notify.tunet_inbox_all_devices`, `data.url` deep-link). Override the service with `--notify-service <name>`. Replaced SendUserFile-marker emission 2026-05-22 — SendUserFile does not reach iPhone in WSL-on-laptop Claude Code sessions. |
+| `test` | `vitest run` | Run all tests (profile resolver, sizing, bundle safety, config contract, dashboard registry contract) |
 
 ## Build
 
@@ -104,6 +110,60 @@ Requires:
 - `.env` token for automatic resource sync:
   - `HA_LONG_LIVED_ACCESS_TOKEN` preferred
   - `HA_TOKEN` accepted as fallback
+
+## Dashboard Deploy (added 2026-05-22)
+
+Cards (the JS) and dashboards (the YAML composition) deploy via two
+independent chains. This is intentional — dashboards change less often
+than cards, so partial-failure recovery is easier when the scopes are
+independent. Recommended ordering: cards first, then dashboards, so a
+dashboard YAML never references an undeployed card tag.
+
+```bash
+npm run tunet:deploy:dashboards
+```
+
+Inputs are read from `Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs`
+(the single source of truth). Per-entry the dispatcher dispatches:
+
+- `mode: yaml`    → sshpass-driven SCP to `entry.target` under `/config/dashboards/`. HA reads from disk on every dashboard fetch.
+- `mode: storage` → WebSocket `lovelace/config/save` via HA's long-lived access token. If the dashboard registration does not yet exist, `lovelace/dashboards/create` is called first with title/icon from the YAML.
+
+Pre-flight: every targeted source is parsed and validated BEFORE any
+push, so a partial deploy never leaves dashboards out of sync. On
+failure mid-deploy the script surfaces `"N succeeded; failed at entry
+M; rerun with --from M"` so the operator can resume cleanly.
+
+CLI flags:
+
+- `--mode yaml|storage|both` (default `both`)
+- `--dashboard <url_path>` — single dashboard
+- `--from <n>` (1-indexed) — resume from the Nth entry after a partial failure
+- `--dry-run` — pre-flight + plan only, no SCP or WS
+- `--help`
+
+Credentials:
+
+- yaml mode: `HA_SSH_HOST`, `HA_SSH_USER`, `HA_SSH_PASSWORD` from `.env`. sshpass is invoked with `-e` (env-var SSHPASS) so the password never appears in argv.
+- storage mode: `HA_LONG_LIVED_ACCESS_TOKEN` (or `HA_TOKEN` fallback) for WS auth. Base URL from `HA_LOCAL_URL` / `HA_URL` (defaults to `http://10.0.0.21:8123`).
+
+Registry inventory (as of 2026-05-22, 6 entries):
+
+| url_path | mode | source | production |
+|----------|------|--------|------------|
+| `tunet-overview` | storage | `tunet-overview-storage-config.yaml` | **true** |
+| `tunet-home` | storage | `tunet-home-config.yaml` | false (single-view secondary) |
+| `tunet-suite` | yaml | `tunet-suite-config.yaml` | false (yaml fallback reference) |
+| `tunet-card-rehab-yaml` | yaml | `tunet-card-rehab-lab.yaml` | false (rehab lab) |
+| `tunet-inbox-yaml` | yaml | `tunet-inbox-dashboard.yaml` | false |
+| `tunet-g2-lab-v3` | yaml | `tunet-g2-lab-v3.yaml` | false |
+| `tunet-suite-storage` | storage | `tunet-suite-storage-config.yaml` | false (storage POC) |
+
+Failure-first contract test (`Dashboard/Tunet/Cards/v3/tests/dashboard_registry_contract.test.js`)
+guards: source path existence, YAML parse, yaml-mode→target presence,
+storage-mode→url_path presence, registration in `Configuration/configuration.yaml`,
+no storage-mode-shadows-yaml conflicts, deploy + review consumers
+import the registry (drift guard).
 
 ## Known Pipeline Gaps (Recorded 2026-05-22)
 
@@ -211,6 +271,7 @@ Runs vitest with jsdom environment. Test files: `Dashboard/Tunet/Cards/v3/tests/
 
 Current test suites include:
 - `card_registry_contract.test.js` — shared card registry covers all 15 cards and is consumed by build/deploy/resource/review tooling
+- `dashboard_registry_contract.test.js` — failure-first guard for `tunet_dashboard_registry.mjs`: source path existence, YAML parse, yaml-mode→target, storage-mode→url_path, `Configuration/configuration.yaml` registration, no storage-shadows-yaml conflicts, consumers import the registry (added 2026-05-22, 11 tests)
 - `profile_resolver.test.js` — profile resolution contract (8 tests)
 - `sizing_contract.test.js` — boundary behavior for bucketFromWidth/autoSizeFromWidth (10 tests)
 - `bundle_safety.test.js` — font injection and registerCard guards (5 tests)

@@ -181,12 +181,31 @@ Current priority:
 
 ## Tunet Build / Validation Shortcuts
 
-- `npm run tunet:build` — esbuild 13 cards to `Dashboard/Tunet/Cards/v3/dist/`
-- `npm run tunet:deploy:lab` — build + SCP to HA server (frontend `tunet-*-card` files)
-- `npm run tinbox:deploy:integration` — SCP the backend `custom_components/tunet_inbox` integration to HA server. The frontend (`tunet-inbox-card`) ships via `tunet:deploy:lab`; the backend ships via this script. Both must stay in sync — running only one is the source of release-path drift recorded in `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` "Known Pipeline Gaps" (TINBOX-DEPLOY-1).
-- `npm test` — vitest suite
-- Lab dashboard:
-  - `http://10.0.0.21:8123/tunet-card-rehab-yaml/lab`
+Build + cards:
+- `npm run tunet:build` — esbuild 15 cards to `Dashboard/Tunet/Cards/v3/dist/`
+- `npm run tunet:deploy:lab` — build + SCP card JS to HA + bump Lovelace resource `?v=`
+- `npm run tunet:resources:sync` — re-sync `/local/tunet/v3/*.js?v=...` resource URLs only
+
+Dashboards (added 2026-05-22, β-plumbing tranche):
+- `npm run tunet:deploy:dashboards` — yaml-mode SCP + storage-mode WS push driven by `Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs`. Pre-flight validates ALL sources before any push; `--from <n>` resumability on partial failure
+- `npm run tunet:deploy:dashboards:yaml` — yaml-mode entries only
+- `npm run tunet:deploy:dashboards:storage` — storage-mode entries only
+
+Visual review:
+- `npm run tunet:review` — full screenshot sweep, rehab + storage routes
+- `npm run tunet:review:smoke` — fast pass (390x844, light, first rehab view)
+- `npm run tunet:review:changed` — captures only for cards touched in current git working context
+- `npm run tunet:review:production` — production-mirror captures (driven by `production: true` registry entries)
+- `npm run tunet:review:both` — lab + production
+- `npm run tunet:review:share` — capture + fire HA push notification (`notify.tunet_inbox_all_devices`) with `data.url` deep-link to the production target. The notification is the cue; open the live dashboard on phone to grade. (Replaced SendUserFile-marker emission 2026-05-22 — SendUserFile does not reach iPhone in WSL-on-laptop Claude Code sessions.)
+
+Inbox integration:
+- `npm run tinbox:deploy:integration` — SCP backend `custom_components/tunet_inbox`. Frontend ships via `tunet:deploy:lab`; both must stay in sync per `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` "Known Pipeline Gaps" (TINBOX-DEPLOY-1).
+
+Test + live dashboards:
+- `npm test` — vitest suite (19 files, 772+ tests)
+- Lab dashboard: `http://10.0.0.21:8123/tunet-card-rehab-yaml/lab`
+- Production: `http://10.0.0.21:8123/tunet-overview/overview` (storage-mode; backed up to `Dashboard/Tunet/tunet-overview-storage-config.yaml`)
 
 If this root file and the Tunet-scoped file differ on Tunet behavior, follow the scoped file and the scoped `AGENTS.md`.
 

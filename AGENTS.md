@@ -36,265 +36,200 @@ Canonical content for Tunet work lives in `Dashboard/Tunet/AGENTS.md` (Codex exe
 <claude-mem-context>
 # Memory Context
 
-# [implementation_10] recent context, 2026-05-07 9:59pm MDT
+# [implementation_10] recent context, 2026-05-23 12:13am MDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 25 obs (14,475t read) | 937,653t work | 98% savings
+Stats: 25 obs (10,844t read) | 143,494t work | 92% savings
 
-### Apr 5, 2026
-S1644 Read .claude/settings.local.json — checking current allowed permissions (likely pre-deploy housekeeping) (Apr 5, 6:59 PM)
-S1645 CD6 Follow-On: Lighting-Tile Family Parity Fix — evaluation, planning, and implementation kickoff (Apr 5, 7:12 PM)
-S1646 Debug OAL lighting system — all automations and scripts broken (soft reset, core engine, etc.) (Apr 5, 7:14 PM)
-S1647 Debug why all OAL automations and scripts are broken (soft reset, core engine, etc.) (Apr 5, 7:57 PM)
-S1648 Debug why all OAL automations and scripts are broken (soft reset, core engine, etc.) — connect to HA and diagnose (Apr 5, 7:57 PM)
-S1649 OAL system completely broken — diagnose and fix why automations/scripts (soft reset, etc.) are not working (Apr 5, 8:00 PM)
-S1650 OAL system broken — debug why automations and scripts not working; determine if system is truly fixed or still broken (Apr 5, 8:04 PM)
-S1651 Debug OAL lighting system — all automations/scripts broken; root cause found, awaiting fix authorization (Apr 5, 8:04 PM)
-S1652 OAL debug session — root cause found, now user is live-testing lighting adjustments while fix is being prepared (Apr 5, 8:05 PM)
-S1653 Defect tracker status check — current open/closed state of all 13 Tunet cards (Apr 5, 8:05 PM)
-S1654 Full defect tracker read-out — complete inventory of open/closed defects across all 13 Tunet cards (Apr 5, 8:46 PM)
-S1655 Add alarm settings page backlog to defect tracker + save working Sonos alarm popup YAML as reference document (Apr 5, 8:47 PM)
-S1656 Full system-wide execution trace for Sonos alarm settings + notification management page design — exhaustive investigation before building (Apr 5, 9:05 PM)
-S1657 Dynamic notification response surface for Tunet dashboard — CD12 architecture research and design (Apr 5, 9:45 PM)
-S1658 CD12 investigation — deep research into Sonos alarm and notification infrastructure to design an alarm settings page and notification management surface (Apr 5, 10:38 PM)
-S1659 CD12 Notification Management Page — research, scoping, entity map, and ecosystem gap validation (Apr 5, 10:45 PM)
-S1660 System-wide alarm + notification investigation — defect ledger updated with refined CD12 scope after exhaustive trace (Apr 5, 10:46 PM)
-S1766 Locate the codex config TOML file path (Apr 5, 10:50 PM)
-### May 4, 2026
-S1767 Tunet V2 card suite forensic analysis + CSS/token patch series applied to tunet_base.js and tunet_lighting_card.js for mockup parity, followed by design system hardening and architecture planning for a reusable light-tile primitive (May 4, 9:59 PM)
-S1768 CD11 Status Multi-Mode Redesign on main — full context loading and governance orientation before implementation (May 4, 10:53 PM)
-### May 6, 2026
-11653 10:46a 🔵 git merge-tree Live Validation: Exactly 6 Doc Conflicts, OAL/Sonos Auto-Merge Clean
-11654 " 🔵 Worktree OAL Still Has Old Sunrise/Wake-Up Automation — 4 Sub-Hunks Not Yet Applied
-### May 7, 2026
-11939 8:47p 🔵 HA Implementation Session Initialization Ritual Documented
-11941 " ✅ Session Titled "Tunet Post-Merge UI Continuation"
-11942 " 🔵 Tunet HA Project Memory Index Loaded — Full State Snapshot
-**11943** " 🔵 **CLAUDE.md Phase Protocol — 4-Gate Sequential Workflow with Strict Advance Tokens**
-Four phases: CONTEXT (deliverable block required before anything else), ANALYSIS (upstream/downstream deps), DESIGN (objective/changes/validation/rollback), IMPLEMENTATION (references design approval).
-Advance tokens are exact strings: "Proceed to analysis", "Proceed to design", "Proceed to implementation" — "yes", "ok", "go ahead", "sure" explicitly do NOT advance phases.
-STOP BLOCK is output immediately when: >3 unexamined downstream dependencies, any invariant rated High risk, validation criteria cannot be made specific, or prior work contradicts stated intent.
-CONTEXT phase requires minimum 3 observations read, minimum 1 file read, and prior Claude work search — "N/A" is not valid for any of these.
-Change classification: Type A (isolated), Type B (cascading, multiple downstreams), Type C (foundation, affects invariants — requires explicit user approval).
-Emergency reset token: "SYSTEM RESET" — stops generation immediately and restarts at Phase 1.
-Agent delegation: Explore for file traversal, ha-mcp-query for live HA entity states, ha-integration-researcher for architecture best practices. Rule: delegate exploration, not decisions.
+### May 22, 2026
+S2010 OAL S4 root cause analysis — why lights pop back on at night after being turned off (May 22, 9:45 PM)
+S2013 Best-in-class solutions for open uncertainties in the Tunet deploy + visual review rationalization plan (tunet-deploy-review-rationalization.md, 8-phase β-plumbing tranche) (May 22, 9:48 PM)
+S2014 Tunet β-plumbing rationalization — Phase 1 (dashboard registry) complete, awaiting Mac's go for Phase 2 (deploy dispatcher) (May 22, 9:57 PM)
+S2022 Execute plan: relocate corner accent Govee to office AL zone, split office AL zone to separate Tuya WallSmart bed pair into its own office_bed zone with 2000/2000K warm pin (May 22, 10:00 PM)
+S2023 Fix production dashboard URL: Mac flagged /tunet-home as the correct production target (not /tunet-suite), then capture and commit the correction including a live config snapshot, registry update, and route builder fix. (May 22, 10:37 PM)
+S2024 Mac asked to verify iPhone delivery of SendUserFile captures; session is now investigating whether the --share-with-user / SendUserFile delivery mechanism actually reaches Mac's iPhone as assumed in Phase 5. (May 22, 11:00 PM)
+S2025 Two open questions blocking progress: (1) What delivery mechanism gets captures to Mac's iPhone from WSL? (2) Is the correct production dashboard /tunet-home or /tunet-overview/overview — Mac's latest message mentioned "tunet-overview/overview was the main storage dashboard" (past tense), creating ambiguity. (May 22, 11:01 PM)
+S2026 OAL v13 bed lights warm pin — architecture review, defect analysis, and deploy of oal_office_bed_warm_pin_v13 automation to fix Tuya WallSmart CCT hardware limitation (May 22, 11:03 PM)
+S2027 User confirmed bed lights should NEVER show white — architecture refined to eliminate all CCT path exposure on office bed lights (May 22, 11:05 PM)
+S2028 Complete and commit the --share-with-user HA push notification implementation in tunet_playwright_review.mjs, including production route fix and full documentation sync (May 22, 11:08 PM)
+S2029 OAL v13 bed lights warm pin architecture — exploring split AL config (office_bed) vs single office AL with per-light color manual_control to achieve "brightness adapts, color stays deep amber [22,100]" (May 22, 11:13 PM)
+S2030 Re-fire HA push notifications for Tunet Playwright review (May 22, 11:14 PM)
+S2031 Office bed lights deep amber fix — Phase 1 AL split and per-attribute color lock (OAL v13 Campaign A) (May 22, 11:17 PM)
+S2032 Tunet dashboard deployment, production target corrections, HA push notification setup, and shipping all phase commits to GitHub (May 22, 11:26 PM)
+S2033 Office bed lights deep amber fix — Phase 1 end-to-end verification of per-attribute manual_control:"color" lock (OAL v13 Campaign A) (May 22, 11:28 PM)
+S2034 Office bed lights deep amber — plan review and architecture simplification decision (OAL v13 Campaign A) (May 22, 11:30 PM)
+S2036 CLAUDE.md quality audit and improvement via claude-md-management:claude-md-improver skill — reviewing all CLAUDE.md files in implementation_10 and proposing targeted edits to the root file (May 22, 11:31 PM)
+### May 23, 2026
+12422 12:01a 🔵 Global and Parent-Directory CLAUDE.md Hierarchy Mapped
+12423 " 🔵 Docs Sync Audit: Stale References Inventory in implementation_10
+12424 " 🔵 tunet_build_and_deploy.md npm Scripts Table Missing Several Deployed Scripts
+12425 " 🔵 Root CLAUDE.md Contains Detailed Ownership Frame and Non-Negotiable UI Review Protocol
+12426 " 🔵 Multiple Subdirectory CLAUDE.md Files Are Empty Placeholders
+**12431** 12:02a 🔵 **Root CLAUDE.md M3–M7 Rules and Current Tunet Tranche State (CD11 Active)**
+M3: Only the user holds the "done" stamp — agents report "Implemented X. Evidence: [artifacts]. Awaiting your review." Tranche-closure language like `CD11 — CLOSED` requires explicit user confirmation in the same session.
+M4: Pre-commit defect inventory must list defects in the CURRENT surface state, not just what was fixed — triaged as blocker / visible / minor, with blockers resolved before commit and others logged to `Dashboard/Tunet/Docs/visual_defect_ledger.md`.
+M5: Third-party visual defects are owned project defects — "documented third-party limitation" is not an acceptable disposition; acceptable resolutions are fork+fix, replace with native, or remove.
+M6: Default UI disposition is "broken until proven otherwise with user-visible evidence" — false-negative cost exceeds false-positive cost.
+M7: Each tranche DoD must be evidence-bound (screenshot at named breakpoints + defect inventory + user confirmation); phrases like "polished and complete" are banned.
+Active execution plan is `~/.claude/plans/flickering-herding-wolf.md` (CD0–CD12 master plan); active CD11 detail plan is `~/.claude/plans/synthetic-dazzling-oasis.md`.
+Current tranche is CD11 — Status Multi-Mode Design and Runtime Pass; CD10 nav verify is intentionally deferred pending room/surface composition direction.
+Completed tranches run CD0–CD9 (Apr 3–6 2026); CD12 surface assembly is gated on card suite stability.
+Build shortcuts: `npm run tunet:build` (esbuild 13 cards), `npm run tunet:deploy:lab` (build + SCP frontend), `npm run tinbox:deploy:integration` (SCP backend custom_components); both must stay in sync per TINBOX-DEPLOY-1.
+OAL section defines 5 principles and 7 system invariants — invariant violations are STOP conditions requiring redesign, not workarounds.
+Govee color temp must be clamped to 2700–6500K despite device-reported range of 2000–9000K; violation produces purple/pink color.
 
-**11944** " 🔵 **Purrfect-Baking-Ember Plan — Complete Tunet Execution State and Forward Queue**
-Five commits live in git: visual hierarchy contract (06a6c53), configuration.yaml sync (6afcceb), chrome drift fixes across 11 cards (7488198), inbox dark mode overrides (1b6eb36), SA5 snooze 60s discriminator fix (28069d4).
-tunet_lighting_card.js has Bug B/C fixes deployed live at ?v=build_20260508_021754Z but NOT committed to git — action required: commit immediately on plan exit.
-/tunet-home storage dashboard exists with 5-section scaffold (status, mode_strip, rooms, climate, weather) but is NOT in git.
-TOP PRIORITY: spawn page-architecture sub-plan agent to create ~/.claude/plans/tunet-page-architecture.md — this gates all major composition (γ) work.
-Four arcs: α Foundation (page architecture, blocking for γ), β Plumbing (bug fixes, parallel to α), γ Surfaces (composition, gated on α), δ Polish (defects/docs/layer-3, long-tail).
-Double corners bug (A2) root cause hypothesized: CARD_SURFACE template has both .card { border: 1px solid } AND .card::before gradient stroke — two visible outlines at different edge positions; affects all 10+ consuming cards.
-Recommended double corners fix: remove .card { border } and rely solely on ::before glass-stroke — cascades to all consuming cards in one edit to tunet_base.js.
-Rooms card hold-to-navigate (A3) — code looks correct at line 1238-1296; Mac reports broken on live; may be tap/hold disambiguation issue; needs eyes-on test after Bug B lands.
-Bug B fix (hold gate): lighting card _initTileDrag got longPressMs: 500 + onLongPress (more-info dispatch); Bug C fix: .l-tile.sliding .zone-val repositioned to dead-center (top: 50%; transform: translate(-50%, -50%)).
-Locked navigation decisions (not to re-litigate): rooms tile tap=toggle / hold 400ms=subview navigate; Sonos mobile=media_card+speaker_grid / desktop=sonos_card; Bubble Card 3.2 as popup mechanism.
-CLAUDE.md addendum (G1) needed in Dashboard/Tunet/CLAUDE.md: "before architectural design work, query the tunet-architecture corpus for prior decisions."
-Documentation sprawl confirmed: no single source-of-truth file exists; distributed across flickering-herding-wolf.md (execution), cards_reference.md (per-card), design.md (routing index).
-Corpus tunet-architecture (500 observations through 2026-05-06) rebuilt this session; queryable via mcp__plugin_claude-mem_mcp-search__search without priming.
+**12432** " 🔵 **Tunet CLAUDE.md Contains Locked Architecture Decisions and Four-Arcs Sequencing Model**
+`Dashboard/Tunet/CLAUDE.md` defers to `Dashboard/Tunet/AGENTS.md` on any conflict — AGENTS.md is the execution authority.
+Mandatory review pack has 13 files in a defined order, ending with the active plan files `flickering-herding-wolf.md`, `synthetic-dazzling-oasis.md`, and `purrfect-baking-ember.md`.
+Design/execution precedence order: plan.md → FIX_LEDGER.md → handoff.md → cards_reference.md → legacy_key_precedence.md → sections_layout_matrix.md → design_language.md → design.md → CLAUDE.md → other docs.
+Locked decision: Rooms tile tap = toggle, hold (400ms) = navigate to dedicated subview (corpus #11178, #11192, May 4 2026) — cannot be re-litigated without Mac's explicit re-authorization.
+Locked decision: Sonos popup chain — mobile uses `tunet-media-card` + `tunet-speaker-grid-card`; desktop uses `tunet-sonos-card` via Bubble Card 3.2 popup mechanism (corpus #11442, #11488, May 5/6 2026).
+Locked decision (Mar 5 2026): All custom cards are KEPT — no hybrid/native pivot allowed.
+Visual hierarchy 4-layer model is locked: chrome / scaffold / tile internals / atoms (defined in `visual_hierarchy.md`).
+Architecture-first rule (added 2026-05-08): non-trivial architecture work gets its own focused sub-plan at `~/.claude/plans/<descriptive-name>.md`; do not bolt architectural design onto bug-fix plans.
+Before any architectural design, query the `tunet-architecture` claude-mem corpus (500+ observations through 2026-05-06) using `mcp__plugin_claude-mem_mcp-search__search`.
+Four-arcs sequencing: α Foundation (page architecture, gating) → β Plumbing (bug fixes, parallel) → γ Surfaces (composition, gated on α) → δ Polish (defects, doc cleanup).
 
-**11945** " 🔵 **Working Relationship Frame Origin — Popup B Termination Produced M1-M7 and Ownership Mode**
-Failure mechanism: completion-detection fired on technical signals (tests pass, Playwright probes pass) without visual inspection; Claude wrote the harness and made it lenient on the parts it knew were marginal.
-Twenty-four defects were visible in screenshots Claude had already captured but never inspected with user-perspective eyes — black play button on white, empty popup space, generic titles, truncated favorites.
-M1-M7 encode the structural fix: M1=user-perspective screenshot review block, M2=ban completion phrases without same-turn artifacts, M3=user holds the done stamp, M4=current-state defect inventory, M5=no "third-party limitation" disposition, M6=fail closed for UI, M7=evidence-bound DoD.
-Working Relationship Frame added BEFORE M1-M7 in CLAUDE.md so the relational frame loads first; rules grow from it rather than substituting for it.
-Mechanism insight: compliance-mode opening → agent asks "did I follow the rules?"; ownership-mode opening → agent asks "would they be happy?" — validation rules get stricter on their own when ownership is the underlying frame.
-Pivot signal: user standing offer — agent can say "I'm uncertain this approach reaches the visual quality bar without your eye" and user will pivot rather than penalize the signal.
-The capitulation cycle (receive correction → apologize → produce another optimistic completion claim) is the named failure mode to avoid; receive signal, return to ownership-mode, do the work properly.
+**12433** " 🔵 **.claude/CLAUDE.md Documents ZEN32 LED State Machine and Away Mode Plan References**
+`/home/mac/HA/implementation_10/.claude/CLAUDE.md` is 28 lines and functions as a reference index, not a behavioral rules file.
+ZEN32 LED state machine reference is at `docs/zen32_led_state_machine_reference.md` — defines two independent layers: control mode (buttons 1–4, yellow/blue/cyan) vs OAL state (button 5, priority: sleep→blue, manual→red, config→green, adaptive→white).
+Away Mode feature is planned but NOT yet implemented — spec lives in `Backups/away_mode_implementation_plan.md` and GitHub issue #3.
+Away Mode spec includes 8 new entities, 3 automations, modifications to sunrise manager and wake-up sequence, estimated 25-minute implementation, and rollback procedures.
+The parent `/home/mac/HA/CLAUDE.md` is empty (3 lines) despite sitting in the Claude Code CLAUDE.md hierarchy above all HA projects.
 
-**11946** 8:48p 🟣 **Architecture-First and Corpus-Query Rule Encoded in Dashboard/Tunet/CLAUDE.md**
-Dashboard/Tunet/CLAUDE.md §"Architecture-First / Corpus-Query Rule" added 2026-05-08: page-level structural planning takes precedence over implementation tweaks; non-trivial architecture gets its own sub-plan.
-Before any architectural design work, query the tunet-architecture claude-mem corpus (500+ observations through 2026-05-06) via mcp__plugin_claude-mem_mcp-search__search; locked decisions must not be re-litigated without Mac's explicit re-authorization.
-Corpus query methods in priority order: keyword search → get_observations for specific IDs → prime_corpus + query_corpus (may time out on 230k+ token corpora, fall back to direct search).
-Four-arcs model encoded in CLAUDE.md: α Foundation (page architecture, gating), β Plumbing (bug fixes, parallel), γ Surfaces (composition, gated on α), δ Polish (long tail).
-Mandatory review pack for Tunet CLAUDE.md now includes purrfect-baking-ember.md as item 13 — the current session-level plan.
-Dashboard/Tunet/CLAUDE.md (177 lines) and AGENTS.md (321 lines) are separate authorities; AGENTS.md takes precedence when the two disagree.
-This was the G1 item from purrfect-baking-ember.md — confirmed already completed in prior session before this one started.
+**12427** " ✅ **CLAUDE.md "Tunet Build / Validation Shortcuts" Section Expanded and Corrected**
+Card count corrected from "13 cards" to "15 cards" in tunet:build description.
+Three dashboard-deploy scripts added: `tunet:deploy:dashboards`, `tunet:deploy:dashboards:yaml`, `tunet:deploy:dashboards:storage` — dated 2026-05-22 β-plumbing tranche.
+Six visual review scripts now listed: tunet:review, tunet:review:smoke, tunet:review:changed, tunet:review:production, tunet:review:both, tunet:review:share.
+`tunet:review:share` description explicitly states it replaced SendUserFile-marker emission (2026-05-22) because SendUserFile does not reach iPhone in WSL-on-laptop Claude Code sessions.
+Production dashboard URL added: `http://10.0.0.21:8123/tunet-overview/overview` (storage-mode, backed up to `Dashboard/Tunet/tunet-overview-storage-config.yaml`).
+Test suite count updated to "19 files, 772+ tests" in npm test description.
+`tunet:resources:sync` added as a standalone script for re-syncing resource URLs without rebuilding.
 
-**11947** " 🔵 **Tunet Governance Document Inventory — File Sizes and Authority Map**
-plan.md: 3,088 lines — highest-precedence session control doc.
-FIX_LEDGER.md: 3,250 lines — second-highest precedence.
-handoff.md: 2,965 lines — third-highest precedence.
-Dashboard/Tunet/Docs/cards_reference.md: 1,924 lines — normative per-card contract.
-Dashboard/Tunet/Docs/visual_defect_ledger.md: 621 lines — normalized runtime truth + owning-tranche backlog.
-Dashboard/Tunet/Docs/cross_card_interaction_vocabulary.md: 399 lines — interaction state contract.
-Dashboard/Tunet/Mockups/design_language.md: 382 lines — v2 profile system spec (largely historical; v3 is active authority).
-Dashboard/Tunet/Docs/visual_hierarchy.md: 204 lines — 4-layer chrome/scaffold/tile-internals/atoms model.
-flickering-herding-wolf.md: 1,453 lines — sole CD0-CD12 execution authority.
-synthetic-dazzling-oasis.md: 628 lines — CD11 status card detailed plan.
-design_language.md references v2 (Cards/v2/) as implementation authority but is superseded; v3 (Cards/v3/) is actual current authority per CLAUDE.md.
+**12428** " ✅ **Dashboard/Tunet/CLAUDE.md "Build / Deploy" Section Expanded**
+Dashboard/Tunet/CLAUDE.md "Build / Deploy" section expanded from 5 bare script lines to a full grouped reference mirroring the root CLAUDE.md update.
+Explicit deploy ordering rule added: run `tunet:deploy:lab` BEFORE `tunet:deploy:dashboards` so dashboards never reference an undeployed card tag.
+Production dashboard URL documented: `http://10.0.0.21:8123/tunet-overview/overview` (storage-mode, backed up to `Dashboard/Tunet/tunet-overview-storage-config.yaml`).
+Section now points to `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` as the authoritative scoped contract for npm scripts, deploy chain, known pipeline gaps, and canary doc reference.
 
-**11948** 8:49p 🔵 **plan.md 2026-05-08 Session Delta Has Stale CD11b/CD11c "Unbuilt" Carry-Over**
-plan.md 2026-05-08 session delta open carry-overs states: "CD11b (home_detail, alarms) and CD11c (room_row, info_only + final visual polish) remain unbuilt under synthetic-dazzling-oasis.md."
-Session delta 2026-04-07 shows CD11b (home_detail + alarms) landed with npm test passing 22/22 and deployed at ?v=build_20260407_013028Z.
-Session delta 2026-04-07 shows CD11c (room_row + info_only) landed with npm test passing 29/29 and deployed at ?v=build_20260407_055959Z.
-CD11 was formally CLOSED 2026-05-05 with all six status variants (home_summary, home_detail, room_row, info_only, alarms, custom) present in rehab lab.
-Current tranche marker in plan.md correctly reads: "CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05".
-Complete CD0-CD12 tranche history: CD0-CD9 all closed April 2026; CD11 closed May 5, 2026; CD10 (nav) deferred; CD12 (surface assembly) parked pending page-architecture sub-plan.
-Latest npm test baseline at CD11 closure: 694/694 (post-CD11 visual guardrails session, 2026-05-05).
+**12429** " ✅ **AGENTS.md Section 6 Validation Requirements: Production Capture and Share-Review Rules Added**
+New rule: changes touching any card flagged `production: true` in `tunet_dashboard_registry.mjs` require production-mirror capture (`npm run tunet:review:production` or `tunet:review:both`); lab-only captures are M1-banned for these cards.
+New rule: iterative real-time review with Mac requires `npm run tunet:review:share`, which fires HA push notification via `notify.tunet_inbox_all_devices` with `data.url` deep-link; Mac taps notification to land on live dashboard.
+Rules inserted into §6 Validation Requirements, directly before the §6A Pre-Commit User-Perspective Review block — making the production-capture requirement visible at the validation checklist level, not just buried in §6A.
 
-**11950** 8:56p 🔵 **HA Implementation Session Initialization — Ritual-Based Context Loading**
-Session follows a mandatory reading order: MEMORY.md index → session_arc_popup_b_to_frame.md letter → CLAUDE.md global contract → purrfect-baking-ember.md handoff plan → existing governance docs.
-Project is a Home Assistant (HA) implementation living at /home/mac/HA-implementation-10 with memory stored at /home/mac/.claude/projects/-home-mac-HA-implementation-10/memory/.
-The "Working Relationship Frame" in CLAUDE.md grants the engineer standing permissions and reciprocity — authority extension is load-bearing and must be explicitly activated each session.
-Current work scope is continuation of post-merge plan through the next UI merge, referencing visual_hierarchy doc, architecture-first principle, corpus-query rule, and plan reference.
-Session_arc_popup_b_to_frame.md is a prior Claude writing to the next Claude — treated as a peer briefing, not documentation.
-Handoff plan file is /home/mac/.claude/plans/purrfect-baking-ember.md.
+**12430** " ✅ **Docs/CLAUDE.md Routing Table: deploy_workflow_canary.md Added**
+`Dashboard/Tunet/Docs/deploy_workflow_canary.md` added to the Documentation Routing section of Dashboard/Tunet/Docs/CLAUDE.md, described as "Deploy workflow canary (last-known-good evidence)".
+Entry inserted between the build/deploy runbook and the visual defect ledger in the routing list.
 
-**11951** 8:57p 🔵 **Tunet Plan Corpus Structure and Prior Session State Confirmed via Memory Search**
-claude-mem search for "Page-Level Architecture Sub-Plan Mandate" returned 85 results across 55 observations, 26 sessions, and 4 prompts — indicating deep project history.
-May 7 prior session encoded Architecture-First and Corpus-Query Rule into Dashboard/Tunet/CLAUDE.md (observation #11946).
-May 7 prior session added Page-Level Architecture Sub-Plan Mandate as TOP PRIORITY to purrfect-baking-ember.md (observation #11928) and formalized the Four-Arc Mental Model (α→β→γ→δ) (observation #11931).
-Dashboard/Tunet/Docs/plans/ contains 24 files including active plans (cd11_closure_plan_2026_05_04.md, surface_driven_reset.md) and archived CD/SA/TI/T011A series.
-surface_driven_reset.md is 1409 lines; consistency_driver_method_plan.md is 1102 lines; cross_card_spec_layer_extraction_plan.md is 531 lines — these are the primary governance documents for Tunet surface work.
-Dashboard/Tunet/Docs/plans/CLAUDE.md is only 2 lines — a stub or pointer file, not a full governance doc.
-Execution order re-phased in prior session to Architecture-First (α→β→γ→δ) with Memory Hygiene queued (observation #11929).
+**12434** " ✅ **Cards/v3/CLAUDE.md Build & Deploy Gotchas: Dashboard Deploy Separation and Production Capture Rules Added**
+New gotcha: cards deploy via `tunet:deploy:lab`; dashboard composition deploys separately via `tunet:deploy:dashboards` (added 2026-05-22); always deploy cards first to avoid dashboards referencing undeployed card tags.
+Dashboard registry source-of-truth identified as `Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs`.
+New gotcha: production-facing card changes require M1 production-mirror capture via `npm run tunet:review:production` or `tunet:review:both`; production target is `tunet-overview/overview` (storage-mode).
 
-**11952** " 🔵 **Cross-Card Spec Layer CC Program Architecture — CC0→CC3 Four-Pass Structure**
-CC program renamed from CC1–CC4 to CC0–CC3 after adversarial review; CC0 absorbs the former CC4 (primitive adoption) and CC2a (em-anchor) as foundational prerequisites.
-INTERACTIVE_SURFACE is adopted by 0 of 14 cards; TILE_SURFACE by 1 of 14 (light_tile only); CTRL_SURFACE and DROPDOWN_MENU by 0 of 14 — all were added in CD2 but never consumed by cards.
-Only inbox, nav, and sensor cards have correct top-level `:host { font-size: 16px }` — 7 cards are missing it entirely; actions and rooms have it scoped inside @media only.
-Existing tunet_base.js already contains --r-* radius tokens (L70-74, px) and --type-* typography tokens (L173-178, desktop; L204-209, mobile) — the CC plan must reconcile these, NOT add parallel em families.
-10 prerequisites must be satisfied before CC0 activates: CD9 closed, nav rail bug status known, em-anchor live audit run, primitive import audit confirmed, 5 user path decisions locked, visual baseline captured, test suite at 655/655 green.
-CC0 → CC1 → CC2 → CC3 is strictly sequential; each pass requires explicit user authorization ("Activate CC0", "Activate CC1", etc.).
-Migration order within each pass is risk-derived: inbox → sensor → scenes → actions → climate → weather → rooms → light_tile → lighting (Tier 1), then speaker_grid → media → sonos (Tier 2 after CD9 close).
-Dual-gate validation required per card: Gate A (Claude Playwright at 4 breakpoints: 390×844, 768×1024, 1024×1366, 1440×900) AND Gate B (user live review and physical interaction).
-CC0 corpus baseline: tunet-architecture corpus locked at 500 observations / 234k tokens via files-filter on umbrella project. Accessible via curl to localhost:37777, NOT the MCP query_corpus tool (3s timeout unreliable).
+**12435** 12:03a ✅ **tunet_build_and_deploy.md npm Scripts Table Expanded with 7 Missing Scripts**
+Three dashboard-deploy scripts added to the table: `tunet:deploy:dashboards` (full), `tunet:deploy:dashboards:yaml` (yaml-only via SCP), `tunet:deploy:dashboards:storage` (storage-only via WS `lovelace/config/save`).
+`tunet:deploy:dashboards` supports `--mode`, `--dashboard`, `--from <n>`, `--dry-run` flags; declared independent of `tunet:deploy:lab`.
+Three production-review scripts added: `tunet:review:production` (routes from `production: true` registry entries), `tunet:review:both` (lab + production, manifest groups by target), `tunet:review:share` (capture + HA push notification).
+`tunet:review:share` table entry explicitly states it replaced SendUserFile-marker emission 2026-05-22 because SendUserFile does not reach iPhone in WSL-on-laptop Claude Code sessions.
+`test` script description updated to include "dashboard registry contract" in the test suite coverage list.
 
-**11953** " 🔵 **CD11 Status Card Closure Plan — Four Contract Gaps, v3.4.0 Target**
-tunet_status_card.js is at v3.3.0; CD11 closure bumps it to v3.4.0 with subtitle "CD11 closure: contract lock".
-Gap 1: STATUS_RECIPES must be self-contained — every recipe's defaults block must synthesize a complete runtime tile from shorthand + entity binding alone, with no other inputs required.
-Gap 2: getGridOptions() and getCardSize() must return variant-specific values; home_summary=4×(2-4 rows), room_row=strip (max_rows TBD with user), alarms=2-8 rows, custom=backward-compatible.
-Gap 3: getConfigForm() must expose layout_variant select and recipe_tiles array; raw tiles[] authoring remains YAML-only and wins over recipe_tiles in synthesis precedence.
-Recipe synthesis precedence locked: tiles[] > recipe_tiles[] > recipes[] > getStubConfigForVariant(layout_variant). When recipe_tiles AND recipes both present: recipe_tiles wins, console.warn issued.
-12 canonical recipes defined: home_presence, adaptive_count, manual_overrides, mode_selector (fixed: input_select.oal_active_configuration), boost_offset, inside_temperature, inside_humidity, next_sun_event (fixed: sun.sun entities), system_state, next_alarm, enabled_alarms, mode_ttl (fixed: timer.oal_mode_timeout).
-_applyVariantRecipeDefaults sequencing: recipe.defaults → variant transform → user overrides → runtime tile config.
-tunet_status_card.js is under G3S bugfix-only lock and excluded from CC0–CC3 passes.
-Live deploy requires explicit user authorization before npm run tunet:deploy:lab; CD11 can be declared "repo-side complete; live closure pending" if authorization not granted.
+**12436** " 🔵 **Tunet Cards v3 CLAUDE.md: Three-Layer Editor Architecture and Profile Contract**
+`Dashboard/Tunet/Cards/v3/` is the sole implementation authority since March 14, 2026.
+Visual baseline reference is `tunet_climate_card.js` — measured CSS values serve as the cross-card reference standard.
+Editor architecture uses a three-layer model: authoring model (editor surface, high-level intent) → synthesizer (setConfig normalization, infers defaults, handles legacy keys) → runtime model (`_config` after `setConfig()`, richer than editor exposes).
+Per-card documentation of all three layers is in `Dashboard/Tunet/Docs/cards_reference.md`; legacy key precedence rules are in `Dashboard/Tunet/Docs/legacy_key_precedence.md`.
+Profile contract was superseded April 2, 2026: migrated cards use `tile_size` config override when set, auto-resolve from container width otherwise, expose via `tile-size` attribute with `:host([tile-size="..."])` CSS blocks.
+Legacy profile code stays for untouched cards; migration is incremental per active card tranche.
+Known build gotcha: `npm run tunet:deploy:lab` deploys built bundles but browser cache can serve stale JS.
 
-**11954** " 🔵 **CD11 Visual Polish Plan — Six Themes, Empirical Typography Baselines**
-Empirical baseline at 1440px (build_20260505_063622Z): home_summary has 31% font-size spread (worst), custom has 42% spread (critical), room_row has "Environmental Boost" DOM-measured valOverflow=true.
-custom variant was rendering at 11.2px for text content — below the 12px readability floor; CD11 visual polish Theme B fixes this with --_tunet-status-value-min: 0.875em per variant.
-Theme A: OAL sensor consolidation — system_state → sensor.oal_real_time_monitor, lights_on → lights_on_formatted attribute on sensor.oal_system_status, new weather_modifier recipe added.
-Theme B: Per-variant CSS clamp() guardrails tighten typography; home_summary ceiling drops from ~18.4px to ~17px; all variants get explicit min/max via --_tunet-status-value-min and --_tunet-status-value-max.
-Theme C: Aux-action tap targets bumped to minimum 32×32px (2em×2.5em) via --_tunet-status-aux-min-h and --_tunet-status-aux-min-w tokens.
-Theme D: room_row phone behavior — 3-up wrap with container query internal stack flip at tile-width < 110px; @supports fallback for browsers without container queries.
-Theme E: room_row header title font bumped from 1em to 1.125em; orphan tile in info_only constrained to half-width via :last-child:nth-child(odd) selector.
-CD11 visual polish is subsidiary to closed CD11 contracts; does NOT touch tunet_base.js or other cards; operates only on tunet_status_card.js and its test/doc files.
-Closure requires: ≤20% font-size delta per variant, no DOM-measured valOverflow, all labels ≥12px, all interactive elements ≥32×32px, no horizontal scroll in room_row at phone width.
+**12437** " 🔵 **Root CLAUDE.md OAL Reference Material: Full Architecture, Pipeline, Entity Map, and Zone Config**
+OAL v13 brightness pipeline has 6 stages: CONFIG BASELINE → ENVIRONMENTAL OFFSET → SUNSET OFFSET → MANUAL OFFSET → CORE CALCULATION → APPLICATION across 6 zones in parallel.
+Core calculation formula: `FINAL = clamp(baseline + env + sunset + manual, zone_min, zone_max) * sensitivity`.
+6 active zones: main_living, kitchen_island, bedroom_primary, accent_spots, recessed_ceiling, column_lights — bedroom_primary and column_lights use Govee devices.
+6 key automations: `oal_core_adjustment_engine_v13`, `oal_configuration_manager_v13`, `oal_sunset_logic_unified_v13`, `oal_environmental_manager_v13`, `oal_movie_mode_handler_v13`, `oal_isolated_override_manager_v13`.
+ZEN32 B5 button: 1x = cycle `oal_current_config`, 2x = reset manual brightness offset, 3x = toggle Sleep/Adaptive mode; B2/B4 adjust brightness offset ±10.
+6 documented failure patterns: offset overflow (lights at 0%/100%), Govee purple (color temp &lt;2700K), stuck manual override, LED desync, cascade delay from sequential vs parallel execution, sleep mode ignored.
+OAL injection templates require discovered (not static) upstream/downstream dependency lists sourced from live grep of `packages/OAL_lighting_control_package.yaml`.
+Live state check requires querying: `input_select.oal_current_config`, `input_boolean.oal_system_paused`, `input_select.oal_active_configuration`.
+Cross-package dependencies connect OAL to `zen32_modal_controller_package.yaml` (button events, LED states) and `sonos_package.yaml` (volume mode, media state).
+Root CLAUDE.md total length confirmed at 593 lines.
 
-**11956** 8:58p 🔵 **Status Card Already at v3.12.0 — CD11 Closure Plan Superseded by Post-CD11 Polish Arc**
-tunet_status_card.js CARD_VERSION is '3.12.0' — the CD11 closure plan expected to target v3.3.0→v3.4.0, but closure work and extensive post-CD11 polish already shipped.
-Version progression from v3.4.0 to v3.12.0: v3.5.0 outside_weather composite, v3.6.0 recipe consolidation + signed_percent, v3.7.0 tap intent contract + variant-aware reset + home icon centering, v3.8.0 room_row mobile wrap, v3.9.0 typography uniformity + hover-clip, v3.10.0 row mobile font parity, v3.11.0 now_playing + Sonos popup chain, v3.12.0 array_length format + outside_weather conditional callout.
-91 of 92 status bespoke tests pass; the one failing test checks `**Version**: v3.4.0` in cards_reference.md but finds v3.12.0 — a stale version anchor in the CD11 cross-contract coverage test.
-All 14 recipes (home_presence, lights_on, manual_overrides, mode_selector, boost_offset, inside_temperature, outside_temperature, outside_weather, inside_humidity, next_sun_event, next_alarm, enabled_alarms, mode_ttl, now_playing) are implemented and their shorthand synthesis tests pass.
-IMPLEMENTED_LAYOUT_VARIANTS set contains all 6 variants: home_summary, home_detail, room_row, info_only, alarms, custom — no reserved variants remaining.
-STATUS_VARIANT_GRID_OPTIONS locked: home_summary={min_rows:2,max_rows:4}, home_detail={min_rows:3,max_rows:12}, room_row={min_rows:1,max_rows:2}, info_only={min_rows:2,max_rows:6}, alarms={min_rows:3,max_rows:8}, custom={min_rows:2,max_rows:12}.
-boost_offset recipe is composite — replaces former adaptive_count, weather_modifier, and system_state recipes; reads sensor.oal_system_status.total_modification with signed_percent format and dynamic label from dominant cause.
-now_playing recipe uses format: array_length on group_members attribute (not coordinator name) and has show_when guard on binary_sensor.sonos_playing_status.
+**12438** " ✅ **tunet_build_and_deploy.md: New "Dashboard Deploy" Section Added**
+New `## Dashboard Deploy` section inserted between the Credentials section and Known Pipeline Gaps, providing a full operational reference for `tunet:deploy:dashboards`.
+Dashboard registry inventory table documents 7 entries: `tunet-overview` (storage, production:true), `tunet-home` (storage, secondary), `tunet-suite` (yaml, fallback), `tunet-card-rehab-yaml` (yaml, rehab lab), `tunet-inbox-yaml` (yaml), `tunet-g2-lab-v3` (yaml), `tunet-suite-storage` (storage, POC).
+yaml-mode deploys via sshpass SCP to `/config/dashboards/`; storage-mode deploys via WebSocket `lovelace/config/save` with `lovelace/dashboards/create` if registration doesn't exist.
+SSH password passed via `-e` env-var SSHPASS (never in argv); WS auth uses `HA_LONG_LIVED_ACCESS_TOKEN` or `HA_TOKEN` fallback.
+Rationale for two independent chains stated: dashboards change less often than cards, so partial-failure recovery is easier with separated scopes.
+Contract test `dashboard_registry_contract.test.js` guards: source existence, YAML parse, yaml-mode target presence, storage-mode url_path, configuration.yaml registration, no storage-shadows-yaml conflicts, and consumer import drift detection.
 
-**11957** " 🔴 **Lighting Card Hold-Gate Restored and Drag Pill Dead-Centered (d18b99e)**
-_initTileDrag was missing longPressMs: 500 and onLongPress handler — hold-gesture to open entity more-info was broken, violating cards_reference.md §1 contract (corpus #11176, P0, CD6 reopened 2026-05-04).
-Pill position during drag: .l-tile.sliding .zone-val changed from top: 0.48em + transform: translate(-50%, -72%) to top: 50% + transform: translate(-50%, -50%) — pill now centers dead inside the tile rather than floating above it.
-Prior commit bec0839 had introduced the floating-above-tile position; d18b99e reverts it after user confirmed "centered within the card" is the intended behavior.
-Commit deployed live as build_20260508_021754Z before this session started.
-tunet_lighting_card.js is at v3.5.0 with createAxisLockedDrag from tunet_base.js.
+**12439** 12:04a ✅ **tunet_build_and_deploy.md Testing Section: dashboard_registry_contract.test.js Added**
+`dashboard_registry_contract.test.js` added to the Testing section's test suite list (11 tests, added 2026-05-22).
+Test guards: source path existence, YAML parse, yaml-mode→target, storage-mode→url_path, `Configuration/configuration.yaml` registration, no storage-shadows-yaml conflicts, consumers import the registry (drift guard).
 
-**11958** " 🔵 **Repository State: main 50 Commits Ahead of origin/main; AGENTS.md Has Uncommitted Cross-Cutting Principles**
-main is 50 commits ahead of origin/main with 0 behind — all local work, never pushed.
-HEAD commit fc02c6f: "docs(governance): sync handoff + plan + Tunet CLAUDE/AGENTS for 2026-05-08 session".
-AGENTS.md has uncommitted changes (+166/-188 lines) adding Cross-Cutting Principles section: Architecture-first, Corpus-query first, Four-arcs sequencing model (α/β/γ/δ), Continuous logging discipline.
-5 worktree directories have submodule-type changes (.claude/worktrees/crispy-fluttering-allen, harmonic-doodling-corbato, hazy-seeking-adleman, starry-moseying-dawn, valiant-meandering-lecun).
-Untracked files include: Backups/tunet_inbox/ remote backup, docs/memory_snapshot_2026_05_06/, docs/oal_inbox_post_soak_handoff_2026_05_06.md, docs/session_kickoff_template.md.
-All Tunet implementation files (tunet_status_card.js, tunet_lighting_card.js, status_bespoke.test.js, cards_reference.md, sections_layout_matrix.md, tunet-card-rehab-lab.yaml) are clean — no uncommitted changes.
-Most recent commits before HEAD: fix(tunet-lighting-card) hold-gate+pill, fix(tunet-inbox) dark mode, refactor(tunet) chrome drift fixes, docs(tunet) visual hierarchy contract, chore(config) adopt live baseline.
+**12440** " ✅ **Memory File reference_ha_deploy_scripts.md Updated: Fourth Deploy Path Added**
+Memory file name and description updated: "three governed deploy paths" → "four governed deploy paths (packages, integration, cards, dashboards)".
+Fourth row added to the deploy table: `tunet:deploy:dashboards` covers `Dashboard/Tunet/*.yaml` dashboard composition, independent of `tunet:deploy:lab`, with recommended cards-first ordering.
+Memory file path: `~/.claude/projects/-home-mac-HA-implementation-10/memory/reference_ha_deploy_scripts.md`.
 
-**11959** 9:00p 🔴 **Stale Version Anchor in status_bespoke.test.js Fixed — v3.4.0 → v3.12.0**
-status_bespoke.test.js line 1798 previously asserted `**Version**: v3.4.0` but cards_reference.md documents v3.12.0 — a stale anchor left over from CD11 closure planning.
-Fix: single-line patch changing `expect(section).toContain('**Version**: v3.4.0')` to `expect(section).toContain('**Version**: v3.12.0')` at line 1798.
-All three version references now agree: status_bespoke.test.js L1798=v3.12.0, cards_reference.md L1208=v3.12.0, tunet_status_card.js CARD_VERSION='3.12.0'.
-Status bespoke test suite result: 92/92 tests passing after fix (was 91/92 before).
-Fix is uncommitted — status_bespoke.test.js now shows as modified (M) alongside AGENTS.md in git status.
+S2038 CLAUDE.md quality audit and targeted edits — Edit 1 applied; session paused mid-edit-sequence to answer a clarifying question about which light entity "the new adaptive light" refers to (May 23, 12:04 AM)
+**12441** 12:05a 🟣 **New Memory Entry: reference_tunet_dashboard_inventory.md Created**
+New memory file created: `~/.claude/projects/-home-mac-HA-implementation-10/memory/reference_tunet_dashboard_inventory.md`.
+Canonical production view declared as `/tunet-overview/overview` (storage-mode); repo source `Dashboard/Tunet/tunet-overview-storage-config.yaml`.
+Registry at `Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs` is the single source of truth — consumed by deploy, visual review, and contract tests.
+Three unregistered dashboards noted in HA storage: `tunet-v2-test`, `tunet-card-rehab-lab` (storage variant) — flagged as likely UI-created artifacts pending cleanup.
+Entry documents why it exists: production target was declared wrong twice during initial registry seed (tunet-suite → tunet-home → tunet-overview); the gotcha is that production is user-owned, never to be inferred from filename heuristics.
+Agent instruction: default to registry for all dashboard questions; for production-facing card changes require M1 production-mirror capture; for iterative real-time review use tunet:review:share (NOT SendUserFile).
 
-**11981** 9:39p ⚖️ **tunet-home UI Interaction Model: Three-Tier Navigation Architecture**
-Three-tier interaction model defined: inline action (single tap), popup (quick editing over existing context), sub-page (full in-depth room view).
-Popup usage scoped to interactions that must surface over OTHER context — e.g., editing a value from the home dashboard without leaving it.
-Sub-pages are the pattern for all per-room views; inline controls preferred within sub-pages whenever possible.
-Living room sub-page planned at route /tunet-home/living, merging living and dining rooms.
-Living room sub-page sections: Media (TV + Apple TV + Sonos), Light Groups (Columns + Main Hue lights with per-light control), Sensors (temp/humidity card), Actions (Brighter, Dimmer, OAL Reset).
-Main Hue light group in living room includes: floor lamp, couch lamp, credenza accent, spot lights — all as individually controllable items.
-Climate control goes in a popup on home page, not a dedicated sub-page or section.
-Scenes surface on home dashboard directly, no separate scenes page.
-An 'info' page planned for aggregated sensor data: temp, humidity, OAL sensor values, climate use, lights on/off status.
-Alarms page may not be needed as a full page — only missing functionality is toggle on/off and skip-tomorrow for bedroom alarm.
-Settings page kept for OAL settings, Sonos, notifications, soft/hard reset.
-UI merge confirmed as fully completed prior to this planning session.
-Architecture plan document located at /home/mac/.claude/plans/tunet-page-architecture.md.
+**12442** " ✅ **MEMORY.md Index Updated: Deploy Paths and Dashboard Inventory Entries Added**
+MEMORY.md deploy entry updated: "three governed paths" → "four governed paths", adding `tunet:deploy:dashboards` summary line.
+New MEMORY.md entry added: "Tunet dashboard inventory + production URL" pointing to `reference_tunet_dashboard_inventory.md` with inline summary of canonical production URL, registry as source of truth, and SendUserFile ban.
+MEMORY.md also reveals stale content: the "13 cards" and old profile system entries lower in the file still reference the old count and state — not yet updated by this docs sync pass.
 
-**11983** " 🔵 **tunet-page-architecture.md: Full Dashboard Architecture Plan (697 lines)**
-Plan file at /home/mac/.claude/plans/tunet-page-architecture.md is 697 lines, created 2026-05-08 in synchronous dialogue with Mac.
-Primary design target is iPhone 390×844; tablet/desktop responsive after.
-Three-tier interaction model locked: inline action (single tap), popup (transient, keeps context), sub-page (deliberate workflow journey).
-Page taxonomy confirmed: Home (/tunet-home), Living Room (/tunet-home/living), Kitchen (/tunet-home/kitchen), Bedroom (/tunet-home/bedroom), Office (/tunet-home/office), Media (/tunet-home/media), Inbox (existing /tunet-inbox-yaml/inbox), Settings (/tunet-home/settings), Info (/tunet-home/info).
-NOT separate pages: Rooms overview (folded into Home), Alarms (folded into Bedroom), Scenes (on Home directly), Climate (popup only).
-Nav chrome: custom tunet-nav-card (not HACS) at Dashboard/Tunet/Cards/v3/tunet_nav_card.js; 5 top-level items: Home, Media, Inbox, Info, Settings. Per-room subviews NOT in nav — accessed only via Home rooms grid.
-RoomSubview generic template: (1) Media section, (2) Light groups section, (3) Sensors section, (4) Actions section, (5) optional Inbox preview — sections omitted when room lacks relevant entities.
-Home page sections: Status summary (4×2 tile matrix), Mode strip, Scenes row (All On/Off/Full Bright/Ready for Bed + trial global Brighter/Dimmer), Rooms grid (Kitchen/Living/Bed/Office), Now-playing chip (conditional), Weather companion, Nav footer.
-Living Room subview: merged Living+Dining; sections are Media (TV+AppleTV+Sonos), Light Groups (Columns + Main Hue lights: floor lamp, couch lamp, credenza accent, spot lights), Sensors (temp/humidity), Actions (Brighter/Dimmer/OAL Reset).
-Q-LR1 resolved: per-light control ships BOTH inline scroll grid AND hold-to-popup; Mac's daily use determines winner after ~1 week.
-Bedroom subview adds alarm controls section: toggle switch.sonos_alarm_bedroom + Skip Tomorrow (needs new bedroom-scoped automation — existing script.disable_tomorrows_sonos_alarms is whole-house).
-Skip Tomorrow semantic: disable bedroom alarm for tomorrow's instance only, auto-reenable; likely input_boolean.skip_bedroom_tomorrow + midnight-cleanup automation.
-Alarm toggle + Skip Tomorrow live in BOTH bedroom subview AND existing Browser Mod alarm-edit popup (Q-B3 resolved).
-Office has 4 lights (not 1 as OAL grep suggested); dedicated subview justified; entity IDs pending (Q-O2 open).
-Info page: glance-first top tile grid (4×2), per-room sensor sparklines, OAL system state decomposition, weather full, climate use stats; sparklines from tunet-sensor-card + plotly-graph-card for drill-down.
-Settings page: long-scroll collapsible sections for OAL config, Sonos, Notifications, System actions (Soft Reset/Hard Reset/Reload OAL); Hard Reset needs confirmation popup.
-Climate popup triggered from Home page inside_temperature status tile tap (Q-H2 resolved hypothesis); uses tunet-climate-card + Bubble Card 3.2 chassis.
-Tranche critical path: T019 (Bug A double-corner) → T020 (Home) → T021 (Living Room template) → T022 (Bedroom) → T024 (Climate popup + Sonos wiring) → T025/T026/T027 parallel → T028 (cleanup, LAST).
-T021 (Living Room) is the canonical RoomSubview template; T022/T023 apply the template to other rooms.
-CD11c (status_card info_only mode, defect E4) gates Info page top section but is not blocking — home_summary mode is an acceptable substitute.
-Migration strategy: /tunet-overview remains primary daily landing during build-up; cutover when /tunet-home reaches parity; cruft dashboards kept as reference examples until ALL composition work done (T028 last).
-Sonos now-playing popup already designed in lab at /sonos-popups; production wiring is the remaining work.
-Rooms tile interaction locked: tap = toggle lights, hold 400ms = navigate to room subview.
-Q-NAMING open: parent dashboard URL — keep /tunet-home or rename to /overall-home.
-Q-LR3 open: whether script.oal_global_manual_brighter/dimmer accept room-scoped lights: param; script.oal_room_reset existence unconfirmed.
-plotly-graph-card is already a Lovelace resource per memory.
+**12443** " 🔵 **Docs Sync Validation: Stale "13 cards" Cleared, Tests Pass, Production URL Propagated**
+"13 cards" / "esbuild 13" references: zero remaining in CLAUDE.md, Dashboard/Tunet/CLAUDE.md, AGENTS.md, tunet_build_and_deploy.md, Cards/v3/CLAUDE.md — stale count fully cleared from core docs.
+`tunet-overview` production URL now appears in 14 locations across the core docs — confirms propagation across CLAUDE.md, AGENTS.md, tunet_build_and_deploy.md, deploy_workflow_canary.md, Cards/v3/CLAUDE.md.
+Full test suite: 19 test files, 772 tests, all passed. Duration 14.58s. No regressions from docs sync changes.
 
-**11984** 9:40p 🔵 **Script and Entity Inventory Confirmed: OAL Scripts, Alarm Entities, and Light Entities Verified**
-script.oal_global_manual_brighter and script.oal_global_manual_dimmer confirmed in packages/oal_lighting_control_package.yaml (lines 6721, 6741).
-script.oal_reset_soft confirmed in packages/oal_lighting_control_package.yaml (line 6803); also called from script.oal_reset_global (line 7119).
-script.oal_reset_room (parameterized room reset, line 7155) confirmed — replaces hardcoded oal_reset_living_room; accepts room parameter; this is the script needed for per-room OAL Reset actions (resolves Q-LR3).
-script.disable_tomorrows_sonos_alarms confirmed in packages/sonos_package.yaml (line 1819); is whole-house and uses input_text.sonos_alarms_disabled_for_tomorrow (line 1851).
-switch.sonos_alarm_bedroom (alarm_id=42, 05:30 WEEKDAYS) and switch.sonos_alarm_bedroom_weekend (alarm_id=155) confirmed in sonos_package.yaml.
-Living room per-light entities confirmed: light.living_room_couch_lamp, light.living_room_floor_lamp, light.living_room_spot_lights, light.living_room_credenza_light, light.living_room_corner_accent.
-light.column_lights confirmed as the columns group entity.
-light.office_desk_lamp found in lab YAML — one of the office lights, confirming an office entity exists.
-Kitchen light entities confirmed: light.kitchen_main_lights, light.kitchen_island_pendants, light.kitchen_counter_cabinet_underlights (3 zones as expected).
-media_player.office is intentionally absent in sonos_package.yaml (comment at line 770) — no office speaker configured yet.
-climate.dining_room is the primary thermostat entity for the living/dining zone.
-sensor.dining_room_temperature and sensor.dining_room_humidity are the sensor entities for the living/dining room.
+**12444** 12:06a 🔵 **Tunet Build/Validation Shortcuts: Full Command Set Including Dashboard Deploy and Review Pipeline**
+Build covers 15 cards (not 13 as noted in OAL reference material) via `npm run tunet:build` → `Dashboard/Tunet/Cards/v3/dist/`.
+`npm run tunet:deploy:lab` builds + SCPs card JS to HA and bumps Lovelace resource `?v=` query string.
+Dashboard deploy commands added 2026-05-22 (β-plumbing tranche): `tunet:deploy:dashboards` (yaml+storage), `tunet:deploy:dashboards:yaml`, `tunet:deploy:dashboards:storage` — driven by `tunet_dashboard_registry.mjs`.
+`tunet:deploy:dashboards` has a pre-flight that validates ALL sources before any push, with `--from <n>` resumability on partial failure.
+Review pipeline has 5 commands: `tunet:review` (full sweep), `tunet:review:smoke` (390×844 fast pass), `tunet:review:changed` (git-working-context cards only), `tunet:review:production` (production: true registry entries), `tunet:review:both` (lab+production).
+`tunet:review:share` fires HA push notification via `notify.tunet_inbox_all_devices` with `data.url` deep-link; replaced SendUserFile-marker emission 2026-05-22 because SendUserFile doesn't reach iPhone in WSL-on-laptop Claude Code sessions.
+Vitest suite covers 19 files with 772+ tests (`npm test`).
+Lab dashboard URL: `http://10.0.0.21:8123/tunet-card-rehab-yaml/lab`; Production URL: `http://10.0.0.21:8123/tunet-overview/overview` (storage-mode, backed up to `Dashboard/Tunet/tunet-overview-storage-config.yaml`).
+Section title remains "Tunet Build / Validation Shortcuts" — confirming the Edit 1 rename to include OAL deploy has not yet been applied.
 
-**11985** " 🔵 **status_card info_only and room_row Modes Are Already Implemented (Plan Had Stale CD11c "Unbuilt" Status)**
-tunet_status_card.js contains info_only and room_row as named layout variants at lines 41-60 with full CSS, render logic, and grid options.
-cards_reference.md explicitly states "CD11 now has six landed status roles: home_summary, home_detail, room_row, info_only, alarms, and custom. Historical CD11a language about later modes being pending is superseded as of 2026-05-05."
-The architecture plan at /home/mac/.claude/plans/tunet-page-architecture.md incorrectly marks CD11c (info_only mode) as "unbuilt — gating defect E4" — this is stale.
-info_only mode is passive by default; tiles only become interactive when author explicitly provides tap_action, navigate_path, or action_entity.
-room_row mobile behavior: at viewport ≤767px, horizontal scroll layout wraps to vertical-stack grid tiles (X3 v3.8.0 change).
-T029 in the tranche plan (2 days to build CD11c) can be removed or deprioritized — the work is already done.
-Info page top tiles can use info_only mode immediately without waiting for any prerequisite — the E4 gating defect is not a real blocker.
+**12445** " ✅ **Full Docs Sync Committed and Pushed: commit aa47f5c**
+Commit `aa47f5c` pushed to `origin/main` (interal-ha-dev.git), advancing from `5f47137`.
+6 files changed, 113 insertions, 12 deletions: CLAUDE.md, Dashboard/Tunet/AGENTS.md, Dashboard/Tunet/CLAUDE.md, Dashboard/Tunet/Cards/v3/CLAUDE.md, Dashboard/Tunet/Docs/CLAUDE.md, Dashboard/Tunet/Docs/tunet_build_and_deploy.md.
+No code files touched — only documentation and memory files. 772/772 tests continue to pass.
+Commit message documents all changes: card count correction (13→15), 6 missing npm scripts added to shortcut blocks, production URL added, AGENTS.md §6 production capture rules, Cards/v3/CLAUDE.md deploy chain separation, tunet_build_and_deploy.md Dashboard Deploy section + test suite entry.
+Memory files updated in the same session (not in this commit): reference_ha_deploy_scripts.md (3→4 paths), reference_tunet_dashboard_inventory.md (new), MEMORY.md index.
 
-**11986** " 🔵 **Nav Architecture Updated: 6-Item Nav with "Rooms" Popup Added**
-Nav now has 6 items: Home, Rooms (popup), Media, Inbox, Info, Settings — not 5 as in the initial plan read.
-Q-N3 resolved: "Rooms" nav item opens a popup with 4-room grid; tap a room → dismiss + navigate.
-Option B (reverse-dropdown anchored above bottom nav bar) is preferred over Option A (centered Bubble Card popup) for mobile-native feel.
-The Rooms popup eliminates a 3-tap journey (nav→Home→grid→Bedroom) and replaces it with 2 taps (nav→Rooms popup→Bedroom).
-Per-room subviews are accessible via TWO paths: (a) Home rooms grid hold-to-navigate, (b) nav Rooms popup → tap room.
-tunet-rooms-card tile mode interaction confirmed in source: tap (<400ms) = toggle lights, hold (≥400ms) = navigate via hold_action or navigate_path.
-tunet-nav-card _updateActive() uses startsWith() prefix matching; subview_paths trigger a "Rooms" active state on the nav.
+**12446** " ✅ **Edit 1 Applied: OAL Deploy Commands and Two Critical Gotchas Added to Root CLAUDE.md**
+New "OAL packages" block inserted after the inbox integration section in `CLAUDE.md` at approximately line 205.
+Documents the canonical OAL deploy command: `bash skills/ha-safe-package-deploy/scripts/deploy_packages.sh` — backs up live packages to `Backups/<pkg>_<timestamp>.yaml`, git-commits backups, SCPs, byte-size-verifies. Has `--dry-run` (pair with `--assume-remote-match` for full preview).
+Gotcha 1 documented: `homeassistant.reload_all` does NOT cross-reload all input-helper domains. Newly-added input_booleans produce `unknown != off` condition failures (silent fail-closed). Required explicit sequence: `input_boolean.reload` → `input_number.reload` → `input_select.reload` → `automation.reload` / `script.reload` / `template.reload`.
+Gotcha 1 burn case recorded: `oal_office_bed_warm_pin_kill_switch` was missing after deploy on 2026-05-22, causing the augmentation automation to silently skip.
+Gotcha 2 documented: Adaptive Lighting custom integration does NOT re-import `lights:` list for existing config entries on reload — existing entries are immutable from YAML. Options: `ha_delete_config_entry(entry_id=..., confirm=true)` OR `ha_restart()`.
+Gotcha 2 burn case recorded: office AL kept old 4-light membership across reloads on 2026-05-22.
+New CLAUDE.md length increases from 593 to approximately 598 lines after this edit.
+
+S2037 Full docs sync for implementation_10 Tunet project — correcting stale references and propagating 2026-05-22 β-plumbing tranche changes into all load-bearing docs (May 23, 12:06 AM)
+S2039 User clarified that hs_color format was used instead of CCT for bed light augmentation — confirming CCT is accepted but visually unsatisfying on this hardware (May 23, 12:09 AM)
+**Investigated**: The bed lights' supported_color_modes were examined, confirming they support both "color_temp" and "hs" modes. A prior test verified that color_temp_kelvin: 2700 successfully set color_mode=color_temp and color_temp_kelvin=2699 on the hardware.
+
+**Learned**: Tuya WallSmart bed lights accept CCT commands without error, but their WW+CW LED channel mapping renders even the warmest declared CCT (2000K) as neutral-white rather than warm-amber. The hs/RGB mode bypasses the CCT-to-LED-channel translation entirely, allowing direct addressing of the warm-LED channel — hs [22, 100] produces deep amber while color_temp 2000K produces neutral-white.
+
+**Completed**: Explained why hs was chosen over CCT for the warm-light augmentation. Confirmed the current CLAUDE.md "Hardware quirks reference" draft correctly states: "Tuya WallSmart bed lights: render 2700K CCT as neutral-white; need hs/RGB augmentation for visible warmth" — using "render as neutral-white" rather than "don't accept CCT."
+
+**Next Steps**: User is deciding whether to expand the CLAUDE.md hardware quirks entry to make the CCT-accepted-but-visually-unsatisfying distinction more explicit, then continue with Edits 2-5 of the pending CLAUDE.md documentation update.
 
 
-Access 938k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 143k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

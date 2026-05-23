@@ -171,6 +171,14 @@ Current priority:
 - keep `CD10` nav desktop coexistence/offset cleanup deferred until the rooms/surface composition direction is more settled
 - resume surface assembly only after the card families are stable enough for deliberate composition
 
+## Current OAL Work
+
+- **Active OAL sub-plan**: `~/.claude/plans/office-corner-accent-relocation.md` — Campaign A (office area onboard + corner_accent relocation master → office). A0-A3 complete; A2-iii engine wiring shipped 2026-05-22; soak in progress. Campaign B (column_accent into column_lights AL) and Campaign C (dashboards + docs + e2e) pending.
+- **Bed lights deep-amber sub-plan**: `~/.claude/plans/office-bed-lights-deep-amber.md` — single-AL + augmentation via `manual_control: "color"` per-attribute lock. Phase 1 shipped 2026-05-22. Open: Phase 3 (eliminate 2s autoreset flash — Mac to choose Option A/B/C), Phase 4 (sleep mode verification), Phase 5 (sun-aware variation), Phase 6 (OAL_ENTITY_REFERENCE.md doc update).
+- **Office area entities**: `light.office_desk_lamp` (Hue), `light.office_bed_light_left` + `light.office_bed_light_right` (Tuya WallSmart), `light.master_bedroom_corner_accent_govee` (Govee, moved from master). All 4 in `switch.adaptive_lighting_office` pinned 2700/2700K. Bed pair color augmented to hs [22, 100] by `automation.oal_v13_office_bed_lights_warm_pin`.
+- **Master bedroom post-A3**: `light.master_presence` only in `switch.adaptive_lighting_bedroom_primary`. `light.master_bedroom_column_accent` is physically in the master bedroom but orphaned from any AL — Campaign B target (adopt into column_lights AL with full RGB sunrise/sunset lifecycle).
+- **Kill switch**: `input_boolean.oal_office_bed_warm_pin_kill_switch` (default off). Toggle ON to disable bed-pair augmentation; AL's CCT path takes over and bed pair reverts to neutral-white. Operator escape hatch only.
+
 ## Tunet Authority Snapshot
 
 - `Dashboard/Tunet/Cards/v3/` = sole implementation authority
@@ -201,6 +209,11 @@ Visual review:
 
 Inbox integration:
 - `npm run tinbox:deploy:integration` — SCP backend `custom_components/tunet_inbox`. Frontend ships via `tunet:deploy:lab`; both must stay in sync per `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` "Known Pipeline Gaps" (TINBOX-DEPLOY-1).
+
+OAL packages:
+- `bash skills/ha-safe-package-deploy/scripts/deploy_packages.sh` — deploys ALL local `packages/*.yaml` to HA. Backs up live first to `Backups/<pkg>_<timestamp>.yaml`, git-commits each backup as an audit trail, SCPs local → remote, byte-size-verifies. Has `--dry-run` (pair with `--assume-remote-match` for full preview; bare `--dry-run` short-circuits the remote-file query).
+- **After OAL deploy, reload sequence matters.** `homeassistant.reload_all` does NOT cross-reload all input-helper domains; condition gates referencing newly-added input_booleans will silently fail-closed with `unknown != off`. When YAML adds new helpers, call domain reloads explicitly: `input_boolean.reload`, `input_number.reload`, `input_select.reload`, then `automation.reload` / `script.reload` / `template.reload` last (so they see the new helpers). Burned 2026-05-22 — `oal_office_bed_warm_pin_kill_switch` missing after deploy → augmentation automation silent-skipped.
+- **Adaptive Lighting custom integration has a YAML-reimport limitation.** Existing AL config entries do NOT re-import their `lights:` list from YAML on reload — entries become immutable once created. New YAML blocks (new `name:` values) DO get created on reload as fresh entries. To realize YAML changes to an EXISTING AL block's membership: either `ha_delete_config_entry(entry_id=..., confirm=true)` so it re-imports from YAML on next setup, OR `ha_restart()`. Burned 2026-05-22 — office AL kept old 4-light membership across reloads.
 
 Test + live dashboards:
 - `npm test` — vitest suite (19 files, 772+ tests)
@@ -294,6 +307,29 @@ Global principles apply first. These extend them for OAL:
    SYMPTOM: Regressions of previously solved problems
    EXTENDS: Global Principle 1 (REASONING > CONCLUSIONS)
 ```
+
+---
+
+## Key OAL Techniques
+
+**Per-attribute manual_control lock** (AL custom integration):
+
+`adaptive_lighting.set_manual_control` accepts a string for selective locking:
+- `manual_control: true` → locks BOTH brightness and color (full lock)
+- `manual_control: "color"` → locks COLOR only; AL keeps adapting brightness
+- `manual_control: "brightness"` → locks BRIGHTNESS only; AL keeps adapting color
+- `manual_control: false` → clears all flags (resets)
+- Any other string (incl. `"color_temp"`) silently maps to false (footgun)
+
+Source: `custom_components/adaptive_lighting/adaptation_utils.py:279-289`. Callable via YAML/automation/script; the Developer Tools UI selector is boolean-only.
+
+Use case: when hardware renders AL's CCT pin incorrectly, augment with `light.turn_on` (hs/RGB) + `set_manual_control: "color"`. AL keeps brightness adapting; color stays where augmentation pushed. See `automation.oal_v13_office_bed_lights_warm_pin` for the canonical implementation.
+
+**Hardware quirks reference:**
+
+- **Tuya WallSmart bed lights**: accept CCT (color_temp 2000-6500K declared) but the driver's CCT→LED-channel mapping renders even the warmest 2000K as neutral-white visually. To reach deep amber, bypass CCT via `hs_color` (e.g., hs [22, 100] = rgb [255, 102, 0]).
+- **Govee Matter**: actual color_temp range is 2700-6500K (NOT the reported 2000-9000K); going below 2700K triggers purple/pink (Invariant #2). Floor is 2700K.
+- **Hue ambiance**: clean CCT path 2202-6535K; no augmentation needed. Renders 2700K as warm amber correctly.
 
 ---
 
@@ -493,13 +529,15 @@ adaptive_lighting.change_switch_settings (6 zones parallel)
 | Entity | Likely Consumers | Search Hint |
 |--------|------------------|-------------|
 | `input_select.oal_current_config` | configuration_manager | grep "oal_current_config" |
-| `input_number.oal_manual_brightness_offset` | core_engine | grep "manual_brightness" |
-| `input_number.oal_brightness_environmental_offset` | core_engine | grep "environmental_offset" |
-| `input_number.oal_sunset_brightness_offset` | core_engine | grep "sunset.*offset" |
+| `input_number.oal_manual_offset_<zone>_brightness` | core_engine, per-zone | grep "oal_manual_offset_" — 8 instances (main_living, kitchen_island, kitchen_undercabinet, bedroom_primary, accent_spots, recessed_ceiling, column_lights, office) |
+| `input_number.oal_offset_environmental_brightness` | core_engine, environmental_manager | grep "environmental_offset" |
+| `input_number.oal_offset_sunset_brightness` | core_engine, sunset_logic | grep "sunset.*offset" |
 | `input_select.oal_active_configuration` | core_engine, config_manager, zen32 | grep "oal_active_configuration" |
-| `group.oal_sleep_mode_switches` | core_engine, config_manager | grep "oal_sleep_mode_switches" |
+| `group.oal_control_switches` | core_engine, pause logic | grep "oal_control_switches" — should list 8 AL switches incl. office |
+| `group.oal_sleep_mode_switches` | core_engine, config_manager | grep "oal_sleep_mode_switches" — should list 8 sleep_mode switches incl. office |
 | `input_boolean.oal_movie_mode_active` | movie_handler | grep "movie_mode" |
 | `input_boolean.oal_system_paused` | all automations | grep "system_paused" |
+| `input_boolean.oal_office_bed_warm_pin_kill_switch` | `oal_v13_office_bed_lights_warm_pin` automation | toggle ON to disable bed-pair augmentation |
 
 ---
 
@@ -553,12 +591,14 @@ adaptive_lighting.change_switch_settings (6 zones parallel)
 
 | Zone | Lights | Color Temp | Sensitivity | Govee? |
 |------|--------|------------|-------------|--------|
-| main_living | 6 | 2250-2950K | 1.0 | No |
+| main_living | 5 (post-2026-05-22; desk_lamp moved to office) | 2000-3150K | 1.0 | No |
 | kitchen_island | 1 | 2000-4000K | 1.0 | No |
-| bedroom_primary | 2 | 2700K fixed | 0.5 | **Yes** |
+| kitchen_undercabinet | 1 | 2000-4000K | 1.0 | No |
+| bedroom_primary | 1 (post-2026-05-22; corner_accent moved to office) | 2700K fixed | 0.5 | No |
 | accent_spots | 2 | 2000-6500K | 0.8 | No |
 | recessed_ceiling | 2 | 2700K fixed | 0.6 | No |
-| column_lights | 2 | 2700-6500K | 0.7 | **Yes** |
+| column_lights | 2 (column_accent join planned in Campaign B) | 2700-2750K | 0.7 | **Yes** |
+| office | 4 (desk_lamp + bed_left + bed_right + corner_accent_govee) | 2700K fixed CCT; bed pair augmented to hs [22, 100] deep amber via `oal_office_bed_warm_pin_v13` | 0.5 | **Yes** (corner_accent) |
 
 ---
 

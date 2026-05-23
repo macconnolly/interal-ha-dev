@@ -544,7 +544,15 @@ views:
           icon: speaker
           accent: green
       - type: custom:tunet-alarm-card
-        name: Alarms
+        title: Alarms
+        show_quick_actions: true
+        alarms:
+        - entity: switch.sonos_alarm_bedroom
+          label: Weekdays
+          room: bedroom
+        - entity: switch.sonos_alarm_bedroom_weekend
+          label: Weekend
+          room: bedroom
       - type: custom:tunet-actions-card
         variant: compact
         actions:

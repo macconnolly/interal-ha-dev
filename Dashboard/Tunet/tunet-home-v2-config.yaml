@@ -174,52 +174,82 @@ views:
           attribute: active_zonal_overrides
           operator: gt
           state: 0
+  # Lighting functional zones grid (T0.5 add — matches Mac's image 2 reference)
+  # Each tile = a functional zone with direct brightness control; tap = toggle,
+  # long-press / drag = brightness. Zones map to OAL zone groups.
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-lighting-card
+      name: Lighting
+      surface: card
+      layout: grid
+      tile_size: standard
+      use_profiles: true
+      columns: 2
+      expand_groups: false
+      show_adaptive_toggle: false
+      primary_entity: sensor.oal_system_status
+      zones:
+      - entity: light.main_living_lights
+        name: Living
+        icon: weekend
+      - entity: light.kitchen_main_lights
+        name: Kitchen
+        icon: kitchen
+      - entity: light.bedroom_primary_lights
+        name: Bedroom
+        icon: bed
+      - entity: light.accent_spots_lights
+        name: Spots
+        icon: highlight
+      - entity: light.recessed_ceiling_lights
+        name: Ceiling
+        icon: light
+      - entity: light.column_lights
+        name: Columns
+        icon: view_column
+      grid_options:
+        columns: full
+        rows: auto
+  # Rooms slim rows (T0.5 swap — matches Mac's image 1 "Overview Slim" reference)
+  # Each row = one physical room with state + 3 light chips + power + chevron.
+  # Tap on row body = open #room-<name> Bubble popup; chevron drills into subview.
   - type: grid
     column_span: 4
     cards:
     - type: custom:tunet-rooms-card
       name: Rooms
-      layout_variant: row
+      layout_variant: slim
       tile_size: compact
+      use_profiles: true
       grid_options:
-        columns: 12
-        rows: 8
+        columns: full
+        rows: auto
       rooms:
-      - name: Living
-        icon: weekend
+      - name: Living Room
+        icon: sofa
+        temperature_entity: sensor.dining_room_temperature
         tap_action:
           action: navigate
           navigation_path: '#room-living-room'
         lights:
         - entity: light.living_room_couch_lamp
-          name: Couch
           icon: table_lamp
         - entity: light.living_room_floor_lamp
-          name: Floor
           icon: floor_lamp
         - entity: light.living_room_spot_lights
-          name: Spots
-          icon: flashlight_on
-        - entity: light.living_room_credenza_light
-          name: Credenza
-          icon: wb_incandescent
-        - entity: light.living_column_strip_light_matter
-          name: Column
-          icon: view_column
+          icon: highlight
       - name: Kitchen
         icon: kitchen
+        humidity_entity: sensor.kitchen_humidity
         tap_action:
           action: navigate
           navigation_path: '#room-kitchen'
         lights:
         - entity: light.kitchen_island_pendants
-          name: Island
           icon: light
-        - entity: light.kitchen_main_lights
-          name: Main
-          icon: light_group
         - entity: light.kitchen_counter_cabinet_underlights
-          name: Under
           icon: linear_scale
       - name: Dining
         icon: restaurant
@@ -228,10 +258,8 @@ views:
           navigation_path: '#room-dining-room'
         lights:
         - entity: light.dining_room_spot_lights
-          name: Spots
-          icon: flashlight_on
+          icon: highlight
         - entity: light.dining_column_strip_light_matter
-          name: Column
           icon: view_column
       - name: Bedroom
         icon: bed
@@ -240,14 +268,9 @@ views:
           navigation_path: '#room-bedroom'
         lights:
         - entity: light.master_presence
-          name: Main
           icon: light
         - entity: light.master_bedroom_corner_accent_govee
-          name: Accent
           icon: nightlight
-        - entity: light.master_bedroom_table_lamps
-          name: Lamps
-          icon: lamp
       - name: Office
         icon: desktop_windows
         tap_action:
@@ -255,18 +278,22 @@ views:
           navigation_path: '#room-office'
         lights:
         - entity: light.office_desk_lamp
-          name: Desk
           icon: lamp
         - entity: light.office_bed_lights
-          name: Office Bed
           icon: bed
+  # Climate — own section (T0.5 unbundle — was sharing section with rooms which
+  # caused phone-width crowding per Mac feedback "climate only half width on mobile")
+  - type: grid
+    column_span: 4
+    cards:
     - type: custom:tunet-climate-card
       entity: climate.dining_room
       name: Climate
       humidity_entity: sensor.kitchen_humidity
       grid_options:
-        columns: 12
-        rows: 8
+        columns: full
+        rows: auto
+  # Weather — own section
   - type: grid
     column_span: 4
     cards:
@@ -282,15 +309,21 @@ views:
       forecast_days: 5
       forecast_hours: 6
       grid_options:
-        columns: 12
-        rows: 6
+        columns: full
+        rows: auto
+  # Now Playing — own section, renamed from "Sonos" for discoverability
+  # (T0.5 — Mac: "no obvious Now Playing entry tile to tap"). Tap = open
+  # #media-living-room Bubble Card popup.
+  - type: grid
+    column_span: 4
+    cards:
     - type: custom:tunet-media-card
       entity: media_player.living_room
-      name: Sonos
+      name: Now Playing
       show_progress: true
       grid_options:
-        columns: 12
-        rows: 6
+        columns: full
+        rows: auto
       tap_action:
         action: navigate
         navigation_path: '#media-living-room'

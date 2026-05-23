@@ -88,10 +88,10 @@ export const TUNET_DASHBOARD_REGISTRY = Object.freeze([
   {
     source: 'Dashboard/Tunet/tunet-home-v2-config.yaml',
     mode: 'storage',
-    url_path: 'tunet-home-v2',
+    url_path: 'tunet-home-preview',
     production: true,
     description:
-      "Tunet Home v2 — production parallel-run candidate (D8 default per FINAL spec). Sections grid + Bubble Card 3.2.1 popups for rooms + media + OAL. Per-card interaction contract locked in the YAML header. Set production:true 2026-05-23 to enable visual review production-mirror coverage during parallel-run. Cutover from tunet-overview requires Mac's explicit M3 stamp + Mac-awake-to-grade window; then flip production:false on tunet-overview.",
+      "Tunet Home preview — moved from /tunet-home-v2 to /tunet-home-preview on 2026-05-23 to free the v2 URL for the harmonic-bouncing-cosmos Plan F rebuild. Same underlying YAML (tunet-home-v2-config.yaml) — only the public URL changed. Sections grid + Bubble Card 3.2.1 popups for rooms + media + OAL. Per-card interaction contract locked in the YAML header. production:true keeps visual review production-mirror coverage active. Cutover from tunet-overview still requires Mac's explicit M3 stamp + Mac-awake-to-grade window.",
   },
 ]);
 

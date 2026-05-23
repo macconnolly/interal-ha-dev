@@ -183,7 +183,7 @@ views:
       tile_size: compact
       grid_options:
         columns: 12
-        rows: auto
+        rows: 8
       rooms:
       - name: Living
         icon: weekend
@@ -266,7 +266,7 @@ views:
       humidity_entity: sensor.kitchen_humidity
       grid_options:
         columns: 12
-        rows: auto
+        rows: 8
   - type: grid
     column_span: 4
     cards:
@@ -283,14 +283,14 @@ views:
       forecast_hours: 6
       grid_options:
         columns: 12
-        rows: auto
+        rows: 6
     - type: custom:tunet-media-card
       entity: media_player.living_room
       name: Sonos
       show_progress: true
       grid_options:
         columns: 12
-        rows: auto
+        rows: 6
       tap_action:
         action: navigate
         navigation_path: '#media-living-room'
@@ -1155,7 +1155,7 @@ views:
           surface: section
           layout: grid
           columns: 2
-          tile_size: large
+          tile_size: standard
           zones:
             - entity: light.living_room_couch_lamp
               name: Couch
@@ -1168,7 +1168,10 @@ views:
               icon: flashlight_on
             - entity: light.living_room_credenza_light
               name: Credenza
-              icon: light
+              icon: wb_incandescent
+            - entity: light.living_column_strip_light_matter
+              name: Column
+              icon: view_column
     - type: grid
       column_span: 4
       cards:
@@ -1185,6 +1188,7 @@ views:
                   - light.living_room_floor_lamp
                   - light.living_room_spot_lights
                   - light.living_room_credenza_light
+                  - light.living_column_strip_light_matter
             - name: All Off
               icon: power_settings_new
               accent: amber
@@ -1195,6 +1199,7 @@ views:
                   - light.living_room_floor_lamp
                   - light.living_room_spot_lights
                   - light.living_room_credenza_light
+                  - light.living_column_strip_light_matter
             - name: Brighter
               icon: add
               accent: amber
@@ -1263,7 +1268,7 @@ views:
           surface: section
           layout: grid
           columns: 3
-          tile_size: large
+          tile_size: standard
           zones:
             - entity: light.kitchen_island_pendants
               name: Island
@@ -1360,7 +1365,7 @@ views:
           surface: section
           layout: grid
           columns: 2
-          tile_size: large
+          tile_size: standard
           zones:
             - entity: light.dining_room_spot_lights
               name: Spots
@@ -1443,11 +1448,11 @@ views:
           surface: section
           layout: grid
           columns: 3
-          tile_size: large
+          tile_size: standard
           zones:
             - entity: light.master_presence
               name: Main
-              icon: bed
+              icon: light
             - entity: light.master_bedroom_corner_accent_govee
               name: Accent
               icon: nightlight
@@ -1557,7 +1562,7 @@ views:
           surface: section
           layout: grid
           columns: 2
-          tile_size: large
+          tile_size: standard
           zones:
             - entity: light.office_desk_lamp
               name: Desk

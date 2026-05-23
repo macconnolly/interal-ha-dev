@@ -85,6 +85,14 @@ export const TUNET_DASHBOARD_REGISTRY = Object.freeze([
     description:
       'Storage-mode mirror of tunet-suite. Original Phase 2 verification target for the WebSocket lovelace/config/save dispatch path. Retained as a known-good storage-mode reference dashboard.',
   },
+  {
+    source: 'Dashboard/Tunet/tunet-home-v2-config.yaml',
+    mode: 'storage',
+    url_path: 'tunet-home-v2',
+    production: false,
+    description:
+      'Tunet Home v2 — net-new production-target candidate built 2026-05-23 (Plan F). Sections grid + Bubble Card 3.2.1 popups for rooms + media + OAL. Per-card interaction contract locked in the YAML header. Parallel-run with tunet-overview until Mac approves cutover; then flip production:true here and production:false on tunet-overview.',
+  },
 ]);
 
 // ─── Derived exports ────────────────────────────────────────────────────

@@ -34,11 +34,7 @@ Required reading at session start, IN THIS ORDER:
 4. `/home/mac/HA/implementation_10/CLAUDE.md` (project operating contract,
    especially the "Pre-Commit User-Perspective Review (Non-Negotiable)"
    block and the OAL section's invariants + reload-sequence guidance)
-5. `/home/mac/HA/implementation_10/Dashboard/Tunet/AGENTS.md` — the scoped
-   Tunet contract. MUST be read before any Tranche 5 or 7 work (they
-   edit `Dashboard/Tunet/**`). Review pack, production-mirror capture
-   mandate, four-breakpoint validation.
-6. `/home/mac/HA/implementation_10/docs/plans/hvac-stats-and-oal-mode-reset-fixes-2026-05-23.md`
+5. `/home/mac/HA/implementation_10/docs/plans/hvac-stats-and-oal-mode-reset-fixes-2026-05-23.md`
    (THE MASTER PLAN — stamped, sequenced, with §9-10 corrections that
    AUTHORITATIVELY OVERRIDE any earlier instructions in §§1-8 where they
    conflict. Read §§9-10 LAST so they're the freshest in context.)
@@ -83,9 +79,6 @@ NEVER run `npm run tunet:deploy:dashboards:storage` unscoped — it pushes ALL s
 npm run tunet:deploy:dashboards:storage -- --dashboard tunet-home-preview
 ```
 For Tranche 7's cosmos edit (see C5), scope to `tunet-home-cosmos` in a separate deploy command.
-
-**C3 [P0] — Dashboard/Tunet/AGENTS.md added to required reading**
-Before any Tranche 5 or 7 work, you MUST have read `/home/mac/HA/implementation_10/Dashboard/Tunet/AGENTS.md` (already in the required-reading list above).
 
 **C4 [P1] — Tranche 3 column lifecycle uses `wait_template`, NOT hard skip**
 Threshold-triggered (one-shot) automations like `oal_column_lights_prepare_rgb_mode_v13` and `oal_column_lights_morning_exit_rgb_v13` (line 3034) fire on sun-elevation crossings — they get ONE chance. A `condition: state oal_config_transition_active state: off` skip would make them silently miss the crossing.

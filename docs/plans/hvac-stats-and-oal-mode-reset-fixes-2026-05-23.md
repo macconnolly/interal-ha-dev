@@ -908,11 +908,9 @@ npm run tunet:deploy:dashboards:storage -- --dashboard tunet-home-preview
 
 NEVER run the unscoped form during T1.6 execution. If a different dashboard genuinely needs to deploy (e.g., Tranche 7 also touches `tunet-home-cosmos` per §9.5), scope to that dashboard explicitly.
 
-### 9.3 [P0] Dashboard/Tunet/AGENTS.md must be in required reading
+### 9.3 [REMOVED 2026-05-23 4:42pm] — Mac elected NOT to require the Tunet scoped governance contract for T1.6 execution
 
-Tranches 5 and 7 edit `Dashboard/Tunet/**` files. The scoped governance contract at `/home/mac/HA/implementation_10/Dashboard/Tunet/AGENTS.md` is canonical for Tunet work (review pack, production-mirror capture, four-breakpoint validation, M1-M7 mirror).
-
-**Executor instruction**: BEFORE starting any Tunet-touching tranche, read `Dashboard/Tunet/AGENTS.md` and the review pack it mandates. Add to the required-reading list.
+Originally this section added `Dashboard/Tunet/AGENTS.md` to required reading. Mac removed it: "I don't want to do that whole scoping of it." The base M1-M7 contract from project CLAUDE.md still applies; the heavier Tunet-specific ritual (full review pack, four-breakpoint validation gate, etc.) is opt-out for this execution.
 
 ### 9.4 [P1] Tranche 3 — column RGB lifecycle automations need a different guard pattern
 

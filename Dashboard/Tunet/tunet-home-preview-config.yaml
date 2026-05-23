@@ -309,8 +309,8 @@ views:
       forecast_view: auto
       forecast_metric: auto
       auto_precip_threshold: 45
-      show_metric_toggle: false
-      show_view_toggle: false
+      show_metric_toggle: true
+      show_view_toggle: true
       show_last_updated: false
       forecast_days: 5
       forecast_hours: 4

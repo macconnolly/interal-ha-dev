@@ -1088,6 +1088,14 @@ class TunetLightingCard extends HTMLElement {
     if (Number.isFinite(cardWidth) && cardWidth > 0) return cardWidth;
     const hostWidth = Number(this.getBoundingClientRect?.().width);
     if (Number.isFinite(hostWidth) && hostWidth > 0) return hostWidth;
+    // T1.3: viewport-derived fallback instead of fixed 1024. When the card
+    // hasn't been measured yet (initial setConfig before DOM layout), using
+    // a hardcoded 1024 caused mobile devices to resolve breakpoints against
+    // a desktop-width assumption and render 6 cols. Falls back to
+    // window.innerWidth so phone initial render gets ~390 instead of 1024.
+    if (typeof window !== 'undefined' && Number.isFinite(window.innerWidth) && window.innerWidth > 0) {
+      return window.innerWidth;
+    }
     return 1024;
   }
 

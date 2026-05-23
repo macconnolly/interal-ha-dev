@@ -257,10 +257,13 @@ const CARD_STYLES = `
 
   /* T0.7: thin variant — hide the big-hero current-temp + details row.
    * Header sub takes over with "57° · Partly Cloudy" inline. Forecast row
-   * still renders. Result: ~50% shorter card on phone. */
+   * still renders. Result: ~50% shorter card on phone.
+   * T1.3 (Mac feedback "weather card seems to have lost the ability to
+   * enable the toggles for daily/hourly and temp/precip"): no longer
+   * hiding .hdr-controls — the daily/hourly + temp/precip flip-chips now
+   * remain visible in thin variant when show_*_toggle: true. */
   :host([data-variant="thin"]) .weather-main { display: none; }
   :host([data-variant="thin"]) .weather-body { gap: 0; }
-  :host([data-variant="thin"]) .hdr-controls { display: none; }
 `;
 
 // ═══════════════════════════════════════════════════════════

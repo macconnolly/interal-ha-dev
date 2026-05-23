@@ -18,7 +18,6 @@ light:
       - light.entryway_lamp
       - light.living_room_credenza_light
       - light.living_room_corner_accent
-      - light.office_desk_lamp
   - platform: group
     name: "kitchen_island_lights"
     unique_id: "oal_kitchen_island_lights_group_v13"
@@ -34,7 +33,6 @@ light:
     unique_id: "oal_bedroom_primary_lights_group_v13"
     entities:
       - light.master_presence
-      - light.master_bedroom_corner_accent_govee
   - platform: group
     name: "accent_spots_lights"
     unique_id: "oal_accent_spots_lights_group_v13"
@@ -68,6 +66,8 @@ light:
       - light.entryway_lamp
       - light.living_room_floor_lamp
       - light.office_desk_lamp
+      - light.office_bed_light_left
+      - light.office_bed_light_right
       - light.living_room_corner_accent
       - light.living_room_couch_lamp
       - light.living_room_credenza_light
@@ -160,6 +160,7 @@ group:
       - switch.adaptive_lighting_accent_spots
       - switch.adaptive_lighting_recessed_ceiling
       - switch.adaptive_lighting_column_lights
+      - switch.adaptive_lighting_office
 
   oal_sleep_mode_switches:
     name: "OAL Sleep Mode Switches"
@@ -171,6 +172,7 @@ group:
       - switch.adaptive_lighting_sleep_mode_accent_spots
       - switch.adaptive_lighting_sleep_mode_recessed_ceiling
       - switch.adaptive_lighting_sleep_mode_column_lights
+      - switch.adaptive_lighting_sleep_mode_office
 
   oal_tv_presence_sensors:
     name: "OAL TV Presence Sensors"
@@ -444,6 +446,15 @@ input_number:
     unit_of_measurement: "%"
     icon: mdi:pillar
 
+  oal_manual_offset_office_brightness:
+    name: "OAL Manual Offset - Office B"
+    min: -100
+    max: 100
+    step: 1
+    initial: 0
+    unit_of_measurement: "%"
+    icon: mdi:desk-lamp
+
 input_boolean:
   oal_system_paused:
     name: "OAL System Paused"
@@ -542,6 +553,11 @@ input_boolean:
 
   oal_column_rgb_guard_kill_switch:
     name: "OAL Column RGB Guard Kill Switch"
+    initial: false
+    icon: mdi:shield-off
+
+  oal_office_bed_warm_pin_kill_switch:
+    name: "OAL Office Bed Warm Pin Kill Switch"
     initial: false
     icon: mdi:shield-off
 
@@ -654,7 +670,6 @@ adaptive_lighting:
       - light.entryway_lamp
       - light.living_room_credenza_light
       - light.living_room_corner_accent
-      - light.office_desk_lamp
     interval: 15
     transition: 1
     initial_transition: 1
@@ -709,7 +724,6 @@ adaptive_lighting:
   - name: "bedroom_primary"
     lights:
       - light.master_presence
-      - light.master_bedroom_corner_accent_govee
     interval: 90
     transition: 1
     initial_transition: 1
@@ -804,6 +818,40 @@ adaptive_lighting:
     send_split_delay: 50               # Was 10000 (10s!) - now 50ms as recommended
     intercept: true
     multi_light_intercept: true
+
+  # OFFICE AL CONFIG
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 4 lights warm-pinned 2700/2700K — desk + bed pair (Tuya) + corner accent (Govee, moved
+  # from master). Govee safe color_temp floor is 2700K (Invariant #2 — purple-shift below).
+  # Work (Office Desk) mode automation (~line 3403) overrides desk for work-at-4000K.
+  #
+  # NOTE: Tuya bed pair renders 2700K CCT as neutral-white visually (driver/LED-mix quirk).
+  # The augmentation automation oal_office_bed_warm_pin_v13 (~line 3348) pins bed_left + bed_right
+  # to hs [22, 100] deep amber + set_manual_control on this AL switch — that prevents AL from
+  # adapting the bed pair while still letting AL handle desk + corner_accent normally.
+  # ═══════════════════════════════════════════════════════════════════════════
+  - name: "office"
+    lights:
+      - light.office_desk_lamp
+      - light.office_bed_light_left
+      - light.office_bed_light_right
+      - light.master_bedroom_corner_accent_govee
+    interval: 90
+    transition: 1
+    initial_transition: 1
+    take_over_control: true
+    detect_non_ha_changes: true
+    adapt_delay: 0
+    include_config_in_attributes: true
+    autoreset_control_seconds: 14400
+    min_brightness: 30
+    max_brightness: 80
+    min_color_temp: 2700
+    max_color_temp: 2700
+    sleep_brightness: 5
+    sleep_color_temp: 2700
+    sleep_rgb_or_color_temp: "rgb_color"
+    sleep_rgb_color: [255, 165, 0]
 
 
 # =============================================================================
@@ -1016,6 +1064,18 @@ automation:
           night_sensitivity: 0.0          # NO night dim (uses RGB sleep mode)
           hard_min_b: 1
           hard_max_b: 100
+
+        # SYNC: Keep in sync with AL office config (warm pin 2700/2700)
+        - entity_id: switch.adaptive_lighting_office
+          id: office
+          comfort_min_b: 30               # SYNC: AL min_brightness
+          comfort_max_b: 80               # SYNC: AL max_brightness
+          min_k: 2700                     # SYNC: AL min_color_temp (warm pin)
+          max_k: 2700                     # SYNC: AL max_color_temp (warm pin)
+          env_sensitivity: 0.5
+          night_sensitivity: 0.0          # NO night dim (uses sleep mode)
+          hard_min_b: 1
+          hard_max_b: 80
 
     action:
       - action: input_datetime.set_datetime
@@ -1491,6 +1551,68 @@ automation:
                   max_color_temp: "{{ final_max_k | round(0) }}"
                   transition: "{{ transition_speed }}"
 
+          # ========== OFFICE (Warm pin 2700K — desk + bed pair + corner accent) ==========
+          - sequence:
+              - variables:
+                  comfort_min_b: 30
+                  comfort_max_b: 80
+                  env_sensitivity: 0.5
+                  night_sensitivity: 0.0
+                  hard_min_b: 1
+                  hard_max_b: 80
+                  min_k: 2700
+                  max_k: 2700
+
+                  # No night dimming for office (uses sleep mode)
+                  night_with_sensitivity: 0
+                  night_warmth_with_sensitivity: 0
+
+                  auto_offset_b: >
+                    {{ base_config_b + (env_with_sunset_capped * 0.5) + night_with_sensitivity }}
+
+                  auto_min_raw: "{{ 30 + auto_offset_b }}"
+                  auto_max_raw: "{{ 80 + auto_offset_b }}"
+
+                  auto_min_clamped: >
+                    {{ [30, [80, auto_min_raw] | min] | max }}
+                  auto_max_clamped: >
+                    {{ [30, [80, auto_max_raw] | min] | max }}
+
+                  manual_offset_b: >
+                    {{ states('input_number.oal_manual_offset_office_brightness') | float(0) }}
+
+                  min_with_manual: "{{ auto_min_clamped + manual_offset_b }}"
+                  max_with_manual: "{{ auto_max_clamped + manual_offset_b }}"
+
+                  global_min_b: "{{ [1, [100, min_with_manual] | min] | max }}"
+                  global_max_b: "{{ [1, [100, max_with_manual] | min] | max }}"
+
+                  clamped_min_b: "{{ [1, [80, global_min_b] | min] | max }}"
+                  clamped_max_b: "{{ [1, [80, global_max_b] | min] | max }}"
+
+                  final_min_b: "{{ clamped_min_b }}"
+                  final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
+
+                  # Warm pin (strict 2700K — Work mode bypasses via apply+set_manual_control)
+                  final_min_k: >
+                    {% set proposed = 2700 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {{ [2700, [2700, proposed] | min] | max }}
+                  final_max_k: >
+                    {% set proposed = 2700 + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {% set clamped = [2700, [2700, proposed] | min] | max %}
+                    {{ [final_min_k | float, clamped] | max }}
+
+              - service: adaptive_lighting.change_switch_settings
+                continue_on_error: true
+                target:
+                  entity_id: switch.adaptive_lighting_office
+                data:
+                  min_brightness: "{{ final_min_b | round(0) }}"
+                  max_brightness: "{{ final_max_b | round(0) }}"
+                  min_color_temp: "{{ final_min_k | round(0) }}"
+                  max_color_temp: "{{ final_max_k | round(0) }}"
+                  transition: "{{ transition_speed }}"
+
       # =========================================================================
       # Apply Phase - PARALLELIZED for instant response
       # =========================================================================
@@ -1713,6 +1835,26 @@ automation:
                   - service: adaptive_lighting.apply
                     target:
                       entity_id: switch.adaptive_lighting_column_lights
+                    data:
+                      lights: "{{ on_lights }}"
+                      turn_on_lights: false
+                      transition: "{{ 0 if is_force_apply else transition_speed }}"
+                    continue_on_error: true
+
+          # Office (no special protect logic — straight apply)
+          - sequence:
+              - variables:
+                  all_lights: "{{ (state_attr('switch.adaptive_lighting_office', 'configuration') or {}).get('lights', []) }}"
+                  all_on_lights: "{{ expand(all_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
+                  manual_lights: "{{ state_attr('switch.adaptive_lighting_office', 'manual_control') | default([]) }}"
+                  on_lights: "{{ all_on_lights if is_force_apply else (all_on_lights | reject('in', manual_lights) | list) }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ on_lights | length > 0 }}"
+                then:
+                  - service: adaptive_lighting.apply
+                    target:
+                      entity_id: switch.adaptive_lighting_office
                     data:
                       lights: "{{ on_lights }}"
                       turn_on_lights: false
@@ -3183,6 +3325,88 @@ automation:
                       turn_on_lights: false
 
   # ---------------------------------------------------------------------------
+  # 4.3f Office Bed Lights Warm Pin (column-style RGB augmentation, scoped)
+  # ---------------------------------------------------------------------------
+  # Tuya WallSmart bed pair (left/right) render 2700K CCT (office AL's pin) as
+  # neutral-white visually due to driver/LED-mix quirk. Mac's target is hs [22, 100]
+  # ≈ rgb [255, 102, 0] (deep amber).
+  #
+  # CCT can't reach this color on this hardware. office AL stays at 2700/2700K
+  # pin (correct for desk + corner_accent which DO render warm there) and this
+  # automation augments the bed pair: pushes deep-amber hs + brightness +
+  # set_manual_control on switch.adaptive_lighting_office so office AL stops
+  # adapting the bed pair while still adapting desk + corner normally.
+  #
+  # Three triggers ensure "never white" intent:
+  #   1. turned_on   — bed light state off→on
+  #   2. cct_pushed  — bed light color_mode becomes color_temp (AL just pushed CCT;
+  #                    automation immediately reverses to hs within ~1s)
+  #   3. autoreset_cleared — 4h autoreset cleared manual_control (safety net)
+  - id: oal_office_bed_warm_pin_v13
+    alias: "OAL v13 - Office Bed Lights Warm Pin"
+    description: "Pins the office bed pair to hs [22, 100] deep amber; reverses any AL CCT push within seconds (Tuya CCT cap workaround)"
+    mode: queued
+    max: 10
+    trigger:
+      - platform: state
+        entity_id:
+          - light.office_bed_light_left
+          - light.office_bed_light_right
+        from: "off"
+        to: "on"
+        id: turned_on
+      - platform: state
+        entity_id:
+          - light.office_bed_light_left
+          - light.office_bed_light_right
+        attribute: color_mode
+        to: "color_temp"
+        for: "00:00:01"
+        id: cct_pushed
+      - platform: template
+        value_template: >
+          {% set bed_manual = (state_attr('switch.adaptive_lighting_office', 'manual_control') | default([]))
+             | select('in', ['light.office_bed_light_left', 'light.office_bed_light_right']) | list %}
+          {{ (bed_manual | length) < 1 }}
+        for: "00:00:20"
+        id: autoreset_cleared
+    condition:
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+      - condition: state
+        entity_id: input_boolean.oal_office_bed_warm_pin_kill_switch
+        state: "off"
+      - condition: template
+        value_template: >
+          {% set on_lights = ['light.office_bed_light_left', 'light.office_bed_light_right']
+              | select('is_state', 'on') | list %}
+          {{ on_lights | length > 0 }}
+    action:
+      - variables:
+          on_lights: >
+            {{ ['light.office_bed_light_left', 'light.office_bed_light_right']
+               | select('is_state', 'on') | list }}
+      - service: light.turn_on
+        continue_on_error: true
+        target:
+          entity_id: "{{ on_lights }}"
+        data:
+          hs_color: [22, 100]
+          brightness_pct: 35
+          transition: 1
+      # Per-attribute color lock: AL stops adapting COLOR on bed pair, brightness keeps adapting.
+      # Confirmed via AL source adaptation_utils.py:279-289 — "color" string maps to
+      # LightControlAttributes.COLOR (not ALL). Brightness adaptation continues per office AL settings.
+      - service: adaptive_lighting.set_manual_control
+        continue_on_error: true
+        target:
+          entity_id: switch.adaptive_lighting_office
+        data:
+          lights: "{{ on_lights }}"
+          manual_control: "color"
+
+  # ---------------------------------------------------------------------------
   # 4.4 Environmental adaptation (lux + weather + season)
   # ---------------------------------------------------------------------------
   - id: oal_environmental_manager_v13
@@ -3422,19 +3646,19 @@ automation:
           {{ previous_mode == 'Work (Office Desk)' }}
       - service: adaptive_lighting.set_manual_control
         data:
-          entity_id: switch.adaptive_lighting_main_living
+          entity_id: switch.adaptive_lighting_office
           lights: light.office_desk_lamp
           manual_control: false
       - service: adaptive_lighting.apply
         data:
-          entity_id: switch.adaptive_lighting_main_living
+          entity_id: switch.adaptive_lighting_office
           lights: light.office_desk_lamp
           transition: "{{ transition_speed }}"
       - condition: template
         value_template: "{{ mode == 'Work (Office Desk)' }}"
       - service: adaptive_lighting.apply
         data:
-          entity_id: switch.adaptive_lighting_main_living
+          entity_id: switch.adaptive_lighting_office
           lights: light.office_desk_lamp
           brightness_pct: 100
           color_temp_kelvin: 4000
@@ -4735,6 +4959,118 @@ automation:
                else 'override_rotated_or_cleared' }}
 
   # -------------------------------------------------------------------------
+  # Persist user-initiated light-off at night (S4 fix 2026-05-22)
+  #
+  # When a user turns off an adaptive light at night, AL's internal
+  # `state_changed_event_listener` (custom_components/adaptive_lighting/
+  # switch.py:2538) explicitly resets manual_control on any on→off
+  # transition — by design, AL treats "off" as a baseline state, not a
+  # manual override. On AL's next adapt interval (15s for most zones,
+  # 90s for bedroom_primary + column_lights), AL may re-apply, and the
+  # light pops back on at the adaptive target (dim at deep night).
+  #
+  # Fix: when the user explicitly turns off a light at night, mark that
+  # light as manual_control on its owning AL switch. AL then skips it
+  # on subsequent intervals. The complementary modification to
+  # oal_auto_switch_to_manual_config + oal_auto_switch_to_adaptive_config
+  # below counts manual_control entries on currently-ON lights only,
+  # so an off-light's manual_control flag does NOT flip the active
+  # configuration to "Manual" (preserves user intent per Mac 2026-05-22).
+  #
+  # Filter: only fires on user-initiated offs (context.user_id is not
+  # none). Wall-switch / z-wave events come through with system context
+  # and are NOT covered by this fix — documented as Phase-2 follow-up.
+  # -------------------------------------------------------------------------
+  - id: oal_persist_user_off_at_night
+    alias: "OAL - Persist User-Initiated Light Off at Night"
+    description: "Marks user-turned-off adaptive lights as manual_control at night so AL doesn't re-apply them"
+    mode: queued
+    max: 10
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id:
+          - light.living_room_couch_lamp
+          - light.living_room_floor_lamp
+          - light.entryway_lamp
+          - light.living_room_credenza_light
+          - light.living_room_corner_accent
+          - light.office_desk_lamp
+          - light.office_bed_light_left
+          - light.office_bed_light_right
+          - light.kitchen_island_pendants
+          - light.kitchen_counter_cabinet_underlights
+          - light.master_presence
+          - light.master_bedroom_corner_accent_govee
+          - light.dining_room_spot_lights
+          - light.living_room_spot_lights
+          - light.kitchen_main_lights
+          - light.living_room_hallway_lights
+          - light.living_column_strip_light_matter
+          - light.dining_column_strip_light_matter
+        from: "on"
+        to: "off"
+    condition:
+      # Night gate: sun below horizon or night dimming already active
+      - condition: template
+        value_template: >
+          {{ (states('sensor.oal_effective_sun_elevation') | float(999) < 0)
+             or (states('input_number.oal_offset_night_brightness') | float(0) != 0) }}
+      # Only in Adaptive mode (Sleep/TV/Manual configs own their own behavior)
+      - condition: state
+        entity_id: input_select.oal_active_configuration
+        state: "Adaptive"
+      - condition: state
+        entity_id: input_boolean.oal_system_paused
+        state: "off"
+      # Don't fire during config transitions (would race with config manager)
+      - condition: state
+        entity_id: input_boolean.oal_config_transition_active
+        state: "off"
+      # User-initiated only: context.user_id is set for UI/service calls.
+      # AL's own context_id and system automations have user_id=None.
+      - condition: template
+        value_template: >
+          {{ trigger.to_state.context.user_id is not none }}
+    action:
+      # Let AL's state_changed_event_listener reset() complete first
+      # (it fires synchronously on the on→off event and clears the
+      # manual_control flag we're about to set).
+      - delay:
+          milliseconds: 500
+      - variables:
+          # Map each adaptive light to its owning AL switch
+          light_to_switch:
+            light.living_room_couch_lamp: switch.adaptive_lighting_main_living
+            light.living_room_floor_lamp: switch.adaptive_lighting_main_living
+            light.entryway_lamp: switch.adaptive_lighting_main_living
+            light.living_room_credenza_light: switch.adaptive_lighting_main_living
+            light.living_room_corner_accent: switch.adaptive_lighting_main_living
+            light.office_desk_lamp: switch.adaptive_lighting_office
+            light.office_bed_light_left: switch.adaptive_lighting_office
+            light.office_bed_light_right: switch.adaptive_lighting_office
+            light.kitchen_island_pendants: switch.adaptive_lighting_kitchen_island
+            light.kitchen_counter_cabinet_underlights: switch.adaptive_lighting_kitchen_undercabinet
+            light.master_presence: switch.adaptive_lighting_bedroom_primary
+            light.master_bedroom_corner_accent_govee: switch.adaptive_lighting_office
+            light.dining_room_spot_lights: switch.adaptive_lighting_accent_spots
+            light.living_room_spot_lights: switch.adaptive_lighting_accent_spots
+            light.kitchen_main_lights: switch.adaptive_lighting_recessed_ceiling
+            light.living_room_hallway_lights: switch.adaptive_lighting_recessed_ceiling
+            light.living_column_strip_light_matter: switch.adaptive_lighting_column_lights
+            light.dining_column_strip_light_matter: switch.adaptive_lighting_column_lights
+          target_light: "{{ trigger.entity_id }}"
+          owning_switch: "{{ light_to_switch[target_light] }}"
+      - service: adaptive_lighting.set_manual_control
+        continue_on_error: true
+        target:
+          entity_id: "{{ owning_switch }}"
+        data:
+          lights:
+            - "{{ target_light }}"
+          manual_control: true
+
+  # -------------------------------------------------------------------------
   # Auto-switch to "Manual" config when lights are manually controlled
   # -------------------------------------------------------------------------
   - id: oal_auto_switch_to_manual_config
@@ -4743,6 +5079,13 @@ automation:
     mode: single
     initial_state: true
     trigger:
+      # S4 fix 2026-05-22: count manual_control entries on ON lights only.
+      # Off-lights with manual_control flag (set by oal_persist_user_off_at_night
+      # to suppress AL re-apply) represent "AL skip" semantic, not "user is
+      # actively manipulating brightness/color." Counting ON-with-manual-flag
+      # preserves the original intent (config switches to Manual when user is
+      # actively controlling lighting) while letting the new off-persist
+      # behavior coexist.
       - platform: template
         value_template: >
           {% set zones = [
@@ -4751,11 +5094,14 @@ automation:
             'switch.adaptive_lighting_kitchen_undercabinet',
             'switch.adaptive_lighting_bedroom_primary',
             'switch.adaptive_lighting_accent_spots',
-            'switch.adaptive_lighting_recessed_ceiling'
+            'switch.adaptive_lighting_recessed_ceiling',
+            'switch.adaptive_lighting_office'
           ] %}
           {% set ns = namespace(count=0) %}
           {% for z in zones %}
-            {% set ns.count = ns.count + (state_attr(z, 'manual_control') | default([]) | length) %}
+            {% set manual_lights = state_attr(z, 'manual_control') | default([]) %}
+            {% set on_manual = manual_lights | select('is_state', 'on') | list %}
+            {% set ns.count = ns.count + (on_manual | length) %}
           {% endfor %}
           {{ ns.count > 0 }}
         for: "00:00:03"
@@ -4789,6 +5135,12 @@ automation:
     mode: single
     initial_state: true
     trigger:
+      # S4 fix 2026-05-22: count ON-with-manual-flag only (mirror of the inverse
+      # automation above). An off-light with manual_control flag from
+      # oal_persist_user_off_at_night should NOT block return-to-Adaptive when
+      # all actively-manipulated ON lights have cleared. The off-flag will
+      # clear naturally when the user turns the light back on (AL intercept
+      # context-matches and clears) or via the 4h autoreset.
       - platform: template
         value_template: >
           {% set zones = [
@@ -4797,11 +5149,14 @@ automation:
             'switch.adaptive_lighting_kitchen_undercabinet',
             'switch.adaptive_lighting_bedroom_primary',
             'switch.adaptive_lighting_accent_spots',
-            'switch.adaptive_lighting_recessed_ceiling'
+            'switch.adaptive_lighting_recessed_ceiling',
+            'switch.adaptive_lighting_office'
           ] %}
           {% set ns = namespace(count=0) %}
           {% for z in zones %}
-            {% set ns.count = ns.count + (state_attr(z, 'manual_control') | default([]) | length) %}
+            {% set manual_lights = state_attr(z, 'manual_control') | default([]) %}
+            {% set on_manual = manual_lights | select('is_state', 'on') | list %}
+            {% set ns.count = ns.count + (on_manual | length) %}
           {% endfor %}
           {{ ns.count == 0 }}
         for: "00:00:03"
@@ -6074,6 +6429,10 @@ automation:
         value_template: >
           {{ state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) | length > 0 }}
         id: column_lights
+      - platform: template
+        value_template: >
+          {{ state_attr('switch.adaptive_lighting_office', 'manual_control') | default([]) | length > 0 }}
+        id: office
 
     variables:
       zone_map:
@@ -6098,6 +6457,9 @@ automation:
         column_lights:
           switch: switch.adaptive_lighting_column_lights
           friendly: "Column Lights"
+        office:
+          switch: switch.adaptive_lighting_office
+          friendly: "Office"
 
       zone_id: "{{ trigger.id }}"
       zone_info: "{{ zone_map[zone_id] }}"
@@ -6194,7 +6556,6 @@ automation:
           - light.entryway_lamp
           - light.living_room_credenza_light
           - light.living_room_corner_accent
-          - light.office_desk_lamp
         attribute: brightness
         id: main_living
       - platform: state
@@ -6210,7 +6571,6 @@ automation:
       - platform: state
         entity_id:
           - light.master_presence
-          - light.master_bedroom_corner_accent_govee
         attribute: brightness
         id: bedroom_primary
       - platform: state
@@ -6231,6 +6591,14 @@ automation:
           - light.dining_column_strip_light_matter
         attribute: brightness
         id: column_lights
+      - platform: state
+        entity_id:
+          - light.office_desk_lamp
+          - light.office_bed_light_left
+          - light.office_bed_light_right
+          - light.master_bedroom_corner_accent_govee
+        attribute: brightness
+        id: office
 
     variables:
       zone_config:
@@ -6255,6 +6623,9 @@ automation:
         column_lights:
           switch: switch.adaptive_lighting_column_lights
           friendly: "Column Lights"
+        office:
+          switch: switch.adaptive_lighting_office
+          friendly: "Office"
       zone_id: "{{ trigger.id }}"
       zone_friendly: "{{ zone_config[zone_id].friendly }}"
       switch_entity: "{{ zone_config[zone_id].switch }}"
@@ -6343,6 +6714,7 @@ automation:
           - switch.adaptive_lighting_accent_spots
           - switch.adaptive_lighting_recessed_ceiling
           - switch.adaptive_lighting_column_lights
+          - switch.adaptive_lighting_office
         attribute: manual_control
 
     variables:
@@ -6354,6 +6726,7 @@ automation:
         switch.adaptive_lighting_accent_spots: input_number.oal_manual_offset_accent_spots_brightness
         switch.adaptive_lighting_recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
         switch.adaptive_lighting_column_lights: input_number.oal_manual_offset_column_lights_brightness
+        switch.adaptive_lighting_office: input_number.oal_manual_offset_office_brightness
 
       switch_entity: "{{ trigger.entity_id }}"
       helper_entity: "{{ switch_to_helper[switch_entity] }}"
@@ -6508,6 +6881,7 @@ script:
             accent_spots: light.accent_spots_lights
             recessed_ceiling: light.recessed_ceiling_lights
             column_lights: light.column_lights
+            office: light.office_lights
 
           # All zone IDs
           all_zone_ids:
@@ -6518,6 +6892,7 @@ script:
             - accent_spots
             - recessed_ceiling
             - column_lights
+            - office
           
           # Determine which zones contain the input lights
           target_zones: >
@@ -6749,6 +7124,36 @@ script:
                 data:
                   value: "{{ new_value }}"
 
+          # Office
+          - if:
+              - condition: template
+                value_template: "{{ 'office' in target_zones }}"
+            then:
+              - variables:
+                  b_base: >
+                    {{ state_attr('switch.adaptive_lighting_office', 'brightness_pct') | float(50) }}
+                  base_step: >
+                    {% if dir == 1 %}
+                      {% if b_base < 30 %} 10
+                      {% elif b_base < 60 %} 15
+                      {% else %} 20
+                      {% endif %}
+                    {% else %}
+                      {% if b_base < 40 %} 10
+                      {% elif b_base < 70 %} 15
+                      {% else %} 20
+                      {% endif %}
+                    {% endif %}
+                  step: "{{ base_step * 0.7 }}"
+                  current_offset: "{{ states('input_number.oal_manual_offset_office_brightness') | float(0) }}"
+                  raw_new: "{{ current_offset + (step * dir) }}"
+                  new_value: "{{ [-100, [100, raw_new] | min] | max }}"
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.oal_manual_offset_office_brightness
+                data:
+                  value: "{{ new_value }}"
+
   oal_global_manual_brighter:
     alias: "OAL v13 Global Brighter (CARB, unified pipeline)"
     description: "Increases brightness using context-aware stepped adjustments. Optionally filter to specific lights/zones."
@@ -6874,6 +7279,7 @@ script:
         switch.adaptive_lighting_accent_spots: input_number.oal_manual_offset_accent_spots_brightness
         switch.adaptive_lighting_recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
         switch.adaptive_lighting_column_lights: input_number.oal_manual_offset_column_lights_brightness
+        switch.adaptive_lighting_office: input_number.oal_manual_offset_office_brightness
 
       # Non-column manual zones from direct AL switch state.
       manual_non_column_switches: >
@@ -6884,7 +7290,8 @@ script:
           'switch.adaptive_lighting_kitchen_undercabinet',
           'switch.adaptive_lighting_bedroom_primary',
           'switch.adaptive_lighting_accent_spots',
-          'switch.adaptive_lighting_recessed_ceiling'
+          'switch.adaptive_lighting_recessed_ceiling',
+          'switch.adaptive_lighting_office'
         ] %}
         {% for sw in non_column %}
           {% if (state_attr(sw, 'manual_control') | default([])) | length > 0 %}
@@ -7227,6 +7634,7 @@ script:
             accent_spots: light.accent_spots_lights
             recessed_ceiling: light.recessed_ceiling_lights
             column_lights: light.column_lights
+            office: light.office_lights
 
           zone_switches:
             main_living: switch.adaptive_lighting_main_living
@@ -7236,6 +7644,7 @@ script:
             accent_spots: switch.adaptive_lighting_accent_spots
             recessed_ceiling: switch.adaptive_lighting_recessed_ceiling
             column_lights: switch.adaptive_lighting_column_lights
+            office: switch.adaptive_lighting_office
 
           zone_offsets:
             main_living: input_number.oal_manual_offset_main_living_brightness
@@ -7245,6 +7654,7 @@ script:
             accent_spots: input_number.oal_manual_offset_accent_spots_brightness
             recessed_ceiling: input_number.oal_manual_offset_recessed_ceiling_brightness
             column_lights: input_number.oal_manual_offset_column_lights_brightness
+            office: input_number.oal_manual_offset_office_brightness
 
           all_zone_ids:
             - main_living
@@ -7254,6 +7664,7 @@ script:
             - accent_spots
             - recessed_ceiling
             - column_lights
+            - office
 
           target_zones: >
             {% set ns = namespace(zones=[]) %}
@@ -7577,7 +7988,8 @@ template:
             states('input_number.oal_manual_offset_bedroom_primary_brightness') | float(0),
             states('input_number.oal_manual_offset_accent_spots_brightness') | float(0),
             states('input_number.oal_manual_offset_recessed_ceiling_brightness') | float(0),
-            states('input_number.oal_manual_offset_column_lights_brightness') | float(0)
+            states('input_number.oal_manual_offset_column_lights_brightness') | float(0),
+            states('input_number.oal_manual_offset_office_brightness') | float(0)
           ] %}
           {% set max_zone = (zones | map('abs') | max) if zones | length > 0 else 0 %}
           {% if force_sleep %}
@@ -7669,6 +8081,16 @@ template:
             {{ (state_attr('switch.adaptive_lighting_column_lights', 'configuration') or {}).get('max_brightness', 0) }}
           column_lights_manual_offset_brightness_pct: >
             {{ states('input_number.oal_manual_offset_column_lights_brightness') | float(0) }}
+
+          # Office
+          office_baseline_brightness_pct: >
+            {{ state_attr('switch.adaptive_lighting_office', 'brightness_pct') | float(0) }}
+          office_effective_min_brightness_pct: >
+            {{ (state_attr('switch.adaptive_lighting_office', 'configuration') or {}).get('min_brightness', 0) }}
+          office_effective_max_brightness_pct: >
+            {{ (state_attr('switch.adaptive_lighting_office', 'configuration') or {}).get('max_brightness', 0) }}
+          office_manual_offset_brightness_pct: >
+            {{ states('input_number.oal_manual_offset_office_brightness') | float(0) }}
           boost_source: >
             {% set sources = [] %}
             {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
@@ -7753,7 +8175,8 @@ template:
               ('switch.adaptive_lighting_bedroom_primary', false),
               ('switch.adaptive_lighting_accent_spots', false),
               ('switch.adaptive_lighting_recessed_ceiling', false),
-              ('switch.adaptive_lighting_column_lights', true)
+              ('switch.adaptive_lighting_column_lights', true),
+              ('switch.adaptive_lighting_office', false)
             ] %}
             {% set sun_elev = states('sensor.oal_effective_sun_elevation') | float(999) %}
             {% set sun_rising = is_state('binary_sensor.oal_effective_sun_rising', 'on') %}
@@ -7779,7 +8202,8 @@ template:
               ('switch.adaptive_lighting_bedroom_primary', false),
               ('switch.adaptive_lighting_accent_spots', false),
               ('switch.adaptive_lighting_recessed_ceiling', false),
-              ('switch.adaptive_lighting_column_lights', true)
+              ('switch.adaptive_lighting_column_lights', true),
+              ('switch.adaptive_lighting_office', false)
             ] %}
             {% set sun_elev = states('sensor.oal_effective_sun_elevation') | float(999) %}
             {% set sun_rising = is_state('binary_sensor.oal_effective_sun_rising', 'on') %}
@@ -7795,7 +8219,7 @@ template:
                 {% set ns.count = ns.count + 1 %}
               {% endif %}
             {% endfor %}
-            {{ 7 - ns.count }}
+            {{ 8 - ns.count }}
           overridden_zones: >
             {% set ns = namespace(zones=[]) %}
             {% set zone_map = [
@@ -7805,7 +8229,8 @@ template:
               ('Bedroom', 'switch.adaptive_lighting_bedroom_primary', false),
               ('Spots', 'switch.adaptive_lighting_accent_spots', false),
               ('Ceiling', 'switch.adaptive_lighting_recessed_ceiling', false),
-              ('Columns', 'switch.adaptive_lighting_column_lights', true)
+              ('Columns', 'switch.adaptive_lighting_column_lights', true),
+              ('Office', 'switch.adaptive_lighting_office', false)
             ] %}
             {% set sun_elev = states('sensor.oal_effective_sun_elevation') | float(999) %}
             {% set sun_rising = is_state('binary_sensor.oal_effective_sun_rising', 'on') %}
@@ -8314,6 +8739,62 @@ template:
           zone_id: "column_lights"
           friendly_name: "Columns"
 
+      - name: "OAL Office Status"
+        unique_id: oal_office_status_v13
+        icon: mdi:lightbulb-group
+        availability: >
+          {{ states('switch.adaptive_lighting_office') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set manual_list = state_attr('switch.adaptive_lighting_office', 'manual_control') | default([]) %}
+          {% if manual_list | length == 0 %}
+            A
+          {% else %}
+            {% set timer_dict = state_attr('switch.adaptive_lighting_office', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
+          {% endif %}
+        attributes:
+          mode: >
+            {% set manual_list = state_attr('switch.adaptive_lighting_office', 'manual_control') | default([]) %}
+            {{ 'manual' if manual_list | length > 0 else 'adaptive' }}
+          brightness_target: >
+            {{ state_attr('switch.adaptive_lighting_office', 'brightness_pct') | int(0) }}
+          brightness_base: >
+            {{ state_attr('sensor.oal_real_time_monitor', 'office_baseline_brightness_pct') | int(0) }}
+          zone_manual_offset: >
+            {{ states('input_number.oal_manual_offset_office_brightness') | int(0) }}
+          total_offset: >
+            {% set cfg = states('input_number.oal_offset_config_brightness') | float(0) %}
+            {% set sun = states('input_number.oal_offset_sunset_brightness') | float(0) %}
+            {% set env = states('input_number.oal_offset_environmental_brightness') | float(0) %}
+            {% set sens = 0.5 %}
+            {% set manual = states('input_number.oal_manual_offset_office_brightness') | float(0) %}
+            {{ (cfg + sun + (env * sens) + manual) | round(1) }}
+          env_sensitivity: 0.5
+          override_remaining_seconds: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_office', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {{ (timer_values | min | default(0)) | int }}
+          override_remaining_formatted: >
+            {% set timer_dict = state_attr('switch.adaptive_lighting_office', 'autoreset_time_remaining') | default({}) %}
+            {% set timer_values = timer_dict.values() | list %}
+            {% set secs = (timer_values | min | default(0)) | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            {% if secs <= 0 %}N/A
+            {% elif hours > 0 %}{{ hours }}h {{ mins }}m
+            {% else %}{{ mins }}m{% endif %}
+          lights_overridden: >
+            {{ state_attr('switch.adaptive_lighting_office', 'manual_control') | default([]) | length }}
+          lights_total: 4
+          color_temp_kelvin: >
+            {{ state_attr('switch.adaptive_lighting_office', 'color_temp_kelvin') | int(0) }}
+          zone_id: "office"
+          friendly_name: "Office"
+
       # -----------------------------------------------------------------------
       # 6.5 Global Brightness Offset (aggregated from all sources)
       # -----------------------------------------------------------------------
@@ -8350,7 +8831,8 @@ template:
               state_attr('switch.adaptive_lighting_bedroom_primary', 'brightness_pct') | float(0),
               state_attr('switch.adaptive_lighting_accent_spots', 'brightness_pct') | float(0),
               state_attr('switch.adaptive_lighting_recessed_ceiling', 'brightness_pct') | float(0),
-              state_attr('switch.adaptive_lighting_column_lights', 'brightness_pct') | float(0)
+              state_attr('switch.adaptive_lighting_column_lights', 'brightness_pct') | float(0),
+              state_attr('switch.adaptive_lighting_office', 'brightness_pct') | float(0)
             ] %}
             {{ (zones | sum / zones | length) | round(0) | int }}
           current_config: >
@@ -8372,7 +8854,8 @@ template:
             ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
             ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
             ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
-            ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
+            ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
+            ('office', 'Office', 'switch.adaptive_lighting_office')
           ] %}
           {% set ns = namespace(times=[]) %}
           {% for zone_id, zone_friendly, switch_id in switches %}
@@ -8401,6 +8884,7 @@ template:
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
             ] %}
+            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office')] %}
             {% set ns = namespace(times=[]) %}
             {% for zone_id, zone_friendly, switch_id in switches %}
               {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
@@ -8423,6 +8907,7 @@ template:
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
             ] %}
+            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office')] %}
             {% set ns = namespace(times=[]) %}
             {% for zone_id, zone_friendly, switch_id in switches %}
               {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
@@ -8445,6 +8930,7 @@ template:
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
             ] %}
+            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office')] %}
             {% set ns = namespace(times=[]) %}
             {% for zone_id, zone_friendly, switch_id in switches %}
               {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
@@ -8468,6 +8954,7 @@ template:
               ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
               ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights')
             ] %}
+            {% set switches = switches + [('office', 'Office', 'switch.adaptive_lighting_office')] %}
             {% set ns = namespace(times=[]) %}
             {% for zone_id, zone_friendly, switch_id in switches %}
               {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
@@ -8941,7 +9428,7 @@ template:
           {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island',
                           'switch.adaptive_lighting_kitchen_undercabinet', 'switch.adaptive_lighting_bedroom_primary',
                           'switch.adaptive_lighting_accent_spots', 'switch.adaptive_lighting_recessed_ceiling',
-                          'switch.adaptive_lighting_column_lights'] %}
+                          'switch.adaptive_lighting_column_lights', 'switch.adaptive_lighting_office'] %}
           {% set manual_count = namespace(value=0) %}
           {% for z in zones %}
              {% set manual_count.value = manual_count.value + (state_attr(z, 'manual_control') | default([]) | length) %}
@@ -8949,10 +9436,11 @@ template:
           {{ 'on' if manual_count.value > 0 else 'off' }}
         attributes:
           time_remaining: >
-            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
+            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island',
                             'switch.adaptive_lighting_kitchen_undercabinet',
-                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
-                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
+                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots',
+                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights',
+                            'switch.adaptive_lighting_office'] %}
             {% set soonest = namespace(value=999999) %}
             {% for z in zones %}
               {% set timer_dict = state_attr(z, 'autoreset_time_remaining') or {} %}
@@ -8973,10 +9461,11 @@ template:
           boost_source: >
              {{ state_attr('sensor.oal_real_time_monitor', 'Boost source') }}
           display_label: >
-            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
+            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island',
                             'switch.adaptive_lighting_kitchen_undercabinet',
-                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
-                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
+                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots',
+                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights',
+                            'switch.adaptive_lighting_office'] %}
             {% set manual_active = this.state == 'on' %}
             {% if manual_active %}
               {{ state_attr(this.entity_id, 'time_remaining') }}
@@ -9059,10 +9548,11 @@ template:
             {% set lights = expand(light_entities) | list %}
             {{ lights | length > 0 and (lights | selectattr('state', 'eq', 'on') | list | length) == 0 }}
           manually_controlled: >
-            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island', 
+            {% set zones = ['switch.adaptive_lighting_main_living', 'switch.adaptive_lighting_kitchen_island',
                             'switch.adaptive_lighting_kitchen_undercabinet',
-                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots', 
-                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights'] %}
+                            'switch.adaptive_lighting_bedroom_primary', 'switch.adaptive_lighting_accent_spots',
+                            'switch.adaptive_lighting_recessed_ceiling', 'switch.adaptive_lighting_column_lights',
+                            'switch.adaptive_lighting_office'] %}
             {% set manual_count = namespace(value=0) %}
             {% for z in zones %}
                {% set manual_count.value = manual_count.value + (state_attr(z, 'manual_control') | default([]) | length) %}
@@ -9485,11 +9975,15 @@ template:
         unique_id: room_bedroom_state_v13
         icon: mdi:bed
         state: >
-          {% set lights = ['light.master_presence', 'light.master_bedroom_corner_accent_govee'] %}
+          {% set lights = ['light.master_presence', 'light.master_bedroom_column_accent'] %}
           {% set lights_on = lights | select('is_state', 'on') | list | length %}
           {% set is_playing = is_state('media_player.bedroom', 'playing') %}
-          {% set has_override = (state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') or []) | length > 0 %}
-          
+          {# Override = any physical-bedroom light is in manual_control on its respective AL switch.
+             bedroom_primary AL governs master_presence; column_lights AL governs column_accent (post-Campaign-B). #}
+          {% set bedroom_al = state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') or [] %}
+          {% set column_al_bedroom = (state_attr('switch.adaptive_lighting_column_lights', 'manual_control') or []) | select('eq', 'light.master_bedroom_column_accent') | list %}
+          {% set has_override = (bedroom_al | length > 0) or (column_al_bedroom | length > 0) %}
+
           {# Check for alarm proximity #}
           {% set alarms = state_attr('sensor.sonos_upcoming_alarms', 'all_alarms_data') %}
           {% set has_bedroom_alarm = false %}
@@ -9497,7 +9991,7 @@ template:
             {% set bedroom_alarms = alarms.debug_all_alarm_entities | selectattr('friendly_name', 'search', '(?i)bedroom') | list %}
             {% set has_bedroom_alarm = bedroom_alarms | length > 0 %}
           {% endif %}
-          
+
           {% if has_bedroom_alarm %}alarm
           {% elif has_override %}override
           {% elif is_playing %}playing
@@ -9505,20 +9999,23 @@ template:
           {% else %}idle{% endif %}
         attributes:
           lights_on: >
-            {% set lights = ['light.master_presence', 'light.master_bedroom_corner_accent_govee'] %}
+            {% set lights = ['light.master_presence', 'light.master_bedroom_column_accent'] %}
             {{ lights | select('is_state', 'on') | list | length }}
           total_lights: 2
           audio_state: "{{ states('media_player.bedroom') }}"
           audio_track: "{{ state_attr('media_player.bedroom', 'media_title') | default('') }}"
           in_group: "{{ states('sensor.sonos_bedroom_in_playing_group') in ['True', 'on', true] }}"
-          # Override status - aggregated from bedroom AL switch
+          # Override status — extended to check BOTH bedroom_primary AND column_lights AL,
+          # filtered to physical-bedroom set [master_presence, column_accent]
           manually_controlled_lights: >
-            {% set bedroom = state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) %}
+            {% set bedroom_al = state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) %}
+            {% set column_al = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
             {% set bedroom_lights = [
               'light.master_presence',
-              'light.master_bedroom_corner_accent_govee'
+              'light.master_bedroom_column_accent'
             ] %}
-            {{ bedroom | select('in', bedroom_lights) | list }}
+            {% set combined = bedroom_al + column_al %}
+            {{ combined | select('in', bedroom_lights) | list | unique | list }}
           has_override: >
             {{ (this.attributes.manually_controlled_lights | default([])) | length > 0 }}
           override_count: >

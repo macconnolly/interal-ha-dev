@@ -1,0 +1,54 @@
+# =============================================================================
+# TUNET ROOM AUTOMATIONS — Auto-off + room-scoped behaviors
+# =============================================================================
+# Mac's 2026-05-23 ask: "auto turn off the entry main spot lights".
+#
+# Default entity choice: `light.entryway_lamp` — discovery confirmed it is
+# the entry's main illumination (it is in `light.main_living_lights` group
+# per memory observation 12497) and the closest entity to "entry main".
+# Mac can change the target in the automation below if he meant a
+# different fixture (e.g. `light.accent_spots_lights` or a specific
+# track spot).
+#
+# Default trigger: 30 minutes after sunset (when ambient light has fully
+# faded). Guard against firing when OAL is in Manual or Sleep mode.
+#
+# Owning portfolio item: Plan B Phase B5 of tunet-portfolio-roadmap-2026-05-23.md.
+# =============================================================================
+
+automation:
+  - alias: "Tunet — Entry Main Spot Auto-Off"
+    id: tunet_entry_main_spot_auto_off
+    description: >
+      Turns off light.entryway_lamp 30 minutes after sunset. Skips when
+      OAL is in Manual mode (don't fight the user) or Sleep mode (Sleep
+      already handles lights).
+    mode: single
+    trigger:
+      - platform: sun
+        event: sunset
+        offset: "+00:30:00"
+    condition:
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: input_select.oal_active_configuration
+            state: "Manual"
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: input_select.oal_active_configuration
+            state: "Sleep"
+      # Only fire if it's actually on (avoid no-op service calls)
+      - condition: state
+        entity_id: light.entryway_lamp
+        state: "on"
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: light.entryway_lamp
+      - service: logbook.log
+        data:
+          name: "Tunet Auto-Off"
+          message: "entryway_lamp turned off (sunset+30m, OAL mode={{ states('input_select.oal_active_configuration') }})"
+          entity_id: light.entryway_lamp

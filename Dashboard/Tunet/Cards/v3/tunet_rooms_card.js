@@ -362,14 +362,21 @@ const CARD_STYLES = `
     display: inline-flex;
     align-items: center;
     gap: calc(var(--_tunet-row-gap, 0.52em) * 1.54);
-    min-width: 0;
-    flex: 1;
+    min-width: 6em;
+    flex: 1 1 auto;
   }
   .room-row-info {
-    min-width: 0;
+    min-width: 4.5em;
     display: flex;
     flex-direction: column;
     gap: calc(var(--_tunet-row-gap, 0.52em) * 0.27);
+    flex: 1 1 auto;
+  }
+  .room-grid.row-mode .room-tile-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
   }
   .room-grid.row-mode .room-tile-name,
   .room-grid.row-mode .room-tile-status {
@@ -407,7 +414,8 @@ const CARD_STYLES = `
     display: inline-flex;
     align-items: center;
     gap: calc(var(--_tunet-row-gap, 0.52em) * 1.18);
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 0;
   }
   .room-action-btn {
     width: var(--row-btn-size);

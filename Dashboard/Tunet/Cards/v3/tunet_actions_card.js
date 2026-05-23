@@ -19,6 +19,7 @@ import {
   runCardAction,
   registerCard,
   logCardVersion,
+  escapeHtml,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '2.4.4';
@@ -519,7 +520,11 @@ class TunetActionsCard extends HTMLElement {
       chip.dataset.accent = action.accent;
 
       const iconName = normalizeIcon(action.icon || 'circle');
-      chip.innerHTML = `<span class="icon">${iconName}</span> ${action.name}`;
+      // Plan E Phase 10: escape config-derived action.name to prevent
+      // YAML-injected markup from breaking the chip rendering or
+      // executing as HTML. iconName comes from normalizeIcon (already
+      // safe — only material symbol identifiers).
+      chip.innerHTML = `<span class="icon">${iconName}</span> ${escapeHtml(action.name)}`;
 
       chip.addEventListener('click', () => this._runAction(action));
 

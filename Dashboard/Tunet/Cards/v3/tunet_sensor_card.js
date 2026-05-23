@@ -12,6 +12,7 @@ import {
   selectProfileSize, resolveSizeProfile, _setProfileVars,
   registerCard, logCardVersion,
   renderConfigPlaceholder,
+  escapeHtml,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.0.0';
@@ -702,12 +703,16 @@ class TunetSensorCard extends HTMLElement {
         </div>
       ` : '';
 
+      // Plan E Phase 10: escape config-derived sensor icon + label so
+      // YAML-injected markup (e.g. `<script>` in label) cannot break
+      // the row rendering or execute as HTML. entity is HA-validated
+      // entity_id so safe.
       row.innerHTML = `
         <div class="sensor-icon">
-          <span class="icon filled">${sensorCfg.icon || 'sensors'}</span>
+          <span class="icon filled">${escapeHtml(sensorCfg.icon || 'sensors')}</span>
         </div>
         <div class="sensor-info">
-          <span class="sensor-label">${sensorCfg.label || sensorCfg.entity || ''}</span>
+          <span class="sensor-label">${escapeHtml(sensorCfg.label || sensorCfg.entity || '')}</span>
           <span class="sensor-sub" id="sub-${this._rowRefs.length}"></span>
         </div>
         ${sparkHtml}

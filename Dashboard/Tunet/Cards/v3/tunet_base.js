@@ -2181,3 +2181,28 @@ export function logCardVersion(name, version, color = '#D4850A') {
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
+
+/**
+ * Escape a string for safe insertion into innerHTML template literals.
+ *
+ * Plan E Phase 10 (markup safety sweep) — promoted from
+ * tunet_inbox_card.js where it lived as a local helper. Cards that
+ * inject config or entity strings into innerHTML must use this to
+ * prevent stray `<` `>` `&` `"` `'` from breaking markup OR (in the
+ * adversarial case) executing as HTML.
+ *
+ * Canonical pattern: `<span>${escapeHtml(item.label)}</span>`.
+ * NOT for: trusted constants (static template strings), already-
+ * escaped values, or values you intend to render as HTML.
+ *
+ * @param {*} value - any value coerced to string before escaping
+ * @returns {string}
+ */
+export function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}

@@ -719,16 +719,36 @@ class TunetWeatherCard extends HTMLElement {
       return;
     }
 
-    this.$.forecast.style.setProperty('--forecast-cols', points.length);
+    // Plan E Phase 2: clamp visible columns to a sane max so tiles
+    // don't compress to <40px width on phone. Previously --forecast-cols
+    // tracked points.length blindly; 7+ daily points at 390px squished
+    // hi/lo temps onto a single visual row, producing the "38°36°35°34°"
+    // appearance. Cap at MAX_FORECAST_COLS_VISIBLE; surplus points wrap
+    // or scroll per grid behavior.
+    const MAX_FORECAST_COLS_VISIBLE = 5;
+    const visibleCols = Math.min(points.length, MAX_FORECAST_COLS_VISIBLE);
+    this.$.forecast.style.setProperty('--forecast-cols', visibleCols);
     this.$.forecast.innerHTML = points.map((fc, i) => {
+      // Guard against malformed datetime — toLocaleString on Invalid Date
+      // produces "Invalid Date" string, which historically surfaced as
+      // garbage in the day label. Validate first.
       const dt = new Date(fc.datetime);
-      const dayName = this._viewMode === 'hourly'
-        ? (i === 0 ? 'Now' : this._formatHourLabel(dt))
-        : (i === 0 ? 'Now' : DAY_NAMES[dt.getDay()]);
-      const icon = CONDITION_ICONS[fc.condition] || 'cloud';
+      const dtValid = !Number.isNaN(dt.getTime());
+      const dayName = !dtValid
+        ? '?'
+        : this._viewMode === 'hourly'
+          ? (i === 0 ? 'Now' : this._formatHourLabel(dt))
+          : (i === 0 ? 'Now' : DAY_NAMES[dt.getDay()]);
+      // Plan E Phase 2: AAAAAA placeholder root cause hypothesis is that
+      // an unmapped condition string falls back to 'cloud' Material
+      // Symbol ligature, which renders as raw text when MS font is mid-
+      // load. Use a known-stable ligature ('cloud_queue' is universally
+      // present) and add visibility:hidden guard via .icon class.
+      const condKey = fc?.condition;
+      const icon = (condKey && CONDITION_ICONS[condKey]) || 'cloud_queue';
       const isPrecip = this._metricMode === 'precipitation';
-      const hi = fc.temperature != null ? Math.round(fc.temperature) : '--';
-      const lo = this._viewMode === 'daily' && fc.templow != null ? Math.round(fc.templow) : null;
+      const hi = fc.temperature != null && Number.isFinite(fc.temperature) ? Math.round(fc.temperature) : '--';
+      const lo = this._viewMode === 'daily' && fc.templow != null && Number.isFinite(fc.templow) ? Math.round(fc.templow) : null;
       const precip = this._resolvePrecipPresentation(fc);
       const hourlyUv = this._viewMode === 'hourly' && !isPrecip
         ? this._resolveForecastUv(fc)

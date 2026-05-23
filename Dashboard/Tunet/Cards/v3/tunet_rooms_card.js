@@ -25,6 +25,7 @@ import {
   registerCard,
   logCardVersion,
   renderConfigPlaceholder,
+  escapeHtml,
 } from './tunet_base.js?v=20260309g7';
 
 const CARD_VERSION = '3.0.0';
@@ -1106,13 +1107,13 @@ class TunetRoomsCard extends HTMLElement {
               <span class="icon">${normalizeIcon(roomCfg.icon)}</span>
             </div>
             <div class="room-row-info">
-              <span class="room-tile-name">${roomCfg.name}</span>
+              <span class="room-tile-name">${escapeHtml(roomCfg.name)}</span>
               <span class="room-tile-status" id="room-status-${i}">--</span>
             </div>
           </div>
           <div class="room-row-controls">
             <div class="room-orbs" id="room-orbs-${i}">${orbs}</div>
-            <button type="button" class="room-action-btn off" id="room-toggle-${i}" aria-label="Toggle all ${roomCfg.name}">
+            <button type="button" class="room-action-btn off" id="room-toggle-${i}" aria-label="Toggle all ${escapeHtml(roomCfg.name)}">
               <span class="icon">power_settings_new</span>
             </button>
             <span class="icon room-chevron">chevron_right</span>
@@ -1127,7 +1128,7 @@ class TunetRoomsCard extends HTMLElement {
           <div class="room-tile-icon">
             <span class="icon">${normalizeIcon(roomCfg.icon)}</span>
           </div>
-          <span class="room-tile-name">${roomCfg.name}</span>
+          <span class="room-tile-name">${escapeHtml(roomCfg.name)}</span>
           <span class="room-tile-status" id="room-status-${i}">--</span>
           <div class="room-progress-track">
             <div class="room-progress-fill" id="room-fill-${i}"></div>
@@ -1149,7 +1150,7 @@ class TunetRoomsCard extends HTMLElement {
         : [];
 
       if (toggleBtn) {
-        toggleBtn.setAttribute('title', `Toggle all ${roomCfg.name}`);
+        toggleBtn.setAttribute('title', `Toggle all ${escapeHtml(roomCfg.name)}`);
       }
       for (const orbRef of orbRefs) {
         const lightLabel = orbRef.name || orbRef.entity || 'Light';

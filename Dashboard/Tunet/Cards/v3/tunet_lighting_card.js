@@ -456,14 +456,11 @@ ${CARD_SURFACE_GLASS_STROKE}
     position: relative;
     cursor: pointer;
     user-select: none;
-    /* T1.5: was touch-action: pan-y — that let the browser commit to scrolling
-     * if the user's finger drifted vertically during a brightness drag, which
-     * killed the drag mid-gesture. Mac's complaint: "once I grab it left or
-     * right is all that matters until I release, vertical up down should be
-     * ignored." With touch-action: none, JS handles all touch gestures on
-     * the tile (tap, hold, drag). Page scrolling still works from the gaps
-     * between tiles + areas outside the lighting grid. */
-    touch-action: none;
+    /* T1.5b: touch-action: pan-y allows page scroll from inside the tile when
+     * NOT dragging. JS dynamically switches to 'none' on onArm/onDragStart so
+     * vertical drift doesn't cancel an in-progress brightness drag (T1.5
+     * issue); restores 'pan-y' on cleanup. See setupTileDragController. */
+    touch-action: pan-y;
     border: 1px solid var(--border-ghost);
     overflow: hidden;
     min-height: var(--_tunet-tile-min-h, 5.75em);
@@ -1515,7 +1512,14 @@ class TunetLightingCard extends HTMLElement {
         // NOT wired on hold for light tiles per cards_reference.md
         // Interaction Model; other cards keep that path via onLongPress.
         const ctx = payload && payload.context;
-        if (ctx && ctx.tileEl) ctx.tileEl.classList.add('sliding');
+        if (ctx && ctx.tileEl) {
+          ctx.tileEl.classList.add('sliding');
+          // T1.5b: lock touch-action to 'none' once hold has armed so
+          // vertical finger drift during the impending drag doesn't let
+          // the browser claim a scroll gesture. Restored on release/end.
+          ctx.tileEl.dataset.savedTouchAction = ctx.tileEl.style.touchAction || '';
+          ctx.tileEl.style.touchAction = 'none';
+        }
         if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
           try { navigator.vibrate(10); } catch (_) { /* no-op */ }
         }
@@ -1524,7 +1528,13 @@ class TunetLightingCard extends HTMLElement {
         // User held + released without dragging. Clear visual; no service
         // call (toggle is the quick-tap path).
         const ctx = payload && payload.context;
-        if (ctx && ctx.tileEl) ctx.tileEl.classList.remove('sliding');
+        if (ctx && ctx.tileEl) {
+          ctx.tileEl.classList.remove('sliding');
+          // T1.5b: restore touch-action so the user can scroll the page
+          // from inside this tile again.
+          ctx.tileEl.style.touchAction = ctx.tileEl.dataset.savedTouchAction || '';
+          delete ctx.tileEl.dataset.savedTouchAction;
+        }
       },
       getContext: (event) => {
         const tileEl = event.target.closest('.l-tile');
@@ -1544,6 +1554,14 @@ class TunetLightingCard extends HTMLElement {
         if (!ctx || !ctx.tileEl) return;
         // .sliding may already be present from onArm; add is idempotent.
         ctx.tileEl.classList.add('sliding');
+        // T1.5b: lock touch-action: none in case drag started without arm
+        // (fast drag before 400ms hold timer). onArm sets this too; this
+        // covers the no-arm path. Idempotent: savedTouchAction only set
+        // once (won't overwrite the original on a duplicate set).
+        if (!('savedTouchAction' in ctx.tileEl.dataset)) {
+          ctx.tileEl.dataset.savedTouchAction = ctx.tileEl.style.touchAction || '';
+        }
+        ctx.tileEl.style.touchAction = 'none';
         document.body.style.cursor = 'grabbing';
         if (this._config.layout === 'scroll') {
           this.$.lightGrid.style.scrollSnapType = 'none';
@@ -1590,6 +1608,12 @@ class TunetLightingCard extends HTMLElement {
         if (refs) {
           refs.el.classList.remove('sliding');
           refs.fill.style.transition = '';
+        }
+        // T1.5b: restore touch-action so user can scroll page from this
+        // tile again. Covers both committed and cancelled drag endings.
+        if (ctx.tileEl) {
+          ctx.tileEl.style.touchAction = ctx.tileEl.dataset.savedTouchAction || '';
+          delete ctx.tileEl.dataset.savedTouchAction;
         }
         document.body.style.cursor = '';
         if (this._config.layout === 'scroll') {

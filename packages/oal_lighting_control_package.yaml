@@ -2876,6 +2876,16 @@ automation:
         entity_id: input_boolean.oal_system_paused
         state: "off"
     action:
+      # Defer during configuration_manager mode transitions to prevent
+      # racing handoff writes. wait_template (not hard condition skip)
+      # so the sun-elevation crossing isn't permanently dropped — this
+      # automation is one-shot per crossing and won't re-fire today.
+      # 30s timeout with continue_on_timeout: if the lock somehow sticks
+      # past 30s, the watchdog (60s) catches it; we proceed anyway here.
+      - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
+        timeout: "00:00:30"
+        continue_on_timeout: true
+
       # Recovery path for startup/reload so columns can re-enter session window safely.
       - choose:
           - conditions:
@@ -3130,6 +3140,16 @@ automation:
              or is_state('light.dining_column_strip_light_matter', 'on')
              or is_state('light.master_bedroom_column_accent', 'on') }}
     action:
+      # Defer during configuration_manager mode transitions to prevent
+      # racing handoff writes. wait_template (not hard condition skip)
+      # so the sun-elevation crossing isn't permanently dropped — this
+      # automation is one-shot per crossing and won't re-fire today.
+      # 30s timeout with continue_on_timeout: if the lock somehow sticks
+      # past 30s, the watchdog (60s) catches it; we proceed anyway here.
+      - wait_template: "{{ is_state('input_boolean.oal_config_transition_active', 'off') }}"
+        timeout: "00:00:30"
+        continue_on_timeout: true
+
       # Test trigger is valid only when test mode is enabled.
       - condition: template
         value_template: >
@@ -3706,6 +3726,14 @@ automation:
         state: "off"
       - condition: state
         entity_id: switch.adaptive_lighting_sleep_mode_office_bed
+        state: "off"
+      # Defer to configuration_manager during mode transitions: this
+      # automation writes hs_color/rgb_color to bed pair, which would
+      # race with handoff brightness writes. Hard skip is safe because
+      # the next periodic (within 15min) catches the color tier; missed
+      # fast-path tier-crossings are non-fatal.
+      - condition: state
+        entity_id: input_boolean.oal_config_transition_active
         state: "off"
       # Test trigger valid only when test mode is on
       - condition: template

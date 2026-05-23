@@ -3275,3 +3275,12 @@ Card code changes (status pills variant, media transport routing, rooms chevron)
 intentionally deferred to a follow-up tranche for proper M1 review.
 
 Scoped contract: `docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md`.
+
+## Session Delta (2026-05-23 ultrathink continuation — FINAL interaction architecture spec)
+
+Three documents added in one focused planning push:
+- `docs/plans/harmonic-bouncing-cosmos.md` (commit `7e67453`) — Doc B: live Critical Discoveries (DOM-level rooms-card orb defect, Mac's popup screenshot, Bubble 3.2.1 NOT on server, 4 dashboards / 4 models), 4-alternative gesture matrix, IA back-stack/deep-link locks, tranche mapping with PA02-PA11 absorption recommendation, 5-app best-in-class adopt/reject matrix, classified risk register, 3 explicit disagreements with Mac's verbal direction
+- `docs/plans/tunet-interaction-plans-cross-review-2026-05-23.md` (commit `651664f`) — bidirectional adversarial review of Doc A (interaction-spec) vs Doc B (cosmos); identified 4 material disagreements DA-1/2/3/4
+- `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md` (commit `0f4f17b`) — AUTHORITATIVE merge: locks DA-1/2/3/4 with defensible defaults Mac can override (whole-body tap for row variant + tap-region split for tile variant; long-press deprecated for row + redundant for tile; Adaptive collapsed into Stats sub-section; Weather + Lighting cards removed from Home). Uses provenance labels `[A §X]` / `[B §X]` / `[FINAL]` instead of duplicating ~1800 lines of source. Doc A + Doc B preserved as detail references.
+
+Next action: Plan A execution (Bubble Card 3.2.1 server upgrade prerequisite check per `docs/plans/tunet-foundation-cleanup-2026-05-23.md`). Scoped contract: `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md` §25.

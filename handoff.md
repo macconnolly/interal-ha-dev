@@ -3053,3 +3053,7 @@ Adaptive → Evening → Dim Ambient. All scripts/automations referencing the ol
 "Dim Ambient Plus" string have been updated. 19 new sensors live (stats +
 HVAC + OAL zone snapshot). Plan F dashboard build in progress; canonical plan
 at `docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md`.
+
+## Session Delta (2026-05-23 ultrathink continuation — FINAL interaction architecture)
+
+If picking up cold: read `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md` FIRST. It's the authoritative merge of Doc A (interaction-spec, commit `2ce7e22`) and Doc B (harmonic-bouncing-cosmos, commit `7e67453`) per cross-review (commit `651664f`). DA-1/2/3/4 are locked with defensible defaults; Mac confirm/override flags throughout §21. Next action is Plan A execution per `tunet-foundation-cleanup-2026-05-23.md`. Mac's `/goal` directive: "Do not stop until it is perfect" — sustained execution authorized; commit frequently; live test where possible. Bubble Card 3.2.1 upgrade is the choke point; everything popup-dependent blocks on Plan A.

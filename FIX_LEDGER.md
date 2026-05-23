@@ -3355,3 +3355,7 @@ Production target corrected `tunet-suite` → `tunet-overview` (canonical storag
 `docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md` approved (commit `2ce7e22`).
 Backend ship: OAL Evening rename + 19 new sensors (commit `6caad51`). Dashboard
 build in progress. Scoped: see plan + visual_defect_ledger.
+
+## Session Delta (2026-05-23 ultrathink continuation — FINAL interaction architecture spec + cross-review)
+
+Three docs added: `harmonic-bouncing-cosmos.md` (Doc B; commit `7e67453`), cross-review (commit `651664f`), FINAL spec (commit `0f4f17b`). FINAL spec locks 4 disagreements (DA-1/2/3/4) with Mac-overridable defaults; supersedes Doc A + Doc B for forward execution. Critical Discoveries from live Playwright captures preserved (rooms-card per-light orb DOM defect at `tunet_rooms_card.js:878/885/1100`; live popup screenshot from Mac proves the verbal contract is already implemented in suite POC on Browser Mod). Scoped: `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md`.

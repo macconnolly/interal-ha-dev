@@ -813,6 +813,17 @@ const LIGHTING_TEMPLATE = `
         <!-- Pagination dots (scroll mode only) -->
         <div class="header-dots" id="headerDots"></div>
 
+        <!-- T1.1: Master toggle (Mac feedback: "I do like the on/off button so
+             I would like to add that to our card"). Shows when master_toggle
+             config is true. Tap = turn all zones on/off based on any-zone-on
+             state. Hidden by default (opt-in via config). -->
+        <div class="toggle-wrap" id="masterToggleWrap">
+          <button class="toggle-btn master-toggle hidden" id="masterToggleBtn"
+                  aria-label="Toggle all lighting">
+            <span class="icon icon-18">power_settings_new</span>
+          </button>
+        </div>
+
         <!-- Manual reset (shows only when manual overrides exist) -->
         <div class="toggle-wrap" id="manualResetWrap">
           <button class="toggle-btn manual-reset hidden" id="manualResetBtn"
@@ -958,6 +969,9 @@ class TunetLightingCard extends HTMLElement {
       adaptive_entities: adaptiveEntities,
       show_adaptive_toggle: showAdaptiveToggle,
       show_manual_reset: showManualReset,
+      // T1.1: master toggle for "all lighting on/off" button in header.
+      // Defaults to true since Mac asked for it on the home card.
+      show_master_toggle: config.show_master_toggle !== false,
       columns,
       column_breakpoints: columnBreakpoints,
       layout,
@@ -1276,6 +1290,8 @@ class TunetLightingCard extends HTMLElement {
     this.$ = {
       card:        this.shadowRoot.querySelector('.card'),
       infoTile:    this.shadowRoot.getElementById('infoTile'),
+      masterToggleWrap: this.shadowRoot.getElementById('masterToggleWrap'),
+      masterToggleBtn:  this.shadowRoot.getElementById('masterToggleBtn'),
       entityIcon:  this.shadowRoot.getElementById('entityIcon'),
       entityGlyph: this.shadowRoot.getElementById('entityGlyph'),
       hdrTitle:    this.shadowRoot.getElementById('hdrTitle'),
@@ -1405,6 +1421,15 @@ class TunetLightingCard extends HTMLElement {
 
     // Adaptive toggle (global for resolved adaptive entities).
     this.$.adaptiveBtn.addEventListener('click', () => this._toggleAdaptive());
+
+    // T1.1: Master toggle (all lighting on/off across all zones).
+    if (this.$.masterToggleBtn) {
+      this.$.masterToggleBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this._toggleAllZones();
+      });
+    }
 
     // Explicit manual reset control (shows only when overrides exist).
     this.$.manualResetBtn.addEventListener('click', (e) => {
@@ -1813,6 +1838,22 @@ class TunetLightingCard extends HTMLElement {
     }
   }
 
+  // T1.1: Master on/off toggle for ALL light zones on the card.
+  // Per Mac's request: single power button on the header that turns every
+  // zone the card knows about on or off.
+  // Behavior: if any zone is on → turn all off. If all zones are off → turn
+  // all on. Single light.turn_off / light.turn_on call with the joined
+  // entity list (HA accepts comma-separated entity_ids).
+  _toggleAllZones() {
+    const zoneEntities = this._resolvedZones
+      .map((z) => z.entity)
+      .filter((e) => typeof e === 'string' && e.startsWith('light.'));
+    if (!zoneEntities.length) return;
+    const anyOn = zoneEntities.some((e) => this._getEntity(e)?.state === 'on');
+    const service = anyOn ? 'turn_off' : 'turn_on';
+    this._callService('light', service, { entity_id: zoneEntities });
+  }
+
   _resetManualControl() {
     if (!this._hass) return;
     const adaptiveEntities = this._resolveAdaptiveEntities().filter((entityId) =>
@@ -1917,6 +1958,23 @@ class TunetLightingCard extends HTMLElement {
     const anyOn = onCount > 0;
     this.$.card.dataset.anyOn = anyOn ? 'true' : 'false';
     this.$.card.dataset.allOff = (onCount === 0 && totalCount > 0) ? 'true' : 'false';
+
+    // T1.1: Master toggle visibility + on/off state
+    if (this.$.masterToggleBtn && this.$.masterToggleWrap) {
+      if (this._config.show_master_toggle && totalCount > 0) {
+        this.$.masterToggleWrap.classList.remove('hidden');
+        this.$.masterToggleBtn.classList.remove('hidden');
+        this.$.masterToggleBtn.classList.toggle('on', anyOn);
+        this.$.masterToggleBtn.setAttribute('aria-pressed', anyOn ? 'true' : 'false');
+        this.$.masterToggleBtn.setAttribute(
+          'title',
+          anyOn ? 'Turn all lighting off' : 'Turn all lighting on'
+        );
+      } else {
+        this.$.masterToggleWrap.classList.add('hidden');
+        this.$.masterToggleBtn.classList.add('hidden');
+      }
+    }
 
     // ── Header icon state (Principle #7: outlined off, filled on) ──
     if (anyOn) {

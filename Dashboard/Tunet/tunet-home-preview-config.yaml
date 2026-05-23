@@ -43,41 +43,15 @@ views:
   max_columns: 6
   dense_section_placement: true
   sections:
+  # T1.2 home layout (2026-05-23 Mac directive):
+  #   1. Controls (actions) at very top - full width
+  #   2. Home Status - full width
+  #   3. 50/50 split below
+  #      LEFT  (column_span 3): lighting + rooms stacked
+  #      RIGHT (column_span 3): climate + weather + media + inbox stacked
+  #   Popups (sections 5+) remain unchanged (column_span 4, hidden bubble-cards).
   - type: grid
-    column_span: 4
-    cards:
-    # Status card matches polish-review home_summary (Mac validation 2026-05-23):
-    # switched from manual tiles[] to recipe_tiles[] with use_profiles: true to
-    # match /tunet-card-rehab-yaml/polish-review "Status Summary (Polish)".
-    - type: custom:tunet-status-card
-      name: Home Status
-      layout_variant: home_summary
-      show_header: true
-      columns: 4
-      tile_size: standard
-      use_profiles: true
-      grid_options:
-        columns: full
-      recipe_tiles:
-      - recipe: home_presence
-        entity: person.mac_connolly
-      - recipe: lights_on
-      - recipe: mode_selector
-      - recipe: manual_overrides
-        entity: sensor.oal_system_status
-      - recipe: inside_temperature
-        entity: sensor.dining_room_temperature
-        action_entity: climate.dining_room
-      - recipe: outside_temperature
-      - recipe: outside_weather
-      - recipe: inside_humidity
-        entity: sensor.kitchen_humidity
-      - recipe: now_playing
-      - recipe: next_alarm
-        entity: sensor.sonos_next_alarm
-        compact_label: Bedroom
-  - type: grid
-    column_span: 4
+    column_span: 6
     cards:
     - type: custom:tunet-actions-card
       name: Quick Actions
@@ -174,11 +148,42 @@ views:
           attribute: active_zonal_overrides
           operator: gt
           state: 0
-  # Lighting functional zones grid (T0.5 add — matches Mac's image 2 reference)
-  # Each tile = a functional zone with direct brightness control; tap = toggle,
-  # long-press / drag = brightness. Zones map to OAL zone groups.
+  # Home Status — full width below controls
   - type: grid
-    column_span: 4
+    column_span: 6
+    cards:
+    - type: custom:tunet-status-card
+      name: Home Status
+      layout_variant: home_summary
+      show_header: true
+      columns: 4
+      tile_size: standard
+      use_profiles: true
+      grid_options:
+        columns: full
+      recipe_tiles:
+      - recipe: home_presence
+        entity: person.mac_connolly
+      - recipe: lights_on
+      - recipe: mode_selector
+      - recipe: manual_overrides
+        entity: sensor.oal_system_status
+      - recipe: inside_temperature
+        entity: sensor.dining_room_temperature
+        action_entity: climate.dining_room
+      - recipe: outside_temperature
+      - recipe: outside_weather
+      - recipe: inside_humidity
+        entity: sensor.kitchen_humidity
+      - recipe: now_playing
+      - recipe: next_alarm
+        entity: sensor.sonos_next_alarm
+        compact_label: Bedroom
+  # LEFT half (column_span 3): Lighting (top) + Rooms slim (bottom)
+  # On phone (single col), both cards stack with everything else.
+  # On desktop (max_columns 6), this section + the RIGHT section sit 50/50.
+  - type: grid
+    column_span: 3
     cards:
     - type: custom:tunet-lighting-card
       name: Lighting
@@ -186,10 +191,12 @@ views:
       layout: grid
       tile_size: compact
       use_profiles: true
-      columns: 6
+      columns: 3
       column_breakpoints:
-        - max_width: 640
+        - max_width: 400
           columns: 2
+        - max_width: 900
+          columns: 3
         - columns: 6
       expand_groups: false
       show_adaptive_toggle: false
@@ -218,12 +225,6 @@ views:
       grid_options:
         columns: full
         rows: auto
-  # Rooms slim rows (T0.5 swap — matches Mac's image 1 "Overview Slim" reference)
-  # Each row = one physical room with state + 3 light chips + power + chevron.
-  # Tap on row body = open #room-<name> Bubble popup; chevron drills into subview.
-  - type: grid
-    column_span: 4
-    cards:
     - type: custom:tunet-rooms-card
       name: Rooms
       layout_variant: slim
@@ -287,10 +288,11 @@ views:
           icon: lamp
         - entity: light.office_bed_lights
           icon: bed
-  # Climate — own section (T0.5 unbundle — was sharing section with rooms which
-  # caused phone-width crowding per Mac feedback "climate only half width on mobile")
+  # RIGHT half (column_span 3): Climate (top) + Weather + Now Playing + Inbox stacked
+  # On phone: stacks under LEFT section's cards (lighting, rooms, then climate...).
+  # On desktop: sits 50/50 next to LEFT section.
   - type: grid
-    column_span: 4
+    column_span: 3
     cards:
     - type: custom:tunet-climate-card
       entity: climate.dining_room
@@ -300,12 +302,6 @@ views:
       grid_options:
         columns: full
         rows: auto
-  # Weather — own section, forecast_hours: 4 (T0.6 — was 6, reduced to widen
-  # each hour tile and reduce UV+hour-label collision per Mac feedback
-  # "UV label overlap")
-  - type: grid
-    column_span: 4
-    cards:
     - type: custom:tunet-weather-card
       entity: weather.home
       name: Weather
@@ -321,12 +317,6 @@ views:
       grid_options:
         columns: full
         rows: auto
-  # Now Playing — own section, renamed from "Sonos" for discoverability
-  # (T0.5 — Mac: "no obvious Now Playing entry tile to tap"). Tap = open
-  # #media-living-room Bubble Card popup.
-  - type: grid
-    column_span: 4
-    cards:
     - type: custom:tunet-media-card
       entity: media_player.living_room
       name: Now Playing
@@ -337,12 +327,6 @@ views:
       tap_action:
         action: navigate
         navigation_path: '#media-living-room'
-# Quick Actions strip merged into top section (per Mac feedback 2026-05-23):
-# "below the media there were another set of scenes or action tiles, we don't need
-# that and it should be combined with the ones at the top please."
-  - type: grid
-    column_span: 4
-    cards:
     - type: custom:tunet-inbox-card
       name: Inbox
       grid_options:

@@ -29,12 +29,20 @@ export const TUNET_DASHBOARD_SOURCE_ROOT = 'Dashboard/Tunet';
 
 export const TUNET_DASHBOARD_REGISTRY = Object.freeze([
   {
+    source: 'Dashboard/Tunet/tunet-overview-storage-config.yaml',
+    mode: 'storage',
+    url_path: 'tunet-overview',
+    production: true,
+    description:
+      "Tunet Overview — production storage-mode dashboard at /tunet-overview/overview. Mac's canonical view (well-configured except for legacy profile options pending cleanup). Storage-mode trade-off: UI edits get overwritten on next push from the repo source. Source-of-truth contract: repo wins.",
+  },
+  {
     source: 'Dashboard/Tunet/tunet-home-config.yaml',
     mode: 'storage',
     url_path: 'tunet-home',
-    production: true,
+    production: false,
     description:
-      "Tunet Home — Mac's primary production view. Storage-mode at /tunet-home; the HA UI editor remains functional on this dashboard with the documented trade-off that UI edits get overwritten on next push from this file. Source-of-truth contract: repo wins.",
+      'Tunet Home — secondary storage-mode dashboard at /tunet-home. Single-view minimal mirror; NOT the canonical production view (that is tunet-overview).',
   },
   {
     source: 'Dashboard/Tunet/tunet-suite-config.yaml',
@@ -43,7 +51,7 @@ export const TUNET_DASHBOARD_REGISTRY = Object.freeze([
     url_path: 'tunet-suite',
     production: false,
     description:
-      'Tunet Suite (POC). Multi-view yaml dashboard kept as reference / fallback. NOT the live production view (that is tunet-home).',
+      'Tunet Suite (POC). Multi-view yaml dashboard kept as reference / fallback. Not production.',
   },
   {
     source: 'Dashboard/Tunet/tunet-card-rehab-lab.yaml',

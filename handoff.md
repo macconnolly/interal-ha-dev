@@ -3030,3 +3030,7 @@ Use:
 ## Session Delta (2026-05-22, Deploy + Visual Review Rationalization)
 
 β-plumbing tranche shipped. New npm scripts available for downstream work: `tunet:deploy:dashboards[:yaml|:storage]`, `tunet:review:production`, `tunet:review:both`, `tunet:review:share`. New M1 contract in `/home/mac/HA/implementation_10/CLAUDE.md` and `Dashboard/Tunet/AGENTS.md` §6A bans harness-passed evidence, mandates production-mirror capture for production-facing cards, and adds a capitulation guard. Sub-agent #1 (audit findings), sub-agent #2 (card polish), and sub-agent #3 (page architecture) all consume this infrastructure. Scoped contract: `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` § Known Pipeline Gaps (RESOLVED) and `Dashboard/Tunet/Docs/deploy_workflow_canary.md`.
+
+## Session Delta Correction (2026-05-22, same day)
+
+If a sub-agent runs `npm run tunet:review:share`, the harness now fires an HA push notification (via `notify.tunet_inbox_all_devices`) with a `data.url` deep-link to the production target — NOT SendUserFile. Production target is `tunet-overview` (storage-mode `/tunet-overview/overview`), backed up to repo at `Dashboard/Tunet/tunet-overview-storage-config.yaml`. M1 in CLAUDE.md + AGENTS.md updated accordingly. See `Dashboard/Tunet/Docs/deploy_workflow_canary.md` "Pipeline gotchas surfaced" for the WHY.

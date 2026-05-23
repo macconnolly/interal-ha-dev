@@ -3228,3 +3228,11 @@ If any one of those artifacts is missing, the interaction change is considered d
 ## Session Delta (2026-05-22, Deploy + Visual Review Rationalization)
 
 β-plumbing tranche shipped. Closes 3 named gaps in Dashboard/Tunet/Docs/tunet_build_and_deploy.md § Known Pipeline Gaps (dashboard deploy, page-vs-production, harness grading). 8 commits on `main`: `4eae3ac` `7484481` `bccc43c` `4acfe9f` `8cee3b0` `0318db2` `cd3d261` plus the governance/canary commit that introduces this delta. Scoped contract carries the full mechanical narrative; see `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` § Known Pipeline Gaps (RESOLVED entries) and `Dashboard/Tunet/Docs/deploy_workflow_canary.md` for the last-known-good chain.
+
+## Session Delta Correction (2026-05-22, same day — production target + delivery primitive)
+
+Two corrections to the 8-phase rationalization landed in `f75813f` + a second correction commit:
+- Production target moved from `tunet-suite` → `tunet-home` → `tunet-overview` (canonical, Mac's well-configured storage dashboard at `/tunet-overview/overview`).
+- iPhone delivery primitive corrected: original Phase 5 used `SendUserFile(proactive)` which does not push to iPhone in WSL Claude Code sessions. New primitive is HA `notify.tunet_inbox_all_devices` with `data.url` deep-link, verified live with Mac on phone.
+
+Scoped contract: `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` § Known Pipeline Gaps + `Dashboard/Tunet/Docs/deploy_workflow_canary.md`. M1 in `/home/mac/HA/implementation_10/CLAUDE.md` + `Dashboard/Tunet/AGENTS.md` §6A updated to reflect the corrected primitive.

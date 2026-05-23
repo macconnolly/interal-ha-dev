@@ -241,12 +241,15 @@ Options:
                                   Probes emit OBSERVATIONS in the manifest,
                                   not pass/fail verdicts. Only Mac grades
                                   (see CLAUDE.md M1-M7).
-  --share-with-user               Emit SEND_TO_USER: lines on stdout so the
-                                  orchestrating Claude Code agent can call
-                                  SendUserFile(status='proactive') for each
-                                  capture. Captures reach Mac's iPhone for
-                                  actual-device review without him hunting
-                                  through /tmp.
+  --share-with-user               Send an HA push notification (via the
+                                  HA REST API) summarizing the run, so Mac
+                                  gets a phone alert pointing at the live
+                                  dashboard to grade. Defaults to
+                                  notify.tunet_inbox_all_devices; override
+                                  with --notify-service <name>.
+  --notify-service <name>         HA notify.<name> service to call (default:
+                                  tunet_inbox_all_devices). Used only when
+                                  --share-with-user is set.
   --help                          Show this message
 `);
 }
@@ -269,6 +272,7 @@ function parseArgs(argv) {
     smoke: false,
     withProbes: false,
     shareWithUser: false,
+    notifyService: 'tunet_inbox_all_devices',
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -319,6 +323,9 @@ function parseArgs(argv) {
       options.withProbes = true;
     } else if (arg === '--share-with-user') {
       options.shareWithUser = true;
+    } else if (arg === '--notify-service' && next) {
+      options.notifyService = next;
+      i += 1;
     } else if (arg === '--help') {
       printHelp();
       process.exit(0);
@@ -1367,52 +1374,103 @@ async function main() {
   console.log('');
 
   if (options.shareWithUser) {
-    emitShareWithUserMarkers(reviewManifest);
+    await sendHaPushNotification(reviewManifest, manifestPath, env, options);
   }
 
   printM1Reminder(reviewManifest, manifestPath, options);
 }
 
-// ── SendUserFile orchestration markers ────────────────────────────────
-// This script cannot itself call SendUserFile (that tool lives in the
-// orchestrating Claude Code session). When --share-with-user is set,
-// the script emits one marker line per capture in a machine-parseable
-// format. The orchestrating agent parses these lines and calls
-// SendUserFile(files=[path], caption=<bp+card+view>, status='proactive')
-// for each.
+// ── HA push notification ──────────────────────────────────────────────
+// When --share-with-user is set, fire a Home Assistant notify.<service>
+// call via HA's REST API. Mac sees an iPhone push without us guessing
+// at any other delivery channel. Default service is
+// notify.tunet_inbox_all_devices (bundle Mac maintains for cross-device
+// alerts); override with --notify-service <name>.
 //
-// Marker format (stable contract for the orchestrating agent):
-//   SEND_TO_USER: <abs_path> :: bp=<breakpoint> :: card=<tag|full-page>
-//                :: view=<target/surface/routeId>
-//
-// The agent SHOULD send all markers from a single review run as proactive
-// uploads so Mac receives them on his iPhone in one batch.
-function emitShareWithUserMarkers(reviewManifest) {
-  console.log('───────────────────────────────────────────────────────────────');
-  console.log('SEND_TO_USER markers (consumed by orchestrating agent)');
-  console.log('───────────────────────────────────────────────────────────────');
-  let count = 0;
-  for (const result of reviewManifest.results) {
-    const breakpoint = result.breakpoint;
-    const view = `${result.target}/${result.surface}/${result.routeId}`;
-    // Full-page first — provides context for any per-card captures.
-    if (result.fullPageScreenshot) {
-      console.log(
-        `SEND_TO_USER: ${result.fullPageScreenshot} :: bp=${breakpoint} :: card=full-page :: view=${view}`
-      );
-      count += 1;
-    }
-    // Per-card captures.
-    for (const capture of result.cardCaptures || []) {
-      const label = capture.index > 1 ? `${capture.tag}[${capture.index}]` : capture.tag;
-      console.log(
-        `SEND_TO_USER: ${capture.path} :: bp=${breakpoint} :: card=${label} :: view=${view}`
-      );
-      count += 1;
-    }
+// Replaces the prior SendUserFile-markers approach. That was based on
+// an unverified assumption that SendUserFile reaches iPhones; in
+// WSL-on-laptop sessions it does not. HA notify is the actually-working
+// primitive.
+async function sendHaPushNotification(reviewManifest, manifestPath, env, options) {
+  const baseUrl = normalizeBaseUrl(options.baseUrl || env.HA_LOCAL_URL || env.HA_URL || DEFAULT_BASE_URL);
+  const token = env.HA_LONG_LIVED_ACCESS_TOKEN || env.HA_TOKEN;
+  if (!token) {
+    console.error(
+      '  ! Cannot send push: HA_LONG_LIVED_ACCESS_TOKEN missing from .env. Capture completed but no notification fired.'
+    );
+    return;
   }
-  console.log(`(${count} markers above — agent: parse each and call SendUserFile.)`);
-  console.log('');
+  const service = options.notifyService || 'tunet_inbox_all_devices';
+
+  const totalCaptures = reviewManifest.results.reduce(
+    (sum, r) => sum + (r.cardCaptures?.length || 0) + 1,
+    0
+  );
+  const observationCount = reviewManifest.observations.reduce(
+    (sum, o) => sum + o.observations.length,
+    0
+  );
+  const productionRoutes = reviewManifest.routes.filter((r) => r.target === 'production');
+  const productionTargets = [...new Set(productionRoutes.map((r) => r.path))];
+  const breakpoints = reviewManifest.breakpoints.join(', ');
+
+  const title = `Tunet review — ${totalCaptures} captures`;
+  const messageParts = [
+    `${reviewManifest.results.length} (bp,theme,route) combos.`,
+    `Breakpoints: ${breakpoints}.`,
+  ];
+  if (productionTargets.length) {
+    messageParts.push(`Grade on phone: ${productionTargets.join(', ')}`);
+  } else {
+    messageParts.push('Lab-only run (no production target).');
+  }
+  if (observationCount > 0) {
+    messageParts.push(`${observationCount} probe observation(s) recorded — see manifest.`);
+  }
+  const message = messageParts.join(' ');
+
+  // Deep-link: HA Companion app honors `data.url` on iOS / Android. Tapping
+  // the notification opens the app directly to this path instead of the
+  // user's default dashboard. We deep-link to the first production target;
+  // if no production routes are in scope (lab-only run), fall back to
+  // /lovelace which at least lands the user in Lovelace rather than the
+  // app's default panel.
+  const deepLinkPath = productionTargets[0] || '/lovelace';
+  const notifyPayload = {
+    title,
+    message,
+    data: {
+      // iOS Companion expects `url`; Android also supports `clickAction`.
+      // Both fields are accepted by tunet_inbox_all_devices (bundle script
+      // forwards data verbatim to each underlying mobile_app_* notify call).
+      url: deepLinkPath,
+      clickAction: deepLinkPath,
+    },
+  };
+
+  const url = `${baseUrl}/api/services/notify/${service}`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(notifyPayload),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.error(`  ! HA notify failed: ${res.status} ${res.statusText} ${body.slice(0, 200)}`);
+      return;
+    }
+    console.log('───────────────────────────────────────────────────────────────');
+    console.log('HA push notification sent');
+    console.log('───────────────────────────────────────────────────────────────');
+    console.log(`  service: notify.${service}`);
+    console.log(`  title:   ${title}`);
+    console.log(`  message: ${message}`);
+    console.log(`  url:     ${deepLinkPath}`);
+    console.log('');
+  } catch (e) {
+    console.error(`  ! HA notify request failed: ${e.message}`);
+  }
 }
 
 // ── M1 reminder block ─────────────────────────────────────────────────
@@ -1443,8 +1501,8 @@ function printM1Reminder(reviewManifest, manifestPath, options = {}) {
   console.log('capture report, not a verdict. Mac grades via inline image');
   console.log(
     options.shareWithUser
-      ? 'review or the iPhone push above (--share-with-user is ACTIVE).'
-      : 'review (or via --share-with-user iPhone push for iterative work).'
+      ? 'review or the HA push notification fired above (--share-with-user is ACTIVE).'
+      : 'review (or via --share-with-user HA push notification for iterative work).'
   );
   console.log('');
   console.log('See CLAUDE.md "Pre-Commit User-Perspective Review" M1-M7.');

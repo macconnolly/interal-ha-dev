@@ -24,7 +24,10 @@ npm run tunet:build                            # 1. bundle cards
 npm run tunet:deploy:lab                       # 2. SCP card JS + sync resources
 npm run tunet:deploy:dashboards                # 3. SCP yaml + WS storage
 npm run tunet:review:share -- --target both \
-        --card <tag>                           # 4. capture + iPhone push
+        --card <tag>                           # 4. capture + HA push notify
+                                               #    (notify.tunet_inbox_all_devices
+                                               #     with data.url deep-link to
+                                               #     the production target path)
 ```
 
 Steps 1-3 are non-destructive on idempotent inputs. Step 4 launches a
@@ -54,19 +57,21 @@ document captures the chain that worked.
 | 1 | `node Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs --json` | 5 entries, all source paths exist |
 | 2 | `node Dashboard/Tunet/scripts/deploy_tunet_dashboards.mjs --dashboard tunet-suite` | SCP `tunet-suite-config.yaml` → `/config/dashboards/tunet-suite.yaml` |
 | 2 | `node Dashboard/Tunet/scripts/deploy_tunet_dashboards.mjs --dashboard tunet-suite-storage` | WS `lovelace/config/save` → live config EXACT match with repo source |
-| 3 | `buildProductionRouteSet()` import + call | 11 production routes resolved from `tunet-suite-config.yaml` |
-| 3 | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --view lab --card tunet-status-card --breakpoint 390x844 --theme light` | 10 captures, manifest written, exit 0 |
+| 3 | `buildProductionRouteSet()` import + call | After mid-session correction: 3 routes resolved from `tunet-overview-storage-config.yaml` (`overview`, `g5-test`, `card-rehab-lab`). Initial seed targeted `tunet-suite` (yaml-mode) — corrected to `tunet-overview` (storage-mode) per Mac's direction. |
+| 3 | `node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --target production --view tunet-overview--overview --card tunet-status-card --breakpoint 390x844 --theme light` | 2 captures (full-page + status card), manifest written, exit 0, content cards rendered |
 | 4 | Same as Phase 3 with `--with-probes` | 0 observations, capture report (not verdict), M1 reminder block printed, exit 0 |
-| 5 | Same plus `--share-with-user` | 10 `SEND_TO_USER:` markers emitted in stable format |
+| 5 | Same plus `--share-with-user` | HA push notification fired via `notify.tunet_inbox_all_devices` (override `--notify-service <name>`). Title: "Tunet review — N captures." Deep-link via `data.url` to the production target path (`/tunet-overview/overview`). Confirmed live on Mac's phone 2026-05-22. |
 | 7 | `npx vitest run dashboard_registry_contract.test.js` | 11/11 pass (full suite 772/772) |
 | 7 | Negative-case (broken consumer import) | 1/11 fails as designed, restored cleanly |
 
 **Pipeline gotchas surfaced** (worth knowing before next run):
 
 1. `lovelace/dashboards` is unknown_command on HA 2026.x; correct WS command is `lovelace/dashboards/list`. Encoded in deploy dispatcher (commit `7484481`).
-2. Production yaml dashboard `/tunet-suite/overview` did not render content cards in headless Chrome on first capture attempt. Root cause: missing HACS deps (mini-graph-card, hass-hue-icons, button-card, etc.) referenced by the live dashboard. Mac reinstalled `mini-graph-card` mid-session. Remaining missing HACS deps are a separate cleanup workstream.
+2. Production yaml dashboard `/tunet-suite/overview` did not render content cards in headless Chrome — missing HACS deps (mini-graph-card, hass-hue-icons, button-card, etc.) on the live HA instance. Mac reinstalled mini-graph-card mid-session; remaining missing-HACS deps are a separate cleanup workstream. The corrected production target `/tunet-overview/overview` (storage-mode) renders fine — this gotcha is specific to the `tunet-suite` yaml-mode dashboard.
 3. `tunet-nav-card` is chrome and renders DOM-first in each yaml-mode view. `waitForCards` was changed to wait for a visible content card (`ANY_CONTENT_CARD_SELECTOR` excludes nav-card).
 4. The end-to-end e2e verification used `tunet-status-card` per the original plan, but ANY production-facing card with a visible state change would have worked equivalently.
+5. **Production target changed mid-session by Mac's direction.** Initial Phase 1 registry seed flagged `tunet-suite` (yaml-mode) production:true. Mac flagged `tunet-home` first, then corrected to `tunet-overview` (storage-mode at `/tunet-overview/overview`) as the canonical production dashboard. Both `tunet-home` (single-view storage) and `tunet-suite` (multi-view yaml) remain in the registry as non-production references. The lesson: production target is a user-owned declaration; do not infer from filename heuristics.
+6. **SendUserFile is NOT an iPhone push channel in WSL-on-laptop sessions.** Phase 5 originally encoded `SEND_TO_USER:` markers + `SendUserFile(status='proactive')` based on tool documentation that suggested iPhone delivery. In practice the artifacts go to the Claude Code conversation surface, not the user's phone. Mac never saw the first batch. Corrected 2026-05-22 to use HA `notify.tunet_inbox_all_devices` with `data.url` deep-link — confirmed live on Mac's phone in this session. **General principle**: verify delivery primitives end-to-end with the user before encoding them as M1-mandated contracts.
 
 ---
 

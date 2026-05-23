@@ -3331,3 +3331,7 @@ Change marker: media/sonos semantics + dropdown convergence landed; `CD9` remain
 ## Session Delta (2026-05-22, Deploy + Visual Review Rationalization)
 
 β-plumbing tranche shipped. Dashboard deploy + storage WS + production-mirror review + harness-verdict strip + M1 tightening + registry contract test, 8 commits on `main`: `4eae3ac` `7484481` `bccc43c` `4acfe9f` `8cee3b0` `0318db2` `cd3d261` plus this commit. Scoped contract owns the mechanical detail; root keeps narrative. See `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` § Known Pipeline Gaps (RESOLVED rows) and `Dashboard/Tunet/Docs/deploy_workflow_canary.md`.
+
+## Session Delta Correction (2026-05-22, same day)
+
+Production target corrected `tunet-suite` → `tunet-overview` (canonical storage dashboard at `/tunet-overview/overview`). iPhone delivery corrected from `SendUserFile(proactive)` to HA `notify.tunet_inbox_all_devices` with `data.url` deep-link — verified live with Mac. Scoped contract: see deploy_workflow_canary.md "Pipeline gotchas surfaced" rows 5 and 6.

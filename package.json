@@ -6,6 +6,9 @@
     "tunet:build:watch": "node build.mjs --watch",
     "tunet:deploy:lab": "node build.mjs --deploy",
     "tunet:resources:sync": "node Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs",
+    "tunet:deploy:dashboards": "node Dashboard/Tunet/scripts/deploy_tunet_dashboards.mjs",
+    "tunet:deploy:dashboards:yaml": "node Dashboard/Tunet/scripts/deploy_tunet_dashboards.mjs --mode yaml",
+    "tunet:deploy:dashboards:storage": "node Dashboard/Tunet/scripts/deploy_tunet_dashboards.mjs --mode storage",
     "tunet:review": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface all",
     "tunet:review:smoke": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --smoke",
     "tunet:review:changed": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab --changed-cards --with-probes",
@@ -27,6 +30,7 @@
     "@playwright/mcp": "^0.0.70",
     "esbuild": "^0.25.0",
     "jsdom": "^29.0.1",
-    "vitest": "^3.1.0"
+    "vitest": "^3.1.0",
+    "yaml": "^2.9.0"
   }
 }

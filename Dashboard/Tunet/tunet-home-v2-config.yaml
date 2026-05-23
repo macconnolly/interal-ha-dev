@@ -260,14 +260,17 @@ views:
           name: Office Bed
           icon: bed
   - type: grid
-    column_span: 4
+    column_span: 2
     cards:
     - type: custom:tunet-climate-card
       entity: climate.dining_room
       name: Climate
       humidity_entity: sensor.kitchen_humidity
       grid_options:
-        columns: 6
+        columns: full
+  - type: grid
+    column_span: 2
+    cards:
     - type: custom:tunet-weather-card
       entity: weather.home
       name: Weather
@@ -280,24 +283,27 @@ views:
       forecast_days: 5
       forecast_hours: 6
       grid_options:
-        columns: 6
+        columns: full
   - type: grid
-    column_span: 4
+    column_span: 2
     cards:
     - type: custom:tunet-media-card
       entity: media_player.living_room
       name: Sonos
       show_progress: true
       grid_options:
-        columns: 6
+        columns: full
       tap_action:
         action: navigate
         navigation_path: '#media-living-room'
+  - type: grid
+    column_span: 2
+    cards:
     - type: custom:tunet-actions-card
       name: Quick Actions
       compact: true
       grid_options:
-        columns: 6
+        columns: full
       actions:
       - name: All On
         icon: lightbulb

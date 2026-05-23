@@ -456,7 +456,14 @@ ${CARD_SURFACE_GLASS_STROKE}
     position: relative;
     cursor: pointer;
     user-select: none;
-    touch-action: pan-y;
+    /* T1.5: was touch-action: pan-y — that let the browser commit to scrolling
+     * if the user's finger drifted vertically during a brightness drag, which
+     * killed the drag mid-gesture. Mac's complaint: "once I grab it left or
+     * right is all that matters until I release, vertical up down should be
+     * ignored." With touch-action: none, JS handles all touch gestures on
+     * the tile (tap, hold, drag). Page scrolling still works from the gaps
+     * between tiles + areas outside the lighting grid. */
+    touch-action: none;
     border: 1px solid var(--border-ghost);
     overflow: hidden;
     min-height: var(--_tunet-tile-min-h, 5.75em);

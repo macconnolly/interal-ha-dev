@@ -227,7 +227,11 @@ const CARD_STYLES = `
       box-shadow: var(--shadow-up);
     }
   }
-  .room-tile:active { transform: scale(var(--press-scale-strong)); }
+  /* T0.7: removed press-scale per Mac feedback "when I grabbed one of the
+   * room rows it shrinks — I would like to eliminate that". Active-state
+   * background color in the .room-tile.active rule below still gives press
+   * feedback without the visual shrink. */
+  .room-tile:active { transform: none; }
   .room-tile:focus-visible {
     outline: var(--focus-ring-width) solid var(--focus-ring-color);
     outline-offset: var(--focus-ring-offset);

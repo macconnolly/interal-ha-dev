@@ -692,7 +692,10 @@ function humanizeStateValue(value) {
   if (!text) return '—';
 
   const known = {
-    partlycloudy: 'Partly Cloudy',
+    // T0.7: "Partly Cloudy" was clipping in home_summary 4×2 tile (wraps to
+    // 2 lines with second line clipped behind icon). "P. Cloudy" is the
+    // recognized compact form (matches iOS Control Center weather widget).
+    partlycloudy: 'P. Cloudy',
     clearnight: 'Clear Night',
     sunny: 'Sunny',
     cloudy: 'Cloudy',

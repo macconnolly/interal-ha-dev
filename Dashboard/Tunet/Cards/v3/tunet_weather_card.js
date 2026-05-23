@@ -254,6 +254,13 @@ const CARD_STYLES = `
       font-size: 9.5px;
     }
   }
+
+  /* T0.7: thin variant — hide the big-hero current-temp + details row.
+   * Header sub takes over with "57° · Partly Cloudy" inline. Forecast row
+   * still renders. Result: ~50% shorter card on phone. */
+  :host([data-variant="thin"]) .weather-main { display: none; }
+  :host([data-variant="thin"]) .weather-body { gap: 0; }
+  :host([data-variant="thin"]) .hdr-controls { display: none; }
 `;
 
 // ═══════════════════════════════════════════════════════════
@@ -427,6 +434,7 @@ class TunetWeatherCard extends HTMLElement {
     this._config = {
       entity: config.entity,
       name: config.name || 'Weather',
+      variant: config.variant === 'thin' ? 'thin' : 'standard',
       forecast_days: config.forecast_days || 5,
       forecast_hours: config.forecast_hours || 8,
       forecast_view: config.forecast_view || 'auto',
@@ -439,6 +447,10 @@ class TunetWeatherCard extends HTMLElement {
       show_pressure: config.show_pressure === true,
       show_last_updated: config.show_last_updated !== false,
     };
+    // T0.7: thin variant hides the big-hero current-temp + details row,
+    // moves current temp + condition into the header sub instead. Forecast
+    // row still renders. Result is ~50% shorter card on phone.
+    this.dataset.variant = this._config.variant;
     this._viewPinned = false;
     this._metricPinned = false;
     if (this._rendered) this._updateAll();
@@ -677,7 +689,14 @@ class TunetWeatherCard extends HTMLElement {
     this.$.condDesc.textContent = condNames[condition] || humanizeWeatherCondition(condition);
 
     const lastUpdate = entity.last_updated;
-    if (this._config.show_last_updated && lastUpdate) {
+    // T0.7: thin variant puts current temp + condition inline in the header
+    // sub instead of the big hero. Falls back to "Updated N min ago" when not
+    // thin and show_last_updated is set.
+    if (this._config.variant === 'thin') {
+      const tempStr = a.temperature != null ? `${Math.round(a.temperature)}°` : '--°';
+      const condText = condNames[condition] || humanizeWeatherCondition(condition);
+      this.$.hdrSub.textContent = `${tempStr} · ${condText}`;
+    } else if (this._config.show_last_updated && lastUpdate) {
       const mins = Math.round((Date.now() - new Date(lastUpdate).getTime()) / 60000);
       this.$.hdrSub.textContent = mins < 1 ? 'Just updated' : `Updated ${mins} min ago`;
     } else {

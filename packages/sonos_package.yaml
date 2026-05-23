@@ -2594,9 +2594,17 @@ script:
                           target: { entity_id: media_player.bath }
                           data: { alarm_id: 823, enabled: false }
 
+  # Option C refactor (2026-05-22):
+  # Snooze is HA-side only. The Sonos cloud alarm's time field is NEVER
+  # modified by snooze; instead we store a snooze_until ISO timestamp in
+  # input_text.sonos_snoozed_alarm_<room>, and the automation
+  # sonos_snooze_refire (defined below) replays the buzzer at that time
+  # via media_player.play_media. This eliminates HA-vs-cloud write
+  # contention on the alarm time field. See
+  # docs/sonos_snooze_refactor_plan_2026_05_22.md for the full reasoning.
   sonos_snooze_next_alarm:
-    alias: "Sonos - Snooze Next Alarm"
-    description: "Snooze the currently playing alarm, or next upcoming alarm if none playing"
+    alias: "Sonos - Snooze Next Alarm (HA-side)"
+    description: "Snooze a ringing alarm without modifying the Sonos cloud alarm time"
     icon: mdi:alarm-snooze
     mode: single
     fields:
@@ -2618,9 +2626,6 @@ script:
       - variables:
           snooze_mins: "{{ minutes | default(15) | int }}"
           playing_speaker: "{{ state_attr('sensor.sonos_alarm_playing', 'speaker') | default('') | trim }}"
-          # Read alarm_entity directly from sensor — no friendly_name matching needed.
-          # Falls back to sensor.sonos_next_alarm when no alarm is actively playing
-          # (e.g. user snoozes before the alarm fires from the dashboard).
           playing_alarm: "{{ state_attr('sensor.sonos_alarm_playing', 'alarm_entity') | default('') | trim }}"
           target_alarm: >
             {% if playing_alarm != '' %}
@@ -2629,17 +2634,11 @@ script:
               {{ state_attr('sensor.sonos_next_alarm', 'next_alarm_entity') | default('') }}
             {% endif %}
 
-      # Condition: must have a valid target alarm
       - condition: template
         value_template: "{{ target_alarm != '' }}"
 
       - variables:
-          alarm_id: "{{ state_attr(target_alarm, 'alarm_id') }}"
-          current: "{{ state_attr(target_alarm, 'time') }}"
-          parts: "{{ current.split(':') }}"
-          total_mins: "{{ (parts[0] | int) * 60 + (parts[1] | int) + snooze_mins }}"
-          new_mins: "{{ total_mins if total_mins < 1440 else total_mins - 1440 }}"
-          new_time: "{{ '%02d:%02d:00' | format(new_mins // 60, new_mins % 60) }}"
+          snooze_until: "{{ (now() + timedelta(minutes=snooze_mins)).strftime('%Y-%m-%dT%H:%M:%S') }}"
           speaker: >
             {% set name = state_attr(target_alarm, 'friendly_name') | default('') %}
             {% if 'Bedroom' in name %}media_player.bedroom
@@ -2647,7 +2646,6 @@ script:
             {% elif 'Kitchen' in name %}media_player.kitchen
             {% elif 'Living' in name %}media_player.living_room
             {% else %}media_player.dining_room{% endif %}
-          # Room key for snoozed alarm helper (matches input_text suffix)
           room_key: >
             {% set name = state_attr(target_alarm, 'friendly_name') | default('') %}
             {% if 'Bedroom' in name %}bedroom
@@ -2656,65 +2654,88 @@ script:
             {% elif 'Living' in name %}living_room
             {% else %}dining_room{% endif %}
           snoozed_helper: "input_text.sonos_snoozed_alarm_{{ room_key }}"
+          target_speaker: "{{ playing_speaker if playing_speaker else speaker }}"
 
-      # Store original time before snoozing (only if not already snoozed)
-      - if: "{{ states(snoozed_helper) in ['', 'unknown', 'unavailable'] }}"
-        then:
-          - action: input_text.set_value
-            target:
-              entity_id: "{{ snoozed_helper }}"
-            data:
-              value: "{{ target_alarm }}|{{ current }}"
+      # Store snooze_until in helper. Format: "<alarm_entity>|<ISO_timestamp>"
+      # Latest snooze wins on repeated taps (no "only if empty" check —
+      # that was needed in the old design to preserve the original time;
+      # under HA-side design we just want the latest snooze_until).
+      - action: input_text.set_value
+        target:
+          entity_id: "{{ snoozed_helper }}"
+        data:
+          value: "{{ target_alarm }}|{{ snooze_until }}"
 
-      # Stop playback if requested (for notification snooze)
       - if: "{{ stop_playback | default(false) }}"
         then:
           - action: media_player.media_stop
             target:
-              entity_id: "{{ playing_speaker if playing_speaker else speaker }}"
-
-      - action: sonos.update_alarm
-        data:
-          alarm_id: "{{ alarm_id | int }}"
-          time: "{{ new_time }}"
-        target:
-          entity_id: "{{ speaker }}"
+              entity_id: "{{ target_speaker }}"
 
       - action: system_log.write
         data:
-          message: "Sonos Snooze: Alarm {{ target_alarm }} snoozed from {{ current }} to {{ new_time }} ({{ snooze_mins }} min). Playing: {{ states('sensor.sonos_alarm_playing') == 'True' }}, Speaker: {{ playing_speaker }}"
+          message: >
+            Sonos Snooze (HA-side): {{ target_alarm }} snooze_until={{ snooze_until }}
+            ({{ snooze_mins }} min). Speaker: {{ target_speaker }}. Sonos cloud alarm NOT modified.
           level: info
 
   # -----------------------------------------------------------------------
-  # Dismiss Alarm - Stop current alarm playback
+  # Dismiss Alarm - Stop audio + cancel pending HA-side snooze
+  # Option C refactor (2026-05-22): also clear input_text snooze helper
+  # so the sonos_snooze_refire automation doesn't fire after dismiss.
   # -----------------------------------------------------------------------
   sonos_dismiss_alarm:
-    alias: "Sonos - Dismiss Alarm"
-    description: "Stop alarm playback on the currently playing speaker"
+    alias: "Sonos - Dismiss Alarm (HA-side)"
+    description: "Stop alarm audio and clear any pending HA-side snooze for that room"
     icon: mdi:alarm-off
     mode: single
     sequence:
       - variables:
-          # Read from sensor instead of re-implementing detection (sensor handles both buzzer and music-service alarms)
           playing_speaker: "{{ state_attr('sensor.sonos_alarm_playing', 'speaker') | default('', true) | trim }}"
+          room_key: >
+            {% if playing_speaker == 'media_player.bedroom' %}bedroom
+            {% elif playing_speaker == 'media_player.bath' %}bath
+            {% elif playing_speaker == 'media_player.kitchen' %}kitchen
+            {% elif playing_speaker == 'media_player.living_room' %}living_room
+            {% elif playing_speaker == 'media_player.dining_room' %}dining_room
+            {% else %}{% endif %}
+          helper_entity: "input_text.sonos_snoozed_alarm_{{ room_key }}"
       - condition: template
         value_template: "{{ playing_speaker != '' and states('sensor.sonos_alarm_playing') == 'True' }}"
       - action: media_player.media_stop
         target:
           entity_id: "{{ playing_speaker }}"
+      # Clear pending snooze for this room so refire automation does not
+      # fire after dismiss. No-op if helper is already empty.
+      - if: "{{ room_key != '' }}"
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: "{{ helper_entity }}"
+            data:
+              value: ""
+      - action: system_log.write
+        data:
+          message: >
+            Sonos Dismiss (HA-side): {{ playing_speaker }} silenced;
+            snooze helper cleared for room={{ room_key }}. Sonos cloud alarm NOT modified.
+          level: info
 
   # -----------------------------------------------------------------------
-  # Reset Snoozed Alarm - Restore original time after snooze
-  # Can be called with room parameter or will reset all snoozed alarms
+  # Reset Snoozed Alarm — DEPRECATED no-op (2026-05-22)
+  # Under the HA-side snooze design, the Sonos cloud alarm time is never
+  # mutated, so there is nothing to restore. This script is preserved as
+  # a clearing-only no-op for backward compatibility — old callers that
+  # invoked it as a "clean up snooze state" will still get helpers cleared.
   # -----------------------------------------------------------------------
   sonos_reset_snoozed_alarm:
-    alias: "Sonos - Reset Snoozed Alarm"
-    description: "Restore a snoozed alarm to its original time"
+    alias: "Sonos - Reset Snoozed Alarm (DEPRECATED clearing-only)"
+    description: "Clears snooze helpers. Time restoration no longer needed under HA-side design."
     icon: mdi:alarm-check
     mode: queued
     fields:
       room:
-        description: "Room to reset (bedroom, bath, kitchen, living_room, dining_room). If omitted, resets all."
+        description: "Room to clear (bedroom, bath, kitchen, living_room, dining_room). If omitted, clears all."
         required: false
         selector:
           select:
@@ -2726,55 +2747,26 @@ script:
               - dining_room
     sequence:
       - variables:
-          # List of rooms to process
           rooms_to_check: >
             {% if room is defined and room %}
               {{ [room] }}
             {% else %}
               {{ ['bedroom', 'bath', 'kitchen', 'living_room', 'dining_room'] }}
             {% endif %}
-
       - repeat:
           for_each: "{{ rooms_to_check }}"
           sequence:
-            - variables:
-                current_room: "{{ repeat.item }}"
-                helper_entity: "input_text.sonos_snoozed_alarm_{{ current_room }}"
-                helper_value: "{{ states(helper_entity) }}"
-                has_snoozed: "{{ helper_value not in ['', 'unknown', 'unavailable'] and '|' in helper_value }}"
-
-            - if: "{{ has_snoozed }}"
-              then:
-                - variables:
-                    alarm_entity: "{{ helper_value.split('|')[0] }}"
-                    original_time: "{{ helper_value.split('|')[1] }}"
-                    alarm_id: "{{ state_attr(alarm_entity, 'alarm_id') }}"
-                    speaker: >
-                      {% if current_room == 'bedroom' %}media_player.bedroom
-                      {% elif current_room == 'bath' %}media_player.bath
-                      {% elif current_room == 'kitchen' %}media_player.kitchen
-                      {% elif current_room == 'living_room' %}media_player.living_room
-                      {% else %}media_player.dining_room{% endif %}
-
-                # Restore the original alarm time
-                - action: sonos.update_alarm
-                  data:
-                    alarm_id: "{{ alarm_id | int }}"
-                    time: "{{ original_time }}"
-                  target:
-                    entity_id: "{{ speaker }}"
-
-                # Clear the helper
-                - action: input_text.set_value
-                  target:
-                    entity_id: "{{ helper_entity }}"
-                  data:
-                    value: ""
-
-                - action: system_log.write
-                  data:
-                    message: "Sonos Reset: Alarm {{ alarm_entity }} restored to original time {{ original_time }}"
-                    level: info
+            - action: input_text.set_value
+              target:
+                entity_id: "input_text.sonos_snoozed_alarm_{{ repeat.item }}"
+              data:
+                value: ""
+      - action: system_log.write
+        data:
+          message: >
+            sonos_reset_snoozed_alarm (deprecated): cleared snooze helpers for
+            {{ rooms_to_check }}. Sonos cloud alarm time NOT modified (HA-side design).
+          level: info
 
   # -----------------------------------------------------------------------
   # Toggle Next Alarm - for dashboard chip tap action
@@ -2974,9 +2966,16 @@ automation:
     description: "Clears mirrored inbox items when tomorrow alarms disappear or the nightly response window closes."
     mode: queued
     max: 4
+    # 2026-05-22: narrow state trigger to the alarm_count attribute.
+    # Previously fired ~14/min from sensor.sonos_alarms_for_tomorrow's
+    # debug_processing_time_utc attribute (now() in template). The
+    # condition past the trigger only acts when alarm_count==0 or
+    # window closed, so behavior is unchanged; only the storm rate
+    # drops by ~99%. Diagnostic record in docs/bedroom_sonos_silent_fire_staging_2026_05_22.md §F.
     trigger:
       - platform: state
         entity_id: sensor.sonos_alarms_for_tomorrow
+        attribute: alarm_count
       - platform: time
         at: "22:31:00"
     action:
@@ -2996,12 +2995,18 @@ automation:
                else 'evening_alarm_check_window_closed' }}
 
   # -------------------------------------------------------------------------
-  # Reset snoozed alarm after it finishes playing
-  # Triggers when sensor.sonos_alarm_playing goes from True to False
+  # Safety-net helper-clear after alarm ends naturally
+  # Option C refactor (2026-05-22): under HA-side snooze design, the alarm
+  # time is never modified, so there's no time-restore work. This automation
+  # now only clears the room's snooze helper if it survived from a prior
+  # snooze (e.g., user snoozed, then the snoozed buzzer ran to natural end
+  # without dismiss). Discriminator preserves R1 guard: skip if snooze
+  # script ran in the last 60 sec (a snooze just set the helper; do NOT
+  # clear it — let refire fire at the scheduled snooze_until).
   # -------------------------------------------------------------------------
   - id: sonos_reset_snoozed_after_play
-    alias: "Sonos - Reset Snoozed Alarm After Play"
-    description: "Restore alarm to original time after snoozed alarm finishes playing"
+    alias: "Sonos - Clear Snooze Helper After Alarm Stops (safety net)"
+    description: "Clears snooze helper if alarm ended naturally; skips if snooze script just ran"
     mode: single
     trigger:
       - platform: state
@@ -3010,7 +3015,6 @@ automation:
         to: "False"
     action:
       - variables:
-          # Get the speaker that was playing (from the 'from' state attributes)
           last_speaker: "{{ trigger.from_state.attributes.speaker | default('') }}"
           room_key: >
             {% if last_speaker == 'media_player.bedroom' %}bedroom
@@ -3019,21 +3023,32 @@ automation:
             {% elif last_speaker == 'media_player.living_room' %}living_room
             {% elif last_speaker == 'media_player.dining_room' %}dining_room
             {% else %}{% endif %}
-      # Only proceed if we have a valid room
+          helper_entity: "input_text.sonos_snoozed_alarm_{{ room_key }}"
       - condition: template
         value_template: "{{ room_key != '' }}"
-      # Small delay to ensure alarm has fully stopped
       - delay:
           seconds: 5
-      # Skip if snooze script just ran (its media_stop caused this transition); midnight reset is backstop
+      # R1 discriminator (SA5-style): if snooze script ran in the last 60s,
+      # the helper holds a fresh snooze_until that refire MUST honor. Skip.
+      # This is semantically different from SA5 (which prevented re-mutating
+      # alarm time); here we're preventing premature clearing of a pending
+      # snooze. Same shape, different referent.
       - condition: template
         value_template: >
           {% set last_snooze = state_attr('script.sonos_snooze_next_alarm', 'last_triggered') %}
           {{ last_snooze is none or (now() - last_snooze).total_seconds() > 60 }}
-      # Reset the snoozed alarm for this room
-      - action: script.sonos_reset_snoozed_alarm
+      # Helper-clear (replaces old time-restore behavior)
+      - action: input_text.set_value
+        target:
+          entity_id: "{{ helper_entity }}"
         data:
-          room: "{{ room_key }}"
+          value: ""
+      - action: system_log.write
+        data:
+          message: >
+            Sonos safety-net (HA-side): cleared snooze helper for room={{ room_key }}
+            after natural alarm end. Sonos cloud alarm NOT modified.
+          level: info
 
   # -------------------------------------------------------------------------
   # Clear alarm notification when alarm stops without user action
@@ -3453,3 +3468,190 @@ automation:
                           item_id: "{{ inbox_item_id }}"
                           key: "{{ '' if inbox_item_id != '' else alarm_key }}"
                           reason: "sonos_alarm_dismissed"
+
+  # -------------------------------------------------------------------------
+  # Bedroom Alarm Safety Net (2026-05-22)
+  # Fires a backup buzzer at 05:33 weekdays if the Sonos alarm hasn't
+  # started by then. Catches: time drift, alarm-doesn't-fire, accidentally-
+  # disabled-switch scenarios. Does NOT catch: speaker reports playing
+  # but amp silent (the 5/21-5/22 failure mode — hardware-level fault
+  # requires power-cycle of the Play:3).
+  # Diagnostic record: docs/bedroom_sonos_silent_fire_staging_2026_05_22.md §D.
+  # No-op under normal alarm operation (sensor.sonos_alarm_playing == True at 05:33).
+  # -------------------------------------------------------------------------
+  - id: bedroom_sonos_alarm_safety_net
+    alias: "Sonos - Bedroom Alarm Safety Net"
+    description: "Backup buzzer if Sonos alarm fails to start by 05:33 weekdays"
+    mode: single
+    trigger:
+      - platform: time
+        at: "05:33:00"
+    condition:
+      - condition: time
+        weekday: [mon, tue, wed, thu, fri]
+      - condition: state
+        entity_id: switch.sonos_alarm_bedroom
+        state: 'on'
+      - condition: state
+        entity_id: sensor.sonos_alarm_playing
+        state: 'False'
+    action:
+      - service: system_log.write
+        data:
+          message: "Sonos Bedroom Safety Net: Sonos alarm did not fire by 05:33, firing backup buzzer."
+          level: warning
+      - service: media_player.volume_set
+        target:
+          entity_id: media_player.bedroom
+        data:
+          volume_level: 0.7
+      - service: media_player.play_media
+        target:
+          entity_id: media_player.bedroom
+        data:
+          media_content_id: "x-rincon-buzzer:0"
+          media_content_type: "music"
+
+  # -------------------------------------------------------------------------
+  # Bedroom Alarm Volume Override (2026-05-22)
+  # Sonos's "Increase volume while alarm rings" feature ramps the speaker
+  # from ~0.02 to the configured volume over ~28 seconds. Empirically on
+  # this Play:3 (sw_version 17.2.5), the ramped audio is perceptually
+  # much quieter than a direct media_player.volume_set at the same level
+  # (confirmed by Mac 2026-05-22: ramp = "very quiet at all levels";
+  # volume_set 0.5 = "more audible"). This automation overrides the ramp
+  # by repeatedly setting volume to the alarm's configured level for the
+  # first ~30 seconds after the alarm starts.
+  # Independent fix: disable "Increase volume while alarm rings" on
+  # alarm_id 42 in the Sonos app. If you do that, this automation
+  # becomes a no-op (volume already at target, no ramp to override).
+  # -------------------------------------------------------------------------
+  - id: sonos_bedroom_alarm_volume_override
+    alias: "Sonos - Bedroom Alarm Volume Override"
+    description: "Override Sonos's slow volume ramp on alarm-fire so the buzzer is audible from the start"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: sensor.sonos_alarm_playing
+        to: "True"
+    condition:
+      - condition: template
+        value_template: "{{ state_attr('sensor.sonos_alarm_playing', 'speaker') == 'media_player.bedroom' }}"
+    action:
+      - variables:
+          target_volume: "{{ state_attr('switch.sonos_alarm_bedroom', 'volume') | float(0.7) }}"
+      - service: system_log.write
+        data:
+          message: "Sonos Bedroom Volume Override: alarm started, setting volume to {{ target_volume }} (overriding Sonos's soft-wake ramp)"
+          level: info
+      - repeat:
+          count: 15
+          sequence:
+            - service: media_player.volume_set
+              target:
+                entity_id: media_player.bedroom
+              data:
+                volume_level: "{{ target_volume }}"
+            - delay:
+                seconds: 2
+
+  # -------------------------------------------------------------------------
+  # Sonos Snooze Refire (Option C refactor 2026-05-22)
+  # Polls every minute. For each room whose input_text.sonos_snoozed_alarm_*
+  # helper holds a snooze_until ISO timestamp ≤ now(), fires play_media of
+  # the Sonos buzzer URI on the corresponding speaker. This is the HA-side
+  # snooze replay — it replaces the old design's sonos.update_alarm(time=)
+  # mutation. The buzzer playback flips sensor.sonos_alarm_playing True,
+  # reusing existing alarm-playing-notification + volume-override paths.
+  #
+  # Safety guards (adversarial review findings):
+  #   - past_stale check: if snooze_until is >10 min in the past, treat as
+  #     stale (e.g., HA was down) — clear helper and skip refire. Prevents
+  #     "system was down at 5:35; refire fires at 9am while user is at work"
+  #   - sensor-not-playing check: if sensor.sonos_alarm_playing is already
+  #     True, skip refire (don't double-fire over a native alarm)
+  #   - helper-clear-AFTER-play_media: if play_media succeeds, helper is
+  #     cleared. If play_media throws, next minute tick re-attempts.
+  #     Trade-off: a transient play_media failure produces a 60s delay
+  #     before snooze fires, vs old design which had the snooze lost
+  #     entirely. Acceptable: snooze still fires.
+  # -------------------------------------------------------------------------
+  - id: sonos_snooze_refire
+    alias: "Sonos - Snooze Refire (HA-side)"
+    description: "Replays buzzer at snooze_until time from input_text helpers"
+    mode: single
+    trigger:
+      - platform: time_pattern
+        minutes: "/1"
+    action:
+      - variables:
+          rooms: ['bedroom', 'bath', 'kitchen', 'living_room', 'dining_room']
+      - repeat:
+          for_each: "{{ rooms }}"
+          sequence:
+            - variables:
+                current_room: "{{ repeat.item }}"
+                helper_entity: "input_text.sonos_snoozed_alarm_{{ current_room }}"
+                helper_value: "{{ states(helper_entity) }}"
+                has_snooze: "{{ helper_value not in ['', 'unknown', 'unavailable'] and '|' in helper_value }}"
+            - if: "{{ has_snooze }}"
+              then:
+                - variables:
+                    parts: "{{ helper_value.split('|') }}"
+                    alarm_entity: "{{ parts[0] }}"
+                    snooze_until_str: "{{ parts[1] }}"
+                    snooze_until_ts: "{{ as_timestamp(snooze_until_str) | int(0) }}"
+                    now_ts: "{{ now().timestamp() | int }}"
+                    age_sec: "{{ now_ts - snooze_until_ts }}"
+                    should_fire: "{{ snooze_until_ts > 0 and age_sec >= 0 and age_sec < 600 }}"
+                    is_stale: "{{ snooze_until_ts > 0 and age_sec >= 600 }}"
+                    speaker: >
+                      {% if current_room == 'bedroom' %}media_player.bedroom
+                      {% elif current_room == 'bath' %}media_player.bath
+                      {% elif current_room == 'kitchen' %}media_player.kitchen
+                      {% elif current_room == 'living_room' %}media_player.living_room
+                      {% else %}media_player.dining_room{% endif %}
+                    volume: "{{ state_attr(alarm_entity, 'volume') | float(0.7) }}"
+                    sensor_playing: "{{ states('sensor.sonos_alarm_playing') == 'True' }}"
+                # Branch 1: stale snooze (HA was down past the fire window) — clear, skip
+                - if: "{{ is_stale }}"
+                  then:
+                    - action: input_text.set_value
+                      target:
+                        entity_id: "{{ helper_entity }}"
+                      data:
+                        value: ""
+                    - action: system_log.write
+                      data:
+                        message: >
+                          Sonos Snooze Refire: stale snooze for {{ current_room }}
+                          (snooze_until={{ snooze_until_str }}, age={{ age_sec }}s). Cleared, no fire.
+                        level: warning
+                # Branch 2: time to fire AND no other alarm currently playing
+                - if: "{{ should_fire and not sensor_playing }}"
+                  then:
+                    - action: media_player.volume_set
+                      target:
+                        entity_id: "{{ speaker }}"
+                      data:
+                        volume_level: "{{ volume }}"
+                    - action: media_player.play_media
+                      target:
+                        entity_id: "{{ speaker }}"
+                      data:
+                        media_content_id: "x-rincon-buzzer:0"
+                        media_content_type: "music"
+                    # Clear helper AFTER successful play_media (reviewer
+                    # finding #1: if play_media throws, helper stays for retry)
+                    - action: input_text.set_value
+                      target:
+                        entity_id: "{{ helper_entity }}"
+                      data:
+                        value: ""
+                    - action: system_log.write
+                      data:
+                        message: >
+                          Sonos Snooze Refire: {{ alarm_entity }} re-fired on
+                          {{ speaker }} (snooze_until={{ snooze_until_str }} reached).
+                          Sonos cloud alarm NOT modified.
+                        level: info

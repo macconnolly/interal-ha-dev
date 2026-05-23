@@ -1,0 +1,173 @@
+# =============================================================================
+# TUNET HVAC SENSORS — Graphable heating/cooling tracking from thermostat
+# =============================================================================
+# Provides:
+#   - sensor.hvac_action_today_minutes_heating
+#   - sensor.hvac_action_today_minutes_cooling
+#   - sensor.hvac_action_today_minutes_idle
+#   - sensor.hvac_last_cycle_started_at        (timestamp the current cycle began)
+#   - sensor.hvac_setpoint_drift_high          (current_temperature - target_temp_high)
+#   - sensor.hvac_setpoint_drift_low           (target_temp_low - current_temperature)
+#   - binary_sensor.hvac_running               (hvac_action != idle/off)
+#
+# Derived purely from climate.dining_room state changes. NO new hardware
+# required. When equipment-side sensors (Shelly EM, smart plug) are added
+# later, energy/power sensors can be appended to this package.
+#
+# History tracking uses `history_stats` so daily minute-totals persist
+# across HA restarts via recorder. start = today 00:00, end = now.
+#
+# Owning portfolio item: Plan B Phase B2 of tunet-portfolio-roadmap-2026-05-23.md.
+# =============================================================================
+
+# ───── History stats — minutes per state today ──────────────────────────
+sensor:
+  - platform: history_stats
+    name: "HVAC Heating Today Minutes"
+    unique_id: "tunet_hvac_today_minutes_heating"
+    entity_id: binary_sensor.hvac_heating_active
+    state: "on"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: "HVAC Cooling Today Minutes"
+    unique_id: "tunet_hvac_today_minutes_cooling"
+    entity_id: binary_sensor.hvac_cooling_active
+    state: "on"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: "HVAC Idle Today Minutes"
+    unique_id: "tunet_hvac_today_minutes_idle"
+    entity_id: binary_sensor.hvac_running
+    state: "off"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  # NOTE: history_stats `type: time` returns hours (decimal). Tunet card
+  # consumers will need to convert: minutes = state * 60. Or we use a
+  # template wrapper below.
+
+template:
+  - sensor:
+      # Minute-converted versions for direct display
+      - name: "HVAC Heating Minutes Today"
+        unique_id: "tunet_hvac_heating_minutes_today_v2"
+        icon: mdi:fire
+        unit_of_measurement: "min"
+        state_class: total_increasing
+        state: >
+          {{ (states('sensor.hvac_heating_today_minutes') | float(0) * 60) | round(0) }}
+
+      - name: "HVAC Cooling Minutes Today"
+        unique_id: "tunet_hvac_cooling_minutes_today_v2"
+        icon: mdi:snowflake
+        unit_of_measurement: "min"
+        state_class: total_increasing
+        state: >
+          {{ (states('sensor.hvac_cooling_today_minutes') | float(0) * 60) | round(0) }}
+
+      # ───── Setpoint drift sensors ───────────────────────────────────
+      # Positive = current_temperature is above target_temp_high (cooling demand)
+      - name: "HVAC Setpoint Drift High"
+        unique_id: "tunet_hvac_setpoint_drift_high"
+        icon: mdi:thermometer-chevron-up
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state: >
+          {% set t = state_attr('climate.dining_room', 'current_temperature') | float(none) %}
+          {% set high = state_attr('climate.dining_room', 'target_temp_high') | float(none) %}
+          {% if t is none or high is none %}unknown{% else %}{{ (t - high) | round(1) }}{% endif %}
+
+      # Positive = current_temperature is below target_temp_low (heating demand)
+      - name: "HVAC Setpoint Drift Low"
+        unique_id: "tunet_hvac_setpoint_drift_low"
+        icon: mdi:thermometer-chevron-down
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state: >
+          {% set t = state_attr('climate.dining_room', 'current_temperature') | float(none) %}
+          {% set low = state_attr('climate.dining_room', 'target_temp_low') | float(none) %}
+          {% if t is none or low is none %}unknown{% else %}{{ (low - t) | round(1) }}{% endif %}
+
+      # ───── Setpoint band display sensor ───────────────────────────
+      # Collapses the two drift sensors into a single legible "58–64°F"
+      # display + current-vs-band annotation. State is a string so the
+      # dashboard tile uses `format: state` to render it verbatim.
+      # The drift_high / drift_low sensors above remain available for
+      # any consumer that needs the raw numeric drift (e.g., automations,
+      # HomeKit exposure in packages/tunet_homekit.yaml).
+      - name: "HVAC Setpoint Band"
+        unique_id: "tunet_hvac_setpoint_band"
+        icon: mdi:thermostat-box
+        state: >
+          {% set low = state_attr('climate.dining_room', 'target_temp_low') %}
+          {% set high = state_attr('climate.dining_room', 'target_temp_high') %}
+          {% if low is none or high is none %}
+            —
+          {% else %}
+            {{ low | int }}–{{ high | int }}°F
+          {% endif %}
+        attributes:
+          current_temperature: >
+            {{ state_attr('climate.dining_room', 'current_temperature') }}
+          target_temp_low: >
+            {{ state_attr('climate.dining_room', 'target_temp_low') }}
+          target_temp_high: >
+            {{ state_attr('climate.dining_room', 'target_temp_high') }}
+          hvac_action: >
+            {{ state_attr('climate.dining_room', 'hvac_action') }}
+
+  - binary_sensor:
+      - name: "HVAC Running"
+        unique_id: "tunet_hvac_running"
+        device_class: running
+        state: >
+          {% set action = state_attr('climate.dining_room', 'hvac_action') %}
+          {{ action not in ['idle', 'off', none] }}
+        attributes:
+          hvac_action: >
+            {{ state_attr('climate.dining_room', 'hvac_action') }}
+          current_temperature: >
+            {{ state_attr('climate.dining_room', 'current_temperature') }}
+
+      # Surfaces climate.dining_room.attributes.hvac_action as its own
+      # state so history_stats can match against state: "on". The state
+      # field on climate.dining_room is always the HVAC mode ("heat_cool"),
+      # never the action — that's the root of the stuck-at-zero bug.
+      - name: "HVAC Heating Active"
+        unique_id: "tunet_hvac_heating_active"
+        device_class: heat
+        state: >
+          {{ state_attr('climate.dining_room', 'hvac_action') == 'heating' }}
+        attributes:
+          hvac_action: >
+            {{ state_attr('climate.dining_room', 'hvac_action') }}
+
+      - name: "HVAC Cooling Active"
+        unique_id: "tunet_hvac_cooling_active"
+        device_class: cold
+        state: >
+          {{ state_attr('climate.dining_room', 'hvac_action') == 'cooling' }}
+        attributes:
+          hvac_action: >
+            {{ state_attr('climate.dining_room', 'hvac_action') }}
+
+  # Trigger-template: captures each HVAC cycle start via the off→on edge
+  # on binary_sensor.hvac_running. Persists across restarts via recorder
+  # and holds the last cycle's start through idle periods. Replaces
+  # state-based logic that returned "unknown" once a cycle ended.
+  - trigger:
+      - platform: state
+        entity_id: binary_sensor.hvac_running
+        to: "on"
+    sensor:
+      - name: "HVAC Last Cycle Started"
+        unique_id: "tunet_hvac_last_cycle_started"
+        device_class: timestamp
+        state: "{{ trigger.to_state.last_changed.isoformat() }}"

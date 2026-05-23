@@ -233,6 +233,12 @@ Options:
                                   Probes emit OBSERVATIONS in the manifest,
                                   not pass/fail verdicts. Only Mac grades
                                   (see CLAUDE.md M1-M7).
+  --share-with-user               Emit SEND_TO_USER: lines on stdout so the
+                                  orchestrating Claude Code agent can call
+                                  SendUserFile(status='proactive') for each
+                                  capture. Captures reach Mac's iPhone for
+                                  actual-device review without him hunting
+                                  through /tmp.
   --help                          Show this message
 `);
 }
@@ -254,6 +260,7 @@ function parseArgs(argv) {
     freshAuth: false,
     smoke: false,
     withProbes: false,
+    shareWithUser: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -302,6 +309,8 @@ function parseArgs(argv) {
       options.smoke = true;
     } else if (arg === '--with-probes') {
       options.withProbes = true;
+    } else if (arg === '--share-with-user') {
+      options.shareWithUser = true;
     } else if (arg === '--help') {
       printHelp();
       process.exit(0);
@@ -1348,7 +1357,54 @@ async function main() {
     `Recorded ${observationCount} probe observation(s) — diagnostic notes only, not pass/fail. See manifest.`
   );
   console.log('');
-  printM1Reminder(reviewManifest, manifestPath);
+
+  if (options.shareWithUser) {
+    emitShareWithUserMarkers(reviewManifest);
+  }
+
+  printM1Reminder(reviewManifest, manifestPath, options);
+}
+
+// ── SendUserFile orchestration markers ────────────────────────────────
+// This script cannot itself call SendUserFile (that tool lives in the
+// orchestrating Claude Code session). When --share-with-user is set,
+// the script emits one marker line per capture in a machine-parseable
+// format. The orchestrating agent parses these lines and calls
+// SendUserFile(files=[path], caption=<bp+card+view>, status='proactive')
+// for each.
+//
+// Marker format (stable contract for the orchestrating agent):
+//   SEND_TO_USER: <abs_path> :: bp=<breakpoint> :: card=<tag|full-page>
+//                :: view=<target/surface/routeId>
+//
+// The agent SHOULD send all markers from a single review run as proactive
+// uploads so Mac receives them on his iPhone in one batch.
+function emitShareWithUserMarkers(reviewManifest) {
+  console.log('───────────────────────────────────────────────────────────────');
+  console.log('SEND_TO_USER markers (consumed by orchestrating agent)');
+  console.log('───────────────────────────────────────────────────────────────');
+  let count = 0;
+  for (const result of reviewManifest.results) {
+    const breakpoint = result.breakpoint;
+    const view = `${result.target}/${result.surface}/${result.routeId}`;
+    // Full-page first — provides context for any per-card captures.
+    if (result.fullPageScreenshot) {
+      console.log(
+        `SEND_TO_USER: ${result.fullPageScreenshot} :: bp=${breakpoint} :: card=full-page :: view=${view}`
+      );
+      count += 1;
+    }
+    // Per-card captures.
+    for (const capture of result.cardCaptures || []) {
+      const label = capture.index > 1 ? `${capture.tag}[${capture.index}]` : capture.tag;
+      console.log(
+        `SEND_TO_USER: ${capture.path} :: bp=${breakpoint} :: card=${label} :: view=${view}`
+      );
+      count += 1;
+    }
+  }
+  console.log(`(${count} markers above — agent: parse each and call SendUserFile.)`);
+  console.log('');
 }
 
 // ── M1 reminder block ─────────────────────────────────────────────────
@@ -1357,7 +1413,7 @@ async function main() {
 // before any UI-touching commit. The reminder is a procedural backstop:
 // the script cannot enforce M1, but it can make forgetting harder by
 // stating the contract explicitly in the same stdout the agent reads.
-function printM1Reminder(reviewManifest, manifestPath) {
+function printM1Reminder(reviewManifest, manifestPath, options = {}) {
   const sample = reviewManifest.results.slice(0, 6).map((r) => {
     return r.fullPageScreenshot;
   });
@@ -1377,7 +1433,11 @@ function printM1Reminder(reviewManifest, manifestPath) {
   console.log('');
   console.log('Harness does NOT grade. The "captured N" line above is a');
   console.log('capture report, not a verdict. Mac grades via inline image');
-  console.log('review (or via --share-with-user iPhone push when set).');
+  console.log(
+    options.shareWithUser
+      ? 'review or the iPhone push above (--share-with-user is ACTIVE).'
+      : 'review (or via --share-with-user iPhone push for iterative work).'
+  );
   console.log('');
   console.log('See CLAUDE.md "Pre-Commit User-Perspective Review" M1-M7.');
   console.log('Failure mode this reminder prevents:');

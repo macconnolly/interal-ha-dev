@@ -15,6 +15,7 @@
     "tunet:lab:screenshot": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --surface rehab",
     "tunet:review:production": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --target production",
     "tunet:review:both": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --target both",
+    "tunet:review:share": "node Dashboard/Tunet/scripts/tunet_playwright_review.mjs --share-with-user",
     "tinbox:check": "bash custom_components/tunet_inbox/scripts/check_tunet_inbox.sh",
     "tinbox:deploy:integration": "bash custom_components/tunet_inbox/scripts/deploy_tunet_inbox.sh",
     "tinbox:probe:runtime": "python3 custom_components/tunet_inbox/scripts/tunet_inbox_runtime_probe.py lock-conflict",

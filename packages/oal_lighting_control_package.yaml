@@ -2698,21 +2698,15 @@ automation:
                                 lights: "{{ lights_for_this_switch }}"
                                 manual_control: true
                   
-                  # 3B. Turn off specified lights FIRST so e.g. kitchen_main
-                  # snaps off cleanly before the rest of the zone fades to
-                  # its dimmed target. Reversed from prior turn_on-then-off
-                  # which dimmed all-together-then-snapped — visually
-                  # inconsistent on Adaptive → Evening transitions.
-                  - if: "{{ target_profile.get('lights_off', []) | length > 0 }}"
-                    then:
-                      - service: light.turn_off
-                        continue_on_error: true
-                        target:
-                          entity_id: "{{ target_profile.get('lights_off', []) }}"
-                        data:
-                          transition: "{{ 0 if is_force_apply else transition_speed }}"
-
-                  # 3C. Apply dimmed lights to per-mode brightness targets
+                  # 3B. Apply dimmed lights FIRST. Order matters: lights_off
+                  # entities may overlap with lights_dimmed group members.
+                  # Example: light.kitchen_main_lights is named in Evening's
+                  # lights_off AND is a member of light.recessed_ceiling_lights
+                  # which is in lights_dimmed. Reversing to turn_off-then-on
+                  # makes turn_on (via group expansion) the last write, so
+                  # kitchen_main ends ON at the group's dim level instead of
+                  # OFF. Keeping turn_on first → turn_off second guarantees
+                  # turn_off wins as the final write for overlap entities.
                   - repeat:
                       for_each: "{{ target_profile.get('lights_dimmed', {}) | dictsort }}"
                       sequence:
@@ -2723,6 +2717,17 @@ automation:
                           data:
                             brightness_pct: "{{ repeat.item[1] }}"
                             transition: "{{ 0 if is_force_apply else transition_speed }}"
+
+                  # 3C. Turn off specified lights LAST. See 3B comment for
+                  # why this must follow, not precede, the dimmed apply.
+                  - if: "{{ target_profile.get('lights_off', []) | length > 0 }}"
+                    then:
+                      - service: light.turn_off
+                        continue_on_error: true
+                        target:
+                          entity_id: "{{ target_profile.get('lights_off', []) }}"
+                        data:
+                          transition: "{{ 0 if is_force_apply else transition_speed }}"
 
                   # 3D. Mark handoff as active
                   - service: input_boolean.turn_on

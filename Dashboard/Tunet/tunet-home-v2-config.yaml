@@ -150,19 +150,33 @@ views:
           action: navigate
           navigation_path: '#room-living-room'
         lights:
-        - light.living_room_couch_lamp
-        - light.living_room_floor_lamp
-        - light.living_room_spot_lights
-        - light.living_room_credenza_light
+        - entity: light.living_room_couch_lamp
+          name: Couch
+          icon: lamp
+        - entity: light.living_room_floor_lamp
+          name: Floor
+          icon: floor_lamp
+        - entity: light.living_room_spot_lights
+          name: Spots
+          icon: flashlight_on
+        - entity: light.living_room_credenza_light
+          name: Credenza
+          icon: light
       - name: Kitchen
         icon: kitchen
         tap_action:
           action: navigate
           navigation_path: '#room-kitchen'
         lights:
-        - light.kitchen_island_pendants
-        - light.kitchen_main_lights
-        - light.kitchen_counter_cabinet_underlights
+        - entity: light.kitchen_island_pendants
+          name: Island
+          icon: light
+        - entity: light.kitchen_main_lights
+          name: Main
+          icon: light_group
+        - entity: light.kitchen_counter_cabinet_underlights
+          name: Under
+          icon: linear_scale
       - name: Dining Room
         icon: restaurant
         temperature_entity: sensor.dining_room_temperature
@@ -170,8 +184,12 @@ views:
           action: navigate
           navigation_path: '#room-dining-room'
         lights:
-        - light.dining_room_spot_lights
-        - light.dining_column_strip_light_matter
+        - entity: light.dining_room_spot_lights
+          name: Spots
+          icon: flashlight_on
+        - entity: light.dining_column_strip_light_matter
+          name: Column
+          icon: view_column
       - name: Bedroom
         icon: bed
         temperature_entity: sensor.bedroom_temp_humidity_sensor_temperature
@@ -179,17 +197,27 @@ views:
           action: navigate
           navigation_path: '#room-bedroom'
         lights:
-        - light.master_presence
-        - light.master_bedroom_corner_accent_govee
-        - light.master_bedroom_table_lamps
+        - entity: light.master_presence
+          name: Main
+          icon: bed
+        - entity: light.master_bedroom_corner_accent_govee
+          name: Accent
+          icon: nightlight
+        - entity: light.master_bedroom_table_lamps
+          name: Lamps
+          icon: lamp
       - name: Office
         icon: desktop_windows
         tap_action:
           action: navigate
           navigation_path: '#room-office'
         lights:
-        - light.office_desk_lamp
-        - light.office_bed_lights
+        - entity: light.office_desk_lamp
+          name: Desk
+          icon: lamp
+        - entity: light.office_bed_lights
+          name: Office Bed
+          icon: bed
   - type: grid
     column_span: 4
     cards:

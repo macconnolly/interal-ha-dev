@@ -3,8 +3,9 @@
 ## Architecture
 
 ```
-Source:    Dashboard/Tunet/Cards/v3/*.js    (14 cards + tunet_base.js)
-Build:     Dashboard/Tunet/Cards/v3/dist/   (14 bundled outputs + source maps + manifest)
+Source:    Dashboard/Tunet/Cards/v3/*.js    (15 cards + tunet_base.js)
+Registry:  Dashboard/Tunet/scripts/tunet_card_registry.mjs
+Build:     Dashboard/Tunet/Cards/v3/dist/   (15 bundled outputs + source maps + manifest)
 Deploy:    ${HA_SSH_USER:-root}@${HA_SSH_HOST:-10.0.0.21}:/config/www/tunet/v3/
 Lab:       http://10.0.0.21:8123/tunet-card-rehab-yaml/lab
 Inbox:     http://10.0.0.21:8123/tunet-inbox-yaml/inbox
@@ -15,6 +16,8 @@ Operational note:
 - first activation of a brand-new YAML dashboard registration required a full Home Assistant restart in live proof; `ha_reload_core(target="core")` was not sufficient by itself
 
 Each card is bundled with esbuild. `tunet_base.js` is inlined into each card bundle — there is no separate shared chunk. This eliminates the two-layer cache busting problem (no more `?v=` strings on import paths).
+
+The card inventory is centralized in `Dashboard/Tunet/scripts/tunet_card_registry.mjs`. Build entrypoints, Lovelace resource sync, source rollback deploy, and visual-review changed-card detection must consume that registry rather than maintaining local hardcoded card lists. The registry currently covers 15 v3 cards, including `tunet_inbox_card.js` and `tunet_alarm_card.js`.
 
 Deploys now also sync the live Lovelace resource URLs automatically:
 - `build.mjs` writes a manifest `versionToken`
@@ -27,7 +30,7 @@ Result: a normal deploy automatically cache-busts the frontend. Manual resource 
 
 | Script | Command | What it does |
 |--------|---------|--------------|
-| `tunet:build` | `node build.mjs` | One-shot build: 14 entries → `dist/`, manifest, validation |
+| `tunet:build` | `node build.mjs` | One-shot build: registry entries → `dist/`, manifest, validation |
 | `tunet:build:watch` | `node build.mjs --watch` | Watch `Cards/v3/` for changes, rebuild on save |
 | `tunet:deploy:lab` | `node build.mjs --deploy` | Build + SCP all outputs to HA server |
 | `tunet:resources:sync` | `node Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs` | Re-sync live `/local/tunet/v3/*.js?v=...` resource URLs from the current manifest |
@@ -44,8 +47,8 @@ npm run tunet:build
 ```
 
 Output:
-- 14 `.js` files in `Dashboard/Tunet/Cards/v3/dist/`
-- 14 `.js.map` source maps
+- 15 `.js` files in `Dashboard/Tunet/Cards/v3/dist/`
+- 15 `.js.map` source maps
 - `manifest.json` with build timestamp, resource `versionToken`, and file inventory
 
 Validation runs automatically:
@@ -69,7 +72,7 @@ Or use the shell script directly:
 ```
 
 This:
-1. builds all 14 bundled outputs
+1. builds all 15 bundled outputs
 2. SCPs them to `/config/www/tunet/v3/` on the HA server
 3. updates the live Lovelace resource URLs to `?v=<manifest versionToken>`
 
@@ -128,7 +131,7 @@ The card rehab lab is the YAML dashboard `tunet-card-rehab-yaml`:
 http://10.0.0.21:8123/tunet-card-rehab-yaml/lab
 ```
 
-It contains one representative config for every Tunet card (all 14) plus focused review views (`states`, `surfaces`, `phone-stress`, `nav-lab`). It is the primary validation surface during card rehabilitation (CD0-CD11) and now includes governed inbox fixtures backed by `tunet_inbox`.
+It contains one representative config for every Tunet card (all 15) plus focused review views (`states`, `surfaces`, `phone-stress`, `nav-lab`). It is the primary validation surface during card rehabilitation (CD0-CD11) and now includes governed inbox fixtures backed by `tunet_inbox`.
 
 Architecture reference YAML: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
 
@@ -150,6 +153,7 @@ Architecture reference YAML: `Dashboard/Tunet/tunet-card-rehab-lab.yaml`
 | speaker_grid | 4 speakers, group actions |
 | nav | self-referencing lab paths |
 | inbox | live inbox, privacy mode, family filters |
+| alarm | Sonos alarm list, quick actions |
 
 ## Testing
 
@@ -159,11 +163,12 @@ npm test
 
 Runs vitest with jsdom environment. Test files: `Dashboard/Tunet/Cards/v3/tests/*.test.js`
 
-Current test suites (576 total):
+Current test suites include:
+- `card_registry_contract.test.js` — shared card registry covers all 15 cards and is consumed by build/deploy/resource/review tooling
 - `profile_resolver.test.js` — profile resolution contract (8 tests)
 - `sizing_contract.test.js` — boundary behavior for bucketFromWidth/autoSizeFromWidth (10 tests)
 - `bundle_safety.test.js` — font injection and registerCard guards (5 tests)
-- `config_contract.test.js` — getStubConfig → setConfig roundtrip for all 13 cards (39 tests)
+- `config_contract.test.js` — getStubConfig → setConfig roundtrip for card editor contracts
 - `editor_array_schema.test.js` — config editor schema stability checks (94 tests)
 - `interaction_source_contract.test.js` — CD2 interaction vocabulary contract: hover guards, press tokens, focus-visible, transitions, tap-highlight, reduced-motion (146 tests)
 - `interaction_dom_contract.test.js` — CD2 runtime DOM verification: base exports, style injection with mock hass, rendered CSS compliance (66 tests)
@@ -206,12 +211,12 @@ The built and source files share the same deploy path. Deploying source overwrit
 
 ## Side-Effect Safety
 
-With esbuild bundling, `tunet_base.js` is inlined into each of the 13 card bundles. Module-scoped state that was safe as a shared ES module becomes 13 independent copies.
+With esbuild bundling, `tunet_base.js` is inlined into each card bundle. Module-scoped state that was safe as a shared ES module becomes one independent copy per bundle.
 
 Fixed:
 - `injectFonts()`: uses `window.__tunetFontsInjected` (window-scoped) instead of module-scoped `let _fontsInjected`
 - `registerCard()`: already guarded with `customElements.get()` — safe as-is
 
 Benign:
-- `_warnedLegacyResolverWidthHint`: dedup flag for console warnings — 13 copies means 13 possible warnings max, not a real problem
+- `_warnedLegacyResolverWidthHint`: dedup flag for console warnings — one copy per card bundle means bounded duplicate warnings, not a real problem
 - `VALID_SIZES`: immutable `Set` — safe to duplicate

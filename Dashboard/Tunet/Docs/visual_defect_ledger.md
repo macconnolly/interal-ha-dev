@@ -18,6 +18,21 @@ When the normalized section and the appendix differ, the normalized section wins
 
 The page-architecture sub-plan at `~/.claude/plans/tunet-page-architecture.md` is now the architectural source of truth for `/tunet-home` and its sub-pages. CD12 "surface assembly" is refined into tranches PA01-PA11 (Bug A fix, Home polish, per-room subviews via the RoomSubview generic pattern, Media/Settings/Info subviews, cleanup). Read the sub-plan before any `/tunet-home`-touching work.
 
+## 2026-05-23 Build/Markup Status Updates
+
+### Resolved: build/deploy card-registry drift
+
+- **Issue**: build, deploy, Lovelace resource sync, and changed-card review tooling maintained separate card lists. `build.mjs` knew about inbox/alarm while other paths could omit one or both.
+- **Fix**: `Dashboard/Tunet/scripts/tunet_card_registry.mjs` is now the single 15-card inventory; build, resource sync, source rollback deploy, and visual-review tooling consume it.
+- **Regression guard**: `Dashboard/Tunet/Cards/v3/tests/card_registry_contract.test.js` verifies the registry contains inbox/alarm and is imported by the release tooling.
+
+### Open cross-card hardening backlog: markup safety and adversarial UI tests
+
+- **Class**: β-plumbing / δ-polish hardening, not PA surface composition.
+- **Risk**: several cards still build pieces of their shadow DOM with `innerHTML` using config or entity-derived strings. This is mainly local-config robustness rather than a remote-code path, but it can break markup, produce raw fallback text, and make UI defects hard to test.
+- **Next tranche shape**: add failure-first Vitest coverage for escaped config/entity text, define a shared text-node/escape helper policy, then migrate cards in small batches with screenshot review.
+- **Do not treat current green tests as closure evidence** for this class. Existing tests cover many happy paths but do not exercise unescaped text, async teardown, pointer slide-off/capture, debounce flush/cancel, or selected-target/coordinator divergence.
+
 ## 2026-05-08 Defect / Status Updates
 
 ### Open runtime defect (NEW): Bug A — Double-corner outlines on rooms section + actions pills
@@ -53,10 +68,12 @@ The page-architecture sub-plan at `~/.claude/plans/tunet-page-architecture.md` i
 | `tunet-weather-card` | information companion | card-level runtime healthy; phone-density redesign closed on YAML rehab evidence | CD8 |
 | `tunet-sensor-card` | information rows | visually healthy; raw-ID defect closed; contract clarity remains | CD8 |
 | `tunet-status-card` | multi-mode status system under active redesign | `CD11a` structural recovery landed for `home_summary` + `custom`; later variants and polish remain open | CD11 |
+| `tunet-inbox-card` | governed notification action/recovery surface | **review backlog 2026-05-22**: async subscription teardown race, possible rapid double-submit before pending render lands, icon alias mismatch; backend/deploy contract gaps owned in `custom_components/tunet_inbox/Docs/execution_ledger.md` | TI2/TI6 + δ-polish |
 | `tunet-media-card` | primary media transport surface | runtime healthy; selected-target routing, dropdown parity, and album-art resilience accepted | CD9 |
 | `tunet-sonos-card` | inline-speaker Sonos surface | runtime healthy; dropdown parity, visible speaker-tile semantics, and album-art resilience accepted | CD9 |
 | `tunet-speaker-grid-card` | dedicated speaker-management grid | runtime healthy; visible speaker-tile semantics aligned and phone fallback landed | CD9 |
 | `tunet-nav-card` | chrome | desktop/sidebar offset conflict remains; deferred while CD11 status planning/execution is active | CD10 |
+| `tunet-alarm-card` | Sonos alarm settings surface | **review backlog 2026-05-22**: pointer hold/tap state can cross rows or leave held state stale, optimistic all-on threshold hardcodes four alarms, lifecycle edge if `hass` arrives before valid config; SA3 Bubble retarget remains separate | PA04 / SA-series hardening |
 
 ### Tranche-Owned Open Backlog
 
@@ -73,6 +90,26 @@ The page-architecture sub-plan at `~/.claude/plans/tunet-page-architecture.md` i
   - `tunet-status-card`: `CD11a` landed structural fixes + mode framework + `home_summary` + `custom`
   - `tunet-status-card`: remaining runtime scope is `home_detail`, `room_row`, `info_only`, `alarms`, plus breakpoint/aesthetic polish on the landed framework
   - `tunet-status-card`: keep the phone summary target as a fixed `4x2` matrix; do not “solve” later work by simply making tiles taller or defaulting to 2 columns
+- `δ-polish + TI2/TI6 (review backlog 2026-05-22)`
+  - `tunet-inbox-card`: `_ensureData()` marks `_dataReady` before the async event subscription resolves, while `disconnectedCallback()` can only unsubscribe after `_unsubscribeUpdated` exists. Fast disconnect/reconnect can leak a stale subscription or leave a detached callback live (`Dashboard/Tunet/Cards/v3/tunet_inbox_card.js`)
+  - `tunet-inbox-card`: action response buttons rely on a render after `_rowPending.set()` for disabling; a rapid double click before the DOM updates can issue duplicate `tunet_inbox.respond` calls. Backend locks limit damage, but the card can surface avoidable rejection noise
+  - `tunet-inbox-card`: `iconForAction()` (lines 470-498) strips `mdi:` but alias keys use underscores while many MDI names are hyphenated; aliases like `lightbulb-alert` miss and fall back to raw material-symbol names. Cross-ref `iconForItem` (~440-468) for the robust-fallback pattern to mirror
+  - Backend/deploy contract gaps owned by Tinbox governance: `custom_components/tunet_inbox/Docs/execution_ledger.md` (TINBOX-DEPLOY-1/-2, TINBOX-HARDEN-3/-4/-5/-6/-7, TINBOX-TEST-4)
+- `PA04 / SA-series hardening (review backlog 2026-05-22)`
+  - `tunet-alarm-card`: row hold/tap uses delegated pointerdown/up without pointer capture or pointermove reconciliation (`tunet_alarm_card.js:564-567`, `:613`, `:624`). `_pendingEntity` remains the down-row entity, while pointerup clears only the release row; sliding across rows can toggle the wrong alarm or leave held styling stale. Resolution direction: in `_onRowPointerDown`, clear `dataset.held='false'` on all `_rowRefs` before setting the new held row
+  - `tunet-alarm-card`: optimistic All On clear condition is hardcoded to `enabled === 4`; cards configured with fewer or more alarms wait for the 8-second timeout even when the live count has reached the intended configured total
+  - `tunet-alarm-card`: `hass` can call `_buildRows()` before a valid `setConfig()` path has initialized `alarms`; normal HA ordering hides this, but the lifecycle edge is not defended
+  - Routes into PA04 (Bedroom subview + alarm extras) — these are card-surface defects belonging to the alarm card itself, distinct from the SA3 Bubble Card 3.2 popup retarget which remains a separate composition decision
+- `δ-polish + PA07 follow-on (review backlog 2026-05-22)`
+  - `tunet-weather-card`: async forecast subscription lifecycle is not generation-guarded (`tunet_weather_card.js`). `_subscribeForecast()` unsubscribes, then awaits new daily/hourly subscriptions; `_subscribeForecastType()` stores the returned unsubscribe after `subscribeMessage` resolves while reading mutable `this._config.entity`. A disconnect or entity change during the await can install stale subscriptions or apply stale forecast arrays. Treat existing weather tests as smoke only; they do not exercise disconnect/entity-change races. Owning arc: δ-polish (weather card was CD8-accepted and is otherwise healthy)
+  - `tunet-media-card`: progress display can mix selected-speaker track metadata with coordinator progress/duration (`tunet_media_card.js`). `_updateMedia()` reads track info from `_transportTarget`, but `_updateProgress()` still reads `_coordinator`; when an independent speaker is selected, title/artist can belong to one entity while the progress bar belongs to another. Owning arc: PA07 (Media subview) — this is selected-target consistency that should be settled before media composition lands
+  - `tunet-media-card`: transport buttons (FF/RW track) do not actuate. `tunet_media_card.js:792-795` `_callTransport` calls `media_player.media_previous_track`/`media_next_track` on `_transportTarget` (line 760: `this._activeEntity || this._coordinator`); wiring is correct. The failure is downstream — Sonos+Spotify-source media frequently rejects `media_player.media_previous_track` at the integration/service-domain layer. Per M5 (third-party visual primitives are owned defects), this is our defect regardless of root cause; "documented as third-party limitation" is not an acceptable disposition. Resolution options under consideration: (a) `_transportTarget` resolution refinement for grouped Sonos, (b) Sonos-specific service-path fallback when the standard service rejects, (c) wrap transport in `script.*` actions that handle source-aware routing. Owning arc: PA07 (Media subview) — selected-target consistency + transport reliability should be settled before media composition lands
+  - `tunet-media-card` / `tunet-sonos-card`: overlay volume sliders debounce service calls but pointerup/pointercancel only clear dragging state. They do not flush or cancel the pending debounce, so a volume write can fire after cancel/disconnect and release does not guarantee the final value was sent. Owning arc: δ-polish
+  - `tunet-media-card`: media-card popup composition redesign — adopt Bubble Card 3.2-beta.1 standalone popup pattern with media-source selector inside the popup. Composition options under consideration: custom `tunet-sonos-card` form, `spotifyplus` card embed, or new composition. This is the **architecture decision** for media popup composition; PA06 (Climate popup + Sonos popup production wiring) wires whatever PA07 decides. Owning arc: PA07 (Media subview). Cross-ref the 2026-05-04 architecture decision in the visual_defect_ledger **Global** section: "popup direction reverses from Browser Mod to Bubble Card 3.2-beta.1" — Adaptive (fit content) is the preferred default for in-card composition popups
+- `β-plumbing + δ-polish — cross-card shared robustness (review backlog 2026-05-22)`
+  - cross-card markup-safety gap: several cards inject config or entity strings into `innerHTML` without escaping (`actions`, `status`, `rooms`, `light_tile`, `lighting`, `sensor`, and related paths). This is mainly local-config robustness, but it can break markup and should be normalized to text nodes or escaped interpolation. `tunet-inbox-card` already uses escaping and should be treated as the pattern
+  - cross-card weak-test gap: current Vitest coverage primarily proves happy-path DOM shape and shallow service calls. It does not exercise async subscription teardown, pointer capture/sliding, debounce flush/cancel, config-derived HTML escaping, or selected-target/coordinator divergence. Passing `npm test` is smoke only, not a correctness claim for these issues
+  - Pattern is shared across cards (not a single-card bespoke pass); promote into a β-plumbing hardening tranche when prioritized
 
 **Global**
 - Highest-confidence active card defect is now status multi-mode redesign/runtime recovery under `CD11`; nav desktop/sidebar conflict remains open but is intentionally deferred.

@@ -1,6 +1,6 @@
 # Tunet Inbox Handoff
 
-Last updated: 2026-04-19 (America/Denver)  
+Last updated: 2026-05-22 (America/Denver)
 Working branch: `tunet/inbox-integration`
 
 ## Current State
@@ -37,6 +37,11 @@ Working branch: `tunet/inbox-integration`
   - `TI5B` remains queued behind `TI5A1` for the remaining OAL TV-family compare-mode retirement
   - `TI5C` remains queued behind `TI5B` for the unified timer authoritative cutover
   - each `TI5*` tranche must close with final live user feedback and end-of-tranche live testing recorded in governance
+- Review backlog added 2026-05-22:
+  - implementation deferred by user direction; this is documentation-only
+  - deploy hardening now includes `TINBOX-DEPLOY-1` and `TINBOX-DEPLOY-2`
+  - backend hardening now includes diagnostics entry redaction, malformed mobile action handling, notify helper resolution, `meta.total` semantics, invalid timestamp resilience, lock cleanup (TINBOX-HARDEN-3 through -7)
+  - `TINBOX-TEST-4` records that current passing tests are smoke only until adversarial coverage exists
 - Latest closed tranche:
   - `custom_components/tunet_inbox/Docs/tranches/TI5A_sonos_apple_tv_auto_off_authoritative_extraction.md`
   - status: `CLOSED`

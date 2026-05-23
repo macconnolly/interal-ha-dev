@@ -1,7 +1,29 @@
 # Tunet Inbox Fix Ledger
 
 Working branch: `tunet/inbox-integration`  
-Last updated: 2026-04-20
+Last updated: 2026-05-22
+
+## Session Delta (2026-05-22, ultra review backlog capture — no code fixes shipped)
+
+Change marker: the user explicitly deferred implementation and asked that review findings be added to the existing documentation plans.
+
+- `CHOSEN INTERPRETATION`
+  - passing `tinbox:test` is smoke only, not proof that the backend is correct; the current tests do not cover the adversarial paths found by review
+  - do not change integration code yet
+  - record deploy, contract, supportability, and test-hardening findings under the existing `TI6`/deploy-hardening backlog
+- `DEFECTS QUEUED`
+  - `TINBOX-DEPLOY-1`: backend integration deploy is not represented in the basic root Tunet Claude pipeline, creating frontend/backend drift risk
+  - `TINBOX-DEPLOY-2`: `deploy_tunet_inbox.sh` has unsafe password fallback/argv exposure and hardcoded config bootstrap contents
+  - `TINBOX-HARDEN-3`: diagnostics redacts runtime snapshot fields but returns config-entry `data` / `options` unredacted
+  - `TINBOX-HARDEN-4`: malformed mobile action strings and missing helper entities can turn into runtime errors or invalid notify services
+  - `TINBOX-HARDEN-5`: post-limit `meta.total`, invalid ISO timestamp handling, and retained lock objects remain supportability debt
+  - `TINBOX-HARDEN-6`: POST_SCHEMA marks `mobile` Optional while the model requires `mobile.tag`; default `send_mobile=True` callers hit `ContractError` against a field they never supplied
+  - `TINBOX-HARDEN-7`: `TunetInboxManager.async_update_config` is defined but never invoked — either dead code or a wiring gap with `async_reload_entry`
+  - `TINBOX-TEST-4`: failure-first tests are missing for the above behaviors
+- `RESULT`
+  - implementation remains deferred
+  - `TI5A1` remains the active tranche
+  - deploy/test/backend-hardening findings are now recorded in `Docs/execution_ledger.md`, `plan.md`, and `handoff.md`
 
 ## Session Delta (2026-04-20, TI5A1 planning freeze — 15-minute no-response timeout)
 

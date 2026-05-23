@@ -1,12 +1,37 @@
 # Tunet Suite Dashboard - Implementation Plan
 
 Working branch: `main`
-Last updated: 2026-05-08
+Last updated: 2026-05-22
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 **Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α foundation / β plumbing / γ surfaces / δ polish); page-architecture sub-plan explicitly deferred to a focused future agent. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` for the principle.
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next tranche by root-plan order is `CD12` surface assembly, but it remains parked pending the page-architecture sub-plan approval)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-22, ultra review backlog capture; no code fixes — implementation deferred by user)
+
+Tranche marker: no active Tunet tranche changes. PA01 (Bug A double-corner fix, β-arc) and PA02 (Home page composition) remain the front of the queue. This session captured review findings only; implementation is intentionally deferred per user direction.
+
+- `CHOSEN INTERPRETATION`
+  - treat the passing Vitest/Pytest suites as smoke, not proof of correctness; current tests miss the adversarial cases that exposed these issues
+  - do not fix code yet; add the findings to the existing planning/ledger docs so future work can be ordered deliberately
+  - keep the active tranche queue intact; place new work in unscheduled backlog unless it becomes a deploy prerequisite
+- `PIPELINE / DEPLOY FINDINGS QUEUED (β-plumbing)`
+  - full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` rows `TINBOX-DEPLOY-1`, `TINBOX-DEPLOY-2`, `TINBOX-TEST-4`; pipeline gap detail in `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` § Known Pipeline Gaps
+- `UI / UX FINDINGS QUEUED (δ-polish + PA04 + PA07)`
+  - full contract: `Dashboard/Tunet/Docs/visual_defect_ledger.md` § Tranche-Owned Open Backlog under the new 2026-05-22 sections (`tunet-inbox-card`, `tunet-alarm-card`, `tunet-weather-card`, `tunet-media-card`, `tunet-sonos-card`)
+- `BACKEND HARDENING FINDINGS QUEUED (TI6)`
+  - full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` rows `TINBOX-HARDEN-3`, `TINBOX-HARDEN-4`, `TINBOX-HARDEN-5`, `TINBOX-HARDEN-6`, `TINBOX-HARDEN-7`
+- `TEST DEBT QUEUED`
+  - `TINBOX-TEST-4` (Tinbox) plus cross-card weak-test bullet under visual_defect_ledger's cross-card shared robustness section
+- `CROSS-CARD MARKUP SAFETY (β-plumbing + δ-polish)`
+  - several cards inject config/entity strings into `innerHTML` without escaping (`actions`, `status`, `rooms`, `light_tile`, `lighting`, `sensor`); `tunet-inbox-card` already uses escaping and is the reference pattern
+  - full contract: `Dashboard/Tunet/Docs/visual_defect_ledger.md` § cross-card shared robustness
+- `NEXT ACTION WHEN PROMOTED`
+  - start with deploy/pipeline hardening if any Tinbox release path is being used
+  - otherwise add failure-first tests for the top findings before making behavior changes
+
+(Reference for evidence reconciliation: the 5 confirmed / 4 refuted screenshot artifact was reconciled against the worktree code. The 4 OCR-only refutations — `Map` iteration on alarm card, `holdMap`, hold-timer freeze, `TouchscreenHelper` — did not reproduce in code and are not carried forward.)
 
 ## Session Delta (2026-05-08 evening, page-architecture sub-plan locked + nav refinement)
 

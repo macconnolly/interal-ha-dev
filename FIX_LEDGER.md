@@ -1,13 +1,51 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `main`
-Last updated: 2026-05-08
+Last updated: 2026-05-23
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 **Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α/β/γ/δ).
 **Active page-architecture sub-plan (2026-05-08)**: `~/.claude/plans/tunet-page-architecture.md` — defines page taxonomy, RoomSubview pattern, PA01-PA11 tranche enumeration.
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (`CD10` nav verify deferred; `CD12` surface assembly refined into PA01-PA11 per the page-architecture sub-plan)
+
+## Session Delta (2026-05-23, build/deploy registry drift fixed; markup/test debt queued)
+
+Change marker: β-plumbing patch. The old release path had multiple independent card inventories: `build.mjs` included inbox/alarm, while resource sync, source rollback deploy, and changed-card review maps could omit one or both. This is now fixed through a shared registry.
+
+- `FIXES`
+  - `Dashboard/Tunet/scripts/tunet_card_registry.mjs` is now the single v3 card inventory: file names, custom-element tags, source paths, and aliases.
+  - `build.mjs` uses the shared registry for esbuild entrypoints and manifest output.
+  - `Dashboard/Tunet/scripts/update_tunet_v3_resources.mjs` uses the same registry when no manifest is available.
+  - `Dashboard/Tunet/scripts/deploy_tunet_v3_lab.sh` asks the registry for its source/bundle file list, so source rollback deploy no longer omits `tunet_inbox_card.js` or `tunet_alarm_card.js`.
+  - `Dashboard/Tunet/scripts/tunet_playwright_review.mjs` uses the registry for card tags, aliases, and source-path matching; changed-card detection now includes inbox and alarm.
+  - `Dashboard/Tunet/Cards/v3/tests/card_registry_contract.test.js` locks the 15-card inventory and verifies the registry is consumed by build/resource/deploy/review tooling.
+- `DEFERRED`
+  - Cross-card markup-safety debt remains queued. Several cards still use `innerHTML` for config/entity-derived strings; fixing it should be a bounded hardening tranche with failure-first tests and visual evidence because it touches user-visible render paths across card families.
+
+## Session Delta (2026-05-22, ultra review backlog capture — no code fixes shipped; implementation deferred by user)
+
+This delta is documentation-only. The user explicitly deferred implementation and requested the findings be added to the existing documentation plans. Active tranches remain PA01 (Bug A, β-arc parallel) at the front of the queue, with PA02-PA11 sequenced after per the page-architecture sub-plan.
+
+- `DOCUMENTATION CHANGES (no fixes shipped)`
+  - `Dashboard/Tunet/Docs/visual_defect_ledger.md` — added 2026-05-22 review backlog for tunet-inbox-card lifecycle/double-submit/icon-alias (δ-polish + TI2/TI6), tunet-alarm-card pointer/threshold/lifecycle (PA04/SA-series), weather/media lifecycle (δ-polish + PA07), and cross-card markup safety + weak-test gap (β-plumbing + δ-polish)
+  - `custom_components/tunet_inbox/Docs/execution_ledger.md` — added 7 new rows: TINBOX-DEPLOY-1, TINBOX-DEPLOY-2, TINBOX-HARDEN-3, TINBOX-HARDEN-4, TINBOX-HARDEN-5, TINBOX-HARDEN-6, TINBOX-HARDEN-7, plus TINBOX-TEST-4; TI6 row scope broadened to include deploy/test hardening
+  - `custom_components/tunet_inbox/{plan,FIX_LEDGER,handoff}.md` — Review Backlog section added; Tinbox-internal narrative tracking
+  - `custom_components/tunet_inbox/Docs/deploy_and_test.md` — Known deploy hardening gaps + Test coverage smoke-only caveat sections added
+  - `custom_components/tunet_inbox/Docs/tranches/TI5A1_*.md` — Review Note added to make explicit the new findings do NOT widen TI5A1
+  - `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` — Known Pipeline Gaps section added
+  - `plan.md`, `handoff.md` — backlog bullets + session delta added (this entry)
+- `DEFECTS QUEUED FOR FIX (cross-reference only — full contracts in scoped ledgers)`
+  - **P1 deploy/pipeline (β-plumbing)**: Tinbox backend deploy missing from root pipeline; stale hardcoded card lists in shell deploy/resource paths; deploy helper password defaults + sshpass argv exposure → `custom_components/tunet_inbox/Docs/execution_ledger.md` (`TINBOX-DEPLOY-1`, `TINBOX-DEPLOY-2`)
+  - **P1 backend hardening (TI6)**: diagnostics entry redaction, malformed mobile action handling, POST schema mismatch, intent-divergent `async_update_config`, supportability edge cases → `custom_components/tunet_inbox/Docs/execution_ledger.md` (`TINBOX-HARDEN-3` through `-7`)
+  - **P1/P2 UI reliability (δ-polish + PA04 + PA07)**: inbox-card lifecycle/double-submit/icon-alias; alarm-card pointer/threshold/lifecycle; weather forecast subscription race; media selected-target vs coordinator progress; media/sonos volume debounce flush/cancel → `Dashboard/Tunet/Docs/visual_defect_ledger.md`
+  - **P2 cross-card markup safety + P1 test debt**: unescaped innerHTML interpolation across 6+ cards; happy-path-only Vitest suite → `Dashboard/Tunet/Docs/visual_defect_ledger.md` § cross-card shared robustness; `TINBOX-TEST-4`
+- `NEXT ACTION WHEN PROMOTED`
+  - start with deploy/pipeline hardening if any Tinbox release path is being used
+  - otherwise add failure-first tests for the top findings before making behavior changes
+  - PA01 (Bug A double-corner fix) remains the recommended next code-touching tranche per existing plan; the 2026-05-22 backlog does not displace it
+- `EVIDENCE RECONCILIATION NOTE`
+  - the 5 confirmed / 4 refuted screenshot artifact from /ultrareview was reconciled against worktree code. 5 confirmed findings now have explicit file:line evidence in `execution_ledger.md` rows (TINBOX-DEPLOY-2, TINBOX-HARDEN-4, TINBOX-HARDEN-5 total-component, plus visual_defect_ledger inbox `iconForAction` and alarm cross-row drift). 4 refuted OCR-only entries (alarm Map iteration, holdMap, hold-timer freeze, TouchscreenHelper) did not reproduce in code and are not carried into this delta.
 
 ## Session Delta (2026-05-08, page-architecture sub-plan + chrome consistency arc)
 
@@ -29,7 +67,7 @@ Change marker: significant architectural reset. The CD12 "surface assembly" tran
   - `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` — architecture-first principle
 - `OPEN DEFECTS / KNOWN ISSUES`
   - **Bug A (double corners)**: rooms section + actions pills show concentric rounded outlines. Root cause hypothesis: `CARD_SURFACE` template has `.card { border: 1px }` AND `.card::before` glass-stroke ring at 1px geometric offset. Recommended fix: remove `.card { border }` (cascade to all 10 cards). PA01 work, β-arc parallel.
-  - **Office light entities**: only `light.office_desk_lamp` confirmed; Mac said 4 lights exist, will share IDs.
+  - **Office light entities** (resolved 2026-05-22 via live HA validation; pending execution): 4 office lights confirmed — `light.office_desk_lamp` (currently area=Living Room, needs reassign), `light.office_bed_light_left` + `light.office_bed_light_right` (bed pair, both join new `switch.adaptive_lighting_office` + warm-pinned), `light.master_bedroom_corner_accent_govee` (physically moved master→office; adopts `column_lights` AL ownership for sunrise/sunset/curve behavior). Master-side gets a paired swap: `light.master_bedroom_column_accent` (Govee, currently in HA live, RGB-mode) replaces the corner accent in `bedroom_primary_lights` group + AL + presence_pause + brightness-watch + 3 template-light scripts. Executable plan: `~/.claude/plans/office-corner-accent-relocation.md` (8 phases). Tracked in `plan.md` Active OAL sub-plan line + 2026-05-22 evening Session Delta.
   - **Q-NAMING**: parent dashboard URL — keep `/tunet-home` or rename per Mac's "overall-home" wording? Defer to PA02 setup.
   - **Q-OVERVIEW**: `/tunet-overview` migration timing (parallel-run + cutover when /tunet-home reaches parity).
 - `RESOLVED THIS SESSION`

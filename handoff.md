@@ -1,6 +1,6 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
-Last updated: 2026-05-08 (America/Denver)
+Last updated: 2026-05-23 (America/Denver)
 Intended reader: next Claude Code session
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.
 
@@ -9,6 +9,35 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 **Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α foundation / β plumbing / γ surfaces / δ polish); page-architecture sub-plan explicitly deferred to a focused future agent. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` for the principle.
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next by root-plan order is `CD12` surface assembly, still parked pending the page-architecture sub-plan approval)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+## Session Delta (2026-05-23, build/deploy registry drift fixed)
+
+- `CURRENT STATE`
+  - The v3 card release inventory now lives in `Dashboard/Tunet/scripts/tunet_card_registry.mjs` and covers all 15 current cards, including inbox and alarm.
+  - `build.mjs`, `update_tunet_v3_resources.mjs`, `deploy_tunet_v3_lab.sh`, and `tunet_playwright_review.mjs` consume that registry instead of maintaining separate hardcoded card lists.
+  - Source rollback deploy now includes `tunet_inbox_card.js` and `tunet_alarm_card.js`; changed-card visual selection also recognizes both.
+  - `Dashboard/Tunet/Cards/v3/tests/card_registry_contract.test.js` is the regression guard for future card additions.
+- `OPEN FOLLOW-UP`
+  - Cross-card markup/test hardening is still open. Treat it as a bounded future tranche: add failure-first tests for escaped config/entity text, then migrate cards away from unsafe `innerHTML` in small batches with visual review.
+
+## Session Delta (2026-05-22, ultra review backlog captured; no fixes shipped)
+
+Tranche marker: documentation-only. PA01 (Bug A, β-arc) remains the next recommended code-touching tranche; the 2026-05-22 backlog does not displace it.
+
+- `CURRENT STATE`
+  - User deferred implementation and requested documentation-plan updates only. `plan.md`, `FIX_LEDGER.md`, `Dashboard/Tunet/Docs/visual_defect_ledger.md`, and the Tinbox governance stack (`custom_components/tunet_inbox/{plan,FIX_LEDGER,handoff,Docs/execution_ledger,Docs/deploy_and_test}.md` + TI5A1 tranche doc) now carry the 2026-05-22 findings.
+  - Tests downgraded to smoke confidence: current Pytest/Vitest suites pass but miss adversarial cases. New backlog calls for failure-first coverage before relying on green tests.
+- `REVIEW BACKLOG ADDED 2026-05-22 — pending fix work, implementation deferred by user`
+  - **Deploy/pipeline hardening (β-plumbing)** — unify card registries (partially landed 2026-05-23 via shared registry); remove deploy password defaults/argv exposure; decide explicit Tinbox frontend+backend release pipeline. Full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` (`TINBOX-DEPLOY-1`, `TINBOX-DEPLOY-2`) + `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` § Known Pipeline Gaps
+  - **Tinbox UI/backend hardening (δ-polish + TI6)** — inbox-card async subscription race, double-submit guard, icon alias cleanup; backend rows in execution_ledger (TINBOX-HARDEN-3 through -7)
+  - **Alarm UI hardening (PA04 / SA-series)** — pointer capture/slide-off, hardcoded `enabled === 4` optimistic all-on threshold, lifecycle guard for `hass` before valid config
+  - **Media/weather lifecycle (δ-polish + PA07)** — weather forecast subscription generation guard; media selected-target progress mismatch; media/sonos volume debounce flush/cancel; media popup composition decision (PA07 owns, PA06 wires)
+  - **Cross-card markup safety + test-quality (β-plumbing + δ-polish)** — replace/escape config/entity `innerHTML` interpolation; treat `npm test` as smoke until adversarial coverage exists
+- `NEXT-AGENT GUARDRAILS`
+  - Full contracts live in scoped ledgers (`visual_defect_ledger.md`, `custom_components/tunet_inbox/Docs/execution_ledger.md`); this entry is narrative + one-line refs only per centralization principle
+  - 4 OCR-only refuted findings (alarm `Map` iteration, `holdMap`, hold-timer freeze, `TouchscreenHelper`) did not reproduce in code and are NOT carried forward
+
+---
 
 ## Session Delta (2026-05-08 evening, page-architecture sub-plan + nav refinement)
 

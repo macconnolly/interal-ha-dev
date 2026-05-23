@@ -1,7 +1,7 @@
 # Tunet Inbox - Implementation Plan
 
 Working branch: `tunet/inbox-integration`  
-Last updated: 2026-04-19  
+Last updated: 2026-05-22
 Scope root: `/home/mac/HA/implementation_10/.claude/worktrees/tunet-inbox-integration/custom_components/tunet_inbox`
 
 ## Mission
@@ -214,6 +214,25 @@ Promotion requires the prior tranche to be explicitly closed against its exit cr
   - `TI5C` remains frozen behind `TI5B`
   - conclude each of the `TI5*` tranches with final live user feedback and end-of-tranche live testing recorded in governance
 - no `Dashboard/Tunet/**` tranche is active now
+
+## Review Backlog (2026-05-22, documentation-only)
+
+Implementation is deferred by explicit user direction. These items are recorded for future tranche promotion and should not displace `TI5A1` unless the user promotes deploy hardening first.
+
+- `P1 deploy/release hardening`
+  - `tinbox:deploy:integration` exists but is not in the basic root Tunet Claude pipeline, so Tinbox frontend card and backend integration releases can drift
+  - the deploy helper has unsafe password defaults / argv exposure and hardcoded remote bootstrap contents
+  - remote config patching currently risks replacing operator-owned `tunet_inbox:` options such as `mobile_tap_url`
+- `P1 backend hardening`
+  - diagnostics returns config entry `data` and `options` without redaction
+  - malformed raw `TINBOX|...` mobile action IDs can raise through the event listener
+  - a missing helper entity can synthesize invalid notify service names
+- `P2 backend supportability`
+  - `list_items.meta.total` reports post-limit count
+  - malformed ISO timestamps can crash reconcile/sweep
+  - terminalized item locks are retained until integration reload
+- `P1 test debt`
+  - current tests pass but miss the adversarial cases above; treat `tinbox:test` as smoke until failure-first coverage is added
 
 ## Tranche Queue
 

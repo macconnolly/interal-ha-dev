@@ -211,6 +211,32 @@ npm run tinbox:test
 
 ## Deploy Workflow
 
+### Known deploy hardening gaps (recorded 2026-05-22)
+
+Implementation is deferred by user direction, but the current helper does not yet fully satisfy the safety intent in this document:
+
+- `tinbox:deploy:integration` is documented here and exposed in `package.json`, but it is not included in the basic root Tunet Claude shortcut pipeline
+- the helper must not rely on a literal password fallback or expose SSH passwords through process argv
+- the helper must preserve operator-owned `tunet_inbox:` options such as `mobile_tap_url` instead of replacing the whole block with a static local template
+- notify-group patching must not hardcode a local set of mobile devices as the universal deployment default
+
+Treat these as deploy-hardening prerequisites before using the helper as a routine release path for sensitive Tinbox changes. Full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` rows `TINBOX-DEPLOY-1`, `TINBOX-DEPLOY-2`.
+
+### Test coverage smoke-only caveat (recorded 2026-05-22)
+
+`npm run tinbox:test` currently passes, but the suite was authored against happy-path behavior. The 2026-05-22 ultra review surfaced multiple adversarial paths that pass tests do not exercise:
+
+- diagnostics entry-level redaction (config entry `data` / `options`)
+- malformed raw `TINBOX|...` mobile action IDs raising through the event listener
+- missing notify helper entities synthesizing invalid service names
+- `list_items.meta.total` post-limit semantics
+- async forecast subscription teardown races (cross-cutting, lives in card tests too)
+- alarm row pointer slide-off / cross-row hold drift
+- deploy registry drift (build vs shell deploy vs resource sync)
+- unescaped config/entity strings reaching `innerHTML`
+
+Until failure-first coverage for these is added, `tinbox:test` should be treated as smoke and must not be the sole acceptance evidence for hardening work. Full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` row `TINBOX-TEST-4`.
+
 ### Integration deploy
 
 ```bash

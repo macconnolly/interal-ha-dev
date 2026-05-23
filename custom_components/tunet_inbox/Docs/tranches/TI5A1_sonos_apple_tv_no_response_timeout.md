@@ -12,6 +12,12 @@
 
 - `IN PROGRESS`
 
+## REVIEW NOTE 2026-05-22
+
+- Documentation-only ultra review findings were added to `plan.md`, `FIX_LEDGER.md`, `handoff.md`, and `Docs/execution_ledger.md`.
+- They do not widen this tranche.
+- Deploy/test/backend hardening findings are deferred to `TI6` or a future explicit deploy-hardening tranche unless the user promotes them first.
+
 ## PLAN_MODE_DECISION
 
 - `PLAN MODE REQUIRED`

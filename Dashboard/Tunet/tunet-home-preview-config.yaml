@@ -40,7 +40,11 @@ views:
   path: home
   icon: mdi:home
   type: sections
-  max_columns: 6
+  # T1.4: max_columns: 2 forces 2 actual section columns at any wide viewport
+  # (HA Sections respects --ha-view-sections-column-min-width 320px, so phones
+  # ≤ 640px get 1 col; desktop ≥ 640 gets exactly 2). column_span: 2 for full
+  # sections, column_span: 1 for halves. 50/50 reliable.
+  max_columns: 2
   dense_section_placement: true
   sections:
   # T1.2 home layout (2026-05-23 Mac directive):
@@ -51,7 +55,7 @@ views:
   #      RIGHT (column_span 3): climate + weather + media + inbox stacked
   #   Popups (sections 5+) remain unchanged (column_span 4, hidden bubble-cards).
   - type: grid
-    column_span: 6
+    column_span: 2
     cards:
     - type: custom:tunet-actions-card
       name: Quick Actions
@@ -150,7 +154,7 @@ views:
           state: 0
   # Home Status — full width below controls
   - type: grid
-    column_span: 6
+    column_span: 2
     cards:
     - type: custom:tunet-status-card
       name: Home Status
@@ -183,7 +187,7 @@ views:
   # On phone (single col), both cards stack with everything else.
   # On desktop (max_columns 6), this section + the RIGHT section sit 50/50.
   - type: grid
-    column_span: 3
+    column_span: 1
     cards:
     - type: custom:tunet-lighting-card
       name: Lighting
@@ -191,13 +195,13 @@ views:
       layout: grid
       tile_size: compact
       use_profiles: true
-      columns: 3
+      columns: 2
       column_breakpoints:
-        - max_width: 400
-          columns: 2
-        - max_width: 900
+        - min_width: 1100
+          columns: 6
+        - min_width: 700
           columns: 3
-        - columns: 6
+        - columns: 2
       expand_groups: false
       show_adaptive_toggle: false
       show_master_toggle: true
@@ -292,7 +296,7 @@ views:
   # On phone: stacks under LEFT section's cards (lighting, rooms, then climate...).
   # On desktop: sits 50/50 next to LEFT section.
   - type: grid
-    column_span: 3
+    column_span: 1
     cards:
     - type: custom:tunet-climate-card
       entity: climate.dining_room
@@ -332,7 +336,7 @@ views:
       grid_options:
         columns: full
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:bubble-card
       card_type: pop-up
@@ -414,7 +418,7 @@ views:
               - light.living_room_spot_lights
               - light.living_room_credenza_light
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:bubble-card
       card_type: pop-up
@@ -491,7 +495,7 @@ views:
               - light.kitchen_main_lights
               - light.kitchen_counter_cabinet_underlights
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:bubble-card
       card_type: pop-up
@@ -554,7 +558,7 @@ views:
               - light.dining_room_spot_lights
               - light.dining_column_strip_light_matter
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:bubble-card
       card_type: pop-up
@@ -647,7 +651,7 @@ views:
           service_data:
             entity_id: scene.tunet_oal_sleep
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:bubble-card
       card_type: pop-up
@@ -714,7 +718,7 @@ views:
               - light.office_desk_lamp
               - light.office_bed_lights
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:bubble-card
       card_type: pop-up
@@ -755,7 +759,7 @@ views:
         - entity: media_player.bedroom
           name: Bedroom
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:bubble-card
       card_type: pop-up
@@ -814,7 +818,7 @@ views:
           icon: lightbulb
   # ── Alarm-edit popup (Bubble 3.2.1; FINAL §F.2 migration from Browser Mod) ──
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:bubble-card
       card_type: pop-up
@@ -909,7 +913,7 @@ views:
   dense_section_placement: true
   sections:
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:tunet-status-card
       layout_variant: home_summary
@@ -964,7 +968,7 @@ views:
         accent: amber
         format: state
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:tunet-sensor-card
       title: Inside vs Outside
@@ -990,7 +994,7 @@ views:
         icon: thermostat
         accent: amber
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:tunet-sensor-card
       title: HVAC Rollups
@@ -1022,7 +1026,7 @@ views:
         accent: blue
         unit: min
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:tunet-sensor-card
       title: Electricity (Instrumented)
@@ -1059,7 +1063,7 @@ views:
   # at the bottom of /tunet-home-preview/stats. Single 4-item nav (Home/Rooms/Media/
   # Stats) — Adaptive accessible via Stats anchored sub-section.
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:tunet-status-card
       layout_variant: home_detail
@@ -1094,7 +1098,7 @@ views:
         unit: h
         format: float1
   - type: grid
-    column_span: 4
+    column_span: 1
     cards:
     - type: custom:tunet-sensor-card
       title: Zone Baselines
@@ -1163,7 +1167,7 @@ views:
   back_path: /tunet-home-preview/home
   sections:
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-lighting-card
           name: Living Room Lights
@@ -1188,7 +1192,7 @@ views:
               name: Column
               icon: view_column
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-actions-card
           variant: compact
@@ -1240,7 +1244,7 @@ views:
               accent: amber
               service: script.oal_reset_soft
     - type: grid
-      column_span: 2
+      column_span: 1
       cards:
         - type: custom:tunet-sensor-card
           title: Living Room Sensors
@@ -1257,7 +1261,7 @@ views:
               icon: sensor_occupied
               accent: green
     - type: grid
-      column_span: 2
+      column_span: 1
       cards:
         - type: custom:tunet-media-card
           entity: media_player.living_room
@@ -1276,7 +1280,7 @@ views:
   back_path: /tunet-home-preview/home
   sections:
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-lighting-card
           name: Kitchen Lights
@@ -1295,7 +1299,7 @@ views:
               name: Counter
               icon: linear_scale
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-actions-card
           variant: compact
@@ -1337,7 +1341,7 @@ views:
               accent: amber
               service: script.oal_reset_soft
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-sensor-card
           title: Kitchen Sensors
@@ -1366,14 +1370,14 @@ views:
   back_path: /tunet-home-preview/home
   sections:
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-climate-card
           entity: climate.dining_room
           name: Climate
           variant: standard
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-lighting-card
           name: Dining Lights
@@ -1389,7 +1393,7 @@ views:
               name: Column
               icon: view_column
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-actions-card
           variant: compact
@@ -1431,7 +1435,7 @@ views:
               accent: amber
               service: script.oal_reset_soft
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-sensor-card
           title: Dining Sensors
@@ -1456,7 +1460,7 @@ views:
   back_path: /tunet-home-preview/home
   sections:
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-lighting-card
           name: Bedroom Lights
@@ -1475,7 +1479,7 @@ views:
               name: Lamps
               icon: lamp
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-actions-card
           variant: compact
@@ -1512,7 +1516,7 @@ views:
                 lights:
                   - light.bedroom_primary_lights
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-sensor-card
           title: Bedroom Sensors
@@ -1538,7 +1542,7 @@ views:
               icon: speaker
               accent: green
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-alarm-card
           title: Sonos Alarms
@@ -1551,7 +1555,7 @@ views:
               label: Bedroom Weekend
               room: bedroom
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-media-card
           entity: media_player.bedroom
@@ -1570,7 +1574,7 @@ views:
   back_path: /tunet-home-preview/home
   sections:
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-lighting-card
           name: Office Lights
@@ -1586,7 +1590,7 @@ views:
               name: Office Bed
               icon: bed
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-actions-card
           variant: compact
@@ -1628,7 +1632,7 @@ views:
               accent: amber
               service: script.oal_reset_soft
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-sensor-card
           title: Office Sensors
@@ -1651,7 +1655,7 @@ views:
   back_path: /tunet-home-preview/home
   sections:
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-status-card
           layout_variant: home_detail
@@ -1684,7 +1688,7 @@ views:
               attribute: total_offset
               format: integer
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-actions-card
           variant: compact
@@ -1706,7 +1710,7 @@ views:
               accent: blue
               service: homeassistant.reload_config_entry
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-alarm-card
           title: All Sonos Alarms
@@ -1719,7 +1723,7 @@ views:
               label: Bedroom Weekend
               room: bedroom
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: custom:tunet-status-card
           layout_variant: info_only
@@ -1752,7 +1756,7 @@ views:
               accent: blue
               format: state
     - type: grid
-      column_span: 4
+      column_span: 1
       cards:
         - type: markdown
           content: |

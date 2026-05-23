@@ -10,6 +10,32 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 Current tranche: **PA01 — Bug A shared card-edge fix — implemented/deployed 2026-05-23; Mac review pending before closure**. CD11 remains closed; CD10 nav verify remains deferred; remaining surface assembly is PA02+ per the page-architecture sub-plan.
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## OAL Stream Snapshot (2026-05-23 afternoon, NOT Tunet PA work)
+
+Out-of-tree from PA01/PA02 etc. Active OAL execution arc per `~/.claude/plans/oal-post-campaign-a-arc.md` + bed-pair architecture per `~/.claude/plans/office-bed-lights-deep-amber.md`.
+
+Shipped THIS session (chronological on `main`):
+- `6d58d46` Goal 1 — system-managed-lights registry pattern (input_text + helper script + `sensor.oal_soonest_user_override` filtered companion); augmentation/lifecycle/mode contributors; unified timer notification + handler + auto-resolver swapped to filtered sensor
+- `3f5aa1f` fix — `input_text.oal_system_managed_lights` max 1024→255 (HA hard cap)
+- `9db5373` Goal 2 — `light.master_bedroom_column_accent` adopted into `column_lights` AL (B1+B2+B3, ~28 lifecycle sub-sites)
+- `eea78df` Bed-pair refactor R1 — split AL `office_bed`, `adapt_color OFF`, sun-aware 4-tier color window automation
+- `ead09a7` Bed-pair refactor R2 — `office_bed` first-class engine integration (~17 sites)
+- `48e0e0e` `light.office_table_lamp` → `light.office_lights` group
+
+Pending (arc):
+- Goal 3 C2 dashboard YAML cleanup of stale `master_bedroom_corner_accent_govee` refs across 7 files including Mac's just-shipped `tunet-home-v2-config.yaml` (6 occurrences — needs Mac's eye)
+- Goal 3 C4 remaining docs (column_lights_rgb plan revalidation, plan files)
+- Goal 3 C5 verification matrix + Mac sign-off
+- Sleep mode first-cycle observation with new `office_bed` arch
+
+Architectural state post-refactor:
+- 9 AL zones (added `office_bed`), all adaptive, 0 manual_control entries
+- Bed pair owned by `oal_office_bed_color_window_v13`: 15-min poll + sun-elevation crossings drive 4-tier color (CCT 2000K high day → hs [30,70] afternoon → hs [25,90] golden hour → hs [22,100] deep amber night). Brightness adapts via AL.
+- Office AL now contains 2 lights (`desk_lamp` + `master_bedroom_corner_accent_govee`); max_brightness raised 80→100
+- `oal_soonest_user_override` filters out system-managed lights via the registry — eliminates phantom user-actionable expiry notifications
+
+Key gotcha logged: HA `input_text` max field hard-caps at 255 (silent failure mode → entire input_text component crashes on load with all entities `restored: true`). Worth documenting in CLAUDE.md if not already.
+
 ## Session Delta (2026-05-23, PA01 shared card edge implemented/deployed)
 
 - `CURRENT STATE`

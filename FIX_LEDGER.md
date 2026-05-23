@@ -9,6 +9,30 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 **Active page-architecture sub-plan (2026-05-08)**: `~/.claude/plans/tunet-page-architecture.md` — defines page taxonomy, RoomSubview pattern, PA01-PA11 tranche enumeration.
 Current tranche: **PA01 — Bug A shared card-edge fix — implemented/deployed 2026-05-23; Mac review pending before closure** (`CD10` nav verify deferred; remaining surface assembly refined into PA02-PA11 per the page-architecture sub-plan)
 
+## Session Delta (2026-05-23 afternoon, OAL Post-Campaign-A arc + bed-pair architecture refactor R1+R2)
+
+Out-of-tree from Tunet PA work — OAL stream per `~/.claude/plans/oal-post-campaign-a-arc.md`.
+
+CLOSED THIS SESSION:
+- Goal 1 (registry pattern + filtered sensor + notification sensor swap) — commits `6d58d46` + `3f5aa1f` (max:255 HA cap fix)
+- Goal 2 (`light.master_bedroom_column_accent` adopted into column_lights AL, 28 lifecycle sub-sites) — commit `9db5373`
+- Bed-pair architecture refactor R1 (split AL `office_bed`, `adapt_color OFF`, sun-aware color window automation) — commit `eea78df`
+- Bed-pair R2 (engine integration for `office_bed` — `~17 sites): new offset input_number, new status sensor, zone_configs / zone_map / zone_groups / soonest_override tuples / system_status counts / real-time monitor / manual brightness step / cleanup pipelines / learning logger split / light_to_switch routing) — commit `ead09a7`
+- `light.office_table_lamp` added to `light.office_lights` helper group (not joined to any AL config per operator choice) — commit `48e0e0e`
+- `docs/OAL_ENTITY_REFERENCE.md` updated with Section 6 (9 AL zones table + Office Area architecture) + Section 7 (System-Managed Lights Registry)
+
+OPEN / PENDING:
+- Goal 3 C2 — dashboard YAML stale-ref cleanup blocked on Mac's eye for his newly-shipped `tunet-home-v2-config.yaml` (6 occurrences of `master_bedroom_corner_accent_govee` referenced as master_bedroom; entity now physically in office area per Campaign A)
+- Goal 3 C4 remaining — `column_lights_rgb_full_coverage_plan.md` 3-light revalidation; plan files re-check
+- Goal 3 C5 — verification matrix + sign-off (Mac stamps closure)
+- Sleep mode interaction with new `office_bed` architecture — `oal_office_bed_color_window_v13` has condition guard for `sleep_mode_office_bed: off`; observation pending first Sleep cycle
+- Mode-config bindings for `office_bed` (Full Bright / Evening / Dim Ambient per-zone brightness ceiling) — currently inheriting via engine zone_config; explicit per-mode override possible if Mac wants different from office
+
+KEY LEARNINGS RECORDED:
+- HA `input_text` max cap is 255 (silent crash if exceeded → entire input_text component fails to load with `restored: true` on all existing entities) — CLAUDE.md gotcha candidate
+- AL custom integration's YAML re-import is partial post-restart: lights list DOES re-import, other settings (e.g., max_brightness) may NOT — workaround is `adaptive_lighting.change_switch_settings` runtime call OR delete config_entry + recreate
+- `adapt_color_<zone>` and `adapt_brightness_<zone>` per-zone toggle switches enable clean lifecycle architectures where one axis is system-owned and the other is AL-adapted — cleaner than per-attribute `manual_control: "color"` string lock for cases where state should NOT persist in AL's manual_control list
+
 ## Session Delta (2026-05-23, PA01 shared card edge implemented/deployed; Mac review pending)
 
 Change marker: PA01 / β-arc. The shared `CARD_SURFACE` primitive no longer owns a solid `.card` border; the masked glass-stroke `::before` is now the only card-edge primitive. This addresses the Bug A double-corner root cause without changing inner control/tile outlines.

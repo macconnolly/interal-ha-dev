@@ -279,6 +279,85 @@ Global: 1 | Configuration: 2 | Environmental: 2 | Sunset: 2 | Night: 3 | Control
 
 [See complete guide for detailed sensor documentation including attributes, update frequency, and interpretation guides]
 
+Key per-zone status sensors (one per AL zone, all use same shape):
+`sensor.oal_main_living_status`, `oal_kitchen_island_status`, `oal_kitchen_undercabinet_status`, `oal_bedroom_primary_status`, `oal_accent_spots_status`, `oal_recessed_ceiling_status`, `oal_column_lights_status`, `oal_office_status`, `oal_office_bed_status`
+
+Cross-zone aggregates:
+- `sensor.oal_soonest_override` — raw soonest AL autoreset countdown across all 9 zones (state = "Nh Mm", attrs `zone_id` / `seconds_remaining`)
+- `sensor.oal_soonest_user_override` — same shape but EXCLUDES lights in `input_text.oal_system_managed_lights` registry (used by unified timer notification; filters phantom expiry alerts from system-actor holds like column RGB session or any future augmentation)
+- `sensor.oal_real_time_monitor` — global brightness/warmth offset breakdown + per-zone baseline/min/max/manual_offset attributes (one block per zone)
+- `sensor.oal_system_status` — zones_adaptive / active_zonal_overrides / overridden_zones (Phase 3 attributes); `zones_adaptive` counts up to 9 (was 8 pre-office_bed split)
+
+---
+
+## SECTION 6: ADAPTIVE LIGHTING ZONES (9 zones, 2026-05-23 state)
+
+Each AL zone is configured in `packages/oal_lighting_control_package.yaml` under the `adaptive_lighting:` block. The OAL engine wraps AL with brightness offset orchestration, mode-config bindings, environmental adaptation, and per-zone status sensors.
+
+| Zone | Switch entity | Lights | CCT range | Brightness range | Notes |
+|------|---------------|--------|-----------|------------------|-------|
+| `main_living` | `switch.adaptive_lighting_main_living` | 5 lights (couch_lamp, floor_lamp, entryway_lamp, credenza, corner_accent) | 2000-3150K | 70-100% | Hue ambiance — clean CCT, no quirks |
+| `kitchen_island` | `switch.adaptive_lighting_kitchen_island` | 1 (`kitchen_island_pendants`) | 2000-4000K | 20-100% | |
+| `kitchen_undercabinet` | `switch.adaptive_lighting_kitchen_undercabinet` | 1 (`kitchen_counter_cabinet_underlights`) | 2000-4000K | 55-100% | |
+| `bedroom_primary` | `switch.adaptive_lighting_bedroom_primary` | 1 (`master_presence`) | 2700K fixed | 30-65% | Was 2 lights pre-Campaign A (corner_accent_govee relocated to office) |
+| `accent_spots` | `switch.adaptive_lighting_accent_spots` | 2 (dining + living room spots) | 2000-6500K | 25-50% | |
+| `recessed_ceiling` | `switch.adaptive_lighting_recessed_ceiling` | 2 (kitchen_main, hallway) | 2700K fixed | 1-23% | tanh brightness curve |
+| `column_lights` | `switch.adaptive_lighting_column_lights` | 3 (living_column_strip, dining_column_strip, master_bedroom_column_accent — Goal 2 2026-05-23) | 2700-2750K | 1-80% | Govee — uses RGB lifecycle (prepare_rgb_mode_v13, rgb_transition, morning_exit, rgb_self_heal) for sunset amber + purple-shift protection (Invariant #2) |
+| `office` | `switch.adaptive_lighting_office` | 2 (desk_lamp, master_bedroom_corner_accent_govee — bed pair split out 2026-05-23) | 2700K fixed | 30-100% | Govee corner_accent (relocated from master bedroom). Work (Office Desk) mode overrides desk_lamp to 4000K/100% |
+| `office_bed` | `switch.adaptive_lighting_office_bed` | 2 (`office_bed_light_left`, `office_bed_light_right`) | 2000K fixed (fallback) | 30-100% | **NEW 2026-05-23 (R1+R2).** Tuya WallSmart bed pair. `adapt_color_office_bed = OFF` permanently — color owned by `oal_office_bed_color_window_v13` automation (sun-aware 4-tier: CCT 2000K high day → hs [30,70] afternoon → hs [25,90] golden hour → hs [22,100] deep amber night). Brightness still adapts via AL. |
+
+### Office Area Architecture (post 2026-05-23 split)
+
+**Hardware**: 4 lights physical-located in the office:
+- `light.office_desk_lamp` — Hue ambiance (clean CCT path)
+- `light.office_bed_light_left` + `_right` — Tuya WallSmart (renders 2700K CCT as visually neutral-white due to driver quirk; viable warm look only via hs [22, 100])
+- `light.master_bedroom_corner_accent_govee` — Govee Matter (relocated from master bedroom Campaign A; safe CCT floor 2700K per Invariant #2)
+
+**Why bed pair is split into its own AL** (2026-05-23 architecture):
+Prior pattern (`oal_office_bed_lights_warm_pin_v13`) always pinned bed pair to hs [22, 100] using per-attribute `manual_control: "color"` lock — kept bed pair perpetually in office AL's manual_control list, requiring registry filter to mask user-visible consequences. Refactored to column-style split-AL where AL handles brightness via `adapt_brightness_office_bed: ON` and `adapt_color_office_bed: OFF` (permanent runtime state) cedes color ownership entirely to the sun-aware automation.
+
+**Result**: bed pair never appears in `office_bed` AL manual_control list, follows AL's brightness adapt curve through the day, gets sun-elevation-driven color mapping with 15-min poll + threshold-crossing fast-paths, and integrates cleanly with the per-zone status sensor.
+
+---
+
+## SECTION 7: SYSTEM-MANAGED LIGHTS REGISTRY (Goal 1, 2026-05-23)
+
+The OAL engine has multiple system-actor automations that legitimately set
+AL `manual_control` for their own purposes (column RGB lifecycle, Work mode,
+augmentations). Without filtering, the unified timer notification would alert
+the user about non-actionable system-managed expiry timers (phantom fires).
+
+The registry pattern (input_text + helper script + filtered companion sensor)
+lets consumers distinguish user-actionable expiry from system-actor holds:
+
+### `input_text.oal_system_managed_lights`
+
+JSON array of light entity_ids currently held by system actors. Initial `"[]"`,
+max 255 chars (HA's input_text limit; ~6-7 lights JSON-encoded fit).
+
+State: `["light.living_column_strip_light_matter", "light.dining_column_strip_light_matter", "light.master_bedroom_column_accent"]` during an active column RGB session.
+
+### `script.oal_register_system_managed_lights`
+
+Helper script for read-modify-write. Idempotent via `| unique` filter — safe
+across re-fires. Called by system-actor automations on acquire/release.
+
+Service call: `script.oal_register_system_managed_lights {action: add, lights: [...]}`
+
+### `sensor.oal_soonest_user_override`
+
+Mirrors `sensor.oal_soonest_override` but excludes any light listed in the
+registry. Attributes: `zone_id`, `zone_friendly`, `light`, `seconds_remaining`,
+`reset_timestamp`. Used by `automation.oal_v14_unified_timer_notification`
+and `oal_v14_timer_notification_handler`/auto-resolver as the load-bearing
+source-of-truth for "is there a USER override expiring soon."
+
+### Registry contributors (current)
+
+- `oal_v13_column_rgb_registry_sync_v13` — adds/removes column lights (living + dining + accent) keyed off `input_boolean.oal_column_rgb_session_active` state changes
+- Work (Office Desk) mode automation — adds/removes `light.office_desk_lamp` on entry/exit
+- **NO bed pair contributor** — bed pair is in its own `office_bed` AL with `adapt_color OFF`, so AL never sets manual_control on bed pair; no registry contribution needed (the previous warm_pin contributor was deleted in R1 of the bed-pair architecture refactor)
+
 ---
 
 ## ENTITY MODIFICATION PATTERNS
@@ -327,7 +406,7 @@ Safe reset command: Call `script.oal_reset_soft` or `script.oal_reset_global`
 
 ---
 
-**Total Entities Documented**: 36
+**Total Entities Documented**: 40+ (+9 AL zone switches, +office_bed status sensor, +system-managed-lights registry trio, +per-zone offset input_numbers)
 **File Format**: YAML/Home Assistant
-**Last Updated**: 2026-01-07
+**Last Updated**: 2026-05-23 (post Goal 1 + Goal 2 + bed-pair architecture refactor R1+R2)
 **System Version**: OAL v13 Production

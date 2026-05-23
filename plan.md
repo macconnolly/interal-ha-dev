@@ -9,6 +9,31 @@ Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status
 Current tranche: **PA01 — Bug A shared card-edge fix — implemented/deployed 2026-05-23; Mac review pending before closure**. CD11 remains closed; CD10 nav verify remains deferred; the rest of CD12 surface assembly is refined into PA02+ per the page-architecture sub-plan.
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
+## Session Delta (2026-05-23 afternoon, OAL Post-Campaign-A arc + bed-pair architecture refactor R1+R2 shipped)
+
+Tranche marker: OAL execution arc per `~/.claude/plans/oal-post-campaign-a-arc.md`. Not Tunet PA work — separate stream.
+
+Shipped this session (commits in chronological order on `main`):
+- `6d58d46` Goal 1 — system-managed-lights registry (`input_text.oal_system_managed_lights` + `script.oal_register_system_managed_lights` + filtered companion sensor `oal_soonest_user_override`); augmentation/lifecycle/mode contributors; unified timer notification + handler + auto-resolver swapped to filtered sensor (sensor swap only; notify-channel swap deferred pending iPhone delivery test of `notify.notify`)
+- `3f5aa1f` fix — `input_text.oal_system_managed_lights` max 1024→255 (HA cap; was crashing the entire input_text component on load)
+- `9db5373` Goal 2 — `light.master_bedroom_column_accent` adopted into column_lights AL system (B1+B2+B3, ~28 lifecycle sub-sites); Goal 1's column registry sync contributes column_accent too
+- `eea78df` Bed-pair refactor R1 — split AL (`switch.adaptive_lighting_office_bed`), `adapt_color_office_bed: OFF` permanently, new `oal_office_bed_color_window_v13` sun-aware 4-tier color mapping (CCT 2000K high day → hs [30,70] afternoon → hs [25,90] golden hour → hs [22,100] deep amber night) with 15-min poll + threshold-crossing fast-path. Deleted `oal_office_bed_warm_pin_v13` and Goal 1's bed-pair release automation.
+- `ead09a7` Bed-pair refactor R2 — `office_bed` AL first-class engine integration (~17 sites): new `input_number.oal_manual_offset_office_bed_brightness`, new `sensor.oal_office_bed_status_v13`, zone_configs / zone_map / zone_groups / zone_switches / zone_offsets / all_zone_ids / soonest_override tuples / system_status counts / real-time monitor / manual brightness step / cleanup pipelines / learning logger split / `light_to_switch` routing
+- `48e0e0e` — `light.office_table_lamp` ("Office Nightstand Lamp", brightness-only) added to `light.office_lights` helper group; not added to any AL config (operator decision)
+
+VERIFIED LIVE (Mac in-loop testing throughout):
+- Manual control + soft reset pipeline healthy; AL detects + clears as designed (Mac-led test sequence)
+- Bed pair daytime visual at 2000K CCT 100% accepted by Mac ("fine for daytime, pretty white") — viable for adapt_brightness-only path
+- Bed pair sunset hs [22, 100] deep amber preserved as the night look (Mac: "definitely need that at night")
+- Office max_brightness 80→100 applied via `adaptive_lighting.change_switch_settings` AND in YAML zone_configs (YAML doesn't always re-import on restart for existing AL entries — known AL gotcha)
+- 9 zones now `adaptive`, 0 overrides post-refactor; `sensor.oal_office_bed_status` reporting `A`; `oal_soonest_user_override` clean
+
+PENDING from the arc:
+- Goal 3 C2 — dashboard YAML cleanup (`master_bedroom_corner_accent_govee` stale refs across 7 dashboard files including Mac's new `tunet-home-v2-config.yaml` with 6 occurrences — blocked on Mac's eye since he shipped that dashboard 2026-05-23 commit `e631b6c`)
+- Goal 3 C4 — docs sweep (THIS session: `docs/OAL_ENTITY_REFERENCE.md` updated with Section 6 zones + Section 7 registry; remaining: `column_lights_rgb_full_coverage_plan.md`, plan files re-verification)
+- Goal 3 C5 — end-to-end verification + sign-off (per arc plan verification matrix; Mac stamps closure)
+- Sleep mode interaction with new bed-pair architecture (`oal_office_bed_color_window_v13` has condition guard for `sleep_mode_office_bed: off`, observation pending first Sleep cycle tonight)
+
 ## Session Delta (2026-05-23, PA01 shared card edge implemented/deployed; Mac review pending)
 
 Tranche marker: PA01 / β-arc. This pass removes the duplicated Layer 1 edge from the shared v3 card primitive. Closure still depends on Mac's live review; the evidence below is implementation + inspection evidence, not the user-held done stamp.

@@ -64,6 +64,12 @@ views:
           action: navigate
           navigation_path: '#oal-detail'
       - type: value
+        entity: sensor.lights_on_total
+        icon: lightbulb
+        label: Lights On
+        accent: amber
+        format: integer
+      - type: value
         entity: binary_sensor.hvac_running
         attribute: hvac_action
         icon: hvac
@@ -72,6 +78,12 @@ views:
         tap_action:
           action: more-info
           entity: climate.dining_room
+      - type: value
+        entity: weather.home
+        icon: wb_sunny
+        label: Weather
+        accent: blue
+        format: state
       - type: value
         entity: sensor.dining_room_temperature
         icon: device_thermostat
@@ -87,42 +99,50 @@ views:
         unit: °F
         format: integer
       - type: value
-        entity: sensor.oal_override_count_active
-        icon: pan_tool
-        label: Manual
-        accent: red
-        format: integer
-        tap_action:
-          action: navigate
-          navigation_path: '#oal-detail'
+        entity: sensor.sun_next_setting
+        icon: nights_stay
+        label: Sunset
+        accent: amber
+        format: time
       - type: value
-        entity: sensor.kitchen_humidity
-        icon: water_drop
-        label: Humidity
+        entity: sensor.sonos_alarm_bedroom_display
+        icon: alarm
+        label: Alarm
         accent: blue
-        unit: '%'
-        format: integer
-      - type: value
-        entity: sensor.aqi
-        icon: air
-        label: AQI
-        accent: green
-        format: integer
-      - type: value
-        entity: counter.tunet_hvac_cycles_today
-        icon: repeat
-        label: Cycles
-        accent: blue
-        format: integer
+        format: state
   - type: grid
     column_span: 4
     cards:
     - type: custom:tunet-actions-card
-      name: OAL Mode
+      name: Quick Actions
       compact: true
       grid_options:
         columns: full
       actions:
+      - name: All On
+        icon: lightbulb
+        accent: amber
+        service: light.turn_on
+        service_data:
+          entity_id: light.all_adaptive_lights
+        state_entity: light.all_adaptive_lights
+        active_when: "on"
+      - name: All Off
+        icon: power_settings_new
+        accent: amber
+        service: light.turn_off
+        service_data:
+          entity_id: light.all_adaptive_lights
+        state_entity: light.all_adaptive_lights
+        active_when: "off"
+      - name: Brighter
+        icon: add
+        accent: green
+        service: script.oal_global_manual_brighter
+      - name: Dimmer
+        icon: remove
+        accent: green
+        service: script.oal_global_manual_dimmer
       - name: Adaptive
         icon: sunny
         accent: green
@@ -177,6 +197,17 @@ views:
           option: Sleep
         state_entity: input_select.oal_active_configuration
         active_when: Sleep
+      - name: Reset
+        icon: restart_alt
+        accent: red
+        service: script.turn_on
+        service_data:
+          entity_id: script.oal_reset_soft
+        show_when:
+          entity: sensor.oal_system_status
+          attribute: active_zonal_overrides
+          operator: gt
+          state: 0
   - type: grid
     column_span: 4
     cards:
@@ -205,6 +236,9 @@ views:
         - entity: light.living_room_credenza_light
           name: Credenza
           icon: wb_incandescent
+        - entity: light.living_column_strip_light_matter
+          name: Column
+          icon: view_column
       - name: Kitchen
         icon: kitchen
         tap_action:
@@ -296,50 +330,9 @@ views:
       tap_action:
         action: navigate
         navigation_path: '#media-living-room'
-  - type: grid
-    column_span: 2
-    cards:
-    - type: custom:tunet-actions-card
-      name: Quick Actions
-      compact: true
-      grid_options:
-        columns: full
-      actions:
-      - name: All On
-        icon: lightbulb
-        accent: amber
-        service: light.turn_on
-        service_data:
-          entity_id: light.all_adaptive_lights
-        state_entity: light.all_adaptive_lights
-        active_when: "on"
-      - name: All Off
-        icon: power_settings_new
-        accent: amber
-        service: light.turn_off
-        service_data:
-          entity_id: light.all_adaptive_lights
-        state_entity: light.all_adaptive_lights
-        active_when: "off"
-      - name: Brighter
-        icon: add
-        accent: green
-        service: script.oal_global_manual_brighter
-      - name: Dimmer
-        icon: remove
-        accent: green
-        service: script.oal_global_manual_dimmer
-      - name: Reset
-        icon: restart_alt
-        accent: red
-        service: script.turn_on
-        service_data:
-          entity_id: script.oal_reset_soft
-        show_when:
-          entity: sensor.oal_system_status
-          attribute: active_zonal_overrides
-          operator: gt
-          state: 0
+# Quick Actions strip merged into top section (per Mac feedback 2026-05-23):
+# "below the media there were another set of scenes or action tiles, we don't need
+# that and it should be combined with the ones at the top please."
   - type: grid
     column_span: 4
     cards:

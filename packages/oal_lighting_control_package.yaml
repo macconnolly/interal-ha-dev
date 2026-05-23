@@ -163,6 +163,7 @@ group:
       - switch.adaptive_lighting_recessed_ceiling
       - switch.adaptive_lighting_column_lights
       - switch.adaptive_lighting_office
+      - switch.adaptive_lighting_office_bed
 
   oal_sleep_mode_switches:
     name: "OAL Sleep Mode Switches"
@@ -175,6 +176,7 @@ group:
       - switch.adaptive_lighting_sleep_mode_recessed_ceiling
       - switch.adaptive_lighting_sleep_mode_column_lights
       - switch.adaptive_lighting_sleep_mode_office
+      - switch.adaptive_lighting_sleep_mode_office_bed
 
   oal_tv_presence_sensors:
     name: "OAL TV Presence Sensors"
@@ -842,22 +844,22 @@ adaptive_lighting:
     intercept: true
     multi_light_intercept: true
 
-  # OFFICE AL CONFIG
+  # OFFICE AL CONFIG (post bed-pair split 2026-05-23)
   # ═══════════════════════════════════════════════════════════════════════════
-  # 4 lights warm-pinned 2700/2700K — desk + bed pair (Tuya) + corner accent (Govee, moved
-  # from master). Govee safe color_temp floor is 2700K (Invariant #2 — purple-shift below).
-  # Work (Office Desk) mode automation (~line 3403) overrides desk for work-at-4000K.
+  # 2 lights warm-pinned 2700/2700K — desk + corner_accent (Govee). Govee
+  # safe color_temp floor is 2700K (Invariant #2 — purple-shift below).
+  # Work (Office Desk) mode automation overrides desk for work-at-4000K.
   #
-  # NOTE: Tuya bed pair renders 2700K CCT as neutral-white visually (driver/LED-mix quirk).
-  # The augmentation automation oal_office_bed_warm_pin_v13 (~line 3348) pins bed_left + bed_right
-  # to hs [22, 100] deep amber + set_manual_control on this AL switch — that prevents AL from
-  # adapting the bed pair while still letting AL handle desk + corner_accent normally.
+  # Bed pair (light.office_bed_light_left/right) is split into a dedicated
+  # office_bed AL block below. Reason: Tuya WallSmart renders 2700K CCT as
+  # neutral-white; bed pair color is owned by oal_office_bed_color_window_v13
+  # (hs deep amber at sunset / CCT 2000K daytime) with adapt_color_office_bed
+  # toggled off so AL never touches their color. AL still adapts their
+  # brightness via the office_bed adapt_brightness switch.
   # ═══════════════════════════════════════════════════════════════════════════
   - name: "office"
     lights:
       - light.office_desk_lamp
-      - light.office_bed_light_left
-      - light.office_bed_light_right
       - light.master_bedroom_corner_accent_govee
     interval: 90
     transition: 1
@@ -868,13 +870,49 @@ adaptive_lighting:
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
     min_brightness: 30
-    max_brightness: 80
+    max_brightness: 100                    # User pref 2026-05-23: full daytime brightness ceiling
     min_color_temp: 2700
     max_color_temp: 2700
     sleep_brightness: 5
     sleep_color_temp: 2700
     sleep_rgb_or_color_temp: "rgb_color"
     sleep_rgb_color: [255, 165, 0]
+
+  # OFFICE BED PAIR AL CONFIG (split 2026-05-23)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Dedicated zone for Tuya WallSmart bed pair (left/right). Goals:
+  # - AL adapts BRIGHTNESS naturally through the day (sunset dimming etc.)
+  # - AL does NOT adapt COLOR — that's owned by automation
+  #   oal_office_bed_color_window_v13 which flips:
+  #     daytime (sun ≥ 8°)  → color_temp_kelvin 2000 (warmest Tuya CCT;
+  #                            "fine for daytime" per Mac's visual verify
+  #                            2026-05-23, even though it's pretty white)
+  #     evening (sun < 3°)  → hs_color [22, 100] deep amber
+  #                            (rgb≈[255,102,0]; only viable warm look on Tuya
+  #                            per Mac's "never want the white at night")
+  # - Post-restart, switch.adaptive_lighting_adapt_color_office_bed must be
+  #   turned OFF (cannot configure via YAML — toggled via service call).
+  # ═══════════════════════════════════════════════════════════════════════════
+  - name: "office_bed"
+    lights:
+      - light.office_bed_light_left
+      - light.office_bed_light_right
+    interval: 90
+    transition: 1
+    initial_transition: 1
+    take_over_control: true
+    detect_non_ha_changes: true
+    adapt_delay: 0
+    include_config_in_attributes: true
+    autoreset_control_seconds: 14400
+    min_brightness: 30
+    max_brightness: 100                    # User pref 2026-05-23: full daytime brightness ceiling
+    min_color_temp: 2000                   # warmest Tuya CCT (driver quirk turns this neutral-white but acceptable for day)
+    max_color_temp: 2000                   # pin to warmest — adapt_color is OFF anyway, this is fallback
+    sleep_brightness: 5
+    sleep_color_temp: 2000
+    sleep_rgb_or_color_temp: "rgb_color"
+    sleep_rgb_color: [255, 102, 0]          # deep amber for sleep (matches user's preferred amber)
 
 
 # =============================================================================
@@ -3404,51 +3442,89 @@ automation:
                       turn_on_lights: false
 
   # ---------------------------------------------------------------------------
-  # 4.3f Office Bed Lights Warm Pin (column-style RGB augmentation, scoped)
+  # 4.3f Office Bed Lights Color Window (sun-elevation-driven, 4-tier mapping)
   # ---------------------------------------------------------------------------
-  # Tuya WallSmart bed pair (left/right) render 2700K CCT (office AL's pin) as
-  # neutral-white visually due to driver/LED-mix quirk. Mac's target is hs [22, 100]
-  # ≈ rgb [255, 102, 0] (deep amber).
+  # Architecture (refined 2026-05-23 from binary day/night flip to sun-aware
+  # gradient + 15-min cadence):
   #
-  # CCT can't reach this color on this hardware. office AL stays at 2700/2700K
-  # pin (correct for desk + corner_accent which DO render warm there) and this
-  # automation augments the bed pair: pushes deep-amber hs + brightness +
-  # set_manual_control on switch.adaptive_lighting_office so office AL stops
-  # adapting the bed pair while still adapting desk + corner normally.
+  # office_bed AL adapts BRIGHTNESS (adapt_brightness_office_bed = ON)
+  # but does NOT adapt COLOR (adapt_color_office_bed = OFF permanently).
+  # Color is owned by THIS automation which polls sun elevation every 15
+  # minutes AND fires on key threshold crossings AND startup/reload.
   #
-  # Three triggers ensure "never white" intent:
-  #   1. turned_on   — bed light state off→on
-  #   2. cct_pushed  — bed light color_mode becomes color_temp (AL just pushed CCT;
-  #                    automation immediately reverses to hs within ~1s)
-  #   3. autoreset_cleared — 4h autoreset cleared manual_control (safety net)
-  - id: oal_office_bed_warm_pin_v13
-    alias: "OAL v13 - Office Bed Lights Warm Pin"
-    description: "Pins the office bed pair to hs [22, 100] deep amber; reverses any AL CCT push within seconds (Tuya CCT cap workaround)"
-    mode: queued
-    max: 10
+  # Sun-aware color mapping (4 tiers):
+  #   elevation > 10°   → color_temp_kelvin 2000   (high day, AL CCT)
+  #   elevation 5–10°   → hs [30, 70]              (afternoon transition, warm cream)
+  #   elevation 0–5°    → hs [25, 90]              (golden hour, warm orange)
+  #   elevation < 0°    → hs [22, 100]             (below horizon, deep amber)
+  #
+  # Tuya WallSmart renders 2000K CCT as visually pretty-white (driver quirk).
+  # Mac visual-verified 2026-05-23: "fine for daytime, pretty white. Nothing
+  # close to what you achieved with HS color so we definitely need that
+  # at night."
+  #
+  # Brightness is NEVER set by this automation — AL adapts brightness
+  # independently through adapt_brightness_office_bed.
+  #
+  # Sleep-mode guard: skip when sleep_mode_office_bed is on (AL's sleep
+  # config applies sleep_rgb_color [255, 102, 0] in that state and this
+  # automation shouldn't race with it).
+  #
+  # Kill switch: when input_boolean.oal_office_bed_warm_pin_kill_switch is
+  # ON, this automation skips. Operator can manually toggle
+  # switch.adaptive_lighting_adapt_color_office_bed ON to let AL adapt CCT
+  # entirely (natural-AL mode).
+  - id: oal_office_bed_color_window_v13
+    alias: "OAL v13 - Office Bed Color Window (sun-aware, 15min poll)"
+    description: "Sun-elevation-driven color mapping for office bed pair. CCT 2000K (high day) → hs [30,70] (afternoon) → hs [25,90] (golden hour) → hs [22,100] (night). Brightness owned by AL."
+    mode: restart
     trigger:
+      # 15-min polling — keep color in sync as elevation moves through tiers
+      - platform: time_pattern
+        minutes: "/15"
+        id: periodic
+      # Fast-path: tier-boundary sun crossings (so we don't wait up to 15min)
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        below: 10
+        id: enter_t2
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        below: 5
+        id: enter_t3
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        below: 0
+        id: enter_t4
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        above: 0
+        id: exit_t4
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        above: 5
+        id: exit_t3
+      - platform: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        above: 10
+        id: exit_t2
+      # Test harness — drive via oal_test_sun_elevation when test_mode is on
       - platform: state
-        entity_id:
-          - light.office_bed_light_left
-          - light.office_bed_light_right
-        from: "off"
-        to: "on"
-        id: turned_on
-      - platform: state
-        entity_id:
-          - light.office_bed_light_left
-          - light.office_bed_light_right
-        attribute: color_mode
-        to: "color_temp"
-        for: "00:00:01"
-        id: cct_pushed
-      - platform: template
-        value_template: >
-          {% set bed_manual = (state_attr('switch.adaptive_lighting_office', 'manual_control') | default([]))
-             | select('in', ['light.office_bed_light_left', 'light.office_bed_light_right']) | list %}
-          {{ (bed_manual | length) < 1 }}
-        for: "00:00:20"
-        id: autoreset_cleared
+        entity_id: input_number.oal_test_sun_elevation
+        id: test_change
+      # Recovery — make sure color matches current sun on restart / reload
+      - platform: homeassistant
+        event: start
+        id: startup
+      - platform: event
+        event_type: automation_reloaded
+        id: automation_reload
     condition:
       - condition: state
         entity_id: input_boolean.oal_system_paused
@@ -3456,63 +3532,86 @@ automation:
       - condition: state
         entity_id: input_boolean.oal_office_bed_warm_pin_kill_switch
         state: "off"
+      - condition: state
+        entity_id: switch.adaptive_lighting_sleep_mode_office_bed
+        state: "off"
+      # Test trigger valid only when test mode is on
       - condition: template
         value_template: >
-          {% set on_lights = ['light.office_bed_light_left', 'light.office_bed_light_right']
-              | select('is_state', 'on') | list %}
-          {{ on_lights | length > 0 }}
+          {{ trigger.id != 'test_change'
+             or is_state('input_boolean.oal_test_mode', 'on') }}
     action:
+      # Settle delay on startup so AL finishes loading first
+      - if:
+          - condition: template
+            value_template: "{{ trigger.id in ['startup', 'automation_reload'] }}"
+        then:
+          - delay: "00:00:20"
+      # Compute target color from effective sun elevation
       - variables:
-          on_lights: >
-            {{ ['light.office_bed_light_left', 'light.office_bed_light_right']
-               | select('is_state', 'on') | list }}
-      - service: light.turn_on
-        continue_on_error: true
-        target:
-          entity_id: "{{ on_lights }}"
-        data:
-          hs_color: [22, 100]
-          brightness_pct: 35
-          transition: 1
-      # Per-attribute color lock: AL stops adapting COLOR on bed pair, brightness keeps adapting.
-      # Confirmed via AL source adaptation_utils.py:279-289 — "color" string maps to
-      # LightControlAttributes.COLOR (not ALL). Brightness adaptation continues per office AL settings.
-      - service: adaptive_lighting.set_manual_control
-        continue_on_error: true
-        target:
-          entity_id: switch.adaptive_lighting_office
-        data:
-          lights: "{{ on_lights }}"
-          manual_control: "color"
-      # Registry: mark bed pair as system-managed so sensor.oal_soonest_user_override
-      # filters their 4h autoreset out of user-actionable expiry notifications.
-      # Idempotent on `unique` filter in script — safe across re-fires.
-      - service: script.oal_register_system_managed_lights
-        continue_on_error: true
-        data:
-          action: add
-          lights: "{{ on_lights }}"
-
-  # Companion: release bed pair from registry when kill switch flips ON.
-  # Kill switch is operator escape hatch; turning it on disables augmentation
-  # and AL reclaims color adaptation, so bed pair should no longer be
-  # registry-filtered from user-actionable notifications.
-  - id: oal_office_bed_warm_pin_release_v13
-    alias: "OAL v13 - Office Bed Warm Pin Release (kill switch)"
-    description: "Removes bed pair from system-managed registry on kill-switch ON."
-    mode: single
-    trigger:
-      - platform: state
-        entity_id: input_boolean.oal_office_bed_warm_pin_kill_switch
-        to: "on"
-    action:
-      - service: script.oal_register_system_managed_lights
-        continue_on_error: true
-        data:
-          action: remove
-          lights:
-            - light.office_bed_light_left
-            - light.office_bed_light_right
+          # Use test elevation when test mode is on, else live sun.sun
+          elevation: >
+            {% if is_state('input_boolean.oal_test_mode', 'on') %}
+              {{ states('input_number.oal_test_sun_elevation') | float(999) }}
+            {% else %}
+              {{ state_attr('sun.sun', 'elevation') | float(999) }}
+            {% endif %}
+          tier: >
+            {% set e = elevation %}
+            {% if e > 10 %}
+              t1_high_day
+            {% elif e > 5 %}
+              t2_afternoon
+            {% elif e > 0 %}
+              t3_golden
+            {% else %}
+              t4_night
+            {% endif %}
+      - choose:
+          - conditions: "{{ tier == 't1_high_day' }}"
+            sequence:
+              - service: light.turn_on
+                continue_on_error: true
+                target:
+                  entity_id:
+                    - light.office_bed_light_left
+                    - light.office_bed_light_right
+                data:
+                  color_temp_kelvin: 2000
+                  transition: 3
+          - conditions: "{{ tier == 't2_afternoon' }}"
+            sequence:
+              - service: light.turn_on
+                continue_on_error: true
+                target:
+                  entity_id:
+                    - light.office_bed_light_left
+                    - light.office_bed_light_right
+                data:
+                  hs_color: [30, 70]
+                  transition: 3
+          - conditions: "{{ tier == 't3_golden' }}"
+            sequence:
+              - service: light.turn_on
+                continue_on_error: true
+                target:
+                  entity_id:
+                    - light.office_bed_light_left
+                    - light.office_bed_light_right
+                data:
+                  hs_color: [25, 90]
+                  transition: 3
+          - conditions: "{{ tier == 't4_night' }}"
+            sequence:
+              - service: light.turn_on
+                continue_on_error: true
+                target:
+                  entity_id:
+                    - light.office_bed_light_left
+                    - light.office_bed_light_right
+                data:
+                  hs_color: [22, 100]
+                  transition: 3
 
   # ---------------------------------------------------------------------------
   # 4.4 Environmental adaptation (lux + weather + season)

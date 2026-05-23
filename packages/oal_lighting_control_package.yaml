@@ -635,6 +635,18 @@ input_text:
     initial: "none"
     icon: mdi:identifier
 
+  # ─── System-managed lights registry ──────────────────────────────────────
+  # JSON array of light entity_ids currently held by system actors
+  # (augmentation / lifecycle / mode). Maintained by those automations via
+  # script.oal_register_system_managed_lights. Consumed by
+  # sensor.oal_soonest_user_override to filter system holds out of
+  # user-actionable expiry notifications.
+  oal_system_managed_lights:
+    name: "OAL System-Managed Lights (JSON array)"
+    max: 1024
+    initial: "[]"
+    icon: mdi:robot-outline
+
 timer:
   oal_mode_timeout:
     name: "OAL Mode Timeout"
@@ -3430,6 +3442,35 @@ automation:
         data:
           lights: "{{ on_lights }}"
           manual_control: "color"
+      # Registry: mark bed pair as system-managed so sensor.oal_soonest_user_override
+      # filters their 4h autoreset out of user-actionable expiry notifications.
+      # Idempotent on `unique` filter in script — safe across re-fires.
+      - service: script.oal_register_system_managed_lights
+        continue_on_error: true
+        data:
+          action: add
+          lights: "{{ on_lights }}"
+
+  # Companion: release bed pair from registry when kill switch flips ON.
+  # Kill switch is operator escape hatch; turning it on disables augmentation
+  # and AL reclaims color adaptation, so bed pair should no longer be
+  # registry-filtered from user-actionable notifications.
+  - id: oal_office_bed_warm_pin_release_v13
+    alias: "OAL v13 - Office Bed Warm Pin Release (kill switch)"
+    description: "Removes bed pair from system-managed registry on kill-switch ON."
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_boolean.oal_office_bed_warm_pin_kill_switch
+        to: "on"
+    action:
+      - service: script.oal_register_system_managed_lights
+        continue_on_error: true
+        data:
+          action: remove
+          lights:
+            - light.office_bed_light_left
+            - light.office_bed_light_right
 
   # ---------------------------------------------------------------------------
   # 4.4 Environmental adaptation (lux + weather + season)
@@ -3674,6 +3715,13 @@ automation:
           entity_id: switch.adaptive_lighting_office
           lights: light.office_desk_lamp
           manual_control: false
+      # Registry release: desk_lamp leaves system-managed set when Work mode exits.
+      - service: script.oal_register_system_managed_lights
+        continue_on_error: true
+        data:
+          action: remove
+          lights:
+            - light.office_desk_lamp
       - service: adaptive_lighting.apply
         data:
           entity_id: switch.adaptive_lighting_office
@@ -3690,6 +3738,62 @@ automation:
           transition: "{{ transition_speed }}"
           turn_on_lights: true
           set_manual_control: true
+      # Registry acquire: desk_lamp is system-managed during Work mode.
+      - service: script.oal_register_system_managed_lights
+        continue_on_error: true
+        data:
+          action: add
+          lights:
+            - light.office_desk_lamp
+
+  # ---------------------------------------------------------------------------
+  # 4.5b Column RGB Registry Sync
+  # ---------------------------------------------------------------------------
+  # When the column RGB session activates (sunset crossing), columns are
+  # system-managed (lifecycle owns their color). When the session ends
+  # (morning exit), columns return to user-actionable adaptation.
+  # This tiny automation maintains the system-managed-lights registry in
+  # lock-step with the session flag without touching the 8 column-lifecycle
+  # set_manual_control sites.
+  # ---------------------------------------------------------------------------
+  - id: oal_column_rgb_registry_sync_v13
+    alias: "OAL v13 - Column RGB Registry Sync"
+    description: "Adds/removes column lights from system-managed registry when oal_column_rgb_session_active flips."
+    mode: queued
+    max: 10
+    trigger:
+      - platform: state
+        entity_id: input_boolean.oal_column_rgb_session_active
+        to: "on"
+        id: session_started
+      - platform: state
+        entity_id: input_boolean.oal_column_rgb_session_active
+        to: "off"
+        id: session_ended
+    action:
+      - choose:
+          - conditions:
+              - condition: trigger
+                id: session_started
+            sequence:
+              - service: script.oal_register_system_managed_lights
+                continue_on_error: true
+                data:
+                  action: add
+                  lights:
+                    - light.living_column_strip_light_matter
+                    - light.dining_column_strip_light_matter
+          - conditions:
+              - condition: trigger
+                id: session_ended
+            sequence:
+              - service: script.oal_register_system_managed_lights
+                continue_on_error: true
+                data:
+                  action: remove
+                  lights:
+                    - light.living_column_strip_light_matter
+                    - light.dining_column_strip_light_matter
 
   # ---------------------------------------------------------------------------
   # 4.6 Zen32 Modal Controller Integration
@@ -5988,9 +6092,12 @@ automation:
                and mode_remaining > 0
                and mode_remaining < 300 }}
           mode_name: "{{ active_config }}"
-          zone_remaining: "{{ state_attr('sensor.oal_soonest_override', 'seconds_remaining') | int(0) }}"
+          # USER-FILTERED sensor: excludes system-actor holds (augmentation /
+          # lifecycle / mode) so phantom expiry alerts about non-actionable
+          # state don't fire. See sensor.oal_soonest_user_override.
+          zone_remaining: "{{ state_attr('sensor.oal_soonest_user_override', 'seconds_remaining') | int(0) }}"
           zone_expiring: "{{ zone_remaining > 0 and zone_remaining < 300 }}"
-          zone_name: "{{ state_attr('sensor.oal_soonest_override', 'zone_friendly') | default('Unknown') }}"
+          zone_name: "{{ state_attr('sensor.oal_soonest_user_override', 'zone_friendly') | default('Unknown') }}"
           either_expiring: "{{ mode_expiring or zone_expiring }}"
           both_expiring: "{{ mode_expiring and zone_expiring }}"
       - condition: template
@@ -6152,9 +6259,12 @@ automation:
           mode_timeout_secs: "{{ (states('input_number.oal_control_mode_timeout_hours') | float(4) * 3600) | int }}"
           mode_eligible: >
             {{ mode_timeout_enabled and states('input_select.oal_active_configuration') in ['Full Bright', 'Dim Ambient', 'Warm Ambient'] }}
-          zone_id: "{{ state_attr('sensor.oal_soonest_override', 'zone_id') | default('None') }}"
-          zone_name: "{{ state_attr('sensor.oal_soonest_override', 'zone_friendly') | default('Unknown') }}"
-          zone_remaining: "{{ state_attr('sensor.oal_soonest_override', 'seconds_remaining') | int(0) }}"
+          # USER-FILTERED handler: when user taps Extend Zone, we want the
+          # zone they were actually notified about (user-filtered, not the
+          # system-managed bed pair).
+          zone_id: "{{ state_attr('sensor.oal_soonest_user_override', 'zone_id') | default('None') }}"
+          zone_name: "{{ state_attr('sensor.oal_soonest_user_override', 'zone_friendly') | default('Unknown') }}"
+          zone_remaining: "{{ state_attr('sensor.oal_soonest_user_override', 'seconds_remaining') | int(0) }}"
           zone_switch: "{{ 'switch.adaptive_lighting_' ~ zone_id }}"
           zone_eligible: >
             {{ zone_id not in ['None', 'unknown', 'unavailable', '']
@@ -6315,7 +6425,11 @@ automation:
         entity_id:
           - input_select.oal_active_configuration
           - timer.oal_mode_timeout
-          - sensor.oal_soonest_override
+          # USER-FILTERED: must match the sensor the unified notification fires on
+          # so the resolver and notifier agree on what's "still valid". Tracking
+          # the legacy sensor here would cause the resolver to under-resolve
+          # (notification cleared in inbox would not auto-resolve).
+          - sensor.oal_soonest_user_override
           - sun.sun
     action:
       - variables:
@@ -6337,7 +6451,7 @@ automation:
             {{ active_config in ['Full Bright', 'Dim Ambient', 'Warm Ambient']
                and mode_remaining > 0
                and mode_remaining < 300 }}
-          zone_remaining: "{{ state_attr('sensor.oal_soonest_override', 'seconds_remaining') | int(0) }}"
+          zone_remaining: "{{ state_attr('sensor.oal_soonest_user_override', 'seconds_remaining') | int(0) }}"
           zone_expiring: "{{ zone_remaining > 0 and zone_remaining < 300 }}"
           timer_notice_still_valid: "{{ mode_expiring or (zone_expiring and is_state('sun.sun', 'below_horizon')) }}"
       - condition: template
@@ -6787,6 +6901,56 @@ automation:
 # =============================================================================
 
 script:
+  # ---------------------------------------------------------------------------
+  # SYSTEM-MANAGED LIGHTS REGISTRY HELPER
+  # ---------------------------------------------------------------------------
+  # Encapsulates the JSON read-modify-write pattern. Called by augmentation /
+  # lifecycle / mode automations on acquire and release of system-owned lights.
+  # Backs sensor.oal_soonest_user_override which filters these out of the
+  # user-actionable AL autoreset timer notification path.
+  # ---------------------------------------------------------------------------
+  oal_register_system_managed_lights:
+    alias: "OAL Register System-Managed Lights"
+    icon: mdi:robot-outline
+    mode: queued
+    max: 20
+    fields:
+      action:
+        description: "add or remove"
+        required: true
+        selector:
+          select:
+            options: [add, remove]
+      lights:
+        description: "List of light entity_ids (or single entity_id string)"
+        required: true
+    sequence:
+      - variables:
+          lights_list: >
+            {% if lights is string %}
+              {{ [lights] }}
+            {% else %}
+              {{ lights | list }}
+            {% endif %}
+          current: >
+            {% set raw = states('input_text.oal_system_managed_lights') %}
+            {% if raw in ['unknown', 'unavailable', '', none] %}
+              {{ [] }}
+            {% else %}
+              {{ raw | from_json }}
+            {% endif %}
+          updated: >
+            {% if action == 'add' %}
+              {{ (current + lights_list) | unique | list }}
+            {% else %}
+              {{ current | reject('in', lights_list) | list }}
+            {% endif %}
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.oal_system_managed_lights
+        data:
+          value: "{{ updated | to_json }}"
+
   # ---------------------------------------------------------------------------
   # INSTANT APPLY - Fire watchdog and return immediately (no blocking)
   # This is the "fast path" for button responsiveness
@@ -8985,6 +9149,189 @@ template:
               {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
               {% for light, secs in timer_dict.items() %}
                 {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'secs': secs | float(0)}] %}
+              {% endfor %}
+            {% endfor %}
+            {% if ns.times | length > 0 %}
+              {{ (ns.times | sort(attribute='secs') | first).secs | int }}
+            {% else %}
+              0
+            {% endif %}
+
+      # -----------------------------------------------------------------------
+      # 6.6b Soonest USER Override Timer (filters system-managed lights)
+      # -----------------------------------------------------------------------
+      # Mirrors OAL Soonest Override but excludes any light listed in
+      # input_text.oal_system_managed_lights. Use this sensor (NOT the raw
+      # soonest_override) for user-actionable expiry notifications, so phantom
+      # fires from augmentation / lifecycle / mode holds are suppressed.
+      # Upgrade vs. legacy: exposes the specific `light` attribute, not just
+      # the zone.
+      - name: "OAL Soonest User Override"
+        unique_id: oal_soonest_user_override_v13
+        icon: mdi:timer-alert-outline
+        availability: >
+          {{ states('group.oal_control_switches') not in ['unknown', 'unavailable'] }}
+        state: >
+          {% set switches = [
+            ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
+            ('kitchen_island', 'Kitchen Island', 'switch.adaptive_lighting_kitchen_island'),
+            ('kitchen_undercabinet', 'Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet'),
+            ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+            ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
+            ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+            ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
+            ('office', 'Office', 'switch.adaptive_lighting_office')
+          ] %}
+          {% set raw = states('input_text.oal_system_managed_lights') %}
+          {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}
+          {% set ns = namespace(times=[]) %}
+          {% for zone_id, zone_friendly, switch_id in switches %}
+            {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
+            {% for light, secs in timer_dict.items() %}
+              {% if light not in system_managed %}
+                {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'light': light, 'secs': secs | float(0)}] %}
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+          {% if ns.times | length > 0 %}
+            {% set soonest = ns.times | sort(attribute='secs') | first %}
+            {% set secs = soonest.secs | int %}
+            {% set hours = (secs // 3600) | int %}
+            {% set mins = ((secs % 3600) // 60) | int %}
+            {% if hours > 0 %}{{ hours }}h {{ mins }}m{% else %}{{ mins }}m{% endif %}
+          {% else %}
+            None
+          {% endif %}
+        attributes:
+          zone_id: >
+            {% set switches = [
+              ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
+              ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
+              ('kitchen_undercabinet', 'Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet'),
+              ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+              ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
+              ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+              ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
+              ('office', 'Office', 'switch.adaptive_lighting_office')
+            ] %}
+            {% set raw = states('input_text.oal_system_managed_lights') %}
+            {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}
+            {% set ns = namespace(times=[]) %}
+            {% for zone_id, zone_friendly, switch_id in switches %}
+              {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
+              {% for light, secs in timer_dict.items() %}
+                {% if light not in system_managed %}
+                  {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'light': light, 'secs': secs | float(0)}] %}
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+            {% if ns.times | length > 0 %}
+              {{ (ns.times | sort(attribute='secs') | first).zone_id }}
+            {% else %}
+              None
+            {% endif %}
+          zone_friendly: >
+            {% set switches = [
+              ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
+              ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
+              ('kitchen_undercabinet', 'Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet'),
+              ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+              ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
+              ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+              ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
+              ('office', 'Office', 'switch.adaptive_lighting_office')
+            ] %}
+            {% set raw = states('input_text.oal_system_managed_lights') %}
+            {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}
+            {% set ns = namespace(times=[]) %}
+            {% for zone_id, zone_friendly, switch_id in switches %}
+              {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
+              {% for light, secs in timer_dict.items() %}
+                {% if light not in system_managed %}
+                  {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'light': light, 'secs': secs | float(0)}] %}
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+            {% if ns.times | length > 0 %}
+              {{ (ns.times | sort(attribute='secs') | first).zone_friendly }}
+            {% else %}
+              None
+            {% endif %}
+          light: >
+            {% set switches = [
+              ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
+              ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
+              ('kitchen_undercabinet', 'Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet'),
+              ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+              ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
+              ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+              ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
+              ('office', 'Office', 'switch.adaptive_lighting_office')
+            ] %}
+            {% set raw = states('input_text.oal_system_managed_lights') %}
+            {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}
+            {% set ns = namespace(times=[]) %}
+            {% for zone_id, zone_friendly, switch_id in switches %}
+              {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
+              {% for light, secs in timer_dict.items() %}
+                {% if light not in system_managed %}
+                  {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'light': light, 'secs': secs | float(0)}] %}
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+            {% if ns.times | length > 0 %}
+              {{ (ns.times | sort(attribute='secs') | first).light }}
+            {% else %}
+              none
+            {% endif %}
+          reset_timestamp: >
+            {% set switches = [
+              ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
+              ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
+              ('kitchen_undercabinet', 'Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet'),
+              ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+              ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
+              ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+              ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
+              ('office', 'Office', 'switch.adaptive_lighting_office')
+            ] %}
+            {% set raw = states('input_text.oal_system_managed_lights') %}
+            {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}
+            {% set ns = namespace(times=[]) %}
+            {% for zone_id, zone_friendly, switch_id in switches %}
+              {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
+              {% for light, secs in timer_dict.items() %}
+                {% if light not in system_managed %}
+                  {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'light': light, 'secs': secs | float(0)}] %}
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+            {% if ns.times | length > 0 %}
+              {% set soonest_secs = (ns.times | sort(attribute='secs') | first).secs | int %}
+              {{ (now().timestamp() + soonest_secs) | int }}
+            {% else %}
+              0
+            {% endif %}
+          seconds_remaining: >
+            {% set switches = [
+              ('main_living', 'Main Living', 'switch.adaptive_lighting_main_living'),
+              ('kitchen_island', 'Kitchen', 'switch.adaptive_lighting_kitchen_island'),
+              ('kitchen_undercabinet', 'Kitchen Undercab', 'switch.adaptive_lighting_kitchen_undercabinet'),
+              ('bedroom_primary', 'Bedroom', 'switch.adaptive_lighting_bedroom_primary'),
+              ('accent_spots', 'Spots', 'switch.adaptive_lighting_accent_spots'),
+              ('recessed_ceiling', 'Ceiling', 'switch.adaptive_lighting_recessed_ceiling'),
+              ('column_lights', 'Columns', 'switch.adaptive_lighting_column_lights'),
+              ('office', 'Office', 'switch.adaptive_lighting_office')
+            ] %}
+            {% set raw = states('input_text.oal_system_managed_lights') %}
+            {% set system_managed = (raw | from_json) if raw not in ['unknown', 'unavailable', '', none] else [] %}
+            {% set ns = namespace(times=[]) %}
+            {% for zone_id, zone_friendly, switch_id in switches %}
+              {% set timer_dict = state_attr(switch_id, 'autoreset_time_remaining') | default({}) %}
+              {% for light, secs in timer_dict.items() %}
+                {% if light not in system_managed %}
+                  {% set ns.times = ns.times + [{'zone_id': zone_id, 'zone_friendly': zone_friendly, 'light': light, 'secs': secs | float(0)}] %}
+                {% endif %}
               {% endfor %}
             {% endfor %}
             {% if ns.times | length > 0 %}

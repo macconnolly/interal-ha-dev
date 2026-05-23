@@ -394,6 +394,27 @@ views:
           label: Occupancy
           icon: sensor_occupied
           accent: green
+      - type: custom:tunet-actions-card
+        variant: compact
+        actions:
+        - name: Open Room
+          icon: open_in_new
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-v2/kitchen
+        - name: All Off
+          icon: power_settings_new
+          accent: amber
+          service: light.turn_off
+          service_data:
+            entity_id: light.kitchen_island_lights
+        - name: All On
+          icon: lightbulb
+          accent: amber
+          service: light.turn_on
+          service_data:
+            entity_id: light.kitchen_island_lights
   - type: grid
     column_span: 4
     cards:
@@ -428,6 +449,31 @@ views:
         - entity: light.dining_column_strip_light_matter
           name: Column
           icon: view_column
+      - type: custom:tunet-actions-card
+        variant: compact
+        actions:
+        - name: Open Room
+          icon: open_in_new
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-v2/dining-room
+        - name: All Off
+          icon: power_settings_new
+          accent: amber
+          service: light.turn_off
+          service_data:
+            entity_id:
+              - light.dining_room_spot_lights
+              - light.dining_column_strip_light_matter
+        - name: All On
+          icon: lightbulb
+          accent: amber
+          service: light.turn_on
+          service_data:
+            entity_id:
+              - light.dining_room_spot_lights
+              - light.dining_column_strip_light_matter
   - type: grid
     column_span: 4
     cards:
@@ -485,6 +531,27 @@ views:
           accent: green
       - type: custom:tunet-alarm-card
         name: Alarms
+      - type: custom:tunet-actions-card
+        variant: compact
+        actions:
+        - name: Open Room
+          icon: open_in_new
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-v2/bedroom
+        - name: All Off
+          icon: power_settings_new
+          accent: amber
+          service: light.turn_off
+          service_data:
+            entity_id: light.bedroom_primary_lights
+        - name: Sleep
+          icon: bed
+          accent: amber
+          service: scene.turn_on
+          service_data:
+            entity_id: scene.tunet_oal_sleep
   - type: grid
     column_span: 4
     cards:
@@ -523,6 +590,31 @@ views:
           label: Occupancy
           icon: sensor_occupied
           accent: green
+      - type: custom:tunet-actions-card
+        variant: compact
+        actions:
+        - name: Open Room
+          icon: open_in_new
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-v2/office
+        - name: All Off
+          icon: power_settings_new
+          accent: amber
+          service: light.turn_off
+          service_data:
+            entity_id:
+              - light.office_desk_lamp
+              - light.office_bed_lights
+        - name: All On
+          icon: lightbulb
+          accent: amber
+          service: light.turn_on
+          service_data:
+            entity_id:
+              - light.office_desk_lamp
+              - light.office_bed_lights
   - type: grid
     column_span: 4
     cards:
@@ -879,8 +971,9 @@ views:
         unit: h
 
 # ────────────────────────────────────────────────────────────────────
-# VIEW: LIVING ROOM SUBVIEW (deep per-room control surface)
-# Reached from rooms-card row tap → popup → "Open Room" button.
+# VIEW: PER-ROOM SUBVIEWS (PA03 RoomSubview template per FINAL spec §7)
+# Reached from each room popup's "Open Room" button (tap_action navigate).
+# Each subview has back_path → home; subview:true keeps it out of bottom nav.
 # ────────────────────────────────────────────────────────────────────
 - title: Living Room
   path: living-room
@@ -972,3 +1065,357 @@ views:
           entity: media_player.living_room
           name: Living Room Media
           show_progress: true
+
+# ────────────────────────────────────────────────────────────────────
+# VIEW: KITCHEN SUBVIEW
+# ────────────────────────────────────────────────────────────────────
+- title: Kitchen
+  path: kitchen
+  icon: mdi:silverware
+  subview: true
+  type: sections
+  max_columns: 4
+  back_path: /tunet-home-v2/home
+  sections:
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-lighting-card
+          name: Kitchen Lights
+          surface: section
+          layout: grid
+          columns: 3
+          tile_size: large
+          zones:
+            - entity: light.kitchen_island_pendants
+              name: Island
+              icon: light
+            - entity: light.kitchen_main_lights
+              name: Main
+              icon: light_group
+            - entity: light.kitchen_counter_cabinet_underlights
+              name: Counter
+              icon: linear_scale
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-actions-card
+          variant: compact
+          actions:
+            - name: All On
+              icon: lightbulb
+              accent: amber
+              service: light.turn_on
+              service_data:
+                entity_id: light.kitchen_island_lights
+            - name: All Off
+              icon: power_settings_new
+              accent: amber
+              service: light.turn_off
+              service_data:
+                entity_id: light.kitchen_island_lights
+            - name: Cook
+              icon: restaurant
+              accent: amber
+              service: light.turn_on
+              service_data:
+                entity_id: light.kitchen_main_lights
+                brightness_pct: 100
+            - name: Dimmer
+              icon: remove
+              accent: amber
+              service: script.oal_global_manual_dimmer
+              service_data:
+                lights:
+                  - light.kitchen_island_lights
+            - name: Reset
+              icon: restart_alt
+              accent: amber
+              service: script.oal_reset_soft
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-sensor-card
+          title: Kitchen Sensors
+          show_sparkline: true
+          show_trend: true
+          sensors:
+            - entity: sensor.kitchen_humidity
+              label: Humidity
+              icon: water_drop
+              accent: blue
+              unit: '%'
+            - entity: binary_sensor.occupancy_kitchen
+              label: Occupancy
+              icon: sensor_occupied
+              accent: green
+
+# ────────────────────────────────────────────────────────────────────
+# VIEW: DINING ROOM SUBVIEW (climate hero — primary thermostat lives here)
+# ────────────────────────────────────────────────────────────────────
+- title: Dining Room
+  path: dining-room
+  icon: mdi:silverware-clean
+  subview: true
+  type: sections
+  max_columns: 4
+  back_path: /tunet-home-v2/home
+  sections:
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-climate-card
+          entity: climate.dining_room
+          name: Climate
+          variant: standard
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-lighting-card
+          name: Dining Lights
+          surface: section
+          layout: grid
+          columns: 2
+          tile_size: large
+          zones:
+            - entity: light.dining_room_spot_lights
+              name: Spots
+              icon: flashlight_on
+            - entity: light.dining_column_strip_light_matter
+              name: Column
+              icon: view_column
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-actions-card
+          variant: compact
+          actions:
+            - name: All On
+              icon: lightbulb
+              accent: amber
+              service: light.turn_on
+              service_data:
+                entity_id:
+                  - light.dining_room_spot_lights
+                  - light.dining_column_strip_light_matter
+            - name: All Off
+              icon: power_settings_new
+              accent: amber
+              service: light.turn_off
+              service_data:
+                entity_id:
+                  - light.dining_room_spot_lights
+                  - light.dining_column_strip_light_matter
+            - name: Brighter
+              icon: add
+              accent: amber
+              service: script.oal_global_manual_brighter
+              service_data:
+                lights:
+                  - light.dining_room_spot_lights
+                  - light.dining_column_strip_light_matter
+            - name: Dimmer
+              icon: remove
+              accent: amber
+              service: script.oal_global_manual_dimmer
+              service_data:
+                lights:
+                  - light.dining_room_spot_lights
+                  - light.dining_column_strip_light_matter
+            - name: Reset
+              icon: restart_alt
+              accent: amber
+              service: script.oal_reset_soft
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-sensor-card
+          title: Dining Sensors
+          show_sparkline: true
+          show_trend: true
+          sensors:
+            - entity: sensor.dining_room_temperature
+              label: Temperature
+              icon: device_thermostat
+              accent: amber
+              unit: °F
+
+# ────────────────────────────────────────────────────────────────────
+# VIEW: BEDROOM SUBVIEW (alarm-card hero — alarm-edit popup target)
+# ────────────────────────────────────────────────────────────────────
+- title: Bedroom
+  path: bedroom
+  icon: mdi:bed
+  subview: true
+  type: sections
+  max_columns: 4
+  back_path: /tunet-home-v2/home
+  sections:
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-lighting-card
+          name: Bedroom Lights
+          surface: section
+          layout: grid
+          columns: 3
+          tile_size: large
+          zones:
+            - entity: light.master_presence
+              name: Main
+              icon: bed
+            - entity: light.master_bedroom_corner_accent_govee
+              name: Accent
+              icon: nightlight
+            - entity: light.master_bedroom_table_lamps
+              name: Lamps
+              icon: lamp
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-actions-card
+          variant: compact
+          actions:
+            - name: All On
+              icon: lightbulb
+              accent: amber
+              service: light.turn_on
+              service_data:
+                entity_id: light.bedroom_primary_lights
+            - name: All Off
+              icon: power_settings_new
+              accent: amber
+              service: light.turn_off
+              service_data:
+                entity_id: light.bedroom_primary_lights
+            - name: Sleep
+              icon: bed
+              accent: amber
+              service: scene.turn_on
+              service_data:
+                entity_id: scene.tunet_oal_sleep
+            - name: Dimmer
+              icon: remove
+              accent: amber
+              service: script.oal_global_manual_dimmer
+              service_data:
+                lights:
+                  - light.bedroom_primary_lights
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-sensor-card
+          title: Bedroom Sensors
+          show_sparkline: true
+          show_trend: true
+          sensors:
+            - entity: sensor.bedroom_temp_humidity_sensor_temperature
+              label: Temperature
+              icon: device_thermostat
+              accent: amber
+              unit: °F
+            - entity: sensor.bedroom_temp_humidity_sensor_humidity
+              label: Humidity
+              icon: water_drop
+              accent: blue
+              unit: '%'
+            - entity: binary_sensor.occupancy_master_bedroom
+              label: Occupancy
+              icon: sensor_occupied
+              accent: green
+            - entity: binary_sensor.bedroom_sonos_healthy
+              label: Speaker
+              icon: speaker
+              accent: green
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-alarm-card
+          name: Sonos Alarms
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-media-card
+          entity: media_player.bedroom
+          name: Bedroom Media
+          show_progress: true
+
+# ────────────────────────────────────────────────────────────────────
+# VIEW: OFFICE SUBVIEW (sparse — sparse sensor coverage; lighting + occupancy only)
+# ────────────────────────────────────────────────────────────────────
+- title: Office
+  path: office
+  icon: mdi:desktop-tower
+  subview: true
+  type: sections
+  max_columns: 4
+  back_path: /tunet-home-v2/home
+  sections:
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-lighting-card
+          name: Office Lights
+          surface: section
+          layout: grid
+          columns: 2
+          tile_size: large
+          zones:
+            - entity: light.office_desk_lamp
+              name: Desk
+              icon: lamp
+            - entity: light.office_bed_lights
+              name: Office Bed
+              icon: bed
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-actions-card
+          variant: compact
+          actions:
+            - name: All On
+              icon: lightbulb
+              accent: amber
+              service: light.turn_on
+              service_data:
+                entity_id:
+                  - light.office_desk_lamp
+                  - light.office_bed_lights
+            - name: All Off
+              icon: power_settings_new
+              accent: amber
+              service: light.turn_off
+              service_data:
+                entity_id:
+                  - light.office_desk_lamp
+                  - light.office_bed_lights
+            - name: Brighter
+              icon: add
+              accent: amber
+              service: script.oal_global_manual_brighter
+              service_data:
+                lights:
+                  - light.office_desk_lamp
+                  - light.office_bed_lights
+            - name: Dimmer
+              icon: remove
+              accent: amber
+              service: script.oal_global_manual_dimmer
+              service_data:
+                lights:
+                  - light.office_desk_lamp
+                  - light.office_bed_lights
+            - name: Reset
+              icon: restart_alt
+              accent: amber
+              service: script.oal_reset_soft
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-sensor-card
+          title: Office Sensors
+          sensors:
+            - entity: binary_sensor.occupancy_office
+              label: Occupancy
+              icon: sensor_occupied
+              accent: green

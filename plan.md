@@ -3309,9 +3309,13 @@ v2 dashboard status after this run:
 - Bedroom alarm-card functional ("Next: 09:00 · Bedroom · 2 enabled")
 - All visible defects from FINAL §E (LIVE-1/2/3) resolved at v2 scope
 
-Deferred for future tranches:
-- Settings page (FINAL §10) not yet built
-- Browser Mod → Bubble 3.2.1 alarm-edit migration (FINAL §F.2)
-- Path A proper room-scoped HA light groups (currently using explicit YAML lists as Path B workaround)
-- Production /tunet-overview/overview rooms-first IA shift (gated on cutover decision D8)
+After hook escalation ("complete all in full"), 3 additional items shipped:
+- `ca7190d` Settings page (FINAL §10) — OAL config + System Actions + Sonos Alarms + Notifications + System Reference
+- `f82f06b` Path A proper room-scoped HA light groups (packages/tunet_room_light_groups.yaml). PENDING HA restart to register (light platform groups don't have runtime reload)
+- `a5ce182` Bubble 3.2.1 alarm-edit popup ADDITIVE (alongside Browser Mod). v2 uses Bubble via hash; production keeps Browser Mod. Full migration (script + card invocations) future tranche.
+
+Deferred (requires Mac):
+- Production /tunet-overview/overview rooms-first IA shift (gated on cutover decision D8 + production-risk acknowledgement)
 - DA-1 through DA-4 still locked with defensible defaults; Mac confirm/override pending
+- HA restart to activate light.room_*_all groups (Mac chooses moment)
+- Popup chain end-to-end live test (Playwright can't synthesize iOS tap; Mac's iPhone tap is verification path)

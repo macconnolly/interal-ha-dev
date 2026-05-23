@@ -3374,3 +3374,8 @@ Surface assembly per FINAL §6 + §7:
 - Stats page polish (fire icon + truncation; commit `57a5957`)
 
 Scoped: `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md` §6 + §7. Visual evidence captures 14-30 in repo root.
+
+Post-hook-escalation additions (after Stop hook flagged remaining work):
+- `ca7190d` Settings page shipped at `/tunet-home-v2/settings` (verified render in capture 31). FINAL §10 complete.
+- `f82f06b` Path A `packages/tunet_room_light_groups.yaml` — 6 room-scoped groups (`light.room_<name>_all`). Pending HA restart to register.
+- `a5ce182` Bubble 3.2.1 alarm-edit popup added at hash `#alarm-edit` in v2 dashboard. ADDITIVE; existing Browser Mod popup retained for production compat.

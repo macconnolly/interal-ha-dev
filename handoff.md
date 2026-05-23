@@ -3080,3 +3080,11 @@ If picking up cold: read `docs/plans/tunet-interaction-architecture-FINAL-2026-0
 **Synthetic popup invocation does NOT work via Playwright** — Bubble Card 3.2.1 popups need real ha-action-handler events. Mac's iPhone tap is the only verification path. DOM confirms popup containers are mounted (0×0 closed state) and ready. Production-mirror capture won't show popup state; user-eye-on-device required.
 
 **Cutover from /tunet-overview to /tunet-home-v2**: NOT recommended yet. v2 has more functional surface now but has not been validated through a daily-use cycle. Per C2 catastrophic risk, cutover only at Mac-initiated moments when he's awake to grade ≥30 min post-cut.
+
+**After hook-escalated continuation** (3 additional commits): Settings page, Path A room groups, Bubble 3.2.1 alarm-edit additive. v2 dashboard now has: Home + Rooms-list-via-row + 5 subviews + Stats + Settings + Adaptive (pre-existing). FINAL §10 + §F.2 + Path A all addressed at v2 scope.
+
+Awaiting Mac (cannot proceed without):
+- HA restart to activate `light.room_*_all` groups
+- DA-1/2/3/4 confirm/override
+- D8 cutover decision (parallel-run / cut-over / keep-both)
+- iPhone tap test of popup chain (Playwright limitation; popup containers are mounted, only real tap triggers)

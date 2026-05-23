@@ -2251,6 +2251,18 @@ automation:
         {% endif %}
 
     action:
+      # Stale-lock recovery: prior run cancelled by mode: restart may have
+      # left transition_active or power_handoff_active ON. Unconditionally
+      # clear both before re-acquiring the lock so the new run owns gate
+      # state cleanly. Pairs with the 60s watchdog automation that catches
+      # the case where the manager itself is killed mid-action and never
+      # reaches the UNLOCK step at all.
+      - service: input_boolean.turn_off
+        target:
+          entity_id:
+            - input_boolean.oal_config_transition_active
+            - input_boolean.oal_config_power_handoff_active
+
       # =========================================================================
       # LOCK: Block Core Engine during transition
       # =========================================================================
@@ -2643,10 +2655,13 @@ automation:
               entity_id: input_number.oal_offset_config_warmth
             data:
               value: "{{ target_profile.k }}"
-          
-          # Brief pause for offset changes to settle
-          - delay: "00:00:01"
-          
+
+          # No delay between offset changes and handoff: the
+          # oal_config_transition_active lock blocks any engine recalc
+          # in this window, so no consumer reads stale offsets. The
+          # prior 1s delay was dead weight that produced a visible
+          # flicker on rapid mode-chip taps.
+
           # PHASE 3: Apply power handoff overrides (if any)
           - choose:
               - conditions:
@@ -2674,7 +2689,21 @@ automation:
                                 lights: "{{ lights_for_this_switch }}"
                                 manual_control: true
                   
-                  # 3B. Apply dimmed lights
+                  # 3B. Turn off specified lights FIRST so e.g. kitchen_main
+                  # snaps off cleanly before the rest of the zone fades to
+                  # its dimmed target. Reversed from prior turn_on-then-off
+                  # which dimmed all-together-then-snapped — visually
+                  # inconsistent on Adaptive → Evening transitions.
+                  - if: "{{ target_profile.get('lights_off', []) | length > 0 }}"
+                    then:
+                      - service: light.turn_off
+                        continue_on_error: true
+                        target:
+                          entity_id: "{{ target_profile.get('lights_off', []) }}"
+                        data:
+                          transition: "{{ 0 if is_force_apply else transition_speed }}"
+
+                  # 3C. Apply dimmed lights to per-mode brightness targets
                   - repeat:
                       for_each: "{{ target_profile.get('lights_dimmed', {}) | dictsort }}"
                       sequence:
@@ -2685,17 +2714,7 @@ automation:
                           data:
                             brightness_pct: "{{ repeat.item[1] }}"
                             transition: "{{ 0 if is_force_apply else transition_speed }}"
-                  
-                  # 3C. Turn off specified lights
-                  - if: "{{ target_profile.get('lights_off', []) | length > 0 }}"
-                    then:
-                      - service: light.turn_off
-                        continue_on_error: true
-                        target:
-                          entity_id: "{{ target_profile.get('lights_off', []) }}"
-                        data:
-                          transition: "{{ 0 if is_force_apply else transition_speed }}"
-                  
+
                   # 3D. Mark handoff as active
                   - service: input_boolean.turn_on
                     target:
@@ -2710,6 +2729,57 @@ automation:
           - event: oal_watchdog_trigger
             event_data:
               message: "Override config applied - recalculating zones"
+
+  # ---------------------------------------------------------------------------
+  # 4.2.B Configuration-manager stale-lock watchdog
+  # ---------------------------------------------------------------------------
+  # 60-second self-recovery for oal_config_transition_active. The
+  # configuration_manager uses mode: restart with no try/finally
+  # semantics, so a run killed mid-action leaves the gate flags ON
+  # permanently — jamming the engine until 4h autoreset or manual
+  # intervention. This watchdog catches that state and reconverges.
+  - id: oal_config_lock_watchdog_v13
+    alias: "OAL v13 - Configuration Manager Stale-Lock Watchdog"
+    description: >
+      Aborts the configuration_manager_v13 automation if
+      oal_config_transition_active stays ON for 60s, clears both gate
+      flags, re-enables the manager, and fires oal_watchdog_trigger to
+      force engine recalculation. Logs to logbook for diagnostic
+      visibility.
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_boolean.oal_config_transition_active
+        to: "on"
+        for: "00:01:00"
+    action:
+      # 1. Abort any in-flight configuration_manager run
+      - service: automation.turn_off
+        target:
+          entity_id: automation.oal_v13_configuration_manager_power_handoff
+      # 2. Clear both gate flags
+      - service: input_boolean.turn_off
+        target:
+          entity_id:
+            - input_boolean.oal_config_transition_active
+            - input_boolean.oal_config_power_handoff_active
+      # 3. Re-enable the manager
+      - service: automation.turn_on
+        target:
+          entity_id: automation.oal_v13_configuration_manager_power_handoff
+      # 4. Force the engine to recalculate and reconverge zones
+      - event: oal_watchdog_trigger
+        event_data:
+          force: true
+          source: "config_lock_watchdog"
+          message: "Force-released stuck oal_config_transition_active after 60s"
+      # 5. Logbook breadcrumb
+      - service: logbook.log
+        data:
+          name: "OAL Config Lock Watchdog"
+          message: "Force-released oal_config_transition_active after 60s — configuration_manager_v13 likely killed mid-run"
+          domain: input_boolean
+
   # ---------------------------------------------------------------------------
   # 4.3 Sunset Gaussian offsets (brightness + warmth)
   # ---------------------------------------------------------------------------

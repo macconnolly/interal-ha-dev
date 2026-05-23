@@ -35,841 +35,799 @@
 
 title: Tunet Home v2
 icon: mdi:home
-
 views:
-
-  # ════════════════════════════════════════════════════════════════════
-  # VIEW 1: HOME (daily-use overview)
-  # ════════════════════════════════════════════════════════════════════
-  - title: Home
-    path: home
-    icon: mdi:home
-    type: sections
-    max_columns: 4
-    dense_section_placement: false
-    sections:
-
-      # ── STATUS row (home_summary 4×2, 8 tiles) ────────────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-status-card
-            layout_variant: home_summary
-            name: Home Status
-            columns: 4
-            tile_size: compact
-            grid_options:
-              columns: full
-            tiles:
-              - type: value
-                entity: sensor.oal_mode_current
-                icon: tune
-                label: Mode
-                accent: green
-                attribute: age_human
-                tap_action:
-                  action: navigate
-                  navigation_path: '#oal-detail'
-              - type: value
-                entity: binary_sensor.hvac_running
-                icon: hvac
-                label: HVAC
-                accent: blue
-                format: state
-                tap_action:
-                  action: more-info
-                  entity: climate.dining_room
-              - type: value
-                entity: sensor.dining_room_temperature
-                icon: device_thermostat
-                label: Inside
-                accent: amber
-                unit: °F
-                format: integer
-              - type: value
-                entity: sensor.outside_temperature
-                icon: cloud
-                label: Outside
-                accent: blue
-                unit: °F
-                format: integer
-              - type: value
-                entity: sensor.oal_override_count_active
-                icon: pan_tool
-                label: Manual
-                accent: red
-                format: integer
-                tap_action:
-                  action: navigate
-                  navigation_path: '#oal-detail'
-              - type: value
-                entity: sensor.kitchen_humidity
-                icon: water_drop
-                label: Humidity
-                accent: blue
-                unit: '%'
-                format: integer
-              - type: value
-                entity: sensor.aqi
-                icon: air
-                label: AQI
-                accent: green
-                format: integer
-              - type: value
-                entity: counter.tunet_hvac_cycles_today
-                icon: repeat
-                label: Cycles
-                accent: blue
-                format: integer
-
-      # ── SCENES strip (3 actually-used scenes large) ───────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-scenes-card
-            variant: strip
-            name: Scenes
-            allow_wrap: false
-            grid_options:
-              columns: full
-            scenes:
-              - entity: scene.tunet_oal_adaptive
-                name: Adaptive
-                icon: wb_sunny
-              - entity: scene.tunet_oal_evening
-                name: Evening
-                icon: bedtime
-              - entity: scene.tunet_oal_dim_ambient
-                name: Dim Ambient
-                icon: nightlight
-
-      # ── ROOMS row variant (5 rooms, orbs + chevron) ───────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-rooms-card
-            name: Rooms
-            layout_variant: row
-            tile_size: standard
-            grid_options:
-              columns: full
-            rooms:
-              - name: Living Room
-                icon: weekend
-                temperature_entity: sensor.dining_room_temperature
-                tap_action:
-                  action: navigate
-                  navigation_path: '#room-living-room'
-                lights:
-                  - light.living_room_couch_lamp
-                  - light.living_room_floor_lamp
-                  - light.living_room_spot_lights
-                  - light.living_room_credenza_light
-              - name: Kitchen
-                icon: kitchen
-                tap_action:
-                  action: navigate
-                  navigation_path: '#room-kitchen'
-                lights:
-                  - light.kitchen_island_pendants
-                  - light.kitchen_main_lights
-                  - light.kitchen_counter_cabinet_underlights
-              - name: Dining Room
-                icon: restaurant
-                temperature_entity: sensor.dining_room_temperature
-                tap_action:
-                  action: navigate
-                  navigation_path: '#room-dining-room'
-                lights:
-                  - light.dining_room_spot_lights
-                  - light.dining_column_strip_light_matter
-              - name: Bedroom
-                icon: bed
-                temperature_entity: sensor.bedroom_temp_humidity_sensor_temperature
-                tap_action:
-                  action: navigate
-                  navigation_path: '#room-bedroom'
-                lights:
-                  - light.master_presence
-                  - light.master_bedroom_corner_accent_govee
-                  - light.master_bedroom_table_lamps
-              - name: Office
-                icon: desktop_windows
-                tap_action:
-                  action: navigate
-                  navigation_path: '#room-office'
-                lights:
-                  - light.office_desk_lamp
-                  - light.office_bed_lights
-
-      # ── NOW PLAYING (mini-player → tap opens media popup) ─────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-media-card
-            entity: media_player.living_room
-            name: Sonos
-            show_progress: true
-            grid_options:
-              columns: full
-            tap_action:
-              action: navigate
-              navigation_path: '#media-living-room'
-
-      # ── QUICK LIGHTS (direct tiles for kitchen counter + entry) ───────
-      - type: grid
-        column_span: 2
-        cards:
-          - type: custom:tunet-light-tile
-            entity: light.kitchen_counter_cabinet_underlights
-            name: Counter
-            orientation: horizontal
-            tile_size: standard
-            grid_options:
-              columns: full
-      - type: grid
-        column_span: 2
-        cards:
-          - type: custom:tunet-light-tile
-            entity: light.entryway_lamp
-            name: Entry Lamp
-            orientation: horizontal
-            tile_size: standard
-            grid_options:
-              columns: full
-
-      # ── ACTIONS strip (compact bottom; all-off + sleep + bedtime) ─────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-actions-card
-            variant: compact
-            compact: true
-            grid_options:
-              columns: full
-            actions:
-              - name: All Off
-                icon: power_settings_new
-                accent: amber
-                service: light.turn_off
-                service_data:
-                  entity_id: light.all_adaptive_lights
-              - name: Sleep
-                icon: bed
-                accent: amber
-                service: scene.turn_on
-                service_data:
-                  entity_id: scene.tunet_oal_sleep
-              - name: Full Bright
-                icon: lightbulb
-                accent: amber
-                service: scene.turn_on
-                service_data:
-                  entity_id: scene.tunet_oal_full_bright
-
-      # ── INBOX (conditional render when items present) ─────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-inbox-card
-            name: Inbox
-            grid_options:
-              columns: full
-
-  # ════════════════════════════════════════════════════════════════════
-  # VIEW 2: STATS (HVAC + Electricity + Outside)
-  # ════════════════════════════════════════════════════════════════════
-  - title: Stats
-    path: stats
-    icon: mdi:chart-line
-    type: sections
-    max_columns: 4
-    sections:
-
-      # ── HVAC today (4-tile status card) ───────────────────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-status-card
-            layout_variant: info_only
-            name: HVAC Today
-            columns: 4
-            tile_size: compact
-            grid_options:
-              columns: full
-            tiles:
-              - type: value
-                entity: sensor.hvac_heating_minutes_today
-                icon: fire
-                label: Heating
-                accent: red
-                unit: min
-                format: integer
-              - type: value
-                entity: sensor.hvac_cooling_minutes_today
-                icon: ac_unit
-                label: Cooling
-                accent: blue
-                unit: min
-                format: integer
-              - type: value
-                entity: counter.tunet_hvac_cycles_today
-                icon: repeat
-                label: Cycles
-                accent: blue
-                format: integer
-              - type: value
-                entity: binary_sensor.hvac_running
-                icon: hvac
-                label: Now
-                accent: blue
-                format: state
-
-      # ── Inside vs Outside ────────────────────────────────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-sensor-card
-            title: Inside vs Outside
-            icon: device_thermostat
-            icon_color: amber
-            show_sparkline: true
-            show_trend: true
-            grid_options:
-              columns: full
-            sensors:
-              - entity: sensor.dining_room_temperature
-                label: Inside
-                icon: device_thermostat
-                accent: amber
-                unit: °F
-              - entity: sensor.outside_temperature
-                label: Outside
-                icon: cloud
-                accent: blue
-                unit: °F
-              - entity: sensor.hvac_setpoint_drift_high
-                label: Above Setpoint
-                icon: trending_up
-                accent: red
-                unit: °F
-              - entity: sensor.hvac_setpoint_drift_low
-                label: Below Setpoint
-                icon: trending_down
-                accent: blue
-                unit: °F
-
-      # ── Yesterday + Weekly + Monthly HVAC ─────────────────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-sensor-card
-            title: HVAC Rollups
-            icon: history
-            icon_color: blue
-            show_sparkline: false
-            show_trend: false
-            grid_options:
-              columns: full
-            sensors:
-              - entity: sensor.hvac_heating_yesterday_hours
-                label: Heating Yesterday
-                icon: fire
-                accent: red
-                unit: h
-              - entity: sensor.hvac_cooling_yesterday_hours
-                label: Cooling Yesterday
-                icon: ac_unit
-                accent: blue
-                unit: h
-              - entity: sensor.hvac_heating_minutes_weekly
-                label: Heating This Week
-                icon: fire
-                accent: red
-                unit: min
-              - entity: sensor.hvac_cooling_minutes_weekly
-                label: Cooling This Week
-                icon: ac_unit
-                accent: blue
-                unit: min
-
-      # ── Electricity (instrumented circuits only — flagged limitation) ─
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-sensor-card
-            title: Electricity (Instrumented)
-            icon: electric_bolt
-            icon_color: green
-            show_sparkline: true
-            show_trend: true
-            grid_options:
-              columns: full
-            sensors:
-              - entity: sensor.living_room_presence_dimmer_power
-                label: LR Lights (Now)
-                icon: electric_bolt
-                accent: green
-                unit: W
-              - entity: sensor.master_presence_power
-                label: Master Lights (Now)
-                icon: electric_bolt
-                accent: green
-                unit: W
-              - entity: sensor.living_room_presence_dimmer_energy
-                label: LR Energy
-                icon: bolt
-                accent: green
-                unit: kWh
-              - entity: sensor.master_presence_energy
-                label: Master Energy
-                icon: bolt
-                accent: green
-                unit: kWh
-
-  # ════════════════════════════════════════════════════════════════════
-  # VIEW 3: ADAPTIVE (OAL mode timeline + per-zone snapshot)
-  # ════════════════════════════════════════════════════════════════════
-  - title: Adaptive
-    path: adaptive
-    icon: mdi:tune
-    type: sections
-    max_columns: 4
-    sections:
-
-      # ── OAL state pills + mode dropdown ───────────────────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-status-card
-            layout_variant: home_detail
-            name: OAL System
-            columns: 2
-            tile_size: standard
-            grid_options:
-              columns: full
-            tiles:
-              - type: dropdown
-                entity: input_select.oal_active_configuration
-                label: Mode
-                icon: tune
-                accent: green
-              - type: value
-                entity: sensor.oal_mode_current
-                label: Active For
-                icon: timer
-                accent: blue
-                attribute: age_human
-              - type: value
-                entity: sensor.oal_override_count_active
-                label: Manual Overrides
-                icon: pan_tool
-                accent: red
-                format: integer
-              - type: value
-                entity: sensor.oal_effective_sun_elevation
-                label: Sun Elevation
-                icon: wb_sunny
-                accent: amber
-                unit: °
-
-      # ── Zone baselines (8 zones, live brightness%) ────────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-sensor-card
-            title: Zone Baselines
-            icon: tune
-            icon_color: green
-            show_sparkline: true
-            show_trend: false
-            grid_options:
-              columns: full
-            sensors:
-              - entity: sensor.oal_zone_main_living_brightness
-                label: Main Living
-                icon: sofa
-                accent: amber
-                unit: '%'
-              - entity: sensor.oal_zone_kitchen_island_brightness
-                label: Kitchen Island
-                icon: kitchen
-                accent: amber
-                unit: '%'
-              - entity: sensor.oal_zone_kitchen_undercabinet_brightness
-                label: Kitchen Counter
-                icon: linear_scale
-                accent: amber
-                unit: '%'
-              - entity: sensor.oal_zone_bedroom_primary_brightness
-                label: Bedroom Primary
-                icon: bed
-                accent: amber
-                unit: '%'
-              - entity: sensor.oal_zone_accent_spots_brightness
-                label: Accent Spots
-                icon: flashlight_on
-                accent: amber
-                unit: '%'
-              - entity: sensor.oal_zone_recessed_ceiling_brightness
-                label: Recessed Ceiling
-                icon: light
-                accent: amber
-                unit: '%'
-              - entity: sensor.oal_zone_column_lights_brightness
-                label: Columns
-                icon: view_column
-                accent: amber
-                unit: '%'
-              - entity: sensor.oal_zone_office_brightness
-                label: Office
-                icon: desktop_windows
-                accent: amber
-                unit: '%'
-
-      # ── Mode time-share today ─────────────────────────────────────────
-      - type: grid
-        column_span: 4
-        cards:
-          - type: custom:tunet-sensor-card
-            title: Mode Time Today
-            icon: history
-            icon_color: blue
-            show_sparkline: false
-            show_trend: false
-            grid_options:
-              columns: full
-            sensors:
-              - entity: sensor.oal_adaptive_minutes_today
-                label: Adaptive
-                icon: wb_sunny
-                accent: green
-                unit: h
-              - entity: sensor.oal_dim_ambient_minutes_today
-                label: Dim Ambient
-                icon: nightlight
-                accent: blue
-                unit: h
-              - entity: sensor.oal_manual_minutes_today
-                label: Manual
-                icon: pan_tool
-                accent: red
-                unit: h
-              - entity: sensor.oal_sleep_minutes_today
-                label: Sleep
-                icon: bed
-                accent: blue
-                unit: h
-
-  # ════════════════════════════════════════════════════════════════════
-  # VIEW 4: POPUPS (hidden from sidebar; invoked via hash navigation)
-  # ════════════════════════════════════════════════════════════════════
-  # Bubble Card 3.2.1 standalone popups with card_mod CSS to feel more
-  # like iOS bottom sheets (rounded top corners, spring-like transition,
-  # grabber affordance via ::before pseudo-element, safe-area bottom inset).
-  # ════════════════════════════════════════════════════════════════════
-  - title: Popups
-    path: popups
-    icon: mdi:dots-horizontal
-    visible: false
+- title: Home
+  path: home
+  icon: mdi:home
+  type: sections
+  max_columns: 4
+  dense_section_placement: false
+  sections:
+  - type: grid
+    column_span: 4
     cards:
+    - type: custom:tunet-status-card
+      layout_variant: home_summary
+      name: Home Status
+      columns: 4
+      tile_size: compact
+      grid_options:
+        columns: full
+      tiles:
+      - type: value
+        entity: sensor.oal_mode_current
+        icon: tune
+        label: Mode
+        accent: green
+        attribute: age_human
+        tap_action:
+          action: navigate
+          navigation_path: '#oal-detail'
+      - type: value
+        entity: binary_sensor.hvac_running
+        icon: hvac
+        label: HVAC
+        accent: blue
+        format: state
+        tap_action:
+          action: more-info
+          entity: climate.dining_room
+      - type: value
+        entity: sensor.dining_room_temperature
+        icon: device_thermostat
+        label: Inside
+        accent: amber
+        unit: °F
+        format: integer
+      - type: value
+        entity: sensor.outside_temperature
+        icon: cloud
+        label: Outside
+        accent: blue
+        unit: °F
+        format: integer
+      - type: value
+        entity: sensor.oal_override_count_active
+        icon: pan_tool
+        label: Manual
+        accent: red
+        format: integer
+        tap_action:
+          action: navigate
+          navigation_path: '#oal-detail'
+      - type: value
+        entity: sensor.kitchen_humidity
+        icon: water_drop
+        label: Humidity
+        accent: blue
+        unit: '%'
+        format: integer
+      - type: value
+        entity: sensor.aqi
+        icon: air
+        label: AQI
+        accent: green
+        format: integer
+      - type: value
+        entity: counter.tunet_hvac_cycles_today
+        icon: repeat
+        label: Cycles
+        accent: blue
+        format: integer
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-scenes-card
+      variant: strip
+      name: Scenes
+      allow_wrap: false
+      grid_options:
+        columns: full
+      scenes:
+      - entity: scene.tunet_oal_adaptive
+        name: Adaptive
+        icon: wb_sunny
+      - entity: scene.tunet_oal_evening
+        name: Evening
+        icon: bedtime
+      - entity: scene.tunet_oal_dim_ambient
+        name: Dim Ambient
+        icon: nightlight
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-rooms-card
+      name: Rooms
+      layout_variant: row
+      tile_size: standard
+      grid_options:
+        columns: full
+      rooms:
+      - name: Living Room
+        icon: weekend
+        temperature_entity: sensor.dining_room_temperature
+        tap_action:
+          action: navigate
+          navigation_path: '#room-living-room'
+        lights:
+        - light.living_room_couch_lamp
+        - light.living_room_floor_lamp
+        - light.living_room_spot_lights
+        - light.living_room_credenza_light
+      - name: Kitchen
+        icon: kitchen
+        tap_action:
+          action: navigate
+          navigation_path: '#room-kitchen'
+        lights:
+        - light.kitchen_island_pendants
+        - light.kitchen_main_lights
+        - light.kitchen_counter_cabinet_underlights
+      - name: Dining Room
+        icon: restaurant
+        temperature_entity: sensor.dining_room_temperature
+        tap_action:
+          action: navigate
+          navigation_path: '#room-dining-room'
+        lights:
+        - light.dining_room_spot_lights
+        - light.dining_column_strip_light_matter
+      - name: Bedroom
+        icon: bed
+        temperature_entity: sensor.bedroom_temp_humidity_sensor_temperature
+        tap_action:
+          action: navigate
+          navigation_path: '#room-bedroom'
+        lights:
+        - light.master_presence
+        - light.master_bedroom_corner_accent_govee
+        - light.master_bedroom_table_lamps
+      - name: Office
+        icon: desktop_windows
+        tap_action:
+          action: navigate
+          navigation_path: '#room-office'
+        lights:
+        - light.office_desk_lamp
+        - light.office_bed_lights
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-media-card
+      entity: media_player.living_room
+      name: Sonos
+      show_progress: true
+      grid_options:
+        columns: full
+      tap_action:
+        action: navigate
+        navigation_path: '#media-living-room'
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:tunet-light-tile
+      entity: light.kitchen_counter_cabinet_underlights
+      name: Counter
+      orientation: horizontal
+      tile_size: standard
+      grid_options:
+        columns: full
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:tunet-light-tile
+      entity: light.entryway_lamp
+      name: Entry Lamp
+      orientation: horizontal
+      tile_size: standard
+      grid_options:
+        columns: full
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-actions-card
+      variant: compact
+      compact: true
+      grid_options:
+        columns: full
+      actions:
+      - name: All Off
+        icon: power_settings_new
+        accent: amber
+        service: light.turn_off
+        service_data:
+          entity_id: light.all_adaptive_lights
+      - name: Sleep
+        icon: bed
+        accent: amber
+        service: scene.turn_on
+        service_data:
+          entity_id: scene.tunet_oal_sleep
+      - name: Full Bright
+        icon: lightbulb
+        accent: amber
+        service: scene.turn_on
+        service_data:
+          entity_id: scene.tunet_oal_full_bright
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-inbox-card
+      name: Inbox
+      grid_options:
+        columns: full
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:bubble-card
+      card_type: pop-up
+      hash: '#room-living-room'
+      popup_mode: fit-content
+      name: Living Room
+      icon: mdi:sofa
+      bottom_offset: true
+      card_mod:
+        style: "ha-card {\n  border-radius: 24px 24px 0 0 !important;\n  padding-bottom: env(safe-area-inset-bottom) !important;\n  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;\n\
+          }\nha-card::before {\n  content: '';\n  position: absolute;\n  top: 8px; left: 50%;\n  transform: translateX(-50%);\n  width: 36px; height: 5px;\n  border-radius: 3px;\n  background: rgba(255,255,255,0.4);\n\
+          \  pointer-events: none;\n}\n"
+      cards:
+      - type: custom:tunet-lighting-card
+        name: Living Room Lights
+        surface: section
+        layout: grid
+        columns: 2
+        tile_size: large
+        zones:
+        - entity: light.living_room_couch_lamp
+          name: Couch
+          icon: lamp
+        - entity: light.living_room_floor_lamp
+          name: Floor
+          icon: lamp
+        - entity: light.living_room_spot_lights
+          name: Spots
+          icon: flashlight_on
+        - entity: light.living_room_credenza_light
+          name: Credenza
+          icon: light
+      - type: custom:tunet-sensor-card
+        title: Living Room
+        sensors:
+        - entity: sensor.dining_room_temperature
+          label: Temperature
+          icon: device_thermostat
+          accent: amber
+          unit: °F
+        - entity: binary_sensor.occupancy_living_room
+          label: Occupancy
+          icon: sensor_occupied
+          accent: green
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:bubble-card
+      card_type: pop-up
+      hash: '#room-kitchen'
+      popup_mode: fit-content
+      name: Kitchen
+      icon: mdi:silverware
+      bottom_offset: true
+      card_mod:
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
 
-      # ── #room-living-room ─────────────────────────────────────────────
-      - type: custom:bubble-card
-        card_type: pop-up
-        hash: '#room-living-room'
-        popup_mode: fit-content
-        name: Living Room
-        icon: mdi:sofa
-        bottom_offset: true
-        card_mod:
-          style: |
-            ha-card {
-              border-radius: 24px 24px 0 0 !important;
-              padding-bottom: env(safe-area-inset-bottom) !important;
-              transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-            }
-            ha-card::before {
-              content: '';
-              position: absolute;
-              top: 8px; left: 50%;
-              transform: translateX(-50%);
-              width: 36px; height: 5px;
-              border-radius: 3px;
-              background: rgba(255,255,255,0.4);
-              pointer-events: none;
-            }
-        cards:
-          - type: custom:tunet-lighting-card
-            name: Living Room Lights
-            surface: section
-            layout: grid
-            columns: 2
-            tile_size: large
-            zones:
-              - entity: light.living_room_couch_lamp
-                name: Couch
-                icon: lamp
-              - entity: light.living_room_floor_lamp
-                name: Floor
-                icon: lamp
-              - entity: light.living_room_spot_lights
-                name: Spots
-                icon: flashlight_on
-              - entity: light.living_room_credenza_light
-                name: Credenza
-                icon: light
-          - type: custom:tunet-sensor-card
-            title: Living Room
-            sensors:
-              - entity: sensor.dining_room_temperature
-                label: Temperature
-                icon: device_thermostat
-                accent: amber
-                unit: °F
-              - entity: binary_sensor.occupancy_living_room
-                label: Occupancy
-                icon: sensor_occupied
-                accent: green
+          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+          }
 
-      # ── #room-kitchen ─────────────────────────────────────────────────
-      - type: custom:bubble-card
-        card_type: pop-up
-        hash: '#room-kitchen'
-        popup_mode: fit-content
-        name: Kitchen
-        icon: mdi:silverware
-        bottom_offset: true
-        card_mod:
-          style: |
-            ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
-            ha-card::before { content:''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none; }
-        cards:
-          - type: custom:tunet-lighting-card
-            name: Kitchen Lights
-            surface: section
-            layout: grid
-            columns: 3
-            tile_size: large
-            zones:
-              - entity: light.kitchen_island_pendants
-                name: Island
-                icon: light
-              - entity: light.kitchen_main_lights
-                name: Main
-                icon: light
-              - entity: light.kitchen_counter_cabinet_underlights
-                name: Counter
-                icon: linear_scale
-          - type: custom:tunet-sensor-card
-            title: Kitchen
-            sensors:
-              - entity: sensor.kitchen_humidity
-                label: Humidity
-                icon: water_drop
-                accent: blue
-                unit: '%'
-              - entity: binary_sensor.occupancy_kitchen
-                label: Occupancy
-                icon: sensor_occupied
-                accent: green
+          '
+      cards:
+      - type: custom:tunet-lighting-card
+        name: Kitchen Lights
+        surface: section
+        layout: grid
+        columns: 3
+        tile_size: large
+        zones:
+        - entity: light.kitchen_island_pendants
+          name: Island
+          icon: light
+        - entity: light.kitchen_main_lights
+          name: Main
+          icon: light
+        - entity: light.kitchen_counter_cabinet_underlights
+          name: Counter
+          icon: linear_scale
+      - type: custom:tunet-sensor-card
+        title: Kitchen
+        sensors:
+        - entity: sensor.kitchen_humidity
+          label: Humidity
+          icon: water_drop
+          accent: blue
+          unit: '%'
+        - entity: binary_sensor.occupancy_kitchen
+          label: Occupancy
+          icon: sensor_occupied
+          accent: green
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:bubble-card
+      card_type: pop-up
+      hash: '#room-dining-room'
+      popup_mode: fit-content
+      name: Dining Room
+      icon: mdi:silverware-clean
+      bottom_offset: true
+      card_mod:
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
 
-      # ── #room-dining-room (has the thermostat) ────────────────────────
-      - type: custom:bubble-card
-        card_type: pop-up
-        hash: '#room-dining-room'
-        popup_mode: fit-content
-        name: Dining Room
-        icon: mdi:silverware-clean
-        bottom_offset: true
-        card_mod:
-          style: |
-            ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
-            ha-card::before { content:''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none; }
-        cards:
-          - type: custom:tunet-climate-card
-            entity: climate.dining_room
-            name: Climate
-          - type: custom:tunet-lighting-card
-            name: Dining Lights
-            surface: section
-            layout: grid
-            columns: 2
-            tile_size: large
-            zones:
-              - entity: light.dining_room_spot_lights
-                name: Spots
-                icon: flashlight_on
-              - entity: light.dining_column_strip_light_matter
-                name: Column
-                icon: view_column
+          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+          }
 
-      # ── #room-bedroom (has Sonos alarms) ──────────────────────────────
-      - type: custom:bubble-card
-        card_type: pop-up
-        hash: '#room-bedroom'
-        popup_mode: fit-content
-        name: Bedroom
-        icon: mdi:bed
-        bottom_offset: true
-        card_mod:
-          style: |
-            ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
-            ha-card::before { content:''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none; }
-        cards:
-          - type: custom:tunet-lighting-card
-            name: Bedroom Lights
-            surface: section
-            layout: grid
-            columns: 2
-            tile_size: large
-            zones:
-              - entity: light.master_presence
-                name: Main
-                icon: bed
-              - entity: light.master_bedroom_corner_accent_govee
-                name: Accent
-                icon: nightlight
-              - entity: light.master_bedroom_table_lamps
-                name: Lamps
-                icon: lamp
-          - type: custom:tunet-sensor-card
-            title: Bedroom
-            sensors:
-              - entity: sensor.bedroom_temp_humidity_sensor_temperature
-                label: Temperature
-                icon: device_thermostat
-                accent: amber
-                unit: °F
-              - entity: sensor.bedroom_temp_humidity_sensor_humidity
-                label: Humidity
-                icon: water_drop
-                accent: blue
-                unit: '%'
-              - entity: binary_sensor.occupancy_master_bedroom
-                label: Occupancy
-                icon: sensor_occupied
-                accent: green
-              - entity: binary_sensor.bedroom_sonos_healthy
-                label: Speaker
-                icon: speaker
-                accent: green
-          - type: custom:tunet-alarm-card
-            name: Alarms
+          '
+      cards:
+      - type: custom:tunet-climate-card
+        entity: climate.dining_room
+        name: Climate
+      - type: custom:tunet-lighting-card
+        name: Dining Lights
+        surface: section
+        layout: grid
+        columns: 2
+        tile_size: large
+        zones:
+        - entity: light.dining_room_spot_lights
+          name: Spots
+          icon: flashlight_on
+        - entity: light.dining_column_strip_light_matter
+          name: Column
+          icon: view_column
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:bubble-card
+      card_type: pop-up
+      hash: '#room-bedroom'
+      popup_mode: fit-content
+      name: Bedroom
+      icon: mdi:bed
+      bottom_offset: true
+      card_mod:
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
 
-      # ── #room-office ──────────────────────────────────────────────────
-      - type: custom:bubble-card
-        card_type: pop-up
-        hash: '#room-office'
-        popup_mode: fit-content
-        name: Office
-        icon: mdi:desktop-tower
-        bottom_offset: true
-        card_mod:
-          style: |
-            ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
-            ha-card::before { content:''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none; }
-        cards:
-          - type: custom:tunet-lighting-card
-            name: Office Lights
-            surface: section
-            layout: grid
-            columns: 2
-            tile_size: large
-            zones:
-              - entity: light.office_desk_lamp
-                name: Desk
-                icon: lamp
-              - entity: light.office_bed_lights
-                name: Office Bed
-                icon: bed
-          - type: custom:tunet-sensor-card
-            title: Office
-            sensors:
-              - entity: binary_sensor.occupancy_office
-                label: Occupancy
-                icon: sensor_occupied
-                accent: green
+          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+          }
 
-      # ── #media-living-room (Sonos deep + speaker grid) ────────────────
-      - type: custom:bubble-card
-        card_type: pop-up
-        hash: '#media-living-room'
-        popup_mode: fit-content
-        name: Media
-        icon: mdi:speaker
-        bottom_offset: true
-        card_mod:
-          style: |
-            ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
-            ha-card::before { content:''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none; }
-        cards:
-          - type: custom:tunet-sonos-card
-            entity: media_player.living_room
-            name: Now Playing
-          - type: custom:tunet-speaker-grid-card
-            entity: media_player.living_room
-            coordinator_sensor: sensor.sonos_smart_coordinator
-            columns: 5
-            show_group_actions: true
-            speakers:
-              - entity: media_player.living_room
-                name: Living Room
-              - entity: media_player.dining_room
-                name: Dining Room
-              - entity: media_player.kitchen
-                name: Kitchen
-              - entity: media_player.bath
-                name: Bathroom
-              - entity: media_player.bedroom
-                name: Bedroom
+          '
+      cards:
+      - type: custom:tunet-lighting-card
+        name: Bedroom Lights
+        surface: section
+        layout: grid
+        columns: 2
+        tile_size: large
+        zones:
+        - entity: light.master_presence
+          name: Main
+          icon: bed
+        - entity: light.master_bedroom_corner_accent_govee
+          name: Accent
+          icon: nightlight
+        - entity: light.master_bedroom_table_lamps
+          name: Lamps
+          icon: lamp
+      - type: custom:tunet-sensor-card
+        title: Bedroom
+        sensors:
+        - entity: sensor.bedroom_temp_humidity_sensor_temperature
+          label: Temperature
+          icon: device_thermostat
+          accent: amber
+          unit: °F
+        - entity: sensor.bedroom_temp_humidity_sensor_humidity
+          label: Humidity
+          icon: water_drop
+          accent: blue
+          unit: '%'
+        - entity: binary_sensor.occupancy_master_bedroom
+          label: Occupancy
+          icon: sensor_occupied
+          accent: green
+        - entity: binary_sensor.bedroom_sonos_healthy
+          label: Speaker
+          icon: speaker
+          accent: green
+      - type: custom:tunet-alarm-card
+        name: Alarms
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:bubble-card
+      card_type: pop-up
+      hash: '#room-office'
+      popup_mode: fit-content
+      name: Office
+      icon: mdi:desktop-tower
+      bottom_offset: true
+      card_mod:
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
 
-      # ── #oal-detail (mode dropdown + quick scene chips + zone snapshot) ─
-      - type: custom:bubble-card
-        card_type: pop-up
-        hash: '#oal-detail'
-        popup_mode: fit-content
-        name: Adaptive Lighting
-        icon: mdi:tune
-        bottom_offset: true
-        card_mod:
-          style: |
-            ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
-            ha-card::before { content:''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none; }
-        cards:
-          - type: custom:tunet-status-card
-            layout_variant: home_detail
-            name: OAL
-            columns: 2
-            tile_size: standard
-            tiles:
-              - type: dropdown
-                entity: input_select.oal_active_configuration
-                label: Mode
-                icon: tune
-                accent: green
-              - type: value
-                entity: sensor.oal_mode_current
-                label: Active For
-                icon: timer
-                accent: blue
-                attribute: age_human
-          - type: custom:tunet-scenes-card
-            variant: wrap
-            name: Quick Scenes
-            scenes:
-              - entity: scene.tunet_oal_adaptive
-                name: Adaptive
-                icon: wb_sunny
-              - entity: scene.tunet_oal_evening
-                name: Evening
-                icon: bedtime
-              - entity: scene.tunet_oal_dim_ambient
-                name: Dim Ambient
-                icon: nightlight
-              - entity: scene.tunet_oal_sleep
-                name: Sleep
-                icon: bed
-              - entity: scene.tunet_oal_full_bright
-                name: Full Bright
-                icon: lightbulb
+          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+          }
+
+          '
+      cards:
+      - type: custom:tunet-lighting-card
+        name: Office Lights
+        surface: section
+        layout: grid
+        columns: 2
+        tile_size: large
+        zones:
+        - entity: light.office_desk_lamp
+          name: Desk
+          icon: lamp
+        - entity: light.office_bed_lights
+          name: Office Bed
+          icon: bed
+      - type: custom:tunet-sensor-card
+        title: Office
+        sensors:
+        - entity: binary_sensor.occupancy_office
+          label: Occupancy
+          icon: sensor_occupied
+          accent: green
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:bubble-card
+      card_type: pop-up
+      hash: '#media-living-room'
+      popup_mode: fit-content
+      name: Media
+      icon: mdi:speaker
+      bottom_offset: true
+      card_mod:
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
+
+          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+          }
+
+          '
+      cards:
+      - type: custom:tunet-sonos-card
+        entity: media_player.living_room
+        name: Now Playing
+      - type: custom:tunet-speaker-grid-card
+        entity: media_player.living_room
+        coordinator_sensor: sensor.sonos_smart_coordinator
+        columns: 5
+        show_group_actions: true
+        speakers:
+        - entity: media_player.living_room
+          name: Living Room
+        - entity: media_player.dining_room
+          name: Dining Room
+        - entity: media_player.kitchen
+          name: Kitchen
+        - entity: media_player.bath
+          name: Bathroom
+        - entity: media_player.bedroom
+          name: Bedroom
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:bubble-card
+      card_type: pop-up
+      hash: '#oal-detail'
+      popup_mode: fit-content
+      name: Adaptive Lighting
+      icon: mdi:tune
+      bottom_offset: true
+      card_mod:
+        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; }
+
+          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+          }
+
+          '
+      cards:
+      - type: custom:tunet-status-card
+        layout_variant: home_detail
+        name: OAL
+        columns: 2
+        tile_size: standard
+        tiles:
+        - type: dropdown
+          entity: input_select.oal_active_configuration
+          label: Mode
+          icon: tune
+          accent: green
+        - type: value
+          entity: sensor.oal_mode_current
+          label: Active For
+          icon: timer
+          accent: blue
+          attribute: age_human
+      - type: custom:tunet-scenes-card
+        variant: wrap
+        name: Quick Scenes
+        scenes:
+        - entity: scene.tunet_oal_adaptive
+          name: Adaptive
+          icon: wb_sunny
+        - entity: scene.tunet_oal_evening
+          name: Evening
+          icon: bedtime
+        - entity: scene.tunet_oal_dim_ambient
+          name: Dim Ambient
+          icon: nightlight
+        - entity: scene.tunet_oal_sleep
+          name: Sleep
+          icon: bed
+        - entity: scene.tunet_oal_full_bright
+          name: Full Bright
+          icon: lightbulb
+- title: Stats
+  path: stats
+  icon: mdi:chart-line
+  type: sections
+  max_columns: 4
+  sections:
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-status-card
+      layout_variant: info_only
+      name: HVAC Today
+      columns: 4
+      tile_size: compact
+      grid_options:
+        columns: full
+      tiles:
+      - type: value
+        entity: sensor.hvac_heating_minutes_today
+        icon: fire
+        label: Heating
+        accent: red
+        unit: min
+        format: integer
+      - type: value
+        entity: sensor.hvac_cooling_minutes_today
+        icon: ac_unit
+        label: Cooling
+        accent: blue
+        unit: min
+        format: integer
+      - type: value
+        entity: counter.tunet_hvac_cycles_today
+        icon: repeat
+        label: Cycles
+        accent: blue
+        format: integer
+      - type: value
+        entity: binary_sensor.hvac_running
+        icon: hvac
+        label: Now
+        accent: blue
+        format: state
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-sensor-card
+      title: Inside vs Outside
+      icon: device_thermostat
+      icon_color: amber
+      show_sparkline: true
+      show_trend: true
+      grid_options:
+        columns: full
+      sensors:
+      - entity: sensor.dining_room_temperature
+        label: Inside
+        icon: device_thermostat
+        accent: amber
+        unit: °F
+      - entity: sensor.outside_temperature
+        label: Outside
+        icon: cloud
+        accent: blue
+        unit: °F
+      - entity: sensor.hvac_setpoint_drift_high
+        label: Above Setpoint
+        icon: trending_up
+        accent: red
+        unit: °F
+      - entity: sensor.hvac_setpoint_drift_low
+        label: Below Setpoint
+        icon: trending_down
+        accent: blue
+        unit: °F
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-sensor-card
+      title: HVAC Rollups
+      icon: history
+      icon_color: blue
+      show_sparkline: false
+      show_trend: false
+      grid_options:
+        columns: full
+      sensors:
+      - entity: sensor.hvac_heating_yesterday_hours
+        label: Heating Yesterday
+        icon: fire
+        accent: red
+        unit: h
+      - entity: sensor.hvac_cooling_yesterday_hours
+        label: Cooling Yesterday
+        icon: ac_unit
+        accent: blue
+        unit: h
+      - entity: sensor.hvac_heating_minutes_weekly
+        label: Heating This Week
+        icon: fire
+        accent: red
+        unit: min
+      - entity: sensor.hvac_cooling_minutes_weekly
+        label: Cooling This Week
+        icon: ac_unit
+        accent: blue
+        unit: min
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-sensor-card
+      title: Electricity (Instrumented)
+      icon: electric_bolt
+      icon_color: green
+      show_sparkline: true
+      show_trend: true
+      grid_options:
+        columns: full
+      sensors:
+      - entity: sensor.living_room_presence_dimmer_power
+        label: LR Lights (Now)
+        icon: electric_bolt
+        accent: green
+        unit: W
+      - entity: sensor.master_presence_power
+        label: Master Lights (Now)
+        icon: electric_bolt
+        accent: green
+        unit: W
+      - entity: sensor.living_room_presence_dimmer_energy
+        label: LR Energy
+        icon: bolt
+        accent: green
+        unit: kWh
+      - entity: sensor.master_presence_energy
+        label: Master Energy
+        icon: bolt
+        accent: green
+        unit: kWh
+- title: Adaptive
+  path: adaptive
+  icon: mdi:tune
+  type: sections
+  max_columns: 4
+  sections:
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-status-card
+      layout_variant: home_detail
+      name: OAL System
+      columns: 2
+      tile_size: standard
+      grid_options:
+        columns: full
+      tiles:
+      - type: dropdown
+        entity: input_select.oal_active_configuration
+        label: Mode
+        icon: tune
+        accent: green
+      - type: value
+        entity: sensor.oal_mode_current
+        label: Active For
+        icon: timer
+        accent: blue
+        attribute: age_human
+      - type: value
+        entity: sensor.oal_override_count_active
+        label: Manual Overrides
+        icon: pan_tool
+        accent: red
+        format: integer
+      - type: value
+        entity: sensor.oal_effective_sun_elevation
+        label: Sun Elevation
+        icon: wb_sunny
+        accent: amber
+        unit: °
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-sensor-card
+      title: Zone Baselines
+      icon: tune
+      icon_color: green
+      show_sparkline: true
+      show_trend: false
+      grid_options:
+        columns: full
+      sensors:
+      - entity: sensor.oal_zone_main_living_brightness
+        label: Main Living
+        icon: sofa
+        accent: amber
+        unit: '%'
+      - entity: sensor.oal_zone_kitchen_island_brightness
+        label: Kitchen Island
+        icon: kitchen
+        accent: amber
+        unit: '%'
+      - entity: sensor.oal_zone_kitchen_undercabinet_brightness
+        label: Kitchen Counter
+        icon: linear_scale
+        accent: amber
+        unit: '%'
+      - entity: sensor.oal_zone_bedroom_primary_brightness
+        label: Bedroom Primary
+        icon: bed
+        accent: amber
+        unit: '%'
+      - entity: sensor.oal_zone_accent_spots_brightness
+        label: Accent Spots
+        icon: flashlight_on
+        accent: amber
+        unit: '%'
+      - entity: sensor.oal_zone_recessed_ceiling_brightness
+        label: Recessed Ceiling
+        icon: light
+        accent: amber
+        unit: '%'
+      - entity: sensor.oal_zone_column_lights_brightness
+        label: Columns
+        icon: view_column
+        accent: amber
+        unit: '%'
+      - entity: sensor.oal_zone_office_brightness
+        label: Office
+        icon: desktop_windows
+        accent: amber
+        unit: '%'
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-sensor-card
+      title: Mode Time Today
+      icon: history
+      icon_color: blue
+      show_sparkline: false
+      show_trend: false
+      grid_options:
+        columns: full
+      sensors:
+      - entity: sensor.oal_adaptive_minutes_today
+        label: Adaptive
+        icon: wb_sunny
+        accent: green
+        unit: h
+      - entity: sensor.oal_dim_ambient_minutes_today
+        label: Dim Ambient
+        icon: nightlight
+        accent: blue
+        unit: h
+      - entity: sensor.oal_manual_minutes_today
+        label: Manual
+        icon: pan_tool
+        accent: red
+        unit: h
+      - entity: sensor.oal_sleep_minutes_today
+        label: Sleep
+        icon: bed
+        accent: blue
+        unit: h

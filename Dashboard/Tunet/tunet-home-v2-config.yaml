@@ -887,32 +887,45 @@ views:
   icon: mdi:chart-line
   type: sections
   max_columns: 4
+  dense_section_placement: true
   sections:
   - type: grid
     column_span: 4
     cards:
     - type: custom:tunet-status-card
-      layout_variant: info_only
-      name: HVAC Today
+      layout_variant: home_summary
+      name: Right Now
       columns: 4
       tile_size: compact
       grid_options:
         columns: full
       tiles:
       - type: value
-        entity: sensor.hvac_heating_minutes_today
-        icon: local_fire_department
-        label: Heating
-        accent: red
-        unit: min
+        entity: binary_sensor.hvac_running
+        attribute: hvac_action
+        icon: hvac
+        label: HVAC
+        accent: blue
+      - type: value
+        entity: sensor.dining_room_temperature
+        icon: device_thermostat
+        label: Inside
+        accent: amber
+        unit: °F
         format: integer
       - type: value
-        entity: sensor.hvac_cooling_minutes_today
-        icon: ac_unit
-        label: Cooling
+        entity: sensor.outside_temperature
+        icon: cloud
+        label: Outside
         accent: blue
-        unit: min
+        unit: °F
         format: integer
+      - type: value
+        entity: weather.home
+        icon: wb_sunny
+        label: Sky
+        accent: blue
+        format: state
       - type: value
         entity: counter.tunet_hvac_cycles_today
         icon: repeat
@@ -920,11 +933,23 @@ views:
         accent: blue
         format: integer
       - type: value
-        entity: binary_sensor.hvac_running
-        icon: hvac
-        label: Now
+        entity: sensor.oal_override_count_active
+        icon: pan_tool
+        label: Overrides
+        accent: red
+        format: integer
+      - type: value
+        entity: sensor.hvac_setpoint_drift_high
+        icon: trending_up
+        label: Above SP
+        accent: red
+        unit: °F
+      - type: value
+        entity: sensor.hvac_setpoint_drift_low
+        icon: trending_down
+        label: Below SP
         accent: blue
-        format: state
+        unit: °F
   - type: grid
     column_span: 4
     cards:
@@ -1055,11 +1080,12 @@ views:
         accent: red
         format: integer
       - type: value
-        entity: sensor.oal_effective_sun_elevation
-        label: Sun Elevation
-        icon: wb_sunny
+        entity: sensor.oal_manual_minutes_today
+        label: Manual Today
+        icon: pan_tool
         accent: amber
-        unit: °
+        unit: h
+        format: float1
   - type: grid
     column_span: 4
     cards:
@@ -1074,7 +1100,7 @@ views:
       sensors:
       - entity: sensor.oal_zone_main_living_brightness
         label: Main Living
-        icon: sofa
+        icon: weekend
         accent: amber
         unit: '%'
       - entity: sensor.oal_zone_kitchen_island_brightness
@@ -1112,38 +1138,9 @@ views:
         icon: desktop_windows
         accent: amber
         unit: '%'
-  - type: grid
-    column_span: 4
-    cards:
-    - type: custom:tunet-sensor-card
-      title: Mode Time Today
-      icon: history
-      icon_color: blue
-      show_sparkline: false
-      show_trend: false
-      grid_options:
-        columns: full
-      sensors:
-      - entity: sensor.oal_adaptive_minutes_today
-        label: Adaptive
-        icon: wb_sunny
-        accent: green
-        unit: h
-      - entity: sensor.oal_dim_ambient_minutes_today
-        label: Dim Ambient
-        icon: nightlight
-        accent: blue
-        unit: h
-      - entity: sensor.oal_manual_minutes_today
-        label: Manual
-        icon: pan_tool
-        accent: red
-        unit: h
-      - entity: sensor.oal_sleep_minutes_today
-        label: Sleep
-        icon: bed
-        accent: blue
-        unit: h
+# Mode Time Today section removed 2026-05-23 per Mac feedback:
+# "the amount of adaptive time really isn't the driving metric."
+# Manual Today + override count surfaced in Right Now and OAL System sections.
 
 # ────────────────────────────────────────────────────────────────────
 # VIEW: PER-ROOM SUBVIEWS (PA03 RoomSubview template per FINAL spec §7)

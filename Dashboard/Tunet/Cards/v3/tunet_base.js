@@ -1828,7 +1828,24 @@ export function runCardAction({
  * @param {Function} [options.onDragEnd] - (event, payload) => void
  * @param {Function} [options.onTap] - (event, payload) => void
  * @param {Function} [options.onLongPress] - (event, payload) => void
+ *   Legacy long-press intent: fires at longPressMs in 'pending', then cleanup.
+ *   For default-action gestures like more-info on cards that don't drag.
+ *   Mutually exclusive with onArm — if both are defined, onArm wins.
+ * @param {Function} [options.onArm] - (event, payload) => void
+ *   Hold-to-arm-drag intent: fires at longPressMs in 'pending', transitions
+ *   state to 'armed' and KEEPS drag listeners active so movement still
+ *   activates drag (with armedDeadzone). Cards use this to give the user
+ *   tactile/visual confirmation that drag mode is entered without killing
+ *   the drag pipeline. Designed for light tiles per cards_reference.md
+ *   Interaction Model "Hold (400ms + haptic) = enter drag mode".
+ * @param {Function} [options.onArmRelease] - (event, payload) => void
+ *   Fires on pointerup from 'armed' phase when no drag motion occurred.
+ *   Use to undo visual armed state (e.g. remove class). No service call.
  * @param {number} [options.deadzone=8]
+ * @param {number} [options.armedDeadzone] - movement threshold to start
+ *   drag from 'armed' phase. Defaults to 2 when onArm is defined (small
+ *   so armed users get immediate drag response), else falls back to
+ *   deadzone (preserves legacy behavior).
  * @param {number} [options.axisBias=1.3]
  * @param {number} [options.longPressMs=500]
  * @param {boolean} [options.pointerCapture=false]
@@ -1844,11 +1861,19 @@ export function createAxisLockedDrag(options = {}) {
     onDragEnd,
     onTap,
     onLongPress,
+    onArm,
+    onArmRelease,
     deadzone = 8,
+    armedDeadzone,
     axisBias = 1.3,
     longPressMs = 500,
     pointerCapture = false,
   } = options;
+
+  const effectiveArmedDeadzone =
+    armedDeadzone !== undefined
+      ? armedDeadzone
+      : (typeof onArm === 'function' ? 2 : deadzone);
 
   if (!element) {
     return { destroy() {} };
@@ -1923,9 +1948,11 @@ export function createAxisLockedDrag(options = {}) {
     const payload = payloadFromEvent(event);
     if (!payload) return;
 
-    if (state.phase === 'pending') {
+    if (state.phase === 'pending' || state.phase === 'armed') {
+      const activeDeadzone =
+        state.phase === 'armed' ? effectiveArmedDeadzone : deadzone;
       const traveled = Math.hypot(payload.dx, payload.dy);
-      if (traveled < deadzone) return;
+      if (traveled < activeDeadzone) return;
 
       clearLongPress();
 
@@ -1965,7 +1992,14 @@ export function createAxisLockedDrag(options = {}) {
 
     const payload = payloadFromEvent(event);
     const longPressFired = !!state.longPressFired;
+    const wasArmed = state.phase === 'armed';
     cleanup();
+    if (wasArmed) {
+      if (typeof onArmRelease === 'function') {
+        onArmRelease(event, payload);
+      }
+      return;
+    }
     if (!longPressFired && typeof onTap === 'function') {
       onTap(event, payload);
     }
@@ -2009,10 +2043,9 @@ export function createAxisLockedDrag(options = {}) {
       }
     }
 
-    if (typeof onLongPress === 'function' && longPressMs > 0) {
+    if ((typeof onArm === 'function' || typeof onLongPress === 'function') && longPressMs > 0) {
       state.longPressTimer = setTimeout(() => {
         if (!state || state.phase !== 'pending') return;
-        state.longPressFired = true;
         const payload = {
           context: state.context,
           pointerId: state.pointerId,
@@ -2025,8 +2058,21 @@ export function createAxisLockedDrag(options = {}) {
           absDy: 0,
           phase: state.phase,
         };
-        onLongPress(event, payload);
-        cleanup();
+        if (typeof onArm === 'function') {
+          // Arm mode: transition to 'armed' phase, KEEP drag listeners alive
+          // so the user's subsequent movement still activates drag.
+          state.phase = 'armed';
+          state.longPressTimer = null;
+          payload.phase = 'armed';
+          onArm(event, payload);
+        } else {
+          // Legacy long-press mode: fire and cleanup. Used by cards whose
+          // hold-default-action is more-info (NOT light tiles per
+          // cards_reference.md).
+          state.longPressFired = true;
+          onLongPress(event, payload);
+          cleanup();
+        }
       }, longPressMs);
     }
 

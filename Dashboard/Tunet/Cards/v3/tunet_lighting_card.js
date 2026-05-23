@@ -591,7 +591,10 @@ ${CARD_SURFACE_GLASS_STROKE}
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
 
-  /* ── Sliding State (drag active) ─────────────────── */
+  /* ── Sliding State (drag active OR hold-armed) ──────────────────
+     Single class for both hold-armed and active-drag — visuals
+     are identical and the JS state machine differentiates via
+     payload.phase. See cards_reference.md Interaction Model. */
   .l-tile.sliding {
     transform: scale(var(--drag-scale));
     box-shadow: var(--shadow-up);
@@ -623,6 +626,15 @@ ${CARD_SURFACE_GLASS_STROKE}
   }
 
   .l-tile.sliding .progress-track { height: 7px; }
+
+  /* Fade tile content behind the pill so the percentage pill is the
+     unambiguous focal point during drag. Without this fade the icon
+     and zone name bleed through the pill (looks visually noisy). */
+  .l-tile.sliding .tile-icon-wrap,
+  .l-tile.sliding .zone-name {
+    opacity: 0.12;
+    transition: opacity 0.12s ease;
+  }
 
   /* ── Tile Content ────────────────────────────────── */
   .tile-icon-wrap {
@@ -1450,17 +1462,27 @@ class TunetLightingCard extends HTMLElement {
       element: this.$.lightGrid,
       deadzone: 8,
       axisBias: 1.3,
-      longPressMs: 500,
+      longPressMs: 400,
       pointerCapture: false,
       shouldStart: (event) => !!event.target.closest('.l-tile'),
-      onLongPress: (_event, payload) => {
+      onArm: (_event, payload) => {
+        // Hold reached 400ms without movement: confirm to user that drag
+        // mode is now active by adding the same .sliding visual the drag
+        // uses. JS phase ('armed' vs 'drag') is the source of truth for
+        // behavior; CSS only needs one class. More-info is intentionally
+        // NOT wired on hold for light tiles per cards_reference.md
+        // Interaction Model; other cards keep that path via onLongPress.
         const ctx = payload && payload.context;
-        if (!ctx || !ctx.entity) return;
-        this.dispatchEvent(new CustomEvent('hass-more-info', {
-          bubbles: true,
-          composed: true,
-          detail: { entityId: ctx.entity },
-        }));
+        if (ctx && ctx.tileEl) ctx.tileEl.classList.add('sliding');
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+          try { navigator.vibrate(10); } catch (_) { /* no-op */ }
+        }
+      },
+      onArmRelease: (_event, payload) => {
+        // User held + released without dragging. Clear visual; no service
+        // call (toggle is the quick-tap path).
+        const ctx = payload && payload.context;
+        if (ctx && ctx.tileEl) ctx.tileEl.classList.remove('sliding');
       },
       getContext: (event) => {
         const tileEl = event.target.closest('.l-tile');
@@ -1478,6 +1500,7 @@ class TunetLightingCard extends HTMLElement {
       onDragStart: (_event, payload) => {
         const ctx = payload && payload.context;
         if (!ctx || !ctx.tileEl) return;
+        // .sliding may already be present from onArm; add is idempotent.
         ctx.tileEl.classList.add('sliding');
         document.body.style.cursor = 'grabbing';
         if (this._config.layout === 'scroll') {

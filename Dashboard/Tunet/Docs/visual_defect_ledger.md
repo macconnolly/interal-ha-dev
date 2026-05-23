@@ -441,12 +441,11 @@ Evidence: audit-my-1440-s1.png through audit-my-1440-s8.png
 
 These reports are preserved for follow-up, but they are not part of the normalized authoritative backlog until revalidated against the current coherent build.
 
-**V-INTERACT-1: Click-and-hold to drag brightness appears universally broken**
-- User reports drag-to-dim not working on light tiles / lighting card
-- Uses `createAxisLockedDrag` from tunet_base.js L1619
-- `bindButtonActivation` (CD3) added `el.click()` on Enter/Space — could the click synthesis interfere with pointer events?
-- Need to verify: does the `click` event from `bindButtonActivation`'s keydown handler fire during pointerdown/pointermove sequences?
-- `P0`: CRITICAL if drag brightness is broken — core interaction
+**V-INTERACT-1: Click-and-hold to drag brightness appears universally broken** — **RESOLVED 2026-05-23**
+- Root cause (NOT bindButtonActivation): `tunet_lighting_card.js` and `tunet_light_tile.js` both passed `onLongPress` → `more-info` to `createAxisLockedDrag`. The long-press timer in `tunet_base.js` fired at `longPressMs: 500` IF the user was still in `pending` phase (no movement past 8px deadzone yet), dispatched more-info, and called `cleanup()` — destroying the drag state. Slow-drag-start users (common when adjusting brightness by small amounts) consistently lost the drag at the 500ms threshold.
+- Fix: `createAxisLockedDrag` now supports an `onArm` callback that transitions to a new `'armed'` phase instead of cleanup-after-fire. Armed phase keeps drag listeners alive AND uses a smaller `armedDeadzone` (defaults to 2px when `onArm` is defined) so user gets immediate drag response after the visual/haptic confirmation. Light cards migrated from `onLongPress` (more-info) to `onArm`/`onArmRelease` (add/remove `.sliding` class for the existing drag-visual). `longPressMs` set to 400ms per `cards_reference.md` Interaction Model contract. More-info on hold remains available for non-light cards via the preserved `onLongPress` path.
+- Polish: tile icon-wrap and label opacity drops to 0.12 during `.sliding` state so the percentage pill is the unambiguous focal point.
+- User-validated on iPhone Companion 2026-05-23.
 
 **V-INTERACT-2: Weather cards not displaying day/hour forecast details**
 - User reports weather forecast tiles not showing temperature/condition details

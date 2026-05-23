@@ -358,7 +358,11 @@ const TILE_CSS = `
   }
 
   /* ════════════════════════════════════════════════════
-     STATE: SLIDING (drag active)
+     STATE: SLIDING (drag active OR hold-armed)
+     Single class for both hold-armed and active-drag —
+     visuals are identical and the JS state machine
+     differentiates via payload.phase. See
+     cards_reference.md Interaction Model.
      ════════════════════════════════════════════════════ */
   .lt.sliding {
     transform: scale(var(--drag-scale));
@@ -377,6 +381,15 @@ const TILE_CSS = `
 
   .lt.sliding .progress-fill {
     transition: none;
+  }
+
+  /* Fade tile content behind the pill so the percentage pill is the
+     unambiguous focal point during drag. Without this fade the lamp
+     icon and label bleed through the pill (looks visually noisy). */
+  .lt.sliding .icon-wrap,
+  .lt.sliding .name {
+    opacity: 0.12;
+    transition: opacity 0.12s ease;
   }
 
   /* Floating pill — vertical */
@@ -784,15 +797,35 @@ class TunetLightTile extends HTMLElement {
       element: this._tile,
       deadzone: 8,
       axisBias: 1.3,
-      longPressMs: 500,
+      longPressMs: 400,
       pointerCapture: false,
       getContext: () => ({
         startBright: parseInt(this._tile.dataset.brightness, 10) || 0,
         currentBright: parseInt(this._tile.dataset.brightness, 10) || 0,
         width: Math.max(this._tile.offsetWidth, 1),
       }),
+      onArm: () => {
+        // Hold reached longPressMs without movement: confirm to user that
+        // drag mode is now active by adding the same .sliding visual the
+        // drag uses. JS phase ('armed' vs 'drag') is the source of truth
+        // for behavior; CSS only needs one class. NOTE: more-info on hold
+        // is intentionally NOT wired here — per cards_reference.md
+        // Interaction Model, light tiles use hold exclusively to enter
+        // drag mode. Other cards keep more-info-on-hold via the legacy
+        // onLongPress path in createAxisLockedDrag.
+        this._tile.classList.add('sliding');
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+          try { navigator.vibrate(10); } catch (_) { /* no-op */ }
+        }
+      },
+      onArmRelease: () => {
+        // User held + released without dragging. Clear visual; do not
+        // toggle (toggle is the quick-tap path, not the hold-release path).
+        this._tile.classList.remove('sliding');
+      },
       onDragStart: () => {
         this._isDragging = true;
+        // .sliding may already be present from onArm; add is idempotent.
         this._tile.classList.add('sliding');
       },
       onDragMove: (event, payload) => {
@@ -819,9 +852,6 @@ class TunetLightTile extends HTMLElement {
         const target = current > 0 ? 0 : 100;
         this._updateTileUI(target);
         this._callService(target);
-      },
-      onLongPress: () => {
-        this._openMoreInfo();
       },
     });
   }

@@ -166,7 +166,8 @@ Current priority:
 ## Tunet Build / Validation Shortcuts
 
 - `npm run tunet:build` — esbuild 13 cards to `Dashboard/Tunet/Cards/v3/dist/`
-- `npm run tunet:deploy:lab` — build + SCP to HA server
+- `npm run tunet:deploy:lab` — build + SCP to HA server (frontend `tunet-*-card` files)
+- `npm run tinbox:deploy:integration` — SCP the backend `custom_components/tunet_inbox` integration to HA server. The frontend (`tunet-inbox-card`) ships via `tunet:deploy:lab`; the backend ships via this script. Both must stay in sync — running only one is the source of release-path drift recorded in `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` "Known Pipeline Gaps" (TINBOX-DEPLOY-1).
 - `npm test` — vitest suite
 - Lab dashboard:
   - `http://10.0.0.21:8123/tunet-card-rehab-yaml/lab`

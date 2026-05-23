@@ -1635,15 +1635,15 @@ automation:
                   max_color_temp: "{{ final_max_k | round(0) }}"
                   transition: "{{ transition_speed }}"
 
-          # ========== OFFICE (Warm pin 2700K — desk + bed pair + corner accent) ==========
+          # ========== OFFICE (Warm pin 2700K — desk + corner accent post-bed-split 2026-05-23) ==========
           - sequence:
               - variables:
                   comfort_min_b: 30
-                  comfort_max_b: 80
+                  comfort_max_b: 100              # SYNC: AL max_brightness (Mac pref 2026-05-23, was 80)
                   env_sensitivity: 0.5
                   night_sensitivity: 0.0
                   hard_min_b: 1
-                  hard_max_b: 80
+                  hard_max_b: 100
                   min_k: 2700
                   max_k: 2700
 
@@ -1655,12 +1655,12 @@ automation:
                     {{ base_config_b + (env_with_sunset_capped * 0.5) + night_with_sensitivity }}
 
                   auto_min_raw: "{{ 30 + auto_offset_b }}"
-                  auto_max_raw: "{{ 80 + auto_offset_b }}"
+                  auto_max_raw: "{{ 100 + auto_offset_b }}"
 
                   auto_min_clamped: >
-                    {{ [30, [80, auto_min_raw] | min] | max }}
+                    {{ [30, [100, auto_min_raw] | min] | max }}
                   auto_max_clamped: >
-                    {{ [30, [80, auto_max_raw] | min] | max }}
+                    {{ [30, [100, auto_max_raw] | min] | max }}
 
                   manual_offset_b: >
                     {{ states('input_number.oal_manual_offset_office_brightness') | float(0) }}
@@ -3714,6 +3714,19 @@ automation:
                 data:
                   hs_color: [22, 100]
                   transition: 3
+
+      # Even with adapt_color OFF, AL detects our light.turn_on calls and tracks
+      # bed pair in office_bed manual_control list (perpetual due to 15min refresh
+      # cycle). Register bed pair in system-managed registry so
+      # sensor.oal_soonest_user_override filters them out of user-actionable
+      # expiry notifications (Goal 1 pattern). Idempotent via | unique filter.
+      - service: script.oal_register_system_managed_lights
+        continue_on_error: true
+        data:
+          action: add
+          lights:
+            - light.office_bed_light_left
+            - light.office_bed_light_right
 
   # ---------------------------------------------------------------------------
   # 4.4 Environmental adaptation (lux + weather + season)

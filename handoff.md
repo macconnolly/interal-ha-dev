@@ -3057,3 +3057,26 @@ at `docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md`.
 ## Session Delta (2026-05-23 ultrathink continuation — FINAL interaction architecture)
 
 If picking up cold: read `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md` FIRST. It's the authoritative merge of Doc A (interaction-spec, commit `2ce7e22`) and Doc B (harmonic-bouncing-cosmos, commit `7e67453`) per cross-review (commit `651664f`). DA-1/2/3/4 are locked with defensible defaults; Mac confirm/override flags throughout §21. Next action is Plan A execution per `tunet-foundation-cleanup-2026-05-23.md`. Mac's `/goal` directive: "Do not stop until it is perfect" — sustained execution authorized; commit frequently; live test where possible. Bubble Card 3.2.1 upgrade is the choke point; everything popup-dependent blocks on Plan A.
+
+## Session Delta (2026-05-23 ultrathink continuation — sustained execution complete state)
+
+**Plan A Phase A1 (Bubble Card 3.2.1 upgrade) is effectively DONE** — HACS list confirms v3.2.1 installed, pending_update:false. Portfolio roadmap's "3.1.1" claim was stale. Choke point removed.
+
+**v2 dashboard execution progress** (12 commits in this session):
+- LIVE-1/2/3 defects from FINAL §E all resolved at v2 scope
+- 5 per-room subviews built and rendered live (Living/Kitchen/Dining/Bedroom/Office)
+- 5 popup Open Room buttons wired (the popup-with-expand-button contract from FINAL §6)
+- Bedroom alarm-card wired with real Sonos entities (showing "Next: 09:00 · Bedroom · 2 enabled")
+- Stats page polished (fire icon + label truncation)
+- Card-CSS pass on tunet_rooms_card.js (min-width 6em + ellipsis on row labels)
+
+**Still on the docket for next session**:
+- Settings page (FINAL §10) — substantial build
+- Browser Mod → Bubble 3.2.1 alarm-edit migration (FINAL §F.2)
+- Path A proper room-scoped HA light groups (v2 currently uses explicit YAML lists as Path B)
+- Production /tunet-overview/overview rooms-first IA shift (gated on cutover D8)
+- Mac confirm/override on DA-1/2/3/4 + D1-D10
+
+**Synthetic popup invocation does NOT work via Playwright** — Bubble Card 3.2.1 popups need real ha-action-handler events. Mac's iPhone tap is the only verification path. DOM confirms popup containers are mounted (0×0 closed state) and ready. Production-mirror capture won't show popup state; user-eye-on-device required.
+
+**Cutover from /tunet-overview to /tunet-home-v2**: NOT recommended yet. v2 has more functional surface now but has not been validated through a daily-use cycle. Per C2 catastrophic risk, cutover only at Mac-initiated moments when he's awake to grade ≥30 min post-cut.

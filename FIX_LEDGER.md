@@ -3359,3 +3359,18 @@ build in progress. Scoped: see plan + visual_defect_ledger.
 ## Session Delta (2026-05-23 ultrathink continuation — FINAL interaction architecture spec + cross-review)
 
 Three docs added: `harmonic-bouncing-cosmos.md` (Doc B; commit `7e67453`), cross-review (commit `651664f`), FINAL spec (commit `0f4f17b`). FINAL spec locks 4 disagreements (DA-1/2/3/4) with Mac-overridable defaults; supersedes Doc A + Doc B for forward execution. Critical Discoveries from live Playwright captures preserved (rooms-card per-light orb DOM defect at `tunet_rooms_card.js:878/885/1100`; live popup screenshot from Mac proves the verbal contract is already implemented in suite POC on Browser Mod). Scoped: `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md`.
+
+## Session Delta (2026-05-23 ultrathink + /goal sustained execution — 12 fix commits in v2 dashboard)
+
+Live defects from FINAL §E resolved at v2 scope, deployed via `npm run tunet:deploy:dashboards:storage`:
+- **LIVE-1** per-light orbs: YAML refresh with {entity, name, icon} per light (commit `5fb362a`). DOM-verified distinct icons (table_lamp / flashlight_on / linear_scale / view_column / bed / nightlight / light) + friendly-name aria-labels.
+- **LIVE-2** row labels: YAML name shortening + card-CSS pass to .room-row-main min-width:6em + ellipsis on .room-tile-name (commits `eab7e68` + `6fc6656`). All 5 rooms show full labels at 390px.
+- **LIVE-3** light groups: audit revealed OAL groups are zone-scoped not room-scoped (main_living_lights included entryway, kitchen_island_lights only had island_pendants, bedroom_primary_lights only had master_presence). v2 subview actions switched to explicit per-room entity_id lists (commits `3c7425c` + `6d34764`).
+
+Surface assembly per FINAL §6 + §7:
+- 5 per-room subviews built (Living/Kitchen/Dining/Bedroom/Office) with lighting + actions + sensors + media (where applicable) — commits `f9b9956` + `eaec669`
+- 5 popup Open Room buttons wired with `tap_action: navigate` to corresponding subview
+- Bedroom alarm-card wired with `switch.sonos_alarm_bedroom` + `_weekend` in both subview + popup (commits `6d40844` + `9247e86`); rendering "Next: 09:00 · Bedroom · 2 enabled" with quick-action chips
+- Stats page polish (fire icon + truncation; commit `57a5957`)
+
+Scoped: `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md` §6 + §7. Visual evidence captures 14-30 in repo root.

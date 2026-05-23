@@ -3284,3 +3284,34 @@ Three documents added in one focused planning push:
 - `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md` (commit `0f4f17b`) — AUTHORITATIVE merge: locks DA-1/2/3/4 with defensible defaults Mac can override (whole-body tap for row variant + tap-region split for tile variant; long-press deprecated for row + redundant for tile; Adaptive collapsed into Stats sub-section; Weather + Lighting cards removed from Home). Uses provenance labels `[A §X]` / `[B §X]` / `[FINAL]` instead of duplicating ~1800 lines of source. Doc A + Doc B preserved as detail references.
 
 Next action: Plan A execution (Bubble Card 3.2.1 server upgrade prerequisite check per `docs/plans/tunet-foundation-cleanup-2026-05-23.md`). Scoped contract: `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md` §25.
+
+## Session Delta (2026-05-23 ultrathink continuation — sustained execution per /goal "do not stop until perfect")
+
+Plan A Phase A1 finding: Bubble Card 3.2.1 already installed on server (HACS list confirmed v3.2.1, pending_update:false). Choke point removed; portfolio roadmap's "3.1.1" claim was stale.
+
+12 commits pushed in this execution arc (post-planning):
+- `5fb362a` LIVE-1 per-light orb icons (YAML refresh with {entity,name,icon} per light × 14 lights)
+- `eab7e68` LIVE-2 row labels (YAML name shortening Living/Dining; removed redundant temperature_entity)
+- `f9b9956` Living Room subview + Open Room popup button
+- `eaec669` 4 more subviews + Open Room buttons (Kitchen/Dining/Bedroom/Office)
+- `57a5957` Stats page polish (icon: fire → local_fire_department; HVAC Rollups labels)
+- `6fc6656` Card-CSS row width fix (tunet_rooms_card.js: min-width 6em + ellipsis on .room-tile-name; built via `npm run tunet:build` + deployed via `tunet:deploy:lab`)
+- `3c7425c` + `6d34764` LIVE-3 light groups (audit found OAL groups are zone-scoped not room-scoped; v2 subview actions switched to explicit per-room entity_id lists; indent fix follow-up)
+- `6d40844` + `9247e86` bedroom alarm-card wired in subview + popup (switch.sonos_alarm_bedroom + _weekend)
+- `9fc1429` visual evidence captures
+
+Mac iterated via HA push notifications (notify.tunet_inbox_all_devices) at each milestone with deep-link actions. Sustained execution per /goal directive.
+
+v2 dashboard status after this run:
+- Home page: actions + scenes + status home_summary + rooms-card (row variant with distinct semantic per-light orbs + full labels at 390px) + climate/weather + Stats info row + media mini + inbox
+- 5 room subviews (Living/Kitchen/Dining/Bedroom/Office) reachable from popup Open Room buttons
+- Stats page polished (HVAC + Electricity + sparklines)
+- Bedroom alarm-card functional ("Next: 09:00 · Bedroom · 2 enabled")
+- All visible defects from FINAL §E (LIVE-1/2/3) resolved at v2 scope
+
+Deferred for future tranches:
+- Settings page (FINAL §10) not yet built
+- Browser Mod → Bubble 3.2.1 alarm-edit migration (FINAL §F.2)
+- Path A proper room-scoped HA light groups (currently using explicit YAML lists as Path B workaround)
+- Production /tunet-overview/overview rooms-first IA shift (gated on cutover decision D8)
+- DA-1 through DA-4 still locked with defensible defaults; Mac confirm/override pending

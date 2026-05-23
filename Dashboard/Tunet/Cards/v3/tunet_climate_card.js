@@ -475,6 +475,27 @@ ${CARD_SURFACE_GLASS_STROKE}
     z-index: 2; position: relative;
     transition: box-shadow .15s;
   }
+  /* T0.8: setpoint label floats above the thumb (Mac feedback: move H/C out
+   * of the header pill onto the slider). Color-matches the thumb stroke. */
+  .thumb-label {
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    background: var(--card-bg, var(--ctrl-bg));
+    padding: 2px 5px;
+    border-radius: 6px;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 4;
+  }
+  .thumb.heat .thumb-label { color: var(--amber); }
+  .thumb.cool .thumb-label { color: var(--blue); }
   @media (hover: hover) {
     .thumb:hover .thumb-disc { box-shadow: var(--thumb-sh-a); }
   }
@@ -649,11 +670,13 @@ const TEMPLATE = `
             <div class="thumb-stroke"></div>
             <div class="thumb-disc"></div>
             <div class="thumb-dot"></div>
+            <span class="thumb-label" id="tHLabel">--&deg;</span>
           </div>
           <div class="thumb cool" id="tC" role="slider" aria-label="Cool setpoint" aria-valuemin="50" aria-valuemax="90" aria-valuenow="76" aria-valuetext="Cool setpoint: 76 degrees" tabindex="0">
             <div class="thumb-stroke"></div>
             <div class="thumb-disc"></div>
             <div class="thumb-dot"></div>
+            <span class="thumb-label" id="tCLabel">--&deg;</span>
           </div>
           <div class="cur-marker" id="curMark">
             <div class="cur-arrow"></div>
@@ -875,7 +898,7 @@ class TunetClimateCard extends HTMLElement {
       'card', 'hdrTile', 'hdrIcon', 'hdrIconEl', 'cardTitle', 'hdrSub', 'fanBtn', 'fanIconEl',
       'modeBtn', 'modeLbl', 'modeIcon', 'modeMenu', 'ecoOpt', 'ecoCheck',
       'curTemp', 'heatR', 'coolR', 'tRight',
-      'slider', 'fillH', 'fillC', 'db', 'tH', 'tC', 'curMark', 'curLbl',
+      'slider', 'fillH', 'fillC', 'db', 'tH', 'tC', 'tHLabel', 'tCLabel', 'curMark', 'curLbl',
       'sMin', 'sMid', 'sMidMark', 'sMax',
     ];
     ids.forEach(id => {
@@ -1152,11 +1175,11 @@ class TunetClimateCard extends HTMLElement {
     let parts = [];
 
     if (this._config.variant === 'thin') {
-      const thinTemps = [];
-      if (s.cur != null) thinTemps.push(`${s.cur}° in`);
-      if (s.heat != null && s.mode !== 'cool' && s.mode !== 'off') thinTemps.push(`H ${s.heat}°`);
-      if (s.cool != null && s.mode !== 'heat' && s.mode !== 'off') thinTemps.push(`C ${s.cool}°`);
-      if (thinTemps.length) parts.push(thinTemps.join(' · '));
+      // T0.8: H/C setpoints moved to thumb labels on the slider per Mac
+      // feedback "add the current set point temp for heat and cool somewhere
+      // in the slider, and remove it from the title". Header now shows just
+      // current indoor temp + humidity + action.
+      if (s.cur != null) parts.push(`${s.cur}° in`);
     }
 
     // Humidity
@@ -1207,6 +1230,10 @@ class TunetClimateCard extends HTMLElement {
       $.tH.style.left = hpx + 'px';
       $.fillH.style.width = hpx + 'px';
 
+      // T0.8: setpoint label above thumb (Mac feedback: move H/C out of header
+      // pill, put it on the slider where it's actionable)
+      if ($.tHLabel) $.tHLabel.textContent = `${s.heat}°`;
+
       // ARIA
       $.tH.setAttribute('aria-valuenow', s.heat);
       $.tH.setAttribute('aria-valuemin', s.minTemp);
@@ -1219,6 +1246,9 @@ class TunetClimateCard extends HTMLElement {
       const cpx = this._p2px(cp);
       $.tC.style.left = cpx + 'px';
       $.fillC.style.width = (w - cpx) + 'px';
+
+      // T0.8: setpoint label above thumb
+      if ($.tCLabel) $.tCLabel.textContent = `${s.cool}°`;
 
       // ARIA
       $.tC.setAttribute('aria-valuenow', s.cool);

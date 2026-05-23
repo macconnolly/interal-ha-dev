@@ -485,9 +485,11 @@ ${CARD_SURFACE_GLASS_STROKE}
       box-shadow: var(--shadow-up);
     }
   }
-  .l-tile:active {
-    transform: scale(var(--press-scale-strong));
-  }
+  /* T0.8: removed press-scale shrink per Mac feedback "on the lighting room grid
+   * does the same" (when grabbing a tile it shrinks). Active state still gets
+   * background-color feedback via .l-tile.on / hover variants, so press is
+   * communicated without the visual scale. Parallel to the rooms-card fix in T0.7. */
+  .l-tile:active { transform: none; }
 
   /* Compact tile variant */
   :host(:not([use-profiles])[tile-size="compact"]) .l-tile {

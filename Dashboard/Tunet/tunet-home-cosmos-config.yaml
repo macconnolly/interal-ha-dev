@@ -212,10 +212,10 @@ views:
         lights:
         - entity: light.kitchen_island_pendants
           name: Island
-          icon: light
+          icon: wb_incandescent
         - entity: light.kitchen_main_lights
           name: Main
-          icon: light_group
+          icon: light
         - entity: light.kitchen_counter_cabinet_underlights
           name: Under
           icon: linear_scale

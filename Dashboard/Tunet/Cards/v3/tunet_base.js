@@ -1873,6 +1873,12 @@ export function createAxisLockedDrag(options = {}) {
     axisBias = 1.3,
     longPressMs = 500,
     pointerCapture = false,
+    // T1.5c: when true, post-arm movement skips the axis check and locks
+    // straight to drag (treated as horizontal). The hold gesture already
+    // expressed intent to drag, so ambiguous diagonal movement should drag
+    // rather than cancel. Used by the lighting card brightness drag where
+    // vertical drift during a brightness slide should be ignored.
+    armedLockHorizontal = false,
   } = options;
 
   const effectiveArmedDeadzone =
@@ -1961,19 +1967,32 @@ export function createAxisLockedDrag(options = {}) {
 
       clearLongPress();
 
-      if (payload.absDy > payload.absDx * axisBias) {
-        cleanup();
-        return;
-      }
-
-      if (payload.absDx >= payload.absDy * axisBias) {
+      // T1.5c: if armedLockHorizontal is set and we're in armed phase
+      // (user already held to express drag intent), skip the axis check
+      // and go straight to drag. Any movement — even diagonal — locks to
+      // horizontal drag rather than cancelling on ambiguous direction.
+      // Pending-phase axis check still applies so quick non-hold drags
+      // remain disambiguated from page scrolls.
+      if (state.phase === 'armed' && armedLockHorizontal) {
         state.phase = 'drag';
         if (typeof onDragStart === 'function') {
           onDragStart(event, { ...payload, phase: 'drag' });
         }
       } else {
-        cleanup();
-        return;
+        if (payload.absDy > payload.absDx * axisBias) {
+          cleanup();
+          return;
+        }
+
+        if (payload.absDx >= payload.absDy * axisBias) {
+          state.phase = 'drag';
+          if (typeof onDragStart === 'function') {
+            onDragStart(event, { ...payload, phase: 'drag' });
+          }
+        } else {
+          cleanup();
+          return;
+        }
       }
     }
 

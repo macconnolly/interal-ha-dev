@@ -1503,6 +1503,10 @@ class TunetLightingCard extends HTMLElement {
       axisBias: 1.3,
       longPressMs: 400,
       pointerCapture: false,
+      // T1.5c: once hold has armed the drag, ignore vertical drift —
+      // any movement locks to horizontal brightness drag. Resolves Mac's
+      // "stops dragging if any up down is applied while going left right".
+      armedLockHorizontal: true,
       shouldStart: (event) => !!event.target.closest('.l-tile'),
       onArm: (_event, payload) => {
         // Hold reached 400ms without movement: confirm to user that drag

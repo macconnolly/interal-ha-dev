@@ -7,11 +7,16 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { parse as parseYaml } from 'yaml';
 import {
   TUNET_CARD_ALIASES,
   TUNET_CARD_SOURCE_PATHS,
   TUNET_CARD_TAGS,
 } from './tunet_card_registry.mjs';
+import {
+  TUNET_DASHBOARD_REGISTRY,
+  TUNET_DASHBOARD_PRODUCTION_URL_PATHS,
+} from './tunet_dashboard_registry.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -96,8 +101,49 @@ const ROUTE_SETS = {
   ],
 };
 
+// Production routes are NOT hardcoded — they are derived at runtime from the
+// dashboard registry's production-flagged entries by parsing each dashboard's
+// YAML source and enumerating its views. This means new views added to
+// tunet-suite-config.yaml (or future production-flagged dashboards) get
+// captured automatically without touching this file.
+export function buildProductionRouteSet() {
+  const routes = [];
+  for (const entry of TUNET_DASHBOARD_REGISTRY) {
+    if (!entry.production) continue;
+    if (!fs.existsSync(entry.source)) continue;
+    let parsed;
+    try {
+      parsed = parseYaml(fs.readFileSync(entry.source, 'utf8'));
+    } catch {
+      continue;
+    }
+    const views = Array.isArray(parsed?.views) ? parsed.views : [];
+    for (const view of views) {
+      const viewPath = view?.path;
+      if (!viewPath || typeof viewPath !== 'string') continue;
+      routes.push({
+        id: `${entry.url_path}--${viewPath}`,
+        path: `/${entry.url_path}/${viewPath}`,
+        dashboard: entry.url_path,
+      });
+    }
+  }
+  return routes;
+}
+
+const VALID_TARGETS = ['lab', 'production', 'both'];
+
 const THEMES = ['dark', 'light'];
 const ANY_CARD_SELECTOR = ALL_CARD_TAGS.join(', ');
+// Production yaml dashboards (e.g. tunet-suite-config.yaml) place
+// tunet-nav-card as the FIRST card in each view (it is chrome, not
+// content). Playwright's `.first().waitFor({ state: 'visible' })` hangs
+// when the first match is a chrome element that may not register as
+// visible (sticky/zero-height/etc.). The render-readiness check excludes
+// nav-card so it waits for a visible content card instead.
+const ANY_CONTENT_CARD_SELECTOR = ALL_CARD_TAGS
+  .filter((tag) => tag !== 'tunet-nav-card')
+  .join(', ');
 const STATUS_REQUIRED_VARIANTS = ['home_summary', 'home_detail', 'alarms', 'room_row', 'info_only', 'custom'];
 
 function readDotEnv(filePath = ENV_PATH) {
@@ -161,7 +207,16 @@ Usage:
   node Dashboard/Tunet/scripts/tunet_playwright_review.mjs [options]
 
 Options:
-  --surface <rehab|storage|all>   Route family to review (default: rehab)
+  --target <lab|production|both>  Capture context (default: lab)
+                                  lab        -> rehab dashboard via --surface
+                                  production -> routes derived from the
+                                                dashboard registry's
+                                                production: true entries
+                                                (live user-facing surface)
+                                  both       -> lab AND production, manifest
+                                                groups captures by target
+  --surface <rehab|storage|all>   Route family for lab target (default: rehab).
+                                  Ignored when --target=production.
   --view <id[,id...]>             Specific route ids to review
   --cd <CD7[,CD9...]>             Filter cards by owning consistency-driver tranche
   --card <tag|alias[,more]>       Filter cards directly (e.g. rooms, tunet-rooms-card)
@@ -181,6 +236,7 @@ Options:
 
 function parseArgs(argv) {
   const options = {
+    target: 'lab',
     surface: 'rehab',
     views: [],
     cds: [],
@@ -200,7 +256,13 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const next = argv[i + 1];
-    if (arg === '--surface' && next) {
+    if (arg === '--target' && next) {
+      if (!VALID_TARGETS.includes(next)) {
+        throw new Error(`Invalid --target "${next}". Expected ${VALID_TARGETS.join('|')}.`);
+      }
+      options.target = next;
+      i += 1;
+    } else if (arg === '--surface' && next) {
       options.surface = next;
       i += 1;
     } else if (arg === '--view' && next) {
@@ -357,32 +419,60 @@ function resolveChangedCardContext() {
 }
 
 function resolveRoutes(options) {
-  const selectedSets = options.surface === 'all' ? ['rehab', 'storage'] : [options.surface];
   const routes = [];
-  for (const setName of selectedSets) {
-    const setRoutes = ROUTE_SETS[setName];
-    if (!setRoutes) throw new Error(`Unknown surface selection: ${setName}`);
-    for (const route of setRoutes) {
+
+  // Lab target: existing --surface-driven rehab/storage route sets.
+  const includeLab = options.target === 'lab' || options.target === 'both';
+  if (includeLab) {
+    const selectedSets = options.surface === 'all' ? ['rehab', 'storage'] : [options.surface];
+    for (const setName of selectedSets) {
+      const setRoutes = ROUTE_SETS[setName];
+      if (!setRoutes) throw new Error(`Unknown surface selection: ${setName}`);
+      for (const route of setRoutes) {
+        if (!options.views.length || options.views.includes(route.id)) {
+          routes.push({ ...route, surface: setName, target: 'lab' });
+        }
+      }
+    }
+  }
+
+  // Production target: routes derived at runtime from the dashboard
+  // registry's production: true entries. Production-mirror capture closes
+  // the page-vs-production gap recorded in tunet_build_and_deploy.md §
+  // Known Pipeline Gaps. An "approved" lab capture is no evidence of
+  // production-context correctness without these routes.
+  const includeProduction = options.target === 'production' || options.target === 'both';
+  if (includeProduction) {
+    const productionRoutes = buildProductionRouteSet();
+    if (productionRoutes.length === 0 && TUNET_DASHBOARD_PRODUCTION_URL_PATHS.length > 0) {
+      throw new Error(
+        `--target ${options.target} but no production routes resolved. Check that production-flagged registry entries (${TUNET_DASHBOARD_PRODUCTION_URL_PATHS.join(', ')}) have parseable YAML with views[].path.`
+      );
+    }
+    for (const route of productionRoutes) {
       if (!options.views.length || options.views.includes(route.id)) {
-        routes.push({ ...route, surface: setName });
+        routes.push({ ...route, surface: 'production', target: 'production' });
       }
     }
   }
 
   if (options.smoke && !options.views.length) {
-    const firstBySurface = [];
+    // Smoke pass: first route per (target, surface) pair to keep the smoke
+    // capture meaningful in --target both mode.
+    const firstByGroup = [];
     const seen = new Set();
     for (const route of routes) {
-      if (!seen.has(route.surface)) {
-        firstBySurface.push(route);
-        seen.add(route.surface);
+      const key = `${route.target}:${route.surface}`;
+      if (!seen.has(key)) {
+        firstByGroup.push(route);
+        seen.add(key);
       }
     }
-    return firstBySurface;
+    return firstByGroup;
   }
 
   if (!routes.length) {
-    throw new Error('No routes matched the current --surface/--view selection.');
+    throw new Error('No routes matched the current --target/--surface/--view selection.');
   }
 
   return routes;
@@ -493,7 +583,10 @@ async function loginIfNeeded(page, targetUrl, credentials) {
 async function waitForCards(page) {
   await page.waitForLoadState('networkidle').catch(() => {});
   try {
-    await page.locator(ANY_CARD_SELECTOR).first().waitFor({ state: 'visible', timeout: 30000 });
+    // Wait for a visible CONTENT card (excludes nav-card chrome — see comment
+    // by ANY_CONTENT_CARD_SELECTOR). This unblocks production yaml dashboards
+    // where nav-card is the DOM-first match in each view.
+    await page.locator(ANY_CONTENT_CARD_SELECTOR).first().waitFor({ state: 'visible', timeout: 30000 });
   } catch (error) {
     const currentUrl = page.url();
     const loginVisible = await page
@@ -1039,7 +1132,10 @@ async function captureCards(page, selectedCards, outputRoot) {
 }
 
 async function captureRoute(page, route, selectedCards, reviewRoot, options = {}) {
-  const routeRoot = path.join(reviewRoot, route.surface, route.id);
+  // Manifest groups captures by target (lab vs production) then surface
+  // then route id so same-card-different-context comparison is direct.
+  const target = route.target || 'lab';
+  const routeRoot = path.join(reviewRoot, target, route.surface, route.id);
   ensureDir(routeRoot);
 
   const currentUrl = page.url();
@@ -1052,10 +1148,12 @@ async function captureRoute(page, route, selectedCards, reviewRoot, options = {}
   await page.waitForTimeout(300);
 
   const routeResult = {
+    target,
     surface: route.surface,
     routeId: route.id,
     path: route.path,
     url: route.url,
+    dashboard: route.dashboard || null,
     fullPageScreenshot: capturePath(routeRoot, 'full-page.png'),
     cardCaptures: [],
     pageErrors: [],
@@ -1120,7 +1218,7 @@ async function main() {
   };
 
   console.log(`Tunet review output: ${runRoot}`);
-  console.log(`Routes: ${routes.map((route) => `${route.surface}/${route.id}`).join(', ')}`);
+  console.log(`Routes: ${routes.map((route) => `${route.target}/${route.surface}/${route.id}`).join(', ')}`);
   console.log(`Cards: ${selectedCards.join(', ')}`);
   if (options.changedCardContext) {
     console.log(`Changed-card paths: ${options.changedCardContext.paths.length}`);
@@ -1179,7 +1277,7 @@ async function main() {
             reviewManifest.failures.push({
               breakpoint: breakpoint.id,
               theme,
-              route: `${route.surface}/${route.id}`,
+              route: `${route.target}/${route.surface}/${route.id}`,
               failures: [...routeResult.failures, ...routeResult.warnings],
             });
           }
@@ -1218,7 +1316,11 @@ async function main() {
   console.log('Review completed without harness-detected failures.');
 }
 
-main().catch((error) => {
-  console.error(error.stack || error.message || String(error));
-  process.exit(1);
-});
+const isCli =
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
+if (isCli) {
+  main().catch((error) => {
+    console.error(error.stack || error.message || String(error));
+    process.exit(1);
+  });
+}

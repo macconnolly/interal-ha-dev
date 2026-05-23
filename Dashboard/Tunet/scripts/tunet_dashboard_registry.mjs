@@ -89,9 +89,9 @@ export const TUNET_DASHBOARD_REGISTRY = Object.freeze([
     source: 'Dashboard/Tunet/tunet-home-v2-config.yaml',
     mode: 'storage',
     url_path: 'tunet-home-v2',
-    production: false,
+    production: true,
     description:
-      'Tunet Home v2 — net-new production-target candidate built 2026-05-23 (Plan F). Sections grid + Bubble Card 3.2.1 popups for rooms + media + OAL. Per-card interaction contract locked in the YAML header. Parallel-run with tunet-overview until Mac approves cutover; then flip production:true here and production:false on tunet-overview.',
+      "Tunet Home v2 — production parallel-run candidate (D8 default per FINAL spec). Sections grid + Bubble Card 3.2.1 popups for rooms + media + OAL. Per-card interaction contract locked in the YAML header. Set production:true 2026-05-23 to enable visual review production-mirror coverage during parallel-run. Cutover from tunet-overview requires Mac's explicit M3 stamp + Mac-awake-to-grade window; then flip production:false on tunet-overview.",
   },
 ]);
 

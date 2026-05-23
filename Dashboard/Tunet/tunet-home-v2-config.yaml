@@ -955,12 +955,11 @@ views:
         icon: bolt
         accent: green
         unit: kWh
-- title: Adaptive
-  path: adaptive
-  icon: mdi:tune
-  type: sections
-  max_columns: 4
-  sections:
+  # ── DA-3 LOCK (FINAL spec §0): Adaptive collapsed into Stats as sub-sections ──
+  # The standalone /tunet-home-v2/adaptive view was removed 2026-05-23 per DA-3.
+  # Its 3 sections (OAL System + Zone Baselines + Mode Time Today) now live
+  # at the bottom of /tunet-home-v2/stats. Single 4-item nav (Home/Rooms/Media/
+  # Stats) — Adaptive accessible via Stats anchored sub-section.
   - type: grid
     column_span: 4
     cards:

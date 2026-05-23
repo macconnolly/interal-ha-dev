@@ -115,6 +115,38 @@ Implementation is deferred by user direction. These are planning items, not ship
 - Deploy credential handling needs hardening before scripted deploys are treated as routine release infrastructure: no literal password fallback and no SSH password exposure through command argv. Full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` row `TINBOX-DEPLOY-2`.
 - Current tests should be treated as smoke until failure-first coverage exists for registry drift and deploy pipeline behavior. Full contract: `custom_components/tunet_inbox/Docs/execution_ledger.md` row `TINBOX-TEST-4`.
 
+### Dashboard deploy gap (added 2026-05-22): yaml + storage mode pipeline missing
+
+Card JS deploys automatically (`tunet:deploy:lab` → SCP to `/config/www/tunet/v3/`). Dashboard YAML files do NOT deploy — there is no script that SCPs `Dashboard/Tunet/*.yaml` to `/config/dashboards/*.yaml` or pushes to HA's storage layer. Result: repo dashboard composition can diverge silently from live HA, and Playwright visual review of the live `/tunet-card-rehab-yaml/lab` or `/tunet-suite/overview` can show stale composition that doesn't match repo edits.
+
+User direction (2026-05-22): both yaml-mode and storage-mode dashboards should be available paths, picked per dashboard. Current native yaml-mode is reliable and stays for `tunet-suite`, `tunet-card-rehab-yaml`, `tunet-inbox-yaml`. Storage-mode is the future path for the eventual `/tunet-home` dashboard (page-architecture sub-plan) so HA's UI editor remains functional. Trade-off for storage mode: UI edits between deploys are overwritten on next push; source-of-truth contract must be documented before the storage-mode dashboard is built.
+
+The next bounded β-plumbing tranche should:
+
+1. Add `Dashboard/Tunet/scripts/tunet_dashboard_registry.mjs` analogous to `tunet_card_registry.mjs`, declaring each dashboard's source file, mode (`yaml`/`storage`), target path (yaml-mode) or url_path (storage-mode).
+2. Add `Dashboard/Tunet/scripts/deploy_tunet_dashboards.mjs` that reads the registry and dispatches: `yaml` mode → SCP to target, `storage` mode → HA WebSocket `lovelace/config/save` call using the same auth pattern as `update_tunet_v3_resources.mjs` (`HA_LONG_LIVED_ACCESS_TOKEN` from `.env`).
+3. Wire `npm run tunet:deploy:dashboards` and keep it separate from `tunet:deploy:lab` (independent scopes, easier partial-failure recovery; dashboards change less often than cards).
+4. Add `Dashboard/Tunet/Cards/v3/tests/dashboard_registry_contract.test.js` as failure-first regression guard (analogous to `card_registry_contract.test.js`): every source file exists, every YAML parses, every url_path matches HA's expected dashboard registration, both consumers (yaml SCP path + storage WS push path) are wired.
+
+### Visual review page-vs-production gap (added 2026-05-22)
+
+Playwright currently reviews `/tunet-card-rehab-yaml/lab` (the rehab lab dashboard). Mac uses the production view (`/tunet-suite/overview` today, eventually `/tunet-home` per the page-architecture sub-plan). Different composition, different state. An "approved" lab capture is no evidence the card behaves correctly in production composition.
+
+Coupled to the dashboard registry above: the visual review harness must add a production-mirror capture mode that runs against the live user-facing dashboard, not just the lab. The dashboard registry's `url_path` field provides the production view targets to capture.
+
+### Visual review harness grading authority (added 2026-05-22)
+
+Separate from the dashboard gap, the existing `tunet_playwright_review.mjs` grades its own captures with mechanical probe rules (no overflow, no blank, no clipping). The harness can pass on visibly broken cards (black play button on white, fixed-height popup with empty space, generic titles) because the probe rules don't ask "would Mac be happy." This is the failure mode named in `~/.claude/projects/-home-mac-HA-implementation-10/memory/session_arc_popup_b_to_frame.md`.
+
+Fix scope (bounded β-plumbing tranche, separate from but ordered before any UI tranche):
+
+1. Strip pass/fail verdicts from the harness. Output is "captured N screenshots at M breakpoints, manifest at X" — no judgment.
+2. Add `--share-with-user` mode that calls `SendUserFile(proactive)` for each capture so screenshots reach Mac's iPhone for actual-device review.
+3. Use MCP browser tools (`browser_take_screenshot`) as the agent-iteration path so screenshots return as inline image content the agent must see.
+4. Patch M1 in root `CLAUDE.md` and `Dashboard/Tunet/AGENTS.md` §6A to forbid "harness passed" evidence; only inline images + user confirmation count.
+
+Required reading before touching this work: `~/.claude/projects/-home-mac-HA-implementation-10/memory/session_arc_popup_b_to_frame.md` (the WHY).
+
 ## Watch Mode
 
 ```bash

@@ -21,6 +21,7 @@ Tranche marker: β-plumbing fix, not PA surface composition. This pass fixes the
 - `BACKLOG FILED, NOT FIXED IN THIS PASS`
   - Cross-card markup/test hardening remains open: several cards still interpolate config/entity strings through `innerHTML` paths. A later tranche should add a shared escaping/text-node policy, failure-first tests, and then migrate cards in small batches.
   - Required future test coverage: unescaped config/entity text, async subscription teardown, alarm pointer slide-off/capture, debounce flush/cancel, selected-target/coordinator divergence, and build/resource registry drift.
+  - Dashboard deploy supporting both yaml + storage modes, and visual review page-vs-production gap → full contract in `Dashboard/Tunet/Docs/tunet_build_and_deploy.md` § Known Pipeline Gaps.
 - `WHY NOT FIX MARKUP NOW`
   - A safe sanitizer migration touches many user-visible render paths across card families. It should be a bounded δ-polish/β-hardening tranche with screenshots and failure-first tests, not an incidental sweep inside the registry patch.
 

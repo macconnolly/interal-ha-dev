@@ -5,6 +5,7 @@ Last updated: 2026-05-23
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
 **Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α foundation / β plumbing / γ surfaces / δ polish); page-architecture sub-plan explicitly deferred to a focused future agent. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` for the principle.
+**Active OAL sub-plan (2026-05-22)**: `~/.claude/plans/office-corner-accent-relocation.md` — 8-phase executable plan covering (a) corner-accent physical relocation master→office, (b) corner-accent adoption into `column_lights` AL for sunrise/sunset/curve behavior, (c) new office AL switch (`light.office_desk_lamp` + `light.office_bed_light_left` + `light.office_bed_light_right`), (d) bed-pair warm-pin, (e) master-side swap (`light.master_bedroom_corner_accent_govee` → `light.master_bedroom_column_accent` across group + AL + presence_pause + brightness-watch + 3 template-light scripts). Run phase by phase via `/claude-mem:do ~/.claude/plans/office-corner-accent-relocation.md` (Phase 0 already complete; start at Phase 1). Resolves Q-O2 from 2026-05-08 evening delta and `FIX_LEDGER.md:46` open note.
 Current tranche: **CD11 — Status Multi-Mode Design and Runtime Pass — CLOSED 2026-05-05** (narrow, status-only redesign/runtime pass; `CD10` nav verify is intentionally deferred until room/surface composition is more settled; next tranche by root-plan order is `CD12` surface assembly, but it remains parked pending the page-architecture sub-plan approval)
 Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, media/sonos dropdown parity, visible speaker-tile semantics, speaker-grid phone fallback, compact naming, volume drag guard, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather phone-density redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
 
@@ -47,6 +48,66 @@ Tranche marker: no active Tunet tranche changes. PA01 (Bug A double-corner fix, 
   - otherwise add failure-first tests for the top findings before making behavior changes
 
 (Reference for evidence reconciliation: the 5 confirmed / 4 refuted screenshot artifact was reconciled against the worktree code. The 4 OCR-only refutations — `Map` iteration on alarm card, `holdMap`, hold-timer freeze, `TouchscreenHelper` — did not reproduce in code and are not carried forward.)
+
+## Session Delta (2026-05-22 evening, OAL office area cleanup backlog — Q-O2 resolved + corner accent relocated master→office + adopted into column RGB AL ownership)
+
+Tranche marker: documentation-only backlog capture. Resolves the open carry-over **Q-O2 (office light IDs)** from the 2026-05-08 evening delta and the standing `FIX_LEDGER.md:32` note ("Office light entities: only `light.office_desk_lamp` confirmed; Mac said 4 lights exist, will share IDs"). No code shipped; this delta files the work into the backlog to be promoted into the OAL/PA05 (Kitchen + Office subviews) tranche or into a dedicated entity-relocation tranche.
+
+Provenance: user messages 2026-05-22 evening following the ultra-review validation pass (separate worktree: `tunet/inbox-integration`). The four entity IDs are user-asserted; the bed light pair (`left` + `right`) was confirmed by the user after I flagged a typo. The corner accent's **physical move from master bedroom to office is definitive** ("the light physically moved" — user 2026-05-22 evening) — it leaves master configs entirely and lands in office. **AL ownership** for the corner accent goes to the existing `column_lights` AL (not a new office AL) because the user requested "same column sunrise, sunset, and curve related logic as the living room columns" — meaning the accent should behave color-wise as a third column light. The new office AL therefore contains only desk_lamp + bed pair.
+
+- `Q-O2 RESOLVED — full office area light inventory`
+  - `light.office_desk_lamp` — already in OAL config (`packages/oal_lighting_control_package.yaml:21,56,631,3389,3394,3401,5646`); confirmed standalone, becomes member of the new office AL
+  - `light.office_bed_light_left` — **new entity, no repo references yet** (`grep -rln office_bed_light /home/mac/HA/implementation_10/` returns 0). Office AL member. Color pinned warmest.
+  - `light.office_bed_light_right` — **new entity, no repo references yet**. Office AL member. Color pinned warmest.
+  - `light.master_bedroom_corner_accent_govee` — physically moved to the office. Removed from all master configs. **AL ownership goes to `column_lights` AL** (not office AL) so it inherits sunrise/sunset/curve behavior from the column RGB system. Will appear in office light *groups* for tap-control purposes, but color/brightness adaptation is driven by `column_lights` AL.
+- `MASTER BEDROOM CONFIGS — remove corner accent (relocation)`
+  - `bedroom_primary_lights` group (`packages/oal_lighting_control_package.yaml:34-37`) — drop accent. Group becomes 1-entity (`light.master_presence` only). **Open question:** retire the now-1-entity group OR keep it as a passthrough? Recommend retiring and rewriting consumers to reference `light.master_presence` directly, BUT defer the consumer-rewrite to a later tranche if the cascade is large
+  - `bedroom_primary` AL config (`packages/oal_lighting_control_package.yaml:689-699`) — drop accent from `lights:`. Becomes 1-light AL switch — same retirement question as above
+  - `presence_pause` mega-group (lines 60-69) — drop accent. Group goes from 10 to 9 entities
+  - Template-light renderer scripts (lines 9457, 9477, 9488) — drop accent from the `lights = [...]` iteration list
+  - Brightness-watch trigger (lines 6181-6184) — drop accent from the `entity_id:` list
+  - **Dashboard YAMLs** — every bedroom-view reference to the accent is now stale and must be removed: `tunet-overview-config.yaml:339`, `tunet-suite-config.yaml:887,1385,1622,1858`, `tunet-card-rehab-lab.yaml:591,725,761,853,3093` plus the worktree parallels (`tunet-overview-config.yaml`, `tunet-suite-storage-config.yaml` x3, `tunet-card-rehab-lab.yaml` x4, `tunet-v2-test-config.yaml`, `test_harness.html`). The accent should appear in the OFFICE views of these dashboards instead
+  - HA-side: change the entity's `Area` to Office in Settings → Devices. Recommend keeping the entity_id (`light.master_bedroom_corner_accent_govee`) unchanged — Govee Matter entities are fragile to rename, and changing the ID would multiply the file-touch count. Friendly name can be edited in HA UI to "Office Corner Accent" without affecting the entity_id
+- `OFFICE EXTENSION — new groups + new office AL switch (without accent)`
+  - New office light groups (recommend new file `packages/office_lights_group.yaml` to keep raw fixtures out of `oal_lighting_control_package.yaml`):
+    - `light.office_bed_lights` (group) containing `light.office_bed_light_left` + `light.office_bed_light_right`
+    - Optional `light.office_all` containing `light.office_desk_lamp` + `light.office_bed_lights` + `light.master_bedroom_corner_accent_govee` — note the accent appears in this GROUP for tap-control even though its AL ownership is elsewhere
+  - **New office AL switch** — none exists today (`grep -rln "adaptive_lighting.*office" packages/` returned 0). Create:
+    - `name: "office"`
+    - `lights: [light.office_desk_lamp, light.office_bed_light_left, light.office_bed_light_right]` — **corner accent NOT in this list; it's in `column_lights` AL**
+    - Use `bedroom_primary` (lines 689-699) as the template; pick sensible defaults for `interval`, `transition`, `take_over_control`
+- `COLUMN RGB SYSTEM EXTENSION — adopt corner accent as 3rd participant (5 touchpoints)`
+  - The column RGB sunrise/sunset/curve logic is a non-trivial protected system documented in `docs/column_lights_rgb_full_coverage_plan.md` (23kb, 7 BUG-IDs BUG-01 through BUG-07) and its companion runbooks (`docs/column_rgb_*.md`). The 2 current participants are `light.living_column_strip_light_matter` and `light.dining_column_strip_light_matter`. Adopting `light.master_bedroom_corner_accent_govee` as a 3rd participant requires updating ALL of:
+    1. **Column Lights group** (`packages/oal_lighting_control_package.yaml:127-131`) — add the accent to the 2-entity group, making it 3
+    2. **`column_lights` AL block** (lines 756-766) — add the accent to the `lights:` list. Inherits `take_over_control: true`, `detect_non_ha_changes: true`, `interval: 90`. **This becomes the accent's sole AL ownership** — no multi-AL conflict because it left bedroom_primary AL above
+    3. **Sunrise/sunset RGB transition logic** (lines 1867-2041) — the `column_light_entities` list at lines 1867-1869 is hardcoded to the 2 column lights; add the accent so the `rgb_color: [255, "{{ column_rgb_green }}", 0]` action at line 2021 applies to it too. Same for the brightness-to-5% step at line 2031 and the `manual_control: true` set at line 2040
+    4. **Manual-control protection checks** (lines 2491-2552) — `dbg_columns_on`, `dbg_manual_list`, `dbg_manual_empty`, `dbg_startup_eligible`, value_template at line 2543 — all hardcoded references to the 2 column light entity_ids. Each needs the accent added to the "is on" / "is in manual_control" check
+    5. **Sleep-mode AL switch** (`switch.adaptive_lighting_sleep_mode_column_lights` at line 153) — implicitly applies to anything in the `column_lights` AL block, so this is auto-covered by step 2; flagged here so it isn't missed
+  - **No multi-AL conflict** in this design — the accent has exactly one AL owner (`column_lights`). Its physical-area assignment (office) is independent of AL ownership; that's how HA's AL+area model is designed to work. Consequence: the accent's color/brightness behavior visually matches the living/dining columns (including the special sunrise/sunset RGB curve), regardless of being physically in the office. This is what the user requested
+  - **Risk to validate:** the column RGB system's BUG-01..BUG-07 register was validated against a 2-entity participant set. Adding a 3rd entity requires re-running that validation matrix. The `docs/column_lights_rgb_full_coverage_plan.md` validation matrix should be re-applied; the column_rgb_sunset_validation_runbook.md procedure should be re-executed with the accent included
+- `BED LIGHTS — "always as warm as possible" override`
+  - Goal: `light.office_bed_light_left` and `light.office_bed_light_right` should never get cool color temperatures from AL or anywhere else. They should be pinned to the warmest Kelvin the bulb supports
+  - **Two implementation paths — pick one before promoting:**
+    1. **Pin AL config**: keep bed lights in the new office AL switch, but configure it with `min_color_temp: 2200` (or whichever warmest value the bulbs support — check via Developer Tools → States → `light.office_bed_light_left` → `min_color_temp_kelvin` attribute). Result: AL still drives brightness curve but color temp is locked warm
+    2. **Exclude from AL**: keep bed lights out of the office AL `lights:` list and create a separate small automation that calls `light.turn_on(brightness=..., color_temp_kelvin=<warmest>)` whenever the bed lights are turned on. Loses AL brightness coordination but guarantees the color contract regardless of AL state
+  - Path (1) is cleaner if the warmest Kelvin the bulbs support is acceptable as a global office color floor. Path (2) is needed if the desk lamp + corner accent should still cool down in the evening but the bed lights must not. **Decision pending**
+- `EXECUTABLE PLAN`
+  - Authoritative: `~/.claude/plans/office-corner-accent-relocation.md` — 8 phases. Phase 0 (Documentation Discovery) is already complete and embedded in the plan as canonical reference. Phases 1-8 are self-contained for fresh-chat execution
+  - Invocation: `/claude-mem:do ~/.claude/plans/office-corner-accent-relocation.md` (or per-phase via `/claude-mem:do ~/.claude/plans/office-corner-accent-relocation.md --phase N`)
+  - Phase summary: 1 — HA UI preconditions; 2 — office light groups; 3 — office AL switch; 4 — remove accent from master configs; 5 — adopt accent into `column_lights` AL (HIGH RISK, 25-bug-register re-validation); 6 — dashboard YAMLs; 7 — doc updates; 8 — end-to-end verification + sign-off
+- `OPEN DECISIONS (called out inside the plan, not resolved here)`
+  - Phase 3a vs 3b: warm-pin scope — entire office AL pinned 2700/2700K (3a, simpler) vs. per-light automation for `light.office_bed_light_left` only (3b, preserves desk-lamp adaptation)
+  - Audit task: `light.office_bed_light_right` exists in HA but is NOT the canonical bed light (user confirmed `_left`). Determine what `_right` actually is and whether to delete it. Non-blocking
+- `RESOLVED DECISIONS (locked 2026-05-22 evening)`
+  - Phase 4 is a **pair-consistent swap, not a removal**: `light.master_bedroom_corner_accent_govee` → `light.master_bedroom_column_accent` across all 7 master-area sites (group at line 36-37, AL at line 692, presence_pause at line 63, brightness-watch at line 6182, template-light scripts at lines 9457/9477/9488). Group and AL both stay 2-entity — no orphan
+  - Phase 5 stays scoped to the 3-entity column set (`living_column_strip_light_matter`, `dining_column_strip_light_matter`, `master_bedroom_corner_accent_govee`). `light.master_bedroom_column_accent` does NOT join column RGB despite currently being in rgb_color [241, 135, 1] — that state is filed as an audit follow-up in Phase 7
+- `DOCS TO UPDATE WHEN PROMOTED (Phase 7 of the executable plan)`
+  - `docs/OAL_ENTITY_REFERENCE.md` — add Office Area section with the 3 office lights and their AL ownership
+  - `FIX_LEDGER.md:46` — replace the "Office light entities" open note with the resolved 3-entity list
+  - `docs/column_lights_rgb_full_coverage_plan.md` and `docs/column_rgb_*.md` runbook set — update entity inventory from 2-light to 3-light set; re-run BUG-01..ISSUE-22 validation matrix
+  - `~/.claude/plans/tunet-page-architecture.md` PA05 — confirm office subview composition includes all 3 office lights
+
+---
 
 ## Session Delta (2026-05-08 evening, page-architecture sub-plan locked + nav refinement)
 

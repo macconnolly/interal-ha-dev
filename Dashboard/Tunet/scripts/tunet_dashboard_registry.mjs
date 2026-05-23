@@ -29,12 +29,21 @@ export const TUNET_DASHBOARD_SOURCE_ROOT = 'Dashboard/Tunet';
 
 export const TUNET_DASHBOARD_REGISTRY = Object.freeze([
   {
+    source: 'Dashboard/Tunet/tunet-home-config.yaml',
+    mode: 'storage',
+    url_path: 'tunet-home',
+    production: true,
+    description:
+      "Tunet Home — Mac's primary production view. Storage-mode at /tunet-home; the HA UI editor remains functional on this dashboard with the documented trade-off that UI edits get overwritten on next push from this file. Source-of-truth contract: repo wins.",
+  },
+  {
     source: 'Dashboard/Tunet/tunet-suite-config.yaml',
     mode: 'yaml',
     target: '/config/dashboards/tunet-suite.yaml',
     url_path: 'tunet-suite',
-    production: true,
-    description: 'Tunet Suite (POC). Production overview — Mac uses this on iPhone today.',
+    production: false,
+    description:
+      'Tunet Suite (POC). Multi-view yaml dashboard kept as reference / fallback. NOT the live production view (that is tunet-home).',
   },
   {
     source: 'Dashboard/Tunet/tunet-card-rehab-lab.yaml',
@@ -66,16 +75,8 @@ export const TUNET_DASHBOARD_REGISTRY = Object.freeze([
     url_path: 'tunet-suite-storage',
     production: false,
     description:
-      'Storage-mode mirror of tunet-suite. Phase 2 live verification target for the WebSocket lovelace/config/save dispatch path. Once /tunet-home is built (sub-agent #3 page-architecture sub-plan), it joins the registry as the second storage-mode entry.',
+      'Storage-mode mirror of tunet-suite. Original Phase 2 verification target for the WebSocket lovelace/config/save dispatch path. Retained as a known-good storage-mode reference dashboard.',
   },
-  // FUTURE (sub-agent #3 page-architecture sub-plan):
-  //   {
-  //     source: 'Dashboard/Tunet/tunet-home-config.yaml',
-  //     mode: 'storage',
-  //     url_path: 'tunet-home',
-  //     production: true,
-  //     description: 'Mac\'s primary home view. Storage mode so HA UI editor remains usable.',
-  //   },
 ]);
 
 // ─── Derived exports ────────────────────────────────────────────────────

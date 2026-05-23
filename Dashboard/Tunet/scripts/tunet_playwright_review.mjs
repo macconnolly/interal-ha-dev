@@ -118,12 +118,20 @@ export function buildProductionRouteSet() {
       continue;
     }
     const views = Array.isArray(parsed?.views) ? parsed.views : [];
-    for (const view of views) {
-      const viewPath = view?.path;
-      if (!viewPath || typeof viewPath !== 'string') continue;
+    for (let i = 0; i < views.length; i += 1) {
+      const view = views[i];
+      // Storage-mode dashboards often omit view.path — HA then routes by
+      // view index (0-indexed). Fall back to index when path is absent so
+      // the production-mirror still finds the URL.
+      const viewSegment =
+        typeof view?.path === 'string' && view.path ? view.path : String(i);
+      const idSuffix =
+        typeof view?.path === 'string' && view.path
+          ? view.path
+          : `view-${i}`;
       routes.push({
-        id: `${entry.url_path}--${viewPath}`,
-        path: `/${entry.url_path}/${viewPath}`,
+        id: `${entry.url_path}--${idSuffix}`,
+        path: `/${entry.url_path}/${viewSegment}`,
         dashboard: entry.url_path,
       });
     }

@@ -1,0 +1,103 @@
+# Tunet Home — Mac's primary production view.
+# Storage-mode dashboard at url_path: tunet-home (live URL /tunet-home).
+# Source-of-truth contract: repo wins; UI edits on this dashboard are
+# overwritten on next push of this file via tunet:deploy:dashboards:storage.
+
+title: Tunet Home
+views:
+  - title: Home
+    icon: mdi:home
+    type: sections
+    max_columns: 4
+    min_columns: 1
+    dense_section_placement: false
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:tunet-status-card
+            name: Home Summary
+            layout_variant: home_summary
+            show_header: true
+            columns: 4
+            tile_size: standard
+            use_profiles: true
+            recipe_tiles:
+              - recipe: home_presence
+                entity: person.mac_connolly
+              - recipe: lights_on
+              - recipe: mode_selector
+              - recipe: manual_overrides
+                entity: sensor.oal_system_status
+              - recipe: inside_temperature
+                entity: sensor.dining_room_temperature
+                action_entity: climate.dining_room
+              - recipe: outside_temperature
+              - recipe: outside_weather
+              - recipe: next_alarm
+                entity: sensor.sonos_next_alarm
+                compact_label: Bedroom
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:tunet-actions-card
+            variant: mode_strip
+            compact: false
+            mode_entity: input_select.oal_active_configuration
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:tunet-rooms-card
+            layout_variant: tiles
+            tile_size: standard
+            use_profiles: false
+            rooms:
+              - name: Living Room
+                icon: weekend
+                temperature_entity: sensor.dining_room_temperature
+                lights:
+                  - entity: light.living_room_couch_lamp
+                    icon: table_lamp
+                    name: Couch
+                  - entity: light.living_room_floor_lamp
+                    icon: floor_lamp
+                    name: Floor
+                  - entity: light.living_room_spot_lights
+                    icon: highlight
+                    name: Spots
+              - name: Kitchen
+                icon: kitchen
+                humidity_entity: sensor.kitchen_humidity
+                lights:
+                  - entity: light.kitchen_island_pendants
+                    icon: light
+                    name: Pendants
+                  - entity: light.kitchen_main_lights
+                    icon: kitchen
+                    name: Main
+              - name: Bedroom
+                icon: bed
+                lights:
+                  - entity: light.bedroom_primary_lights
+                    icon: bed
+                    name: Primary
+                temperature_entity: sensor.bedroom_temp_humidity_sensor_temperature
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-climate-card
+            entity: climate.dining_room
+            humidity_entity: sensor.kitchen_humidity
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:tunet-weather-card
+            entity: weather.home
+            forecast_view: auto
+            forecast_metric: auto
+            auto_precip_threshold: 45
+            show_metric_toggle: true
+            show_view_toggle: true
+            show_last_updated: true
+            forecast_days: 5
+            forecast_hours: 8

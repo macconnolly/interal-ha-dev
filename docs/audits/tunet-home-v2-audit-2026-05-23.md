@@ -13,6 +13,21 @@ This document is an audit, not a deploy. Mac picks which enhancements to impleme
 
 ---
 
+## 0.0 Mac's locks (added 2026-05-23 review pass)
+
+Mac reviewed §0/§9 of the initial audit and locked the following — these override DA-4 and reshape §6:
+
+- **LOCK 1: Weather stays on Home.** Overrides FINAL plan DA-4 partially. The weather *card* needs the P0-A "HV X" investigation and P0-B style cleanup, but it is not removed.
+- **LOCK 2: Rooms-card variant is breakpoint-specific.**
+  - **Phone**: `tunet-rooms-card` `layout_variant: row` (current). Keep.
+  - **Desktop**: `tunet-rooms-card` `layout_variant: tiles` — NOT row. The vertical-row variant is not useful at desktop width; tiles is denser and uses the horizontal canvas.
+  - **Alternative considered**: keep row but extend each room with the light's `name:` rendered next to the icon so the row is more informative. Rejected unless tiles testing fails — tiles is the primary path.
+- **LOCK 3: Desktop home gets a "main life groups" controls section below the rooms-tiles.** Pattern reference: `Dashboard/living_room_card.yaml` (the v6/v7 bubble-card pattern Mac uses — separator with brightness slider + bottom quick-controls + 3x2 light grid + 3-col media grid). The desktop home should compose an analogous controls strip: a small section per "life group" (lighting, climate, media, alarms?) with the top-level controls for that group inline. **Permutations to think through** before building (see §6.5).
+- **LOCK 4: No dedicated Adaptive top-section in Stats.** Current Stats sections (OAL System + Zone Baselines) satisfy DA-3's "collapse Adaptive into Stats." Do not add another top-section.
+- **LOCK 5: Variant utilization is a thinking exercise, not a coverage exercise.** "We don't need to use every single one of the variants from rehab, but we should really think through and add to our plan a much more well thought out … utilization." The 34-of-50 gap is not a backlog to close — it is a catalog to pick from deliberately. Each adoption must answer *why this variant here* before it ships.
+
+---
+
 ## 0. Executive summary
 
 **Direct answer to "Does the home page fully sit everything that we want?": NO.** Versus the FINAL plan locks (DA-1 through DA-4 in `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md`) the home page is missing the scene strip and the persistent nav chrome, and it INCLUDES Weather + standalone Climate which DA-4 explicitly removes. The status row also competes with the rooms-row for the glance layer — one of them should be the glance source of truth, not both.
@@ -216,19 +231,90 @@ The visible defect is real; the mechanism is not yet confirmed. Each P0 tranche 
 | P0-D | Lighting tile wrong icons (D-LR1, D-LR2, D-KT1, D-OF1, D-OF2) | dashboard yaml `icon:` per-zone + verify icon-set loaded (mdi vs material-symbols) | XS investigate + XS fix | yaml only, possibly icon-set check |
 | P0-E | Actions strip chip overflow on phone (D-AC1, CD5 backlog) | `tunet_actions_card.js` compact-variant layout + chip-wrap behavior | M | actions card |
 
-### P1 — High-value (variant adoption + missing content)
+### P1 — Deliberate variant adoptions (locked by Mac 2026-05-23 review)
 
-| # | Item | File | Effort | Blast |
-|---|------|------|--------|-------|
-| P1-F | Add scenes-card strip to home page top | yaml | XS | yaml only |
-| P1-G | Add nav-card persistent chrome (bottom phone, left desktop) | yaml | S | yaml + 1 card css var check |
-| P1-H | Replace home actions `compact` with `mode_strip` variant | yaml | XS | yaml only |
-| P1-I | Add 2-light direct access (Counter + Entry as `light-tile horizontal compact`) | yaml | XS | yaml only |
-| P1-J | Switch rooms-card to `tiles` variant on phone, `row` on desktop | yaml | S | yaml + verify variant breakpoint logic |
-| P1-K | Climate-card `thin` variant on home (free vertical space) | yaml | XS | yaml only |
-| P1-L | Desktop per-room subview Sections re-layout (column_span 2+2) | each room yaml | M | per-room subviews |
+Each row answers *why this variant here*. The reasoning lives in this audit, not in the build commit message.
+
+| # | Item | Why this variant here | File | Effort |
+|---|------|----------------------|------|--------|
+| P1-F | Add `tunet-scenes-card` strip to home page top | The 3-scene cycle (Adaptive / Evening / Late Night) is the load-bearing daily-use input; status pills don't expose it. Scenes-card strip is the named primitive for this. | yaml | XS |
+| P1-G | Add `tunet-nav-card` persistent chrome (bottom phone, left desktop) | HA sidebar is the wrong layer (it's dev nav, not user nav). Per-room subviews need a discoverable entry path that isn't "tap room → popup → 'Open page' link." | yaml + css check | S |
+| P1-H | Replace home actions `compact` with `mode_strip` variant | `mode_strip` highlights the currently-active scene visually; `compact` doesn't. Aligns chip-state semantics with what the scene actually is. | yaml | XS |
+| P1-I | Add 2-light direct access (Counter + Entry as `light-tile horizontal compact`) | Counter underlights + Entry lamp are Mac's two most-touched lights outside the scene cycle. Direct tile = 1-tap vs 3-tap-through-popup. | yaml | XS |
+| P1-J | Rooms-card breakpoint split: `row` phone, `tiles` desktop (LOCK 2) | Row is glanceable at 390px (whole row tap). Tiles uses 1440px horizontal canvas which row wastes. Desktop tile_size: `standard` first; revisit if too dense. | yaml + verify variant works per-breakpoint | S-M |
+| P1-K | Climate-card `thin` variant on home phone | Current standard climate consumes ~25% of phone vertical for a glance — thin gives the same glance in ~12%. Standard variant stays for the Dining Room subview where setpoint scrubbing happens. | yaml | XS |
+| P1-L | Desktop per-room subview re-layout (column_span 2+2) | Phone-width cards on a 1440px canvas waste ~60% horizontal. Sections grid → lighting hero (column_span 2) + side panel sensors/climate/media (column_span 2). | per-room yaml ×5 | M |
+
+### P1.5 — Variants explicitly NOT adopted (deliberate rejection)
+
+Per LOCK 5, the variant catalog is a picklist, not a checklist.
+
+| Variant in rehab | Decision | Why not |
+|------------------|----------|---------|
+| `tunet-status-card[room_row]` | reject for Home | Rooms-card already owns per-room glance. Two cards saying the same thing in different formats is anti-clarity. |
+| `tunet-status-card[alarms]` | reject for Bedroom | `tunet-alarm-card` directly is more informative (shows day/time per alarm). The `alarms` status variant is a thinner glance, not a richer one. |
+| `tunet-rooms-card[slim]` | reject for now | Slim is single-line per room. Useful only in a sidebar/footer context which we don't have. Keep available if we ever build a settings/status-bar surface. |
+| `tunet-rooms-card[tiles compact]` on Phone | reject for now | Tiles at compact size on 390px gives ~3 cols × 2 rows but loses the per-light orbs that the row variant has. Row variant on phone keeps orb-level glance. |
+| `tunet-speaker-grid-card` standalone on Home | reject for now | Belongs in Media popup or Media subview; not Home glance layer. |
+
+### P1.6 — Desktop "main life groups" controls strip (LOCK 3 — needs permutation review)
+
+Pattern reference: `Dashboard/living_room_card.yaml` (v6/v7) shows the bubble-card separator + brightness slider header + bottom quick-controls (All, Reset, Alarm) + light grid + media grid. Mac wants this composition pattern under the rooms-tiles section on desktop home.
+
+The literal pattern is a **per-room** card. The home page wants the cross-room analogue — controls for "life groups" (cross-room functional clusters) rather than rooms. Four permutations to consider before any code:
+
+#### Permutation A — Life groups by light function
+
+```
+[ Rooms tiles ............................................. ]
+[ Lighting Group     ] [ Climate Group     ] [ Media Group  ]
+[  Brightness slider ] [  Setpoint slider  ] [ Now Playing  ]
+[  [Adaptive][Even][Sleep] ] [ Heat/Cool ▼  ] [ ◀ ▶ ▶▶      ]
+[  Reset · All Off   ] [ Fan auto/on       ] [ All Group ▼  ]
+```
+
+3 horizontal life-group cards, each with one primary control + 2-3 actions. Touch targets large. Glance-and-act.
+
+#### Permutation B — Life groups by daily-flow
+
+```
+[ Rooms tiles ............................................. ]
+[ Morning           ] [ Evening           ] [ Sleep         ]
+[  Scene tile       ] [  Scene tile       ] [ Scene tile    ]
+[  Bedroom lamps    ] [  Living + dining  ] [ All off       ]
+[  Coffee mode (?)  ] [  Counter lights   ] [ Alarms        ]
+```
+
+3 daily-flow cards keyed to scenes. Less direct control, more scenario-based.
+
+#### Permutation C — Mac's actual room cards inlined
+
+```
+[ Rooms tiles ............................................. ]
+[ Living Room: bubble-separator + 3x2 light grid + media   ]
+[ Kitchen:     bubble-separator + 3-light grid             ]
+[ Bedroom:     bubble-separator + 2-light grid + alarms    ]
+```
+
+Literally embed the existing `Dashboard/living_room_card.yaml`-style cards. Densest, most familiar to Mac, but duplicates content with the per-room subviews. Best if home is the *primary* surface and subviews are *drill-in only*.
+
+#### Permutation D — Mixed: 2 row-of-life-groups (function) + 1 inline room
+
+```
+[ Rooms tiles ............................................. ]
+[ Lighting cross-room ] [ Climate ] [ Media ]
+[ Living Room inline card (full bubble-separator pattern) ]
+```
+
+Living room as the always-visible "always on" surface (because that's where Mac spends most time), other rooms drill-in only.
+
+**Recommended for first pass: Permutation A.** Cleanest mental model (function over location), uses the screen well, and aligns with the existing scenes-strip approach. If Mac picks A, the build defines 3 reusable life-group cards. Permutation C is the highest-fidelity to Mac's stated pattern but most likely to feel redundant with per-room subviews.
+
+**Mac picks one permutation OR proposes a fifth** before this row of the audit converts to a build tranche.
 
 ### P2 — Polish
+
+### P2 — Polish (this section unchanged from initial audit)
 
 | # | Item | File | Effort | Blast |
 |---|------|------|--------|-------|
@@ -300,15 +386,19 @@ Total surface coverage: ~3-4 hours of focused execution + Mac's review gates at 
 
 ---
 
-## 9. Open questions for Mac
+## 9. Open questions for Mac (post-LOCK pass)
 
-1. **Honor FINAL plan DA-4 (remove Weather + Lighting from Home)?** Current home has weather; this means either fix-the-weather-card OR remove-from-home. DA-4 says remove. Pick one.
-2. **Scene strip on home — keep or skip?** FINAL plan presumes scenes at top; current home doesn't have it.
-3. **Nav-card chrome — adopt or rely on HA sidebar?** Plan has nav as persistent; current home doesn't have it. Without nav, per-room subviews are only reachable via tap-room-popup → "Open Living Room page →" link or via HA sidebar.
-4. **FINAL DA-3 says collapse Adaptive into Stats — do current Stats sections satisfy that, or add a dedicated Adaptive top-section?** Current Stats has "OAL System" + "Zone Baselines" sections which look like the Adaptive content; might already satisfy DA-3.
-5. **Rooms-card variant on phone — keep `row` or switch to `tiles`?** Tiles is denser; row is more glanceable per-room. FINAL DA-1 prefers row on Home with whole-body-tap; tiles on the Rooms list.
-6. **Settings page System Reference block — keep visible or gate?** Useful for dev but feels like debug.
-7. **Per-room sensor row content — add more (kitchen temp, office temp) or keep minimal?**
+Resolved by LOCK 1-5 above:
+- ~~Honor DA-4 weather removal?~~ → **LOCK 1**: weather stays, card defects fixed in place
+- ~~Rooms-card variant breakpoint?~~ → **LOCK 2**: row phone, tiles desktop
+- ~~Dedicated Adaptive section?~~ → **LOCK 4**: no, current Stats sufficient
+
+Still open:
+1. **Permutation pick for desktop "main life groups" controls strip** (§6 / P1.6): A, B, C, D, or a fifth Mac proposes?
+2. **Scene strip placement on home — top (above status row) or just below status row?** P1-F adopts the card; placement is the open question.
+3. **Nav-card chrome — adopt or rely on HA sidebar?** P1-G adopts; need confirmation the nav primitive is wanted.
+4. **Settings page System Reference block — keep visible or gate behind editor mode / popup?** Useful for Mac as dev-user; feels like debug for daily use.
+5. **Per-room sensor row content — add more (kitchen temp, office temp) or keep minimal?** Both rooms have presence sensors that COULD expose temperature if the entity exists.
 
 ---
 

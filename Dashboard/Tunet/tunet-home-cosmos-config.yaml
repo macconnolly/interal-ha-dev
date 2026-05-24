@@ -46,39 +46,6 @@ views:
   - type: grid
     column_span: 4
     cards:
-    # Status card matches polish-review home_summary (Mac validation 2026-05-23):
-    # switched from manual tiles[] to recipe_tiles[] with use_profiles: true to
-    # match /tunet-card-rehab-yaml/polish-review "Status Summary (Polish)".
-    - type: custom:tunet-status-card
-      name: Home Status
-      layout_variant: home_summary
-      show_header: true
-      columns: 4
-      tile_size: standard
-      use_profiles: true
-      grid_options:
-        columns: full
-      recipe_tiles:
-      - recipe: home_presence
-        entity: person.mac_connolly
-      - recipe: lights_on
-      - recipe: mode_selector
-      - recipe: manual_overrides
-        entity: sensor.oal_system_status
-      - recipe: inside_temperature
-        entity: sensor.dining_room_temperature
-        action_entity: climate.dining_room
-      - recipe: outside_temperature
-      - recipe: outside_weather
-      - recipe: inside_humidity
-        entity: sensor.kitchen_humidity
-      - recipe: now_playing
-      - recipe: next_alarm
-        entity: sensor.sonos_next_alarm
-        compact_label: Bedroom
-  - type: grid
-    column_span: 4
-    cards:
     - type: custom:tunet-actions-card
       name: Quick Actions
       compact: true
@@ -136,33 +103,9 @@ views:
           option: Dim Ambient
         state_entity: input_select.oal_active_configuration
         active_when: Dim Ambient
-      - name: Warm
-        icon: local_fire_department
-        accent: amber
-        service: input_select.select_option
-        service_data:
-          entity_id: input_select.oal_active_configuration
-          option: Warm Ambient
-        state_entity: input_select.oal_active_configuration
-        active_when: Warm Ambient
-      - name: TV
-        icon: tv
-        accent: blue
-        service: input_select.select_option
-        service_data:
-          entity_id: input_select.oal_active_configuration
-          option: TV Mode
-        state_entity: input_select.oal_active_configuration
-        active_when: TV Mode
-      - name: Sleep
-        icon: hotel
-        accent: purple
-        service: input_select.select_option
-        service_data:
-          entity_id: input_select.oal_active_configuration
-          option: Sleep
-        state_entity: input_select.oal_active_configuration
-        active_when: Sleep
+      # R3 polish: Warm/TV/Sleep removed from primary strip per Mac's
+      # "really only two or three modes I care about." Remain accessible
+      # via OAL detail popup (#oal-detail) which exposes all 9 modes.
       - name: Reset
         icon: restart_alt
         accent: red
@@ -174,6 +117,76 @@ views:
           attribute: active_zonal_overrides
           operator: gt
           state: 0
+  - type: grid
+    column_span: 4
+    cards:
+    # Status card matches polish-review home_summary (Mac validation 2026-05-23):
+    # switched from manual tiles[] to recipe_tiles[] with use_profiles: true to
+    # match /tunet-card-rehab-yaml/polish-review "Status Summary (Polish)".
+    - type: custom:tunet-status-card
+      name: Home Status
+      layout_variant: home_summary
+      show_header: true
+      columns: 4
+      tile_size: standard
+      use_profiles: true
+      grid_options:
+        columns: full
+      recipe_tiles:
+      - recipe: home_presence
+        entity: person.mac_connolly
+      - recipe: lights_on
+      - recipe: mode_selector
+      - recipe: manual_overrides
+        entity: sensor.oal_system_status
+      - recipe: inside_temperature
+        entity: sensor.dining_room_temperature
+        action_entity: climate.dining_room
+      - recipe: outside_temperature
+      - recipe: outside_weather
+      - recipe: inside_humidity
+        entity: sensor.kitchen_humidity
+      - recipe: now_playing
+      - recipe: next_alarm
+        entity: sensor.sonos_next_alarm
+        compact_label: Bedroom
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-lighting-card
+      name: Lighting
+      surface: card
+      layout: grid
+      tile_size: standard
+      use_profiles: true
+      columns: 2
+      expand_groups: false
+      show_adaptive_toggle: false
+      primary_entity: sensor.oal_system_status
+      zones:
+      - entity: light.main_living_lights
+        name: Living
+        icon: weekend
+      - entity: light.kitchen_main_lights
+        name: Kitchen
+        icon: kitchen
+      - entity: light.bedroom_primary_lights
+        name: Bedroom
+        icon: bed
+      - entity: light.accent_spots_lights
+        name: Spots
+        icon: highlight
+      - entity: light.recessed_ceiling_lights
+        name: Ceiling
+        icon: light
+      - entity: light.column_lights
+        name: Columns
+        icon: view_column
+      grid_options:
+        columns: full
+        rows: auto
+  # Climate + Weather — side-by-side on desktop (column_span: 2 each), auto-
+  # stacks on phone (HA Sections collapses when 2x column_span: 2 don't fit).
   - type: grid
     column_span: 4
     cards:
@@ -258,43 +271,6 @@ views:
   # Lighting functional zones grid (A.2 — 6 OAL zones for direct brightness
   # control without entering rooms). Tap = toggle; long-press / drag = brightness.
   - type: grid
-    column_span: 4
-    cards:
-    - type: custom:tunet-lighting-card
-      name: Lighting
-      surface: card
-      layout: grid
-      tile_size: standard
-      use_profiles: true
-      columns: 2
-      expand_groups: false
-      show_adaptive_toggle: false
-      primary_entity: sensor.oal_system_status
-      zones:
-      - entity: light.main_living_lights
-        name: Living
-        icon: weekend
-      - entity: light.kitchen_main_lights
-        name: Kitchen
-        icon: kitchen
-      - entity: light.bedroom_primary_lights
-        name: Bedroom
-        icon: bed
-      - entity: light.accent_spots_lights
-        name: Spots
-        icon: highlight
-      - entity: light.recessed_ceiling_lights
-        name: Ceiling
-        icon: light
-      - entity: light.column_lights
-        name: Columns
-        icon: view_column
-      grid_options:
-        columns: full
-        rows: auto
-  # Climate + Weather — side-by-side on desktop (column_span: 2 each), auto-
-  # stacks on phone (HA Sections collapses when 2x column_span: 2 don't fit).
-  - type: grid
     column_span: 2
     cards:
     - type: custom:tunet-climate-card
@@ -327,16 +303,6 @@ views:
   - type: grid
     column_span: 4
     cards:
-    - type: custom:tunet-inbox-card
-      name: Inbox
-      grid_options:
-        columns: full
-  # Now Playing mini-player — pinned to bottom (last visible section before
-  # the nav-card dock). Apple Music pattern: transport always within
-  # thumb-reach when phone is held. Tap body → #media-living-room Bubble popup.
-  - type: grid
-    column_span: 4
-    cards:
     - type: custom:tunet-media-card
       entity: media_player.living_room
       name: Now Playing
@@ -347,12 +313,18 @@ views:
       tap_action:
         action: navigate
         navigation_path: '#media-living-room'
-  # Nav dock (C.2) — DEFERRED 2026-05-23. tunet-nav-card uses position:fixed
-  # which is clipped by HA Sections grid's parent overflow:hidden. Inline
-  # rendering overlaps content. Needs card-level CSS escape pattern (z-index
-  # escape, document.body portal, or fundamentally different mounting).
-  # Until then, HA's native top tab bar (Home/Rooms/Media/Stats) provides
-  # adequate routing.
+  # Inbox — column_span: 2 to pair with media on desktop when present;
+  # tunet-inbox-card handles its own empty-state collapse.
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-inbox-card
+      name: Inbox
+      grid_options:
+        columns: full
+  # Now Playing mini-player — pinned to bottom (last visible section before
+  # the nav-card dock). Apple Music pattern: transport always within
+  # thumb-reach when phone is held. Tap body → #media-living-room Bubble popup.
   - type: grid
     column_span: 4
     cards:
@@ -1298,6 +1270,31 @@ views:
   max_columns: 4
   back_path: /tunet-home-cosmos/home
   sections:
+    # R3 polish: status header — at-a-glance room context.
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-status-card
+          name: Living Room
+          layout_variant: room_row
+          use_profiles: true
+          tile_size: compact
+          tiles:
+            - type: indicator
+              entity: binary_sensor.occupancy_living_room
+              label: Occupancy
+              icon: sensor_occupied
+              accent: green
+            - type: value
+              entity: sensor.lights_on_living_room
+              label: Lights On
+              icon: lightbulb
+              accent: amber
+            - type: value
+              entity: sensor.dining_room_temperature
+              label: Temp
+              icon: device_thermostat
+              accent: amber
     - type: grid
       column_span: 4
       cards:
@@ -1413,6 +1410,31 @@ views:
   max_columns: 4
   back_path: /tunet-home-cosmos/home
   sections:
+    # R3 polish: status header — at-a-glance room context.
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-status-card
+          name: Kitchen
+          layout_variant: room_row
+          use_profiles: true
+          tile_size: compact
+          tiles:
+            - type: indicator
+              entity: binary_sensor.occupancy_kitchen
+              label: Occupancy
+              icon: sensor_occupied
+              accent: green
+            - type: value
+              entity: sensor.lights_on_kitchen
+              label: Lights On
+              icon: lightbulb
+              accent: amber
+            - type: value
+              entity: sensor.kitchen_humidity
+              label: Humidity
+              icon: water_drop
+              accent: blue
     - type: grid
       column_span: 4
       cards:
@@ -1503,6 +1525,31 @@ views:
   max_columns: 4
   back_path: /tunet-home-cosmos/home
   sections:
+    # R3 polish: status header — at-a-glance room context.
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-status-card
+          name: Dining Room
+          layout_variant: room_row
+          use_profiles: true
+          tile_size: compact
+          tiles:
+            - type: indicator
+              entity: binary_sensor.occupancy_dining_room
+              label: Occupancy
+              icon: sensor_occupied
+              accent: green
+            - type: value
+              entity: sensor.lights_on_dining_room
+              label: Lights On
+              icon: lightbulb
+              accent: amber
+            - type: value
+              entity: sensor.dining_room_temperature
+              label: Temp
+              icon: device_thermostat
+              accent: amber
     - type: grid
       column_span: 4
       cards:
@@ -1593,6 +1640,36 @@ views:
   max_columns: 4
   back_path: /tunet-home-cosmos/home
   sections:
+    # R3 polish: status header — at-a-glance room context.
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-status-card
+          name: Bedroom
+          layout_variant: room_row
+          use_profiles: true
+          tile_size: compact
+          tiles:
+            - type: indicator
+              entity: binary_sensor.occupancy_master_bedroom
+              label: Occupancy
+              icon: sensor_occupied
+              accent: green
+            - type: value
+              entity: sensor.lights_on_master_bedroom
+              label: Lights On
+              icon: lightbulb
+              accent: amber
+            - type: value
+              entity: sensor.bedroom_temp_humidity_sensor_temperature
+              label: Temp
+              icon: device_thermostat
+              accent: amber
+            - type: alarm
+              entity: sensor.sonos_next_alarm
+              label: Next Alarm
+              icon: alarm
+              accent: purple
     - type: grid
       column_span: 4
       cards:
@@ -1702,6 +1779,32 @@ views:
   max_columns: 4
   back_path: /tunet-home-cosmos/home
   sections:
+    # Office Status header — densify the sparse-sensor room with at-a-glance
+    # context. Office only has occupancy + lights aggregate available locally.
+    - type: grid
+      column_span: 4
+      cards:
+        - type: custom:tunet-status-card
+          name: Office
+          layout_variant: room_row
+          use_profiles: true
+          tile_size: compact
+          tiles:
+            - type: indicator
+              entity: binary_sensor.occupancy_office
+              label: Occupancy
+              icon: sensor_occupied
+              accent: green
+            - type: value
+              entity: sensor.lights_on_office
+              label: Lights On
+              icon: lightbulb
+              accent: amber
+            - type: dropdown
+              entity: input_select.oal_active_configuration
+              label: Mode
+              icon: tune
+              accent: blue
     - type: grid
       column_span: 4
       cards:
@@ -1891,24 +1994,5 @@ views:
               label: HVAC
               accent: blue
               format: state
-    - type: grid
-      column_span: 4
-      cards:
-        - type: markdown
-          content: |
-            ## System Reference
-
-            **Production**: `/tunet-overview/overview` (storage mode)
-            **Candidate**: `/tunet-home-cosmos/home` (this dashboard)
-            **Lab**: `/tunet-card-rehab-yaml/lab`
-
-            **OAL package**: `packages/oal_lighting_control_package.yaml`
-            **Sonos package**: `packages/sonos_package.yaml`
-            **Stats sensors**: `packages/tunet_stats_sensors.yaml`
-
-            **Deploy scripts**:
-            - `npm run tunet:deploy:dashboards:storage` (v2 dashboard)
-            - `npm run tunet:deploy:lab` (card JS)
-            - `bash skills/ha-safe-package-deploy/scripts/deploy_packages.sh` (packages)
-
-            **Active plan**: `docs/plans/tunet-interaction-architecture-FINAL-2026-05-23.md`
+    # R3 polish: developer markdown reference dropped — not user-facing.
+    # System info accessible via HA Developer Tools / Settings.

@@ -197,7 +197,6 @@ input_select:
       - "Full Bright"
       - "Evening"
       - "Dim Ambient"
-      - "Warm Ambient"
       - "TV Mode"
       - "TV Bridge"
       - "Sleep"
@@ -2086,54 +2085,91 @@ automation:
           is_baseline: false
           is_force_on: true
         
-        # "Evening" mode — Mac's 2026-05-23 refined per-zone spec from the
-        # interaction-spec plan §2 (commit 2ce7e22). Renamed from
-        # "Dim Ambient Plus" after Mac picked "Evening" as the everyday name.
-        # Sits between Adaptive and Late Night (Dim Ambient) in ZEN32 B5 2x
-        # cycle. Kitchen mains + entryway lamp OFF; kitchen pendants and
-        # bedroom primary reduced; counter undercabinet at safety minimum.
+        # "Evening" mode — sits between Adaptive and Dim Ambient in the
+        # ZEN32 B5 2x cycle. Kitchen mains + entryway lamp OFF; other
+        # zones reduced for an early-evening ambient feel.
+        #
+        # Uses INDIVIDUAL entity_ids (not group names) in lights_dimmed
+        # so lights_off entries can't be re-overridden by group expansion.
+        # Example: light.kitchen_main_lights is named in lights_off AND
+        # is a member of light.recessed_ceiling_lights. If lights_dimmed
+        # used the group, light.turn_on on the group would re-set
+        # kitchen_main to the dim target after the explicit turn_off
+        # cleared it. Expanding members here keeps lights_off as the
+        # single source of truth for "off."
         "Evening":
-          b: -30
+          b: -25
           k: -500
           lights_off:
-            - light.kitchen_main_lights         # OFF — kitchen overhead
-            - light.entryway_lamp               # OFF — entry main light
+            - light.kitchen_main_lights
+            - light.entryway_lamp
           lights_dimmed:
-            light.main_living_lights: 40        # Soft ambient
-            light.kitchen_island_pendants: 20   # Reduced from prior 30 per Mac's "reduce a little bit"
-            light.kitchen_counter_cabinet_underlights: 8  # Safety minimum
-            light.bedroom_primary_lights: 25    # Reduced per Mac's "same with the bedroom"
-            light.column_lights: 30             # Accent glow
-            light.accent_spots_lights: 20       # Subtle spots
-            light.recessed_ceiling_lights: 1    # Minimal glow
-            light.office_lights: 30             # Office reduced
+            # main_living group expanded — entryway_lamp omitted (in lights_off)
+            light.living_room_corner_accent: 50
+            light.living_room_credenza_light: 50
+            light.living_room_floor_lamp: 50
+            light.living_room_couch_lamp: 50
+            # kitchen — kitchen_main_lights omitted (in lights_off)
+            light.kitchen_island_pendants: 30
+            light.kitchen_counter_cabinet_underlights: 15
+            # bedroom_primary group expanded (1 member)
+            light.master_presence: 35
+            # column_lights group expanded
+            light.master_bedroom_column_accent: 35
+            light.dining_column_strip_light_matter: 35
+            light.living_column_strip_light_matter: 35
+            # accent_spots group expanded
+            light.living_room_spot_lights: 25
+            light.dining_room_spot_lights: 25
+            # recessed_ceiling group expanded — kitchen_main_lights omitted (in lights_off)
+            light.living_room_hallway_lights: 3
+            # office group expanded
+            light.office_table_lamp: 35
+            light.master_bedroom_corner_accent_govee: 35
+            light.office_bed_light_right: 35
+            light.office_bed_light_left: 35
+            light.office_desk_lamp: 35
           is_baseline: false
           is_force_on: false
 
+        # "Dim Ambient" mode — heaviest dim of the normal cycle (after
+        # Evening). Hallway off; kitchen_main_lights explicitly dimmed
+        # to a presence brightness; other zones reduced further than
+        # Evening. Individual-entity dimmed list (see Evening for the
+        # group-overlap rationale).
         "Dim Ambient":
-          b: -30
+          b: -35
           k: -500
-          lights_off: []
-          lights_dimmed:
-            light.main_living_lights: 40      # Soft ambient
-            light.kitchen_island_pendants: 30 # Lower than normal
-            light.kitchen_counter_cabinet_underlights: 10  # B4: lowered from 20→10 (Mac 2026-05-23 "lower the lower bound by default for kitchen counter lights at night")
-            light.column_lights: 30           # Accent glow
-            light.accent_spots_lights: 20     # Subtle spots
-            light.recessed_ceiling_lights: 1  # Minimal glow
-          is_baseline: false
-          is_force_on: false
-        
-        "Warm Ambient":
-          b: -50
-          k: -1000
           lights_off:
-            - light.recessed_ceiling_lights
-            - light.kitchen_main_lights
+            - light.living_room_hallway_lights
           lights_dimmed:
-            light.accent_spots_lights: 10 # Dim spots
-            light.kitchen_island_pendants: 5
-            light.kitchen_counter_cabinet_underlights: 5
+            # kitchen — kitchen_main_lights heavily-dimmed (explicit, not via group)
+            light.kitchen_main_lights: 15
+            light.kitchen_island_pendants: 20
+            light.kitchen_counter_cabinet_underlights: 10
+            # main_living group expanded (entryway_lamp NOT in lights_off this mode)
+            light.living_room_corner_accent: 35
+            light.living_room_credenza_light: 35
+            light.entryway_lamp: 35
+            light.living_room_floor_lamp: 35
+            light.living_room_couch_lamp: 35
+            # bedroom_primary group expanded
+            light.master_presence: 25
+            # column_lights group expanded
+            light.master_bedroom_column_accent: 25
+            light.dining_column_strip_light_matter: 25
+            light.living_column_strip_light_matter: 25
+            # accent_spots group expanded
+            light.living_room_spot_lights: 20
+            light.dining_room_spot_lights: 20
+            # NOTE: recessed_ceiling expansion intentionally omitted —
+            # hallway in lights_off; kitchen_main has explicit 15 above.
+            # office group expanded
+            light.office_table_lamp: 30
+            light.master_bedroom_corner_accent_govee: 30
+            light.office_bed_light_right: 30
+            light.office_bed_light_left: 30
+            light.office_desk_lamp: 30
           is_baseline: false
           is_force_on: false
         

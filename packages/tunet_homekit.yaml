@@ -56,15 +56,32 @@ homekit:
         - sensor.kitchen_humidity
         - sensor.aqi
         # ───── OAL state proxies (binary visibility sensors) ─────
-        - binary_sensor.oal_tv_mode_active
+        # (tv_mode_active removed — Mac doesn't use TV mode through HomeKit)
         - binary_sensor.oal_movie_mode_active
         - binary_sensor.oal_in_default_cycle
+        # ───── Whole-home shortcut scenes ─────
+        - scene.tunet_all_on
+        - scene.tunet_all_off
       exclude_entities:
         # Noise to keep out of Apple Home
         - light.living_room_main_group_disabled
         - light.master_presence            # presence-indicator light, not user-facing
         - light.all_lights                 # group-of-everything; would duplicate per-room
         - light.all_adaptive_lights        # OAL-internal group
+        # Duplicate kitchen groups — light.kitchen_counter_cabinet_underlights
+        # is the canonical OAL entity; these aliases would appear as extra
+        # HomeKit accessories controlling the same fixture.
+        - light.kitchen_undercabinet_lights
+        - light.kitchen_island_lights
+        - light.room_kitchen_all
+        - light.all_kitchen_lights
+        # OAL average color-temp sensor has device_class: temperature which
+        # makes Apple Home present it as a bogus environmental temp tile.
+        - sensor.oal_average_active_color_temperature
+        # Full Bright scene — caught by include_domains: scene; explicit
+        # exclude is the load-bearing filter (entity_config naming alone
+        # doesn't hide it). Mac rarely uses Full Bright via HomeKit.
+        - scene.tunet_oal_full_bright
     entity_config:
       # ───── 3-scene ZEN32 cycle for Apple Home ─────
       scene.tunet_oal_adaptive:
@@ -75,8 +92,11 @@ homekit:
         name: "Dim Ambient"
       scene.tunet_oal_sleep:
         name: "Sleep Mode"
-      scene.tunet_oal_full_bright:
-        name: "Full Bright"
+      # ───── Whole-home shortcut scenes ─────
+      scene.tunet_all_on:
+        name: "All On"
+      scene.tunet_all_off:
+        name: "All Off"
       # ───── Thermostat ─────
       climate.dining_room:
         name: Thermostat

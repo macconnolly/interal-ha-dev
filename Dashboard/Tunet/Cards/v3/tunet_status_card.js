@@ -83,13 +83,14 @@ const PASSIVE_STATUS_ALLOWED_TYPES = new Set([
 const HOME_SUMMARY_SLOT_LIMIT = 8;
 
 const MODE_SELECTOR_SUMMARY_ALIASES = {
-  Adaptive: 'Adaptive',
+  'Adaptive': 'Adaptive',
+  'Full Bright': 'Full',
+  'Evening': 'Evening',
+  'Dim Ambient': 'Dim',
   'TV Mode': 'TV',
-  'Sleep Mode': 'Sleep',
-  Manual: 'Manual',
-  Bright: 'Bright',
-  Movie: 'Movie',
-  Off: 'Off',
+  'TV Bridge': 'TV+',
+  'Sleep': 'Sleep',
+  'Manual': 'Manual',
 };
 
 const STATUS_RECIPE_PRIORITY = {

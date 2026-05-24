@@ -6,9 +6,9 @@
 # homekit integration".
 #
 # Three scenes correspond to the ZEN32 B5-2x cycle:
-#   scene.tunet_oal_adaptive        → Adaptive
-#   scene.tunet_oal_dim_ambient_plus → Dim Ambient Plus (NEW mode)
-#   scene.tunet_oal_dim_ambient     → Dim Ambient
+#   scene.tunet_oal_adaptive    → Adaptive
+#   scene.tunet_oal_evening     → Evening (renamed from "Dim Ambient Plus" 2026-05-22)
+#   scene.tunet_oal_dim_ambient → Dim Ambient
 #
 # Each scene calls input_select.select_option on
 # input_select.oal_active_configuration, which triggers the OAL
@@ -54,3 +54,20 @@ scene:
     entities:
       input_select.oal_active_configuration:
         state: "Full Bright"
+
+  # ───── Whole-home shortcut scenes for HomeKit voice / Apple Home tiles ─────
+  # These act on the group entity light.all_adaptive_lights directly so
+  # HA's group expander turns every adaptive light on/off in one call.
+  - name: "Tunet All On"
+    id: tunet_all_on
+    icon: mdi:lightbulb-group
+    entities:
+      light.all_adaptive_lights:
+        state: "on"
+
+  - name: "Tunet All Off"
+    id: tunet_all_off
+    icon: mdi:lightbulb-group-off
+    entities:
+      light.all_adaptive_lights:
+        state: "off"

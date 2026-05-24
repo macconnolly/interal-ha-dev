@@ -756,10 +756,18 @@ adaptive_lighting:
     adapt_delay: 0
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 55                    # User-calibrated undercabinet floor
+    # min_brightness: SYNC with engine comfort_min_b + auto_min_raw + auto_min_clamped
+    # in the kitchen_undercabinet engine block below (~line 1331). Engine
+    # rewrites the live switch every 15s via change_switch_settings, so
+    # YAML alone will silently regress within seconds.
+    min_brightness: 15                    # User-calibrated late-night floor; Dim Ambient overrides to 10 explicitly
     max_brightness: 100                   # SYNC: comfort_max_b
-    min_color_temp: 2000                  # SYNC: min_k
-    max_color_temp: 4000                  # SYNC: max_k
+    min_color_temp: 2000                  # inert (brightness-only hardware) — kept for forward consistency
+    max_color_temp: 4000                  # inert
+    # tanh curve: hold near max through dusk, dive to floor for the rest of night.
+    brightness_mode: "tanh"
+    brightness_mode_time_dark: 5400       # 90 min sunset → floor (extended from 15 min default)
+    brightness_mode_time_light: 3600      # explicit default — predictable morning rise
     sleep_brightness: 5
     sleep_color_temp: 2000
 
@@ -889,10 +897,20 @@ adaptive_lighting:
     autoreset_control_seconds: 14400
     min_brightness: 30
     max_brightness: 100                    # User pref 2026-05-23: full daytime brightness ceiling
-    min_color_temp: 2700
-    max_color_temp: 2700
+    # Hardware mix: Hue desk_lamp (CCT 2202-6535K native) + Govee FLOOR LAMP
+    # corner_accent (2000K floor on this specific unit — NOT the 2700K
+    # strip-purple invariant; this is a different Govee SKU). 2000K floor
+    # is safe per Mac's empirical verification.
+    min_color_temp: 2000                   # warmest both lamps support
+    max_color_temp: 2700                   # warm daytime ceiling
+    # prefer_rgb_color: true — Govee renders RGB more cleanly at low warmth
+    # than its CCT path; Hue downshifts to RGB approximation but tolerates it.
+    prefer_rgb_color: true
+    # linear brightness_mode couples CCT directly to brightness — hits the
+    # warmest value (2000K) at the lowest brightness levels.
+    brightness_mode: "linear"
     sleep_brightness: 5
-    sleep_color_temp: 2700
+    sleep_color_temp: 2000                 # warmest sleep floor (was 2700; now matches new min_color_temp)
     sleep_rgb_or_color_temp: "rgb_color"
     sleep_rgb_color: [255, 165, 0]
 
@@ -926,7 +944,7 @@ adaptive_lighting:
     min_brightness: 30
     max_brightness: 100                    # User pref 2026-05-23: full daytime brightness ceiling
     min_color_temp: 2000                   # warmest Tuya CCT (driver quirk turns this neutral-white but acceptable for day)
-    max_color_temp: 2000                   # pin to warmest — adapt_color is OFF anyway, this is fallback
+    max_color_temp: 2700                   # daytime ceiling — color path is fallback only (HS amber owns evening color via warm-pin automation)
     sleep_brightness: 5
     sleep_color_temp: 2000
     sleep_rgb_or_color_temp: "rgb_color"
@@ -1329,9 +1347,13 @@ automation:
                   transition: "{{ transition_speed }}"
 
           # ========== KITCHEN UNDERCABINET (Independent bounds) ==========
+          # SYNC: comfort_min_b + auto_min_raw + auto_min_clamped MUST match
+          # the YAML kitchen_undercabinet min_brightness value above (line ~759).
+          # change_switch_settings runs every 15s and writes these to the live
+          # AL switch — drift between YAML and engine = silent regression.
           - sequence:
               - variables:
-                  comfort_min_b: 55
+                  comfort_min_b: 15
                   comfort_max_b: 100
                   env_sensitivity: 1.0
                   night_sensitivity: 0.5
@@ -1348,13 +1370,13 @@ automation:
                   auto_offset_b: >
                     {{ base_config_b + (env_with_sunset_capped * 1.0) + night_with_sensitivity }}
 
-                  auto_min_raw: "{{ 55 + auto_offset_b }}"
+                  auto_min_raw: "{{ 15 + auto_offset_b }}"
                   auto_max_raw: "{{ 100 + auto_offset_b }}"
 
                   auto_min_clamped: >
-                    {{ [55, [100, auto_min_raw] | min] | max }}
+                    {{ [15, [100, auto_min_raw] | min] | max }}
                   auto_max_clamped: >
-                    {{ [55, [100, auto_max_raw] | min] | max }}
+                    {{ [15, [100, auto_max_raw] | min] | max }}
 
                   manual_offset_b: >
                     {{ states('input_number.oal_manual_offset_kitchen_undercabinet_brightness') | float(0) }}
@@ -1643,7 +1665,12 @@ automation:
                   max_color_temp: "{{ final_max_k | round(0) }}"
                   transition: "{{ transition_speed }}"
 
-          # ========== OFFICE (Warm pin 2700K — desk + corner accent post-bed-split 2026-05-23) ==========
+          # ========== OFFICE (CCT ramp 2000K→2700K post bed-split + warmth tuning 2026-05-24) ==========
+          # SYNC: min_k / max_k MUST match YAML office min_color_temp / max_color_temp
+          # at line ~892. change_switch_settings runs every 15s and writes these to
+          # the live AL switch — drift = silent regression. Govee corner_accent
+          # in this switch is the FLOOR LAMP variant (true 2000K floor per Mac
+          # 2026-05-24), NOT the strip variant that has the 2700K purple bug.
           - sequence:
               - variables:
                   comfort_min_b: 30
@@ -1652,7 +1679,7 @@ automation:
                   night_sensitivity: 0.0
                   hard_min_b: 1
                   hard_max_b: 100
-                  min_k: 2700
+                  min_k: 2000
                   max_k: 2700
 
                   # No night dimming for office (uses sleep mode)
@@ -1685,13 +1712,14 @@ automation:
                   final_min_b: "{{ clamped_min_b }}"
                   final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
 
-                  # Warm pin (strict 2700K — Work mode bypasses via apply+set_manual_control)
+                  # CCT ramp 2000K-2700K — warmest at low brightness via brightness_mode: linear
+                  # (YAML), with brightness/warmth offsets shifting the band. Clamped to [min_k, max_k].
                   final_min_k: >
-                    {% set proposed = 2700 + base_warmth_offset + night_warmth_with_sensitivity %}
-                    {{ [2700, [2700, proposed] | min] | max }}
+                    {% set proposed = min_k + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {{ [min_k, [max_k, proposed] | min] | max }}
                   final_max_k: >
-                    {% set proposed = 2700 + base_warmth_offset + night_warmth_with_sensitivity %}
-                    {% set clamped = [2700, [2700, proposed] | min] | max %}
+                    {% set proposed = max_k + base_warmth_offset + night_warmth_with_sensitivity %}
+                    {% set clamped = [min_k, [max_k, proposed] | min] | max %}
                     {{ [final_min_k | float, clamped] | max }}
 
               - service: adaptive_lighting.change_switch_settings
@@ -1706,6 +1734,10 @@ automation:
                   transition: "{{ transition_speed }}"
 
           # ========== OFFICE BED (Brightness only; color owned by sun-aware automation) ==========
+          # SYNC: min_k / max_k MUST match YAML office_bed min_color_temp / max_color_temp
+          # at line ~928. CCT 2000-2700K is the fallback range only; the
+          # warm-pin automation owns runtime color via HS override
+          # (manual_control: "color" per-attribute lock).
           - sequence:
               - variables:
                   comfort_min_b: 30
@@ -1715,7 +1747,7 @@ automation:
                   hard_min_b: 1
                   hard_max_b: 100
                   min_k: 2000
-                  max_k: 2000
+                  max_k: 2700
 
                   # No night dimming for office_bed (uses sleep mode + automation owns color)
                   night_with_sensitivity: 0
@@ -1747,10 +1779,12 @@ automation:
                   final_min_b: "{{ clamped_min_b }}"
                   final_max_b: "{{ [clamped_min_b, clamped_max_b] | max }}"
 
-                  # CCT pinned 2000K — adapt_color is OFF, AL never pushes color, this is
-                  # fallback only (e.g. sleep mode AL exit via standard CCT path)
-                  final_min_k: 2000
-                  final_max_k: 2000
+                  # CCT range 2000-2700K — adapt_color is OFF, AL never pushes color
+                  # via apply, this is fallback only (e.g. sleep mode AL exit via
+                  # standard CCT path; intercept-injected color on bare turn_on).
+                  # The warm-pin automation re-paints HS amber on off→on edge.
+                  final_min_k: "{{ min_k }}"
+                  final_max_k: "{{ max_k }}"
 
               - service: adaptive_lighting.change_switch_settings
                 continue_on_error: true
@@ -3760,6 +3794,18 @@ automation:
       - platform: state
         entity_id: input_number.oal_test_sun_elevation
         id: test_change
+      # Fast-path recovery: bed pair off→on edge (app, voice, AL intercept).
+      # AL's intercept injects current CCT 2000K on any bare light.turn_on,
+      # which Tuya WallSmart renders as neutral white. This trigger re-paints
+      # the correct tier (deep amber at night) within ms of the on edge so
+      # the user never sees the white flash linger.
+      - platform: state
+        entity_id:
+          - light.office_bed_light_left
+          - light.office_bed_light_right
+        from: "off"
+        to: "on"
+        id: bed_pair_on
       # Recovery — make sure color matches current sun on restart / reload
       - platform: homeassistant
         event: start
@@ -8212,6 +8258,19 @@ script:
                   force: true
                   force_intent: "column_safe"
                   source: "soft_reset"
+              # Re-apply office bed pair warm-pin. Soft reset clears
+              # manual_control on AL switches, exposing the bed pair to
+              # AL intercept (which would inject CCT 2000K = neutral white
+              # on the next turn_on). Firing the color-window automation
+              # re-asserts the correct sun-tier color + per-attribute
+              # manual_control: "color" pin. Symmetric with how column
+              # lights are protected.
+              - service: automation.trigger
+                continue_on_error: true
+                target:
+                  entity_id: automation.oal_v13_office_bed_color_window_sun_driven_amber_cct
+                data:
+                  skip_condition: false
 
   oal_reset_global:
     alias: "OAL v13 Reset Global (Nuclear)"
@@ -8245,6 +8304,19 @@ script:
         continue_on_error: true
         target:
           entity_id: automation.oal_v13_night_behavior_manager
+      # Re-apply office bed pair warm-pin AFTER change_switch_settings
+      # use_defaults restores AL configuration. soft reset already
+      # re-applied once at its tail, but the subsequent change_switch_settings
+      # call above may reset switch-level state that affects intercept
+      # behavior. Re-running the color-window automation at the very end
+      # guarantees the bed pair lands at the correct sun-tier color with
+      # manual_control: "color" pinned.
+      - service: automation.trigger
+        continue_on_error: true
+        target:
+          entity_id: automation.oal_v13_office_bed_color_window_sun_driven_amber_cct
+        data:
+          skip_condition: false
 
   # -------------------------------------------------------------------------
   # Parameterized Room Reset Script (replaces hardcoded oal_reset_living_room)

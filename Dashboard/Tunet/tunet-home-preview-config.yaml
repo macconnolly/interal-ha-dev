@@ -54,6 +54,70 @@ views:
   #      LEFT  (column_span 3): lighting + rooms stacked
   #      RIGHT (column_span 3): climate + weather + media + inbox stacked
   #   Popups (sections 5+) remain unchanged (column_span 4, hidden bubble-cards).
+  # T9: navbar-card (HACS lovelace-navbar-card v1.6.0) — persistent dock with
+  # built-in media_player widget for 5 Sonos speakers. Anchor `&nav_card`
+  # defined here; referenced as `*nav_card` from all other views.
+  - type: grid
+    column_span: 2
+    cards:
+    - &nav_card
+      type: custom:navbar-card
+      desktop:
+        mode: floating
+        position: bottom
+        min_width: 768
+        show_labels: true
+      mobile:
+        mode: docked
+        show_labels: true
+      media_player:
+        album_cover_background: true
+        desktop_position: bottom-center
+        players:
+          - entity: media_player.living_room
+            tap_action: { action: navigate, navigation_path: '#media-living-room' }
+          - entity: media_player.kitchen
+          - entity: media_player.dining_room
+          - entity: media_player.bedroom
+          - entity: media_player.office
+      styles: |
+        .navbar {
+          --navbar-background-color: rgba(30, 41, 59, 0.72);
+          --navbar-primary-color: #fbbf24;
+          --navbar-color: rgba(255,255,255,0.55);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 22px;
+        }
+      routes:
+        - url: /tunet-home-preview/home
+          icon: mdi:home
+          label: Home
+        - url: /tunet-home-preview/home
+          icon: mdi:floor-plan
+          label: Rooms
+          popup:
+            - url: /tunet-home-preview/living-room
+              icon: mdi:sofa
+              label: Living
+            - url: /tunet-home-preview/kitchen
+              icon: mdi:silverware-fork-knife
+              label: Kitchen
+            - url: /tunet-home-preview/dining-room
+              icon: mdi:silverware-variant
+              label: Dining
+            - url: /tunet-home-preview/bedroom
+              icon: mdi:bed
+              label: Bedroom
+            - url: /tunet-home-preview/office
+              icon: mdi:desktop-classic
+              label: Office
+        - url: /tunet-home-preview/stats
+          icon: mdi:chart-line
+          label: Stats
+        - url: /tunet-home-preview/settings
+          icon: mdi:cog
+          label: Settings
   - type: grid
     column_span: 2
     cards:
@@ -96,6 +160,15 @@ views:
           option: Adaptive
         state_entity: input_select.oal_active_configuration
         active_when: Adaptive
+      - name: Full
+        icon: flare
+        accent: amber
+        service: input_select.select_option
+        service_data:
+          entity_id: input_select.oal_active_configuration
+          option: Full Bright
+        state_entity: input_select.oal_active_configuration
+        active_when: Full Bright
       - name: Evening
         icon: bedtime
         accent: amber
@@ -114,15 +187,6 @@ views:
           option: Dim Ambient
         state_entity: input_select.oal_active_configuration
         active_when: Dim Ambient
-      - name: Warm
-        icon: local_fire_department
-        accent: amber
-        service: input_select.select_option
-        service_data:
-          entity_id: input_select.oal_active_configuration
-          option: Warm Ambient
-        state_entity: input_select.oal_active_configuration
-        active_when: Warm Ambient
       - name: TV
         icon: tv
         accent: blue
@@ -197,10 +261,12 @@ views:
       use_profiles: true
       columns: 2
       column_breakpoints:
-        - min_width: 1100
+        # T9 fix: half-desktop (~700px) renders 1×6 cols not 2×3 per Mac
+        # spec. 6-col threshold lowered from 1100 to 600. Tile width ~110px
+        # at half-desktop — tight but matches Mac's "1 row 6 columns on
+        # desktop" requirement.
+        - min_width: 600
           columns: 6
-        - min_width: 700
-          columns: 3
         - columns: 2
       expand_groups: false
       show_adaptive_toggle: false
@@ -342,17 +408,44 @@ views:
       card_type: pop-up
       hash: '#room-living-room'
       popup_mode: fit-content
-      width_desktop: 720px
-      margin_top_desktop: 3vh
+      width_desktop: 75vw
+      margin_top_desktop: 7vh
       bg_opacity: 92
       bg_blur: 14
       name: Living Room
       icon: mdi:sofa
       bottom_offset: true
+      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
       card_mod:
-        style: "ha-card {\n  border-radius: 24px 24px 0 0 !important;\n  padding-bottom: env(safe-area-inset-bottom) !important;\n  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;\n min-height: 85vh !important;\n\
-          }\nha-card::before {\n  content: '';\n  position: absolute;\n  top: 8px; left: 50%;\n  transform: translateX(-50%);\n  width: 36px; height: 5px;\n  border-radius: 3px;\n  background: rgba(255,255,255,0.4);\n\
-          \  pointer-events: none;\n}\n"
+        style: |
+          ha-card {
+            border-radius: 24px 24px 0 0 !important;
+            padding-bottom: env(safe-area-inset-bottom) !important;
+            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            min-height: 85vh !important;
+          }
+          ha-card::before {
+            content: ''; position: absolute; top: 8px; left: 50%;
+            transform: translateX(-50%);
+            width: 36px; height: 5px; border-radius: 3px;
+            background: rgba(255,255,255,0.4); pointer-events: none;
+          }
+          @media (min-width: 768px) {
+            ha-card {
+              max-width: 980px !important;
+              min-width: 720px !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              border-radius: 24px !important;
+              min-height: 78vh !important;
+              max-height: 86vh !important;
+              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
+            }
+            ha-card::before { display: none; }
+          }
+          @media (min-width: 1440px) {
+            ha-card { max-width: 1100px !important; }
+          }
       cards:
       - type: custom:tunet-lighting-card
         name: Living Room Lights
@@ -424,20 +517,44 @@ views:
       card_type: pop-up
       hash: '#room-kitchen'
       popup_mode: fit-content
-      width_desktop: 720px
-      margin_top_desktop: 3vh
+      width_desktop: 75vw
+      margin_top_desktop: 7vh
       bg_opacity: 92
       bg_blur: 14
       name: Kitchen
       icon: mdi:silverware
       bottom_offset: true
+      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
-
-          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+        style: |
+          ha-card {
+            border-radius: 24px 24px 0 0 !important;
+            padding-bottom: env(safe-area-inset-bottom) !important;
+            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            min-height: 85vh !important;
           }
-
-          '
+          ha-card::before {
+            content: ''; position: absolute; top: 8px; left: 50%;
+            transform: translateX(-50%);
+            width: 36px; height: 5px; border-radius: 3px;
+            background: rgba(255,255,255,0.4); pointer-events: none;
+          }
+          @media (min-width: 768px) {
+            ha-card {
+              max-width: 980px !important;
+              min-width: 720px !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              border-radius: 24px !important;
+              min-height: 78vh !important;
+              max-height: 86vh !important;
+              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
+            }
+            ha-card::before { display: none; }
+          }
+          @media (min-width: 1440px) {
+            ha-card { max-width: 1100px !important; }
+          }
       cards:
       - type: custom:tunet-lighting-card
         name: Kitchen Lights
@@ -501,20 +618,44 @@ views:
       card_type: pop-up
       hash: '#room-dining-room'
       popup_mode: fit-content
-      width_desktop: 720px
-      margin_top_desktop: 3vh
+      width_desktop: 75vw
+      margin_top_desktop: 7vh
       bg_opacity: 92
       bg_blur: 14
       name: Dining Room
       icon: mdi:silverware-clean
       bottom_offset: true
+      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
-
-          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+        style: |
+          ha-card {
+            border-radius: 24px 24px 0 0 !important;
+            padding-bottom: env(safe-area-inset-bottom) !important;
+            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            min-height: 85vh !important;
           }
-
-          '
+          ha-card::before {
+            content: ''; position: absolute; top: 8px; left: 50%;
+            transform: translateX(-50%);
+            width: 36px; height: 5px; border-radius: 3px;
+            background: rgba(255,255,255,0.4); pointer-events: none;
+          }
+          @media (min-width: 768px) {
+            ha-card {
+              max-width: 980px !important;
+              min-width: 720px !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              border-radius: 24px !important;
+              min-height: 78vh !important;
+              max-height: 86vh !important;
+              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
+            }
+            ha-card::before { display: none; }
+          }
+          @media (min-width: 1440px) {
+            ha-card { max-width: 1100px !important; }
+          }
       cards:
       - type: custom:tunet-climate-card
         entity: climate.dining_room
@@ -564,20 +705,44 @@ views:
       card_type: pop-up
       hash: '#room-bedroom'
       popup_mode: fit-content
-      width_desktop: 720px
-      margin_top_desktop: 3vh
+      width_desktop: 75vw
+      margin_top_desktop: 7vh
       bg_opacity: 92
       bg_blur: 14
       name: Bedroom
       icon: mdi:bed
       bottom_offset: true
+      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
-
-          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+        style: |
+          ha-card {
+            border-radius: 24px 24px 0 0 !important;
+            padding-bottom: env(safe-area-inset-bottom) !important;
+            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            min-height: 85vh !important;
           }
-
-          '
+          ha-card::before {
+            content: ''; position: absolute; top: 8px; left: 50%;
+            transform: translateX(-50%);
+            width: 36px; height: 5px; border-radius: 3px;
+            background: rgba(255,255,255,0.4); pointer-events: none;
+          }
+          @media (min-width: 768px) {
+            ha-card {
+              max-width: 980px !important;
+              min-width: 720px !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              border-radius: 24px !important;
+              min-height: 78vh !important;
+              max-height: 86vh !important;
+              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
+            }
+            ha-card::before { display: none; }
+          }
+          @media (min-width: 1440px) {
+            ha-card { max-width: 1100px !important; }
+          }
       cards:
       - type: custom:tunet-lighting-card
         name: Bedroom Lights
@@ -657,20 +822,44 @@ views:
       card_type: pop-up
       hash: '#room-office'
       popup_mode: fit-content
-      width_desktop: 720px
-      margin_top_desktop: 3vh
+      width_desktop: 75vw
+      margin_top_desktop: 7vh
       bg_opacity: 92
       bg_blur: 14
       name: Office
       icon: mdi:desktop-tower
       bottom_offset: true
+      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
-
-          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+        style: |
+          ha-card {
+            border-radius: 24px 24px 0 0 !important;
+            padding-bottom: env(safe-area-inset-bottom) !important;
+            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            min-height: 85vh !important;
           }
-
-          '
+          ha-card::before {
+            content: ''; position: absolute; top: 8px; left: 50%;
+            transform: translateX(-50%);
+            width: 36px; height: 5px; border-radius: 3px;
+            background: rgba(255,255,255,0.4); pointer-events: none;
+          }
+          @media (min-width: 768px) {
+            ha-card {
+              max-width: 980px !important;
+              min-width: 720px !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              border-radius: 24px !important;
+              min-height: 78vh !important;
+              max-height: 86vh !important;
+              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
+            }
+            ha-card::before { display: none; }
+          }
+          @media (min-width: 1440px) {
+            ha-card { max-width: 1100px !important; }
+          }
       cards:
       - type: custom:tunet-lighting-card
         name: Office Lights
@@ -724,20 +913,44 @@ views:
       card_type: pop-up
       hash: '#media-living-room'
       popup_mode: fit-content
-      width_desktop: 720px
-      margin_top_desktop: 3vh
+      width_desktop: 75vw
+      margin_top_desktop: 7vh
       bg_opacity: 92
       bg_blur: 14
       name: Media
       icon: mdi:speaker
       bottom_offset: true
+      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
-
-          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+        style: |
+          ha-card {
+            border-radius: 24px 24px 0 0 !important;
+            padding-bottom: env(safe-area-inset-bottom) !important;
+            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            min-height: 85vh !important;
           }
-
-          '
+          ha-card::before {
+            content: ''; position: absolute; top: 8px; left: 50%;
+            transform: translateX(-50%);
+            width: 36px; height: 5px; border-radius: 3px;
+            background: rgba(255,255,255,0.4); pointer-events: none;
+          }
+          @media (min-width: 768px) {
+            ha-card {
+              max-width: 980px !important;
+              min-width: 720px !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              border-radius: 24px !important;
+              min-height: 78vh !important;
+              max-height: 86vh !important;
+              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
+            }
+            ha-card::before { display: none; }
+          }
+          @media (min-width: 1440px) {
+            ha-card { max-width: 1100px !important; }
+          }
       cards:
       - type: custom:tunet-sonos-card
         entity: media_player.living_room
@@ -765,20 +978,44 @@ views:
       card_type: pop-up
       hash: '#oal-detail'
       popup_mode: fit-content
-      width_desktop: 720px
-      margin_top_desktop: 3vh
+      width_desktop: 75vw
+      margin_top_desktop: 7vh
       bg_opacity: 92
       bg_blur: 14
       name: Adaptive Lighting
       icon: mdi:tune
       bottom_offset: true
+      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
       card_mod:
-        style: 'ha-card { border-radius: 24px 24px 0 0 !important; padding-bottom: env(safe-area-inset-bottom) !important; min-height: 85vh !important; }
-
-          ha-card::before { content:''''; position:absolute; top:8px; left:50%; transform:translateX(-50%); width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); pointer-events:none;
+        style: |
+          ha-card {
+            border-radius: 24px 24px 0 0 !important;
+            padding-bottom: env(safe-area-inset-bottom) !important;
+            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            min-height: 85vh !important;
           }
-
-          '
+          ha-card::before {
+            content: ''; position: absolute; top: 8px; left: 50%;
+            transform: translateX(-50%);
+            width: 36px; height: 5px; border-radius: 3px;
+            background: rgba(255,255,255,0.4); pointer-events: none;
+          }
+          @media (min-width: 768px) {
+            ha-card {
+              max-width: 980px !important;
+              min-width: 720px !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              border-radius: 24px !important;
+              min-height: 78vh !important;
+              max-height: 86vh !important;
+              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
+            }
+            ha-card::before { display: none; }
+          }
+          @media (min-width: 1440px) {
+            ha-card { max-width: 1100px !important; }
+          }
       cards:
       - type: custom:tunet-status-card
         layout_variant: home_detail
@@ -824,13 +1061,44 @@ views:
       card_type: pop-up
       hash: '#alarm-edit'
       popup_mode: fit-content
-      width_desktop: 720px
-      margin_top_desktop: 3vh
+      width_desktop: 75vw
+      margin_top_desktop: 7vh
       bg_opacity: 92
       bg_blur: 14
       name: Edit Alarm
       icon: mdi:alarm
       bottom_offset: true
+      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
+      card_mod:
+        style: |
+          ha-card {
+            border-radius: 24px 24px 0 0 !important;
+            padding-bottom: env(safe-area-inset-bottom) !important;
+            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            min-height: 85vh !important;
+          }
+          ha-card::before {
+            content: ''; position: absolute; top: 8px; left: 50%;
+            transform: translateX(-50%);
+            width: 36px; height: 5px; border-radius: 3px;
+            background: rgba(255,255,255,0.4); pointer-events: none;
+          }
+          @media (min-width: 768px) {
+            ha-card {
+              max-width: 980px !important;
+              min-width: 720px !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              border-radius: 24px !important;
+              min-height: 78vh !important;
+              max-height: 86vh !important;
+              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
+            }
+            ha-card::before { display: none; }
+          }
+          @media (min-width: 1440px) {
+            ha-card { max-width: 1100px !important; }
+          }
       cards:
       - type: markdown
         content: >
@@ -912,6 +1180,10 @@ views:
   max_columns: 4
   dense_section_placement: true
   sections:
+  - type: grid
+    column_span: 4
+    cards:
+    - *nav_card
   - type: grid
     column_span: 1
     cards:

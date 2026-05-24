@@ -261,11 +261,10 @@ views:
       use_profiles: true
       columns: 2
       column_breakpoints:
-        # T9 fix: half-desktop (~700px) renders 1×6 cols not 2×3 per Mac
-        # spec. 6-col threshold lowered from 1100 to 600. Tile width ~110px
-        # at half-desktop — tight but matches Mac's "1 row 6 columns on
-        # desktop" requirement.
-        - min_width: 600
+        # T9b fix: half-section width on max_columns:2 with HA sidebar
+        # visible is ~580px (just under the 600 threshold). Lowered to
+        # 500 so half-desktop reliably matches 6-col rule.
+        - min_width: 500
           columns: 6
         - columns: 2
       expand_groups: false
@@ -407,7 +406,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#room-living-room'
-      popup_mode: fit-content
+      popup_mode: centered
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -516,7 +515,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#room-kitchen'
-      popup_mode: fit-content
+      popup_mode: centered
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -617,7 +616,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#room-dining-room'
-      popup_mode: fit-content
+      popup_mode: centered
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -704,7 +703,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#room-bedroom'
-      popup_mode: fit-content
+      popup_mode: centered
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -821,7 +820,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#room-office'
-      popup_mode: fit-content
+      popup_mode: centered
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -912,7 +911,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#media-living-room'
-      popup_mode: fit-content
+      popup_mode: centered
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -977,7 +976,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#oal-detail'
-      popup_mode: fit-content
+      popup_mode: centered
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -1060,7 +1059,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#alarm-edit'
-      popup_mode: fit-content
+      popup_mode: centered
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92

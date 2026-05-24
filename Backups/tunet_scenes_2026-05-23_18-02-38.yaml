@@ -1,0 +1,56 @@
+# =============================================================================
+# TUNET SCENES — OAL mode triggers for HomeKit + voice + dashboard exposure
+# =============================================================================
+# Wraps OAL mode selections as proper `scene:` entities so HomeKit can expose
+# them in Apple Home. Mac's 2026-05-23 ask: "expose those scenes in the
+# homekit integration".
+#
+# Three scenes correspond to the ZEN32 B5-2x cycle:
+#   scene.tunet_oal_adaptive    → Adaptive
+#   scene.tunet_oal_evening     → Evening (renamed from "Dim Ambient Plus" 2026-05-22)
+#   scene.tunet_oal_dim_ambient → Dim Ambient
+#
+# Each scene calls input_select.select_option on
+# input_select.oal_active_configuration, which triggers the OAL
+# configuration_manager automation to apply the per-zone brightness
+# config. No bypass of OAL logic — these are thin wrappers.
+#
+# Owning portfolio item: Plan C / Plan D of tunet-portfolio-roadmap-2026-05-23.md.
+# =============================================================================
+
+scene:
+  - name: "Tunet OAL Adaptive"
+    id: tunet_oal_adaptive
+    icon: mdi:weather-sunny
+    entities:
+      input_select.oal_active_configuration:
+        state: "Adaptive"
+
+  - name: "Tunet OAL Evening"
+    id: tunet_oal_evening
+    icon: mdi:lightbulb-night-outline
+    entities:
+      input_select.oal_active_configuration:
+        state: "Evening"
+
+  - name: "Tunet OAL Dim Ambient"
+    id: tunet_oal_dim_ambient
+    icon: mdi:lightbulb-night
+    entities:
+      input_select.oal_active_configuration:
+        state: "Dim Ambient"
+
+  # ───── Bonus scenes for quick HomeKit / voice access ─────
+  - name: "Tunet OAL Sleep"
+    id: tunet_oal_sleep
+    icon: mdi:bed
+    entities:
+      input_select.oal_active_configuration:
+        state: "Sleep"
+
+  - name: "Tunet OAL Full Bright"
+    id: tunet_oal_full_bright
+    icon: mdi:lightbulb-on
+    entities:
+      input_select.oal_active_configuration:
+        state: "Full Bright"

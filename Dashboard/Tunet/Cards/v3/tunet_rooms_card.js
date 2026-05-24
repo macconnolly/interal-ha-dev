@@ -395,11 +395,12 @@ const CARD_STYLES = `
     font-weight: 700;
     color: var(--text-sub);
     line-height: var(--row-line-height-status, 1.14);
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-line-clamp: var(--row-status-max-lines, 2);
-    -webkit-box-orient: vertical;
+    /* Audit R1: was 2-line clamp; "2/3 · 23% · 2 manual" wrapped ugly.
+     * Single-line nowrap+ellipsis reads cleaner at narrow widths. */
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   .room-grid.row-mode .room-tile-icon {
     width: var(--row-btn-size);

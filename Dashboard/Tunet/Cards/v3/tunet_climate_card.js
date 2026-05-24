@@ -1188,7 +1188,10 @@ class TunetClimateCard extends HTMLElement {
     const $ = this.$;
     if (!$ || !$.hdrSub) return;
 
-    const actionNames = { heating: 'Heating', cooling: 'Cooling', idle: 'Idle', off: 'Off', drying: 'Drying' };
+    // Audit C1 fix: shortened from Heating/Cooling/Drying to Heat/Cool/Dry —
+    // header is narrow on 390 (humidity + action + mode toggle compete) and
+    // "Cooling" was truncating mid-word to "Cools". Icon conveys the action.
+    const actionNames = { heating: 'Heat', cooling: 'Cool', idle: 'Idle', off: 'Off', drying: 'Dry' };
     const actionClass = { heating: 'heat-ic', cooling: 'cool-ic' };
 
     let parts = [];

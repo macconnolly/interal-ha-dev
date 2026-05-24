@@ -417,8 +417,10 @@ const CARD_STYLES = `
   /* -- Responsive -- */
   @media (max-width: 440px) {
     .card { padding: var(--card-pad, 14px); }
-    .album-art { width: 48px; height: 48px; }
-    .track-name { font-size: 14px; }
+    /* Audit M1: bumped album art from 48 → 56px so it reads as a "playing
+     * card" not a thumbnail. Apple Music mini-player uses ~56px art. */
+    .album-art { width: 56px; height: 56px; }
+    .track-name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
     .speaker-btn { min-height: 32px; font-size: 12px; }
     .dd-option { font-size: 12px; }
     .transport { gap: 2px; }

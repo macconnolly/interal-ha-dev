@@ -1052,6 +1052,29 @@ export const RESET = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 `;
 
+/**
+ * Shared truncation utility — apply on any text node inside a constrained flex
+ * container that should ellipsize instead of clipping or wrapping mid-word.
+ * Parent flex item MUST set `min-width: 0` for this to actually shrink.
+ * Audit R4: ~25 sites identified across cards (status values, climate "Cooling"
+ * truncating to "Cools", speaker tile names "Bedro...", rooms-row status).
+ */
+export const TRUNCATE = `
+  .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-width: 0;
+  }
+`;
+
 export const BASE_FONT = `
   .wrap, .card-wrap {
     font-family: "DM Sans", system-ui, -apple-system, sans-serif;

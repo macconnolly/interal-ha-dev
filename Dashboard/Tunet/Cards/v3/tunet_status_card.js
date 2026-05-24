@@ -1233,8 +1233,14 @@ ${CARD_SURFACE_GLASS_STROKE}
     line-height: 1.02;
   }
   :host([layout-variant="home_summary"]) .tile-val.is-text {
+    /* Audit S1/S2: "Clear Night" and alarm labels were clipping mid-line in
+     * home_summary because line-clamp:1 left the second line invisible but
+     * still occupying layout. Switch to single-line + ellipsis at 390. */
     max-height: 1.16em;
-    -webkit-line-clamp: 1;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   :host([layout-variant="home_summary"]) .tile-label {
     font-size: var(--_tunet-status-label-font);

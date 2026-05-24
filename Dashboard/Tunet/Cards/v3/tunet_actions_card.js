@@ -199,6 +199,10 @@ const CARD_STYLES = `
     -webkit-overflow-scrolling: touch;
     padding-block: 0.5em;
     margin-block: -0.5em;
+    /* Audit A1: edge-fade mask so users see that chips continue beyond the
+     * visible viewport. Without this the right edge looked like a hard cut. */
+    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
+            mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
   }
   .actions-row::-webkit-scrollbar { display: none; }
   /* Wrap mode: chips wrap and fill rows; no padding hack needed since

@@ -292,10 +292,12 @@ const CARD_STYLES = `
 
   .spk-meta {
     font-size: var(--_tunet-display-meta-font, var(--_tunet-sub-font, 11.5px)); font-weight: 500; line-height: 1.25;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    /* Audit SG3: was -webkit-line-clamp: 2 which let "Not grouped" wrap to
+     * two lines and stack on top of vol%. Single-line ellipsis cleaner. */
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
     transition: color .15s ease;
   }
   :host(:not([use-profiles])[tile-size="compact"]) .spk-meta { font-size: 11.25px; }

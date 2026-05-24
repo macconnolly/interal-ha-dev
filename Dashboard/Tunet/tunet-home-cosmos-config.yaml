@@ -1056,13 +1056,13 @@ views:
       - type: value
         entity: sensor.hvac_setpoint_drift_high
         icon: trending_up
-        label: Above SP
+        label: Overheat
         accent: red
         unit: °F
       - type: value
         entity: sensor.hvac_setpoint_drift_low
         icon: trending_down
-        label: Below SP
+        label: Undercool
         accent: blue
         unit: °F
   - type: grid
@@ -1088,12 +1088,12 @@ views:
         accent: blue
         unit: °F
       - entity: sensor.hvac_setpoint_drift_high
-        label: ΔAbove
+        label: Overheat
         icon: trending_up
         accent: red
         unit: °F
       - entity: sensor.hvac_setpoint_drift_low
-        label: ΔBelow
+        label: Undercool
         icon: trending_down
         accent: blue
         unit: °F
@@ -1295,6 +1295,7 @@ views:
               label: Temp
               icon: device_thermostat
               accent: amber
+              format: float1
     - type: grid
       column_span: 4
       cards:
@@ -1550,6 +1551,7 @@ views:
               label: Temp
               icon: device_thermostat
               accent: amber
+              format: float1
     - type: grid
       column_span: 4
       cards:
@@ -1665,6 +1667,7 @@ views:
               label: Temp
               icon: device_thermostat
               accent: amber
+              format: float1
             - type: alarm
               entity: sensor.sonos_next_alarm
               label: Next Alarm
@@ -1870,16 +1873,7 @@ views:
               icon: restart_alt
               accent: amber
               service: script.oal_reset_soft
-    - type: grid
-      column_span: 4
-      cards:
-        - type: custom:tunet-sensor-card
-          title: Office Sensors
-          sensors:
-            - entity: binary_sensor.occupancy_office
-              label: Occupancy
-              icon: sensor_occupied
-              accent: green
+# R3 polish: Office Sensors card removed (redundant with status header at top).
 
 # ────────────────────────────────────────────────────────────────────
 # VIEW: SETTINGS (FINAL spec §10 — OAL config + alarms + system actions)

@@ -31,7 +31,7 @@ import {
   runCardAction,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '1.1.0';
+const CARD_VERSION = '1.1.1';
 
 /* ===============================================================
    CSS - Card-specific overrides
@@ -516,6 +516,34 @@ const RESPONSIVE_STYLES = `
     .track-artist { font-size: 10px; }
     .t-btn { width: 32px; height: 32px; }
     .t-btn .icon { font-size: 18px; }
+
+    /* T8.1 — player-header reflows to 2 rows on phone-popup widths.
+     * Root cause (DOM-verified at /tmp/popup-dom-inspect/media_phone_dom.json):
+     * 4 flex siblings (.album-art 32 + .track-info + .transport 140 +
+     * .speaker-wrap.source-wrap 105) compete for 314px row width.
+     * Speaker-wrap holds 105px (Kitchen ▼) and transport 140px, starving
+     * track-info to 6.59px (single character truncation). Fix: wrap layout
+     * + explicit order so album+track-info take row 1; transport +
+     * speaker-wrap take row 2 with speaker-wrap right-aligned. */
+    .player-header {
+      flex-wrap: wrap;
+      row-gap: 10px;
+    }
+    .album-art      { order: 0; }
+    .track-info {
+      order: 1;
+      flex: 1 1 calc(100% - 42px);  /* 32px album + 10px gap reserved */
+      min-width: 0;
+    }
+    .transport {
+      order: 2;
+      flex: 0 0 auto;
+    }
+    .speaker-wrap.source-wrap {
+      order: 3;
+      flex: 0 1 auto;
+      margin-left: auto;  /* right-align on row 2 beside transport */
+    }
 
     /* Tiles become near-square on mobile */
     .speaker-tile {

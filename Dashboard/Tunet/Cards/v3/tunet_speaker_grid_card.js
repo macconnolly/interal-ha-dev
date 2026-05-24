@@ -36,7 +36,7 @@ import {
   runCardAction,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.3.0';
+const CARD_VERSION = '3.3.1';
 const DRAG_THRESHOLD = 6;
 const DRAG_SCALE = 2;
 const LONG_PRESS_MS = 400;
@@ -1141,7 +1141,12 @@ class TunetSpeakerGridCard extends HTMLElement {
 
       const nameEl = document.createElement('div');
       nameEl.className = 'spk-name';
-      nameEl.textContent = spk.name || spk.entity;
+      // T8.1 — Mac's direction: strip "Room" suffix via compactSpeakerName so
+      // tiles render as "Living"/"Dining"/"Kitchen"/"Bath"/"Bed" instead of
+      // "Living Room"/etc. Eliminates the truncation defect at popup-on-phone
+      // widths AND cleans up desktop aesthetic. aria-label at line ~1062 keeps
+      // the FULL name so screen readers/voice remain unambiguous.
+      nameEl.textContent = compactSpeakerName(spk.name || spk.entity);
       textWrap.appendChild(nameEl);
 
       const metaEl = document.createElement('div');

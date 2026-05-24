@@ -406,7 +406,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#room-living-room'
-      popup_mode: centered
+      popup_mode: adaptive-dialog
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -414,8 +414,11 @@ views:
       name: Living Room
       icon: mdi:sofa
       bottom_offset: true
-      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
-      card_mod:
+      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior.
+      # Anchor `&popup_style` defined here; referenced as `*popup_style`
+      # on the other 7 popups so the 30-line card_mod block lives in
+      # one place.
+      card_mod: &popup_style
         style: |
           ha-card {
             border-radius: 24px 24px 0 0 !important;
@@ -515,7 +518,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#room-kitchen'
-      popup_mode: centered
+      popup_mode: adaptive-dialog
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -523,37 +526,8 @@ views:
       name: Kitchen
       icon: mdi:silverware
       bottom_offset: true
-      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
-      card_mod:
-        style: |
-          ha-card {
-            border-radius: 24px 24px 0 0 !important;
-            padding-bottom: env(safe-area-inset-bottom) !important;
-            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-            min-height: 85vh !important;
-          }
-          ha-card::before {
-            content: ''; position: absolute; top: 8px; left: 50%;
-            transform: translateX(-50%);
-            width: 36px; height: 5px; border-radius: 3px;
-            background: rgba(255,255,255,0.4); pointer-events: none;
-          }
-          @media (min-width: 768px) {
-            ha-card {
-              max-width: 980px !important;
-              min-width: 720px !important;
-              margin-left: auto !important;
-              margin-right: auto !important;
-              border-radius: 24px !important;
-              min-height: 78vh !important;
-              max-height: 86vh !important;
-              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
-            }
-            ha-card::before { display: none; }
-          }
-          @media (min-width: 1440px) {
-            ha-card { max-width: 1100px !important; }
-          }
+      # T8: iOS-sheet feel — reference shared anchor defined on the first popup
+      card_mod: *popup_style
       cards:
       - type: custom:tunet-lighting-card
         name: Kitchen Lights
@@ -616,7 +590,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#room-dining-room'
-      popup_mode: centered
+      popup_mode: adaptive-dialog
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -624,41 +598,17 @@ views:
       name: Dining Room
       icon: mdi:silverware-clean
       bottom_offset: true
-      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
-      card_mod:
-        style: |
-          ha-card {
-            border-radius: 24px 24px 0 0 !important;
-            padding-bottom: env(safe-area-inset-bottom) !important;
-            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-            min-height: 85vh !important;
-          }
-          ha-card::before {
-            content: ''; position: absolute; top: 8px; left: 50%;
-            transform: translateX(-50%);
-            width: 36px; height: 5px; border-radius: 3px;
-            background: rgba(255,255,255,0.4); pointer-events: none;
-          }
-          @media (min-width: 768px) {
-            ha-card {
-              max-width: 980px !important;
-              min-width: 720px !important;
-              margin-left: auto !important;
-              margin-right: auto !important;
-              border-radius: 24px !important;
-              min-height: 78vh !important;
-              max-height: 86vh !important;
-              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
-            }
-            ha-card::before { display: none; }
-          }
-          @media (min-width: 1440px) {
-            ha-card { max-width: 1100px !important; }
-          }
+      # T8: iOS-sheet feel — reference shared anchor defined on the first popup
+      card_mod: *popup_style
       cards:
       - type: custom:tunet-climate-card
         entity: climate.dining_room
         name: Climate
+        # T8.1 — denser layout for popup context per Mac's direction.
+        # Thin variant hides .temps row and compacts slider/scale; .hdr
+        # row inherits standard layout so header overflow risk (A1) remains
+        # to be empirically validated at M1 capture.
+        variant: thin
       - type: custom:tunet-lighting-card
         name: Dining Lights
         surface: section
@@ -703,7 +653,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#room-bedroom'
-      popup_mode: centered
+      popup_mode: adaptive-dialog
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -711,37 +661,8 @@ views:
       name: Bedroom
       icon: mdi:bed
       bottom_offset: true
-      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
-      card_mod:
-        style: |
-          ha-card {
-            border-radius: 24px 24px 0 0 !important;
-            padding-bottom: env(safe-area-inset-bottom) !important;
-            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-            min-height: 85vh !important;
-          }
-          ha-card::before {
-            content: ''; position: absolute; top: 8px; left: 50%;
-            transform: translateX(-50%);
-            width: 36px; height: 5px; border-radius: 3px;
-            background: rgba(255,255,255,0.4); pointer-events: none;
-          }
-          @media (min-width: 768px) {
-            ha-card {
-              max-width: 980px !important;
-              min-width: 720px !important;
-              margin-left: auto !important;
-              margin-right: auto !important;
-              border-radius: 24px !important;
-              min-height: 78vh !important;
-              max-height: 86vh !important;
-              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
-            }
-            ha-card::before { display: none; }
-          }
-          @media (min-width: 1440px) {
-            ha-card { max-width: 1100px !important; }
-          }
+      # T8: iOS-sheet feel — reference shared anchor defined on the first popup
+      card_mod: *popup_style
       cards:
       - type: custom:tunet-lighting-card
         name: Bedroom Lights
@@ -820,7 +741,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#room-office'
-      popup_mode: centered
+      popup_mode: adaptive-dialog
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -828,37 +749,8 @@ views:
       name: Office
       icon: mdi:desktop-tower
       bottom_offset: true
-      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
-      card_mod:
-        style: |
-          ha-card {
-            border-radius: 24px 24px 0 0 !important;
-            padding-bottom: env(safe-area-inset-bottom) !important;
-            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-            min-height: 85vh !important;
-          }
-          ha-card::before {
-            content: ''; position: absolute; top: 8px; left: 50%;
-            transform: translateX(-50%);
-            width: 36px; height: 5px; border-radius: 3px;
-            background: rgba(255,255,255,0.4); pointer-events: none;
-          }
-          @media (min-width: 768px) {
-            ha-card {
-              max-width: 980px !important;
-              min-width: 720px !important;
-              margin-left: auto !important;
-              margin-right: auto !important;
-              border-radius: 24px !important;
-              min-height: 78vh !important;
-              max-height: 86vh !important;
-              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
-            }
-            ha-card::before { display: none; }
-          }
-          @media (min-width: 1440px) {
-            ha-card { max-width: 1100px !important; }
-          }
+      # T8: iOS-sheet feel — reference shared anchor defined on the first popup
+      card_mod: *popup_style
       cards:
       - type: custom:tunet-lighting-card
         name: Office Lights
@@ -911,7 +803,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#media-living-room'
-      popup_mode: centered
+      popup_mode: adaptive-dialog
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -919,37 +811,8 @@ views:
       name: Media
       icon: mdi:speaker
       bottom_offset: true
-      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
-      card_mod:
-        style: |
-          ha-card {
-            border-radius: 24px 24px 0 0 !important;
-            padding-bottom: env(safe-area-inset-bottom) !important;
-            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-            min-height: 85vh !important;
-          }
-          ha-card::before {
-            content: ''; position: absolute; top: 8px; left: 50%;
-            transform: translateX(-50%);
-            width: 36px; height: 5px; border-radius: 3px;
-            background: rgba(255,255,255,0.4); pointer-events: none;
-          }
-          @media (min-width: 768px) {
-            ha-card {
-              max-width: 980px !important;
-              min-width: 720px !important;
-              margin-left: auto !important;
-              margin-right: auto !important;
-              border-radius: 24px !important;
-              min-height: 78vh !important;
-              max-height: 86vh !important;
-              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
-            }
-            ha-card::before { display: none; }
-          }
-          @media (min-width: 1440px) {
-            ha-card { max-width: 1100px !important; }
-          }
+      # T8: iOS-sheet feel — reference shared anchor defined on the first popup
+      card_mod: *popup_style
       cards:
       - type: custom:tunet-sonos-card
         entity: media_player.living_room
@@ -976,7 +839,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#oal-detail'
-      popup_mode: centered
+      popup_mode: adaptive-dialog
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -984,37 +847,8 @@ views:
       name: Adaptive Lighting
       icon: mdi:tune
       bottom_offset: true
-      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
-      card_mod:
-        style: |
-          ha-card {
-            border-radius: 24px 24px 0 0 !important;
-            padding-bottom: env(safe-area-inset-bottom) !important;
-            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-            min-height: 85vh !important;
-          }
-          ha-card::before {
-            content: ''; position: absolute; top: 8px; left: 50%;
-            transform: translateX(-50%);
-            width: 36px; height: 5px; border-radius: 3px;
-            background: rgba(255,255,255,0.4); pointer-events: none;
-          }
-          @media (min-width: 768px) {
-            ha-card {
-              max-width: 980px !important;
-              min-width: 720px !important;
-              margin-left: auto !important;
-              margin-right: auto !important;
-              border-radius: 24px !important;
-              min-height: 78vh !important;
-              max-height: 86vh !important;
-              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
-            }
-            ha-card::before { display: none; }
-          }
-          @media (min-width: 1440px) {
-            ha-card { max-width: 1100px !important; }
-          }
+      # T8: iOS-sheet feel — reference shared anchor defined on the first popup
+      card_mod: *popup_style
       cards:
       - type: custom:tunet-status-card
         layout_variant: home_detail
@@ -1059,7 +893,7 @@ views:
     - type: custom:bubble-card
       card_type: pop-up
       hash: '#alarm-edit'
-      popup_mode: centered
+      popup_mode: adaptive-dialog
       width_desktop: 75vw
       margin_top_desktop: 7vh
       bg_opacity: 92
@@ -1067,41 +901,19 @@ views:
       name: Edit Alarm
       icon: mdi:alarm
       bottom_offset: true
-      # T8: iOS-sheet feel on desktop + preserved phone sheet behavior
-      card_mod:
-        style: |
-          ha-card {
-            border-radius: 24px 24px 0 0 !important;
-            padding-bottom: env(safe-area-inset-bottom) !important;
-            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-            min-height: 85vh !important;
-          }
-          ha-card::before {
-            content: ''; position: absolute; top: 8px; left: 50%;
-            transform: translateX(-50%);
-            width: 36px; height: 5px; border-radius: 3px;
-            background: rgba(255,255,255,0.4); pointer-events: none;
-          }
-          @media (min-width: 768px) {
-            ha-card {
-              max-width: 980px !important;
-              min-width: 720px !important;
-              margin-left: auto !important;
-              margin-right: auto !important;
-              border-radius: 24px !important;
-              min-height: 78vh !important;
-              max-height: 86vh !important;
-              box-shadow: 0 24px 64px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.25) !important;
-            }
-            ha-card::before { display: none; }
-          }
-          @media (min-width: 1440px) {
-            ha-card { max-width: 1100px !important; }
-          }
+      # T8.1 — alarm-edit: matches other 7 popups via shared *popup_style.
+      # Earlier attempts to raise .bubble-pop-up max-height above 73.5vh
+      # caused horizontal-stack of Close/Save button cards to stretch into
+      # empty space because ha-card was forced taller than content. Resolved
+      # by accepting Bubble Card's natural max-height — Close/Save is
+      # reachable via inner scroll if content exceeds visible region.
+      card_mod: *popup_style
       cards:
-      - type: markdown
-        content: >
-          ## {{ states('input_text.sonos_alarm_edit_name') or 'Alarm' }}
+      # T8.1 — removed redundant `## Alarm` markdown title; the popup chrome
+      # already shows "Edit Alarm" so the H2 duplicates that. Trimming this
+      # row also gives Close/Save enough vertical room to fit within the
+      # Bubble Card adaptive-dialog 73.5vh ceiling on desktop without
+      # needing a max-height override.
       - type: entities
         title: Time
         entities:
@@ -1156,19 +968,29 @@ views:
         name: Include linked zones
         tap_action:
           action: toggle
+      # T8.1 — Close/Save converted from native HA `button` to mushroom
+      # cards: native button cards stretch to fill leftover space when
+      # ha-card has forced min-height (T8 shell sets 78vh on desktop /
+      # 85vh on phone). Mushroom cards have intrinsic ~56px row height
+      # so they sit naturally at the bottom of the popup body without
+      # bloating to absorb empty vertical space.
       - type: horizontal-stack
         cards:
-        - type: button
-          name: Close
+        - type: custom:mushroom-template-card
+          primary: Close
+          secondary: ''
           icon: mdi:close
-          show_state: false
+          icon_color: blue
+          fill_container: true
           tap_action:
             action: navigate
             navigation_path: /tunet-home-preview/home
-        - type: button
-          name: Save
+        - type: custom:mushroom-template-card
+          primary: Save
+          secondary: ''
           icon: mdi:content-save
-          show_state: false
+          icon_color: green
+          fill_container: true
           tap_action:
             action: call-service
             service: script.sonos_save_alarm_changes

@@ -18,7 +18,7 @@ import {
   renderConfigPlaceholder, bindButtonActivation,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '1.2.0';
+const CARD_VERSION = '1.2.1';
 
 /* ===============================================================
    CSS – Base imports + card-specific styles
@@ -601,6 +601,29 @@ ${REDUCED_MOTION}
   @media (max-width: 440px) {
     .card { padding: 16px 16px 12px; --r-track: 12px; }
     .t-val { font-size: 42px; letter-spacing: -1.3px; }
+
+    /* T8.1 A2 hotfix — thin variant .hdr overflows at popup-on-phone widths.
+     * The thin variant CSS at lines 56-106 modifies .card/.temps/.slider*
+     * but does NOT touch .hdr's flex layout. At 390px popup width, the 3
+     * .hdr children (hdr-tile + fan-btn + mode-btn nowrap "Heat / Cool")
+     * compete for ~310px and overlap. Scoped to thin variant only so the
+     * standard variant on the home view (line-366 instance) is unchanged.
+     * Wraps mode-btn + fan-btn to row 2 with mode-btn right-aligned.
+     * Evidence of defect: /tmp/popup-revisions-v5/dining-room_390x844.png */
+    :host([variant="thin"]) .hdr {
+      flex-wrap: wrap;
+      row-gap: 8px;
+    }
+    :host([variant="thin"]) .hdr-tile {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+    :host([variant="thin"]) .hdr-spacer {
+      display: none;
+    }
+    :host([variant="thin"]) .fan-btn {
+      margin-left: auto;  /* push fan + mode-btn to right end of row 2 */
+    }
   }
 `;
 

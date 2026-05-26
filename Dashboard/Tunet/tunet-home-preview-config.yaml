@@ -81,37 +81,135 @@ views:
           - entity: media_player.bedroom
           - entity: media_player.office
       styles: |
-        .navbar {
-          --navbar-background-color: rgba(30, 41, 59, 0.72);
+        /* N.1 CS1 v4 — Mac-provided base styles (2026-05-26 5:30pm) +
+         * popup container + backdrop + popup-item polish + animation speedup.
+         * Class references per navbar-card v1.6.0 styles docs:
+         * https://joseluis9595.github.io/lovelace-navbar-card/docs/configuration/styles */
+        .navbar-card {
+          background: rgba(255, 255, 255, 0.5);
+          --navbar-border-radius: 36px;
           --navbar-primary-color: #fbbf24;
-          --navbar-color: rgba(255,255,255,0.55);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255,255,255,0.06);
+          backdrop-filter: blur(33px);
+          -webkit-backdrop-filter: blur(33px);
+          border: none;
+        }
+        .button {
           border-radius: 22px;
+        }
+
+        /* Popup container — match the navbar's light glass aesthetic. */
+        .navbar-popup {
+          background: rgba(255, 255, 255, 0.55);
+          backdrop-filter: blur(33px);
+          -webkit-backdrop-filter: blur(33px);
+          border-radius: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.32);
+          padding: 8px;
+        }
+
+        /* Popup backdrop — subtle dim + slight blur so popup pops cleanly. */
+        .navbar-popup-backdrop {
+          background: rgba(0, 0, 0, 0.32);
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+        }
+
+        /* Popup item button radius matches the navbar .button radius. */
+        .popup-item .button {
+          border-radius: 22px;
+        }
+
+        /* Speed up popup open/close animation — docs note no documented
+         * animation-timing variable, so wildcard-override transition + animation
+         * duration on the popup subtree. Default ~250-300ms; drop to 150ms. */
+        .navbar-popup,
+        .navbar-popup *,
+        .navbar-popup-backdrop {
+          transition-duration: 0.15s !important;
+          animation-duration: 0.15s !important;
+        }
+
+        /* N.1 CS1b — active-tab underline accent.
+         * Source-verified class is `.route` per navbar-card v1.6.0.
+         * `position: relative` on parent so ::after anchors correctly.
+         * `padding-bottom: 8px` reserves space below the label so the
+         * underline doesn't collide with descenders (Mac feedback
+         * 2026-05-26 5:00pm — the line was crossing through "Home"). */
+        .route {
+          position: relative;
+          padding-bottom: 8px;
+        }
+        .route.active {
+          color: var(--navbar-primary-color) !important;
+        }
+        .route.active::after {
+          content: '';
+          position: absolute;
+          left: 50%;
+          bottom: 2px;
+          transform: translateX(-50%);
+          width: 24px;
+          height: 2px;
+          border-radius: 2px;
+          background: var(--navbar-primary-color);
+          opacity: 0.95;
+          transition: width 0.15s ease;
+        }
+
+        /* N.1 CS2 — hide media-player widget on mobile.
+         * Reclaims ~72px of chrome. Desktop keeps the widget; phone uses the
+         * Media tab (CS5) for one-tap access to #media-living-room. */
+        @media (max-width: 767px) {
+          .media-player.type-custom-navbar-card,
+          .media-player-carousel,
+          .media-player-viewport,
+          .media-player-track,
+          .media-player-bg {
+            display: none !important;
+          }
+          .navbar {
+            gap: 0 !important;
+          }
         }
       routes:
         - url: /tunet-home-preview/home
           icon: mdi:home
           label: Home
-        - url: /tunet-home-preview/home
-          icon: mdi:floor-plan
+        # N.1 CS3 — Rooms popup fix. The lovelace-navbar-card v1.6.0 popup
+        # feature works, but requires `tap_action: action: open-popup` to
+        # trigger. The previous config was missing this field. Sub-routes
+        # rewritten to point at existing #room-<name> Bubble Card popups.
+        # Per-room subview pages don't exist yet (Plan F roadmap), so we
+        # route to the already-working hash-popups. Reference: navbar-card
+        # closed issue #259 (same symptom Mac reported).
+        - icon: mdi:floor-plan
           label: Rooms
+          tap_action:
+            action: open-popup
           popup:
-            - url: /tunet-home-preview/living-room
+            - url: /tunet-home-preview/home#room-living-room
               icon: mdi:sofa
               label: Living
-            - url: /tunet-home-preview/kitchen
+            - url: /tunet-home-preview/home#room-kitchen
               icon: mdi:silverware-fork-knife
               label: Kitchen
-            - url: /tunet-home-preview/dining-room
+            - url: /tunet-home-preview/home#room-dining-room
               icon: mdi:silverware-variant
               label: Dining
-            - url: /tunet-home-preview/bedroom
+            - url: /tunet-home-preview/home#room-bedroom
               icon: mdi:bed
               label: Bedroom
-            - url: /tunet-home-preview/office
+            - url: /tunet-home-preview/home#room-office
               icon: mdi:desktop-classic
               label: Office
+        # N.1 CS5 — Media tab on navbar opens #media-living-room popup.
+        # Provides one-tap media access on phone where Change Set 2 hides
+        # the always-visible widget. Tab order: Home / Rooms / Media /
+        # Stats / Settings per Mac's stamp.
+        - url: /tunet-home-preview/home#media-living-room
+          icon: mdi:music
+          label: Media
         - url: /tunet-home-preview/stats
           icon: mdi:chart-line
           label: Stats
@@ -1260,6 +1358,10 @@ views:
   back_path: /tunet-home-preview/home
   sections:
     - type: grid
+      column_span: 4
+      cards:
+        - *nav_card
+    - type: grid
       column_span: 1
       cards:
         - type: custom:tunet-lighting-card
@@ -1373,6 +1475,10 @@ views:
   back_path: /tunet-home-preview/home
   sections:
     - type: grid
+      column_span: 4
+      cards:
+        - *nav_card
+    - type: grid
       column_span: 1
       cards:
         - type: custom:tunet-lighting-card
@@ -1463,6 +1569,10 @@ views:
   back_path: /tunet-home-preview/home
   sections:
     - type: grid
+      column_span: 4
+      cards:
+        - *nav_card
+    - type: grid
       column_span: 1
       cards:
         - type: custom:tunet-climate-card
@@ -1552,6 +1662,10 @@ views:
   max_columns: 4
   back_path: /tunet-home-preview/home
   sections:
+    - type: grid
+      column_span: 4
+      cards:
+        - *nav_card
     - type: grid
       column_span: 1
       cards:
@@ -1667,6 +1781,10 @@ views:
   back_path: /tunet-home-preview/home
   sections:
     - type: grid
+      column_span: 4
+      cards:
+        - *nav_card
+    - type: grid
       column_span: 1
       cards:
         - type: custom:tunet-lighting-card
@@ -1747,6 +1865,10 @@ views:
   max_columns: 4
   back_path: /tunet-home-preview/home
   sections:
+    - type: grid
+      column_span: 4
+      cards:
+        - *nav_card
     - type: grid
       column_span: 1
       cards:

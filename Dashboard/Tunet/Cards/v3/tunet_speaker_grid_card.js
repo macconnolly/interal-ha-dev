@@ -34,9 +34,10 @@ import {
   renderConfigPlaceholder,
   bindButtonActivation,
   runCardAction,
+  compactSpeakerName,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.3.1';
+const CARD_VERSION = '3.3.2';
 const DRAG_THRESHOLD = 6;
 const DRAG_SCALE = 2;
 const LONG_PRESS_MS = 400;

@@ -31,7 +31,7 @@ import {
   runCardAction,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '1.1.1';
+const CARD_VERSION = '1.1.3';
 
 /* ===============================================================
    CSS - Card-specific overrides
@@ -912,6 +912,9 @@ class TunetSonosCard extends HTMLElement {
 
   _callTransport(service) {
     if (!this._hass) return;
+    // M.1 REVERTED 2026-05-26 — see tunet_media_card._callTransport for full
+    // disposition. Native call works directly for Spotify Connect mode;
+    // routing to MA shadow was the actual defect.
     this._hass.callService('media_player', service, { entity_id: this._transportTarget });
   }
 

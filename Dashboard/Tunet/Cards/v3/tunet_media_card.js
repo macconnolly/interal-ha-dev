@@ -18,7 +18,7 @@ import {
   resolveMediaArtUrl, shouldAttemptMediaArtUrl, markMediaArtUrlFailed, clearMediaArtUrlFailure,
 } from './tunet_base.js?v=20260309g7';
 
-const CARD_VERSION = '3.2.2';
+const CARD_VERSION = '3.2.4';
 
 /* ===============================================================
    CSS — Card-specific overrides + unique styles
@@ -793,6 +793,16 @@ class TunetMediaCard extends HTMLElement {
 
   _callTransport(service) {
     if (!this._hass) return;
+    // M.1 REVERTED 2026-05-26 4:18pm — Plan F §8 / memory #12575 premise
+    // ("Sonos native rejects skip when Spotify owns queue, must route to MA")
+    // was empirically disproven: Mac tested native HA media-player more-info
+    // popup's next-track on media_player.living_room with Spotify Connect
+    // active — it works. MA shadow returns "next track unavailable" because
+    // `active_queue: null` in Spotify Connect mode (Spotify's external app
+    // owns the queue, not MA). Routing AWAY from the working native entity
+    // was the actual defect introduced. Restored direct call. Helper
+    // `resolveSpotifyMAShadow` retained in tunet_base.js for potential
+    // future use if Mac switches to MA-driven Spotify playback.
     this._hass.callService('media_player', service, { entity_id: this._transportTarget });
   }
 

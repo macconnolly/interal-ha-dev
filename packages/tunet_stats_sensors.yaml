@@ -41,6 +41,26 @@ template:
         state: >
           {{ states('counter.tunet_hvac_cycles_today') | int(0) }}
 
+      # S.1a — yesterday lights snapshots. Pulls last_period from existing
+      # daily utility_meters. state_class deliberately omitted (per v2
+      # adversarial review M2): yesterday is a daily snapshot, not a
+      # continuous signal — matches existing hvac_*_yesterday_hours pattern.
+      - name: "Living Room Lights Yesterday"
+        unique_id: "tunet_living_room_lights_yesterday"
+        icon: mdi:lamp
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state: >
+          {{ state_attr('sensor.living_room_lights_daily', 'last_period') | float(0) | round(2) }}
+
+      - name: "Master Lights Yesterday"
+        unique_id: "tunet_master_lights_yesterday"
+        icon: mdi:lamp
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state: >
+          {{ state_attr('sensor.master_lights_daily', 'last_period') | float(0) | round(2) }}
+
   - binary_sensor:
       # Bedroom Sonos health monitor — flips to "off" when bedroom Sonos
       # has been unavailable for >5 min. Plan §8 fix for the documented
@@ -134,6 +154,18 @@ utility_meter:
     source: sensor.master_presence_energy
     cycle: monthly
     name: "Master Lights Monthly"
+
+  # S.1a — daily HVAC utility meters. Existing weekly/monthly rollups
+  # don't cover the daily granularity the Stats page needs.
+  hvac_heating_minutes_daily:
+    source: sensor.hvac_heating_minutes_today
+    cycle: daily
+    name: "HVAC Heating Minutes Daily"
+
+  hvac_cooling_minutes_daily:
+    source: sensor.hvac_cooling_minutes_today
+    cycle: daily
+    name: "HVAC Cooling Minutes Daily"
 
   hvac_heating_minutes_weekly:
     source: sensor.hvac_heating_minutes_today

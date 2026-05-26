@@ -123,6 +123,58 @@ template:
           hvac_action: >
             {{ state_attr('climate.dining_room', 'hvac_action') }}
 
+      # ═════════════════════════════════════════════════════════════════
+      # S.1c — bucket E discoveries (per docs/plans/S1-sensor-package-2026-05-26.md)
+      # Extract values currently buried in climate.dining_room attributes
+      # so the Stats page can graph them as first-class sensors.
+      # ═════════════════════════════════════════════════════════════════
+
+      - name: "Thermostat Indoor Temperature"
+        unique_id: "tunet_thermostat_indoor_temperature"
+        icon: mdi:home-thermometer
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {{ state_attr('climate.dining_room', 'current_temperature') | float(none) | round(1) }}
+
+      - name: "Thermostat Humidity"
+        unique_id: "tunet_thermostat_humidity"
+        icon: mdi:water-percent
+        unit_of_measurement: "%"
+        device_class: humidity
+        state_class: measurement
+        state: >
+          {{ state_attr('climate.dining_room', 'current_humidity') | float(none) | round(0) }}
+
+      - name: "HVAC Setpoint Low"
+        unique_id: "tunet_hvac_setpoint_low_f"
+        icon: mdi:thermometer-low
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {{ state_attr('climate.dining_room', 'target_temp_low') | float(none) | round(1) }}
+
+      - name: "HVAC Setpoint High"
+        unique_id: "tunet_hvac_setpoint_high_f"
+        icon: mdi:thermometer-high
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {{ state_attr('climate.dining_room', 'target_temp_high') | float(none) | round(1) }}
+
+      - name: "HVAC Runtime Today"
+        unique_id: "tunet_hvac_runtime_today"
+        icon: mdi:hvac
+        unit_of_measurement: "min"
+        state_class: total_increasing
+        state: >
+          {% set h = states('sensor.hvac_heating_minutes_today') | float(0) %}
+          {% set c = states('sensor.hvac_cooling_minutes_today') | float(0) %}
+          {{ (h + c) | round(0) }}
+
   - binary_sensor:
       - name: "HVAC Running"
         unique_id: "tunet_hvac_running"

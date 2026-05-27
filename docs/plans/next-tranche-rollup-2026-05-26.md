@@ -105,9 +105,11 @@ Three independent tranches Mac selected for next planning cycle, ranked here by 
 
 ## Tranche S (Stats + Adaptive Pages Buildout) — M-L, net-new daily value
 
-This is the heaviest tranche. Plan F §9-10 authorizes 19 new template sensors and 2 new dashboard pages. Significant scope. Split into 4 sub-tranches:
+This is the heaviest tranche. Plan F §9-10 authorizes 19 new template sensors and 2 new dashboard pages. Significant scope. Split into 4 sub-tranches.
 
-### Sub-tranche S.1 — Sensor package (Plan F §9 + §10)
+> **Naming normalization (2026-05-26 evening)**: the "S.1" originally scoped here shipped as commit `c8c2ac0` with scope re-defined (sub-agent inventory revealed most of the 19 originally-listed sensors already existed; actual gap was 30+ values buried in `sensor.oal_real_time_monitor` attributes + 5 climate-attribute extractions). A SEPARATE follow-on shipped as commit `1a8a689` ("S.2 OAL zone status hybrid overhaul" — 17 new entities for graphable status + HVAC estimated energy + lights_on polish). That commit is **different scope** from the Stats-page tranche originally numbered S.2 below — naming collision. Renamed below: rollup `S.2` → `STATS.1` (Stats page composition), rollup `S.3` → `ADAPTIVE.1` (Adaptive page composition), rollup `S.4` → `ADAPTIVE.2` (Adaptive navbar route exposure). The shipped S.1/S.2 commits retain their git-history names; the rollup uses STATS.x / ADAPTIVE.x for the unshipped page composition work to avoid future confusion.
+
+### Sub-tranche S.1 — Sensor package (Plan F §9 + §10) — SHIPPED `c8c2ac0`, scope re-defined
 **Goal**: ship the 19 new template sensors so subsequent dashboard work has live data.
 **New sensor inventory**:
 - `sensor.outside_temperature` (numeric wrap of weather.home temperature)
@@ -123,7 +125,7 @@ This is the heaviest tranche. Plan F §9-10 authorizes 19 new template sensors a
 **Effort**: 2-3h sensor package + HA restart + validation each returns live values
 **Open decision**: heating kW + cooling kW values for `hvac_estimated_energy_today` — Mac needs to fill in the actual furnace + AC kW ratings. Acceptable to ship with placeholder values (e.g., 30 kW heating, 3.5 kW cooling) and have Mac refine later.
 
-### Sub-tranche S.2 — Stats page composition
+### Sub-tranche STATS.1 — Stats page composition (was rollup S.2; renamed 2026-05-26)
 **Goal**: build `/tunet-home-preview/stats` view per Plan F §9 wireframe.
 **Sections**:
 - HVAC today (heating/cooling minutes, cycles, current state) + bar chart
@@ -136,7 +138,7 @@ This is the heaviest tranche. Plan F §9-10 authorizes 19 new template sensors a
 **Effort**: 2-4h composition depending on whether we build a new tunet-stats-card OR compose from existing primitives
 **Open decision**: build a bespoke `tunet-stats-card` (cleaner, matches design language, more work) OR compose Stats page from mushroom-template-card + mini-graph-card + native sensor cards (faster, less polished)? Recommend the composition path first, see if Mac wants bespoke after using it.
 
-### Sub-tranche S.3 — Adaptive page composition
+### Sub-tranche ADAPTIVE.1 — Adaptive page composition (was rollup S.3; renamed 2026-05-26)
 **Goal**: build `/tunet-home-preview/adaptive` view per Plan F §10 wireframe.
 **Sections**:
 - Mode timeline today (stacked bar of minutes per OAL mode)
@@ -149,15 +151,15 @@ This is the heaviest tranche. Plan F §9-10 authorizes 19 new template sensors a
 **Effort**: 2-3h depending on whether timeline visualization needs a custom card
 **Open decision**: mode timeline visualization — HA's `history-graph` card can show input_select state over time, but it's ugly. Build a tunet-oal-timeline-card OR accept the native ugly? Recommend native first, refine if Mac dislikes.
 
-### Sub-tranche S.4 — Navbar route exposure
+### Sub-tranche ADAPTIVE.2 — Navbar route exposure (was rollup S.4; renamed 2026-05-26)
 **Goal**: add Adaptive to navbar routes (currently Stats + Settings; Adaptive is missing).
 **Owning files**:
 - `Dashboard/Tunet/tunet-home-preview-config.yaml` nav_card anchor
 **Effort**: ~10 min YAML
-**Depends on**: S.3 (page must exist before route exposes it)
+**Depends on**: ADAPTIVE.1 (page must exist before route exposes it)
 
 ### Tranche S overall
-- Sequencing: S.1 (sensors) → S.2 (Stats page) AND S.3 (Adaptive page) in parallel after sensors ship → S.4 (navbar exposure last)
+- Sequencing: S.1 (sensors — SHIPPED) → STATS.1 (Stats page) AND ADAPTIVE.1 (Adaptive page) in parallel → ADAPTIVE.2 (navbar exposure last). Both STATS.1 + ADAPTIVE.1 are **BLOCKED on L1** per Mac's 2026-05-26 direction (don't wireframe Stats consumers against drifted room-group infrastructure).
 - Risk: medium — sensor templates can have validation issues at HA restart; mini-graph-card may not render gracefully for some sensor types
 - M1 capture: both pages × both breakpoints after each sub-tranche
 - Estimated total: 6-10 hours implementation across 2-3 sittings
@@ -173,10 +175,10 @@ If Mac wants to maximize daily-life return-on-time:
 3. **Tranche N.1** (Apple Glass navbar) — 30 min, every glance benefits immediately
 4. **Tranche N.2** (Conditional media in navbar) — 1-1.5h, removes visual clutter when idle
 5. **Tranche M.3** (Bedroom silent-fire sensor) — 1h, safety net for alarm reliability
-6. **Tranche S.1** (Sensor package) — 2-3h, foundation for everything else in S
-7. **Tranche S.2 + S.3** (Stats + Adaptive pages) — 4-7h combined, net-new visibility
+6. **Tranche S.1** (Sensor package) — SHIPPED `c8c2ac0` (scope re-defined per sub-agent inventory)
+7. **Tranche STATS.1 + ADAPTIVE.1** (Stats + Adaptive pages) — 4-7h combined, net-new visibility — **BLOCKED on L1**
 8. **Tranche N.3** (Nav flow refinement) — TBD effort, after Mac articulates specific friction
-9. **Tranche S.4** (Navbar route exposure) — 10 min, after Adaptive page exists
+9. **Tranche ADAPTIVE.2** (Navbar route exposure) — 10 min, after ADAPTIVE.1 ships
 
 Total daily-impact time investment to reach end-state: ~10-15 hours across 3-5 sittings, with each tranche shippable independently.
 

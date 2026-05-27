@@ -2,6 +2,26 @@
 
 Last updated: 2026-05-26 (America/Denver)
 
+## Session Delta (2026-05-26 late evening — preview consolidated plan + kickoff prompt shipped)
+
+Two new authoritative artifacts for the `tunet-home-preview` surface:
+
+- `docs/plans/tunet-home-preview-consolidated-plan-2026-05-26.md` — single execution authority. Empirical baseline §2.2 verified live, active open tranches §3 + DoD §7, deferred registry §4 (D.1-D.10), dependencies §5, sequencing paths §6, open decisions §11 (tagged BLOCKING vs INFORMATIONAL).
+- `docs/plans/tunet-home-preview-kickoff-prompt-2026-05-26.md` — paste-ready kickoff prompt for next session. Mirrors L1-kickoff-prompt format.
+
+Status corrections caught by live probes (rollup had drifted):
+- M.2 volume flush — SHIPPED + DEPLOYED (rollup said OPEN). Commit `b718980`; cache-buster `?v=build_20260526_221910Z`.
+- M.3 sensor — SHIPPED + DEPLOYED (only alarm-card badge + notification automation remain).
+- N.2 conditional media widget — SHIPPED in N.1 commit `e39ca0e` (merged via CSS @media rule).
+- N.3 primary friction — CLOSED in N.1; secondary open pending Mac articulation.
+- `sensor.hvac_estimated_energy_daily` utility_meter — LIVE (last_reset 2026-05-27T01:56Z; status collecting). "Pending HA restart" is stale.
+
+Rollup edited (per Mac choice today): rollup `S.2` → `STATS.1`, `S.3` → `ADAPTIVE.1`, `S.4` → `ADAPTIVE.2` (Stats/Adaptive page composition; both BLOCKED on L1). Shipped commit-names (S.1 `c8c2ac0`, S.2 `1a8a689`) retained for git-history alignment.
+
+For next session: read the consolidated plan first, then the kickoff prompt. Default recommended path: M.3 finish (~30-45 min, no upstream blockers) before L1 planning kickoff.
+
+---
+
 ## Session Delta (2026-05-26 evening append — uncommitted-work disposition + R4 Tier 2/3 captured)
 
 After the L1 governance sync (`d7ce088`), one ledger backlog entry + one config commit landed:

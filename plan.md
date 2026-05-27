@@ -3,6 +3,33 @@
 Working branch: `main`
 Last updated: 2026-05-26
 
+## Session Delta (2026-05-26 late evening — preview consolidated plan + kickoff prompt shipped)
+
+After empirical-baseline pass against live HA state caught several rollup "OPEN" items as actually shipped (M.2 volume debounce flush, M.3 sensor side, N.2 conditional media widget):
+
+- `docs/plans/tunet-home-preview-consolidated-plan-2026-05-26.md` — new consolidated execution authority for `/tunet-home-preview`. Verified-live tranche ship status (§2.2), active open tranches with DoD (§3 + §7), deferred registry D.1-D.10 (§4), dependencies (§5), Path A/B sequencing (§6), open decisions tagged BLOCKING/INFORMATIONAL (§11). Companion to but not replacement of `~/.claude/plans/glowing-mixing-crescent.md` (genesis interaction-model spec) or `docs/wireframes/tunet-home-v2-wireframe-2026-05-23.md` (Q1-Q9 design authority).
+- `docs/plans/tunet-home-preview-kickoff-prompt-2026-05-26.md` — paste-ready kickoff for next session that picks up preview work. Mirrors L1-kickoff-prompt-2026-05-26.md format.
+- `docs/plans/next-tranche-rollup-2026-05-26.md` edited: S.2 → STATS.1, S.3 → ADAPTIVE.1, S.4 → ADAPTIVE.2 (per Mac choice). Shipped S.1/S.2 commit names retained for git-history alignment. Disambiguation note added.
+
+Key empirical findings caught:
+- M.2 volume debounce flush SHIPPED + DEPLOYED (commit `b718980` 2026-05-23; current Lovelace cache-buster `?v=build_20260526_221910Z` includes the fix)
+- M.3 sensor `binary_sensor.bedroom_sonos_healthy` SHIPPED + DEPLOYED + live `on`; only alarm-card badge + notification automation remain open
+- N.2 conditional media widget SHIPPED in N.1 commit `e39ca0e` via CSS `@media` rule (not the planned Jinja path)
+- N.3 primary friction CLOSED in N.1 (Rooms popup fix + active-tab underline); only secondary friction open pending Mac articulation
+- `sensor.hvac_estimated_energy_daily` utility_meter LIVE (handoff's "pending HA restart" was stale)
+
+---
+
+## Governance Note (2026-05-26 evening — preview plan authority conflict, intentionally left intact)
+
+Two active preview plan authorities coexist on `main`:
+- `~/.claude/plans/tunet-dashboard-project-task-plan-2026-05-23.md` proposed retiring `/tunet-home-preview`, `/tunet-home-cosmos`, `/tunet-home-v2` in favor of a new `/tunet-home-next` candidate (branch `tunet/home-next`, worktree `/home/mac/HA/implementation_10_tunet_home_next`). That candidate was started but never merged to `main`; the worktree is at commit `732b394` with uncommitted edits, no `tunet-home-next-config.yaml` in this worktree.
+- `docs/plans/next-tranche-rollup-2026-05-26.md` + `docs/plans/N1-navbar-apple-glass-2026-05-26.md` continue active work on `tunet-home-preview`, shipped through `e39ca0e` (N.1 navbar Apple Glass).
+
+Operating preference per Mac 2026-05-26 evening: keep both plans intact. Continue preview work from the rollup; cosmos and preview remain parallel `production: true` surfaces. Future agents picking up either plan should read this note before treating either as sole authority.
+
+---
+
 ## Session Delta (2026-05-26 evening append — uncommitted-work disposition + R4 Tier 2/3 captured)
 
 After the L1 governance sync (`d7ce088`), three open items needed durable homes:

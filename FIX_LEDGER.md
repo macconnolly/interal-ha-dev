@@ -3,6 +3,32 @@
 Working branch: `main`
 Last updated: 2026-05-26
 
+## Session Delta (2026-05-26 late evening — preview consolidated plan + status corrections from empirical baseline)
+
+NEW PLAN ARTIFACTS:
+- `docs/plans/tunet-home-preview-consolidated-plan-2026-05-26.md` — sole execution authority for `/tunet-home-preview`. Empirical baseline §2.2 verified live; active open tranches enumerated with DoD; deferred D.1-D.10 registry; Path A/B sequencing.
+- `docs/plans/tunet-home-preview-kickoff-prompt-2026-05-26.md` — paste-ready kickoff for next preview session.
+
+STATUS CORRECTIONS (rollup drift caught by live HA probes):
+- **M.2 volume debounce flush** — was rollup-OPEN; verified SHIPPED + DEPLOYED (`b718980` 2026-05-23 + cache-buster `?v=build_20260526_221910Z`). `_flushVolumeDebounce()` at `tunet_media_card.js:1010-1075` called from pointerup + pointercancel. Past-tense inline comment confirms fix applied.
+- **M.3 sensor side** — was rollup-OPEN; verified SHIPPED + DEPLOYED. `binary_sensor.bedroom_sonos_healthy` defined `packages/tunet_stats_sensors.yaml:93`, live state `on`. Only alarm-card badge + notification automation OPEN.
+- **N.2 conditional media widget** — was rollup-OPEN; verified SHIPPED in N.1 commit `e39ca0e` via CSS `@media (max-width: 767px) { .media-player { display: none } }`.
+- **N.3 primary friction** — was rollup-OPEN; CLOSED in N.1 (Rooms popup fix + active-tab amber underline).
+- **`sensor.hvac_estimated_energy_daily` utility_meter** — was "pending HA restart" per yesterday's handoff; verified LIVE (last_reset 2026-05-27T01:56Z, status: collecting).
+
+NAMING NORMALIZATION (rollup):
+- Rollup `S.2` (Stats page composition, unshipped) renamed to `STATS.1` to avoid collision with shipped S.2 OAL zone status hybrid (`1a8a689` — different scope, same name).
+- Rollup `S.3` → `ADAPTIVE.1`, rollup `S.4` → `ADAPTIVE.2`. Disambiguation note added at top of rollup S section.
+
+REMAINING OPEN (per consolidated plan §3, sequenced by Path A default):
+- M.3 finish (alarm-card badge + notification, ~30-45min)
+- N.3.x clarification (Mac articulation OR explicit close)
+- STATS.1, ADAPTIVE.1, ADAPTIVE.2 — all BLOCKED on L1
+- U.1 (unified per-room lights page) — future scope, Mac to stamp vision
+- D.1-D.10 deferred registry — not current sprint
+
+---
+
 ## Session Delta (2026-05-26 evening append — R4 Tier 2/3 captured + pico_link + cosmos theme committed)
 
 NEW ENTRIES (visual_defect_ledger.md "Tranche-Owned Open Backlog"):

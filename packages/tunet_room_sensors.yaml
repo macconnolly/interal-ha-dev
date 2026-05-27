@@ -22,6 +22,7 @@ template:
       - name: "Lights on Living Room"
         unique_id: "tunet_lights_on_living_room"
         icon: mdi:lightbulb-on
+        state_class: measurement
         state: >
           {{ expand('light.all_living_room_lights')
              | selectattr('state', 'eq', 'on')
@@ -37,6 +38,7 @@ template:
       - name: "Lights on Kitchen"
         unique_id: "tunet_lights_on_kitchen"
         icon: mdi:lightbulb-on
+        state_class: measurement
         state: >
           {{ expand('light.all_kitchen_lights')
              | selectattr('state', 'eq', 'on')
@@ -52,6 +54,7 @@ template:
       - name: "Lights on Dining Room"
         unique_id: "tunet_lights_on_dining_room"
         icon: mdi:lightbulb-on
+        state_class: measurement
         state: >
           {{ expand('light.all_dining_room_lights')
              | selectattr('state', 'eq', 'on')
@@ -67,6 +70,7 @@ template:
       - name: "Lights on Master Bedroom"
         unique_id: "tunet_lights_on_master_bedroom"
         icon: mdi:lightbulb-on
+        state_class: measurement
         state: >
           {{ expand('light.all_master_bedroom_lights')
              | selectattr('state', 'eq', 'on')
@@ -82,6 +86,7 @@ template:
       - name: "Lights on Office"
         unique_id: "tunet_lights_on_office"
         icon: mdi:lightbulb-on
+        state_class: measurement
         state: >
           {{ expand('light.office_lights')
              | selectattr('state', 'eq', 'on')
@@ -98,6 +103,7 @@ template:
       - name: "Lights on Total"
         unique_id: "tunet_lights_on_total"
         icon: mdi:lightbulb-multiple
+        state_class: measurement
         state: >
           {{ states('sensor.lights_on_living_room') | int(0)
              + states('sensor.lights_on_kitchen') | int(0)

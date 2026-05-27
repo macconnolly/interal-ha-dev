@@ -283,3 +283,141 @@ template:
         state_class: measurement
         state: >
           {{ state_attr('sensor.oal_environmental_debug', 'lux_current') | float(none) | round(0) }}
+
+      # ═════════════════════════════════════════════════════════════════
+      # S.2 CS2 — graphable zone signals (8 zones × 2 = 16 sensors).
+      # office_bed EXCLUDED per Mac's "fused with office" direction.
+      # These are the only continuous numerics worth graphing per the
+      # HA 2026 architecture research — everything else (override remaining,
+      # lights overridden, lights total, mode) stays attribute-side.
+      # color_temp_k deliberately omits device_class to avoid mixing
+      # with HVAC/weather temperature in long-term-statistics UI.
+      # ═════════════════════════════════════════════════════════════════
+
+      - name: "OAL Zone Main Living Brightness Target"
+        unique_id: "tunet_oal_zone_main_living_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_main_living', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Main Living Color Temp"
+        unique_id: "tunet_oal_zone_main_living_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_main_living', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Kitchen Island Brightness Target"
+        unique_id: "tunet_oal_zone_kitchen_island_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_kitchen_island', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Kitchen Island Color Temp"
+        unique_id: "tunet_oal_zone_kitchen_island_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_kitchen_island', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Kitchen Undercabinet Brightness Target"
+        unique_id: "tunet_oal_zone_kitchen_undercabinet_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Kitchen Undercabinet Color Temp"
+        unique_id: "tunet_oal_zone_kitchen_undercabinet_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Bedroom Primary Brightness Target"
+        unique_id: "tunet_oal_zone_bedroom_primary_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Bedroom Primary Color Temp"
+        unique_id: "tunet_oal_zone_bedroom_primary_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Accent Spots Brightness Target"
+        unique_id: "tunet_oal_zone_accent_spots_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_accent_spots', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Accent Spots Color Temp"
+        unique_id: "tunet_oal_zone_accent_spots_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_accent_spots', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Recessed Ceiling Brightness Target"
+        unique_id: "tunet_oal_zone_recessed_ceiling_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Recessed Ceiling Color Temp"
+        unique_id: "tunet_oal_zone_recessed_ceiling_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Column Lights Brightness Target"
+        unique_id: "tunet_oal_zone_column_lights_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_column_lights', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Column Lights Color Temp"
+        unique_id: "tunet_oal_zone_column_lights_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_column_lights', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Office Brightness Target"
+        unique_id: "tunet_oal_zone_office_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_office', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Office Color Temp"
+        unique_id: "tunet_oal_zone_office_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_office', 'color_temp_kelvin') | float(none) | round(0) }}

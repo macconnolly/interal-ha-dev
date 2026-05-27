@@ -61,6 +61,29 @@ template:
         state: >
           {{ state_attr('sensor.master_lights_daily', 'last_period') | float(0) | round(2) }}
 
+      # ─── S.2 CS3 — HVAC estimated energy (un-deferred from S.1a) ─────────
+      # Heating value 1.1 kW = First Co. 48HBQ4-F nameplate (blower 10.7A
+      # * 120V running ~1.0 kW + pump 0.57A * 120V ~68 W).
+      # Cooling 3.5 kW = estimate for 2.5-ton condenser sized for 1,600 sq
+      # ft condo (refine when roof condenser nameplate accessible).
+      # state_class: measurement (NOT total_increasing) — source minute
+      # sensors reset at midnight via history_stats today-window; using
+      # total_increasing on a midnight-resetting derived value generates
+      # phantom zero-cross events in LTS. Energy dashboard integration
+      # happens via the wrapping utility_meter below.
+      - name: "HVAC Estimated Energy Today"
+        unique_id: "tunet_hvac_estimated_energy_today"
+        icon: mdi:flash
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        state: >
+          {% set heating_min = states('sensor.hvac_heating_minutes_today') | float(0) %}
+          {% set cooling_min = states('sensor.hvac_cooling_minutes_today') | float(0) %}
+          {% set heating_kw = 1.1 %}
+          {% set cooling_kw = 3.5 %}
+          {{ ((heating_min * heating_kw / 60) + (cooling_min * cooling_kw / 60)) | round(2) }}
+
   - binary_sensor:
       # Bedroom Sonos health monitor — flips to "off" when bedroom Sonos
       # has been unavailable for >5 min. Plan §8 fix for the documented
@@ -186,3 +209,12 @@ utility_meter:
     source: sensor.hvac_cooling_minutes_today
     cycle: monthly
     name: "HVAC Cooling Minutes Monthly"
+
+  # S.2 CS3 — utility_meter wrapper for the HVAC estimated energy template
+  # sensor. Provides clean Energy dashboard integration with last_reset
+  # semantics handled by the platform instead of relying on total_increasing
+  # on a midnight-resetting source.
+  hvac_estimated_energy_daily:
+    source: sensor.hvac_estimated_energy_today
+    cycle: daily
+    name: "HVAC Estimated Energy Daily"

@@ -9073,17 +9073,18 @@ template:
         availability: >
           {{ states('switch.adaptive_lighting_main_living') not in ['unknown', 'unavailable'] }}
         state: >
+          {# S.2 CS1 — mode enum (adaptive/manual/sleep/off). Per-zone sleep
+             switch is the authoritative source (NOT global input_select).
+             Sleep precedence over off so a zone Sleep-suppressed reports
+             "sleep" (cause) rather than "off" (effect). #}
           {% set manual_list = state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) %}
-          {% if manual_list | length == 0 %}
-            A
-          {% else %}
-            {% set timer_dict = state_attr('switch.adaptive_lighting_main_living', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {% set secs = (timer_values | min | default(0)) | int %}
-            {% set hours = (secs // 3600) | int %}
-            {% set mins = ((secs % 3600) // 60) | int %}
-            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
-          {% endif %}
+          {% set has_manual = manual_list | length > 0 %}
+          {% set is_sleep = is_state('switch.adaptive_lighting_sleep_mode_main_living', 'on') %}
+          {% set is_off = states('switch.adaptive_lighting_main_living') != 'on' %}
+          {% if is_sleep %}sleep
+          {% elif is_off %}off
+          {% elif has_manual %}manual
+          {% else %}adaptive{% endif %}
         attributes:
           mode: >
             {% set manual_list = state_attr('switch.adaptive_lighting_main_living', 'manual_control') | default([]) %}
@@ -9130,16 +9131,13 @@ template:
           {{ states('switch.adaptive_lighting_kitchen_island') not in ['unknown', 'unavailable'] }}
         state: >
           {% set manual_list = state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) %}
-          {% if manual_list | length == 0 %}
-            A
-          {% else %}
-            {% set timer_dict = state_attr('switch.adaptive_lighting_kitchen_island', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {% set secs = (timer_values | min | default(0)) | int %}
-            {% set hours = (secs // 3600) | int %}
-            {% set mins = ((secs % 3600) // 60) | int %}
-            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
-          {% endif %}
+          {% set has_manual = manual_list | length > 0 %}
+          {% set is_sleep = is_state('switch.adaptive_lighting_sleep_mode_kitchen_island', 'on') %}
+          {% set is_off = states('switch.adaptive_lighting_kitchen_island') != 'on' %}
+          {% if is_sleep %}sleep
+          {% elif is_off %}off
+          {% elif has_manual %}manual
+          {% else %}adaptive{% endif %}
         attributes:
           mode: >
             {% set manual_list = state_attr('switch.adaptive_lighting_kitchen_island', 'manual_control') | default([]) %}
@@ -9186,16 +9184,13 @@ template:
           {{ states('switch.adaptive_lighting_kitchen_undercabinet') not in ['unknown', 'unavailable'] }}
         state: >
           {% set manual_list = state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'manual_control') | default([]) %}
-          {% if manual_list | length == 0 %}
-            A
-          {% else %}
-            {% set timer_dict = state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {% set secs = (timer_values | min | default(0)) | int %}
-            {% set hours = (secs // 3600) | int %}
-            {% set mins = ((secs % 3600) // 60) | int %}
-            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
-          {% endif %}
+          {% set has_manual = manual_list | length > 0 %}
+          {% set is_sleep = is_state('switch.adaptive_lighting_sleep_mode_kitchen_undercabinet', 'on') %}
+          {% set is_off = states('switch.adaptive_lighting_kitchen_undercabinet') != 'on' %}
+          {% if is_sleep %}sleep
+          {% elif is_off %}off
+          {% elif has_manual %}manual
+          {% else %}adaptive{% endif %}
         attributes:
           mode: >
             {% set manual_list = state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'manual_control') | default([]) %}
@@ -9257,16 +9252,13 @@ template:
           {{ states('switch.adaptive_lighting_bedroom_primary') not in ['unknown', 'unavailable'] }}
         state: >
           {% set manual_list = state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) %}
-          {% if manual_list | length == 0 %}
-            A
-          {% else %}
-            {% set timer_dict = state_attr('switch.adaptive_lighting_bedroom_primary', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {% set secs = (timer_values | min | default(0)) | int %}
-            {% set hours = (secs // 3600) | int %}
-            {% set mins = ((secs % 3600) // 60) | int %}
-            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
-          {% endif %}
+          {% set has_manual = manual_list | length > 0 %}
+          {% set is_sleep = is_state('switch.adaptive_lighting_sleep_mode_bedroom_primary', 'on') %}
+          {% set is_off = states('switch.adaptive_lighting_bedroom_primary') != 'on' %}
+          {% if is_sleep %}sleep
+          {% elif is_off %}off
+          {% elif has_manual %}manual
+          {% else %}adaptive{% endif %}
         attributes:
           mode: >
             {% set manual_list = state_attr('switch.adaptive_lighting_bedroom_primary', 'manual_control') | default([]) %}
@@ -9313,16 +9305,13 @@ template:
           {{ states('switch.adaptive_lighting_accent_spots') not in ['unknown', 'unavailable'] }}
         state: >
           {% set manual_list = state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) %}
-          {% if manual_list | length == 0 %}
-            A
-          {% else %}
-            {% set timer_dict = state_attr('switch.adaptive_lighting_accent_spots', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {% set secs = (timer_values | min | default(0)) | int %}
-            {% set hours = (secs // 3600) | int %}
-            {% set mins = ((secs % 3600) // 60) | int %}
-            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
-          {% endif %}
+          {% set has_manual = manual_list | length > 0 %}
+          {% set is_sleep = is_state('switch.adaptive_lighting_sleep_mode_accent_spots', 'on') %}
+          {% set is_off = states('switch.adaptive_lighting_accent_spots') != 'on' %}
+          {% if is_sleep %}sleep
+          {% elif is_off %}off
+          {% elif has_manual %}manual
+          {% else %}adaptive{% endif %}
         attributes:
           mode: >
             {% set manual_list = state_attr('switch.adaptive_lighting_accent_spots', 'manual_control') | default([]) %}
@@ -9369,16 +9358,13 @@ template:
           {{ states('switch.adaptive_lighting_recessed_ceiling') not in ['unknown', 'unavailable'] }}
         state: >
           {% set manual_list = state_attr('switch.adaptive_lighting_recessed_ceiling', 'manual_control') | default([]) %}
-          {% if manual_list | length == 0 %}
-            A
-          {% else %}
-            {% set timer_dict = state_attr('switch.adaptive_lighting_recessed_ceiling', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {% set secs = (timer_values | min | default(0)) | int %}
-            {% set hours = (secs // 3600) | int %}
-            {% set mins = ((secs % 3600) // 60) | int %}
-            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
-          {% endif %}
+          {% set has_manual = manual_list | length > 0 %}
+          {% set is_sleep = is_state('switch.adaptive_lighting_sleep_mode_recessed_ceiling', 'on') %}
+          {% set is_off = states('switch.adaptive_lighting_recessed_ceiling') != 'on' %}
+          {% if is_sleep %}sleep
+          {% elif is_off %}off
+          {% elif has_manual %}manual
+          {% else %}adaptive{% endif %}
         attributes:
           mode: >
             {% set manual_list = state_attr('switch.adaptive_lighting_recessed_ceiling', 'manual_control') | default([]) %}
@@ -9425,16 +9411,13 @@ template:
           {{ states('switch.adaptive_lighting_column_lights') not in ['unknown', 'unavailable'] }}
         state: >
           {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
-          {% if manual_list | length == 0 %}
-            A
-          {% else %}
-            {% set timer_dict = state_attr('switch.adaptive_lighting_column_lights', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {% set secs = (timer_values | min | default(0)) | int %}
-            {% set hours = (secs // 3600) | int %}
-            {% set mins = ((secs % 3600) // 60) | int %}
-            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
-          {% endif %}
+          {% set has_manual = manual_list | length > 0 %}
+          {% set is_sleep = is_state('switch.adaptive_lighting_sleep_mode_column_lights', 'on') %}
+          {% set is_off = states('switch.adaptive_lighting_column_lights') != 'on' %}
+          {% if is_sleep %}sleep
+          {% elif is_off %}off
+          {% elif has_manual %}manual
+          {% else %}adaptive{% endif %}
         attributes:
           mode: >
             {% set manual_list = state_attr('switch.adaptive_lighting_column_lights', 'manual_control') | default([]) %}
@@ -9481,16 +9464,13 @@ template:
           {{ states('switch.adaptive_lighting_office') not in ['unknown', 'unavailable'] }}
         state: >
           {% set manual_list = state_attr('switch.adaptive_lighting_office', 'manual_control') | default([]) %}
-          {% if manual_list | length == 0 %}
-            A
-          {% else %}
-            {% set timer_dict = state_attr('switch.adaptive_lighting_office', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {% set secs = (timer_values | min | default(0)) | int %}
-            {% set hours = (secs // 3600) | int %}
-            {% set mins = ((secs % 3600) // 60) | int %}
-            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
-          {% endif %}
+          {% set has_manual = manual_list | length > 0 %}
+          {% set is_sleep = is_state('switch.adaptive_lighting_sleep_mode_office', 'on') %}
+          {% set is_off = states('switch.adaptive_lighting_office') != 'on' %}
+          {% if is_sleep %}sleep
+          {% elif is_off %}off
+          {% elif has_manual %}manual
+          {% else %}adaptive{% endif %}
         attributes:
           mode: >
             {% set manual_list = state_attr('switch.adaptive_lighting_office', 'manual_control') | default([]) %}
@@ -9537,16 +9517,13 @@ template:
           {{ states('switch.adaptive_lighting_office_bed') not in ['unknown', 'unavailable'] }}
         state: >
           {% set manual_list = state_attr('switch.adaptive_lighting_office_bed', 'manual_control') | default([]) %}
-          {% if manual_list | length == 0 %}
-            A
-          {% else %}
-            {% set timer_dict = state_attr('switch.adaptive_lighting_office_bed', 'autoreset_time_remaining') | default({}) %}
-            {% set timer_values = timer_dict.values() | list %}
-            {% set secs = (timer_values | min | default(0)) | int %}
-            {% set hours = (secs // 3600) | int %}
-            {% set mins = ((secs % 3600) // 60) | int %}
-            M {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m
-          {% endif %}
+          {% set has_manual = manual_list | length > 0 %}
+          {% set is_sleep = is_state('switch.adaptive_lighting_sleep_mode_office_bed', 'on') %}
+          {% set is_off = states('switch.adaptive_lighting_office_bed') != 'on' %}
+          {% if is_sleep %}sleep
+          {% elif is_off %}off
+          {% elif has_manual %}manual
+          {% else %}adaptive{% endif %}
         attributes:
           mode: >
             {% set manual_list = state_attr('switch.adaptive_lighting_office_bed', 'manual_control') | default([]) %}

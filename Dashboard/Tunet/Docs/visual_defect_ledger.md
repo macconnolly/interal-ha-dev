@@ -132,6 +132,17 @@ The page-architecture sub-plan at `~/.claude/plans/tunet-page-architecture.md` i
   - `tunet-alarm-card`: `hass` can call `_buildRows()` before a valid `setConfig()` path has initialized `alarms`; normal HA ordering hides this, but the lifecycle edge is not defended
   - Routes into PA04 (Bedroom subview + alarm extras) — these are card-surface defects belonging to the alarm card itself, distinct from the SA3 Bubble Card 3.2 popup retarget which remains a separate composition decision
 
+- `Room light group membership drift (2026-05-26, deferred to light-entity-management architecture tranche)`
+  - **Inventory** (verified at `packages/oal_lighting_control_package.yaml:86-132` + cross-references):
+    - `light.all_kitchen_lights` (3 lights) — clean
+    - `light.all_living_room_lights` (9 lights) — includes `light.dining_room_spot_lights` (semantically dining) and `light.column_lights` (which itself contains `master_bedroom_column_accent`)
+    - `light.all_dining_room_lights` (4 lights) — includes `light.living_room_credenza_light` (also in living room group, → double-count) AND `light.living_room_corner_accent` (semantically living room)
+    - `light.all_master_bedroom_lights` (2 lights only — master_presence + master_bedroom_column_accent) — incomplete; corner_accent migrated to office per Campaign A3 but bedroom group wasn't updated
+    - `light.office_lights` (5 lights) — naming inconsistency (no `all_` prefix); includes the migrated `master_bedroom_corner_accent_govee`
+  - **Two duplicate "Living Room Lights" groups** exist: `living_room_lights_group` (line 87-98) AND `all_living_room_lights` (line 107-118) — appear byte-equivalent
+  - **Net consumer impact**: `sensor.lights_on_*` series (polished in S.2 CS4) returns slightly inflated counts due to double-counted lights. Functional but semantically off.
+  - **Backlog tranche**: `docs/plans/L1-light-entity-management-architecture-backlog-2026-05-26.md` — captures the architectural questions for the broader "light entity management" project Mac flagged. Don't patch the drift in isolation; address via the architecture pass.
+
 - `S.1 deploy script does NOT handle new package files (2026-05-26, logged for future fix)`
   - **Pattern**: `skills/ha-safe-package-deploy/scripts/deploy_packages.sh` lines 175-180 only push files that exist on BOTH local AND remote. New files (only on local) get silently skipped from the matches list. By-design safety feature (requires existing remote file for backup) but creates a footgun for tranches that add new package files — the user gets a successful-looking deploy with the new file never transferred. S.1 hit this on `packages/tunet_oal_extracted_sensors.yaml`: deploy ran clean, all sensors in that file failed to register, troubleshooting cost ~5 min before discovering the file wasn't on HA at all.
   - **Workaround used**: manual `sshpass scp` to transfer the new file, then `homeassistant.reload_all` to discover. ~30 seconds total once root cause was identified.

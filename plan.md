@@ -1,6 +1,44 @@
 # Tunet Suite Dashboard - Implementation Plan
 
 Working branch: `main`
+Last updated: 2026-05-26
+
+## Session Delta (2026-05-26, 5 tranches shipped + L1 architectural backlog opened)
+
+Five tranches landed on `main` this session:
+- `e35d43e` T8.1 popup-content-card revisions (climate variant:thin in popup, sonos player-header flex-wrap on phone DOM-verified, speaker-grid compactSpeakerName, alarm-edit mushroom CTA)
+- `cbc2faf` T8.1 speaker-grid regression hotfix (compactSpeakerName import missing for 62h in production) + M.1 Sonos+Spotify routing investigation WITHDRAWN (memory #12575 SUPERSEDED — native skip works fine on Spotify Connect; routing AWAY from native was the actual defect)
+- `e39ca0e` N.1 navbar Apple Liquid Glass + popup polish + Media tab + Rooms popup fix (missing `tap_action: open-popup` per sub-agent docs research; memory #13266 SUPERSEDED) + suite-wide navbar deployed to all 8 views
+- `c8c2ac0` S.1 sensor package (36+ new entities; sub-agent inventory revealed most of Plan F's 19 planned sensors already existed; actual gap was 30+ load-bearing values buried in `sensor.oal_real_time_monitor` attributes + 5 climate-attribute extractions)
+- `1a8a689` S.2 OAL zone status hybrid overhaul + HVAC estimated energy + lights_on polish (architecture sub-agent recommended hybrid 17 entities vs naive 45; mode-as-state for status sensors + selective splits ONLY for graphable signals; HVAC nameplate-derived values heating 1.1 kW + cooling 3.5 kW estimated + utility_meter wrapper for clean Energy dashboard integration)
+
+NEW BACKLOG OPENED:
+- `docs/plans/L1-light-entity-management-architecture-backlog-2026-05-26.md` — captures room-light-group drift problem (members in wrong rooms, duplicates between groups, incomplete master bedroom after corner_accent migrated to office). Per Mac's direction: don't patch drift in isolation; design architecture properly. Q1-Q5 architectural questions, Q1-Q7 research questions, A/B/C/D scope candidates (2h manual cleanup → 15h custom integration).
+- `docs/plans/L1-kickoff-prompt-2026-05-26.md` — paste-ready kickoff per `docs/session_kickoff_template.md` ritual.
+
+CURRENT TRANCHE: **L1 (light entity management architecture) — planning-stage backlog.** Stats + Adaptive dashboard wireframes are explicitly blocked on L1 per Mac's direction (sensor consumers shouldn't be wireframed against drifted room-group infrastructure).
+
+PENDING / DEFERRED (also see handoff.md):
+- L1 plan execution (next session)
+- HA restart to activate `sensor.hvac_estimated_energy_daily` utility_meter
+- Stale dashboard file inspection (3 Feb-2026 files)
+- `light.office_bed_light_right` persistent manual-control investigation
+- 15 new room aggregates (deferred from S.1e)
+- HVAC condenser nameplate reading when roof access available
+
+LESSONS LOGGED (new memory entries):
+- `feedback_npm_test_in_m1_gate.md` — run `npm test` as part of M1 gate, not just when adding new tests (caught the T8.1 speaker-grid regression)
+- `feedback_empirical_baseline_before_fix.md` — for any defect-fix tranche with a memory/audit premise, REPRODUCE the defect on unmodified system FIRST (caught 3 stale premises in one session)
+- `feedback_device_class_authority.md` — don't apply `device_class: energy/temperature/etc.` to placeholder/estimated values (caught hvac_estimated_energy_today placeholder pollution)
+
+INFRASTRUCTURE LESSONS:
+- entity_id derives from `name:` (slugified), NOT from `unique_id:`. Documented inline in S.2 commit.
+- `deploy_packages.sh` by-design only updates EXISTING files; NEW package files require manual `scp`. Logged in visual_defect_ledger for future deploy-script fix.
+
+---
+
+## (LEGACY HEADER BELOW — preserved for traceability; superseded by Session Delta above)
+
 Last updated: 2026-05-23
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
 Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)

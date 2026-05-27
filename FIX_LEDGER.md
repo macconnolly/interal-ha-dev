@@ -1,6 +1,43 @@
 # Tunet Suite Fix Ledger
 
 Working branch: `main`
+Last updated: 2026-05-26
+
+## Session Delta (2026-05-26, 5 tranches closed + 3 stale-audit memory entries SUPERSEDED + L1 architectural backlog opened)
+
+CLOSED THIS SESSION (commit chronological):
+- T8.1 popup-content-card revisions (`e35d43e`) — climate variant:thin / sonos player-header reflow / speaker-grid compactSpeakerName / alarm-edit mushroom CTA. 4 visible defects from T8 M1 review resolved with adversarial-reviewed approach.
+- T8.1 speaker-grid regression (`cbc2faf`) — caught + fixed compactSpeakerName-missing-import that had broken production speaker-grid for ~62 hours. M.1 Sonos+Spotify routing investigation WITHDRAWN with full disposition memo.
+- N.1 navbar polish (`e39ca0e`) — Apple Liquid Glass aesthetic, popup container/backdrop/items styling, animation speedup, Rooms popup fix via missing tap_action, Media tab added, navbar deployed to all 8 dashboard views.
+- S.1 sensor package (`c8c2ac0`) — 36+ new entities. Sub-agent inventory revealed most planned sensors already existed; actual gap was different. Adversarial review caught 2 HIGH (HVAC energy authority pollution → deferred; sensor count math error) + 3 MEDIUM + 2 LOW.
+- S.2 OAL zone status hybrid overhaul (`1a8a689`) — 17 new entities (hybrid architecture vs naive 45). 9 status sensors refactored to mode enum, 16 graphable signals split out, HVAC estimated energy un-deferred with nameplate values, lights_on_* polished. Adversarial review caught 2 CRITICAL (global vs per-zone sleep detection; total_increasing on midnight-resetting source corrupts LTS).
+
+MEMORY ENTRIES SUPERSEDED THIS SESSION (caught by empirical-baseline discipline):
+- #12575 ("Sonos+Spotify Transport Fix Root Cause Confirmed: Route to MA Entity") — empirically wrong on Mac's current setup; native skip works fine on Spotify Connect mode. Routing AWAY from native (per the prior audit's recommendation) was the actual defect Mac surfaced.
+- #13266 ("HACS navbar-card Rejected: Same position:fixed Clipping as tunet-nav-card in HA Sections") — likely conflated tunet-nav-card's older clipping issue with navbar-card. Sub-agent confirmed via source + GitHub issues that navbar-card's popup primitive works; missing `tap_action: action: open-popup` was the actual root cause.
+- "Plan F's 19 planned sensors" premise — sub-agent S.1 inventory found most already existed in commit 6caad51 (2026-05-23); actual gap was different + smaller + structurally different.
+
+NEW DEFECT LEDGER ENTRIES (in `Dashboard/Tunet/Docs/visual_defect_ledger.md`):
+- Room light group membership drift (5 groups, specific issues per group, ~2 duplicate "Living Room Lights" groups discovered) — folded into L1 architectural tranche per Mac's stamp
+- `deploy_packages.sh` doesn't handle new package files — logged for future fix
+- `light.office_bed_light_right` persistent manual-control flag — deferred to follow-up
+- T8.1 speaker-grid 62h-in-production regression — closed via S.1 npm test discovery + lesson logged
+
+NEW BACKLOG TRANCHE OPENED:
+- L1 (light entity management architecture) — `docs/plans/L1-light-entity-management-architecture-backlog-2026-05-26.md`. Captures the room-light-group drift as a symptom of broader entity-management architecture gap. Q1-Q5 architectural options. 4 scope candidates ranging from 2h manual cleanup to 15h custom integration. Stats + Adaptive page wireframes blocked on this per Mac's direction.
+
+OPEN AT SESSION END:
+- HA restart whenever convenient → activates `sensor.hvac_estimated_energy_daily` utility_meter (template sensor live; wrapper pending)
+- L1 plan execution (next session per kickoff prompt at `docs/plans/L1-kickoff-prompt-2026-05-26.md`)
+- Stale dashboard file inspection (Mac wants to inspect 3 Feb-2026 files before deletion)
+- `light.office_bed_light_right` manual-control bug investigation (deferred follow-up)
+- 15 new room aggregates (deferred from S.1e — same "graphable vs status" decision needed)
+- HVAC condenser nameplate reading when roof accessible
+
+---
+
+## (LEGACY HEADER BELOW — preserved for traceability; superseded by Session Delta above)
+
 Last updated: 2026-05-23
 Scope: `/home/mac/HA/implementation_10`
 Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)

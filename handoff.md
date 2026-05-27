@@ -1,5 +1,49 @@
 # Tunet Dashboard Handoff (Source Of Truth)
 
+Last updated: 2026-05-26 (America/Denver)
+
+## Session Delta (2026-05-26, long session — 5 tranches shipped, L1 backlog opened)
+
+Tranches shipped THIS session in chronological order on `main`:
+
+- `e35d43e` — **T8.1 popup-content-card revisions**: climate `variant: thin` for dining-room popup, sonos `player-header` flex-wrap reflow on phone (DOM-verified 4-child crush root cause), speaker-grid `compactSpeakerName()` wired, alarm-edit native button → mushroom-template-card conversion
+- `cbc2faf` — **T8.1 speaker-grid hotfix + M.1 closeout**: caught and fixed compactSpeakerName-missing-import that had been broken in production for ~62 hours since T8.1 commit. M.1 Sonos+Spotify routing investigation WITHDRAWN — premise was empirically wrong (memory #12575 marked SUPERSEDED). Native skip works on Spotify Connect mode; routing AWAY from native was the actual defect.
+- `e39ca0e` — **N.1 navbar Apple Glass + popup polish + Media tab + Rooms popup fix + suite-wide nav**: light frosted glass aesthetic via Mac's provided base styles, popup container/backdrop/popup-item styling per navbar-card docs, Rooms popup fix via missing `tap_action: open-popup` (sub-agent docs research caught the actual root cause; memory #13266 marked SUPERSEDED), Media tab added (5-tab layout: Home/Rooms/Media/Stats/Settings), navbar deployed on all 8 views (Home/Stats had it; Living Room/Kitchen/Dining Room/Bedroom/Office/Settings did not).
+- `c8c2ac0` — **S.1 sensor package**: 36+ new entities for Stats + Adaptive dashboard pages. Sub-agent inventory revealed most originally-planned 19 sensors already existed; actual gap was 4 missing planned + 30+ load-bearing values buried in `sensor.oal_real_time_monitor` attributes + 5 climate-attribute extractions. Adversarial review caught H1 (HVAC energy placeholder would pollute Energy dashboard authoritatively → DEFERRED) and H2 (sensor count math).
+- `1a8a689` — **S.2 OAL zone status hybrid overhaul + HVAC energy + lights_on polish**: 17 new entities (was going to be 45 in naive plan; architecture sub-agent recommended hybrid). 9 `_status` sensors refactored from string-mash (`"M 3h 53m"`) to mode enum (`adaptive`/`manual`/`sleep`/`off`) with per-zone sleep detection. 16 graphable zone sensors (8 zones × brightness_target + color_temp_k; office_bed excluded per Mac's "fused with office" direction). HVAC estimated energy un-deferred with nameplate-derived values (heating 1.1 kW measured + cooling 3.5 kW estimated for 2.5-ton condenser sized for 1,600 sq ft condo) + utility_meter wrapper for Energy dashboard. lights_on_* sensors got state_class: measurement.
+
+NEW MEMORY ENTRIES THIS SESSION:
+- `feedback_npm_test_in_m1_gate.md` — caught the T8.1 speaker-grid regression after running `npm test` for the first time during S.1 implementation gate; the test suite mounts the speaker-grid card and threw ReferenceError on every fixture. Generalizes: always run `npm test` as part of M1 gate, not just when adding new tests.
+- `feedback_empirical_baseline_before_fix.md` — caught 3 stale-audit premises in one session (#12575 Sonos+MA routing, #13266 navbar-card rejection, Plan F "build 19 sensors"). Generalizes: for any defect-fix tranche where the premise comes from memory/audit/prior session, REPRODUCE the defect on the unmodified system FIRST.
+- `feedback_device_class_authority.md` — caught hvac_estimated_energy_today placeholder kW would have polluted Energy dashboard authoritatively. Generalizes: don't apply `device_class: energy/temperature/humidity` to placeholder/estimated values.
+
+NEW BACKLOG OPENED (NOT executed yet):
+- `docs/plans/L1-light-entity-management-architecture-backlog-2026-05-26.md` — captures the room-light-group drift problem (`light.all_living_room_lights` includes dining_spot_lights, `all_dining_room_lights` includes living_room_corner_accent, master bedroom group incomplete after corner_accent migrated to office, etc.). Per Mac's direction: don't patch the drift in isolation; design the architecture properly. 5 architectural questions (Q1-Q5: HA areas, auto-generated groups from registry, logical-name registry layer, documented process, hybrid). 7 research questions. 4 scope options (A: 2h manual cleanup, B: 5-6h area-based migration, C: 10-15h custom integration, D: punt).
+- `docs/plans/L1-kickoff-prompt-2026-05-26.md` — paste-ready kickoff prompt for the next session that picks up L1. Per Mac's request to follow the session_kickoff_template ritual.
+
+PENDING / DEFERRED:
+- L1 light-entity-management-architecture — planning stage backlog; next session per the kickoff prompt
+- Stats + Adaptive dashboard page wireframes — BLOCKED on L1 per Mac's direction (sensor consumers shouldn't be wireframed against drifted room-group infrastructure)
+- Stale dashboard file inspection (`Dashboard/living_room_card_v3.yaml`, `Dashboard/living_room_popup_v4.yaml`, `Dashboard/split_hero.yaml`) — Mac wants to inspect first; blocks `sensor.hero_*` deletion
+- HA restart whenever convenient to activate `sensor.hvac_estimated_energy_daily` utility_meter (S.2 CS3 wrapping sensor; template sensor live now, utility_meter pending)
+- `light.office_bed_light_right` persistent manual-control flag (discovered during S.1 AL state probe; only right bed light, not left — asymmetric, warm-pin automation interaction suspected; deferred to dedicated investigation tranche)
+- 15 new room aggregates (`<room>_brightness_avg_pct`, `<room>_color_temp_avg_k`, `<room>_any_manual_override`) — deferred from S.1e; needs the same "graphable vs status" architecture decision before scoping
+- HVAC condenser nameplate reading when roof access is next available — refines cooling_kw=3.5 placeholder
+
+NEW LESSONS LOGGED:
+- entity_id derives from `name:` (slugified), NOT from `unique_id:`. Spent ~5 min troubleshooting "missing" S.2 sensors before realizing the probe was using wrong entity_ids. Documented inline in S.2 commit message.
+- `deploy_packages.sh` by-design only updates EXISTING files (line 175-180); NEW package files require manual `scp`. Surfaced during S.1 when tunet_oal_extracted_sensors.yaml (new file) silently failed to register. Logged for future deploy-script enhancement.
+
+## Active execution plan: `~/.claude/plans/flickering-herding-wolf.md` (sole authority, CD0–CD12)
+Active detailed CD11 plan: `~/.claude/plans/synthetic-dazzling-oasis.md` (status-specific authority under the CD0-CD12 master plan)
+**Active session-level plan (2026-05-08)**: `~/.claude/plans/purrfect-baking-ember.md` — four-arcs framing (α foundation / β plumbing / γ surfaces / δ polish); page-architecture sub-plan explicitly deferred to a focused future agent. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_architecture_first.md` for the principle.
+Current tranche: **L1 (light entity management architecture) — planning-stage backlog opened 2026-05-26; next session per the kickoff prompt.** PA01 (Bug A) remains shipped/Mac-review-pending from 2026-05-23. T8/T8.1/N.1/S.1/S.2 all closed in repo/docs terms.
+Previous tranches: CD9 (completed Apr 6, 2026; selected-target audio routing, dropdown parity, speaker-tile semantics, phone fallback, drag-guard behavior, and album-art resilience accepted), CD8 (completed Apr 6, 2026; weather redesign accepted, climate/sensor narrowed healthy), CD7 (completed Apr 6, 2026; card-level closeout only, room-page layout undecided), CD6 (completed Apr 4, 2026), CD5 (completed Apr 4, 2026), CD4 (completed Apr 4, 2026), CD3 (completed Apr 3, 2026), CD2 (completed Apr 3, 2026), CD1 (completed Apr 3, 2026), CD0 (completed Apr 3, 2026)
+
+---
+
+## (LEGACY HEADER BELOW — preserved for traceability; superseded by the Session Delta above)
+
 Last updated: 2026-05-23 (America/Denver)
 Intended reader: next Claude Code session
 Primary instruction: treat this file as session continuity + execution map, then verify live state before changing behavior.

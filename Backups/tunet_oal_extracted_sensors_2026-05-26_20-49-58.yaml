@@ -1,0 +1,423 @@
+# =============================================================================
+# TUNET OAL Extracted Sensors — first-class sensors for values currently
+# buried as attributes on sensor.oal_real_time_monitor + sensor.oal_environmental_debug
+# =============================================================================
+# Scope: Tranche S.1b + S.1c #lux (per docs/plans/S1-sensor-package-2026-05-26.md)
+#
+# Source: sensor.oal_real_time_monitor is OAL's diagnostic blob carrying 40+
+#   attributes including per-zone effective brightness ranges, manual offsets,
+#   and global brightness offsets. Adaptive dashboard page cannot render
+#   brightness band visualizations without these as first-class sensors.
+#   Live verified 2026-05-26 — all attribute names match plan exactly.
+#
+# Inventory source: see plan Appendix A for adversarial-review-confirmed
+# attribute paths in packages/oal_lighting_control_package.yaml:8724-8825.
+#
+# Office_bed zone INTENTIONALLY excluded per Mac's "sensor fused with office"
+# direction (2026-05-26 5:15pm) — office_bed is treated as part of the office
+# zone for dashboard purposes; no separate sensors exposed.
+#
+# All sensors are read-only template pulls from existing attributes — no
+# modification to source sensors, no automation triggers.
+# =============================================================================
+
+template:
+  - sensor:
+
+      # ─── Per-zone effective minimum brightness (8 sensors) ─────────────
+      - name: "OAL Zone Main Living Effective Min"
+        unique_id: "tunet_oal_zone_main_living_effective_min_pct"
+        icon: mdi:brightness-7
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'main_living_effective_min_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Kitchen Island Effective Min"
+        unique_id: "tunet_oal_zone_kitchen_island_effective_min_pct"
+        icon: mdi:brightness-7
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'kitchen_island_effective_min_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Kitchen Undercabinet Effective Min"
+        unique_id: "tunet_oal_zone_kitchen_undercabinet_effective_min_pct"
+        icon: mdi:brightness-7
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'kitchen_undercabinet_effective_min_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Bedroom Primary Effective Min"
+        unique_id: "tunet_oal_zone_bedroom_primary_effective_min_pct"
+        icon: mdi:brightness-7
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'bedroom_primary_effective_min_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Accent Spots Effective Min"
+        unique_id: "tunet_oal_zone_accent_spots_effective_min_pct"
+        icon: mdi:brightness-7
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'accent_spots_effective_min_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Recessed Ceiling Effective Min"
+        unique_id: "tunet_oal_zone_recessed_ceiling_effective_min_pct"
+        icon: mdi:brightness-7
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'recessed_ceiling_effective_min_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Column Lights Effective Min"
+        unique_id: "tunet_oal_zone_column_lights_effective_min_pct"
+        icon: mdi:brightness-7
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'column_lights_effective_min_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Office Effective Min"
+        unique_id: "tunet_oal_zone_office_effective_min_pct"
+        icon: mdi:brightness-7
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'office_effective_min_brightness_pct') | float(none) | round(1) }}
+
+      # ─── Per-zone effective maximum brightness (8 sensors) ─────────────
+      - name: "OAL Zone Main Living Effective Max"
+        unique_id: "tunet_oal_zone_main_living_effective_max_pct"
+        icon: mdi:brightness-5
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'main_living_effective_max_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Kitchen Island Effective Max"
+        unique_id: "tunet_oal_zone_kitchen_island_effective_max_pct"
+        icon: mdi:brightness-5
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'kitchen_island_effective_max_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Kitchen Undercabinet Effective Max"
+        unique_id: "tunet_oal_zone_kitchen_undercabinet_effective_max_pct"
+        icon: mdi:brightness-5
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'kitchen_undercabinet_effective_max_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Bedroom Primary Effective Max"
+        unique_id: "tunet_oal_zone_bedroom_primary_effective_max_pct"
+        icon: mdi:brightness-5
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'bedroom_primary_effective_max_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Accent Spots Effective Max"
+        unique_id: "tunet_oal_zone_accent_spots_effective_max_pct"
+        icon: mdi:brightness-5
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'accent_spots_effective_max_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Recessed Ceiling Effective Max"
+        unique_id: "tunet_oal_zone_recessed_ceiling_effective_max_pct"
+        icon: mdi:brightness-5
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'recessed_ceiling_effective_max_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Column Lights Effective Max"
+        unique_id: "tunet_oal_zone_column_lights_effective_max_pct"
+        icon: mdi:brightness-5
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'column_lights_effective_max_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Office Effective Max"
+        unique_id: "tunet_oal_zone_office_effective_max_pct"
+        icon: mdi:brightness-5
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'office_effective_max_brightness_pct') | float(none) | round(1) }}
+
+      # ─── Per-zone manual offset (8 sensors) ─────────────────────────────
+      # Shows ZEN32-induced manual brightness adjustments per zone.
+      # Zero by default; non-zero when user has pressed B2/B4 to brighten/dim.
+      - name: "OAL Zone Main Living Manual Offset"
+        unique_id: "tunet_oal_zone_main_living_manual_offset_pct"
+        icon: mdi:gesture-tap
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'main_living_manual_offset_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Kitchen Island Manual Offset"
+        unique_id: "tunet_oal_zone_kitchen_island_manual_offset_pct"
+        icon: mdi:gesture-tap
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'kitchen_island_manual_offset_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Kitchen Undercabinet Manual Offset"
+        unique_id: "tunet_oal_zone_kitchen_undercabinet_manual_offset_pct"
+        icon: mdi:gesture-tap
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'kitchen_undercabinet_manual_offset_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Bedroom Primary Manual Offset"
+        unique_id: "tunet_oal_zone_bedroom_primary_manual_offset_pct"
+        icon: mdi:gesture-tap
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'bedroom_primary_manual_offset_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Accent Spots Manual Offset"
+        unique_id: "tunet_oal_zone_accent_spots_manual_offset_pct"
+        icon: mdi:gesture-tap
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'accent_spots_manual_offset_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Recessed Ceiling Manual Offset"
+        unique_id: "tunet_oal_zone_recessed_ceiling_manual_offset_pct"
+        icon: mdi:gesture-tap
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'recessed_ceiling_manual_offset_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Column Lights Manual Offset"
+        unique_id: "tunet_oal_zone_column_lights_manual_offset_pct"
+        icon: mdi:gesture-tap
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'column_lights_manual_offset_brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Office Manual Offset"
+        unique_id: "tunet_oal_zone_office_manual_offset_pct"
+        icon: mdi:gesture-tap
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'office_manual_offset_brightness_pct') | float(none) | round(1) }}
+
+      # ─── Global brightness offsets (5 sensors) ─────────────────────────
+      # Source: live verification showed b_environmental_offset=15 matches
+      # state "Boosted" + boost_source "☀️+15%". v2 plan claimed 4 globals;
+      # live probe found a 5th (b_night_offset) — exposed for night-phase visibility.
+      - name: "OAL Offset Environmental"
+        unique_id: "tunet_oal_offset_environmental_pct"
+        icon: mdi:weather-partly-cloudy
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'b_environmental_offset') | float(none) | round(1) }}
+
+      - name: "OAL Offset Sunset"
+        unique_id: "tunet_oal_offset_sunset_pct"
+        icon: mdi:weather-sunset
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'b_sunset_offset') | float(none) | round(1) }}
+
+      - name: "OAL Offset Config"
+        unique_id: "tunet_oal_offset_config_pct"
+        icon: mdi:tune
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'b_config_offset') | float(none) | round(1) }}
+
+      - name: "OAL Offset Night"
+        unique_id: "tunet_oal_offset_night_pct"
+        icon: mdi:weather-night
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_real_time_monitor', 'b_night_offset') | float(none) | round(1) }}
+
+      # Total offset = sum of all 4 brightness offsets. Replaces the
+      # existing string-state sensor.oal_global_brightness_offset ("+15%")
+      # with a numeric graphable equivalent.
+      - name: "OAL Offset Total"
+        unique_id: "tunet_oal_offset_total_pct"
+        icon: mdi:sigma
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {% set env = state_attr('sensor.oal_real_time_monitor', 'b_environmental_offset') | float(0) %}
+          {% set sun = state_attr('sensor.oal_real_time_monitor', 'b_sunset_offset') | float(0) %}
+          {% set cfg = state_attr('sensor.oal_real_time_monitor', 'b_config_offset') | float(0) %}
+          {% set ngt = state_attr('sensor.oal_real_time_monitor', 'b_night_offset') | float(0) %}
+          {{ (env + sun + cfg + ngt) | round(1) }}
+
+      # ─── Environmental lux (S.1c #4) ────────────────────────────────────
+      # Pulled from sensor.oal_environmental_debug.lux_current. Co-located
+      # in this OAL extraction package since it's an OAL diagnostic value.
+      - name: "OAL Lux Current"
+        unique_id: "tunet_oal_lux_current"
+        icon: mdi:brightness-5
+        unit_of_measurement: "lx"
+        device_class: illuminance
+        state_class: measurement
+        state: >
+          {{ state_attr('sensor.oal_environmental_debug', 'lux_current') | float(none) | round(0) }}
+
+      # ═════════════════════════════════════════════════════════════════
+      # S.2 CS2 — graphable zone signals (8 zones × 2 = 16 sensors).
+      # office_bed EXCLUDED per Mac's "fused with office" direction.
+      # These are the only continuous numerics worth graphing per the
+      # HA 2026 architecture research — everything else (override remaining,
+      # lights overridden, lights total, mode) stays attribute-side.
+      # color_temp_k deliberately omits device_class to avoid mixing
+      # with HVAC/weather temperature in long-term-statistics UI.
+      # ═════════════════════════════════════════════════════════════════
+
+      - name: "OAL Zone Main Living Brightness Target"
+        unique_id: "tunet_oal_zone_main_living_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_main_living', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Main Living Color Temp"
+        unique_id: "tunet_oal_zone_main_living_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_main_living', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Kitchen Island Brightness Target"
+        unique_id: "tunet_oal_zone_kitchen_island_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_kitchen_island', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Kitchen Island Color Temp"
+        unique_id: "tunet_oal_zone_kitchen_island_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_kitchen_island', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Kitchen Undercabinet Brightness Target"
+        unique_id: "tunet_oal_zone_kitchen_undercabinet_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Kitchen Undercabinet Color Temp"
+        unique_id: "tunet_oal_zone_kitchen_undercabinet_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_kitchen_undercabinet', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Bedroom Primary Brightness Target"
+        unique_id: "tunet_oal_zone_bedroom_primary_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Bedroom Primary Color Temp"
+        unique_id: "tunet_oal_zone_bedroom_primary_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_bedroom_primary', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Accent Spots Brightness Target"
+        unique_id: "tunet_oal_zone_accent_spots_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_accent_spots', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Accent Spots Color Temp"
+        unique_id: "tunet_oal_zone_accent_spots_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_accent_spots', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Recessed Ceiling Brightness Target"
+        unique_id: "tunet_oal_zone_recessed_ceiling_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Recessed Ceiling Color Temp"
+        unique_id: "tunet_oal_zone_recessed_ceiling_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_recessed_ceiling', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Column Lights Brightness Target"
+        unique_id: "tunet_oal_zone_column_lights_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_column_lights', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Column Lights Color Temp"
+        unique_id: "tunet_oal_zone_column_lights_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_column_lights', 'color_temp_kelvin') | float(none) | round(0) }}
+
+      - name: "OAL Zone Office Brightness Target"
+        unique_id: "tunet_oal_zone_office_brightness_target_pct"
+        icon: mdi:lightbulb-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_office', 'brightness_pct') | float(none) | round(1) }}
+
+      - name: "OAL Zone Office Color Temp"
+        unique_id: "tunet_oal_zone_office_color_temp_k"
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "K"
+        state_class: measurement
+        state: >
+          {{ state_attr('switch.adaptive_lighting_office', 'color_temp_kelvin') | float(none) | round(0) }}

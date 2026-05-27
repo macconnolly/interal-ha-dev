@@ -32,7 +32,7 @@ Captured 19 screenshots across preview + cosmos at 390×844 + 1440×900. Inline-
 | **D4.B-ALARMS** | Bedroom popup missing alarms section (cosmos has it; genesis §6 specifies it) | `preview-pop-bedroom-390.png` vs `cosmos-pop-bedroom-390.png` + genesis §6 | `tunet-home-preview-config.yaml` `#room-bedroom` popup |
 | **D4.B-SPEAKER** | Bedroom popup sensor section missing Speaker entity row (cosmos has it) | same | same |
 | **D4.LR-MINI** | Living Room popup missing per-zone mini-status rows for related groups (Ceiling/Columns shown in cosmos) | `preview-pop-living-390.png` vs `cosmos-pop-living-390.png` | `#room-living-room` popup |
-| **D5** | Chevron at right of each rooms row does not open popup. Body tap navigates to `#room-<name>` correctly. Chevron should mirror the action for affordance redundancy. | Mac report 2026-05-26; needs in-card investigation | `Dashboard/Tunet/Cards/v3/tunet_rooms_card.js` chevron handler |
+| **D5** | Chevron tap behavior — Mac report 2026-05-26: "doesn't open popup like it should". **Empirical finding 2026-05-26 post-probe**: chevron click handler at `tunet_rooms_card.js:1316-1329` IS wired — "D1 Alt II — chevron tap navigates to subview_path (full room page)." So chevron mechanically works, but goes to SUBVIEW (per Alt II lock), not POPUP. Mac wants POPUP. **Gesture model question, not a missing handler.** Options: (a) flip chevron to popup (body and chevron both → popup, subview reached via popup button), (b) verify Alt II is in effect on live preview (the navigate may be silently failing), (c) accept Alt II and amend visual affordance. Mac BLOCKING decision. | Mac report + `tunet_rooms_card.js:1316-1329` | Card-level gesture lock |
 | **D7 (broadened)** | **G1-G11 Genesis-vs-Preview gap audit** — see §1.X below. Mac directive 2026-05-26: "identify all of the other places where the genesis plan is now executed below par in preview" | Genesis spec §6+§7 vs 5 popups + 5 subviews captures | preview yaml multiple sections |
 | **D8** | Initial home capture at 390 timed out at 3sec wait (showed only HA splash); 6sec wait succeeded. Bump default. | `preview-home-390.png` (v1) vs `preview-home-390-v3.png` | `.scratch_room_capture.mjs` / canonical harness |
 
@@ -126,47 +126,83 @@ Investigate `tunet_rooms_card.js` to find current chevron click handler (likely 
 
 ### 2.6 — D7 (broadened) Genesis-vs-preview gap closeout (G1-G11)
 
-#### G1-G5 — Popup quick-action scene chips (REVISED per Mac 2026-05-26 DRY directive)
+#### G1-G5 — Popup quick-action scene chips (REVISED 2026-05-26 post-advisor: HA scenes + parameterized chip rendering)
 
-Replace generic `[Open Room] [All Off] [All On]` rows with per-room scene chips per genesis §6.
+Replace generic `[Open Room] [All Off] [All On]` rows with per-room scene chips per genesis §6. Apply parameterized-reuse principle at TWO layers (advisor item 8):
 
-**Implementation pattern** (parameterized — see G10): each chip's `tap_action` calls the shared `script.tunet_apply_room_scene` with the appropriate `scene_id`:
-
+**Layer 1 — chip CONFIG bound to native HA scenes** (per G10):
 ```yaml
 - type: custom:mushroom-template-card
   primary: Evening
   icon: mdi:weather-night
   tap_action:
     action: call-service
-    service: script.tunet_apply_room_scene
+    service: scene.turn_on
+    target:
+      entity_id: scene.living_evening
     data:
-      scene_id: living-evening
+      transition: 1.5
 ```
 
-Repeat per room with different `scene_id` per chip. NO per-room scripts; the chip is pure data binding to the parameterized primitive.
+**Layer 2 — chip RENDERING parameterized** (advisor item 8: same DRY principle at chip-render layer):
 
-**Per-room chip set** (chip label → scene_id):
-- Living: Evening → `living-evening`, Off → `living-off`, Full Bright → `living-full-bright`, "Open Room" (navigate)
-- Kitchen: Cook Mode → `kitchen-cook`, Counter Only → `kitchen-counter-only`, Off → `kitchen-off`
-- Dining: Dinner Mode → `dining-dinner`, Off → `dining-off`
-- Bedroom: Sleep → `bedroom-sleep`, Bedside Only → `bedroom-bedside-only`, Off → `bedroom-off`
-- Office: Focus → `office-focus`, Off → `office-off`
+Chip blocks are near-identical YAML across all 5 popups. Define ONCE via decluttering-card template OR YAML anchor OR build-step generation (per U.3 §3.1 — same Approach C lock applies here since decluttering-card not installed):
+
+```yaml
+# Build-step template (rendered at tunet:deploy:dashboards time)
+template scene_chip:
+  type: custom:mushroom-template-card
+  primary: {{ label }}
+  icon: {{ icon }}
+  tap_action:
+    action: call-service
+    service: scene.turn_on
+    target:
+      entity_id: scene.{{ scene_id }}
+    data:
+      transition: 1.5
+
+# Per-popup invocations (thin data binding)
+chips:
+  - { label: Evening,     icon: mdi:weather-night, scene_id: living_evening }
+  - { label: Full Bright, icon: mdi:brightness-7,  scene_id: living_full_bright }
+  - { label: Off,         icon: mdi:lightbulb-off, scene_id: living_off }
+```
+
+**Per-room chip set** (chip label → HA scene entity_id):
+- Living: Evening → `scene.living_evening`, Full Bright → `scene.living_full_bright`, Off → `scene.living_off`, "Open Room" (navigate to subview, not a scene)
+- Kitchen: Cook Mode → `scene.kitchen_cook`, Counter Only → `scene.kitchen_counter_only`, Off → `scene.kitchen_off`
+- Dining: Dinner Mode → `scene.dining_dinner`, Off → `scene.dining_off`
+- Bedroom: Sleep → `scene.bedroom_sleep`, Bedside Only → `scene.bedroom_bedside_only`, Off → `scene.bedroom_off`
+- Office: Focus → `scene.office_focus`, Off → `scene.office_off`
+
+**Implementation order**:
+1. Define HA scenes in `packages/tunet_room_scenes.yaml` (G10 prerequisite)
+2. Build chip-template generation step (or use decluttering-card if installed)
+3. Wire each popup's chip-row using the template + per-popup chip data
 
 **Mac BLOCKING decisions**:
-- Exact per-zone brightness/color values per scene (deferred to scene-composition tranche OR Mac authors inline in scene registry)
-- Whether "Off" scenes should be parameterized OR call `homeassistant.turn_off` on the room's `light.all_<room>_lights` group (faster, no script needed; trade-off: doesn't write to registry as a "scene")
+- Exact per-scene brightness/color values (deferred to scene-composition tranche)
 
 #### G4 — Bedroom popup alarms + speaker (overlaps D4.B-*)
 
 Port from cosmos `#room-bedroom`. See §2.4.
 
-#### G6 — Living subview enrichment
+#### G6 — Living subview enrichment (REVISED 2026-05-26 post-empirical-probe)
+
+Verified live entity availability via `ha_search_entities`:
+
+| Sensor | Status | Entity (if exists) |
+|---|---|---|
+| Temperature | ✅ via shared HVAC sensor | `sensor.dining_room_temperature` (68.18°F — covers LR per HVAC zone) |
+| Humidity | ❌ no direct LR humidity sensor; closest is `sensor.kitchen_humidity` | Either omit Humidity row OR flag for backlog ("create LR humidity sensor") |
+| Lux | ✅ two options | `sensor.living_room_presence_light_sensor_light_level` (5lx, ambient) OR `sensor.living_room_presence_dimmer_illuminance` (71lx, dimmer-mounted). Pick the ambient one (lower noise; not affected by dimmer self-illumination). |
 
 Add to Living Room subview yaml:
-- Temperature row: `sensor.living_room_temperature` if exists; else fallback `sensor.dining_room_temperature` (shared HVAC sensor); else flag for backlog
-- Humidity row: `sensor.living_room_humidity` if exists; else flag for backlog
-- Lux row: `sensor.living_room_lux` or motion-sensor lux attribute if exists; else flag for backlog
-- Room-scoped scene chips replace generic chips (see G10)
+- Temperature row: `sensor.dining_room_temperature` (shared)
+- Lux row: `sensor.living_room_presence_light_sensor_light_level`
+- Humidity row: SKIP (flag for backlog — D.11)
+- Room-scoped scene chips replace generic chips (see G10 + G1)
 
 #### G7 — Kitchen subview enrichment
 
@@ -180,43 +216,72 @@ Already has climate hero. Add Temperature + Humidity below climate; add Dinner M
 
 Add Focus chip; optionally retain All On / All Off as utility chips.
 
-#### G10 — Parameterized room-scoped scene script + scene registry (REVISED per Mac 2026-05-26 DRY directive)
+#### G10 — HA NATIVE SCENES (REVISED 2026-05-26 post-advisor: don't reinvent HA's scene primitive)
 
-**Original (rejected)**: 12-16 individual `script.scene_<room>_<scene>` scripts hand-maintained per room/scene combination.
+**Original (rejected)**: 12-16 individual `script.scene_<room>_<scene>` scripts.
+**Intermediate (also rejected)**: parameterized `script.tunet_apply_room_scene` + custom `input_text` JSON registry. Failure mode: `input_text` has 255-char cap (memory `3f5aa1f`) — registry would blow it; also reinvents HA's own scene system.
 
-**Revised (parameterized reuse, per `feedback_parameterized_reuse.md`)**:
+**LOCKED**: use HA's native `scene:` integration. Per `ha_get_domain_docs("scene")`:
+- `scene:` is a YAML-declarative entity domain — define each scene once with target `entities: { entity_id: { state, brightness, color_temp_kelvin, ... } }`.
+- `scene.turn_on` is the native service to apply; supports `transition` parameter; no custom code required.
+- Scenes appear as proper HA entities (`scene.living_evening`) — observable in Developer Tools, callable from automations / Siri / voice / dashboards uniformly.
+- `scene.reload` service for live reload after YAML edits.
 
-- **ONE generic primitive**: `script.tunet_apply_room_scene` — takes `scene_id` (and optionally `transition_seconds`) as `fields:` params; uses internal `choose:` block (or template-driven lookup) to dispatch to the right zone-level commands.
-- **Scene registry as DATA**: `input_text.tunet_room_scenes` containing JSON-shaped scene definitions OR a dedicated `packages/tunet_room_scenes.yaml` with structured scene-config data (NOT scripts) — e.g.:
+**Implementation**:
+
+- **`packages/tunet_room_scenes.yaml`** (new file): YAML scene definitions, one block per scene:
   ```yaml
-  tunet_room_scenes:
-    living-evening:
-      lights:
-        - { entity: light.living_room_couch_lamp, brightness_pct: 30, color_temp_kelvin: 2200 }
-        - { entity: light.living_room_floor_lamp, brightness_pct: 25, color_temp_kelvin: 2200 }
+  scene:
+    - name: Living Evening
+      icon: mdi:weather-night
+      entities:
+        light.living_room_couch_lamp:
+          state: on
+          brightness_pct: 30
+          color_temp_kelvin: 2200
+        light.living_room_floor_lamp:
+          state: on
+          brightness_pct: 25
+          color_temp_kelvin: 2200
         # ... etc
-    living-off:
-      lights:
-        - { entity: light.all_living_room_lights, state: off }
-    kitchen-cook:
-      lights:
-        - { entity: light.kitchen_island_pendants, brightness_pct: 100, color_temp_kelvin: 4000 }
+
+    - name: Kitchen Cook
+      icon: mdi:silverware-fork-knife
+      entities:
+        light.kitchen_island_pendants:
+          state: on
+          brightness_pct: 100
+          color_temp_kelvin: 4000
         # ... etc
   ```
-- **Chip wiring**: every popup chip calls `script.tunet_apply_room_scene` with `data: { scene_id: "<room>-<scene>" }`. ONE service, many invocations, ZERO per-room script proliferation.
-- **Optional thin shim scripts**: ONLY for consumers that need a no-arg service entry point (ZEN32 button bindings, voice assistant intent mapping). E.g. `script.living_evening` is a 3-line shim: `service: script.tunet_apply_room_scene, data: { scene_id: living-evening }`. Skip these if no such consumer needs them.
 
-**Benefits**:
-- Adding a new scene = 1 entry in scene registry, ZERO new scripts
-- Renaming an entity = update once in registry, all scenes that touch it inherit
-- Easy to audit "what does Evening do across all rooms?" — read registry; vs grepping 5 scripts
-- L1 alignment: scene registry references entities by ID; when L1 lands group rationalization, the registry consumes the new groups cleanly
+  HA derives entity_id from name slug → `scene.living_evening`, `scene.kitchen_cook`, etc.
+
+- **No custom dispatcher script needed**. Chip `tap_action` calls native service directly:
+  ```yaml
+  tap_action:
+    action: call-service
+    service: scene.turn_on
+    target:
+      entity_id: scene.living_evening
+    data:
+      transition: 1.5
+  ```
+
+- **Off scenes** can still be HA scenes (declarative state: `off` per light) OR call `homeassistant.turn_off` on `light.all_<room>_lights` group. Mac choice; recommend HA scenes for consistency.
+
+**Benefits over the rejected approaches**:
+- ZERO custom scripts, ZERO custom registry
+- Native HA primitives (observable, debuggable, voice-callable)
+- `scene.reload` lets Mac iterate without restart
+- Snapshot via `scene.create` enables "save current as scene" UX later
+- 255-char `input_text` cap is irrelevant (YAML scenes have no size cap)
 
 **Mac BLOCKING decisions**:
-- Scene registry storage: `input_text` JSON (HA-native, queryable from Lovelace) OR YAML package (simpler to author, no JSON-in-YAML escaping) OR both (YAML as source-of-truth, optional input_text mirror for Lovelace consumption)
-- Per-scene specifics: actual zone/brightness/color values per scene — defer to a follow-on scene-composition tranche, OR Mac authors values inline now
+- Per-scene specifics: actual brightness/color/temp values per scene. Defer to a follow-on scene-composition tranche OR Mac authors inline.
+- Should "off" scenes be HA scenes OR `homeassistant.turn_off` calls? HA scenes for consistency; simpler service for one-liner.
 
-**Risk**: parameterization layer requires template robustness. Template error in `script.tunet_apply_room_scene` cascades to ALL scene invocations. Mitigation: extensive `template_error` handling + unit-test the script's choose block.
+**Out of scope** (would re-introduce custom scripting): scene chaining, conditional scenes, time-of-day scene variants. If needed later, build automations that call `scene.turn_on` — don't reinvent.
 
 #### G11 — Filtered speaker grid in subviews
 

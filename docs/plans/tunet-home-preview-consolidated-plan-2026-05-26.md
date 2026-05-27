@@ -183,16 +183,28 @@ Bubble Card 3.2.1 installed.
 
 Two viable paths depending on Mac's preference for daily-impact-per-hour vs structural-foundation-first:
 
-### Path A — Daily-impact-first (recommended if Mac wants visible wins this week)
+### Path A — REVISED 2026-05-26 evening (Mac promoted U.x to higher priority)
 
 1. **M.3 finish** (~30-45 min) — alarm safety net for bedroom Sonos; shippable in one sitting, no dependencies
-2. **N.3.x clarification** (Mac articulation needed) — close out remaining nav friction OR explicitly mark N.3 closed
-3. **L1 planning session** (per existing kickoff prompt) — unblocks STATS.1 + ADAPTIVE.1 + U.1
-4. **L1 execution** (per L1 plan when stamped)
-5. **STATS.1** (2-4h, after L1 ships)
-6. **ADAPTIVE.1** (2-3h, parallel-safe with STATS.1)
-7. **ADAPTIVE.2** (~10 min, after ADAPTIVE.1)
-8. **U.1 scoping** — Mac stamp on intent (replace lighting-card vs add 5th nav tab); then line-level plan
+2. **U.1 + U.2 + U.3 line-level plans** — SHIPPED 2026-05-26 in commit `f579c69`+`34d404c`. All three reviewed post-advisor + Mac DRY directive applied.
+3. **U.1 execution** (~9-13h expanded scope per G1-G11 genesis audit + parameterized HA-scenes implementation)
+4. **U.2 execution** (~6-7h Type C foundation change — icon-tap split across all tile consumers)
+5. **U.3 execution** (~4-6h Lights page + 5th nav tab; Approach C build-step generation)
+6. **N.3.x clarification** (Mac articulation needed)
+7. **L1 planning + execution** (per existing kickoff prompt) — unblocks STATS.1 + ADAPTIVE.1
+8. **STATS.1 + ADAPTIVE.1** (after L1)
+9. **ADAPTIVE.2** (after ADAPTIVE.1)
+
+**Path A' (alternative — L1-first)**: if Mac decides drift-fix-first is preferable (e.g., U.1 G6 humidity gap is symptomatic of broader drift), swap to L1 planning → L1 execution → then U.x. Trade-off: ~10 days of dashboard polish delay vs cleaner foundation.
+
+### Path A note on U.x dependencies
+
+U.1, U.2, U.3 are mutually parallelizable in PLANNING but have execution dependencies:
+- U.2 (icon-tap split) ships → U.3 Lights page tiles get full deep-control on day 1
+- U.1 G10 (HA native scenes shipped) → U.1 G1-G5 chip wiring is unblocked
+- U.3 ships → adds 5th nav tab (a Mac-visible structural change)
+
+Suggested U.x sequencing: U.1 G10 (scenes) → U.1 G1-G5 (chip wiring) + U.1 G6-G11 in parallel → U.2 (icon-tap) → U.3 (Lights page). Or pull U.3 forward if Mac wants the navbar structural change soonest.
 
 ### Path B — L1-first (recommended if Mac wants structural foundation before more UI work)
 

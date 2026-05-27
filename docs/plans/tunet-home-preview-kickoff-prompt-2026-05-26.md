@@ -36,6 +36,17 @@ Required reading at session start, in this order:
    (THE consolidated execution authority — start here for the open-
     tranche map, verified live state, dependencies, recommended
     sequencing, and DoD per tranche)
+5a. /home/mac/HA/implementation_10/docs/plans/U1-rooms-and-popup-polish-2026-05-26.md
+   (U.1 line-level plan: rooms row + popup polish + genesis-vs-
+    preview gap audit G1-G11. HA-native scenes architecture per
+    G10. Parameterized chip rendering per G1-G5.)
+5b. /home/mac/HA/implementation_10/docs/plans/U2-per-light-detail-popup-2026-05-26.md
+   (U.2 line-level plan: icon-tap split gesture, new #light-detail
+    Bubble popup template via Approach C build-step generation,
+    Type C foundation change affecting all tile consumers.)
+5c. /home/mac/HA/implementation_10/docs/plans/U3-unified-lights-page-2026-05-26.md
+   (U.3 line-level plan: new /lights page + 5th nav tab,
+    Approach C build-step generation for per-room sections.)
 6. /home/mac/HA/implementation_10/Dashboard/Tunet/Docs/visual_defect_ledger.md
    (specifically the "Tranche-Owned Open Backlog" section + the
     R4 cosmos CSS audit Tier 2/3 entry under δ-polish)
@@ -67,6 +78,12 @@ anything:
   part of the M1 gate, not just after adding new tests; the prior
   session caught a 62h-in-production speaker-grid regression this
   way)
+- feedback_parameterized_reuse.md (DRY at the YAML/scripts layer.
+  Applied to U.1 G10 (HA native scenes), U.2 (build-step popup
+  generation), U.3 (build-step lights page generation). When you
+  see N similar instances about to ship, reach for parameterization
+  before duplication. Don't reinvent HA primitives — scenes,
+  scene.turn_on, areas, labels exist for these patterns.)
 
 This is Mac's home. He lives with the result every day — on his
 phone, on his iPad, in his living room. Treat it as if you're the

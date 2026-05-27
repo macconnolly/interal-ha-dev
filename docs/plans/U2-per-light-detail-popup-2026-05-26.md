@@ -43,11 +43,50 @@ Changing the tile interaction model affects every consumer. Per global CLAUDE.md
 
 Rationale per genesis R1 (Apple HIG): tap-on-icon = primary action (toggle), tap-on-name/body = open detail sheet. Hold remains brightness drag for power-user continuous control.
 
-### 2.2 The new `#light-detail` popup (PARAMETERIZED per Mac 2026-05-26 DRY directive)
+### 2.2 The new `#light-detail` popup (LOCKED 2026-05-26 post-advisor: Approach C build-step generation)
 
-**Implementation lock**: ONE Bubble Card 3.2.1 popup template named `#light-detail`, with `entity_id` as a template variable. NOT N per-light popups. Per `feedback_parameterized_reuse.md`: when N instances differ only in entity_id, parameterize.
+**Pre-flight verification result (2026-05-26 empirical)**: existing preview yaml lines 506-841 show every Bubble Card popup is hard-coded with a unique hash (`#room-living-room`, `#room-kitchen`, etc.). The shared `&popup_style` YAML anchor is for CSS reuse only, not runtime template variables. Bubble Card 3.2.1 does NOT appear to support runtime entity_id substitution in popup definitions — each popup is keyed by static hash.
 
-**Pre-flight verification**: confirm Bubble Card 3.2.1 template variable syntax. From cards_reference + Bubble docs: hash + query-string pattern `#light-detail?entity=light.living_room_couch_lamp` is one approach; template `&template ... <<: *template` YAML anchor is another fallback.
+**LOCKED design — Approach C (build-step generation)**:
+
+- **AUTHORING surface**: ONE templated definition in `Dashboard/Tunet/scripts/light_detail_popup_generator.mjs`. Reads a light entity registry → emits N per-light popup blocks at `tunet:deploy:dashboards` time.
+- **RUNTIME surface**: N per-light popup definitions in preview yaml (auto-generated; NOT hand-maintained).
+- **Why this still honors parameterized-reuse**: authoring is single-source; the rendered N-instance YAML is build-product, not maintained code. If a popup-shape change is needed (e.g., add an effect picker), it's one edit in the generator + redeploy.
+
+**Generator pattern**:
+```javascript
+// Dashboard/Tunet/scripts/light_detail_popup_generator.mjs
+const POPUP_TEMPLATE = (entity_id, friendly_name, icon) => `
+- type: custom:bubble-card
+  card_type: pop-up
+  hash: '#light-detail-${entity_id.replace('light.','').replace('_','-')}'
+  popup_mode: adaptive-dialog
+  card_mod: *popup_style  # reuses existing CSS anchor
+  name: ${friendly_name}
+  icon: ${icon}
+  bottom_offset: true
+  cards:
+    - type: tile
+      entity: ${entity_id}
+      features: [{ type: light-brightness }]
+    # ... color/CCT/effect conditional blocks
+`;
+
+// Iterate light registry → emit N popup blocks
+const lights = readLightRegistry();
+const popupYaml = lights.map(l => POPUP_TEMPLATE(l.entity_id, l.friendly_name, l.icon)).join('\n');
+```
+
+**Trigger pattern** (from light tile body-tap per §2.3):
+```yaml
+tap_action:
+  action: navigate
+  navigation_path: '#light-detail-<entity-id-slug>'  # matches generator's hash format
+```
+
+**Light registry source**: ideally L1's eventual entity registry. Until L1 lands, use a hand-maintained `Dashboard/Tunet/scripts/light_registry.mjs` listing the ~20 lights. Refactor to L1-source when L1 ships.
+
+**Fallback (if advisor's POC suggests Bubble does support hash query-strings)**: revisit Approach A. The cost of Approach C is the build step; benefit is reliability + no template-variable-substitution surprises at runtime.
 
 **Popup contents** (rendered against the variable entity_id):
 

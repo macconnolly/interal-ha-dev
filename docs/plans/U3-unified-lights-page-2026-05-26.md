@@ -170,7 +170,7 @@ views:
 
 **Approach C — Code generation** (last resort): a `Dashboard/Tunet/scripts/lights_page_generator.mjs` reads a room registry + emits the lights view YAML block at deploy time. Authoring is single-source; runtime is N instances. Acceptable if A and B aren't viable for our deployment mode.
 
-**Decision** (Mac BLOCKING — verify before Phase 3.1 starts): preview is storage-mode (per registry). Storage mode loads `decluttering-card` from HACS resources — confirm `decluttering-card` is installed OR install it as a pre-req. If yes, Approach A. If no (and we don't want to install), Approach C (code generation at deploy time) — fits the existing `tunet:deploy:dashboards` pipeline cleanly.
+**LOCKED 2026-05-26 post-advisor**: Approach C (build-step generation). Empirical verification via `ha_config_list_dashboard_resources` confirms `decluttering-card` is NOT installed in HA (full resource list earlier in session — only Button-Card, Bubble-Card, mini-graph-card, layout-card, auto-entities, etc.). Installing decluttering-card is possible but adds a HACS dependency for a single use case. Approach C fits the existing `tunet:deploy:dashboards` pipeline naturally — write a `Dashboard/Tunet/scripts/lights_page_generator.mjs` that reads the room registry + emits the lights view YAML block at deploy time.
 
 **Room registry as data**: per the parameterized-reuse principle, define the room list ONCE (e.g. `Dashboard/Tunet/scripts/tunet_rooms_registry.mjs` or a YAML helper) consumed by:
 - rooms-card on Home (currently hand-authored)

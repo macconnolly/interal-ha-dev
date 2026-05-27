@@ -3,6 +3,22 @@
 Working branch: `main`
 Last updated: 2026-05-26
 
+## Session Delta (2026-05-26 evening append — R4 Tier 2/3 captured + pico_link + cosmos theme committed)
+
+NEW ENTRIES (visual_defect_ledger.md "Tranche-Owned Open Backlog"):
+- R4 cosmos CSS audit Tier 2/3 remainder under δ-polish (Tier 1 closed `0401c09`; Tier 2 ~12h tokenization, Tier 3 ~3-4h cosmetic; full ~150-defect sub-agent catalog available to Mac out-of-repo).
+
+CONFIG ADDITIONS (`Configuration/configuration.yaml` + `Configuration/themes/tunet-cosmos.yaml`):
+- `pico_link` HACS integration block — Lutron Office Pico bound to `light.office_lights` (5% step / 100% on / 5% low) + middle-button `light.toggle` on `light.all_adaptive_lights`. Pico device_id is the HA registry UUID, NOT Lutron serial (pico_link's `controller.py` matches `event.data['device_id']`).
+- `tunet-cosmos` theme — `card-mod-root-yaml` with `hui-root$:` shadow piercing hides `.toolbar > sl-tab-group / > ha-tabs / paper-tabs`. Cosmos adopts via `theme: tunet-cosmos` directive.
+
+OPEN AT SESSION END (deltas from earlier evening checkpoint):
+- pico_link physical-button verification (operator only — owns the Pico)
+- cosmos theme browser verification (HA native tabs hidden + navbar-card chrome correct)
+- R4 Tier 2 tokenization pass (next polish tranche, when scheduled)
+
+---
+
 ## Session Delta (2026-05-26, 5 tranches closed + 3 stale-audit memory entries SUPERSEDED + L1 architectural backlog opened)
 
 CLOSED THIS SESSION (commit chronological):

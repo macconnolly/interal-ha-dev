@@ -1,0 +1,23 @@
+# Tunet Cosmos theme — hides HA's native dashboard top tab bar.
+# Mac directive 2026-05-24: "I don't want HA native top tabs".
+# Card-mod root-yaml syntax: keys are CSS selectors with $ for shadow piercing.
+
+tunet-cosmos:
+  card-mod-theme: tunet-cosmos
+
+  # Pierce hui-root shadow to hide the tab bar inside .toolbar.
+  card-mod-root-yaml: |
+    hui-root$: |
+      .toolbar > sl-tab-group,
+      .toolbar > ha-tabs,
+      .toolbar paper-tabs {
+        display: none !important;
+      }
+      .toolbar {
+        min-height: 56px !important;
+        padding-block: 0 !important;
+      }
+    .: |
+      ha-tabs, paper-tabs, sl-tab-group {
+        display: none !important;
+      }

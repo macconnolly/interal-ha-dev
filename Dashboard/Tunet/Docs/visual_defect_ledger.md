@@ -132,6 +132,13 @@ The page-architecture sub-plan at `~/.claude/plans/tunet-page-architecture.md` i
   - `tunet-alarm-card`: `hass` can call `_buildRows()` before a valid `setConfig()` path has initialized `alarms`; normal HA ordering hides this, but the lifecycle edge is not defended
   - Routes into PA04 (Bedroom subview + alarm extras) — these are card-surface defects belonging to the alarm card itself, distinct from the SA3 Bubble Card 3.2 popup retarget which remains a separate composition decision
 
+- `R4 cosmos CSS audit — Tier 2/3 remainder (opened 2026-05-23 sub-agent audit; Tier 1 shipped 2026-05-23 commit 0401c09; Tier 2/3 pending)`
+  - **Tier 1 closed**: 6 blocker defects fixed in `0401c09` (C1 climate "Cools" truncation, S1/S2 status home_summary descender clipping, A1 actions edge-fade, M1 media album-art sub-440px sizing, SG3 speaker meta single-line, R1 rooms row status single-line). Shared `.truncate` / `.truncate-2` utilities added to `tunet_base.js`.
+  - **Tier 2 open (~12h est.)**: tokenization pass in `tunet_base.js` (border-radius scale, font-size scale, gap/padding rhythm, shadow elevation tiers, color palette consolidation) followed by per-card visible refinements driven by the unified token set. Owning surface: cosmos at `/tunet-home-cosmos/home`.
+  - **Tier 3 open (~3-4h est.)**: cosmetic polish across all 16 cards once Tier 2 token set lands — micro-spacing, hover-state harmonization, focus-ring consistency, dark-mode contrast sweep.
+  - **Owning tranche**: folded under δ-polish; cosmos surface and N.1 navbar polish (`e39ca0e`) already landed the most-visible chrome; remaining backlog is below-the-fold quality bar work, not blockers.
+  - **Inputs available**: full ~150-defect catalog from the 2026-05-23 sub-agent audit (Tier 1/2/3 grouped, file paths + suggested fixes per entry) — Mac has the agent transcript; not yet checked into repo.
+
 - `Room light group membership drift (2026-05-26, deferred to light-entity-management architecture tranche)`
   - **Inventory** (verified at `packages/oal_lighting_control_package.yaml:86-132` + cross-references):
     - `light.all_kitchen_lights` (3 lights) — clean

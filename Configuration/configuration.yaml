@@ -161,4 +161,29 @@ api:
 
 frontend:
   themes: !include_dir_merge_named themes
-    
+
+# Pico Link (HACS: smartqasa/pico-link) — Lutron Pico → domain-aware controller.
+# Listens to lutron_caseta_button_event from the Lutron Caseta integration.
+pico_link:
+  defaults:
+    hold_time_ms: 400
+    step_time_ms: 600
+  devices:
+    # Office Pico (Lutron PJ2-3BRL-GXX-X01, Lutron serial 29004455)
+    # HA registry name: "Living Room Office Pico"
+    # device_id below is the HA device registry UUID — NOT the Lutron serial.
+    # pico_link's controller.py matches event.data['device_id'] (HA UUID) ==
+    # conf.device_id; using the Lutron serial here silently no-ops.
+    - device_id: "6be0afe44c67e8fd9d0d3989e89b9704"
+      type: 3BRL
+      lights:
+        - light.office_lights
+      light_step_pct: 5
+      light_on_pct: 100
+      light_low_pct: 5
+      light_transition_on: 0
+      light_transition_off: 0
+      middle_button:
+        - action: light.toggle
+          target:
+            entity_id: light.all_adaptive_lights

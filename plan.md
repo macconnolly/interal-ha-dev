@@ -3,6 +3,18 @@
 Working branch: `main`
 Last updated: 2026-05-26
 
+## Session Delta (2026-05-26 evening append — uncommitted-work disposition + R4 Tier 2/3 captured)
+
+After the L1 governance sync (`d7ce088`), three open items needed durable homes:
+
+- **R4 CSS audit Tier 2/3 backlog** — Tier 1 shipped `0401c09` (2026-05-23: 6 blocker defects). Tier 2 (~12h tokenization in `tunet_base.js`) and Tier 3 (~3-4h cosmetic) captured in `Dashboard/Tunet/Docs/visual_defect_ledger.md` "Tranche-Owned Open Backlog" under δ-polish entry.
+- **Lutron Office Pico** — new HACS `pico_link` integration block in `Configuration/configuration.yaml` wires the Office Pico (HA device UUID `6be0afe44c67e8fd9d0d3989e89b9704`) to `light.office_lights` with 5% step + middle-button toggle of `light.all_adaptive_lights`. Field note: `pico_link`'s `controller.py` matches `event.data['device_id']` (HA registry UUID) — NOT the Lutron serial; using the serial silently no-ops.
+- **Tunet Cosmos theme** — new `Configuration/themes/tunet-cosmos.yaml` hides HA native top tabs via `card-mod-root-yaml` with `hui-root$:` shadow piercing. Cosmos dashboard now references `theme: tunet-cosmos`. Inline top-nav strip retained alongside the N.1 navbar-card per operator choice (redundant chrome, experimental).
+
+Task tracker reconciliation: tasks #51 (B.4 Conditional Inbox — inbox card already has internal empty-state collapse), #56 (C.2 Nav-card — N.1 deployed across all 8 cosmos views), #60 (R3 polish — R3.1 shipped `a4dcd0f`), #62 (R4 CSS — Tier 1 shipped `0401c09`, Tier 2/3 migrated to ledger) all marked complete; tracker now reflects governance reality.
+
+---
+
 ## Session Delta (2026-05-26, 5 tranches shipped + L1 architectural backlog opened)
 
 Five tranches landed on `main` this session:

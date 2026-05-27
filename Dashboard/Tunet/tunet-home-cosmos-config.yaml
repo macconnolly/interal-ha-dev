@@ -35,6 +35,9 @@
 
 title: Tunet Home v2
 icon: mdi:home
+# Theme applies card-mod-root-yaml that hides HA native top tabs
+# (Mac directive 2026-05-24). See Configuration/themes/tunet-cosmos.yaml.
+theme: tunet-cosmos
 views:
 - title: Home
   path: home
@@ -43,6 +46,46 @@ views:
   max_columns: 6
   dense_section_placement: true
   sections:
+  # Top-nav strip — Mac directive: no HA native top tabs.
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-actions-card
+      name: ""
+      compact: true
+      grid_options:
+        columns: full
+      actions:
+      - name: Home
+        icon: home
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/home
+      - name: Rooms
+        icon: meeting_room
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/rooms
+      - name: Media
+        icon: speaker
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/media
+      - name: Stats
+        icon: insights
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/stats
+      - name: Settings
+        icon: settings
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/settings
   - type: grid
     column_span: 4
     cards:
@@ -903,12 +946,53 @@ views:
 # Tiles variant 2x3 grid; tap tile = navigate to room subview.
 # Nav-intent surface (vs Home's row variant which is overview-intent).
 # ════════════════════════════════════════════════════════════════════════════
+    # Navbar (HACS navbar-card) — popup Rooms submenu.
 - title: Rooms
   path: rooms
   icon: mdi:floor-plan
   type: sections
   max_columns: 4
   sections:
+  # Top-nav strip — Mac directive: no HA native top tabs.
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-actions-card
+      name: ""
+      compact: true
+      grid_options:
+        columns: full
+      actions:
+      - name: Home
+        icon: home
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/home
+      - name: Rooms
+        icon: meeting_room
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/rooms
+      - name: Media
+        icon: speaker
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/media
+      - name: Stats
+        icon: insights
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/stats
+      - name: Settings
+        icon: settings
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/settings
   - type: grid
     column_span: 4
     cards:
@@ -970,12 +1054,53 @@ views:
 # Sonos hero + speaker grid + source switcher.
 # Provides destination for #media-living-room popup's Open Media button.
 # ════════════════════════════════════════════════════════════════════════════
+    # Navbar (HACS navbar-card) — popup Rooms submenu.
 - title: Media
   path: media
   icon: mdi:speaker
   type: sections
   max_columns: 4
   sections:
+  # Top-nav strip — Mac directive: no HA native top tabs.
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-actions-card
+      name: ""
+      compact: true
+      grid_options:
+        columns: full
+      actions:
+      - name: Home
+        icon: home
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/home
+      - name: Rooms
+        icon: meeting_room
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/rooms
+      - name: Media
+        icon: speaker
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/media
+      - name: Stats
+        icon: insights
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/stats
+      - name: Settings
+        icon: settings
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/settings
   - type: grid
     column_span: 4
     cards:
@@ -997,6 +1122,7 @@ views:
       grid_options:
         columns: full
         rows: auto
+    # Navbar (HACS navbar-card) — popup Rooms submenu.
 - title: Stats
   path: stats
   icon: mdi:chart-line
@@ -1004,6 +1130,46 @@ views:
   max_columns: 4
   dense_section_placement: true
   sections:
+  # Top-nav strip — Mac directive: no HA native top tabs.
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:tunet-actions-card
+      name: ""
+      compact: true
+      grid_options:
+        columns: full
+      actions:
+      - name: Home
+        icon: home
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/home
+      - name: Rooms
+        icon: meeting_room
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/rooms
+      - name: Media
+        icon: speaker
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/media
+      - name: Stats
+        icon: insights
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/stats
+      - name: Settings
+        icon: settings
+        accent: blue
+        tap_action:
+          action: navigate
+          navigation_path: /tunet-home-cosmos/settings
   - type: grid
     column_span: 4
     cards:
@@ -1262,6 +1428,7 @@ views:
 # Reached from each room popup's "Open Room" button (tap_action navigate).
 # Each subview has back_path → home; subview:true keeps it out of bottom nav.
 # ────────────────────────────────────────────────────────────────────
+    # Navbar (HACS navbar-card) — popup Rooms submenu.
 - title: Living Room
   path: living-room
   icon: mdi:sofa
@@ -1270,6 +1437,46 @@ views:
   max_columns: 4
   back_path: /tunet-home-cosmos/home
   sections:
+    # Top-nav strip — Mac directive: no HA native top tabs.
+    - type: grid
+      column_span: 4
+      cards:
+      - type: custom:tunet-actions-card
+        name: ""
+        compact: true
+        grid_options:
+          columns: full
+        actions:
+        - name: Home
+          icon: home
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/home
+        - name: Rooms
+          icon: meeting_room
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/rooms
+        - name: Media
+          icon: speaker
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/media
+        - name: Stats
+          icon: insights
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/stats
+        - name: Settings
+          icon: settings
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/settings
     # R3 polish: status header — at-a-glance room context.
     - type: grid
       column_span: 4
@@ -1403,6 +1610,7 @@ views:
 # ────────────────────────────────────────────────────────────────────
 # VIEW: KITCHEN SUBVIEW
 # ────────────────────────────────────────────────────────────────────
+    # Navbar (HACS navbar-card) — popup Rooms submenu.
 - title: Kitchen
   path: kitchen
   icon: mdi:silverware
@@ -1411,6 +1619,46 @@ views:
   max_columns: 4
   back_path: /tunet-home-cosmos/home
   sections:
+    # Top-nav strip — Mac directive: no HA native top tabs.
+    - type: grid
+      column_span: 4
+      cards:
+      - type: custom:tunet-actions-card
+        name: ""
+        compact: true
+        grid_options:
+          columns: full
+        actions:
+        - name: Home
+          icon: home
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/home
+        - name: Rooms
+          icon: meeting_room
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/rooms
+        - name: Media
+          icon: speaker
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/media
+        - name: Stats
+          icon: insights
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/stats
+        - name: Settings
+          icon: settings
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/settings
     # R3 polish: status header — at-a-glance room context.
     - type: grid
       column_span: 4
@@ -1518,6 +1766,7 @@ views:
 # ────────────────────────────────────────────────────────────────────
 # VIEW: DINING ROOM SUBVIEW (climate hero — primary thermostat lives here)
 # ────────────────────────────────────────────────────────────────────
+    # Navbar (HACS navbar-card) — popup Rooms submenu.
 - title: Dining Room
   path: dining-room
   icon: mdi:silverware-clean
@@ -1526,6 +1775,46 @@ views:
   max_columns: 4
   back_path: /tunet-home-cosmos/home
   sections:
+    # Top-nav strip — Mac directive: no HA native top tabs.
+    - type: grid
+      column_span: 4
+      cards:
+      - type: custom:tunet-actions-card
+        name: ""
+        compact: true
+        grid_options:
+          columns: full
+        actions:
+        - name: Home
+          icon: home
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/home
+        - name: Rooms
+          icon: meeting_room
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/rooms
+        - name: Media
+          icon: speaker
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/media
+        - name: Stats
+          icon: insights
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/stats
+        - name: Settings
+          icon: settings
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/settings
     # R3 polish: status header — at-a-glance room context.
     - type: grid
       column_span: 4
@@ -1634,6 +1923,7 @@ views:
 # ────────────────────────────────────────────────────────────────────
 # VIEW: BEDROOM SUBVIEW (alarm-card hero — alarm-edit popup target)
 # ────────────────────────────────────────────────────────────────────
+    # Navbar (HACS navbar-card) — popup Rooms submenu.
 - title: Bedroom
   path: bedroom
   icon: mdi:bed
@@ -1642,6 +1932,46 @@ views:
   max_columns: 4
   back_path: /tunet-home-cosmos/home
   sections:
+    # Top-nav strip — Mac directive: no HA native top tabs.
+    - type: grid
+      column_span: 4
+      cards:
+      - type: custom:tunet-actions-card
+        name: ""
+        compact: true
+        grid_options:
+          columns: full
+        actions:
+        - name: Home
+          icon: home
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/home
+        - name: Rooms
+          icon: meeting_room
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/rooms
+        - name: Media
+          icon: speaker
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/media
+        - name: Stats
+          icon: insights
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/stats
+        - name: Settings
+          icon: settings
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/settings
     # R3 polish: status header — at-a-glance room context.
     - type: grid
       column_span: 4
@@ -1774,6 +2104,7 @@ views:
 # ────────────────────────────────────────────────────────────────────
 # VIEW: OFFICE SUBVIEW (sparse — sparse sensor coverage; lighting + occupancy only)
 # ────────────────────────────────────────────────────────────────────
+    # Navbar (HACS navbar-card) — popup Rooms submenu.
 - title: Office
   path: office
   icon: mdi:desktop-tower
@@ -1782,6 +2113,46 @@ views:
   max_columns: 4
   back_path: /tunet-home-cosmos/home
   sections:
+    # Top-nav strip — Mac directive: no HA native top tabs.
+    - type: grid
+      column_span: 4
+      cards:
+      - type: custom:tunet-actions-card
+        name: ""
+        compact: true
+        grid_options:
+          columns: full
+        actions:
+        - name: Home
+          icon: home
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/home
+        - name: Rooms
+          icon: meeting_room
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/rooms
+        - name: Media
+          icon: speaker
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/media
+        - name: Stats
+          icon: insights
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/stats
+        - name: Settings
+          icon: settings
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/settings
     # Office Status header — densify the sparse-sensor room with at-a-glance
     # context. Office only has occupancy + lights aggregate available locally.
     - type: grid
@@ -1879,6 +2250,7 @@ views:
 # VIEW: SETTINGS (FINAL spec §10 — OAL config + alarms + system actions)
 # Reached via header gear icon OR direct URL /tunet-home-cosmos/settings.
 # ────────────────────────────────────────────────────────────────────
+    # Navbar (HACS navbar-card) — popup Rooms submenu.
 - title: Settings
   path: settings
   icon: mdi:cog
@@ -1887,6 +2259,46 @@ views:
   max_columns: 4
   back_path: /tunet-home-cosmos/home
   sections:
+    # Top-nav strip — Mac directive: no HA native top tabs.
+    - type: grid
+      column_span: 4
+      cards:
+      - type: custom:tunet-actions-card
+        name: ""
+        compact: true
+        grid_options:
+          columns: full
+        actions:
+        - name: Home
+          icon: home
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/home
+        - name: Rooms
+          icon: meeting_room
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/rooms
+        - name: Media
+          icon: speaker
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/media
+        - name: Stats
+          icon: insights
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/stats
+        - name: Settings
+          icon: settings
+          accent: blue
+          tap_action:
+            action: navigate
+            navigation_path: /tunet-home-cosmos/settings
     - type: grid
       column_span: 4
       cards:
@@ -1990,3 +2402,5 @@ views:
               format: state
     # R3 polish: developer markdown reference dropped — not user-facing.
     # System info accessible via HA Developer Tools / Settings.
+
+    # Navbar (HACS navbar-card) — popup Rooms submenu.

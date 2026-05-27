@@ -221,6 +221,25 @@ All tranches: M1-M7 contract per CLAUDE.md "Pre-Commit User-Perspective Review (
 
 ---
 
+## 7.5. Architectural Principle — Parameterized Reuse Over Duplication (Mac directive 2026-05-26)
+
+Established 2026-05-26 evening after I proposed 12-16 raw scripts for U.1 G10 (per-room/per-scene scripts). Mac flagged: *"if we have a repeatable use case we would want one script that takes parameters that will accomplish what we're trying to do."*
+
+**Rule**: when N instances of a similar pattern are about to ship, design for ONE parameterized primitive + N thin invocations. See `~/.claude/projects/-home-mac-HA-implementation-10/memory/feedback_parameterized_reuse.md` for the durable rule.
+
+**Applied to U.1/U.2/U.3**:
+- **U.1 §G10**: 1 parameterized `script.tunet_apply_room_scene` + scene registry (NOT 12-16 per-room scripts)
+- **U.1 §G1-G5**: popup chips call shared script with scene_id param (NOT chip-specific scripts)
+- **U.2 §2.2**: 1 templated `#light-detail` Bubble popup with entity_id variable (NOT N per-light popups)
+- **U.3 §3.1**: decluttering-card OR YAML anchor OR code-generation for per-room sections (NOT 5 hand-duplicated room blocks)
+- **U.3 room registry**: SINGLE source of truth for rooms list consumed by rooms-card + popups + subviews + Lights page
+
+**L1 alignment**: L1 Option B+ (areas + labels as registry-driven groups) is the same principle applied to room-group membership. Reinforces L1 over manual cleanup options.
+
+**When to break the rule**: instances diverge in important ways that aren't expressible as parameters; templating layer doesn't support the needed variable; debug cost of templating > duplication cost. Surface the divergence explicitly rather than silently shipping copies.
+
+---
+
 ## 8. What This Plan Does NOT Solve
 
 Listed explicitly to prevent scope creep AND to surface known-unaddressed-edges to future agents:

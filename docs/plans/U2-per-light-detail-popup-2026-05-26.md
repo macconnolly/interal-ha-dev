@@ -43,19 +43,42 @@ Changing the tile interaction model affects every consumer. Per global CLAUDE.md
 
 Rationale per genesis R1 (Apple HIG): tap-on-icon = primary action (toggle), tap-on-name/body = open detail sheet. Hold remains brightness drag for power-user continuous control.
 
-### 2.2 The new `#light-detail-<entity>` popup
+### 2.2 The new `#light-detail` popup (PARAMETERIZED per Mac 2026-05-26 DRY directive)
 
-Bubble Card 3.2.1 popup template that renders for any light entity. Contents (per genesis spec + native HA more-info pattern):
+**Implementation lock**: ONE Bubble Card 3.2.1 popup template named `#light-detail`, with `entity_id` as a template variable. NOT N per-light popups. Per `feedback_parameterized_reuse.md`: when N instances differ only in entity_id, parameterize.
 
-- Header: light name + icon + ✕ close
-- Large light tile (the existing `tunet-light-tile` in expanded mode, OR HA's native `light` more-info card)
-- Brightness slider (full-width, continuous)
-- Color picker (HA-native or `simple-thermostat`-style or `lovelace-mushroom`-style — investigate which renders best in popup)
-- Color temperature slider (Kelvin range from entity attributes)
-- Effect picker (if light supports effects, from `effect_list` attribute)
-- Quick scenes for this light (room-scoped scenes that affect this light, optional)
+**Pre-flight verification**: confirm Bubble Card 3.2.1 template variable syntax. From cards_reference + Bubble docs: hash + query-string pattern `#light-detail?entity=light.living_room_couch_lamp` is one approach; template `&template ... <<: *template` YAML anchor is another fallback.
 
-**Implementation choice**: build a `#light-detail` Bubble popup template that takes the entity_id as a variable, OR one popup per light. Variable-templated is cleaner but Bubble 3.2.1 capability needs verification.
+**Popup contents** (rendered against the variable entity_id):
+
+- Header: `{{ states[entity_id].attributes.friendly_name }}` + icon (from entity attrs) + ✕ close
+- Large light control card (one of: HA-native `more-info` card, `lovelace-mushroom-light-card`, custom Tunet expanded tile). Same primitive across all entity_ids — choice is single, not per-light.
+- Brightness slider (full-width, bound to `entity_id`)
+- Color picker (only renders if entity supports `color_mode in ['hs', 'rgb', 'xy']` — Jinja conditional on attributes)
+- CCT slider (only renders if entity supports `color_temp` — Jinja conditional)
+- Effect picker (only if `effect_list` attribute non-empty)
+- Optional: scenes-for-this-light section (calls `script.tunet_apply_room_scene` with relevant scene_id)
+
+**Trigger pattern** (from light tile body-tap per §2.3):
+```yaml
+tap_action:
+  action: fire-dom-event
+  browser_mod:
+    service: browser_mod.navigate
+    data:
+      path: '#light-detail'
+      # entity_id passed via URL query OR via Bubble's variable mechanism
+```
+
+OR if Bubble doesn't support URL-variable on hash popups, fallback to:
+```yaml
+tap_action:
+  action: navigate
+  navigation_path: '#light-detail-<entity_id-slug>'
+```
+WITH the popup definition using a Jinja registry that maps slug → entity_id. Still ONE popup definition; N entries in a slug-registry. Less elegant than true template variable but still meets the reuse rule.
+
+**Fallback (last resort, only if Bubble template vars truly don't work)**: N per-light popup definitions, generated from a template via a build step (e.g., a `tunet_light_detail_popups_generator.mjs` that reads the light entity list and emits N popup blocks into preview yaml). This keeps the AUTHORING surface single-source but compiles to N runtime instances. Avoid if possible.
 
 ### 2.3 Icon-vs-body region split — implementation in `tunet_light_tile.js`
 

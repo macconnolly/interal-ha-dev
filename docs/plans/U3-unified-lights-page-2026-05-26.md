@@ -122,9 +122,65 @@ Recommendation: defer Lights page implementation until L1 resolves the room-grou
 
 Mac picks Option A / B / C per §2.1. Confirm 5-tab navbar acceptable. Confirm Lights tab position (after Rooms vs after Media).
 
-### Phase 3.1 — Lights page YAML composition (~2-3h, depends on Phase 3.0)
+### Phase 3.1 — Lights page YAML composition (~2-3h, depends on Phase 3.0) (PARAMETERIZED per Mac 2026-05-26 DRY directive)
 
-Build the new `/tunet-home-preview/lights` view per chosen layout. Use existing `tunet-lighting-card` instances per room (Option A). M1 capture at 4 breakpoints.
+Build the new `/tunet-home-preview/lights` view. **Reuse pattern (Option A)**: use a single decluttering-card template OR YAML anchor for the per-room section, parameterized by `room_id`. Avoid hand-duplicating 5 near-identical `tunet-lighting-card` blocks.
+
+**Approach A — `decluttering-card` HACS card**:
+```yaml
+# Template definition (once, in shared location)
+decluttering_templates:
+  lights_room_section:
+    card:
+      type: vertical-stack
+      cards:
+        - type: heading
+          heading: '[[room_name]]'
+        - type: custom:tunet-lighting-card
+          name: '[[room_name]] Lights'
+          zones: '[[zones]]'
+          # ... other config
+
+# Instances in /lights view (thin)
+- type: custom:decluttering-card
+  template: lights_room_section
+  variables:
+    room_name: Living Room
+    zones: [...]
+- type: custom:decluttering-card
+  template: lights_room_section
+  variables:
+    room_name: Kitchen
+    zones: [...]
+```
+
+**Approach B — YAML anchors + merge** (Lovelace-storage compatibility limited; works for YAML-mode dashboards):
+```yaml
+.lights_section_template: &lights_section
+  type: vertical-stack
+  cards: [...]
+
+views:
+- sections:
+  - cards:
+    - <<: *lights_section
+      name: Living Room
+      zones: [...]
+```
+
+**Approach C — Code generation** (last resort): a `Dashboard/Tunet/scripts/lights_page_generator.mjs` reads a room registry + emits the lights view YAML block at deploy time. Authoring is single-source; runtime is N instances. Acceptable if A and B aren't viable for our deployment mode.
+
+**Decision** (Mac BLOCKING — verify before Phase 3.1 starts): preview is storage-mode (per registry). Storage mode loads `decluttering-card` from HACS resources — confirm `decluttering-card` is installed OR install it as a pre-req. If yes, Approach A. If no (and we don't want to install), Approach C (code generation at deploy time) — fits the existing `tunet:deploy:dashboards` pipeline cleanly.
+
+**Room registry as data**: per the parameterized-reuse principle, define the room list ONCE (e.g. `Dashboard/Tunet/scripts/tunet_rooms_registry.mjs` or a YAML helper) consumed by:
+- rooms-card on Home (currently hand-authored)
+- Lights page (Phase 3.1)
+- Per-room subviews (currently hand-authored — could refactor later)
+- Per-room popups (currently hand-authored — could refactor later)
+
+Refactoring rooms-card + popups + subviews to consume the registry is OUT OF SCOPE for U.3 (would balloon scope) but the registry's existence enables future consolidation. L1 may also touch this — coordinate.
+
+M1 capture at 4 breakpoints after composition.
 
 ### Phase 3.2 — Navbar 5th tab insertion (~30 min, depends on Phase 3.1)
 

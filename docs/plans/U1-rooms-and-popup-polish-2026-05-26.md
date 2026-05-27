@@ -126,16 +126,35 @@ Investigate `tunet_rooms_card.js` to find current chevron click handler (likely 
 
 ### 2.6 — D7 (broadened) Genesis-vs-preview gap closeout (G1-G11)
 
-#### G1-G5 — Popup quick-action scene chips
+#### G1-G5 — Popup quick-action scene chips (REVISED per Mac 2026-05-26 DRY directive)
 
-Replace generic `[Open Room] [All Off] [All On]` rows with per-room scene chips per genesis §6. NEW scene scripts owned by `packages/oal_lighting_control_package.yaml` (or new `packages/tunet_room_scenes.yaml`):
-- `script.scene_living_evening`, `script.scene_living_off`, `script.scene_living_full_bright`
-- `script.scene_kitchen_cook`, `script.scene_kitchen_counter_only`, `script.scene_kitchen_off`
-- `script.scene_dining_dinner`, `script.scene_dining_off`
-- `script.scene_bedroom_sleep`, `script.scene_bedroom_bedside_only`, `script.scene_bedroom_off`
-- `script.scene_office_focus`, `script.scene_office_off`
+Replace generic `[Open Room] [All Off] [All On]` rows with per-room scene chips per genesis §6.
 
-Mac decision (BLOCKING for G1-G5 implementation): exact per-zone brightness/color values per scene. Some overlap with OAL Evening mode (`6caad51`). Defer specific scene composition to a follow-on tranche if scope blows.
+**Implementation pattern** (parameterized — see G10): each chip's `tap_action` calls the shared `script.tunet_apply_room_scene` with the appropriate `scene_id`:
+
+```yaml
+- type: custom:mushroom-template-card
+  primary: Evening
+  icon: mdi:weather-night
+  tap_action:
+    action: call-service
+    service: script.tunet_apply_room_scene
+    data:
+      scene_id: living-evening
+```
+
+Repeat per room with different `scene_id` per chip. NO per-room scripts; the chip is pure data binding to the parameterized primitive.
+
+**Per-room chip set** (chip label → scene_id):
+- Living: Evening → `living-evening`, Off → `living-off`, Full Bright → `living-full-bright`, "Open Room" (navigate)
+- Kitchen: Cook Mode → `kitchen-cook`, Counter Only → `kitchen-counter-only`, Off → `kitchen-off`
+- Dining: Dinner Mode → `dining-dinner`, Off → `dining-off`
+- Bedroom: Sleep → `bedroom-sleep`, Bedside Only → `bedroom-bedside-only`, Off → `bedroom-off`
+- Office: Focus → `office-focus`, Off → `office-off`
+
+**Mac BLOCKING decisions**:
+- Exact per-zone brightness/color values per scene (deferred to scene-composition tranche OR Mac authors inline in scene registry)
+- Whether "Off" scenes should be parameterized OR call `homeassistant.turn_off` on the room's `light.all_<room>_lights` group (faster, no script needed; trade-off: doesn't write to registry as a "scene")
 
 #### G4 — Bedroom popup alarms + speaker (overlaps D4.B-*)
 
@@ -161,12 +180,43 @@ Already has climate hero. Add Temperature + Humidity below climate; add Dinner M
 
 Add Focus chip; optionally retain All On / All Off as utility chips.
 
-#### G10 — Room-scoped scene scripts (NEW backend work)
+#### G10 — Parameterized room-scoped scene script + scene registry (REVISED per Mac 2026-05-26 DRY directive)
 
-Per genesis §10: each room gets dedicated scene scripts triggered by chips. These are NEW automations/scripts:
-- 5 rooms × 2-4 scenes each ≈ 12-16 new scripts
-- Scope decision (Mac BLOCKING): create all 16 in one tranche, or just create the chips that map to existing automations + flag the missing ones?
-- Risk: scene script composition is non-trivial UX (what does "Evening" actually do for Living Room — same as global Evening mode? Different per-zone tuning?)
+**Original (rejected)**: 12-16 individual `script.scene_<room>_<scene>` scripts hand-maintained per room/scene combination.
+
+**Revised (parameterized reuse, per `feedback_parameterized_reuse.md`)**:
+
+- **ONE generic primitive**: `script.tunet_apply_room_scene` — takes `scene_id` (and optionally `transition_seconds`) as `fields:` params; uses internal `choose:` block (or template-driven lookup) to dispatch to the right zone-level commands.
+- **Scene registry as DATA**: `input_text.tunet_room_scenes` containing JSON-shaped scene definitions OR a dedicated `packages/tunet_room_scenes.yaml` with structured scene-config data (NOT scripts) — e.g.:
+  ```yaml
+  tunet_room_scenes:
+    living-evening:
+      lights:
+        - { entity: light.living_room_couch_lamp, brightness_pct: 30, color_temp_kelvin: 2200 }
+        - { entity: light.living_room_floor_lamp, brightness_pct: 25, color_temp_kelvin: 2200 }
+        # ... etc
+    living-off:
+      lights:
+        - { entity: light.all_living_room_lights, state: off }
+    kitchen-cook:
+      lights:
+        - { entity: light.kitchen_island_pendants, brightness_pct: 100, color_temp_kelvin: 4000 }
+        # ... etc
+  ```
+- **Chip wiring**: every popup chip calls `script.tunet_apply_room_scene` with `data: { scene_id: "<room>-<scene>" }`. ONE service, many invocations, ZERO per-room script proliferation.
+- **Optional thin shim scripts**: ONLY for consumers that need a no-arg service entry point (ZEN32 button bindings, voice assistant intent mapping). E.g. `script.living_evening` is a 3-line shim: `service: script.tunet_apply_room_scene, data: { scene_id: living-evening }`. Skip these if no such consumer needs them.
+
+**Benefits**:
+- Adding a new scene = 1 entry in scene registry, ZERO new scripts
+- Renaming an entity = update once in registry, all scenes that touch it inherit
+- Easy to audit "what does Evening do across all rooms?" — read registry; vs grepping 5 scripts
+- L1 alignment: scene registry references entities by ID; when L1 lands group rationalization, the registry consumes the new groups cleanly
+
+**Mac BLOCKING decisions**:
+- Scene registry storage: `input_text` JSON (HA-native, queryable from Lovelace) OR YAML package (simpler to author, no JSON-in-YAML escaping) OR both (YAML as source-of-truth, optional input_text mirror for Lovelace consumption)
+- Per-scene specifics: actual zone/brightness/color values per scene — defer to a follow-on scene-composition tranche, OR Mac authors values inline now
+
+**Risk**: parameterization layer requires template robustness. Template error in `script.tunet_apply_room_scene` cascades to ALL scene invocations. Mitigation: extensive `template_error` handling + unit-test the script's choose block.
 
 #### G11 — Filtered speaker grid in subviews
 

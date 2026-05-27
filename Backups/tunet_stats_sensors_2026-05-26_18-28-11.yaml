@@ -1,0 +1,188 @@
+# =============================================================================
+# TUNET STATS SENSORS — Heating/cooling/electricity tracking for Stats page
+# =============================================================================
+# Plan §9 of docs/plans/tunet-home-v2-interaction-spec-2026-05-23.md.
+# Mac authorized 2026-05-23: "Any sensors that we don't have you can create them."
+#
+# Provides:
+#   sensor.outside_temperature           — weather.home.temperature as numeric
+#   sensor.hvac_heating_yesterday        — yesterday window for heating min
+#   sensor.hvac_cooling_yesterday        — yesterday window for cooling min
+#   sensor.hvac_cycle_count_today        — HVAC on/off transitions today
+#   sensor.living_room_lights_yesterday  — LR dimmer kWh yesterday
+#   sensor.master_lights_yesterday       — master dimmer kWh yesterday
+#   binary_sensor.bedroom_sonos_healthy  — true when bedroom Sonos online >5min
+#
+# Plus utility_meter helpers for daily/weekly/monthly rollups on existing
+# energy + HVAC runtime sensors.
+# =============================================================================
+
+# ───── Template sensors ─────────────────────────────────────────────────
+template:
+  - sensor:
+      # Outside temperature as a graphable numeric sensor.
+      # weather.home is a weather entity, not directly graphable in the
+      # Statistics card; wrap the temperature attribute as a sensor.
+      - name: "Outside Temperature"
+        unique_id: "tunet_outside_temperature"
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {% set t = state_attr('weather.home', 'temperature') %}
+          {% if t is none %}unknown{% else %}{{ t | float(none) }}{% endif %}
+
+      # HVAC cycle count today: number of off→on transitions on the running
+      # binary sensor. Used in Stats page to show "Cycles today: 3."
+      # Counter increments on the off→on edge; resets via automation at midnight.
+      - name: "HVAC Cycle Count Today"
+        unique_id: "tunet_hvac_cycle_count_today"
+        icon: mdi:repeat
+        state: >
+          {{ states('counter.tunet_hvac_cycles_today') | int(0) }}
+
+      # S.1a — yesterday lights snapshots. Pulls last_period from existing
+      # daily utility_meters. state_class deliberately omitted (per v2
+      # adversarial review M2): yesterday is a daily snapshot, not a
+      # continuous signal — matches existing hvac_*_yesterday_hours pattern.
+      - name: "Living Room Lights Yesterday"
+        unique_id: "tunet_living_room_lights_yesterday"
+        icon: mdi:lamp
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state: >
+          {{ state_attr('sensor.living_room_lights_daily', 'last_period') | float(0) | round(2) }}
+
+      - name: "Master Lights Yesterday"
+        unique_id: "tunet_master_lights_yesterday"
+        icon: mdi:lamp
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state: >
+          {{ state_attr('sensor.master_lights_daily', 'last_period') | float(0) | round(2) }}
+
+  - binary_sensor:
+      # Bedroom Sonos health monitor — flips to "off" when bedroom Sonos
+      # has been unavailable for >5 min. Plan §8 fix for the documented
+      # Play:3 silent-fire pattern. Dashboard surfaces this as a "Speaker
+      # offline" badge in #room-bedroom popup.
+      - name: "Bedroom Sonos Healthy"
+        unique_id: "tunet_bedroom_sonos_healthy"
+        device_class: connectivity
+        delay_off:
+          minutes: 5
+        state: >
+          {{ not is_state('media_player.bedroom', 'unavailable') }}
+
+# ───── Counter for HVAC cycle tracking ──────────────────────────────────
+counter:
+  tunet_hvac_cycles_today:
+    name: "HVAC Cycles Today"
+    initial: 0
+    step: 1
+    restore: true
+    icon: mdi:repeat
+
+# ───── Automation: count HVAC cycles + nightly reset ────────────────────
+automation:
+  - alias: "Tunet — Increment HVAC Cycle Counter"
+    id: tunet_hvac_cycle_increment
+    description: "Increments counter.tunet_hvac_cycles_today on every off→on transition of binary_sensor.hvac_running."
+    mode: queued
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.hvac_running
+        from: "off"
+        to: "on"
+    action:
+      - service: counter.increment
+        target:
+          entity_id: counter.tunet_hvac_cycles_today
+
+  - alias: "Tunet — Reset HVAC Cycle Counter at Midnight"
+    id: tunet_hvac_cycle_reset_midnight
+    description: "Resets counter.tunet_hvac_cycles_today to 0 at 00:00 daily."
+    mode: single
+    trigger:
+      - platform: time
+        at: "00:00:00"
+    action:
+      - service: counter.reset
+        target:
+          entity_id: counter.tunet_hvac_cycles_today
+
+# ───── History-stats: yesterday windows ─────────────────────────────────
+sensor:
+  - platform: history_stats
+    name: "HVAC Heating Yesterday Hours"
+    unique_id: "tunet_hvac_heating_yesterday_hours"
+    entity_id: binary_sensor.hvac_heating_active
+    state: "on"
+    type: time
+    end: "{{ today_at('00:00') }}"
+    duration:
+      hours: 24
+
+  - platform: history_stats
+    name: "HVAC Cooling Yesterday Hours"
+    unique_id: "tunet_hvac_cooling_yesterday_hours"
+    entity_id: binary_sensor.hvac_cooling_active
+    state: "on"
+    type: time
+    end: "{{ today_at('00:00') }}"
+    duration:
+      hours: 24
+
+# ───── Utility-meter helpers: daily/weekly/monthly rollups ──────────────
+utility_meter:
+  living_room_lights_daily:
+    source: sensor.living_room_presence_dimmer_energy
+    cycle: daily
+    name: "Living Room Lights Daily"
+
+  living_room_lights_monthly:
+    source: sensor.living_room_presence_dimmer_energy
+    cycle: monthly
+    name: "Living Room Lights Monthly"
+
+  master_lights_daily:
+    source: sensor.master_presence_energy
+    cycle: daily
+    name: "Master Lights Daily"
+
+  master_lights_monthly:
+    source: sensor.master_presence_energy
+    cycle: monthly
+    name: "Master Lights Monthly"
+
+  # S.1a — daily HVAC utility meters. Existing weekly/monthly rollups
+  # don't cover the daily granularity the Stats page needs.
+  hvac_heating_minutes_daily:
+    source: sensor.hvac_heating_minutes_today
+    cycle: daily
+    name: "HVAC Heating Minutes Daily"
+
+  hvac_cooling_minutes_daily:
+    source: sensor.hvac_cooling_minutes_today
+    cycle: daily
+    name: "HVAC Cooling Minutes Daily"
+
+  hvac_heating_minutes_weekly:
+    source: sensor.hvac_heating_minutes_today
+    cycle: weekly
+    name: "HVAC Heating Minutes Weekly"
+
+  hvac_cooling_minutes_weekly:
+    source: sensor.hvac_cooling_minutes_today
+    cycle: weekly
+    name: "HVAC Cooling Minutes Weekly"
+
+  hvac_heating_minutes_monthly:
+    source: sensor.hvac_heating_minutes_today
+    cycle: monthly
+    name: "HVAC Heating Minutes Monthly"
+
+  hvac_cooling_minutes_monthly:
+    source: sensor.hvac_cooling_minutes_today
+    cycle: monthly
+    name: "HVAC Cooling Minutes Monthly"

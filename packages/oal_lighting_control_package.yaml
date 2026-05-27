@@ -941,7 +941,10 @@ adaptive_lighting:
     adapt_delay: 0
     include_config_in_attributes: true
     autoreset_control_seconds: 14400
-    min_brightness: 30
+    # SYNC: comfort_min_b in engine routing block (line ~1181) AND engine
+    # variables block (line ~1743/1759/1763/1765). All four must match
+    # or change_switch_settings overrides YAML every 15s.
+    min_brightness: 60                     # bedroom floor — bumped 30→60 (Mac 2026-05-26)
     max_brightness: 100                    # User pref 2026-05-23: full daytime brightness ceiling
     min_color_temp: 2000                   # warmest Tuya CCT (driver quirk turns this neutral-white but acceptable for day)
     max_color_temp: 2700                   # daytime ceiling — color path is fallback only (HS amber owns evening color via warm-pin automation)
@@ -1178,7 +1181,7 @@ automation:
         # Color owned by oal_office_bed_color_window_v13 — engine handles brightness only here.
         - entity_id: switch.adaptive_lighting_office_bed
           id: office_bed
-          comfort_min_b: 30               # SYNC: AL min_brightness
+          comfort_min_b: 60               # SYNC: AL min_brightness (bumped 30→60 Mac 2026-05-26)
           comfort_max_b: 100              # SYNC: AL max_brightness (Mac pref 100% daytime ceiling)
           min_k: 2000                     # SYNC: AL min_color_temp (warmest Tuya CCT)
           max_k: 2000                     # SYNC: AL max_color_temp (same)
@@ -1734,13 +1737,16 @@ automation:
                   transition: "{{ transition_speed }}"
 
           # ========== OFFICE BED (Brightness only; color owned by sun-aware automation) ==========
-          # SYNC: min_k / max_k MUST match YAML office_bed min_color_temp / max_color_temp
-          # at line ~928. CCT 2000-2700K is the fallback range only; the
-          # warm-pin automation owns runtime color via HS override
-          # (manual_control: "color" per-attribute lock).
+          # SYNC: comfort_min_b + auto_min_raw + auto_min_clamped MUST match
+          # YAML office_bed min_brightness (line ~944) AND engine routing
+          # config (line ~1181). All four sources change in lockstep.
+          # min_k / max_k MUST match YAML office_bed min/max_color_temp.
+          # CCT 2000-2700K is the fallback range only; the warm-pin automation
+          # owns runtime color via HS override (manual_control: "color" per-
+          # attribute lock).
           - sequence:
               - variables:
-                  comfort_min_b: 30
+                  comfort_min_b: 60                 # bumped 30→60 (Mac 2026-05-26)
                   comfort_max_b: 100              # SYNC: AL office_bed max_brightness
                   env_sensitivity: 0.5
                   night_sensitivity: 0.0
@@ -1756,13 +1762,13 @@ automation:
                   auto_offset_b: >
                     {{ base_config_b + (env_with_sunset_capped * 0.5) + night_with_sensitivity }}
 
-                  auto_min_raw: "{{ 30 + auto_offset_b }}"
+                  auto_min_raw: "{{ 60 + auto_offset_b }}"
                   auto_max_raw: "{{ 100 + auto_offset_b }}"
 
                   auto_min_clamped: >
-                    {{ [30, [100, auto_min_raw] | min] | max }}
+                    {{ [60, [100, auto_min_raw] | min] | max }}
                   auto_max_clamped: >
-                    {{ [30, [100, auto_max_raw] | min] | max }}
+                    {{ [60, [100, auto_max_raw] | min] | max }}
 
                   manual_offset_b: >
                     {{ states('input_number.oal_manual_offset_office_bed_brightness') | float(0) }}
